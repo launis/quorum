@@ -40,7 +40,7 @@ class FalsificationDomainTransformer(BaseTransformer):
         # STRICT VALIDATION: FalsifierOutput
         try:
             if "falsifier_data" in step:
-                 model = FalsifierOutput(**self._adapt_legacy_trace(step["falsifier_data"]))
+                 model = FalsifierOutput(**self._adapt_legacy_trace(step))
             else:
                 # Wrap inner data
                 if "falsifier_data" not in step and "stress_test_findings" in step:
@@ -57,14 +57,29 @@ class FalsificationDomainTransformer(BaseTransformer):
                      model = FalsifierOutput(**self._adapt_legacy_trace(step))
 
         except ValidationError as e:
-            # BFF Resilience: Graceful Fallback (Part 3.6 / 15.1)
-            error_code = "FALSIFIER_VALIDATION_FAILED"
-            logger.warning(f"{error_code}: Falsifier validation failed, skipping section. Details: {e}")
-            return None
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Falsifier validation failed: {e}", exc_info=True)
+            raise AppException(
+                message=f"Falsifier validation failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
+            ) from e
         except Exception as e:
-            error_code = "FALSIFIER_VALIDATION_FAILED"
-            logger.warning(f"{error_code}: Falsifier processing failed, skipping section. Details: {e}")
-            return None
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Falsifier transform failed: {e}", exc_info=True)
+            raise AppException(
+                message=f"Falsifier transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
+            ) from e
 
         try:
             display_model = self._transform_falsifier_data(model)

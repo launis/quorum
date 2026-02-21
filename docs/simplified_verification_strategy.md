@@ -46,6 +46,7 @@ We use `pytest` with a "Service-First" approach. We instantiate Services directl
 *   **Pattern**: Dependency Injection with `MagicMock`.
 *   **Fail-Fast Validation**: Tests must assert that `AppException` (RFC 7807) is raised for invalid inputs.
 *   **DTO Verification**: Tests must verify that Agents return strict DTOs (e.g., `PanelOutputDTO`) which are then promoted to Domain Models (e.g., `PanelOutput`) by the Engine.
+*   **Output Generation (SDUI/PDF) Verification**: Tests must verify that the `ReportCoreTransformer` strictly rejects legacy/corrupted data that fails schema validation (avoiding fallback data presentation).
 *   **Location**: `backend/tests/`
 *   **Command**: `uv run pytest`
 
@@ -62,6 +63,18 @@ def test_security_hook_fail_fast():
     
     assert exc.value.status_code == 500
     assert exc.value.details["error_code"] == ErrorCodes.SECURITY_DB_ERROR
+
+def test_sdui_output_validation_rejects_legacy_data():
+    # 1. Provide an ExecutionRecord missing strict DTO fields (e.g., PerformativityOutput)
+    broken_execution = build_legacy_execution_missing_fields()
+    
+    # 2. Action & Assert
+    with pytest.raises(AppException) as exc:
+        # Zero-Fallback: SDUI transformation must crash instead of rendering "Ei perusteluja"
+        ReportCoreTransformer().transform(broken_execution)
+        
+    assert exc.value.status_code == 500
+    assert "validation errors" in str(exc.value.details.get("original_error", ""))
 ```
 
 ### Frontend (Flutter)

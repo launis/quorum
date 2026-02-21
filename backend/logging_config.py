@@ -58,7 +58,7 @@ def configure_logfire():
         return
 
     try:
-        logfire.configure()
+        logfire.configure(send_to_logfire=False) # We attach the handler manually later
         # Reduce console noise: Pydantic instrumentation is too verbose for local dev
         # logfire.instrument_pydantic()
     except Exception as e:
@@ -140,6 +140,15 @@ def setup_logging(log_level=logging.INFO):
 
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
+
+    if logfire and _LOGFIRE_CONFIGURED:
+        try:
+            logfire_handler = logfire.LogfireLoggingHandler()
+            logfire_handler.setFormatter(formatter)
+            logfire_handler.addFilter(context_filter)
+            root_logger.addHandler(logfire_handler)
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Failed to attach Logfire handler: {e}")
 
     # Set external libraries to warning to reduce noise
     # Configure uvicorn to use our format (propagate to root handler)

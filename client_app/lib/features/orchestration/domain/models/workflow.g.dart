@@ -8,13 +8,13 @@ part of 'workflow.dart';
 
 _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => _Workflow(
   id: json['id'] as String,
-  name: json['name'] as String,
+  name: json['name'] as String? ?? 'Unnamed Workflow',
   description: json['description'] as String? ?? '',
   steps:
       (json['steps'] as List<dynamic>?)
           ?.map((e) => WorkflowStep.fromJson(e as Map<String, dynamic>))
           .toList() ??
-      const [],
+      [],
   organizationId: json['organization_id'] as String?,
   isPublic: json['is_public'] as bool? ?? false,
   uiSchema: json['ui_schema'] as Map<String, dynamic>?,

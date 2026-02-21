@@ -71,29 +71,21 @@ async def test_extract_text_success_text():
 @pytest.mark.asyncio
 async def test_extract_concepts_success():
     # Setup Mocks
-    mock_registry.resolve_model_config = AsyncMock(return_value={"provider": "google", "model_name": "gemini-1.5-flash"})
+    from backend.models.llm import LLMProviderConfig
+    mock_registry.resolve_model_config = AsyncMock(return_value=LLMProviderConfig(id="test/google", provider="google", model_name="gemini-1.5-flash", tpm_limit=1000, rpm_limit=100))
     
-    # We need to mock the KnowledgeBaseService instantiated inside the route.
-    # Since it's instantiated directly, we might need to mock the LLMFactory or the service class itself.
-    # This is a limitation of the current route design (no factory injection for KBService).
-    # We will accept a 500 error here IF it's due to LLM networking, OR we patch the service.
+    from backend.dependencies import get_knowledge_base_service_dep
+    from backend.main import app
     
-    with pytest.MonkeyPatch.context() as mp:
-        mock_kb_service = AsyncMock()
-        mock_kb_service.extract_concepts_with_llm.return_value = ["Concept A", "Concept B"]
-        
-        # Patch the class in the router module
-        # Note: We must patch where it is IMPORTED
-        # The router does: from backend.services.knowledge_base_service import KnowledgeBaseService
-        # So we patch backend.services.knowledge_base_service.KnowledgeBaseService
-        mp.setattr("backend.services.knowledge_base_service.KnowledgeBaseService", MagicMock(return_value=mock_kb_service))
-        
-        # We also need to mock LLMFactory because it's used before KBService
-        mock_provider = MagicMock()
-        mp.setattr("backend.llm.provider.LLMFactory.create_provider", MagicMock(return_value=mock_provider))
-
+    mock_kb_service = AsyncMock()
+    mock_kb_service.extract_concepts_with_llm.return_value = ["Concept A", "Concept B"]
+    
+    app.dependency_overrides[get_knowledge_base_service_dep] = lambda: mock_kb_service
+    try:
         response = client.post("/tools/extract-concepts", data={"text": "Hello Concept"})
         
         assert response.status_code == 200
         assert response.json()["concepts"] == ["Concept A", "Concept B"]
+    finally:
+        app.dependency_overrides.pop(get_knowledge_base_service_dep, None)
 

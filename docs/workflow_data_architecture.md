@@ -49,6 +49,22 @@ graph TD
     Coach[Step 6: Coach Agent]
     XAI[Step 7: XAI Reporter]
     
+    %% Output Generation Pipeline
+    subgraph "Phase 3: Output Generation"
+        FlatAPI[API: /flat]
+        Transformer{ReportCoreTransformer}
+        UI_API[API: /report-view]
+        PDF_API[API: /pdf]
+        
+        XAI -->|Flat DTO| FlatAPI
+        XAI -->|Raw Context| Transformer
+        StateLogician -.->|Specialist Data| Transformer
+        StateFalsifier -.->|Specialist Data| Transformer
+        StateProfiler -.->|Specialist Data| Transformer
+        Transformer -->|SDUI JSON| UI_API
+        Transformer -->|SDUI JSON + Charts| PDF_API
+    end
+    
     %% Flows
     UserInput -->|Raw Strings| Guard
     Guard -->|SafeData| Context
@@ -67,7 +83,6 @@ graph TD
     
     JudgeStandard -->|Verdict| Coach
     Coach -->|CoachingPlan| XAI
-    XAI -->|Final JSON| Dashboard
 ```
 
 ---
@@ -117,7 +132,12 @@ All steps operate on the **Hybrid State Architecture**:
     - `total_score`: Final numeric grade.
     - `dimensions`: Breakdown per matrix dimension.
 
-### Step 5: XAI Reporter (`step_xai`)
-**Objective:** Final Report.
-- **Input:** All previous outputs.
-- **Output:** `XAIReport` (Dashboard Data).
+### Step 5: XAI Reporter (`step_xai`) & Output Generation
+**Objective:** Final Report Aggregation and Presentation.
+- **Input:** All previous outputs from the Blackboard.
+- **Process:** The Reporter creates the narrative and a flattened data structure (`XAIFlatReportDTO`).
+- **Output Branches:**
+    1.  **Flat Data (`/flat`)**: Serves the lightweight `XAIFlatReportDTO` directly for external BI tools (Excel, Tableau). Hierarchy is stripped out.
+    2.  **Unified SDUI Pipeline (`/report-view` & `/pdf`)**: The complex execution state (including all Specialist data like Logician, Falsifier, Profiler) is passed through a single, unified `ReportCoreTransformer`. 
+        *   This transformer emits a strict Server-Driven UI (SDUI) schema (`ReportView`).
+        *   Both the **Flutter Frontend** and the in-memory **PDF Generator** consume this identical SDUI output to render rich, consistent visual components (Radar charts, scorecards, logic bubbles) without duplicating presentation logic.

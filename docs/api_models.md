@@ -182,3 +182,17 @@ Defines the graph.
 | :--- | :--- | :--- |
 | `steps` | `list[WorkflowStep]` | Sequence of steps. |
 | `scoring_logic` | `list[ScoringLogic]` | How component scores are weighted. |
+
+---
+
+## 🎭 BFF Transformers & View Models (`backend.api.transformers`)
+
+The Backend-For-Frontend (BFF) layer is responsible for translating the strict, backend-centric State/Domain models into UI-optimized View Models ready for Flutter Server-Driven UI (SDUI) consumption.
+
+### 1. `ReportTransformer` (`report_transformer.py`)
+*   **Purpose**: The primary transformation facade that converts a completed `ExecutionRecord` into the `ReportView` objects.
+*   **Role**: Orchestrates the extraction of the Executive Summary, Final Verdict, and the core Dimension scores map. It ensures that the nested domain metrics (like `DimensionDisplay` and `ScoreCardDisplay`) conform stringently to Flutter's expected Freezed schema (e.g., proper mapping of `dimension_id` and strict `reasoning` strings).
+
+### 2. `ReportTransformer` (Core/Mixin Layer) (`report_core.py`)
+*   **Purpose**: The deeper, monolithic mixin-based implementation responsible for granular data extraction across various specialized agent outputs.
+*   **Role**: Safely parses the complex `WorkflowState` snapshots or `TraceEvent` logs, extracting deeply nested and domain-specific objects. It utilizes strict Pydantic `model_dump()` serialization with Safe Fallbacks to prevent `None` or `Null` values from leaking past the API boundary into the Flutter frontend.

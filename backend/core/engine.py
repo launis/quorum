@@ -319,6 +319,33 @@ class GraphEngine:
                     )
 
                 content_payload = result_dict
+                
+                # Extract Usage via Pydantic Metadata (Domain models)
+                step_usage = {}
+                if hasattr(result, "metadata") and getattr(result, "metadata", None) is not None:
+                    if hasattr(result.metadata, "token_usage") and result.metadata.token_usage:
+                        step_usage = result.metadata.token_usage
+                
+                # Fallbacks for dictionary responses or legacy reasoning objects
+                if not step_usage and "metadata" in result_dict and isinstance(result_dict["metadata"], dict):
+                    step_usage = result_dict["metadata"].get("token_usage", {})
+                if not step_usage:
+                    step_usage = result_dict.pop("token_usage", {})
+                    
+                if not isinstance(step_usage, dict):
+                    step_usage = {}
+
+                if reasoning_trace:
+                    reasoning_trace = reasoning_trace.model_copy(update={"token_usage": step_usage})
+                
+                # Global Usage Accumulation
+                global_usage = execution_state.context_variables.setdefault("usage", {})
+                global_usage["total_tokens"] = global_usage.get("total_tokens", 0) + step_usage.get("total_tokens", 0)
+                global_usage["prompt_tokens"] = global_usage.get("prompt_tokens", 0) + step_usage.get("prompt_tokens", 0)
+                global_usage["completion_tokens"] = global_usage.get("completion_tokens", 0) + step_usage.get("completion_tokens", 0)
+                
+                if "cost_usd" in step_usage:
+                     global_usage["cost_usd"] = global_usage.get("cost_usd", 0.0) + step_usage.get("cost_usd", 0.0)
 
                 # 6. Create TraceEvent
                 new_event = TraceEvent(

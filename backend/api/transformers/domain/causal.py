@@ -59,20 +59,28 @@ class CausalDomainTransformer(BaseTransformer):
                  model = CausalOutput(**self._adapt_legacy_trace(step))
 
         except ValidationError as e:
-            error_code = "CAUSAL_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Causal validation failed: {e}", exc_info=True)
             raise AppException(
                 message=f"Causal validation failed: {e}",
-                status_code=500,
-                details={"error_code": error_code, "errors": e.errors()}
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
         except Exception as e:
-            error_code = "CAUSAL_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Causal transform failed: {e}", exc_info=True)
             raise AppException(
-                message=str(e),
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Causal transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
 
         try:

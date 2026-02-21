@@ -1,5 +1,6 @@
 from typing import Annotated, Any
 from pydantic import BaseModel, Field
+from backend.models.workflow import WorkflowStep
 
 class ValidationResponse(BaseModel):
     """Result of a connection validation check."""
@@ -90,8 +91,8 @@ class GeneratedIdResponse(BaseModel):
 class BuilderWorkflowCreateRequest(BaseModel):
     """Payload for creating a new workflow."""
     name: Annotated[str, Field(description="Name of the new workflow.")]
-    description: Annotated[str | None, Field(description="Optional description.")] = None
-    steps: Annotated[list[str], Field(description="List of step IDs.")] = []
+    description: Annotated[str, Field(description="Optional description.")] = ""
+    steps: Annotated[list[str | WorkflowStep], Field(description="List of step IDs or full configs.")] = []
     default_model_mapping: Annotated[dict[str, str] | None, Field(description="Initial model mapping.")] = {}
     ui_schema: Annotated[dict[str, Any] | None, Field(description="UI Layout metadata.")] = {}
     is_public: Annotated[bool, Field(description="If True, visible to all tenants (System Only).")] = False
@@ -102,8 +103,8 @@ class BuilderWorkflowCreateRequest(BaseModel):
 class WorkflowUpdateRequest(BaseModel):
     """Payload for updating an existing workflow."""
     name: Annotated[str | None, Field(description="New name.")] = None
-    description: Annotated[str | None, Field(description="New description.")] = None
-    steps: Annotated[list[str | dict[str, Any]] | None, Field(description="New step sequence (IDs or Full Objects).")] = None
+    description: Annotated[str, Field(description="New description.")] = ""
+    steps: Annotated[list[str | WorkflowStep] | None, Field(description="New step sequence (IDs or Full Objects).")] = None
     ui_schema: Annotated[dict[str, Any] | None, Field(description="New UI metadata.")] = None
     default_model_mapping: Annotated[dict[str, str] | None, Field(description="Updated model mapping.")] = None
     is_public: Annotated[bool | None, Field(description="Update visibility.")] = None
@@ -123,8 +124,8 @@ class WorkflowResponse(BaseModel):
     """Full workflow configuration."""
     id: str
     name: str
-    description: str | None = None
-    steps: list[dict[str, Any]] # Expanded steps can be complex
+    description: str = ""
+    steps: list[WorkflowStep] # Expanded steps can be complex
     default_model_mapping: dict[str, str] = {}
     ui_schema: dict[str, Any] = {}
     is_public: bool = False
@@ -133,7 +134,7 @@ class WorkflowResponse(BaseModel):
     scoring_logic: list[dict[str, Any]] = []
     created_at: Any | None = None # allow datetime or string
     updated_at: Any | None = None
-    organization_id: str | None = None
+    organization_id: str
     model_config = {"extra": "allow"}
 
 class WorkflowDeleteResponse(BaseModel):

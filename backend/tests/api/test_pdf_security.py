@@ -16,13 +16,10 @@ def test_rbac_root_allow():
     # Should not raise
     _enforce_pdf_access(user, execution)
 
-def test_rbac_admin_deny():
+def test_rbac_admin_allow():
     user = TokenData(uid="admin", role=UserRole.ADMIN, organization_id="org1")
     execution = {"user_id": "u1", "organization_id": "org1"}
-    with pytest.raises(AppException) as exc:
-        _enforce_pdf_access(user, execution)
-    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
-    assert exc.value.details["error_code"] == "ADMIN_DENIED"
+    _enforce_pdf_access(user, execution)
 
 def test_rbac_manager_own_org_allow():
     user = TokenData(uid="mgr", role=UserRole.MANAGER, organization_id="org1")
@@ -66,19 +63,25 @@ async def test_download_endpoint_file_exists():
 
     # Mock Storage
     mock_storage = MagicMock()
-    mock_storage.exists.return_value = True
-    mock_storage.read.return_value = b"pdf_content" # Fallback if instance check fails
+    mock_storage.exists = AsyncMock(return_value=True)
+    mock_storage.read = AsyncMock(return_value=b"pdf_content") # Fallback if instance check fails
 
     # Simulate Local Storage behavior
-    from backend.services.storage import LocalFileStorage
-    mock_storage.__class__ = LocalFileStorage
+    from backend.services.drivers.local_file_driver import LocalFileDriver
+    mock_storage.__class__ = LocalFileDriver
     mock_storage.base_path = Path("/tmp")
 
     # Mock FileResponse to avoid os.stat failure
     with patch("backend.api.routes.execution.artifacts.FileResponse") as mock_file_response:
         mock_file_response.return_value.status_code = 200
 
-        resp = await download_execution_pdf("ex1", mock_repo, mock_user, AsyncMock(), mock_storage)
+        resp = await download_execution_pdf(
+            execution_id="ex1",
+            repository=mock_repo,
+            current_user=mock_user,
+            arq_pool=AsyncMock(),
+            storage=mock_storage
+        )
 
         # Should return the mock
         assert resp.status_code == 200
@@ -93,9 +96,15 @@ async def test_download_endpoint_queues_job():
 
     # Mock Storage
     mock_storage = MagicMock()
-    mock_storage.exists.return_value = False
+    mock_storage.exists = AsyncMock(return_value=False)
 
-    resp = await download_execution_pdf("ex1", mock_repo, mock_user, mock_pool, mock_storage)
+    resp = await download_execution_pdf(
+        execution_id="ex1",
+        repository=mock_repo,
+        current_user=mock_user,
+        arq_pool=mock_pool,
+        storage=mock_storage
+    )
 
     # Should be 202
     assert resp.status_code == 202

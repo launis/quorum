@@ -180,6 +180,46 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
 
 
+  // --- RESPONSIVE LAYOUT HELPER ---
+  Widget _buildResponsiveLayout(
+    BuildContext context, {
+    required Widget leftContent,
+    required Widget rightContent,
+    int leftFlex = 5,
+    int rightFlex = 5,
+    bool mobileReverse = false,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth > 800) {
+          // Desktop / Horizontal layout
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: leftFlex,
+                child: leftContent,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: rightFlex,
+                child: rightContent,
+              ),
+            ],
+          );
+        } else {
+          // Mobile / Vertical Stack
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: mobileReverse
+                ? [rightContent, const SizedBox(height: 16), leftContent]
+                : [leftContent, const SizedBox(height: 16), rightContent],
+          );
+        }
+      },
+    );
+  }
+
   String _getLocalizedEnum(String? key) {
     if (key == null) return "N/A";
     final l10n = AppLocalizations.of(context)!;
@@ -438,108 +478,67 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             axisLabels: const ['Väite', '', 'Peruste', '', 'Tuki', 'Vahva'],
           );
 
-          if (isWide) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left Column: Text Analysis
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    children: [
-                      bloomWidget,
-                      if (cog.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: 8),
-                        bloomGauge,
-                        const SizedBox(height: 4),
-                        stratGauge,
-                      ],
-                      const SizedBox(height: 16),
-                      
-                      // Toulmin Breakdown
-                      if (toulmin.isNotEmpty) ...[
-                        Column(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: toulminChildren,
-                        ),
-                        const SizedBox(height: 8),
-                        toulminGauge,
-                      ],
-                      
-                      // WALTON SECTION
-                      if (widget.data['walton_skeema'] != null) ...<Widget>[
-                        const SizedBox(height: 16),
-                        _buildWaltonSection(widget.data['walton_scheme'] ??
-                            widget.data['walton_skeema']),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Right Column: Matrix Visualization
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.grey[200]!,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              l10n.lblLogicMatrix,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            _buildHelpButton(context, "matrix"),
-                          ],
-                        ),
-                        Text(
-                          l10n.lblMatrixSubtitle,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        matrixChart,
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          } else {
-            // Mobile / Narrow: Stacked
-            return Column(
-              children: [
-                matrixChart,
-                const SizedBox(height: 16),
+          // Responsive Layout handling Matrix right, Text left (mobile: Matrix top)
+          Widget leftContent = Column(
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
                 bloomWidget,
                 if (cog.isNotEmpty) ...[
                      const SizedBox(height: 8),
                      bloomGauge,
+                     const SizedBox(height: 4),
                      stratGauge,
                 ],
                 const SizedBox(height: 16),
                 if (toulmin.isNotEmpty) ...[
-                    Column(children: toulminChildren),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: toulminChildren),
                     const SizedBox(height: 8),
                     toulminGauge,
-                ]
+                ],
+                if (widget.data['walton_skeema'] != null || widget.data['walton_scheme'] != null) ...[
+                     const SizedBox(height: 16),
+                     _buildWaltonSection(widget.data['walton_scheme'] ?? widget.data['walton_skeema']),
+                ],
+             ]
+          );
+
+          Widget rightContent = Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[200]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      l10n.lblLogicMatrix,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildHelpButton(context, "matrix"),
+                  ],
+                ),
+                Text(
+                  l10n.lblMatrixSubtitle,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                Center(child: matrixChart),
               ],
-            );
-          }
+            ),
+          );
+
+          return _buildResponsiveLayout(
+             context,
+             leftContent: leftContent,
+             rightContent: rightContent,
+             leftFlex: 4,
+             rightFlex: 6,
+             mobileReverse: true, // Matrix goes top on mobile
+          );
         },
       ),
     );
@@ -690,15 +689,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         as Map<String, dynamic>? ??
     {};
 
-    final List<Widget> children = [];
-
+    final leftChildren = <Widget>[];
     if (fidelity.isNotEmpty) {
       double scoreVal = (fidelity['fidelity_numeric'] as num?)?.toDouble() ?? 0.0;
-      if (scoreVal == 0.0) {
-         // No manual fallback. Strict mode.
-      }
-
-      children.add(Container(
+      leftChildren.add(Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.orange[50],
@@ -718,15 +712,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             ),
             const SizedBox(height: 12),
             Text(
-              (fidelity['is_post_hoc'] ??
-                          fidelity['onko_post_hoc_rationalisointia']) ==
-                      true
+              (fidelity['is_post_hoc'] ?? fidelity['onko_post_hoc_rationalisointia']) == true
                   ? AppLocalizations.of(context)!.lblPostHocWarning
                   : AppLocalizations.of(context)!.lblNoRationalization,
               style: TextStyle(
-                color: (fidelity['is_post_hoc'] ??
-                            fidelity['onko_post_hoc_rationalisointia']) ==
-                        true
+                color: (fidelity['is_post_hoc'] ?? fidelity['onko_post_hoc_rationalisointia']) == true
                     ? Colors.red[800]
                     : Colors.green[800],
                 fontWeight: FontWeight.w600,
@@ -735,9 +725,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             const SizedBox(height: 12),
             _buildLabelValue(
               "Post-Hoc Rationalization",
-              (fidelity['is_post_hoc'] ??
-                      fidelity['onko_post_hoc_rationalisointia'])
-                  .toString(),
+              (fidelity['is_post_hoc'] ?? fidelity['onko_post_hoc_rationalisointia']).toString(),
             ),
             const SizedBox(height: 4),
             _buildLabelValue(
@@ -747,12 +735,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           ],
         ),
       ));
-      children.add(const SizedBox(height: 16));
     }
 
-    children.addAll(findings.map<Widget>((f) {
-      final passed =
-          (f['evidence_held'] ?? f['kestiko_todistusaineisto']) == true;
+    final rightChildren = <Widget>[];
+    rightChildren.addAll(findings.map<Widget>((f) {
+      final passed = (f['evidence_held'] ?? f['kestiko_todistusaineisto']) == true;
       return Card(
         margin: const EdgeInsets.only(bottom: 8),
         color: passed ? Colors.green[50] : Colors.red[50],
@@ -768,7 +755,6 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               const SizedBox(height: 4),
               _buildLabelValue(
                 AppLocalizations.of(context)!.lblEvidenceHeld,
-                // Handle English boolean or Finnish string/boolean
                 (f['evidence_held'] ?? f['kestiko_todistusaineisto']).toString(),
               ),
               const SizedBox(height: 4),
@@ -782,7 +768,13 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       );
     }));
 
-    return Column(children: children);
+    return _buildResponsiveLayout(
+      context,
+      leftContent: Column(crossAxisAlignment: CrossAxisAlignment.start, children: leftChildren),
+      rightContent: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rightChildren),
+      leftFlex: 4,
+      rightFlex: 6,
+    );
   }
 
   // --- 3. CAUSAL ANALYSIS ---
@@ -798,116 +790,119 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     final abductive = widget.data['abductive_conclusion'] ??
         widget.data['abduktiivinen_paatelma'] as String?;
 
-    return Column(
-      children: <Widget>[
-        if (abductive != null)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.teal[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                  UnifiedMetricGauge(
-                    label: AppLocalizations.of(context)!.lblAbductiveReasoning,
-                    value: (widget.data['abductive_score'] as num?)?.toDouble() ?? 0.0,
-                    max: 3.0,
-                    description: widget.data['help_abductive'] ?? "Abductive Help",
-                    displayValue: "${(widget.data['abductive_score'] as num?)?.toDouble() ?? '?'}/3.0",
-                    color: Colors.teal,
-                    axisLabels: const ['Heikko', 'Kohtalainen', 'Vahva'],
-                  ),
-                const SizedBox(height: 8),
-                Text(
-                  abductive,
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 16),
+    final leftChildren = <Widget>[];
+    if (abductive != null) {
+      leftChildren.add(Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.teal[50],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+              UnifiedMetricGauge(
+                label: AppLocalizations.of(context)!.lblAbductiveReasoning,
+                value: (widget.data['abductive_score'] as num?)?.toDouble() ?? 0.0,
+                max: 3.0,
+                description: widget.data['help_abductive'] ?? "Abductive Help",
+                displayValue: "${(widget.data['abductive_score'] as num?)?.toDouble() ?? '?'}/3.0",
+                color: Colors.teal,
+                axisLabels: const ['Heikko', 'Kohtalainen', 'Vahva'],
+              ),
+            const SizedBox(height: 8),
+            Text(abductive, style: const TextStyle(fontSize: 14)),
+          ],
+        ),
+      ));
+      leftChildren.add(const SizedBox(height: 16));
+    }
 
-        if (audit.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.teal[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    if (audit.isNotEmpty) {
+      leftChildren.add(Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.teal[50],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.lblCausalAudit,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    _buildHelpButton(context, "causal"),
-                  ],
-                ),
-                const SizedBox(height: 8),
                 Text(
-                  "Aikajana Validi: ${audit['timeline_valid'] ?? audit['aikajana_validi'] ?? '-'}",
+                  AppLocalizations.of(context)!.lblCausalAudit,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Text(audit['observation'] ?? audit['havainto'] ?? '-'),
+                _buildHelpButton(context, "causal"),
               ],
             ),
-          ),
-        const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            Text(
+              "Aikajana Validi: ${audit['timeline_valid'] ?? audit['aikajana_validi'] ?? '-'}",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(audit['observation'] ?? audit['havainto'] ?? '-'),
+          ],
+        ),
+      ));
+    }
 
-        if (counter.isNotEmpty)
-          Column(
+    final rightChildren = <Widget>[];
+    if (counter.isNotEmpty) {
+      rightChildren.add(Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.lblCounterfactualTest,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                AppLocalizations.of(context)!.lblCounterfactualTest,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildComparisonBlock(
-                      AppLocalizations.of(context)!.lblScenarioActual,
-                      counter['scenario_a_actual'] ??
-                          counter['skenaario_A_toteutunut'],
-                      Colors.grey[200]!,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildComparisonBlock(
-                      AppLocalizations.of(context)!.lblScenarioSimulation,
-                      counter['scenario_b_simulated'] ??
-                          counter['skenaario_B_simulaatio'],
-                      Colors.teal[100]!,
-                    ),
-                  ),
-                ],
-              ),
-              if (counter['plausibility_score'] != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: UnifiedMetricGauge(
-                    label: AppLocalizations.of(context)!.lblCredibility,
-                    value: (counter['plausibility_numeric'] as num?)?.toDouble() ?? 0.0,
-                    max: 3.0,
-                     description: widget.data['help_plausibility'] ?? "Plausibility Help",
-                     displayValue: "${(counter['plausibility_numeric'] as num?)?.toDouble() ?? 0.0}/3.0",
-                     color: Colors.teal,
-                     axisLabels: const ['Epäuskottava', '', 'Uskottava'],
-                  ),
+              Expanded(
+                child: _buildComparisonBlock(
+                  AppLocalizations.of(context)!.lblScenarioActual,
+                  counter['scenario_a_actual'] ?? counter['skenaario_A_toteutunut'],
+                  Colors.grey[200]!,
                 ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildComparisonBlock(
+                  AppLocalizations.of(context)!.lblScenarioSimulation,
+                  counter['scenario_b_simulated'] ?? counter['skenaario_B_simulaatio'],
+                  Colors.teal[100]!,
+                ),
+              ),
             ],
           ),
-      ],
+          if (counter['plausibility_score'] != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: UnifiedMetricGauge(
+                label: AppLocalizations.of(context)!.lblCredibility,
+                value: (counter['plausibility_numeric'] as num?)?.toDouble() ?? 0.0,
+                max: 3.0,
+                 description: widget.data['help_plausibility'] ?? "Plausibility Help",
+                 displayValue: "${(counter['plausibility_numeric'] as num?)?.toDouble() ?? 0.0}/3.0",
+                 color: Colors.teal,
+                 axisLabels: const ['Epäuskottava', '', 'Uskottava'],
+              ),
+            ),
+        ],
+      ));
+    }
+
+    return _buildResponsiveLayout(
+      context,
+      leftContent: Column(crossAxisAlignment: CrossAxisAlignment.start, children: leftChildren),
+      rightContent: Column(crossAxisAlignment: CrossAxisAlignment.start, children: rightChildren),
+      leftFlex: 4,
+      rightFlex: 6,
     );
   }
 
@@ -937,10 +932,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         ? Map<String, dynamic>.from(rawMetrics) 
         : {};
 
-    final List<Widget> children = [];
-
+    final leftChildren = <Widget>[];
     if (metrics.isNotEmpty) {
-      children.add(Row(
+      leftChildren.add(Row(
         children: [
           Text(
             "${AppLocalizations.of(context)!.lblTextMetrics}:",
@@ -949,68 +943,55 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           _buildHelpButton(context, "profiler"),
         ],
       ));
-      children.add(const SizedBox(height: 8));
-
-      // NEW: Dedicated Grid for Hook Metrics
-      children.add(_buildTextMetricsGrid(context, metrics));
-      children.add(const SizedBox(height: 16));
+      leftChildren.add(const SizedBox(height: 8));
+      leftChildren.add(_buildTextMetricsGrid(context, metrics));
     }
 
+    final rightChildren = <Widget>[];
     if (biasesRaw.isNotEmpty) {
-      children.add(Text(
+      rightChildren.add(Text(
         "${AppLocalizations.of(context)!.lblBias}:",
         style: const TextStyle(fontWeight: FontWeight.bold),
       ));
-      children.add(const SizedBox(height: 8));
-      children.add(Wrap(
+      rightChildren.add(const SizedBox(height: 8));
+      rightChildren.add(Wrap(
         spacing: 8,
         runSpacing: 4,
         children: biasesRaw.map<Widget>((b) {
-          String label;
-          if (b is String) {
-            label = b;
-          } else if (b is Map) {
-            label = b['nimi'] ?? b['name'] ?? b.toString();
-          } else {
-            label = b.toString();
-          }
-
+          String label = b is String ? b : (b is Map ? (b['nimi'] ?? b['name'] ?? b.toString()) : b.toString());
           return Chip(
             label: Text(label),
-            avatar: const Icon(
-              Icons.warning_amber_rounded,
-              size: 16,
-            ),
+            avatar: const Icon(Icons.warning_amber_rounded, size: 16),
             backgroundColor: Colors.pink[50],
             labelStyle: const TextStyle(fontSize: 12),
           );
         }).toList(),
       ));
-      children.add(const SizedBox(height: 16));
+      rightChildren.add(const SizedBox(height: 16));
     }
 
     if (intent != null) {
-      children.add(_buildInfoCard(
+      rightChildren.add(_buildInfoCard(
         AppLocalizations.of(context)!.lblIntent,
         intent,
         Icons.ads_click,
         color: Colors.blue[50],
       ));
+      rightChildren.add(const SizedBox(height: 8));
     }
-    children.add(const SizedBox(height: 8));
 
     if (tone != null) {
-      children.add(_buildInfoCard(
+      rightChildren.add(_buildInfoCard(
         AppLocalizations.of(context)!.lblEmotionalTone,
         tone,
         Icons.mood,
         color: Colors.purple[50],
       ));
+      rightChildren.add(const SizedBox(height: 8));
     }
-    children.add(const SizedBox(height: 8));
 
     if (profile != null) {
-      children.add(_buildInfoCard(
+      rightChildren.add(_buildInfoCard(
         AppLocalizations.of(context)!.lblPsychProfile,
         profile,
         Icons.person_outline,
@@ -1018,9 +999,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       ));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
+    return _buildResponsiveLayout(
+      context,
+      leftContent: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: leftChildren),
+      rightContent: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rightChildren),
+      leftFlex: 5,
+      rightFlex: 5,
     );
   }
   
@@ -1142,48 +1126,35 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         ?.cast<Map<String, dynamic>>() ??
     [];
 
-    final List<Widget> children = [];
-
+    final ethicsChildren = <Widget>[];
     if (ethics.isNotEmpty) {
-      children.add(
-        Row(
-          children: [
-            Text(
-              AppLocalizations.of(context)!.lblEthicalObservation,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 8),
-            _buildHelpButton(context, "fact_check"),
-          ],
-        ),
-      );
-      children.add(const SizedBox(height: 8));
+      ethicsChildren.add(Row(
+        children: [
+          Text(AppLocalizations.of(context)!.lblEthicalObservation, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(width: 8),
+          _buildHelpButton(context, "fact_check"),
+        ],
+      ));
+      ethicsChildren.add(const SizedBox(height: 8));
 
-      children.addAll(ethics.map<Widget>((e) {
-        // Defensive Check: If LLM returns strings instead of objects
+      ethicsChildren.addAll(ethics.map<Widget>((e) {
         if (e is! Map) {
           return Card(
             color: Colors.red[50],
             child: ListTile(
-              leading: const Icon(
-                Icons.warning_amber,
-                color: Colors.orange,
-              ),
+              leading: const Icon(Icons.warning_amber, color: Colors.orange),
               title: Text(AppLocalizations.of(context)!.lblEthicalObservation),
               subtitle: Text(e.toString()),
             ),
           );
         }
-
         return Card(
           color: (e['is_critical'] == true || e['severity'] == "Kriittinen" || e['severity'] == "Critical") 
-                  ? Colors.red[100] 
-                  : Colors.white,
+                  ? Colors.red[100] : Colors.white,
           child: ListTile(
             leading: const Icon(Icons.security, color: Colors.red),
             title: Text(
-              e['label'] ?? e['issue_type'] ?? e['tyyppi'] ??
-                  AppLocalizations.of(context)!.lblEthicalObservation,
+              e['label'] ?? e['issue_type'] ?? e['tyyppi'] ?? AppLocalizations.of(context)!.lblEthicalObservation,
               style: (e['is_critical'] == true) ? TextStyle(color: Colors.red[900], fontWeight: FontWeight.bold) : null,
             ),
             subtitle: Text(e['description'] ?? e['kuvaus'] ?? ''),
@@ -1191,69 +1162,55 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           ),
         );
       }));
-      children.add(const SizedBox(height: 16));
     }
 
-    children.add(
-      Row(
-        children: [
-          Text(
-            AppLocalizations.of(context)!.lblFactCheck,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildHelpButton(context, "fact_check"),
-        ],
-      ),
-    );
+    final factsChildren = <Widget>[];
+    factsChildren.add(Row(
+      children: [
+        Text(AppLocalizations.of(context)!.lblFactCheck, style: const TextStyle(fontWeight: FontWeight.bold)),
+        _buildHelpButton(context, "fact_check"),
+      ],
+    ));
 
     if (facts.isEmpty) {
-      children.add(
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Text(AppLocalizations.of(context)!.lblNoFindings),
-        ),
-      );
+      factsChildren.add(Padding(padding: const EdgeInsets.all(8), child: Text(AppLocalizations.of(context)!.lblNoFindings)));
+    } else {
+      factsChildren.addAll(facts.map<Widget>((f) {
+        if (f is! Map) {
+          return ListTile(leading: const Icon(Icons.error_outline, color: Colors.grey), title: Text(f.toString()));
+        }
+        final resultKey = f['verification_result'] as String? ?? 'VER_UNCERTAIN';
+        final statusText = f['label'] as String? ?? f['label_key'] as String? ?? resultKey;
+        IconData i = Icons.help_outline;
+        Color c = Colors.orange;
+
+        if (resultKey == 'VER_VERIFIED') { i = Icons.check_circle; c = Colors.green; }
+        else if (resultKey == 'VER_DEBUNKED') { i = Icons.cancel; c = Colors.red; }
+
+        return ListTile(
+          leading: Icon(i, color: c),
+          title: Text(f['vaite'] ?? f['claim'] ?? ''),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+               Text(statusText, style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 12)),
+               Text(f['lahde_tai_paattely'] ?? f['source'] ?? ''),
+            ],
+          ),
+        );
+      }));
     }
 
-    children.addAll(facts.map<Widget>((f) {
-      // Defensive Check
-      if (f is! Map) {
-        return ListTile(
-          leading: const Icon(Icons.error_outline, color: Colors.grey),
-          title: Text(f.toString()),
-        );
-      }
+    if (ethics.isEmpty) return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: factsChildren);
+    if (facts.isEmpty && ethics.isNotEmpty) return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: ethicsChildren);
 
-      final status = f['verifiointi_tulos'];
-      // SDUI STRICTNESS: Use server-provided label if available
-      final resultKey = f['verification_result'] as String? ?? 'VER_UNCERTAIN';
-      final statusText = f['label'] as String? ?? f['label_key'] as String? ?? resultKey;
-      
-      IconData i = Icons.help_outline;
-      Color c = Colors.orange;
-
-      if (resultKey == 'VER_VERIFIED') {
-        i = Icons.check_circle;
-        c = Colors.green;
-      } else if (resultKey == 'VER_DEBUNKED') {
-        i = Icons.cancel;
-        c = Colors.red;
-      }
-
-      return ListTile(
-        leading: Icon(i, color: c),
-        title: Text(f['vaite'] ?? f['claim'] ?? ''),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-             Text(statusText, style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 12)),
-             Text(f['lahde_tai_paattely'] ?? f['source'] ?? ''),
-          ],
-        ),
-      );
-    }));
-
-    return Column(children: children);
+    return _buildResponsiveLayout(
+      context,
+      leftContent: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: ethicsChildren),
+      rightContent: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: factsChildren),
+      leftFlex: 5,
+      rightFlex: 5,
+    );
   }
 
   // --- 6. PERFORMATIVITY CHECK ---
@@ -1267,25 +1224,20 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     final overall = widget.data['authenticity_assessment'] ??
         widget.data['yleisarvio_aitoudesta'] as String?;
 
-    final List<Widget> children = [];
-    final l10n = AppLocalizations.of(context)!;
-
+    final leftChildren = <Widget>[];
     if (overall != null) {
-      // Localize Authentication Label via Key
+      final l10n = AppLocalizations.of(context)!;
       String displayAuth = overall;
-      // Fallback if no key match
       if (displayAuth == overall) {
           if (overall.contains("AUTH_ORGANIC")) displayAuth = l10n.authOrganic;
           else if (overall.contains("AUTH_PERFORMATIVE")) displayAuth = l10n.authPerformative;
           else if (overall.contains("AUTH_UNKNOWN")) displayAuth = l10n.authUnknown;
       }
 
-      children.add(Container(
+      leftChildren.add(Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.purple[50]!, Colors.blue[50]!],
-          ),
+          gradient: LinearGradient(colors: [Colors.purple[50]!, Colors.blue[50]!]),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -1293,64 +1245,50 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             UnifiedMetricGauge(
               label: AppLocalizations.of(context)!.lblAuthenticity,
               value: (widget.data['authenticity_score'] as num?)?.toDouble() ??
-                  (overall.contains("AUTH_ORGANIC")
-                      ? 3.0
-                      : (overall.contains("AUTH_PERFORMATIVE") ? 2.0 : 1.0)),
+                  (overall.contains("AUTH_ORGANIC") ? 3.0 : (overall.contains("AUTH_PERFORMATIVE") ? 2.0 : 1.0)),
               max: 3.0,
               description: widget.data['help_authenticity'] ?? "Authenticity Help",
-              displayValue:
-                  "${(widget.data['authenticity_score'] as num?)?.toDouble() ?? '?'}/3.0",
+              displayValue: "${(widget.data['authenticity_score'] as num?)?.toDouble() ?? '?'}/3.0",
               color: Colors.purple,
-              axisLabels: [
-                AppLocalizations.of(context)!.authPerformative,
-                '',
-                AppLocalizations.of(context)!.authOrganic
-              ],
+              axisLabels: [AppLocalizations.of(context)!.authPerformative, '', AppLocalizations.of(context)!.authOrganic],
             ),
             const SizedBox(height: 8),
-            Text(
-              displayAuth,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-            ),
+            Text(displayAuth, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           ],
         ),
       ));
-      children.add(const SizedBox(height: 16));
     }
 
-    children.add(Row(
+    final rightChildren = <Widget>[];
+    rightChildren.add(Row(
       children: [
-        Text(
-          "${AppLocalizations.of(context)!.lblHeuristics}:",
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        Text("${AppLocalizations.of(context)!.lblHeuristics}:", style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(width: 8),
         _buildHelpButton(context, "performativity"),
       ],
     ));
 
-    children.add(Wrap(
+    rightChildren.add(Wrap(
       spacing: 8,
       runSpacing: 4,
       children: heuristics.map<Widget>((b) {
         final raised = (b['flag_raised'] ?? b['lippu_nostettu']) == true;
         return Chip(
           label: Text(b['heuristic_name'] ?? b['heuristiikka'] ?? ''),
-          avatar: Icon(
-            raised ? Icons.flag : Icons.check,
-            size: 16,
-            color: raised ? Colors.red : Colors.green,
-          ),
+          avatar: Icon(raised ? Icons.flag : Icons.check, size: 16, color: raised ? Colors.red : Colors.green),
           backgroundColor: raised ? Colors.red[50] : Colors.green[50],
-          labelStyle: TextStyle(
-            fontSize: 12,
-            color: raised ? Colors.red[900] : Colors.green[900],
-          ),
+          labelStyle: TextStyle(fontSize: 12, color: raised ? Colors.red[900] : Colors.green[900]),
         );
       }).toList(),
     ));
 
-    return Column(children: children);
+    return _buildResponsiveLayout(
+      context,
+      leftContent: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: leftChildren),
+      rightContent: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rightChildren),
+      leftFlex: 4,
+      rightFlex: 6,
+    );
   }
 
   // --- 7. ARCHIVIST CHECK ---
@@ -1367,9 +1305,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     double normalizedScore = 0;
     if (score is num) normalizedScore = score / 100.0;
 
-    final List<Widget> children = [];
-
-    children.add(Container(
+    final leftChildren = <Widget>[];
+    leftChildren.add(Container(
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1384,27 +1321,25 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               axisLabels: const ['Heikko', '', '', '', '', 'Vahva'],
             ),
             const SizedBox(height: 8),
-                Text(
-                  analysis != null && analysis.isNotEmpty
-                      ? analysis
-                      : "Ei analyysiä.",
-                ),
+            Text(analysis != null && analysis.isNotEmpty ? analysis : "Ei analyysiä."),
         ],
       ),
     ));
-    children.add(const SizedBox(height: 16));
 
-    children.addAll(recs.map<Widget>((r) => ListTile(
-      leading: const Icon(
-        Icons.task_alt,
-        size: 16,
-        color: Colors.brown,
-      ),
+    final rightChildren = <Widget>[];
+    rightChildren.addAll(recs.map<Widget>((r) => ListTile(
+      leading: const Icon(Icons.task_alt, size: 16, color: Colors.brown),
       title: Text(r.toString()),
       dense: true,
     )));
 
-    return Column(children: children);
+    return _buildResponsiveLayout(
+      context,
+      leftContent: Column(crossAxisAlignment: CrossAxisAlignment.start, children: leftChildren),
+      rightContent: Column(crossAxisAlignment: CrossAxisAlignment.start, children: rightChildren),
+      leftFlex: 4,
+      rightFlex: 6,
+    );
   }
 
   Widget _buildGenericMap(Map<String, dynamic> map) {
@@ -1716,190 +1651,141 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     final showRatio = ratio != null;
     final showQuality = quality != null;
 
-    final List<Widget> children = [];
-
-        children.add(Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue[100]!),
-          ),
-          child: Column(
+    final leftChildren = <Widget>[];
+    leftChildren.add(Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue[100]!),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.lblRoleAndPosition,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildHelpButton(context, "control_ratio"),
-                ],
-              ),
-              const SizedBox(height: 10),
               Text(
-                showRatio
-                    ? "${(ratio! * 100).toStringAsFixed(0)}%"
-                    : (showQuality ? "$quality/5.0" : "N/A"),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 32,
-                  color: Colors.blue,
-                ),
+                AppLocalizations.of(context)!.lblRoleAndPosition,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              Text(
-                showRatio
-                    ? AppLocalizations.of(context)!.lblControlRatio
-                    : (showQuality ? "Laatu Pisteet" : "Muu Mittari"),
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-
-              const SizedBox(height: 24),
-
-              // SPECTRUM VISUALIZATION
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children:
-                        roles.map((r) {
-                          final isActive =
-                              role.toLowerCase() == r.toLowerCase();
-                          return Expanded(
-                            child: Column(
-                              children: [
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  height: isActive ? 12 : 8,
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isActive
-                                            ? Colors.blue
-                                            : Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  r,
-                                  style: TextStyle(
-                                    fontSize: isActive ? 12 : 10,
-                                    fontWeight:
-                                        isActive
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                    color:
-                                        isActive
-                                            ? Colors.blue[800]
-                                            : Colors.grey[500],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                  );
-                },
-              ),
+              const SizedBox(width: 8),
+              _buildHelpButton(context, "control_ratio"),
             ],
           ),
-        ));
-
-        children.add(const SizedBox(height: 16));
-
-        // Strategies
-        if (strategies.isNotEmpty) {
-          children.add(Text(
-            "Tunnistetut Strategiat:",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ));
-          children.add(const SizedBox(height: 8));
-          children.add(Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children:
-                strategies.map<Widget>((s) {
-                  final label =
-                      s is String ? s : (s['nimi'] ?? s['name'] ?? 'Strategia');
-                  return Chip(
-                    label: Text(label.toString()),
-                    backgroundColor: Colors.blue[50],
+          const SizedBox(height: 10),
+          Text(
+            showRatio ? "${(ratio! * 100).toStringAsFixed(0)}%" : (showQuality ? "$quality/5.0" : "N/A"),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 32, color: Colors.blue),
+          ),
+          Text(
+            showRatio ? AppLocalizations.of(context)!.lblControlRatio : (showQuality ? "Laatu Pisteet" : "Muu Mittari"),
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: roles.map((r) {
+                  final isActive = role.toLowerCase() == r.toLowerCase();
+                  return Expanded(
+                    child: Column(
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          height: isActive ? 12 : 8,
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          decoration: BoxDecoration(
+                            color: isActive ? Colors.blue : Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          r,
+                          style: TextStyle(
+                            fontSize: isActive ? 12 : 10,
+                            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                            color: isActive ? Colors.blue[800] : Colors.grey[500],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   );
                 }).toList(),
-          ));
-          children.add(const SizedBox(height: 16));
-        }
+              );
+            },
+          ),
+        ],
+      ),
+    ));
 
-        // Coherence Analysis (Linjakkuus)
-        if (widget.data['compliance_analysis'] != null) {
-          children.add(
-        _buildComparisonBlock(
-          "Linjakkuus", // or map to localized label
-          widget.data['compliance_analysis'] ?? 'N/A', // Updated key
-          Colors.blue[50]!,
+    final rightChildren = <Widget>[];
+    if (strategies.isNotEmpty) {
+      rightChildren.add(const Text("Tunnistetut Strategiat:", style: TextStyle(fontWeight: FontWeight.bold)));
+      rightChildren.add(const SizedBox(height: 8));
+      rightChildren.add(Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: strategies.map<Widget>((s) {
+          final label = s is String ? s : (s['nimi'] ?? s['name'] ?? 'Strategia');
+          return Chip(label: Text(label.toString()), backgroundColor: Colors.blue[50]);
+        }).toList(),
+      ));
+      rightChildren.add(const SizedBox(height: 16));
+    }
+
+    if (widget.data['compliance_analysis'] != null) {
+      rightChildren.add(_buildComparisonBlock(
+        "Linjakkuus",
+        widget.data['compliance_analysis'] ?? 'N/A',
+        Colors.blue[50]!,
+      ));
+      rightChildren.add(const SizedBox(height: 8));
+    }
+
+    if (widget.data['poikkeamat_linjasta'] != null) {
+      rightChildren.add(_buildInfoCard(
+        "Poikkeamat Linjasta",
+        widget.data['poikkeamat_linjasta'],
+        Icons.call_split,
+        color: Colors.white,
+      ));
+      rightChildren.add(const SizedBox(height: 8));
+    }
+
+    if (widget.data['suositus_tuomarille'] != null) {
+      rightChildren.add(Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green[100]!),
         ),
-      );
-          children.add(const SizedBox(height: 8));
-        }
-
-        // Deviations (Poikkeamat)
-        if (widget.data['poikkeamat_linjasta'] != null) {
-          children.add(_buildInfoCard(
-            "Poikkeamat Linjasta",
-            widget.data['poikkeamat_linjasta'],
-            Icons.call_split,
-            color: Colors.white,
-          ));
-          children.add(const SizedBox(height: 8));
-        }
-
-        // Recommendation (Suositus)
-        if (widget.data['suositus_tuomarille'] != null) {
-          children.add(Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green[100]!),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                 Row(
-                  children: [
-                    const Icon(Icons.recommend, color: Colors.green),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Suositus Tuomarille",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  widget.data['suositus_tuomarille'],
-                  style: const TextStyle(fontSize: 14),
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+             Row(
+              children: const [
+                Icon(Icons.recommend, color: Colors.green),
+                SizedBox(width: 8),
+                Text("Suositus Tuomarille", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
               ],
             ),
-          ));
-        }
+            const SizedBox(height: 8),
+            Text(widget.data['suositus_tuomarille'], style: const TextStyle(fontSize: 14)),
+          ],
+        ),
+      ));
+    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
+    return _buildResponsiveLayout(
+      context,
+      leftContent: Column(children: leftChildren),
+      rightContent: Column(crossAxisAlignment: CrossAxisAlignment.start, children: rightChildren),
+      leftFlex: 4,
+      rightFlex: 6,
     );
   }
 

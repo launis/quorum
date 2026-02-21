@@ -52,20 +52,28 @@ class OverseerDomainTransformer(BaseTransformer):
                  model = OverseerOutput(**self._adapt_legacy_trace(step))
                  
         except ValidationError as e:
-            error_code = "OVERSEER_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Overseer validation failed: {e}", exc_info=True)
             raise AppException(
                 message=f"Overseer validation failed: {e}",
-                status_code=500,
-                details={"error_code": error_code, "errors": e.errors()}
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
         except Exception as e:
-            error_code = "OVERSEER_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Overseer transform failed: {e}", exc_info=True)
             raise AppException(
-                message=str(e),
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Overseer transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
 
         try:

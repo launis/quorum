@@ -7,17 +7,23 @@ from backend.models.auth import TokenData, UserRole
 
 client = TestClient(app)
 
+import pytest
+
 # Mock Auth Dependency
 async def mock_get_current_user():
     return TokenData(uid="test-user", role=UserRole.ADMIN, organization_id="test-org")
 
-app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
+@pytest.fixture(autouse=True)
+def setup_dependencies():
+    app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
+    yield
+    app.dependency_overrides.pop(get_current_user_from_header, None)
 
 def test_get_workflow_schema():
     """Verify that the WorkflowDefinition schema is returned with SDUI hints (Default English)."""
     response = client.get("/builder/schema/workflow")
     assert response.status_code == 200
-    schema = response.json()
+    schema = response.json().get("schema", {})
 
     properties = schema.get("properties", {})
 
@@ -31,7 +37,7 @@ def test_get_workflow_schema_fi():
     headers = {"Accept-Language": "fi-FI"}
     response = client.get("/builder/schema/workflow", headers=headers)
     assert response.status_code == 200
-    schema = response.json()
+    schema = response.json().get("schema", {})
 
     properties = schema.get("properties", {})
 

@@ -1,4 +1,3 @@
-
 from backend.api.transformers.report_core import ReportTransformer
 from backend.models.view import ReportView, SectionType
 from backend.models.view import (
@@ -9,14 +8,14 @@ from backend.models.view import (
     ProfilerDisplay,
     StressTestDisplay,
 )
-# Deprecated: backend.models.view_extensions
-
+from backend.models.domain.execution import ExecutionRecord
 
 def test_report_transformer_process_all_stages():
     """Verify ReportTransformer handles a full workflow execution correctly."""
     # Extensive mock data mirroring debug_report_uvm.py structure
     mock_execution = {
         "id": "test-integration-001",
+        "status": "completed",
         "results": {
             "step_results": {
                 # Context
@@ -55,7 +54,13 @@ def test_report_transformer_process_all_stages():
                             "justification": "Solid",
                             "post_hoc_rationalization": False
                         },
-                        "stress_test_findings": []
+                        "stress_test_findings": [
+                            {
+                                "question": "Q1",
+                                "evidence_held": True,
+                                "observation": "Obs1"
+                            }
+                        ]
                     },
                     "thought_process": "Thinking...",
                     "conclusion": "Conclusion",
@@ -133,8 +138,9 @@ def test_report_transformer_process_all_stages():
         }
     }
 
+    record = ExecutionRecord(**mock_execution)
     transformer = ReportTransformer()
-    report = transformer.transform(mock_execution)
+    report = transformer.transform(record)
 
     assert isinstance(report, ReportView)
     assert report.view_id == "test-integration-001"

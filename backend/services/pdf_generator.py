@@ -152,7 +152,18 @@ class PdfReportService:
                 logger.warning(f"Failed to load matrix labels: {e}")
 
             for section in report_view.sections:
-                if section.type == SectionType.SCORE_CARD and section.data:
+                if not section.data:
+                    continue
+
+                # Ensure section.data is strictly a dictionary so Jinja and .get() work
+                if hasattr(section.data, "model_dump"):
+                    section.data = section.data.model_dump(mode="json")
+                elif hasattr(section.data, "dict"):
+                    section.data = section.data.dict()
+                elif not isinstance(section.data, dict):
+                    section.data = vars(section.data)
+
+                if section.type == SectionType.SCORE_CARD:
                     # Check if dimensions exist and we can plot
                     dims = section.data.get("dimensions", [])
                     if dims:
@@ -162,15 +173,11 @@ class PdfReportService:
                              # If visualization needs prettier labels, it must happen in ChartService or via metadata lookup.
                              # But here we stick to the raw data ID as the key.
 
-                            # Compatible Extraction: Support V3 (dimension_id) and Legacy (label/name/id)
-                            # FIX 2026-01-24: Use 'label' or 'name' for the CHART KEY to ensure human-readable text.
-                            # The ChartService uses keys as labels.
-
-                            # 1. Try dimension_label (New Standard) or direct label in data (Legacy/Loose)
-                            display_label = d.get("dimension_label") or d.get("label") or d.get("name")
+                            # 1. New Standard
+                            display_label = d.get("dimension_label")
+                            tech_id = d.get("dimension_id")
 
                             # 2. Lookup: If no label yet, try to map from ID using Matrix Map
-                            tech_id = d.get("dimension_id") or d.get("id")
                             if not display_label and tech_id and tech_id in matrix_map:
                                 display_label = matrix_map[tech_id]
 
@@ -205,13 +212,10 @@ class PdfReportService:
                         # Inject back into data view for the template
                         section.data["chart_image"] = chart_b64
 
-                elif section.type == SectionType.LOGIC_ANALYSIS and section.data:
+                elif section.type == SectionType.LOGIC_ANALYSIS:
                     # Logic Matrix Bubble Chart
                     # Extract scores (Standardized keys from domain model)
-                    cog = section.data.get("cognitive_level") or section.data.get("kognitiivinen_taso", {})
-                    # Handle both Pydantic models (dict) and raw dicts
-                    if hasattr(cog, "dict"): cog = cog.dict()
-
+                    cog = section.data.get("cognitive_level", {})
                     bloom = float(cog.get("bloom_score", 0))
                     strat = float(cog.get("strategic_score", 0))
 
@@ -227,45 +231,30 @@ class PdfReportService:
                         )
                         section.data["logic_chart_image"] = chart_b64
 
-                elif section.type == SectionType.FACT_CHECK and section.data:
+                elif section.type == SectionType.FACT_CHECK:
                     # Preprocess for Template (English Standardization)
 
                     # 1. Facts
-                    raw_facts = section.data.get("fact_checks") or section.data.get("faktantarkistus_rfi", [])
+                    raw_facts = section.data.get("fact_checks", [])
                     processed_facts = []
-                    for f in raw_facts:
-                        # Normalize to dict
-                        item = f.dict() if hasattr(f, "dict") else f
-
-                        # Map Legacy to English if needed
-                        claim = item.get("claim") or item.get("vaite")
-                        result = item.get("verification_result") or item.get("verifiointi_tulos")
-                        source = item.get("source_or_reasoning") or item.get("lahde_tai_paattely")
-                        is_ver = item.get("is_verified")
-
-                        # Fallback calculation if boolean missing
-                        if is_ver is None and result:
-                            # Check common strings for verified status
-                            is_ver = str(result).lower() in ["verified", "vahvistettu"]
-
+                    for item in raw_facts:
                         processed_facts.append({
-                            "claim": claim,
-                            "verification_result": result,
-                            "source_or_reasoning": source,
-                            "is_verified": is_ver
+                            "claim": item.get("claim"),
+                            "verification_result": item.get("verification_result"),
+                            "source_or_reasoning": item.get("source_or_reasoning"),
+                            "is_verified": item.get("is_verified")
                         })
                     section.data["processed_facts"] = processed_facts
 
-                    # 2. Ethics (Overseer also populates this section type in BFF)
-                    raw_ethics = section.data.get("ethical_issues") or section.data.get("eettiset_havainnot", [])
+                    # 2. Ethics
+                    raw_ethics = section.data.get("ethical_issues", [])
                     processed_ethics = []
-                    for e in raw_ethics:
-                        item = e.dict() if hasattr(e, "dict") else e
+                    for item in raw_ethics:
                         processed_ethics.append({
-                            "issue_type": item.get("issue_type") or item.get("ongelma_tyyppi"),
-                            "severity": item.get("severity") or item.get("vakavuus"),
-                            "description": item.get("description") or item.get("kuvaus"),
-                            "is_critical": item.get("is_critical") or (str(item.get("severity")).lower() == "critical")
+                            "issue_type": item.get("issue_type"),
+                            "severity": item.get("severity"),
+                            "description": item.get("description"),
+                            "is_critical": item.get("is_critical")
                         })
                     section.data["processed_ethics"] = processed_ethics
 

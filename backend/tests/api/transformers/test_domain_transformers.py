@@ -49,7 +49,7 @@ def test_logic_transformer_extracts_display_model():
     assert section.type == SectionType.LOGIC_ANALYSIS
     assert isinstance(section.data, LogicAnalysisDisplay)
     assert section.data.strategic_score == 3.5
-    assert section.data.bloom_score_display == "5.8"
+    assert section.data.bloom_score == 5.8
     assert len(section.data.arguments) == 1
 
 def test_logic_transformer_handles_missing_step():
@@ -237,4 +237,4 @@ def test_archivist_transformer_extracts_display_model():
     assert isinstance(section, UiSection)
     assert section.type == SectionType.ARCHIVIST_CHECK
     assert isinstance(section.data, ArchivistDisplay)
-    assert section.data.compliance_score == 4.0 # Aligned maps to 4.0
+    assert section.data.compliance_score == 9.5

@@ -48,13 +48,30 @@ class LogicDomainTransformer(BaseTransformer):
                     conclusion="N/A",
                     confidence_score=1.0
                 )
+        except ValidationError as e:
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Logic validation failed: {e}", exc_info=True)
+            raise AppException(
+                message=f"Logic validation failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
+            ) from e
         except Exception as e:
-            # BFF Resilience: Graceful Fallback (Part 3.6 / 15.1)
-            # If the data stored in DB (strings) doesn't match Strict Pydantic Model (Enums),
-            # we skip this section instead of crashing the entire report.
-            error_code = "LOGICIAN_VALIDATION_FAILED"
-            logger.warning(f"{error_code}: Logic section validation failed, skipping section. Details: {e}")
-            return None
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Logic transform failed: {e}", exc_info=True)
+            raise AppException(
+                message=f"Logic transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
+            ) from e
 
         try:
             display_model = self._transform_logician_data(model)

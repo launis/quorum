@@ -136,7 +136,7 @@ async def create_organization(
     # Add metadata
 
     if "created_at" not in item:
-        item["created_at"] = datetime.now(UTC)
+        item["created_at"] = datetime.now(UTC).isoformat()
     if "is_active" not in item:
         item["is_active"] = True
 
@@ -315,6 +315,8 @@ async def get_organization_usage(
 
     except Exception as e:
         from backend.exceptions import AppException
+        if isinstance(e, AppException):
+            raise
 
         error_code = "USAGE_STATS_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)

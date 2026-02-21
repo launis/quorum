@@ -36,6 +36,7 @@ class Metadata(BaseModel):
     organization_id: str | None = Field(default=None, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"})
     workflow: str | None = Field(default=None, description="Workflow name.", json_schema_extra={"x-ui-label": "Workflow"})
     audit_logs: list[AuditLogEntry] | None = Field(default=None, description="Audit logs.", json_schema_extra={"x-ui-label": "Audit Logs"})
+    token_usage: dict[str, int] | None = Field(default=None, description="Token usage statistics from language model.")
 
     @field_validator("agentti", "suoritus_ymparisto")
     @classmethod

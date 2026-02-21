@@ -55,7 +55,7 @@ async def get_component_schema(
 
     schema = model_class.model_json_schema()
     localized = localize_schema(schema)
-    return ComponentSchemaResponse(schema_data=localized)
+    return ComponentSchemaResponse(schema=localized)
 
 
 @router.get(

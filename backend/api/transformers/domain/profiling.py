@@ -43,20 +43,28 @@ class ProfilingDomainTransformer(BaseTransformer):
             else:
                  model = ProfilerOutput(**self._adapt_legacy_trace(step)) # If flat
         except ValidationError as e:
-            error_code = "PROFILER_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Profiler validation failed: {e}", exc_info=True)
             raise AppException(
                 message=f"Profiler validation failed: {e}",
-                status_code=500,
-                details={"error_code": error_code, "errors": e.errors()}
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
         except Exception as e:
-            error_code = "PROFILER_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Profiler transform failed: {e}", exc_info=True)
             raise AppException(
-                message=str(e),
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Profiler transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
 
         try:
@@ -129,7 +137,7 @@ class ProfilingDomainTransformer(BaseTransformer):
             say_do_gap_label=sd_label_str,
             say_do_gap_color="red" if sd_detected else "green",
 
-            psychological_profile=f"Tone: {model.emotional_tone}. Biases: {', '.join(model.cognitive_biases)}",
+            psychological_profile=f"{self._t('Tone', 'Tone')}: {model.emotional_tone}. {self._t('Biases', 'Biases')}: {', '.join(model.cognitive_biases)}",
             intent_analysis=str(model.author_intent)
         )
 
@@ -148,20 +156,28 @@ class ProfilingDomainTransformer(BaseTransformer):
             else:
                  model = InteractionAnalysis(**self._adapt_legacy_trace(step))
         except ValidationError as e:
-            error_code = "INTERACTION_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Interaction validation failed: {e}", exc_info=True)
             raise AppException(
                 message=f"Interaction validation failed: {e}",
-                status_code=500,
-                details={"error_code": error_code, "errors": e.errors()}
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
         except Exception as e:
-            error_code = "INTERACTION_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Interaction transform failed: {e}", exc_info=True)
             raise AppException(
-                message=str(e),
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Interaction transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
 
         try:
@@ -205,24 +221,42 @@ class ProfilingDomainTransformer(BaseTransformer):
             return None
 
         try:
-               # PerformativityOutput
-               # Strict Validation
-             model = PerformativityOutput(**self._adapt_legacy_trace(step))
+               # Strict Validation / Reconstruction for Panel
+             if "performativity_heuristics" in step and "performativity_analysis" not in step:
+                 # Inner data only, from Panel aggregation fallback
+                 from backend.models.domain.performativity import PerformativityAnalysis
+                 inner = PerformativityAnalysis(**step)
+                 model = PerformativityOutput(
+                     performativity_analysis=inner,
+                     thought_process="[Aggregated Panel Analysis]",
+                     conclusion="N/A",
+                     confidence_score=1.0
+                 )
+             else:
+                 model = PerformativityOutput(**self._adapt_legacy_trace(step))
         except ValidationError as e:
-            error_code = "PERFORMATIVITY_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Performativity validation failed: {e}", exc_info=True)
             raise AppException(
                 message=f"Performativity validation failed: {e}",
-                status_code=500,
-                details={"error_code": error_code, "errors": e.errors()}
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
         except Exception as e:
-            error_code = "PERFORMATIVITY_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Performativity transform failed: {e}", exc_info=True)
             raise AppException(
-                message=str(e),
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Performativity transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
 
         try:

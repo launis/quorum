@@ -441,12 +441,12 @@ class ArchivistDisplay(BaseModel):
 
 class DimensionDisplay(BaseModel):
     """Strict View Model for a single Scoring Dimension."""
-    id: str
-    name_key: str  # Localization key
+    dimension_id: str
+    dimension_label: str  # Localization key
     score: float
     max_score: float
     weight: float
-    reasoning: str | None
+    reasoning: str
     
     model_config = ConfigDict(frozen=True, strict=False)
 

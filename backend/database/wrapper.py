@@ -168,7 +168,9 @@ class TinyDBClient(AbstractDatabase):
         """Initialize TinyDB Client."""
         import os
 
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        dir_name = os.path.dirname(path)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
         self.path = path
         # Verify creation/access but don't hold connection
         with TinyDB(path, encoding="utf-8") as _:

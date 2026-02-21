@@ -1,0 +1,125 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\src\quorum
+configfile: pytest.ini
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... Updated backend/main.py with Lifespan and V2 Router.
+collected 5 items
+
+backend/tests/api/test_localization_expansion.py::test_get_generic_schema_fi DEBUG TEST SCHEMA: {'$defs': {'ComponentScoringRule': {'description': 'Defines how a specific component contributes to a score.', 'properties': {'component_id': {'description': 'ID of the component being scored', 'title': 'Component Id', 'type': 'string', 'x-ui-label': 'Component ID'}, 'weight': {'default': 1.0, 'description': 'Weight multiplier for this component', 'title': 'Weight', 'type': 'number', 'x-ui-label': 'Weight'}, 'metric_key': {'description': "Key of the metric to extract (e.g., 'compliance_score')", 'title': 'Metric Key', 'type': 'string', 'x-ui-label': 'Metric Key'}}, 'required': ['component_id', 'metric_key'], 'title': 'ComponentScoringRule', 'type': 'object'}, 'ScoringLogic': {'description': 'Named collection of scoring rules.', 'properties': {'label': {'description': 'Display label for this scoring logic', 'title': 'Label', 'type': 'string', 'x-ui-label': 'Label'}, 'rules': {'description': 'List of rules defining the score', 'items': {'$ref': '#/$defs/ComponentScoringRule'}, 'title': 'Rules', 'type': 'array', 'x-ui-label': 'Rules'}}, 'required': ['label'], 'title': 'ScoringLogic', 'type': 'object'}, 'WorkflowStep': {'description': "Represents a single step in a workflow execution.\n\nThis model defines the task to be executed and how data maps\nfrom the workflow state into the task's input schema.", 'properties': {'id': {'description': "Unique step identifier, e.g., 'safety_check'", 'title': 'Id', 'type': 'string', 'x-ui-label': 'Tunniste'}, 'name': {'description': 'Human-readable name of the step', 'title': 'Name', 'type': 'string', 'x-ui-label': 'Vaiheen nimi'}, 'description': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': "Optional description of the step's purpose", 'title': 'Description', 'x-ui-label': 'Kuvaus'}, 'task_key': {'description': 'Registry Task Name (matches @register_task name)', 'title': 'Task Key', 'type': 'string', 'x-ui-label': 'Task Key'}, 'inputs': {'additionalProperties': {'type': 'string'}, 'description': "Maps task inputs to state values. Example: {'text': '$inputs.history_text'}", 'title': 'Inputs', 'type': 'object', 'x-ui-label': 'Inputs'}, 'config': {'additionalProperties': True, 'description': 'Optional static config for the task', 'title': 'Config', 'type': 'object', 'x-ui-label': 'Configuration'}, 'hoist_keys': {'description': "Defines which keys from the task's result should be promoted to the top-level execution state", 'items': {'type': 'string'}, 'title': 'Hoist Keys', 'type': 'array', 'x-ui-label': 'Hoist Keys'}, 'metadata': {'additionalProperties': True, 'description': "Arbitrary metadata for the step (e.g., 'agent_class')", 'title': 'Metadata', 'type': 'object', 'x-ui-label': 'Metadata'}}, 'required': ['id', 'name', 'task_key'], 'title': 'WorkflowStep', 'type': 'object'}}, 'description': 'Defines the structure of a workflow stored in the DB.\n\nA workflow is an ordered sequence of steps that process data\ntransformation through registered tasks.', 'properties': {'id': {'description': "Unique Workflow ID, e.g., 'comprehensive_audit_v1'", 'title': 'Id', 'type': 'string'}, 'name': {'default': 'Untitled Workflow', 'description': 'Human-readable name for the workflow', 'minLength': 3, 'title': 'Name', 'type': 'string', 'x-ui-label': 'Workflow Name', 'x-ui-widget': 'text'}, 'steps': {'description': 'Ordered list of Step Definitions', 'items': {'$ref': '#/$defs/WorkflowStep'}, 'title': 'Steps', 'type': 'array', 'x-ui-group': 'Steps', 'x-ui-widget': 'reorderable-list'}, 'description': {'description': 'Human-readable description of what this workflow does', 'title': 'Description', 'type': 'string', 'x-ui-label': 'Kuvaus', 'x-ui-widget': 'textarea'}, 'status': {'default': 'draft', 'description': 'Workflow lifecycle status', 'enum': ['draft', 'active', 'deprecated', 'archived'], 'title': 'Status', 'type': 'string', 'x-ui-label': 'Tila', 'x-ui-widget': 'select'}, 'version': {'default': 1, 'description': 'Numeric version', 'title': 'Version', 'type': 'integer'}, 'is_public': {'default': False, 'description': 'If checked, visible to all tenants (System Only)', 'title': 'Is Public', 'type': 'boolean', 'x-ui-label': 'Publicly Available'}, 'organization_id': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': "Organization ID this workflow belongs to (or 'system')", 'title': 'Organization Id', 'x-ui-label': 'Organisaatio ID'}, 'scoring_logic': {'description': 'Defined scoring methods for this workflow', 'items': {'$ref': '#/$defs/ScoringLogic'}, 'title': 'Scoring Logic', 'type': 'array', 'x-ui-group': 'Scoring Logic', 'x-ui-label': 'Scoring Logic'}, 'ui_schema': {'additionalProperties': True, 'description': 'JSON Schema for the dynamic input form', 'title': 'Ui Schema', 'type': 'object', 'x-ui-label': 'UI Schema'}}, 'required': ['id', 'description'], 'title': 'WorkflowDefinition', 'type': 'object'}
+DEBUG TEST PROPERTIES: {'id': {'description': "Unique Workflow ID, e.g., 'comprehensive_audit_v1'", 'title': 'Id', 'type': 'string'}, 'name': {'default': 'Untitled Workflow', 'description': 'Human-readable name for the workflow', 'minLength': 3, 'title': 'Name', 'type': 'string', 'x-ui-label': 'Workflow Name', 'x-ui-widget': 'text'}, 'steps': {'description': 'Ordered list of Step Definitions', 'items': {'$ref': '#/$defs/WorkflowStep'}, 'title': 'Steps', 'type': 'array', 'x-ui-group': 'Steps', 'x-ui-widget': 'reorderable-list'}, 'description': {'description': 'Human-readable description of what this workflow does', 'title': 'Description', 'type': 'string', 'x-ui-label': 'Kuvaus', 'x-ui-widget': 'textarea'}, 'status': {'default': 'draft', 'description': 'Workflow lifecycle status', 'enum': ['draft', 'active', 'deprecated', 'archived'], 'title': 'Status', 'type': 'string', 'x-ui-label': 'Tila', 'x-ui-widget': 'select'}, 'version': {'default': 1, 'description': 'Numeric version', 'title': 'Version', 'type': 'integer'}, 'is_public': {'default': False, 'description': 'If checked, visible to all tenants (System Only)', 'title': 'Is Public', 'type': 'boolean', 'x-ui-label': 'Publicly Available'}, 'organization_id': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None, 'description': "Organization ID this workflow belongs to (or 'system')", 'title': 'Organization Id', 'x-ui-label': 'Organisaatio ID'}, 'scoring_logic': {'description': 'Defined scoring methods for this workflow', 'items': {'$ref': '#/$defs/ScoringLogic'}, 'title': 'Scoring Logic', 'type': 'array', 'x-ui-group': 'Scoring Logic', 'x-ui-label': 'Scoring Logic'}, 'ui_schema': {'additionalProperties': True, 'description': 'JSON Schema for the dynamic input form', 'title': 'Ui Schema', 'type': 'object', 'x-ui-label': 'UI Schema'}}
+FAILED
+backend/tests/api/test_localization_expansion.py::test_get_evaluation_matrix_schema_fi FAILED
+backend/tests/api/test_localization_expansion.py::test_get_agents_list_fi PASSED
+backend/tests/api/test_localization_expansion.py::test_get_schemas_list_fi PASSED
+backend/tests/api/test_localization_expansion.py::test_get_execution_view_fi DEBUG STATUS: 200
+DEBUG BODY: {"view_id":"test-exec-1","title":"Auditintiraportti","status_theme":"success","sections":[{"id":"score-card-step_judge","type":"SCORE_CARD","title":"Analyysin Tulos","data":{"agent_name":"Tuomari","total_score":3.0,"min_score":1,"max_score":5,"verdict":"Good","dimensions":[]}},{"id":"usage-stats","type":"USAGE_STATS","title":"Usage","data":{"total_tokens":0,"prompt_tokens":0,"completion_tokens":0,"cost_estimate":0.0}},{"id":"unified-timeline","type":"TIMELINE_FEED","title":"Timeline","data":{"events":[]}}],"metrics":null,"system_notification":null}
+DEBUG VIEW: {
+  "view_id": "test-exec-1",
+  "title": "Auditintiraportti",
+  "status_theme": "success",
+  "sections": [
+    {
+      "id": "score-card-step_judge",
+      "type": "SCORE_CARD",
+      "title": "Analyysin Tulos",
+      "data": {
+        "agent_name": "Tuomari",
+        "total_score": 3.0,
+        "min_score": 1,
+        "max_score": 5,
+        "verdict": "Good",
+        "dimensions": []
+      }
+    },
+    {
+      "id": "usage-stats",
+      "type": "USAGE_STATS",
+      "title": "Usage",
+      "data": {
+        "total_tokens": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "cost_estimate": 0.0
+      }
+    },
+    {
+      "id": "unified-timeline",
+      "type": "TIMELINE_FEED",
+      "title": "Timeline",
+      "data": {
+        "events": []
+      }
+    }
+  ],
+  "metrics": null,
+  "system_notification": null
+}
+PASSED
+
+================================== FAILURES ===================================
+_________________________ test_get_generic_schema_fi __________________________
+
+    def test_get_generic_schema_fi():
+        """Verify that general schemas endpoint respects Accept-Language: fi."""
+        headers = {"Accept-Language": "fi-FI"}
+        # The 'WorkflowDefinition' is registered in schemas.py
+        response = client.get("/v1/config/schemas/workflow_definition", headers=headers)
+        if response.status_code != 200:
+            with open("last_error.log", "w") as f:
+                f.write(f"Status: {response.status_code}\nBody: {response.text}")
+        assert response.status_code == 200
+        schema = response.json().get("schema_def", {})
+    
+        properties = schema.get("properties", {})
+        print("DEBUG TEST SCHEMA:", schema)
+        print("DEBUG TEST PROPERTIES:", properties)
+        # Verify translations from domain.py hints + fi.json
+>       assert properties["name"]["x-ui-label"] == "Ty├Ânkulun Nimi"
+E       AssertionError: assert 'Workflow Name' == 'Ty├Ânkulun Nimi'
+E         
+E         - Ty├Ânkulun Nimi
+E         + Workflow Name
+
+backend\tests\api\test_localization_expansion.py:36: AssertionError
+____________________ test_get_evaluation_matrix_schema_fi _____________________
+
+    def test_get_evaluation_matrix_schema_fi():
+        """Verify that EvaluationMatrixConfig endpoint respects Accept-Language: fi."""
+        headers = {"Accept-Language": "fi-FI"}
+        response = client.get("/v1/config/schemas/evaluation_matrix", headers=headers)
+        assert response.status_code == 200
+        schema = response.json().get("schema_def", {})
+    
+        properties = schema.get("properties", {})
+        # Verify new hints added to domain.py
+>       assert properties["scale"]["x-ui-label"] == "Pisteytysasteikko"
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'scale'
+
+backend\tests\api\test_localization_expansion.py:48: KeyError
+============================== warnings summary ===============================
+..\..\Python314\Lib\site-packages\google\genai\types.py:43
+  C:\Python314\Lib\site-packages\google\genai\types.py:43: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+..\..\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: 15 warnings
+  C:\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+  C:\Python314\Lib\site-packages\slowapi\extension.py:717: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--------- generated xml file: C:\src\quorum\tests\output\results.xml ----------
+=========================== short test summary info ===========================
+FAILED backend/tests/api/test_localization_expansion.py::test_get_generic_schema_fi - AssertionError: assert 'Workflow Name' == 'Ty├Ânkulun Nimi'
+  
+  - Ty├Ânkulun Nimi
+  + Workflow Name
+FAILED backend/tests/api/test_localization_expansion.py::test_get_evaluation_matrix_schema_fi - KeyError: 'scale'
+================== 2 failed, 3 passed, 18 warnings in 4.86s ===================

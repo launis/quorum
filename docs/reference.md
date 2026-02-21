@@ -16,7 +16,7 @@ quorum/
 │   │   ├── routes/
 │   │   │   ├── config/     # CRUD for Rules, Matrices, Workflows
 │   │   │   └── execution/  # Job Submission & Status
-│   │   ├── transformers/   # Modular View Transformers (Assessment & Report)
+│   │   ├── transformers/   # Modular View Transformers (Unified SDUI Pipeline for UI & PDF)
 │   ├── core/               # GraphEngine & WorkflowRunner
 │   ├── database/           # Unified Repository (TinyDB / Firestore)
 │   │   └── db_mock.json    # Test DB (Mock LLMs)
@@ -114,8 +114,9 @@ The API returns standard HTTP codes plus a detailed `error_code` in the JSON bod
 *   **500**: `INTERNAL_SERVER_ERROR` - Unhandled system exception.
 *   **503**: `NETWORK_UNAVAILABLE` - Connectivity issues.
 
-### Validation (400)
-*   `INVALID_JSON_PAYLOAD`: Input does not match Pydantic model.
+### Validation (400 / 422)
+*   **422**: `VALIDATION_ERROR` - Pydantic V2 strictly failed to parse input/legacy data (Fail Fast).
+*   `INVALID_JSON_PAYLOAD`: Input does not match Pydantic model structure.
 *   `EMPTY_INPUT`: Required text field was empty.
 *   `SECURITY_VIOLATION`: Banned phrase detected or PII rejected.
 

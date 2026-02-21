@@ -105,7 +105,7 @@ sealed class Execution with _$Execution {
 
     /// The final output of the workflow (e.g., the Report object).
     /// Only available in completed state.
-    @Default({}) Map<String, dynamic> result,
+    @JsonKey(name: 'results') @Default({}) Map<String, dynamic> result,
 
     /// Optional formatted markdown report, if pre-rendered.
     @JsonKey(name: 'xai_report_formatted') String? xaiReport,

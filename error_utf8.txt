@@ -1,0 +1,316 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\src\quorum
+configfile: pytest.ini
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 1 item
+
+backend/tests/api/transformers/test_report_transformer.py::test_report_transformer_process_all_stages FAILED [100%]
+
+================================== FAILURES ===================================
+_________________ test_report_transformer_process_all_stages __________________
+
+self = <backend.api.transformers.report_core.ReportTransformer object at 0x000002A9225C2120>
+steps = {'step_archivist': {'archivist_data': {'compliance_analysis': 'Aligned', 'compliance_score': 9.5, 'conclusion': 'Concl...: 'Conclusion', 'confidence_score': 0.9, 'improvement_suggestions': ['Direct'], 'input_quality_score': 0.9, ...}}, ...}
+
+    def _extract_falsifier_section(self, steps: dict) -> UiSection | None:
+        step = steps.get("step_falsifier")
+    
+        # Fallback to Panel
+        if not step:
+            panel = steps.get("step_panel", {})
+            step = panel.get("falsifier_data") or panel.get("falsifiointi_auditointi")
+    
+        if not step:
+            return None
+    
+        # STRICT VALIDATION: FalsifierOutput
+        try:
+            if "falsifier_data" in step:
+>                model = FalsifierOutput(**self._adapt_legacy_trace(step["falsifier_data"]))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E                pydantic_core._pydantic_core.ValidationError: 4 validation errors for FalsifierOutput
+E                thought_process
+E                  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+E                    For further information visit https://errors.pydantic.dev/2.12/v/missing
+E                conclusion
+E                  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+E                    For further information visit https://errors.pydantic.dev/2.12/v/missing
+E                confidence_score
+E                  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+E                    For further information visit https://errors.pydantic.dev/2.12/v/missing
+E                falsifier_data
+E                  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+E                    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+backend\api\transformers\domain\falsification.py:43: ValidationError
+
+The above exception was the direct cause of the following exception:
+
+    def test_report_transformer_process_all_stages():
+        """Verify ReportTransformer handles a full workflow execution correctly."""
+        # Extensive mock data mirroring debug_report_uvm.py structure
+        mock_execution = {
+            "id": "test-integration-001",
+            "status": "completed",
+            "results": {
+                "step_results": {
+                    # Context
+                    "step_context": {
+                        "context_data": {
+                            "thought_process": "Thinking...",
+                            "conclusion": "Conclusion",
+                            "confidence_score": 0.9,
+                            "precedents": "Prec",
+                            "knowledge_items": []
+                        }
+                    },
+                    # Logic
+                    "step_logician": {
+                        "logician_data": {
+                            "cognitive_level": {
+                                "strategic_depth": "STRAT_HIGH",
+                                "strategic_score": 3.5,
+                                "bloom_level": "BLOOM_EVALUATING",
+                                "bloom_score": 5.8
+                            },
+                            "toulmin_score": 5.0,
+                            "toulmin_analysis": [{"id": "T1", "claim": "C1", "data": "D1", "warrant": "W1"}],
+                            "walton_scheme": {"identified_scheme": "Expert Opinion", "critical_questions": ["Q1"]}
+                        },
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9
+                    },
+                    # Stress
+                    "step_falsifier": {
+                        "falsifier_data": {
+                            "fidelity_audit": {
+                                "fidelity_score": "FIDELITY_HIGH",
+                                "fidelity_numeric": 3.0,
+                                "justification": "Solid",
+                                "post_hoc_rationalization": False
+                            },
+                            "stress_test_findings": [
+                                {
+                                    "question": "Q1",
+                                    "evidence_held": True,
+                                    "observation": "Obs1"
+                                }
+                            ]
+                        },
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9
+                    },
+                    # Causal
+                    "step_causal": {
+                        "causal_analysis": {
+                            "abductive_reasoning": {"verdict": "OK", "confidence_score": 0.9, "conclusion": "Conc1"},
+                            "abductive_conclusion": "ABDUCT_GENUINE",
+                            "abductive_score": 3.0,
+                            "counterfactual_test": {
+                                "plausibility": "PLAUSIBLE",
+                                "confidence_score": 0.8,
+                                "actual_scenario": "A1",
+                                "simulated_scenario": "S1",
+                                "plausibility_score": "PLAUS_PLAUSIBLE",
+                                "plausibility_numeric": 2.0,
+                                "simulation_result": "SimResult"
+                            },
+                            "plausibility_check": {"score": 2.5},
+                            "observation": "Obs1",
+                            "hypothesis": "Hyp1"
+                        },
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9
+                    },
+                    # Profiler
+                    "step_profiler": {
+                        "profiler_data": {
+                            "metrics": {
+                                "control_ratio": 0.6,
+                                "word_count": 100,
+                                "avg_sentence_length": 10.0,
+                                "lexical_diversity": 0.5,
+                                "capitalization_ratio": 0.1,
+                                "automation_bias": 0.1,
+                                "say_do_gap": 0.9
+                            },
+                            "author_intent": "Info",
+                            "emotional_tone": "Neutral",
+                            "cognitive_biases": ["Bias1"],
+                            "thought_process": "Thinking...",
+                            "conclusion": "Conclusion",
+                            "confidence_score": 0.9
+                        }
+                    },
+                    # Driver
+                    "step_driver": {
+                        "interaction_analysis": {
+                            "role_classification": "Driver",
+                            "input_quality_score": 0.9,
+                            "improvement_suggestions": ["Direct"],
+                            "thought_process": "Thinking...",
+                            "conclusion": "Conclusion",
+                            "confidence_score": 0.9
+                        }
+                    },
+                    # Archivist
+                    "step_archivist": {
+                         "archivist_data": {
+                             "compliance_score": 9.5,
+                             "compliance_analysis": "Aligned",
+                             "description": "Good",
+                             "relevant_cases": [],
+                             "stare_decisis_adherence": True,
+                             "thought_process": "Thinking...",
+                             "conclusion": "Conclusion",
+                             "confidence_score": 0.9,
+                             "consistency_analysis": "Consistent"
+                         }
+                    }
+                }
+            }
+        }
+    
+        record = ExecutionRecord(**mock_execution)
+        transformer = ReportTransformer()
+>       report = transformer.transform(record)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\tests\api\transformers\test_report_transformer.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+backend\api\transformers\report_core.py:207: in transform
+    falsifier = self._extract_falsifier_section(steps)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <backend.api.transformers.report_core.ReportTransformer object at 0x000002A9225C2120>
+steps = {'step_archivist': {'archivist_data': {'compliance_analysis': 'Aligned', 'compliance_score': 9.5, 'conclusion': 'Concl...: 'Conclusion', 'confidence_score': 0.9, 'improvement_suggestions': ['Direct'], 'input_quality_score': 0.9, ...}}, ...}
+
+    def _extract_falsifier_section(self, steps: dict) -> UiSection | None:
+        step = steps.get("step_falsifier")
+    
+        # Fallback to Panel
+        if not step:
+            panel = steps.get("step_panel", {})
+            step = panel.get("falsifier_data") or panel.get("falsifiointi_auditointi")
+    
+        if not step:
+            return None
+    
+        # STRICT VALIDATION: FalsifierOutput
+        try:
+            if "falsifier_data" in step:
+                 model = FalsifierOutput(**self._adapt_legacy_trace(step["falsifier_data"]))
+            else:
+                # Wrap inner data
+                if "falsifier_data" not in step and "stress_test_findings" in step:
+                     # It's FalsifierData (inner)
+                     inner = FalsifierData(**step)
+                     model = FalsifierOutput(
+                        falsifier_data=inner,
+                        thought_process="[Aggregated Panel Analysis]",
+                        conclusion="N/A",
+                        confidence_score=1.0
+                     )
+                else:
+                    # It's FalsifierOutput
+                     model = FalsifierOutput(**self._adapt_legacy_trace(step))
+    
+        except ValidationError as e:
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Falsifier validation failed: {e}", exc_info=True)
+>           raise AppException(
+                message=f"Falsifier validation failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
+            ) from e
+E           backend.exceptions.AppException: Falsifier validation failed: 4 validation errors for FalsifierOutput
+E           thought_process
+E             Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+E           conclusion
+E             Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+E           confidence_score
+E             Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+E           falsifier_data
+E             Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+backend\api\transformers\domain\falsification.py:63: AppException
+------------------------------ Captured log call ------------------------------
+WARNING  backend.api.transformers.report_core:report_core.py:155 Missing data for step_judge in Score Cards layout
+WARNING  backend.api.transformers.report_core:report_core.py:155 Missing data for step_judge_cognitive in Score Cards layout
+WARNING  backend.api.transformers.report_core:report_core.py:586 Missing usage stats in ExecutionRecord results
+WARNING  backend.api.transformers.report_core:report_core.py:391 Missing data for step_xai in XAI Report layout
+WARNING  backend.api.transformers.report_core:report_core.py:610 Missing data for step_judge in Critical Findings layout
+WARNING  backend.api.transformers.report_core:report_core.py:610 Missing data for step_judge_cognitive in Critical Findings layout
+WARNING  backend.api.transformers.report_core:report_core.py:482 Missing data for step_analyst in Analyst Table layout
+ERROR    backend.api.transformers.domain.falsification:falsification.py:62 [ReportTransformer] VALIDATION_FAILED: Falsifier validation failed: 4 validation errors for FalsifierOutput
+thought_process
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+conclusion
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+confidence_score
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+falsifier_data
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+Traceback (most recent call last):
+  File "C:\src\quorum\backend\api\transformers\domain\falsification.py", line 43, in _extract_falsifier_section
+    model = FalsifierOutput(**self._adapt_legacy_trace(step["falsifier_data"]))
+  File "C:\Python314\Lib\site-packages\pydantic\main.py", line 250, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 4 validation errors for FalsifierOutput
+thought_process
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+conclusion
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+confidence_score
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+falsifier_data
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+============================== warnings summary ===============================
+..\..\Python314\Lib\site-packages\google\genai\types.py:43
+  C:\Python314\Lib\site-packages\google\genai\types.py:43: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+..\..\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: 15 warnings
+  C:\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--------- generated xml file: C:\src\quorum\tests\output\results.xml ----------
+=========================== short test summary info ===========================
+FAILED backend/tests/api/transformers/test_report_transformer.py::test_report_transformer_process_all_stages - backend.exceptions.AppException: Falsifier validation failed: 4 validation errors for FalsifierOutput
+thought_process
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+conclusion
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+confidence_score
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+falsifier_data
+  Field required [type=missing, input_value={'fidelity_audit': {'fide...'observation': 'Obs1'}]}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+======================= 1 failed, 16 warnings in 4.11s ========================

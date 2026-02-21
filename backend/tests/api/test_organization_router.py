@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.dependencies import get_current_user_from_header, get_repository, get_auth_service, get_audit_service
+from backend.dependencies import get_current_user_from_header, get_async_repository, get_auth_service, get_audit_service
 from backend.models.auth import TokenData, UserRole, Organization, SubscriptionStatus
 from backend.services.auth import AuthService
 from backend.database.repository import AbstractWorkflowRepository
@@ -38,7 +38,7 @@ org_1 = {
 @pytest.fixture(autouse=True)
 def setup_dependencies():
     app.dependency_overrides = {}
-    app.dependency_overrides[get_repository] = lambda: mock_repo
+    app.dependency_overrides[get_async_repository] = lambda: mock_repo
     app.dependency_overrides[get_auth_service] = lambda: mock_auth_service
     app.dependency_overrides[get_audit_service] = lambda: mock_repo # Reuse mock_repo as it has log_audit_event? 
     # Or better, create separate mock for audit service
@@ -107,7 +107,7 @@ async def test_get_organization_usage_not_found():
 
     response = client.get("/organizations/bad-id/usage")
     assert response.status_code == 404
-    assert "organization-not-found" in response.json()["type"]
+    assert "resource-not-found" in response.json()["type"]
 
 @pytest.mark.asyncio
 async def test_delete_organization_conflict():

@@ -807,7 +807,7 @@
         {% elif section.type == 'MARKDOWN_BLOCK' %}
         <div class="card">
             <h2>{{ section.title }}</h2>
-            <div style="font-family: inherit; font-size: 11px; white-space: pre-wrap;">{{ section.data.get('content', '') }}</div>
+            <div style="font-family: inherit; font-size: 11px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">{{ section.data.get('content', '') }}</div>
         </div>
 
         {# --- GENERIC FALLBACK --- #}

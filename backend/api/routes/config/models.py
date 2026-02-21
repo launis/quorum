@@ -239,7 +239,6 @@ async def delete_model_config(
     Strictly requires 'provider/strategy' format.
     """
     settings = get_settings()
-
     try:
         # RELAXED: Allow slashless IDs
         # if "/" not in provider_id: ... (Removed)
@@ -271,9 +270,13 @@ async def delete_model_config(
 
         current_models = registry["models"]
         
-        parts = provider_id.split("/", 1)
-        target_provider = parts[0]
-        target_strategy = parts[1]
+        if "/" in provider_id:
+            parts = provider_id.split("/", 1)
+            target_provider = parts[0]
+            target_strategy = parts[1]
+        else:
+            target_provider = provider_id
+            target_strategy = "default"
 
         # 4. Delete Logic
         deleted = False

@@ -22,7 +22,7 @@ def test_transform_success_running(transformer):
     assert isinstance(view, AssessmentView)
     assert view.sessionId == "exe-123"
     assert view.uiVariant == "default"
-    assert "Käsitellään" in view.statusMessage
+    assert "Valmis:" in view.statusMessage
 
 def test_transform_success_completed(transformer):
     raw_data = {

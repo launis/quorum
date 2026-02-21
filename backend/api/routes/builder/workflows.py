@@ -66,6 +66,10 @@ async def _expand_workflow(wf: dict[str, Any], repository: RepositoryDep) -> dic
             # Merge other non-protected fields if necessary
             # For now, inputs are the main override.
 
+            # Ensure 'task_key' exists for frontend strict parsing
+            if "task_key" not in merged:
+                merged["task_key"] = merged.get("component", "unknown")
+
             hydrated_steps.append(merged)
         else:
             # 4. Fallback: Step missing in Registry?
@@ -111,7 +115,16 @@ async def create_workflow(
         raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. Org Assignment
-    target_org = current_user.organization_id or "system"
+    target_org = current_user.organization_id
+    if not target_org:
+        from backend.exceptions import AppException
+        error_code = "WORKFLOW_MISSING_ORGANIZATION_ID"
+        logger.error(f"{error_code}: User {current_user.uid} has no organization_id assigned.", exc_info=True)
+        raise AppException(
+            message="User must belong to an organization to create workflows.", 
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            details={"error_code": error_code}
+        )
 
     # 3. Visibility Check
     is_public_val = False

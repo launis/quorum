@@ -47,7 +47,7 @@ async def get_execution_view(
             raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
 
         # Transform logic
-        transformer = ReportTransformer() # Config language if needed
+        transformer = ReportTransformer(language=accept_language or "en")
         
         # STRICT TYPING MANDATE: Pass Pydantic Model.
         view = transformer.transform(execution)

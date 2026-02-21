@@ -148,7 +148,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 agent_name=self.__class__.__name__
             ) from e
 
-    def _apply_python_authority(self, data: Any) -> OutputT:
+    def _apply_python_authority(self, data: Any, token_usage: dict[str, int] | None = None) -> OutputT:
         """Injects system-authoritative data (Time, Identity, Checksums).
 
         Promotes DTOs to Domain Models if DTO_SCHEMA is defined.
@@ -173,6 +173,9 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 "agentti": agent_name,
                 "suoritus_ymparisto": env_context,
             }
+            
+            if token_usage:
+                meta_updates["token_usage"] = token_usage
 
             # Default optional fields if missing
             # We check if they exist in current_meta (if it's a model)
@@ -270,6 +273,9 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 meta["vaihe"] = 1
             if "versio" not in meta:
                 meta["versio"] = "2.0"
+                
+            if token_usage:
+                meta["token_usage"] = token_usage
 
             # 2. CHECKSUM AUTHORITY
             try:
@@ -620,7 +626,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
 
              # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
             if response_data is not None:
-                response_data = self._apply_python_authority(response_data)
+                response_data = self._apply_python_authority(response_data, token_usage=getattr(response_obj, "token_usage", None))
 
 
 

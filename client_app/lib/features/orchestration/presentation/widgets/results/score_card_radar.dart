@@ -1,4 +1,5 @@
 import 'package:client_app/features/orchestration/domain/models/xai_report.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -11,6 +12,7 @@ class ScoreCardRadar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     // Use dimensions or fallback if empty
     final dimensions = card.dimensions.isNotEmpty
@@ -116,8 +118,8 @@ class ScoreCardRadar extends StatelessWidget {
                       if (index >= dimensions.length) return const RadarChartTitle(text: '');
                       
                       final d = dimensions[index];
-                      // Strict Mode: No fallback to ID
-                      final label = d.dimensionLabel.isNotEmpty ? d.dimensionLabel : ''; 
+                      // strict translation of dimensionLabel key
+                      final label = _translateDimension(d.dimensionLabel, l10n);
                       
                       return RadarChartTitle(text: label); 
                     },
@@ -150,7 +152,7 @@ class ScoreCardRadar extends StatelessWidget {
                  ),
                  const SizedBox(height: 8),
                  ...dimensions.map((d) {
-                    final label = d.dimensionLabel.isNotEmpty ? d.dimensionLabel : "Unknown";
+                    final label = _translateDimension(d.dimensionLabel, l10n);
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -194,5 +196,42 @@ class ScoreCardRadar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Translates the dimension key sent by the backend logic matrices
+  /// into localized UI strings per the "No-String" API Policy.
+  String _translateDimension(String key, AppLocalizations l10n) {
+    return switch (key) {
+      'lblFidelity' => l10n.lblFidelity,
+      'lblAbductiveReasoning' => l10n.lblAbductiveReasoning,
+      'lblCredibility' => l10n.lblCredibility,
+      'lblTextMetrics' => l10n.lblTextMetrics,
+      'lblBias' => l10n.lblBias,
+      'lblIntent' => l10n.lblIntent,
+      'lblPsychProfile' => l10n.lblPsychProfile,
+      'lblFactCheck' => l10n.lblFactCheck,
+      'lblEthicalObservation' => l10n.lblEthicalObservation,
+      'lblAuthenticity' => l10n.lblAuthenticity,
+      'lblHeuristics' => l10n.lblHeuristics,
+      'lblComplianceAnalysis' => l10n.lblComplianceAnalysis,
+      'lblMethodologicalLog' => l10n.lblMethodologicalLog,
+      'lblCognitiveLevel' => l10n.lblCognitiveLevel,
+      'lblStrategicDepth' => l10n.lblStrategicDepth,
+      'lblArguments' => l10n.lblArguments,
+      'lblBloomScore' => l10n.lblBloomScore,
+      'lblToulminScore' => l10n.lblToulminScore,
+      'lblLogicMatrix' => l10n.lblLogicMatrix,
+      'lblControlRatio' => l10n.lblControlRatio,
+      'lblRoleAndPosition' => l10n.lblRoleAndPosition,
+      'lblCriticalQuestions' => l10n.lblCriticalQuestions,
+      'lblWaltonScheme' => l10n.lblWaltonScheme,
+      'lblCausalAudit' => l10n.lblCausalAudit,
+      'lblCounterfactualTest' => l10n.lblCounterfactualTest,
+      'lblObservation' => l10n.lblObservation,
+      'lblQuestion' => l10n.lblQuestion,
+      'lblEvidenceHeld' => l10n.lblEvidenceHeld,
+      // Fallback for legacy items that might contain plain text already
+      _ => key.isNotEmpty ? key : l10n.errorUnknown,
+    };
   }
 }

@@ -27,8 +27,8 @@ async def test_ingest_knowledge_base_success():
     )
 
     # Assert
-    assert "job_id" in response
-    job_id = response["job_id"]
+    assert response.job_id
+    job_id = response.job_id
     assert job_id in ingestion_jobs
     assert ingestion_jobs[job_id]["status"] == "processing"
 
@@ -50,8 +50,8 @@ async def test_get_ingestion_status_found():
     result = await get_ingestion_status(job_id)
 
     # Assert
-    assert result["status"] == "completed"
-    assert result["progress"] == 100
+    assert result.status == "completed"
+    assert result.progress == 100
 
 @pytest.mark.asyncio
 async def test_get_ingestion_status_not_found():

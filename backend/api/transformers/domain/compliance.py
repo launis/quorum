@@ -39,20 +39,28 @@ class ComplianceDomainTransformer(BaseTransformer):
             # If step is already a dict, validation happens here
             model = GuardOutput(**self._adapt_legacy_trace(step))
         except ValidationError as e:
-            error_code = "GUARD_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Guard validation failed: {e}", exc_info=True)
             raise AppException(
                 message=f"Guard validation failed: {e}",
-                status_code=500,
-                details={"error_code": error_code, "errors": e.errors()}
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
         except Exception as e:
-            error_code = "GUARD_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Guard transform failed: {e}", exc_info=True)
             raise AppException(
-                message=str(e),
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Guard transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
 
         sec = model.security_check
@@ -113,20 +121,28 @@ class ComplianceDomainTransformer(BaseTransformer):
             else:
                 model = ArchivistOutput(**self._adapt_legacy_trace(step))
         except ValidationError as e:
-            error_code = "ARCHIVIST_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Archivist validation failed: {e}", exc_info=True)
             raise AppException(
                 message=f"Archivist validation failed: {e}",
-                status_code=500,
-                details={"error_code": error_code, "errors": e.errors()}
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
         except Exception as e:
-            error_code = "ARCHIVIST_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Archivist transform failed: {e}", exc_info=True)
             raise AppException(
-                message=str(e),
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Archivist transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
 
         try:
@@ -170,20 +186,28 @@ class ComplianceDomainTransformer(BaseTransformer):
             else:
                  model = CoachingPlan(**self._adapt_legacy_trace(step))
         except ValidationError as e:
-            error_code = "COACHING_PLAN_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Coach validation failed: {e}", exc_info=True)
             raise AppException(
                 message=f"Coach validation failed: {e}",
-                status_code=500,
-                details={"error_code": error_code, "errors": e.errors()}
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
         except Exception as e:
-            error_code = "COACHING_PLAN_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            from backend.exceptions import AppException, ErrorCodes, status
+            error_code = ErrorCodes.REPORT_GENERATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Coach transform failed: {e}", exc_info=True)
             raise AppException(
-                message=str(e),
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Coach transform failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={
+                    "error_code": error_code.value,
+                    "original_error": str(e)
+                }
             ) from e
 
         # Content Construction (Markdown)

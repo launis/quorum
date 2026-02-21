@@ -36,7 +36,7 @@ from backend.services.localization import localize_schema
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/config/schemas", tags=["Configuration"])
+router = APIRouter(prefix="/schemas", tags=["Configuration"])
 
 # Registry Mapping
 # Maps 'friendly' names to Pydantic models

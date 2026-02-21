@@ -134,7 +134,7 @@ ExecutionCompleted _$ExecutionCompletedFromJson(Map<String, dynamic> json) =>
       currentStepName: json['current_step_name'] as String?,
       currentStepIndex: (json['current_step_index'] as num?)?.toInt(),
       totalSteps: (json['total_steps'] as num?)?.toInt(),
-      result: json['result'] as Map<String, dynamic>? ?? const {},
+      result: json['results'] as Map<String, dynamic>? ?? const {},
       xaiReport: json['xai_report_formatted'] as String?,
       auditResults:
           (json['audit_results'] as Map<String, dynamic>?)?.map(
@@ -179,7 +179,7 @@ Map<String, dynamic> _$ExecutionCompletedToJson(ExecutionCompleted instance) =>
       'current_step_name': instance.currentStepName,
       'current_step_index': instance.currentStepIndex,
       'total_steps': instance.totalSteps,
-      'result': instance.result,
+      'results': instance.result,
       'xai_report_formatted': instance.xaiReport,
       'audit_results': instance.auditResults,
       'usage': instance.usage,

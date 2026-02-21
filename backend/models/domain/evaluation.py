@@ -43,7 +43,10 @@ class EvaluationMatrixConfig(BaseModel):
     id: str
     name: str
     description: str | None = None
-    criteria: list[EvaluationCriterion] = Field(default_factory=list)
+    criteria: list[EvaluationCriterion] = Field(
+        default_factory=list,
+        json_schema_extra={"x-ui-group": "Evaluation Criteria"}
+    )
 
     model_config = ConfigDict(frozen=True, strict=True)
 

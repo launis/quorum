@@ -16,7 +16,11 @@ The dependencies listed below serve as the **MINIMUM BASELINE**.
 
 **DO NOT** restrict upgrades unless a specific breaking change is identified.
 
-#### **Backend (Python 3.14.2+)**
+#### **Backend (Python 3.14.2+ & FastAPI 0.128+)**
+
+* **Enabled Features**: 
+  * Leveraging Python 3.14's deferred evaluation (`from __future__ import annotations`), native `ExceptionGroup` handling, and advanced structural pattern matching (`match/case`) for complex domain routing.
+  * Extensively utilizing **FastAPI 0.128+ annotations**: You MUST use `Annotated[T, Depends()]` for all Dependency Injections to guarantee strict IDE type-hinting and cleaner swagger generation. Do not use the legacy `param: T = Depends()` syntax.
 
 | Package | Baseline Version | Purpose |
 | :---- | :---- | :---- |
@@ -30,6 +34,8 @@ The dependencies listed below serve as the **MINIMUM BASELINE**.
 | tiktoken | 0.12.0+ | Token Counting |
 
 #### **Frontend (Flutter)**
+
+* **Enabled Features**: Dart 3.11 for true background concurrency (`Isolate.run`), explicit Records/Tuples `()`, and advanced Pattern Matching `switch()`. Riverpod 3.10 strictly enforces `Notifier` architecture replacing legacy state providers. GoRouter 17.1+ demands `GoRouteData` absolutely for Type-Safe routes.
 
 | Package | Baseline Version | Purpose |
 | :---- | :---- | :---- |
@@ -133,10 +139,11 @@ JSON
 
 **🐍 PART 2: PYTHON BACKEND MANDATES**
 
-### **2.1. Framework (FastAPI)**
+### **2.1. Framework (FastAPI 0.128+)**
 
-* **Lifespan**: Use async contextmanager. No @app.on\_event.  
-* **Concurrency**: All I/O routes must be async def. CPU tasks go to run\_in\_threadpool.
+* **Lifespan (ASGI)**: Always use the modern `async contextmanager` for application startup and shutdown events (`lifespan=...`). The legacy `@app.on_event("startup")` approach is BANNED.
+* **Dependency Injection (Annotated)**: Strict mandate to use `Annotated[DependencyType, Depends()]`. This ensures Pydantic V2 schemas generate flawlessly and Type Checkers (`mypy`) can explicitly trace injection dependencies.
+* **Concurrency**: I/O routes reading asynchronous sources MUST be `async def`. However, routes accessing purely synchronous blocking drivers (like `TinyDBDriver`) MUST be defined as basic `def`, forcing FastAPI to safely execute them in a background threadpool to prevent Event Loop freezing!
 
 ### **2.2. Date Handling (Temporal Standard)**
 
@@ -170,7 +177,7 @@ JSON
 
 * **Requests**: body MUST be a Pydantic Model. Using dict or Request to bypass validation is BANNED.  
 * **Responses**: MUST define response\_model in the route decorator. Return the Pydantic Model instance directly (let FastAPI handle serialization).  
-* **Null Safety**: API Responses should NOT contain null for list fields (use \[\]) or boolean fields (use false).
+* **Null Safety (Pydantic 2.12)**: API Responses should NOT contain null for list fields. Use `Field(default_factory=list)` directly in Pydantic V2 definitions to guarantee empty array structures robustly, avoiding manual try-catches.
 
 ### **2.7. Agent Output Authority (Python-Side Healing)**
 
@@ -186,6 +193,13 @@ JSON
 
 **⚠️ PART 3: ERROR HANDLING CONTRACT (RFC 7807 & FAIL FAST)**
 
+> [!CRITICAL]
+> **THE ZERO-LAZINESS MANDATE (FOR AI AGENTS & DEVELOPERS)**
+> LLM Agents frequently become "lazy", skip steps, or fail to modernize existing error handlers when updating files. **THIS IS UNACCEPTABLE.** 
+> * **NO SHORTCUTS**: Whenever you create OR update a module, you MUST fully refactor ANY existing naked `ValueError`, `raise Exception`, or simple `HTTPException` into the complete structured `AppException` pattern defined below. 
+> * **100% COMPLIANCE**: You are not allowed to say "the scope was too large", to leave generic `except Exception as e: raise e`, or to skip applying `ErrorCodes` enums.
+> * If a user asks you to "update error handling," you MUST read and follow THIS ENTIRE SECTION down to the exact syntax and localization requirements.
+
 **SINGLE SOURCE OF TRUTH**: backend/exceptions.py
 
 ### **3.1. The Protocol (RFC 7807\)**
@@ -197,12 +211,22 @@ All errors MUST follow the RFC 7807 Problem Details standard. The AppException c
 When raising an exception, you must provide:
 
 1. **message**: A technical English description for logs (NEVER shown to user).  
+   * **⚠️ SECURITY WARNING**: Do NOT inject sensitive information (like API keys, raw database queries, or PII) into the `message` string! While the UI should not display this string, the RFC 7807 `detail` field (which Maps to `message`) is often returned to the client in the HTTP response.
 2. **status\_code**: The appropriate HTTP status code (e.g., 400, 404, 500). Produced via ENUM.  
 3. **details**: A dictionary containing at least an error\_code from backend.exceptions.ErrorCodes. This error\_code is automatically promoted to extensions.error\_code in the final JSON response.
 
 ### **3.3. Implementation Pattern (Fail Fast Domain Logic)**
 
 **REFERENCE:** See **Section 18.1** for the strict "Zero-Compromise" rules regarding Fail Fast and Data Integrity.
+
+> [!WARNING]
+> **BOILERPLATE ALERT & COPY-PASTE RISKS (For AI and Human Developers)**
+> The following 5-6 line `try...except` block pattern is intentionally verbose to enforce strictness and traceability. This is the price paid for clarity.
+> When copying this pattern:
+> 1. **Change the `[Component]` tag** in the logger to exactly match your current module (e.g., `[ReportTransformer]`, `[JudgeAgent]`). Don't leave old names!
+> 2. **Update the `ErrorCodes` enum** to the correctly matching scenario. Do not reuse generic codes if a specific one exists.
+> 3. **DO NOT use shortcuts.** Writing simply `raise e` or skipping the structured `AppException` is **STRICTLY FORBIDDEN**, especially when tired, as it permanently breaks the RFC 7807 contract and UI localization mapping.
+> 4. **DUAL-REPORTING MANDATE**: Every single error that is caught and re-raised (or newly raised) MUST be explicitly printed to the server logs (e.g., `logger.error(...)`) IN ADDITION to raising the exception. You cannot just raise the exception, and you cannot just log it. Both must happen together.
 
 **The Code Pattern:**
 When correctly identified (per Section 18.1), raises must be structured as follows:
@@ -235,7 +259,6 @@ When correctly identified (per Section 18.1), raises must be structured as follo
         ) from e
 ```
 
-        ) from e
 
 ### **3.4. Localizing Error Codes (Frontend Responsibility)**
 
@@ -244,14 +267,16 @@ When correctly identified (per Section 18.1), raises must be structured as follo
 * **Backend**: Sends the machine-readable code (e.g., VALIDATION\_FAILED) and technical details (English).  
 * **Frontend**: Maps the **Code** to a human-readable Title via app\_\*.arb.
 
-#### **Step 1: Define Key in ARB Config**
+#### **Step 1: Define Key in ARB Config (Actionable Hints Mandate)**
+
+**THE HINT RULE**: Never provide end-users with generic, dead-end error messages like "Server Error". The translated string MUST contextualize the failure and offer a clear "Next Step" or "Hint" for the user. Since the specific technical reason (e.g., `Timeout` or `KeyError`) is kept hidden in the logs, the UI message must guide the user on how to recover or what just failed broadly.
 
 JSON
 
 // client\_app/lib/l10n/app\_fi.arb  
 {  
-  "errValidationFailed": "Validointivirhe",  
-  "errInternalServerError": "Palvelinvirhe"  
+  "errValidationFailed": "Tietojen validointi epäonnistui. Varmista, että kaikki vaaditut kentät on täytetty oikein ja yritä tallentaa uudelleen.",  
+  "errInternalServerError": "Järjestelmässä tapahtui odottamaton virhe. Toimintoa ei voitu suorittaa loppuun. Yritä päivittää sivu hetken kuluttua uudelleen."  
 }
 
 #### **Step 2: Map Code to Key (Dart)**
@@ -350,7 +375,7 @@ Only use the "Managed Fallback" pattern (returning {} or empty data) in the **Vi
 ### **4.3. Network (Dio)**
 
 * **Interceptors**: Centralized Auth & Error handling (RFC 7807 parsing).  
-* **Background**: JSON parsing must happen in compute.
+* **Background Tasks (Dart 3.11)**: Intensive API JSON parsing MUST happen off the main UI thread using modern `Isolate.run(...)`. The legacy `compute` function is deprecated.
 
 ### **4.4. UI/UX**
 
@@ -417,7 +442,7 @@ Only use the "Managed Fallback" pattern (returning {} or empty data) in the **Vi
 ### **7.3. Preferences**
 
 * **Scope**: Language (fi/en) & Theme (system/light/dark).  
-* **Sync**: Immediate UI update (Riverpod) \+ Local Persist (SharedPrefs) \+ Remote Patch.
+* **Sync**: Immediate UI update (Riverpod) \+ Local Persist (`SharedPreferencesAsync` via modern concurrent API) \+ Remote Patch.
 
 ## ---
 
@@ -473,7 +498,23 @@ For detailed implementation logic, refer to these Knowledge Items:
 ### **10.2. Backend Localization Scope (Strict Rule)**
 
 * **Usage Scope**: The backend LocalizationService.translate is STRICTLY reserved for Server-Side Rendering (e.g., generating PDFs or prompt injections).  
-* **API Payload Ban**: The backend must NEVER send translated strings to the UI via the API. All UI-bound logic must use Enum Keys (See Part 16).
+* **API Payload Ban**: The backend must NEVER send translated "System Labels" or UI texts to the UI via the API. All UI-bound logic must use Enum Keys (See Part 16).
+* **EXCEPTION (Dynamic LLM Content)**: Text natively generated by the LLM in the user's language (e.g., localized essays, dynamic reports) is treated as raw data payloads, not System Labels, and thus freely traverses the API boundaries.
+
+### **10.3. Interpolation Security & Formatting**
+
+* **BANNED**: Backend must NEVER format strings for UI (e.g., `"Welcome, " + user.name`). This breaks language-specific grammar and structure.
+* **REQUIRED**: Backend sends raw variables `{ "event": "WELCOME", "user": "Matti" }`. Frontend `.arb` handles the interpolation using ICU format (e.g., `"welcomeUser": "Tervetuloa, {user}!"`).
+
+### **10.4. Pluralization & Grammar**
+
+* **BANNED**: Manual `if/else` checks for plurals in Dart code (e.g., `if (count == 1)`). This will break completely when localizing to languages with complex plural rules (e.g., Arabic, Polish).
+* **REQUIRED**: Use Flutter's native ICU Plural support exclusively inside `.arb` files (e.g., `"{count, plural, =0{Ei tuotteita} =1{1 Tuote} other{{count} Tuotetta}}"`).
+
+### **10.5. Semantic Markup (Markdown)**
+
+* **The Rule**: Do not bake UI visual styles (`TextStyle`, `<b>` elements) around partial translations.
+* **Implementation**: The `.arb` file should use lightweight markdown tokens (e.g., `"pressButton": "Paina **Tallenna**-nappia"`), and the UI must parse these using `flutter_markdown_plus` or rich text extensions to preserve translation coherence.
 
 ## ---
 
@@ -578,6 +619,9 @@ While the Core Domain MUST fail fast (Part 3.3, Part 14), the **BFF (Backend-for
 
 * **Mandate**: The UiSection model strictly enforces data: dict\[str, Any\]. Passing None causes a 500 error for the *entire* screen.  
 * **Solution**: In the BFF Transformer, always default to an empty dictionary {} if a specific agent's data is missing. This gracefully degrades that single widget while preserving the rest of the UI report.  
+* **DEVELOPER VISIBILITY MANDATE (BFF & Flutter)**: Graceful degradation protects the end-user, but it MUST NOT hide bugs from developers. 
+  * **In BFF (Python)**: If the BFF catches missing data, it MUST log a `logger.warning(...)`.
+  * **In Frontend (Flutter)**: If a UI component catches an error or falls back to an `ErrorView` / `SizedBox.shrink()`, it MUST log a `debugPrint('🔴 UI GRACEFUL DEGRADATION: ...')` to the console.
   Python  
   \# BAD (Crashes entire page if logician\_data is None)  
   return UiSection(..., data=self.\_transform\_logician\_data(steps.get("step\_logician")))
@@ -660,21 +704,26 @@ Widget \_buildAuth(String key, BuildContext context) {
 * **English ONLY**: All code, variable names, comments, commit messages, and docstrings MUST be in English.  
 * **Exceptions**: Content in backend/l10n/fi.json or app\_fi.arb.
 
-### **17.2. Python Documentation (Backend)**
+### **17.2. Python & Dart Docstrings (Imperative AI-Standard)**
 
-* **Docstrings**: EVERY public module, class, and method MUST have a docstring using **Google Style** formatting.  
-* **Type Hints**: STRICTLY REQUIRED for all arguments and return values. state: Any is a smell; use specific types or dict\[str, Any\] if absolutely necessary.
+* **Google Style (Python)**: EVERY public module, class, and method MUST have a docstring using Google Style formatting.
+* **Triple Slash (Dart)**: Use `///` exclusively for all public Classes, Widgets, and Methods.
+* **Imperative Mood**: Write function summaries as commands, not descriptions.
+  * ❌ *BANNED*: "Returns the calculated score" or "This calculates the score."
+  * ✅ *REQUIRED*: "Calculate the risk score based on the enum mapping."
+* **Contract-Driven Comments (AI Compatibility)**: If a class or method contains an architectural workaround, an intentional strict-rule override, or complex constraint logic, you MUST start the docstring body with a bolded warning (e.g., `NOTE (Architecture): ...`). This prevents future developers or AI agents from "refactoring it broken" thinking it was an oversight.
+* **Structured Deprecation**: If code is pending removal but active, it MUST use language-native decorators (`@deprecated` / `@Deprecated()`) AND the docstring MUST contain `Migrate to: [FunctionName]`.
 
-### **17.3. Dart Documentation (Frontend)**
+### **17.3. Inline Comments (The "Why" Mandate)**
 
-* **Public API**: Use /// (triple slash) for all public Classes, Widgets, and Methods.  
-* **Intention**: Explain *WHY* logic exists, not just *WHAT* it does.
+* **BANNED (Narrative "What")**: Inline comments that narrate what the code is doing (e.g., `# Loop through the items` or `// Increment counter`) are strictly forbidden. If the code requires narrative to be readable, you MUST refactor and rename the variables/functions (`Clean Code` principle).
+* **REQUIRED (The "Why")**: Inline comments are reserved strictly for explaining non-obvious business logic, mathematical constants, or edge-case handling that cannot be expressed purely via naming.
 
-### **17.4. Code Hygiene**
+### **17.4. Code Hygiene & Ownership**
 
-* **No Dead Code**: Do NOT leave commented-out code blocks ("zombie code"). Delete them. Version control is your history.  
-* **No "TODO" without Ticket**: TODO comments must include a clear owner or objective.  
-* **Clean Imports**: Unused imports must be removed (use ruff / dart fix).
+* **No Dead Code**: Do NOT leave commented-out code blocks ("zombie code" or "just in case" logic). Delete them immediately. Version control is your history.
+* **No Orphaned TODOs**: A `TODO` or `FIXME` comment MUST include an owner, ticket number, or specific date (e.g., `TODO(risto) [2026-03]: Remove after V2 rollout`). Floating TODOs are forbidden.
+* **Clean Imports**: Unused imports must be removed (use `ruff check --fix` / `dart fix`).
 
 ## ---
 
@@ -715,6 +764,8 @@ Widget \_buildAuth(String key, BuildContext context) {
 ### **18.5. NO Backward Compatibility (Clean Break)**
 
 * **The Rule**: Do not keep "Legacy Adapters" or shims. If the schema changes, migrate or wipe the data. We are in a Hardening Phase, not Long-Term Support.
+
+### **18.6. Enforced Workflow Mapping (SSOT Integrity)**
 
 * **Structure**: The Registry (steps) defines the Step. The Workflow (workflows) contains **Links** only (id, inputs). Defining task\_key or config inside a workflow is a System Level Error.
 

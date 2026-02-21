@@ -121,11 +121,21 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
 
         search_result = SearchResult(results=domain_items)
 
+        # 6.5 Update Analyst Output with newly found evidence
+        # This resolves the warning: "step_analyst exists but 'rag_evidence' data is missing or empty"
+        current_evidence = list(analyst_output.rag_evidence) if analyst_output.rag_evidence else []
+        for r in domain_items:
+             if r.snippet:
+                 current_evidence.append(f"[{r.title}] {r.snippet}")
+                 
+        updated_analyst = analyst_output.model_copy(update={"rag_evidence": current_evidence})
+
         # 7. Update State (Immutable)
         new_context = state.context_variables.copy()
         new_context["search_result"] = search_result
+        new_context["step_analyst"] = updated_analyst
         
-        logger.info(f"[SearchHook] Search complete. Found {len(domain_items)} results.")
+        logger.info(f"[SearchHook] Search complete. Found {len(domain_items)} results. Added to rag_evidence.")
         return state.model_copy(update={"context_variables": new_context})
 
     except AppException as e:

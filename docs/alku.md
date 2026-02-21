@@ -20,8 +20,10 @@ Violating any of these will result in an immediate architectural failure.
 *   **Pydantic V2 Strict (No dicts)**: Every data structure moving between backend services/agents MUST be a strongly typed Pydantic Domain Model (`ConfigDict(strict=True)`). Return types of `dict` are banned.
 *   **Fail Fast (RFC 7807)**: Never use `try-except pass` or return `None` to silence errors in core logic. If data is dirty or missing, raise an `AppException` immediately.
 *   **SSOT (Single Source of Truth)**: `backend/seed/seed_data.json` defines ALL models, limits (tokens), and workflows. NEVER hardcode limits or configs directly in Python classes. Use `run_seed.py` to reset the database.
-*   **Zero-Fallback**: Downstream code must trust the structure. If the AI returns 101 on a 1-100 scale, the backend must CRASH, not clamp the value silently.
+*   **Zero-Fallback (Domain Layer)**: Downstream code must trust the structure. If the AI returns 101 on a 1-100 scale, the backend must CRASH, not clamp the value silently.
+*   **BFF/UI Resilience & Developer Visibility**: While the Domain fails fast, the BFF and Frontend (Flutter) MUST gracefully degrade (e.g., render empty widgets instead of white-screens) to protect UX. However, *ALL* such silent UI salvages MUST be accompanied by a loud `logger.warning` / `debugPrint` so developers see the data failure.
 *   **Client (Flutter)**: Strictly `Riverpod 3.0` (Generator), Hooks, and Immutable models. `ChangeNotifier` and manual routing are banned.
+*   **Unified Naming (Backend & Frontend)**: Schema fields, variables, and cross-boundary function names must align perfectly based on Backend Pydantic rules (`snake_case` in JSON, explicitly mapped to `camelCase` in Dart). Consult [naming_strategy.md](naming_strategy.md) for details.
 
 ### 3. YOUR WORKFLOW IN THIS PROJECT
 When given a task:

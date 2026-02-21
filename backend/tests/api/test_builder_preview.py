@@ -7,11 +7,17 @@ from backend.models.auth import TokenData, UserRole
 
 client = TestClient(app)
 
+import pytest
+
 # Mock Auth
 async def mock_get_current_user():
     return TokenData(uid="test-user", role=UserRole.ADMIN, organization_id="test-org")
 
-app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
+@pytest.fixture(autouse=True)
+def setup_dependencies():
+    app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
+    yield
+    app.dependency_overrides.pop(get_current_user_from_header, None)
 
 def test_preview_step_flow():
     """Test creating a step and then previewing it."""
@@ -61,7 +67,8 @@ def test_preview_chain_flow():
     # 2. Create Workflow
     wf_payload = {
         "name": "Chain Test",
-        "steps": [s1_id, s2_id]
+        "steps": [s1_id, s2_id],
+        "default_model_mapping": {s1_id: "test-model", s2_id: "test-model"}
     }
     wf_res = client.post("/builder/workflows", json=wf_payload)
     assert wf_res.status_code == 200, f"Workflow Setup Failed: {wf_res.text}"

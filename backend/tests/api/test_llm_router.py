@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from backend.main import app
 from backend.dependencies import get_agent_registry_dep, RepositoryDep, get_async_repository, CurrentUserDep, LLMHandlerDep
 from backend.services.agent_registry import AgentRegistry
-from backend.models.auth import TokenData
+from backend.models.auth import TokenData, UserRole
 
 client = TestClient(app)
 
@@ -15,7 +15,7 @@ mock_repo = AsyncMock()
 mock_handler = MagicMock()
 
 async def mock_get_current_user():
-    return TokenData(uid="test-user", email="test@example.com", organization_id="org-123", role="ADMIN")
+    return TokenData(uid="test-user", email="test@example.com", organization_id="org-123", role=UserRole.ADMIN)
 
 @pytest.fixture(autouse=True)
 def setup_dependencies():
@@ -100,6 +100,7 @@ def test_list_providers():
     # This endpoint relies on settings, so we might need to patch settings or just assert structure
     # It returns settings.model_strategies.
     # LLMHandler is just passed but not used for strategies logic currently (based on refactor).
+    mock_handler.fetch_all_available_models.return_value = {"google": ["gemini-pro"], "openai": ["gpt-4-turbo"]}
     response = client.get("/llm/providers")
     assert response.status_code == 200
     data = response.json()

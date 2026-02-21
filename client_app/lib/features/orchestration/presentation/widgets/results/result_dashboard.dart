@@ -65,7 +65,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     final rawResult = (widget.execution as ExecutionCompleted).result;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         children: [
           const TabBar(
@@ -73,7 +73,8 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
             unselectedLabelColor: Colors.grey,
             tabs: [
               Tab(icon: Icon(Icons.dashboard_outlined), text: 'Raportti'),
-              Tab(icon: Icon(Icons.data_object_outlined), text: 'Raaka Data'),
+              Tab(icon: Icon(Icons.description_outlined), text: 'Tiivistetty Data (Flat)'),
+              Tab(icon: Icon(Icons.data_object_outlined), text: 'Koko Raakadata'),
             ],
           ),
           Expanded(
@@ -94,7 +95,10 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
                   },
                 ),
                 
-                // Tab 2: Raw JSON
+                // Tab 2: Flat Report JSON
+                _buildFlatDataView(context, rawResult),
+
+                // Tab 3: Complete Raw JSON
                 _buildRawDataView(context, rawResult),
               ],
             ),
@@ -167,7 +171,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
         }
 
       case 'KEY_VALUE_GRID':
-
+      case 'USAGE_STATS':
         return GenericGrid(title: section.title, data: section.data);
 
       case 'DATA_TABLE':
@@ -222,9 +226,28 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
                         dense: true,
                     );
                 }).toList(),
-             ),
+              ),
         ),
       );
+
+      case 'EVIDENCE_LIST':
+        final items = section.data['items'] as List<dynamic>? ?? [];
+        return Card(
+             child: Semantics(
+                excludeSemantics: Platform.isWindows,
+                child: ExpansionTile(
+                  title: Text(section.title),
+                  children: items.map<Widget>((e) {
+                      return ListTile(
+                        leading: const Icon(Icons.source_outlined, color: Colors.blueGrey),
+                        title: Text(e['source']?.toString() ?? 'Lähdetieto', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(e['content']?.toString() ?? ''),
+                        dense: true,
+                      );
+                  }).toList(),
+                ),
+             ),
+        );
 
       // --- Specialist Sections (Backbone) ---
       case 'LOGIC_ANALYSIS':
@@ -235,6 +258,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
       case 'PROFILER_ANALYSIS':
       case 'ARCHIVIST_CHECK':
       case 'DRIVER_PROFILE':
+      case 'SECURITY_CHECK':
         return SpecialistSection(
           title: section.title,
           type: section.type, 
@@ -243,6 +267,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
         );
 
       default:
+        debugPrint('UI FALLBACK ACTIVATED: Unknown Section Type: ${section.type}');
         return ErrorView(
           error: "Unknown Section Type: ${section.type}",
           compact: true,
@@ -250,10 +275,53 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     }
   }
 
+  Widget _buildFlatDataView(BuildContext context, Map<String, dynamic> data) {
+      // Extract XAIFlatReportDTO if available, otherwise show empty/error
+      Map<String, dynamic>? flatReport;
+      try {
+        if (data.containsKey('context_variables')) {
+          final ctx = data['context_variables'] as Map<String, dynamic>;
+          if (ctx.containsKey('step_xai') && ctx['step_xai'] is Map) {
+             final stepXai = ctx['step_xai'] as Map<String, dynamic>;
+             if (stepXai.containsKey('flat_report') && stepXai['flat_report'] is Map) {
+                flatReport = stepXai['flat_report'] as Map<String, dynamic>;
+             }
+          }
+        } else if (data.containsKey('step_results')) {
+          final steps = data['step_results'] as Map<String, dynamic>;
+          if (steps.containsKey('step_xai') && steps['step_xai'] is Map) {
+             final stepXai = steps['step_xai'] as Map<String, dynamic>;
+             if (stepXai.containsKey('flat_report') && stepXai['flat_report'] is Map) {
+                flatReport = stepXai['flat_report'] as Map<String, dynamic>;
+             }
+          }
+        }
+      } catch (e) {
+        debugPrint('Koko datan parsiminen flat_reportia varten epäonnistui: $e');
+      }
+
+      final dataToShow = flatReport ?? {'_info': 'Flat Report dataa ei löytynyt tästä ajosta.'};
+
+      const encoder = JsonEncoder.withIndent('  ');
+      final jsonString = encoder.convert(dataToShow);
+
+      return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: SelectableText(
+            jsonString,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+      );
+  }
+
   Widget _buildRawDataView(BuildContext context, Map<String, dynamic> data) {
+      // User specifically requested to see the full raw workflow output data
+      // rather than just the narrowed down flat_report.
+      final dataToShow = data;
+
       // Use JsonEncoder to pretty print
       const encoder = JsonEncoder.withIndent('  ');
-      final jsonString = encoder.convert(data);
+      final jsonString = encoder.convert(dataToShow);
 
       return SingleChildScrollView(
           padding: const EdgeInsets.all(16),

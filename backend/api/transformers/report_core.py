@@ -71,8 +71,7 @@ class ReportTransformer(
                 trace = results.get("execution_trace", [])
                 context = results.get("context_variables", {})
             else:
-                 # Fallback/Empty
-                 pass
+                 logger.warning(f"Unrecognized results type {type(raw_data.results)}, defaulting to empty data.")
         else:
              # FAIL FAST: Strict Schema Requirement (Feb 2026 Mandate)
              raise TypeError(f"ReportTransformer requires ExecutionRecord. Got: {type(raw_data)}")
@@ -152,6 +151,8 @@ class ReportTransformer(
                         raise AppException(f"Score validation failed for {key}: {e}", 500) from e
                     except Exception as e:
                         raise AppException(f"Unexpected error in score card processing: {e}", 500) from e
+            else:
+                logger.warning(f"Missing data for {key} in Score Cards layout")
 
         # --- A2. Key Metrics (Usage & Cost) ---
         usage_section = self._extract_usage_section(raw_data)
@@ -364,11 +365,11 @@ class ReportTransformer(
         mapped_dimensions = []
         for d in dimensions_list:
             # Handle potential dict vs object
-            d_data = d if isinstance(d, dict) else d.dict()
+            d_data = d if isinstance(d, dict) else d.model_dump()
             mapped_dimensions.append(
                 DimensionDisplay(
-                    id=d_data.get("id", "dim_unknown"),
-                    name_key=d_data.get("name_key") or d_data.get("id", "dim_unknown"),
+                    dimension_id=d_data.get("dimension_id", "dim_unknown"),
+                    dimension_label=d_data.get("dimension_label") or d_data.get("dimension_id", "dim_unknown"),
                     score=float(d_data.get("score", 0.0)),
                     max_score=float(d_data.get("max_score", scale_max)),
                     weight=float(d_data.get("weight", 1.0)),
@@ -387,6 +388,7 @@ class ReportTransformer(
 
     def _build_xai_section(self, steps: dict) -> UiSection | None:
         if "step_xai" not in steps:
+            logger.warning("Missing data for step_xai in XAI Report layout")
             return None
 
         xai = steps["step_xai"]
@@ -396,6 +398,7 @@ class ReportTransformer(
             content = xai.get("final_verdict")
 
         if not content:
+            logger.warning("step_xai exists but missing both 'xai_report_formatted' and 'final_verdict'")
             return None
 
         return UiSection(
@@ -424,6 +427,7 @@ class ReportTransformer(
 
         for step_key, step_data in steps.items():
             if not isinstance(step_data, dict):
+                logger.warning(f"Timeline extraction: step_data for {step_key} is not a dict, skipping.")
                 continue
 
             meta = step_data.get("metadata", {})
@@ -475,10 +479,12 @@ class ReportTransformer(
     def _extract_analyst_table(self, steps: dict) -> UiSection | None:
         step = steps.get("step_analyst")
         if not step or not isinstance(step, dict):
+            logger.warning("Missing data for step_analyst in Analyst Table layout")
             return None
 
         hypotheses = step.get("hypotheses") or step.get("hypoteesit", [])
         if not hypotheses:
+            logger.warning("step_analyst exists but 'hypotheses' data is missing or empty")
             return None
 
         rows = []
@@ -519,10 +525,12 @@ class ReportTransformer(
         """Helper to extract RAG evidence as a separate section if needed."""
         step = steps.get("step_analyst")
         if not step:
+            logger.warning("Missing data for step_analyst in Analyst Evidence layout")
             return None
         
         rag_evidence = step.get("rag_evidence")
         if not rag_evidence:
+            logger.warning("step_analyst exists but 'rag_evidence' data is missing or empty")
             return None
             
         items = []
@@ -568,18 +576,26 @@ class ReportTransformer(
         usage = res_data.get("usage")
         if not usage and "result" in res_data:
              usage = res_data["result"].get("usage")
+        if not usage and "context_variables" in res_data:
+             usage = res_data["context_variables"].get("usage")
 
         if usage:
             total_tokens = usage.get("total_tokens", 0)
             prompt_tokens = usage.get("prompt_tokens", 0)
             completion_tokens = usage.get("completion_tokens", 0)
             # Prefer top-level cost, but fallback if needed? No, top level is authoritive.
+        else:
+            logger.warning("Missing usage stats in ExecutionRecord results")
+
+        items = [
+            {"label": self._t("lblTotalTokens", "Kokonaistokenit"), "value": str(total_tokens)},
+            {"label": self._t("lblPromptTokens", "Syötetokenit"), "value": str(prompt_tokens)},
+            {"label": self._t("lblCompletionTokens", "Vastaustokenit"), "value": str(completion_tokens)},
+            {"label": self._t("lblCostEstimate", "Kustannusarvio ($)"), "value": f"${cost:.4f}" if cost > 0 else "N/A", "highlight": True}
+        ]
 
         data = {
-            "total_tokens": total_tokens,
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "cost_estimate": cost
+            "items": items
         }
 
         return UiSection(
@@ -597,6 +613,7 @@ class ReportTransformer(
         for key in ["step_judge", "step_judge_cognitive"]:
             step = steps.get(key)
             if not step:
+                logger.warning(f"Missing data for {key} in Critical Findings layout")
                 continue
                 
             # Direct list from dict or Pydantic model dump

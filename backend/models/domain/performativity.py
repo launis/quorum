@@ -123,14 +123,18 @@ class PerformativityAnalysis(BaseModel):
                 AuthenticityLevel.ORGANIC: 3.0
             }
             val = data.get("authenticity_assessment")
+            
+            # Cast raw string from LLM to the Enum instance to satisfy strict=True validation
+            if val is not None and not isinstance(val, AuthenticityLevel):
+                try:
+                    val = AuthenticityLevel(val)
+                    data["authenticity_assessment"] = val
+                except ValueError:
+                    pass # Validation core will catch this immediately
+
             if data.get("authenticity_score") is None:
-                if val:
-                    try:
-                        enum_val = val if isinstance(val, AuthenticityLevel) else AuthenticityLevel(val)
-                        if enum_val in mapping:
-                             data["authenticity_score"] = mapping[enum_val]
-                    except ValueError:
-                        pass
+                if isinstance(val, AuthenticityLevel) and val in mapping:
+                     data["authenticity_score"] = mapping[val]
         return data
 
     model_config = ConfigDict(frozen=True, strict=True)

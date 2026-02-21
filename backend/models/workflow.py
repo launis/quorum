@@ -1,7 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator, AliasChoices
 
 class WorkflowStep(BaseModel):
     """Represents a single step in a workflow execution.
@@ -27,6 +26,7 @@ class WorkflowStep(BaseModel):
     )
     task_key: str = Field(
         ...,
+        validation_alias=AliasChoices("task_key", "component"),
         description="Registry Task Name (matches @register_task name)",
         json_schema_extra={"x-ui-label": "Task Key"},
     )
@@ -50,6 +50,11 @@ class WorkflowStep(BaseModel):
         description="Arbitrary metadata for the step (e.g., 'agent_class')",
         json_schema_extra={"x-ui-label": "Metadata"},
     )
+    is_custom: bool = Field(False, description="Whether this is a custom builder step")
+    execution_config: dict[str, Any] | None = Field(None, description="Custom execution config map")
+    output_config_component: str | None = Field(None, description="Optional output component mapping")
+    output_filename: str | None = Field(None, description="Optional output filename")
+    is_missing_registry: bool = Field(False, description="Flag indicating the step is missing from registry")
 
     model_config = ConfigDict(frozen=True, strict=True)
 
@@ -163,8 +168,8 @@ class WorkflowDefinition(BaseModel):
         description="If checked, visible to all tenants (System Only)",
         json_schema_extra={"x-ui-label": "Publicly Available"}
     )
-    organization_id: str | None = Field(
-        None,
+    organization_id: str = Field(
+        ...,
         description="Organization ID this workflow belongs to (or 'system')",
         json_schema_extra={"x-ui-label": "Organization ID"}
     )

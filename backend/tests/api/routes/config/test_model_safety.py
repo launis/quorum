@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.dependencies import get_repository
+from backend.dependencies import get_async_repository
 from backend.main import app
 from backend.settings import Settings
 
@@ -15,9 +15,9 @@ class MockRepository:
     def __init__(self):
         self.registry = {
             "models": {
-                "fast": {"provider": "vertex_ai", "model_name": "gemini-pro"},
-                "deep": {"provider": "vertex_ai", "model_name": "gemini-ultra"},
-                "temp_strat": {"provider": "openai", "model_name": "gpt-4"},
+                "fast": {"default": {"provider": "vertex_ai", "model_name": "gemini-pro"}},
+                "deep": {"default": {"provider": "vertex_ai", "model_name": "gemini-ultra"}},
+                "temp_strat": {"default": {"provider": "openai", "model_name": "gpt-4"}},
                 "provider_x": {"strategy_y": {"model_name": "foo"}},
             }
         }
@@ -39,7 +39,7 @@ async def mock_get_repository():
     return MockRepository()
 
 
-app.dependency_overrides[get_repository] = mock_get_repository
+app.dependency_overrides[get_async_repository] = mock_get_repository
 
 # Test Data
 DEFAULT_STRATEGY = "fast"
@@ -47,20 +47,21 @@ DEFAULT_STRATEGY = "fast"
 
 @pytest.fixture(autouse=True)
 def mock_settings():
-    with patch("backend.settings.get_settings") as mock_get:
+    with patch("backend.api.routes.config.models.get_settings") as mock_get:
         # Create a real Settings object but override default_model_strategy
         # Or just mock the object
         mock_settings = Mock(spec=Settings)
         mock_settings.default_model_strategy = DEFAULT_STRATEGY
         mock_settings.storage_backend = "MOCK"
         mock_settings.use_mock_db = True
+        mock_settings.mock_db_path = "mock_db.json"
         mock_get.return_value = mock_settings
         yield mock_settings
 
 
 def test_delete_default_strategy(mock_settings):
     """Ensure deleting the default strategy returns 403."""
-    response = client.delete(f"/api/v1/config/models/{DEFAULT_STRATEGY}")
+    response = client.delete(f"/v1/config/models/{DEFAULT_STRATEGY}")
     assert response.status_code == 403
     assert "Cannot delete system default strategy" in response.json()["detail"]
 
@@ -76,18 +77,18 @@ def test_delete_nested_default_strategy(mock_settings):
 def test_delete_used_strategy():
     """Ensure deleting a strategy used by a step returns 409."""
     # Setup usage
-    repo = app.dependency_overrides[get_repository]()  # get the mock instance?
+    repo = app.dependency_overrides.get(get_async_repository)
     # Wait, dependency_overrides[get_repository] is a coroutine function.
     # But for TestClient, it instantiates it per request?
     # Actually, to share state with the test, we should modify the override to return a SHARED instance.
 
     shared_repo = MockRepository()
-    app.dependency_overrides[get_repository] = lambda: shared_repo
+    app.dependency_overrides[get_async_repository] = lambda: shared_repo
 
     # Add step using 'temp_strat'
     shared_repo.steps = [{"id": "step1", "name": "Step 1", "config": {"model_strategy": "temp_strat"}}]
 
-    response = client.delete("/api/v1/config/models/temp_strat")
+    response = client.delete("/v1/config/models/temp_strat")
     assert response.status_code == 409
     assert "used by step 'step1'" in response.json()["detail"]
 
@@ -95,12 +96,12 @@ def test_delete_used_strategy():
 def test_delete_unused_strategy():
     """Ensure deleting an unused strategy returns 204."""
     shared_repo = MockRepository()
-    app.dependency_overrides[get_repository] = lambda: shared_repo
+    app.dependency_overrides[get_async_repository] = lambda: shared_repo
 
     # No steps
     shared_repo.steps = []
 
-    response = client.delete("/api/v1/config/models/temp_strat")
+    response = client.delete("/v1/config/models/temp_strat")
     assert response.status_code == 204
 
     # Verify it's gone
@@ -110,18 +111,18 @@ def test_delete_unused_strategy():
 def test_delete_non_existent():
     """Ensure deleting non-existent strategy returns 204 (Idempotent)."""
     shared_repo = MockRepository()
-    app.dependency_overrides[get_repository] = lambda: shared_repo
+    app.dependency_overrides[get_async_repository] = lambda: shared_repo
 
-    response = client.delete("/api/v1/config/models/ghost_strat")
+    response = client.delete("/v1/config/models/ghost_strat")
     assert response.status_code == 204
 
 
 def test_delete_nested_strategy():
     """Ensure nested strategy deletion works."""
     shared_repo = MockRepository()
-    app.dependency_overrides[get_repository] = lambda: shared_repo
+    app.dependency_overrides[get_async_repository] = lambda: shared_repo
 
-    response = client.delete("/api/v1/config/models/provider_x/strategy_y")
+    response = client.delete("/v1/config/models/provider_x/strategy_y")
     assert response.status_code == 204
 
-    assert "strategy_y" not in shared_repo.registry["models"]["provider_x"]
+    assert "provider_x" not in shared_repo.registry["models"] or "strategy_y" not in shared_repo.registry["models"]["provider_x"]

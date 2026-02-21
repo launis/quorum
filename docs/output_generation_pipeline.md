@@ -139,6 +139,7 @@ To satisfy both high-fidelity rendering (PDF) and data integration (BI Tools), t
     1.  Frontend requests `/workflows/{id}/report`.
     2.  Backend `ReportTransformer` converts Domain Models to `ReportView` (ViewModel).
     3.  **Note**: Flutter does *NOT* use the "Flat" report. It uses a View Model optimized for widgets.
+    4.  **Responsive Layout**: Koodaan älykkään responsiivisen "LayoutBuilder"-apufunktion SpecialistSection.dart-tiedostoon ja kytken sen pala palalta Logic-analyysiin (Matriisi), Kausaaliseen analyysiin, Profiloijaan ja Tuomariin. Tämä tekee kaikista analyyseista monisarakkeisia leveillä näytöillä ja pinottuja mobiililla.
 
 ### 4.3 External Integration (The "Flat" Standard)
 *   **Source**: `step_xai.flat_report` (`XAIFlatReportDTO`).
@@ -152,19 +153,35 @@ To satisfy both high-fidelity rendering (PDF) and data integration (BI Tools), t
 
 ---
 
-## 5. API Access Layer
+## 5. Resilience & The Developer Visibility Mandate (Phase 8.1)
 
-To support both high-fidelity rendering and raw data integration, the system exposes distinct endpoints for retrieving the "Fat" and "Flat" artifacts for any single execution.
+The output generation pipeline operates simultaneously under two opposing constraints: **Zero-Compromise Domain Logic** and **Graceful UI Degradation**. To bridge this gap without losing observability, the system enforces the **Developer Visibility Mandate**.
 
-### 5.1 Fetching the "Fat Report" (Context)
+### 5.1 The Dual-Requirement
+1. **The Brain (Domain Layer)**: Strict "Fail Fast". If an LLM generates a score of 101/100, the Agent crashes (raising `ValueError` / RFC 7807 `AppException`). Invalid logic must never corrupt the Single Source of Truth (`WorkflowState`).
+2. **The Artist (Rendering/BFF Layer)**: "Graceful Degradation". If the BFF finds that an Agent completely failed to generate its specialist data (e.g., `step_logician` is missing or invalid), the UI must **not** crash. A missing logic analysis should just render as an empty box or specific fallback widget (e.g., `USAGE_STATS`), allowing the rest of the report (scores, facts, etc.) to remain visible to the user.
+
+### 5.2 Implementation of the Mandate
+To ensure that UI Resilience does not act as a rug under which bugs are swept, the pipeline implements strict Developer Visibility:
+* **Backend BFF (`bff_transformer`)**: When returning `{}` (empty dict) as a fallback for missing section data, the Python code MUST execute `logger.warning("Missing data for [Section]...")`.
+* **Frontend UI (Flutter)**: When the component tree routes an unknown, missing, or broken `UiSection` type to a generic `ErrorView` or `SizedBox.shrink()`, the Dart code MUST execute `debugPrint('🔴 UI GRACEFUL DEGRADATION: ...')`.
+
+This guarantees that users experience a seamless (if partially empty) application, while developers instantly see loud warnings in their local `client_debug.log` and backend logs (Logfire) indicating that the Data Integrity pipeline failed to provide full data.
+
+---
+
+## 6. API Access Layer
+
+To support both high-fidelity rendering, raw data integration, and dynamic UI building, the system exposes distinct endpoints for retrieving different representations of the execution artifacts.
+
+### 6.1 Fetching the "Fat Report" (Context)
 *   **Endpoint**: `GET /api/v1/workflows/{execution_id}/report`
 *   **Response Model**: `ReportContext` (JSON)
 *   **Use Case**:
-    *   **Frontend**: Rendering the "Read Mode" UI.
-    *   **PDF Service**: Generating the final PDF document.
     *   **Forensics**: Auditing the full chain-of-thought and deep reasoning.
+    *   *Note: This is the raw heavy domain state, not optimized for UI.*
 
-### 5.2 Fetching the "Flat Report" (Integration)
+### 6.2 Fetching the "Flat Report" (Integration)
 *   **Endpoint**: `GET /api/v1/workflows/{execution_id}/flat`
 *   **Response Model**: `XAIFlatReportDTO` (JSON)
 *   **Use Case**:
@@ -172,7 +189,20 @@ To support both high-fidelity rendering and raw data integration, the system exp
     *   **External Dashboards**: Aggregating stats across thousands of runs.
     *   **Excel/CSV Export**: Simple data dumps.
 
-## 6. Summary Diagram
+### 6.3 Fetching the BFF "ReportView" (SDUI)
+*   **Endpoint**: `GET /api/v1/workflows/{execution_id}/report-view`
+*   **Response Model**: `ReportView` (JSON)
+*   **Transformers**: `backend.api.transformers.report_transformer.ReportTransformer` & `report_core.py`
+*   **Use Case**:
+    *   **Unified UI & PDF Generation**: This is the single source of truth for all complex visual rendering. Both the **Flutter Frontend** (Dashboard) and the **Backend PDF Service** (`PdfReportService`) consume this *exact same* transformed View Model.
+        *   *Architecture Note:* When `/api/v1/executions/{id}/pdf` is requested, the backend does **not** make an HTTP network loopback call to the UI endpoint. Instead, the `PdfReportService` shares the exact same `ReportTransformer` instance internally in-memory, achieving maximum performance while maintaining a single cohesive code path.
+    *   **Mechanism**: The backend transformers safely map complex Domain objects (like `step_judge`) into strictly typed, Flutter-ready View Models (like `DimensionDisplay`), ensuring safe adherence to strict typing without fallbacks.
+
+> [!NOTE]
+> **Why are SDUI and Flat Data separate?**
+> The `XAIFlatReportDTO` (Flat Data) strategically strips away hierarchy to provide raw numerical/text values for external tools like Excel or BI dashboards. However, high-fidelity visual reports (like the Flutter UI or the final PDF) require **structural and visual instructions**—such as layout constraints, colors, and specific component labels (e.g., drawing a Radar Chart with green logic nodes). The `ReportView` SDUI format encapsulates both the data *and* these rendering instructions, making it fundamentally different (and necessary) for the presentation layer.
+
+## 7. Summary Diagram
 
 
 ```mermaid

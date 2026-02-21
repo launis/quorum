@@ -30,6 +30,9 @@ class ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // DEVELOPER VISIBILITY MANDATE: Ensure no UI degradation is completely silent
+    debugPrint('🔴 UI GRACEFUL DEGRADATION [ErrorView rendered]: \$error');
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
