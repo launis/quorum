@@ -9,8 +9,8 @@ import uuid
 from datetime import UTC, datetime
 
 from backend.database.repository import AbstractWorkflowRepository
-from backend.models.domain import UsageRecord
 from backend.exceptions import AppException, ErrorCodes
+from backend.models.domain import UsageRecord
 
 logger = logging.getLogger(__name__)
 
@@ -73,16 +73,14 @@ class UsageService:
             error_code = ErrorCodes.USAGE_TRACKING_FAILED
             logger.error(f"[Usage] {error_code.value} for {user_id} (Org: {org_id}): {e}", exc_info=True)
             raise AppException(
-                message=f"Failed to track usage: {e}",
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Failed to track usage: {e}", status_code=500, details={"error_code": error_code}
             ) from e
 
     async def check_quota(self, org_id: str) -> bool:
         """Checks if organization is within quota limits (Current Month).
 
         Returns True if SAFE (under limit), False if EXCEEDED.
-        
+
         Raises:
             AppException: If checking quota fails (infrastructure error).
         """
@@ -121,7 +119,5 @@ class UsageService:
             logger.error(f"[Usage] {error_code.value} check failed for {org_id}: {e}", exc_info=True)
             # Fail FAST. Do not swallow errors.
             raise AppException(
-                message=f"Quota check failed: {e}",
-                status_code=500,
-                details={"error_code": error_code}
+                message=f"Quota check failed: {e}", status_code=500, details={"error_code": error_code}
             ) from e

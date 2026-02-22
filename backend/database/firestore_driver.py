@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class FirestoreDriver(StorageDriver):
     """Firestore adapter for StorageDriver protocol.
-    
+
     Adapts google.cloud.firestore.AsyncClient.
     """
 
@@ -22,18 +22,18 @@ class FirestoreDriver(StorageDriver):
 
     def _serialize(self, data: dict[str, Any] | list | Any) -> Any:
         """Recursively converts datetime, UUID, and Pydantic objects to JSON-safe types.
-        
+
         Note: Firestore supports native Datetime, but to maintain strict parity
         with TinyDB (JSON), we often serialize efficiently. However, Firestore querying
         invokes backend index which works best with Native types.
-        
+
         DECISION: We serialize UUIDs to strings and Pydantic to dicts, but keep
         Datetimes native?
-        
+
         Re-reading requirements: Parity is key.
         If TinyDB saves ISO strings, and we query with strings, Firestore must save strings?
         Or we convert query values?
-        
+
         The existing `firestore_repo.py` serialized datetimes to isoformat().
         We will stick to that to ensure string comparison parity.
         """
@@ -96,7 +96,7 @@ class FirestoreDriver(StorageDriver):
         filters: list[Filter] | None = None,
         limit: int | None = None,
         order_by: str | None = None,
-        descending: bool = False
+        descending: bool = False,
     ) -> list[dict[str, Any]]:
         query = self.db.collection(collection)
 

@@ -3,6 +3,7 @@
 This module defines the abstract interface for data storage, enforcing the
 'Write Logic Once, Swap the Driver' pattern.
 """
+
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
@@ -13,6 +14,7 @@ Operator = Literal["==", "!=", "<", "<=", ">", ">=", "in", "array-contains"]
 @dataclass
 class Filter:
     """Represents a single query filter condition."""
+
     field: str
     operator: Operator
     value: Any
@@ -43,7 +45,7 @@ class StorageDriver(Protocol):
         filters: list[Filter] | None = None,
         limit: int | None = None,
         order_by: str | None = None,
-        descending: bool = False
+        descending: bool = False,
     ) -> list[dict[str, Any]]:
         """Query a collection with filters, sorting, and limits."""
         ...

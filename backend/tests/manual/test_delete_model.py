@@ -1,4 +1,5 @@
 import asyncio
+
 import httpx
 import pytest
 
@@ -6,17 +7,13 @@ pytestmark = pytest.mark.skip(reason="Manual API test requiring live server")
 
 BASE_URL = "http://127.0.0.1:8000/api/v1/config/models"
 
+
 async def test_delete_api():
     print("--- Testing DELETE API Endpoint ---")
 
     # 1. Create Dummy Strategy via PUT
     provider_id = "mock/temp_delete_me"
-    payload = {
-        "id": "temp_delete_me",
-        "provider": "mock",
-        "model_name": "mock-delete-test",
-        "additional_params": {}
-    }
+    payload = {"id": "temp_delete_me", "provider": "mock", "model_name": "mock-delete-test", "additional_params": {}}
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         print(f"Creating {provider_id}...")
@@ -53,6 +50,7 @@ async def test_delete_api():
             print("VERIFIED: Strategy is GONE from list.")
         else:
             print("FAIL: Strategy still exists in list.")
+
 
 if __name__ == "__main__":
     asyncio.run(test_delete_api())

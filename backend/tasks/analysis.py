@@ -20,25 +20,14 @@ def register_analysis_tasks():
     logger.info("Registering analysis tasks...")
 
     # 1. Analyst
-    TaskRegistry.register_agent(
-        task_keys=["analyst"],
-        agent_cls=AnalystAgent,
-        output_model=AnalystOutput
-    )
+    TaskRegistry.register_agent(task_keys=["analyst"], agent_cls=AnalystAgent, output_model=AnalystOutput)
 
     # 2. Logician
-    TaskRegistry.register_agent(
-        task_keys=["logician"],
-        agent_cls=LogicianAgent,
-        output_model=LogicianOutput
-    )
+    TaskRegistry.register_agent(task_keys=["logician"], agent_cls=LogicianAgent, output_model=LogicianOutput)
 
     # 3. Profiler
-    TaskRegistry.register_agent(
-        task_keys=["profiler"],
-        agent_cls=ProfilerAgent,
-        output_model=ProfilerOutput
-    )
+    TaskRegistry.register_agent(task_keys=["profiler"], agent_cls=ProfilerAgent, output_model=ProfilerOutput)
+
 
 # Execute registration on import
 register_analysis_tasks()

@@ -20,14 +20,12 @@ from tinydb import Query
 
 from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import DatabaseDep, RegistryDep
-from backend.services.localization import localize_schema
-
-from backend.schemas.agent import AgentDefinition, AgentRunResponse
 
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
 from backend.exceptions import AppException, ResourceNotFoundError
-
+from backend.schemas.agent import AgentDefinition, AgentRunResponse
+from backend.services.localization import localize_schema
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +71,7 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
     "/{agent_name}/run",
     summary="Run Specific Agent",
     response_model=AgentRunResponse,
-    response_description="The result of the agent execution."
+    response_description="The result of the agent execution.",
 )
 async def run_agent(
     agent_name: str,
@@ -110,7 +108,7 @@ async def run_agent(
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": error_code},
         )
-    
+
     target_strategy = model
 
     try:
@@ -125,14 +123,14 @@ async def run_agent(
             details={"error_code": error_code, "strategy": target_strategy},
         ) from e
     except Exception as e:
-         # Configuration Error -> 500
-         error_code = "MODEL_RESOLUTION_FAILED"
-         logger.error(f"{error_code}: {e}", exc_info=True)
-         raise AppException(
-             message="Failed to resolve model strategy.",
-             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-             details={"error_code": error_code},
-         ) from e
+        # Configuration Error -> 500
+        error_code = "MODEL_RESOLUTION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message="Failed to resolve model strategy.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code},
+        ) from e
 
     # 2. Load Agent Class (Strict)
     try:
@@ -280,9 +278,9 @@ async def list_agents(
             agents_list.append(
                 AgentDefinition(
                     name=name,
-                    class_name=name,
+                    **{"class": name},
                     description=desc_base,
-                    model=model_display,
+                    model=model_display or "",
                     input_schema=localize_schema(input_schema) if input_schema else None,
                     output_schema=localize_schema(output_schema) if output_schema else None,
                 )

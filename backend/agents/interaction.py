@@ -31,7 +31,7 @@ class InteractionAnalystAgent(BaseAgent[InteractionInput, InteractionAnalysis]):
 
     state_field = "step_interaction"
     REQUIRES_KEYS = ["history_text"]
-    
+
     INPUT_SCHEMA = InteractionInput
     OUTPUT_SCHEMA = InteractionAnalysis
 
@@ -61,7 +61,7 @@ class InteractionAnalystAgent(BaseAgent[InteractionInput, InteractionAnalysis]):
 
         Returns:
             InteractionAnalysis: InteractionAnalysis.
-        
+
         Raises:
             AgentExecutionError: If mandatory input is missing or validation fails.
         """
@@ -73,7 +73,7 @@ class InteractionAnalystAgent(BaseAgent[InteractionInput, InteractionAnalysis]):
             raise AgentExecutionError(
                 detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
                 original_error=ValueError(error_msg),
-                agent_name="InteractionAnalystAgent"
+                agent_name="InteractionAnalystAgent",
             )
 
         # Note: Control ratio is now calculated via centralized HOOK_MAPPING (pre_hooks in seed_data.json)
@@ -82,8 +82,10 @@ class InteractionAnalystAgent(BaseAgent[InteractionInput, InteractionAnalysis]):
         if isinstance(result_obj, InteractionAnalysis):
             return result_obj
         else:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"InteractionAnalystAgent returned {type(result_obj)} instead of InteractionAnalysis"),
-                 agent_name="InteractionAnalystAgent"
-             )
+            raise AgentExecutionError(
+                detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                original_error=TypeError(
+                    f"InteractionAnalystAgent returned {type(result_obj)} instead of InteractionAnalysis"
+                ),
+                agent_name="InteractionAnalystAgent",
+            )

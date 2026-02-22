@@ -4,26 +4,23 @@ This module contains the schemas for the Overseer Agent,
 including fact checks and ethical observations.
 """
 
-
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
-
-
-from typing import TYPE_CHECKING
 from backend.models.domain.analyst import AnalystOutput
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 class OverseerInput(BaseModel):
     """Strict input schema for FactualOverseerAgent."""
+
     history_text: str = Field(..., description="Chat history to analyze.")
-    step_analyst: Optional[AnalystOutput] = Field(None, description="Analyst hypotheses/timeline.")
-    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
-    
+    step_analyst: AnalystOutput | None = Field(None, description="Analyst hypotheses/timeline.")
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+
     model_config = ConfigDict(frozen=True, extra="ignore")
 
 
@@ -129,6 +126,7 @@ class OverseerData(BaseModel):
 
 class OverseerDTO(ReasoningTraceDTO):
     """Overseer DTO (Content Only)."""
+
     overseer_data: OverseerData = Field(
         ...,
         description="Ethics audit result.",
@@ -139,4 +137,5 @@ class OverseerDTO(ReasoningTraceDTO):
 
 class OverseerOutput(OverseerDTO, ReasoningTrace):
     """Output schema for the Overseer Agent."""
+
     model_config = ConfigDict(frozen=True, strict=False)

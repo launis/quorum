@@ -3,7 +3,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 # Optional imports handled gracefully could be considered, but dependencies are mandated in task.
 import weasyprint  # type: ignore
@@ -17,17 +17,12 @@ from backend.services.chart_service import ChartService
 
 logger = logging.getLogger(__name__)
 
+
 @runtime_checkable
 class ProgressServiceProtocol(Protocol):
     """Protocol used for emitting progress updates."""
 
-    async def emit_progress(
-        self,
-        execution_id: str,
-        task_key: str,
-        message: str,
-        progress: float
-    ) -> None:
+    async def emit_progress(self, execution_id: str, task_key: str, message: str, progress: float) -> None:
         """Emits a progress event."""
         ...
 
@@ -35,11 +30,7 @@ class ProgressServiceProtocol(Protocol):
 class PdfReportService:
     """Service to generate PDF reports from execution data."""
 
-    def __init__(
-        self,
-        repository: AbstractWorkflowRepository,
-        progress: ProgressServiceProtocol | None = None
-    ):
+    def __init__(self, repository: AbstractWorkflowRepository, progress: ProgressServiceProtocol | None = None):
         """Initialize the service.
 
         Args:
@@ -76,11 +67,11 @@ class PdfReportService:
 
         self.env.filters["translate"] = translate_filter
 
-
-
     def _noop_progress(self) -> ProgressServiceProtocol:
         class NoOpProgress:
-            async def emit_progress(self, *args, **kwargs): pass
+            async def emit_progress(self, *args, **kwargs):
+                pass
+
         return NoOpProgress()
 
     async def generate_execution_pdf(self, execution_id: str) -> bytes:
@@ -104,15 +95,16 @@ class PdfReportService:
                 raise AppException(
                     message=f"Execution {execution_id} not found",
                     status_code=404,
-                    details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND}
+                    details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND},
                 )
 
             # 3. Transform
             await self.progress.emit_progress(execution_id, task_key, "Analyzing results...", 0.10)
-            
+
+            from pydantic import BaseModel
             # Helper for explicit typing if needed, but transformer expects ExecutionRecord
             report_view = self.transformer.transform(execution)
-            ex_data = execution.model_dump(mode='json') if hasattr(execution, 'model_dump') else execution
+            ex_data: dict[str, Any] = execution.model_dump(mode="json") if isinstance(execution, BaseModel) else execution
 
             # 4. Generate Visualizations (Radar Charts)
             await self.progress.emit_progress(execution_id, task_key, "Generating visualization...", 0.15)
@@ -139,7 +131,7 @@ class PdfReportService:
                     matrix_id = step_judge.get("matrix_id")
 
                 if matrix_id:
-                    comp = await self.repository.get_component_by_id(matrix_id)
+                    comp = await self.repository.get_matrix_by_id(matrix_id)
                     if comp and "content" in comp:
                         criteria = comp["content"].get("criteria", [])
                         for c in criteria:
@@ -169,9 +161,9 @@ class PdfReportService:
                     if dims:
                         scores = {}
                         for d in dims:
-                             # We map ID directly to score.
-                             # If visualization needs prettier labels, it must happen in ChartService or via metadata lookup.
-                             # But here we stick to the raw data ID as the key.
+                            # We map ID directly to score.
+                            # If visualization needs prettier labels, it must happen in ChartService or via metadata lookup.
+                            # But here we stick to the raw data ID as the key.
 
                             # 1. New Standard
                             display_label = d.get("dimension_label")
@@ -186,7 +178,7 @@ class PdfReportService:
                                 raise AppException(
                                     message=f"Strict Label Resolution Failed in PDF: Dimension '{tech_id}' has no label.",
                                     status_code=500,
-                                    details={"error_code": ErrorCodes.CHART_GENERATION_FAILED}
+                                    details={"error_code": ErrorCodes.CHART_GENERATION_FAILED},
                                 )
 
                             if display_label:
@@ -198,7 +190,10 @@ class PdfReportService:
                                     raise AppException(
                                         message=f"Invalid score value for dimension '{display_label}'",
                                         status_code=500,
-                                        details={"error_code": ErrorCodes.CHART_GENERATION_FAILED, "original_error": str(e)}
+                                        details={
+                                            "error_code": ErrorCodes.CHART_GENERATION_FAILED,
+                                            "original_error": str(e),
+                                        },
                                     ) from e
                             else:
                                 logger.warning(f"Skipping dimension with missing ID/Label in report {execution_id}")
@@ -223,10 +218,7 @@ class PdfReportService:
 
                     if bloom > 0 and strat > 0:
                         chart_b64 = ChartService.generate_bubble_chart(
-                            x_val=bloom,
-                            y_val=strat,
-                            size_val=toulmin_score,
-                            title="Logic Matrix Position"
+                            x_val=bloom, y_val=strat, size_val=toulmin_score, title="Logic Matrix Position"
                         )
                         section.data["logic_chart_image"] = chart_b64
 
@@ -237,24 +229,28 @@ class PdfReportService:
                     raw_facts = section.data.get("fact_checks", [])
                     processed_facts = []
                     for item in raw_facts:
-                        processed_facts.append({
-                            "claim": item.get("claim"),
-                            "verification_result": item.get("verification_result"),
-                            "source_or_reasoning": item.get("source_or_reasoning"),
-                            "is_verified": item.get("is_verified")
-                        })
+                        processed_facts.append(
+                            {
+                                "claim": item.get("claim"),
+                                "verification_result": item.get("verification_result"),
+                                "source_or_reasoning": item.get("source_or_reasoning"),
+                                "is_verified": item.get("is_verified"),
+                            }
+                        )
                     section.data["processed_facts"] = processed_facts
 
                     # 2. Ethics
                     raw_ethics = section.data.get("ethical_issues", [])
                     processed_ethics = []
                     for item in raw_ethics:
-                        processed_ethics.append({
-                            "issue_type": item.get("issue_type"),
-                            "severity": item.get("severity"),
-                            "description": item.get("description"),
-                            "is_critical": item.get("is_critical")
-                        })
+                        processed_ethics.append(
+                            {
+                                "issue_type": item.get("issue_type"),
+                                "severity": item.get("severity"),
+                                "description": item.get("description"),
+                                "is_critical": item.get("is_critical"),
+                            }
+                        )
                     section.data["processed_ethics"] = processed_ethics
 
             # 5. Render Template
@@ -268,6 +264,7 @@ class PdfReportService:
             await self.progress.emit_progress(execution_id, task_key, "Consulting Print Engine (WeasyPrint)...", 0.30)
 
             import asyncio
+
             loop = asyncio.get_running_loop()
 
             # Run blocking PDF generation in a thread pool
@@ -295,10 +292,10 @@ class PdfReportService:
             try:
                 await self.progress.emit_progress(execution_id, task_key, f"Error: {str(e)}", 0.0)
             except Exception:
-                pass # Swallow progress error to ensure the main error is raised
+                pass  # Swallow progress error to ensure the main error is raised
 
             raise AppException(
                 message=f"{error_message}: {str(e)}",
                 status_code=500,
-                details={"error_code": error_code, "original_error": str(e)}
+                details={"error_code": error_code, "original_error": str(e)},
             ) from e

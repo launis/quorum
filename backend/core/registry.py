@@ -22,6 +22,7 @@ class TaskDefinition:
 
 class TaskRegistry:
     """Registry for functional agent tasks."""
+
     _tasks: dict[str, TaskDefinition] = {}
     agents_map: dict[str, Any] = {}
 
@@ -88,20 +89,23 @@ class TaskRegistry:
         except Exception as e:
             logger.error(f"Could not instantiate {agent_cls.__name__} for metadata: {e}")
             from backend.exceptions import AppException, ErrorCodes, status
+
             raise AppException(
                 message=f"Agent {agent_cls.__name__} instantiation failed: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "original_error": str(e)}
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "original_error": str(e)},
             ) from e
 
         # Resolve Input Schema from Agent Class (Refactored Feb 2026: Strict Type Propagation)
         input_model = getattr(agent_cls, "INPUT_SCHEMA", None)
         if not input_model:
-             # Fallback to Generic if not defined (Legacy support only)
-             logger.warning(f"Agent {agent_cls.__name__} has no INPUT_SCHEMA. Using GenericInput (Dict fallback).")
-             class GenericInput(BaseModel):
-                 model_config = {"extra": "allow"}
-             input_model = GenericInput
+            # Fallback to Generic if not defined (Legacy support only)
+            logger.warning(f"Agent {agent_cls.__name__} has no INPUT_SCHEMA. Using GenericInput (Dict fallback).")
+
+            class GenericInput(BaseModel):
+                model_config = {"extra": "allow"}
+
+            input_model = GenericInput
 
         async def agent_wrapper(input_data: BaseModel, execution_config: dict[str, Any] | None = None) -> BaseModel:
             logger.debug(f"agent_wrapper CALLED. Config: {execution_config}")
@@ -116,18 +120,23 @@ class TaskRegistry:
                 repo = await get_async_repository()
                 registry = AgentRegistry(repo)
                 model_config = await registry.resolve_model_config(agent_cls.__name__)
-                
+
                 if hasattr(agent, "set_model"):
                     agent.set_model(model_config.model_name, provider=model_config.provider, config=model_config)
             except Exception as e:
                 logger.error(f"Failed to configure agent {agent_cls.__name__}: {e}")
                 from backend.exceptions import AppException, ErrorCodes, status
+
                 if isinstance(e, AppException):
                     raise e
                 raise AppException(
                     message=f"Agent configuration failed: {e}",
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.AGENT_NOT_CONFIGURED, "agent": agent_cls.__name__, "original_error": str(e)}
+                    details={
+                        "error_code": ErrorCodes.AGENT_NOT_CONFIGURED,
+                        "agent": agent_cls.__name__,
+                        "original_error": str(e),
+                    },
                 ) from e
 
             # 3. Resolve System Instruction
@@ -147,21 +156,28 @@ class TaskRegistry:
                     # --- VARIABLE SUBSTITUTION ---
                     # Use model_dump to get dict for substitution logic
                     vars_to_inject = input_data.model_dump() if hasattr(input_data, "model_dump") else {}
-                    if isinstance(input_data, dict): # Should not happen if strictly typed
+                    if isinstance(input_data, dict):  # Should not happen if strictly typed
                         vars_to_inject = input_data
 
                     # System Context
-                    from datetime import datetime, UTC
+                    from datetime import UTC, datetime
+
                     vars_to_inject["CURRENT_DATE"] = datetime.now(UTC).strftime("%Y-%m-%d")
                     vars_to_inject["DYNAMIC_TIME"] = datetime.now(UTC).strftime("%H:%M:%S")
                     vars_to_inject["DYNAMIC_LOCATION"] = "Sijainti: VIRTUAL_ENCLAVE"
 
                     if system_instruction:
                         for key, value in vars_to_inject.items():
-                            if value is None: value = ""
-                            if hasattr(value, "model_dump_json"): replacement = value.model_dump_json()
-                            elif hasattr(value, "dict"): import json; replacement = json.dumps(value.dict(), default=str)
-                            else: replacement = str(value)
+                            if value is None:
+                                value = ""
+                            if hasattr(value, "model_dump_json"):
+                                replacement = value.model_dump_json()
+                            elif hasattr(value, "dict"):
+                                import json
+
+                                replacement = json.dumps(value.dict(), default=str)
+                            else:
+                                replacement = str(value)
 
                             placeholder = f"{{{{{key.upper()}}}}}"
                             if placeholder in system_instruction:
@@ -172,10 +188,10 @@ class TaskRegistry:
 
             # 4. Execute using New Signature (Strict Model Pass-Through)
             # Do NOT downcast to dict unless it's GenericInput
-            final_input = input_data
+            final_input: Any = input_data
             if input_model.__name__ == "GenericInput":
-                 # Legacy: Convert to dict for agents expecting dict
-                 final_input = input_data.model_dump()
+                # Legacy: Convert to dict for agents expecting dict
+                final_input = input_data.model_dump()
 
             # Prepare kwargs from Registry Config
             registry_kwargs = {}
@@ -193,12 +209,13 @@ class TaskRegistry:
                         resolved_override = await registry.resolve_model_name(override_model)
                         execution_config["model"] = resolved_override
                     except Exception as e:
-                         from backend.exceptions import AppException, ErrorCodes, status
-                         raise AppException(
-                             message=f"Invalid model override: {e}",
-                             status_code=status.HTTP_400_BAD_REQUEST,
-                             details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "original_error": str(e)}
-                         ) from e
+                        from backend.exceptions import AppException, ErrorCodes, status
+
+                        raise AppException(
+                            message=f"Invalid model override: {e}",
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "original_error": str(e)},
+                        ) from e
                 exec_kwargs.update(execution_config)
 
             # CALL EXECUTE

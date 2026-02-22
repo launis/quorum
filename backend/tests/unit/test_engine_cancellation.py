@@ -1,34 +1,37 @@
-
+import uuid
 from unittest.mock import AsyncMock
 
-import uuid
 import pytest
 from pydantic import BaseModel
 
 from backend.core.engine import GraphEngine
 from backend.core.registry import TaskDefinition, TaskRegistry
-from backend.models.workflow import WorkflowDefinition, WorkflowStep
+from backend.models.workflow import WorkflowDefinition
 
 
 class MockInput(BaseModel):
     pass
 
-async def mock_task_handler(inputs: MockInput, execution_config: dict = None):
+
+async def mock_task_handler(inputs: MockInput, execution_config: dict | None = None):
     return {"result": "ok"}
+
 
 @pytest.fixture
 def mock_registry():
     # Register a dummy task
-    task_def = TaskDefinition(
+    TaskDefinition(
         name="mock_task",
         description="Mock Task",
         input_schema=MockInput,
+        output_schema=BaseModel,
         handler=mock_task_handler,
     )
     # We need to patch the singleton registry or ensure it's clean
     # For unit test simplicity, we assume we can register safely or mock the get method
     # But since Registry is a global singleton usually, let's just mock the get call inside Engine
     pass
+
 
 @pytest.mark.asyncio
 async def test_engine_graceful_cancellation():
@@ -45,20 +48,13 @@ async def test_engine_graceful_cancellation():
 
     # 2. Setup Workflow Definition
     workflow_def = WorkflowDefinition(
-        id="test_workflow",
-        organization_id="org1",
-        description="Test description",
-        steps=["step1", "step2"]
+        id="test_workflow", name="Test Workflow", organization_id="org1", description="Test description", status="draft", version=1, is_public=False, steps=["step1", "step2"]
     )
 
     # 3. Setup Task Registry Mock
     # We mock TaskRegistry.get to return our dummy task def
     mock_task_def = TaskDefinition(
-        output_schema=dict,
-        name="mock_task",
-        description="Mock",
-        input_schema=MockInput,
-        handler=mock_task_handler
+        output_schema=BaseModel, name="mock_task", description="Mock", input_schema=MockInput, handler=mock_task_handler
     )
 
     with pytest.MonkeyPatch.context() as mp:
@@ -70,10 +66,7 @@ async def test_engine_graceful_cancellation():
         execution_id = str(uuid.uuid4())
 
         final_state = await engine.execute_workflow(
-            definition=workflow_def,
-            initial_input=initial_input,
-            repository=repository,
-            execution_id=execution_id
+            definition=workflow_def, initial_input=initial_input, repository=repository, execution_id=execution_id
         )
 
         # 5. Verify

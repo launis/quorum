@@ -202,6 +202,12 @@ To support both high-fidelity rendering, raw data integration, and dynamic UI bu
 > **Why are SDUI and Flat Data separate?**
 > The `XAIFlatReportDTO` (Flat Data) strategically strips away hierarchy to provide raw numerical/text values for external tools like Excel or BI dashboards. However, high-fidelity visual reports (like the Flutter UI or the final PDF) require **structural and visual instructions**—such as layout constraints, colors, and specific component labels (e.g., drawing a Radar Chart with green logic nodes). The `ReportView` SDUI format encapsulates both the data *and* these rendering instructions, making it fundamentally different (and necessary) for the presentation layer.
 
+### 6.4 The UI Hints Localization Pattern (SDUI)
+To fully support the Server-Driven UI without requiring constant frontend redeployments, custom output configurations (like customized reports or dynamic matrices) inject their own visualization and localization metadata natively from the backend using the `ui_hints` dictionary map.
+
+*   **Hardcoded Dictionary (`backend/l10n/*.json`)**: Reserved purely for static, system-level structural text that never changes (e.g., "Save", "Delete", "Internal Server Error").
+*   **Dynamic SDUI Dictionary (`ui_hints` in DB)**: Used for content-driven definitions, report field descriptions, custom tooltips, and component colors. By placing translations (e.g., `{"label": {"fi": "Tiivistelmä", "en": "Summary"}}`) directly into the configuration schema stored in `seed_data.json` or Database, administrators can create entirely new localized report types on-the-fly without altering a single `.arb` file nor touching Flutter code. Allowed via relaxed DTO (`AgentBaseResponse`) policies.
+
 ## 7. Summary Diagram
 
 

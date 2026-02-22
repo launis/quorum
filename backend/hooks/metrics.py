@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict
 
 from backend.exceptions import AppException, ErrorCodes
+from backend.models.domain.inputs import WorkflowInputs
 from backend.models.domain.profiler import BehavioralMetrics, TextMetrics
 from backend.models.state import WorkflowState
-from backend.models.domain.inputs import WorkflowInputs
-from backend.utils.pydantic_utils import inflate
 from backend.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -36,7 +34,7 @@ def calculate_text_metrics(text: str) -> TextMetrics:
             avg_sentence_length=0.0,
             lexical_diversity=0.0,
             capitalization_ratio=0.0,
-            control_ratio=0.0
+            control_ratio=0.0,
         )
 
     # 1. Word Count
@@ -66,7 +64,7 @@ def calculate_text_metrics(text: str) -> TextMetrics:
         avg_sentence_length=round(avg_sent_len, 2),
         lexical_diversity=round(lex_diversity, 2),
         capitalization_ratio=round(cap_ratio, 2),
-        control_ratio=0.0 # Default, calculated separately in hook or explicit call
+        control_ratio=0.0,  # Default, calculated separately in hook or explicit call
     )
 
 
@@ -136,8 +134,8 @@ def calculate_control_ratio(text: str) -> float:
 
 def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> BehavioralMetrics:
     """Calculates heuristic behavioral metrics (Say-Do Gap, Automation Bias).
-    
-    NOTE: These are heuristic approximations to serve as a 'Single Source of Truth' 
+
+    NOTE: These are heuristic approximations to serve as a 'Single Source of Truth'
     alongside the LLM's qualitative analysis.
     """
     say_do_gap = 0.0
@@ -149,11 +147,16 @@ def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> Beh
 
     # 1. Automation Bias (Heuristic: Short, affirmative user messages)
     # If user messages are consistently short (< 5 words) and frequent.
-    user_lines = [line.lower().strip() for line in history_text.split('\n')
-                  if line.lower().startswith(('user:', 'human:', 'k:', 'me:', 'minä:'))]
+    user_lines = [
+        line.lower().strip()
+        for line in history_text.split("\n")
+        if line.lower().startswith(("user:", "human:", "k:", "me:", "minä:"))
+    ]
 
     if user_lines:
-        short_responses = sum(1 for line in user_lines if len(line.split()) < get_settings().metrics_short_response_word_count)
+        short_responses = sum(
+            1 for line in user_lines if len(line.split()) < get_settings().metrics_short_response_word_count
+        )
         if len(user_lines) > 2 and (short_responses / len(user_lines) > get_settings().metrics_automation_bias_ratio):
             automation_bias = 1.0
 
@@ -180,9 +183,7 @@ def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> Beh
             illusion_of_competence = 1.0
 
     return BehavioralMetrics(
-        say_do_gap=say_do_gap,
-        automation_bias=automation_bias,
-        illusion_of_competence=illusion_of_competence
+        say_do_gap=say_do_gap, automation_bias=automation_bias, illusion_of_competence=illusion_of_competence
     )
 
 
@@ -191,7 +192,7 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
 
     Extracts text from state.context_variables['inputs'], calculates metrics,
     and stores result in state.context_variables['audit_metrics'].
-    
+
     Unified hook: Also calculates and sets 'input_control_ratio'.
     """
     logger.debug("[MetricsHook] Running calculate_text_metrics_hook...")
@@ -201,41 +202,33 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
         raise AppException(
             message="Metrics Hook received dict state. Strict Pydantic Enforcement Violation.",
             status_code=500,
-            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
         )
 
     if not state.context_variables:
-        error_code = ErrorCodes.INTERNAL_SERVER_ERROR 
+        error_code = ErrorCodes.INTERNAL_SERVER_ERROR
         msg = "No context_variables found."
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": error_code}
-        )
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
     # Strict: Inputs MUST be WorkflowInputs (or inflatable to it)
-    inputs_data = state.context_variables.get("inputs") # Keep for null check
+    inputs_data = state.context_variables.get("inputs")  # Keep for null check
     inputs = state.get_context("inputs", WorkflowInputs)
 
     if not inputs:
-         # Fail Fast: Inputs are mandatory for metrics
-         # Distinguish between Missing and Invalid
-         if inputs_data is None:
-             error_code = ErrorCodes.EMPTY_INPUT
-             msg = "Missing 'inputs' in context_variables."
-             # Logic fix for 500 error: If inputs are missing, it's a BAD REQUEST (400) not Internal Error
-             status_code = 400
-         else:
-             error_code = ErrorCodes.INVALID_JSON_PAYLOAD
-             msg = f"Invalid 'inputs' data: {type(inputs_data)}. Expected WorkflowInputs."
-             status_code = 500
+        # Fail Fast: Inputs are mandatory for metrics
+        # Distinguish between Missing and Invalid
+        if inputs_data is None:
+            error_code = ErrorCodes.EMPTY_INPUT
+            msg = "Missing 'inputs' in context_variables."
+            # Logic fix for 500 error: If inputs are missing, it's a BAD REQUEST (400) not Internal Error
+            status_code = 400
+        else:
+            error_code = ErrorCodes.INVALID_JSON_PAYLOAD
+            msg = f"Invalid 'inputs' data: {type(inputs_data)}. Expected WorkflowInputs."
+            status_code = 500
 
-         logger.error(f"[MetricsHook] {error_code.name}: {msg}")
-         raise AppException(
-            message=msg,
-            status_code=status_code,
-            details={"error_code": error_code}
-         )
+        logger.error(f"[MetricsHook] {error_code.name}: {msg}")
+        raise AppException(message=msg, status_code=status_code, details={"error_code": error_code})
 
     # Combine history and product text
     history = inputs.history_text or ""
@@ -249,22 +242,18 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
 
     # STRICT INPUT CHECK
     if not inputs.history_text and not inputs.product_text:
-         error_code = ErrorCodes.EMPTY_INPUT
-         msg = "Missing 'history_text' or 'product_text' in inputs."
-         logger.error(f"[MetricsHook] {error_code.name}: {msg}")
-         raise AppException(
-             message=msg,
-             status_code=400,
-             details={"error_code": error_code}
-         )
+        error_code = ErrorCodes.EMPTY_INPUT
+        msg = "Missing 'history_text' or 'product_text' in inputs."
+        logger.error(f"[MetricsHook] {error_code.name}: {msg}")
+        raise AppException(message=msg, status_code=400, details={"error_code": error_code})
 
     try:
         # 1. Text Metrics
         metrics_model = calculate_text_metrics(text)
-        
+
         # 2. Control Ratio
         control_res = calculate_control_ratio(history)
-        
+
         # Update control ratio in the model (create new instance since frozen)
         metrics_model = metrics_model.model_copy(update={"control_ratio": control_res})
         final_metrics = metrics_model.model_dump()
@@ -275,26 +264,21 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
 
         # IMMUTABILITY FIX: Update context_variables via model_copy
         new_context = state.context_variables.copy()
-        
+
         # We store the merged dict for backwards compatibility with UI
         new_context["audit_metrics"] = final_metrics
-        new_context["profiler_metrics"] = final_metrics 
-        
+        new_context["profiler_metrics"] = final_metrics
+
         # Unified: Set standalone control ratio to deprecate separate hook requirement
         new_context["input_control_ratio"] = control_res
 
         logger.info(f"[MetricsHook] Final Merged Metrics: {final_metrics}")
-        
+
         return state.model_copy(update={"context_variables": new_context})
 
     except Exception as e:
         error_code = ErrorCodes.INTERNAL_SERVER_ERROR
         logger.error(f"[MetricsHook] {error_code.name}: {e}", exc_info=True)
         raise AppException(
-            message=f"Failed to calculate metrics: {e}",
-            status_code=500,
-            details={"error_code": error_code}
+            message=f"Failed to calculate metrics: {e}", status_code=500, details={"error_code": error_code}
         ) from e
-
-
-

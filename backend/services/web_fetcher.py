@@ -6,7 +6,6 @@ import urllib.error
 import urllib.request
 
 from backend.exceptions import AppException, ErrorCodes
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +56,7 @@ class WebFetcher:
 
         except ValueError as e:
             # Invalid URL format
-            raise AppException(
-                message=str(e),
-                status_code=400,
-                details={"error_code": ErrorCodes.URL_INVALID}
-            ) from e
+            raise AppException(message=str(e), status_code=400, details={"error_code": ErrorCodes.URL_INVALID}) from e
 
         except (urllib.error.URLError, TimeoutError) as e:
             # Network or Protocol error
@@ -69,19 +64,17 @@ class WebFetcher:
             logger.error(f"[WebFetcher] Failed to fetch {url}: {e}")
             raise AppException(
                 message=f"Failed to fetch content from {url}",
-                status_code=502, # Bad Gateway / Upstream Error
-                details={"error_code": error_code, "original_error": str(e)}
+                status_code=502,  # Bad Gateway / Upstream Error
+                details={"error_code": error_code, "original_error": str(e)},
             ) from e
 
         except Exception as e:
             # Unknown error
             if isinstance(e, AppException):
                 raise e
-                
+
             error_code = ErrorCodes.INTERNAL_SERVER_ERROR
             logger.error(f"[WebFetcher] Unexpected error for {url}: {e}", exc_info=True)
             raise AppException(
-                message="Unexpected error during web fetch.",
-                status_code=500,
-                details={"error_code": error_code}
+                message="Unexpected error during web fetch.", status_code=500, details={"error_code": error_code}
             ) from e

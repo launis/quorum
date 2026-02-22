@@ -17,7 +17,7 @@ from backend.core.engine import GraphEngine
 from backend.database.factory import get_repository
 from backend.database.repository import AbstractWorkflowRepository
 from backend.database.wrapper import AbstractDatabase, get_db_client
-from backend.exceptions import AuthenticationError, AppException, ErrorCodes
+from backend.exceptions import AppException, AuthenticationError, ErrorCodes
 from backend.llm.provider import LLMProvider
 from backend.models.auth import TokenData
 from backend.services.agent_registry import AgentRegistry
@@ -210,14 +210,14 @@ async def get_llm_provider(
     from backend.llm.provider import LLMFactory
 
     config = await registry.resolve_model_config(model_strategy)
-    model_name = str(config.get("model_name", ""))
-    provider_type = config.get("provider")
+    model_name = config.model_name
+    provider_type = config.provider
 
     if not provider_type:
         raise AppException(
             message=f"[get_llm_provider] 'provider' missing for strategy '{model_strategy}'.",
             status_code=500,
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
         )
 
     return LLMFactory.create_provider(provider_type=provider_type, model_name=model_name, usage_service=usage_service)

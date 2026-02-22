@@ -413,8 +413,4 @@ def get_db_client() -> AbstractDatabase:
         raise ValueError(f"CRITICAL: Unknown/Unsupported BACKEND '{backend}'.")
 
 
-
 # --- Factory Function ---
-
-
-

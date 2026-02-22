@@ -4,28 +4,25 @@ This module contains the schemas for the Performativity/Detector Agent,
 including linguistics analysis and heuristics.
 """
 
-
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.models.domain.analyst import AnalystOutput
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.enums import AuthenticityLevel
 from backend.services.localization import LocalizationService
 
 
-from typing import TYPE_CHECKING
-from backend.models.domain.analyst import AnalystOutput
-
-
 class PerformativityInput(BaseModel):
     """Strict input schema for PerformativityDetectorAgent."""
+
     history_text: str = Field(..., description="Chat history to analyze.")
-    step_analyst: Optional[AnalystOutput] = Field(None, description="Analyst hypotheses/timeline.")
-    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
-    
+    step_analyst: AnalystOutput | None = Field(None, description="Analyst hypotheses/timeline.")
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+
     model_config = ConfigDict(frozen=True, extra="ignore")
 
 
@@ -57,8 +54,6 @@ class PerformativityHeuristic(BaseModel):
         return v.strip()
 
 
-
-
 class PreMortemAnalysis(BaseModel):
     """Pre-Mortem Analysis results."""
 
@@ -77,7 +72,7 @@ class PreMortemAnalysis(BaseModel):
     @field_validator("weak_signals")
     @classmethod
     def validate_list_items(cls, v: list[str]) -> list[str]:
-         return [item.strip() for item in v if item and item.strip()]
+        return [item.strip() for item in v if item and item.strip()]
 
 
 class PerformativityAnalysis(BaseModel):
@@ -107,7 +102,9 @@ class PerformativityAnalysis(BaseModel):
         default="authenticity_desc",
         description="Localization key.",
     )
-    description: str = Field(default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"})
+    description: str = Field(
+        default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -118,23 +115,20 @@ class PerformativityAnalysis(BaseModel):
                 data["description"] = LocalizationService.translate(key)
 
             # Strict mapping
-            mapping = {
-                AuthenticityLevel.PERFORMATIVE: 2.0,
-                AuthenticityLevel.ORGANIC: 3.0
-            }
+            mapping = {AuthenticityLevel.PERFORMATIVE: 2.0, AuthenticityLevel.ORGANIC: 3.0}
             val = data.get("authenticity_assessment")
-            
+
             # Cast raw string from LLM to the Enum instance to satisfy strict=True validation
             if val is not None and not isinstance(val, AuthenticityLevel):
                 try:
                     val = AuthenticityLevel(val)
                     data["authenticity_assessment"] = val
                 except ValueError:
-                    pass # Validation core will catch this immediately
+                    pass  # Validation core will catch this immediately
 
             if data.get("authenticity_score") is None:
                 if isinstance(val, AuthenticityLevel) and val in mapping:
-                     data["authenticity_score"] = mapping[val]
+                    data["authenticity_score"] = mapping[val]
         return data
 
     model_config = ConfigDict(frozen=True, strict=True)
@@ -154,6 +148,7 @@ class PerformativityAnalysis(BaseModel):
 
 class PerformativityDTO(ReasoningTraceDTO):
     """Performativity DTO (Content Only)."""
+
     performativity_analysis: PerformativityAnalysis = Field(
         ...,
         description="Performativity audit result.",
@@ -164,13 +159,17 @@ class PerformativityDTO(ReasoningTraceDTO):
 
 class PerformativityOutput(PerformativityDTO, ReasoningTrace):
     """Output schema for the Performativity/Detector Agent."""
+
     model_config = ConfigDict(frozen=True, strict=False)
 
 
 class PerformativePattern(BaseModel):
     """A single detected performative pattern."""
+
     pattern_id: str = Field(..., description="ID of the pattern.", json_schema_extra={"x-ui-label": "Pattern ID"})
-    detected_phrase: str = Field(..., description="The exact phrase detected.", json_schema_extra={"x-ui-label": "Detected Phrase"})
+    detected_phrase: str = Field(
+        ..., description="The exact phrase detected.", json_schema_extra={"x-ui-label": "Detected Phrase"}
+    )
     category: str = Field(..., description="Category of the pattern.", json_schema_extra={"x-ui-label": "Category"})
 
     model_config = ConfigDict(frozen=True, strict=True)
@@ -185,10 +184,11 @@ class PerformativePattern(BaseModel):
 
 class LinguisticsResult(BaseModel):
     """Result of the linguistics analysis (Hook)."""
+
     performative_patterns: list[PerformativePattern] = Field(
         default_factory=list,
         description="Detected patterns.",
-        json_schema_extra={"x-ui-label": "Performative Patterns"}
+        json_schema_extra={"x-ui-label": "Performative Patterns"},
     )
 
     model_config = ConfigDict(frozen=True, strict=True)

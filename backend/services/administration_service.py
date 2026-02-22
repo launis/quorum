@@ -51,7 +51,9 @@ class AdministrationService:
             result = export_db_to_files()
             await tracker.update("Export Completed", 100)
 
-            final_res = AdminOperationResponse(status="completed", message=result.get("message", "Export done"), output=None, details={})
+            final_res = AdminOperationResponse(
+                status="completed", message=result.get("message", "Export done"), output=None, details={}
+            )
             await tracker.complete(final_res.model_dump())
             return final_res
         except Exception as e:
@@ -60,7 +62,7 @@ class AdministrationService:
             raise AppException(
                 message=f"Export failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
     async def rebuild_database(self, tracker: ProgressTracker) -> AdminOperationResponse:
@@ -85,7 +87,9 @@ class AdministrationService:
             seed_database()
             await tracker.update("Seeding Completed", 100)
 
-            result = AdminOperationResponse(status="completed", message=LocalizationService.translate("DB_REBUILT"), output=None, details={})
+            result = AdminOperationResponse(
+                status="completed", message=LocalizationService.translate("DB_REBUILT"), output=None, details={}
+            )
             await tracker.complete(result.model_dump())
             return result
         except Exception as e:
@@ -94,7 +98,7 @@ class AdministrationService:
             raise AppException(
                 message=f"Rebuild failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
     async def reset_mock_db(self, tracker: ProgressTracker) -> AdminOperationResponse:
@@ -134,7 +138,6 @@ class AdministrationService:
         self, tracker: ProgressTracker, script_name: str, op_name: str
     ) -> AdminOperationResponse:
         """Runs an external python script to reset the database."""
-
         await tracker.start({"operation": op_name})
         try:
             settings = get_settings()
@@ -150,7 +153,7 @@ class AdministrationService:
                     raise AppException(
                         message=f"Reset script not found: {script_name}",
                         status_code=500,
-                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
                     )
 
             await tracker.update(f"Running {script_name}...", 20)
@@ -173,7 +176,7 @@ class AdministrationService:
                 raise AppException(
                     message=f"Script failed (Exit {process.returncode}): {error_msg}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
                 )
 
             await tracker.update("Completed", 100)
@@ -189,5 +192,5 @@ class AdministrationService:
             raise AppException(
                 message=f"External reset failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e

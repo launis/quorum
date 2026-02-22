@@ -4,27 +4,25 @@ This module contains the schemas for the Falsifier Agent,
 including stress tests and fidelity audits.
 """
 
-
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.models.domain.analyst import AnalystOutput
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.enums import FidelityLevel
-from typing import TYPE_CHECKING
-from backend.models.domain.analyst import AnalystOutput
 
 
 class FalsifierInput(BaseModel):
     """Strict input schema for LogicalFalsifierAgent."""
-    history_text: str = Field(..., description="Chat history to analyze.")
-    step_analyst: Optional[AnalystOutput] = Field(None, description="Analyst hypotheses/timeline.")
-    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
-    
-    model_config = ConfigDict(frozen=True, extra="ignore")
 
+    history_text: str = Field(..., description="Chat history to analyze.")
+    step_analyst: AnalystOutput | None = Field(None, description="Analyst hypotheses/timeline.")
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
 
 class WaltonStressTest(BaseModel):
@@ -73,7 +71,7 @@ class ReasoningFidelity(BaseModel):
     post_hoc_rationalization: bool = Field(
         default=False,
         description="Was reasoning constructed after the fact?",
-        json_schema_extra={"x-ui-label": "Post-Hoc Rationalization"}
+        json_schema_extra={"x-ui-label": "Post-Hoc Rationalization"},
     )
     is_post_hoc: bool = Field(
         default=False,
@@ -94,20 +92,14 @@ class ReasoningFidelity(BaseModel):
             raise ValueError("Quote cannot be empty if provided.")
         return v.strip() if v else None
 
-
-
     @model_validator(mode="before")
     @classmethod
     def calc_fidelity(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            mapping = {
-                FidelityLevel.WEAK: 1.0,
-                FidelityLevel.UNCERTAIN: 2.0,
-                FidelityLevel.HIGH: 3.0
-            }
+            mapping = {FidelityLevel.WEAK: 1.0, FidelityLevel.UNCERTAIN: 2.0, FidelityLevel.HIGH: 3.0}
 
             val = data.get("fidelity_score")
-            
+
             # Robust Enum Parsing (Handle "High", "high", "FIDELITY_HIGH")
             if val and isinstance(val, str):
                 val_upper = val.upper()
@@ -119,7 +111,7 @@ class ReasoningFidelity(BaseModel):
                         data["fidelity_score"] = FidelityLevel.UNCERTAIN
                     elif val_upper == "HIGH":
                         data["fidelity_score"] = FidelityLevel.HIGH
-            
+
             # Re-fetch potentially updated value
             val = data.get("fidelity_score")
 
@@ -131,7 +123,7 @@ class ReasoningFidelity(BaseModel):
                     if enum_val in mapping:
                         data["fidelity_numeric"] = mapping[enum_val]
                 except ValueError:
-                    pass # Let Pydantic fail
+                    pass  # Let Pydantic fail
         return data
 
     model_config = ConfigDict(frozen=True, strict=False)
@@ -162,6 +154,7 @@ class FalsifierData(BaseModel):
 
 class FalsifierDTO(ReasoningTraceDTO):
     """Falsifier DTO (Content Only)."""
+
     falsifier_data: FalsifierData = Field(
         ...,
         description="Falsification audit result.",
@@ -172,4 +165,5 @@ class FalsifierDTO(ReasoningTraceDTO):
 
 class FalsifierOutput(FalsifierDTO, ReasoningTrace):
     """Output schema for the Falsifier Agent."""
+
     model_config = ConfigDict(frozen=True, strict=False)

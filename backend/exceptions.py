@@ -26,9 +26,9 @@ USAGE GUIDE (Mandatory Pattern)
         ) from e
 
 2. ERROR CODE NAMING CONVENTION:
-   
+
    Format: DOMAIN_REASON_DETAIL
-   
+
 Examples:
    - EXECUTION_NOT_FOUND      (404)
    - WORKFLOW_EXECUTION_FAILED (500)
@@ -94,9 +94,10 @@ from fastapi import status
 
 class ErrorCodes(str, Enum):
     """Standardized Error Codes for the application.
-    
+
     These codes are used by the Frontend for localization lookup.
     """
+
     # General
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
     UNKNOWN_ERROR = "UNKNOWN_ERROR"
@@ -159,7 +160,6 @@ class ErrorCodes(str, Enum):
     SCORING_LEGACY_DATA_REJECTED = "SCORING_LEGACY_DATA_REJECTED"
     SCORING_MISSING_SCALE_MAX = "SCORING_MISSING_SCALE_MAX"
     SCORING_MISSING_JUDGE_OUTPUT = "SCORING_MISSING_JUDGE_OUTPUT"
-
 
     # State Presenter
     STATE_INTEGRITY_ERROR = "STATE_INTEGRITY_ERROR"
@@ -240,8 +240,6 @@ class ErrorCodes(str, Enum):
     AGENT_RESPONSE_PARSING_FAILED = "AGENT_RESPONSE_PARSING_FAILED"
     AGENT_SCHEMA_VALIDATION_FAILED = "AGENT_SCHEMA_VALIDATION_FAILED"
     AGENT_INVALID_INPUT = "AGENT_INVALID_INPUT"
-
-
 
 
 class AppException(Exception):
@@ -343,7 +341,7 @@ class AppException(Exception):
 
         # Include any extra details, ensuring error_code is always present for L10n
         extra = self.details.copy() if self.details else {}
-        
+
         # Ensure error_code is in extensions even if redundant with type URI
         if "error_code" not in extra:
             extra["error_code"] = self.error_code
@@ -359,7 +357,11 @@ class ResourceNotFoundError(AppException):
 
     def __init__(self, resource_type: str, resource_id: str = "", details: dict | None = None):
         """Initialize the exception."""
-        error_details = {"resource_type": resource_type, "resource_id": resource_id, "error_code": ErrorCodes.RESOURCE_NOT_FOUND}
+        error_details = {
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "error_code": ErrorCodes.RESOURCE_NOT_FOUND,
+        }
         if details:
             error_details.update(details)
 
@@ -444,6 +446,7 @@ def format_validation_error(exc: Exception) -> str:
     """Formats the exception into a human-readable string, specifically handling Pydantic ValidationErrors."""
     try:
         from pydantic import ValidationError
+
         if isinstance(exc, ValidationError):
             errors = exc.errors()
             missing_fields = []
@@ -465,7 +468,7 @@ def format_validation_error(exc: Exception) -> str:
                 parts.append(f"Missing required fields: {', '.join(missing_fields)}")
             if other_errors:
                 parts.append("; ".join(other_errors))
-            
+
             # Use title if available (e.g. "ContextData")
             title = getattr(exc, "title", "Schema")
             return f"{title} validation failed. " + "; ".join(parts)
@@ -474,7 +477,7 @@ def format_validation_error(exc: Exception) -> str:
     except Exception:
         # Fallback to string representation if formatting fails
         pass
-    
+
     return str(exc)
 
 
@@ -583,7 +586,7 @@ class WorkflowExecutionError(AppException):
         error_details = details or {}
         error_details.update({"step_id": step_id, "task_key": task_key, "cause": str(original_error)})
         if "error_code" not in error_details:
-             error_details["error_code"] = ErrorCodes.WORKFLOW_EXECUTION_FAILED
+            error_details["error_code"] = ErrorCodes.WORKFLOW_EXECUTION_FAILED
 
         super().__init__(
             message=msg,

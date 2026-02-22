@@ -10,21 +10,25 @@ from backend.models.auth import TokenData, UserRole
 
 # --- RBAC UNIT TESTS ---
 
+
 def test_rbac_root_allow():
     user = TokenData(uid="root", role=UserRole.ROOT, organization_id="system")
     execution = {"user_id": "other", "organization_id": "other_org"}
     # Should not raise
     _enforce_pdf_access(user, execution)
 
+
 def test_rbac_admin_allow():
     user = TokenData(uid="admin", role=UserRole.ADMIN, organization_id="org1")
     execution = {"user_id": "u1", "organization_id": "org1"}
     _enforce_pdf_access(user, execution)
 
+
 def test_rbac_manager_own_org_allow():
     user = TokenData(uid="mgr", role=UserRole.MANAGER, organization_id="org1")
     execution = {"user_id": "u1", "organization_id": "org1"}
     _enforce_pdf_access(user, execution)
+
 
 def test_rbac_manager_other_org_deny():
     user = TokenData(uid="mgr", role=UserRole.MANAGER, organization_id="org1")
@@ -34,10 +38,12 @@ def test_rbac_manager_other_org_deny():
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc.value.details["error_code"] == "ORG_MISMATCH"
 
+
 def test_rbac_member_own_exec_allow():
     user = TokenData(uid="u1", role=UserRole.MEMBER, organization_id="org1")
     execution = {"user_id": "u1", "organization_id": "org1"}
     _enforce_pdf_access(user, execution)
+
 
 def test_rbac_member_other_exec_deny():
     user = TokenData(uid="u1", role=UserRole.MEMBER, organization_id="org1")
@@ -64,11 +70,12 @@ async def test_download_endpoint_file_exists():
     # Mock Storage
     mock_storage = MagicMock()
     mock_storage.exists = AsyncMock(return_value=True)
-    mock_storage.read = AsyncMock(return_value=b"pdf_content") # Fallback if instance check fails
+    mock_storage.read = AsyncMock(return_value=b"pdf_content")  # Fallback if instance check fails
 
     # Simulate Local Storage behavior
     from backend.services.drivers.local_file_driver import LocalFileDriver
-    mock_storage.__class__ = LocalFileDriver
+
+    mock_storage.__class__ = LocalFileDriver  # type: ignore
     mock_storage.base_path = Path("/tmp")
 
     # Mock FileResponse to avoid os.stat failure
@@ -76,15 +83,12 @@ async def test_download_endpoint_file_exists():
         mock_file_response.return_value.status_code = 200
 
         resp = await download_execution_pdf(
-            execution_id="ex1",
-            repository=mock_repo,
-            current_user=mock_user,
-            arq_pool=AsyncMock(),
-            storage=mock_storage
+            execution_id="ex1", repository=mock_repo, current_user=mock_user, arq_pool=AsyncMock(), storage=mock_storage
         )
 
         # Should return the mock
         assert resp.status_code == 200
+
 
 @pytest.mark.asyncio
 async def test_download_endpoint_queues_job():
@@ -99,11 +103,7 @@ async def test_download_endpoint_queues_job():
     mock_storage.exists = AsyncMock(return_value=False)
 
     resp = await download_execution_pdf(
-        execution_id="ex1",
-        repository=mock_repo,
-        current_user=mock_user,
-        arq_pool=mock_pool,
-        storage=mock_storage
+        execution_id="ex1", repository=mock_repo, current_user=mock_user, arq_pool=mock_pool, storage=mock_storage
     )
 
     # Should be 202

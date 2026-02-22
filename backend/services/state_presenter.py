@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from backend.models.dtos.state_presentation import StatePresentation, SystemStatus
 from backend.exceptions import AppException, ErrorCodes
+from backend.models.dtos.state_presentation import StatePresentation, SystemStatus
 
 if TYPE_CHECKING:
     from backend.models.state import WorkflowState
@@ -27,7 +27,7 @@ class StatePresenter:
 
         Returns:
             StatePresentation: The strict DTO result.
-        
+
         Raises:
             AppException: If critical state data is missing (Fail Fast).
         """
@@ -40,7 +40,7 @@ class StatePresenter:
             raise AppException(
                 message="WorkflowState missing critical identity fields (execution_id/workflow_id).",
                 status_code=500,
-                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR}
+                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
             )
 
         # Determine DB Source Label
@@ -48,7 +48,7 @@ class StatePresenter:
 
         # 1. System Status & Safety
         system_status = SystemStatus(
-            execution_id=state.execution_id,
+            execution_id=str(state.execution_id),
             workflow_id=state.workflow_id,
             workflow_name=state.workflow_name or "Unknown Workflow",
             timestamp=state.start_time.isoformat() if state.start_time else None,
@@ -279,8 +279,4 @@ class StatePresenter:
         raw_steps = {k: v for k, v in raw_steps_dict.items() if v is not None}
 
         # Construct Final DTO
-        return StatePresentation(
-            System_Status=system_status,
-            Report=report,
-            Raw_Steps=raw_steps
-        )
+        return StatePresentation(System_Status=system_status, Report=report, Raw_Steps=raw_steps)

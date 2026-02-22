@@ -1,4 +1,3 @@
-from typing import Dict
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -70,14 +69,12 @@ class ModelSettings(BaseModel):
     @classmethod
     def validate_positive_int_optional(cls, v: int | None) -> int | None:
         if v is not None and v <= 0:
-             raise ValueError("Max tokens must be positive.")
+            raise ValueError("Max tokens must be positive.")
         return v
 
 
 class GlobalModelConfig(BaseModel):
     """Global configuration for model strategies."""
 
-    registry: Dict[str, Dict[str, ModelSettings]] = Field(
-        description="Nested map: Provider -> Strategy -> Settings."
-    )
+    registry: dict[str, dict[str, ModelSettings]] = Field(description="Nested map: Provider -> Strategy -> Settings.")
     model_config = ConfigDict(frozen=True, strict=True)

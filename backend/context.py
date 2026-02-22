@@ -1,6 +1,7 @@
 """Context management for Execution and Request IDs."""
 
 from contextvars import ContextVar
+
 from backend.exceptions import AppException, ErrorCodes
 
 # Global context variable for Execution ID (Workflow Runs)
@@ -20,7 +21,7 @@ def set_execution_context(execution_id: str):
         raise AppException(
             message="Cannot set empty execution context.",
             status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
         )
     execution_id_var.set(execution_id)
 
@@ -45,7 +46,7 @@ def set_request_context(request_id: str):
         raise AppException(
             message="Cannot set empty request context.",
             status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
         )
     request_id_var.set(request_id)
 

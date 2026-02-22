@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from backend.database.repository import AbstractWorkflowRepository
-from backend.exceptions import StepNotFoundError, WorkflowNotFoundError, AppException, ErrorCodes
+from backend.exceptions import AppException, ErrorCodes, StepNotFoundError, WorkflowNotFoundError
 from backend.services.agent_registry import AgentRegistry
 
 if TYPE_CHECKING:
@@ -83,7 +83,7 @@ class PromptBuilder:
             raise AppException(
                 message=f"Failed to construct prompt for step {step_id}.",
                 status_code=500,
-                details={"error_code": ErrorCodes.PROMPT_CONSTRUCTION_FAILED, "original_error": str(e)}
+                details={"error_code": ErrorCodes.PROMPT_CONSTRUCTION_FAILED, "original_error": str(e)},
             ) from e
 
     # --- HELPER METHODS ---

@@ -1,23 +1,22 @@
 """Reference management hooks for bibliography generation."""
 
+from __future__ import annotations
+
 import json
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import Any
 
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain import BibliographyItem, BibliographyResult
 from backend.models.domain.inputs import WorkflowInputs
+from backend.models.state import WorkflowState
 from backend.services.reference_manager import ReferenceManager
 from backend.utils.pydantic_utils import inflate
-
-# TYPE_CHECKING block for circular dependencies if needed
-if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
-def generate_bibliography(text_dump: str, knowledge_base: Dict[str, Any]) -> List[BibliographyItem]:
+def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> list[BibliographyItem]:
     """HOOK: generate_bibliography.
 
     Scans the provided text dump for references using the ReferenceManager.
@@ -41,19 +40,21 @@ def generate_bibliography(text_dump: str, knowledge_base: Dict[str, Any]) -> Lis
         # Use advanced scan to find both direct citations and concept-linked citations
         # keys=citations, values=reference_data
         report = rm.advanced_scan(text_dump)
-        
+
         # CitationReport contains a relevance_map: { "Full Reference String": ["Reason 1", "Reason 2"] }
         # We need to convert this back to a list of BibliographyItems for the hook contract.
-        unique_refs: List[BibliographyItem] = []
+        unique_refs: list[BibliographyItem] = []
         for full_text, reasons in report.relevance_map.items():
-            unique_refs.append(BibliographyItem(
-                # Generate a stable ID based on content since ReferenceManager doesn't persist IDs
-                source_id=f"ref_{abs(hash(full_text)) :x}", 
-                title=full_text,
-                snippet="; ".join(reasons),
-                url=None
-            ))
-        
+            unique_refs.append(
+                BibliographyItem(
+                    # Generate a stable ID based on content since ReferenceManager doesn't persist IDs
+                    source_id=f"ref_{abs(hash(full_text)):x}",
+                    title=full_text,
+                    snippet="; ".join(reasons),
+                    url=None,
+                )
+            )
+
         # Sort by title
         unique_refs.sort(key=lambda x: x.title or "")
 
@@ -66,28 +67,25 @@ def generate_bibliography(text_dump: str, knowledge_base: Dict[str, Any]) -> Lis
         error_code = ErrorCodes.CITATION_PARSING_FAILED
         logger.error(f"[ReferenceHook] {error_code.name}: Bibliography generation failed: {e}", exc_info=True)
         raise AppException(
-            message=f"Bibliography generation failed: {e}",
-            status_code=500,
-            details={"error_code": error_code}
+            message=f"Bibliography generation failed: {e}", status_code=500, details={"error_code": error_code}
         ) from e
 
 
 async def generate_bibliography_hook(state, repository: Any = None) -> "WorkflowState":
     """WorkflowState wrapper for generate_bibliography.
-    
+
     Now Async to support repository loading if KB is missing.
     """
     logger.debug("[ReferenceHook] Running generate_bibliography_hook...")
-    
+
     try:
-        # 1. Extract Text
         # 1. Extract Text
         text_dump = ""
         input_data = state.context_variables.get("inputs")
         inputs = inflate(input_data, WorkflowInputs)
-        
+
         if inputs:
-             for field in ["history_text", "product_text", "reflection_text"]:
+            for field in ["history_text", "product_text", "reflection_text"]:
                 text = getattr(inputs, field) or ""
                 text_dump += str(text) + "\n"
 
@@ -102,59 +100,59 @@ async def generate_bibliography_hook(state, repository: Any = None) -> "Workflow
 
         # 2. Get Knowledge Base
         knowledge_base = state.context_variables.get("knowledge_base")
-        
+
         # FALLBACK: If missing, try loading from Repository
         if knowledge_base is None:
             if repository:
                 logger.info("[ReferenceHook] Knowledge Base missing in context. Attempting to load from Repository...")
                 try:
                     # Async load
-                    items = await repository.get_knowledge_base_items()
-                    
-                    # Construct KB Structure (Same schema as CoachAgent)
-                    references = [i for i in items if i.get("type") == "reference" or "citation" in i]
-                    concepts = [i for i in items if i.get("type") == "concept" or "term" in i]
-                    
-                    knowledge_base = {
-                        "references": references,
-                        "concepts": concepts
-                    }
-                    logger.info(f"[ReferenceHook] Loaded {len(references)} refs and {len(concepts)} concepts from Repository.")
-                    
+                    # Async load specific collections
+                    references = await repository.get_references()
+                    concepts = await repository.get_concepts()
+
+                    knowledge_base = {"references": references, "concepts": concepts}
+                    logger.info(
+                        f"[ReferenceHook] Loaded {len(references)} refs and {len(concepts)} concepts from Repository."
+                    )
+
                 except Exception as e:
                     logger.error(f"[ReferenceHook] Failed to load KB from repository: {e}")
                     # Fallthrough to error raise
             else:
-                 logger.warning("[ReferenceHook] No repository provided. Cannot fallback load KB.")
+                logger.warning("[ReferenceHook] No repository provided. Cannot fallback load KB.")
 
         if knowledge_base is None:
-             # FAIL FAST: Knowledge Base is a critical dependency for citation generation.
-             # We do not fallback to empty, because that hides upstream logic errors (like CoachAgent failure).
-             error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
-             
-             # 4. Log with STRUCTURED FORMAT (Per Part 3.3)
-             logger.error(f"[ReferenceHook] {error_code.name}: Knowledge Base missing in context and repository load failed.", exc_info=True)
-             
-             raise AppException(
-                 message="Knowledge Base missing in ReferenceHook context.",
-                 status_code=500,
-                 details={"error_code": error_code}
-             )
+            # FAIL FAST: Knowledge Base is a critical dependency for citation generation.
+            # We do not fallback to empty, because that hides upstream logic errors (like CoachAgent failure).
+            error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
+
+            # 4. Log with STRUCTURED FORMAT (Per Part 3.3)
+            logger.error(
+                f"[ReferenceHook] {error_code.name}: Knowledge Base missing in context and repository load failed.",
+                exc_info=True,
+            )
+
+            raise AppException(
+                message="Knowledge Base missing in ReferenceHook context.",
+                status_code=500,
+                details={"error_code": error_code},
+            )
 
         # 3. Generate References
         # This might raise REFERENCES_GENERATION_FAILED (AppException)
-        references: List[BibliographyItem] = generate_bibliography(text_dump, knowledge_base)
+        generated_references: list[BibliographyItem] = generate_bibliography(text_dump, knowledge_base)
 
         # 4. Map to Domain Models
         # STRICT TYPING: references is already List[BibliographyItem]
-        items = references
+        items = generated_references
         result = BibliographyResult(references=items)
 
         # 5. Update State
         new_context = state.context_variables.copy()
         new_context["bibliography_result"] = result
-        new_context["bibliography"] = [r.title for r in references] # Legacy list of strings
-        
+        new_context["bibliography"] = [r.title for r in generated_references]  # Legacy list of strings
+
         # OPTIONAL: Inject KB back into context to save future lookups?
         if "knowledge_base" not in new_context:
             new_context["knowledge_base"] = knowledge_base
@@ -170,7 +168,5 @@ async def generate_bibliography_hook(state, repository: Any = None) -> "Workflow
         error_code = ErrorCodes.HOOK_EXECUTION_FAILED
         logger.error(f"[ReferenceHook] {error_code.name}: Hook execution failed: {e}", exc_info=True)
         raise AppException(
-            message=f"Bibliography hook failed: {e}",
-            status_code=500,
-            details={"error_code": error_code}
+            message=f"Bibliography hook failed: {e}", status_code=500, details={"error_code": error_code}
         ) from e

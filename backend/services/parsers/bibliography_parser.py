@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import Dict, List, Optional
 
 from backend.exceptions import AppException, ErrorCodes
 
@@ -9,18 +8,18 @@ logger = logging.getLogger(__name__)
 
 class BibliographyParser:
     """Parses text to identify bibliography sections and extract references.
-    
+
     Supports multilingual detection (English, Finnish).
     Adheres to RFC 7807 (via AppException) and Fail Fast principles.
     """
 
     # Compiled regex patterns for performance and validation
-    BIBLIOGRAPHY_HEADERS: List[str] = [
-        r"^references\s*$",       # EN
-        r"^bibliography\s*$",     # EN
-        r"^lähdeluettelo\s*$",    # FI
-        r"^kirjallisuutta\s*$",   # FI
-        r"^viitteet\s*$",         # FI
+    BIBLIOGRAPHY_HEADERS: list[str] = [
+        r"^references\s*$",  # EN
+        r"^bibliography\s*$",  # EN
+        r"^lähdeluettelo\s*$",  # FI
+        r"^kirjallisuutta\s*$",  # FI
+        r"^viitteet\s*$",  # FI
     ]
 
     # Regex for citation keys: [1], [12], (1)
@@ -32,13 +31,13 @@ class BibliographyParser:
             self._header_patterns = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in self.BIBLIOGRAPHY_HEADERS]
         except re.error as e:
             # Fail Fast check: Ensure patterns are valid regex during initialization
-             raise AppException(
+            raise AppException(
                 message=f"Invalid regex pattern in configuration: {e}",
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             )
 
-    def detect_bibliography(self, text: str) -> Optional[str]:
+    def detect_bibliography(self, text: str) -> str | None:
         """Finds the start of the bibliography section.
 
         Args:
@@ -46,15 +45,15 @@ class BibliographyParser:
 
         Returns:
             The text content starting from the bibliography header, or None if not found.
-            
+
         Raises:
             AppException: If text is empty (Fail Fast).
         """
         if not text:
-             return None
+            return None
 
         lines = text.split("\n")
-        
+
         # Performance optimization: Check from end of file upwards first?
         # Or stick to linear scan but with restrictions.
         # Original logic had a heuristic: last 50% or small doc.
@@ -65,7 +64,7 @@ class BibliographyParser:
             line_stripped = line.strip()
             if not line_stripped:
                 continue
-                
+
             for pattern in self._header_patterns:
                 if pattern.match(line_stripped):
                     # Heuristic: Bibliography usually appears near the end (last 30%)
@@ -82,7 +81,7 @@ class BibliographyParser:
 
         return None
 
-    def parse_references(self, text: str) -> Dict[str, str]:
+    def parse_references(self, text: str) -> dict[str, str]:
         """Extracts references from a bibliography text block.
 
         Args:
@@ -90,18 +89,18 @@ class BibliographyParser:
 
         Returns:
             Dictionary mapping citation keys (e.g., '1') to the full reference text.
-            
+
         Raises:
             AppException: If parsing logic fails critically (unexpected state).
         """
         if not text:
             # Empty input -> Empty output is valid domain behavior, not necessarily an error,
-            # unless we EXPECT a bibliography. 
+            # unless we EXPECT a bibliography.
             # Given this is a parser utility, empty input returning empty dict is safe.
             return {}
 
-        references: Dict[str, str] = {}
-        
+        references: dict[str, str] = {}
+
         try:
             bibliography_text = self.detect_bibliography(text)
 
@@ -109,13 +108,13 @@ class BibliographyParser:
                 logger.warning("No bibliography section detected in text.")
                 raise AppException(
                     message="Bibliography section not found in document.",
-                    status_code=400, # or 422? 400 seems appropriate for "invalid content structure"
-                    details={"error_code": ErrorCodes.PARSING_FAILED}
+                    status_code=400,  # or 422? 400 seems appropriate for "invalid content structure"
+                    details={"error_code": ErrorCodes.PARSING_FAILED},
                 )
 
             lines = bibliography_text.split("\n")
-            current_key: Optional[str] = None
-            current_ref: List[str] = []
+            current_key: str | None = None
+            current_ref: list[str] = []
 
             for line in lines:
                 line = line.strip()
@@ -131,7 +130,7 @@ class BibliographyParser:
 
                     # Start new reference
                     current_key = match.group(1)
-                    
+
                     # Remove the key from the text (optional, but keeps metadata clean)
                     # "[1] Author" -> "Author"
                     clean_line = line[match.end() :].strip()
@@ -151,5 +150,5 @@ class BibliographyParser:
             raise AppException(
                 message=f"Bibliography Parsing Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.PARSING_FAILED}
+                details={"error_code": ErrorCodes.PARSING_FAILED},
             ) from e

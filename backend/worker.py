@@ -49,13 +49,15 @@ async def execute_workflow_job(
     Returns:
         dict: The final workflow state.
     """
-    logger.info(f"[Job] Executing workflow: {workflow_id} (Execution ID: {execution_id}, Org: {organization_id}, User: {user_id})")
+    logger.info(
+        f"[Job] Executing workflow: {workflow_id} (Execution ID: {execution_id}, Org: {organization_id}, User: {user_id})"
+    )
 
     # LOGFIRE INTEGRATION: Bind execution_id to this trace context
     # This groups all subsequent logs (Agent, LLM, DB) under this execution_id.
     import logfire
-    with logfire.span("execute_workflow_job", tags={"execution_id": execution_id or "unknown"}):
 
+    with logfire.span("execute_workflow_job", tags={"execution_id": execution_id or "unknown"}):
         # Inject Organization ID into inputs (Blackboard State) if provided
         # This ensures that valid WorkflowState objects created from this dict will have organization_id populated.
         if organization_id and "organization_id" not in inputs:
@@ -108,20 +110,24 @@ async def execute_workflow_job(
 
             # --- TEMPORARY DEBUG DUMP (User Request) ---
             try:
-                debug_path = f"C:\\Users\\risto\\Downloads\\debug_output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                debug_path = (
+                    f"C:\\Users\\risto\\Downloads\\debug_output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                )
                 with open(debug_path, "w", encoding="utf-8") as f:
                     if hasattr(result, "model_dump_json"):
                         f.write(result.model_dump_json(indent=2))
                     else:
                         import json
+
                         # Ensure we handle datetime by using a default str converter if needed
                         # But standard json.dump might fail on datetime.
                         # Safe approach: use pydantic's adapter or just str() fallback?
                         # Actually, Engine returns a dict with datetime objects usually.
                         # Let's use a custom encoder or pydantic's TypeAdapter.
                         from pydantic import TypeAdapter
+
                         # We assume it matches WorkflowState structure generally
-                        f.write(TypeAdapter(Any).dump_json(result, indent=2).decode("utf-8"))
+                        f.write(TypeAdapter(dict).dump_json(result, indent=2).decode("utf-8"))
                 logger.info(f"[Job] Temporary Debug Dump saved to: {debug_path}")
             except Exception as dump_err:
                 logger.error(f"[Job] Failed to save debug dump: {dump_err}")
@@ -163,7 +169,7 @@ async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
     Args:
         ctx: Arq worker context.
         execution_id: The execution UUID.
-    
+
     Returns:
         str: Path to the generated file.
     """
@@ -227,10 +233,10 @@ async def startup(ctx: Any) -> None:
     logger.info("======================================================================")
 
     # 1. PRINT TO CONSOLE (Minimal)
-    print("===================================================")
-    print("  CQ WORKER (V2.9) STARTED")
-    print("  -> Log: backend_debug.log (CHECK FOR DETAILS)")
-    print("===================================================")
+    logger.info("===================================================")
+    logger.info("  CQ WORKER (V2.9) STARTED")
+    logger.info("  -> Log: backend_debug.log (CHECK FOR DETAILS)")
+    logger.info("===================================================")
 
     # 1. CRITICAL: Register Tasks
     # Import all task modules here to trigger the @TaskRegistry.register_task decorators.
@@ -240,7 +246,6 @@ async def startup(ctx: Any) -> None:
         import backend.tasks.retrieval  # noqa
         import backend.tasks.analysis  # noqa
         import backend.tasks.critique  # noqa
-
 
         # New V2.9 Tasks
         import backend.tasks.interaction  # noqa

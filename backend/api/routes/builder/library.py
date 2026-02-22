@@ -4,7 +4,6 @@ Handles component schemas, agent toolboxes, and system configuration data.
 """
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, status
 from pydantic import BaseModel
@@ -32,6 +31,7 @@ COMPONENT_REGISTRY: dict[str, type[BaseModel]] = {
 }
 
 # --- Endpoints ---
+
 
 @router.get(
     "/schema/{component_type}",
@@ -92,7 +92,12 @@ async def get_available_agents(engine: EngineDep) -> list[AgentMetadataDTO]:
         ) from e
 
 
-@router.get("/config/template", summary="Get Template", response_description="Empty workflow template.", response_model=WorkflowTemplate)
+@router.get(
+    "/config/template",
+    summary="Get Template",
+    response_description="Empty workflow template.",
+    response_model=WorkflowTemplate,
+)
 async def get_workflow_template() -> WorkflowTemplate:
     """Returns a valid empty workflow template."""
     return WorkflowTemplate(
@@ -100,7 +105,12 @@ async def get_workflow_template() -> WorkflowTemplate:
     )
 
 
-@router.get("/config/fusion-rules", summary="Get Fusion Rules", response_description="List of fusion rules.", response_model=list[FusionRuleDTO])
+@router.get(
+    "/config/fusion-rules",
+    summary="Get Fusion Rules",
+    response_description="List of fusion rules.",
+    response_model=list[FusionRuleDTO],
+)
 async def get_fusion_rules(repository: RepositoryDep) -> list[FusionRuleDTO]:
     """Returns validation rules for prompt fusion."""
     rules = []
@@ -118,7 +128,12 @@ async def get_fusion_rules(repository: RepositoryDep) -> list[FusionRuleDTO]:
     return rules
 
 
-@router.get("/config/prompt-types", summary="Get Prompt Types", response_description="List of allowed types.", response_model=list[str])
+@router.get(
+    "/config/prompt-types",
+    summary="Get Prompt Types",
+    response_description="List of allowed types.",
+    response_model=list[str],
+)
 async def get_prompt_types():
     """Returns list of component types that can be used as prompts."""
     return ["prompt", "mandate", "rule", "header", "instruction"]
@@ -152,8 +167,7 @@ async def get_seed_data(repository: RepositoryDep, current_user: CurrentUserDep)
         error_code = "SEED_DATA_RETRIEVAL_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
-            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code, "original_error": str(e)},
         ) from e
-
-

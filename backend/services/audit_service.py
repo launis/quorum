@@ -21,7 +21,7 @@ Schema:
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import AppException, ErrorCodes
@@ -45,9 +45,9 @@ class AuditService:
         self,
         actor_uid: str,
         action: str,
-        organization_id: Optional[str] = None,
-        target_uid: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        organization_id: str | None = None,
+        target_uid: str | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Records an audit event.
 
@@ -88,16 +88,16 @@ class AuditService:
             raise AppException(
                 message=f"Audit logging failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.SECURITY_DB_ERROR}
+                details={"error_code": ErrorCodes.SECURITY_DB_ERROR},
             ) from e
 
     async def get_logs(
         self,
-        organization_id: Optional[str] = None,
-        actor_uid: Optional[str] = None,
-        action: Optional[str] = None,
+        organization_id: str | None = None,
+        actor_uid: str | None = None,
+        action: str | None = None,
         limit: int = 100,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Retrieves audit logs.
 
         Args:
@@ -118,5 +118,5 @@ class AuditService:
             raise AppException(
                 message=f"Failed to retrieve audit logs: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.SECURITY_DB_ERROR}
+                details={"error_code": ErrorCodes.SECURITY_DB_ERROR},
             ) from e

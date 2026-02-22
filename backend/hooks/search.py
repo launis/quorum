@@ -1,10 +1,9 @@
 """Search hooks for executing external searches (e.g. Google)."""
 
 import logging
-from typing import List, cast
 
-from backend.exceptions import AppException, ErrorCodes, ConfigurationError
-from backend.hooks.search_client import VertexAISearchTool, SearchResultItem as ClientSearchResultItem
+from backend.exceptions import AppException, ErrorCodes
+from backend.hooks.search_client import VertexAISearchTool
 from backend.models.domain.analyst import AnalystOutput, SearchResult, SearchResultItem
 from backend.models.domain.inputs import WorkflowInputs
 from backend.models.state import WorkflowState
@@ -42,11 +41,11 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
         raise AppException(
             message="Search Hook received dict state. Strict Pydantic Enforcement Violation.",
             status_code=500,
-            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
         )
 
     # 1. Extract Analyst Output (Strict Type Check)
-    step_analyst_data = state.context_variables.get("step_analyst") # Keep for warning check
+    step_analyst_data = state.context_variables.get("step_analyst")  # Keep for warning check
     analyst_output = state.get_context("step_analyst", AnalystOutput)
 
     if not step_analyst_data:
@@ -58,25 +57,21 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
     # 2. STRICT INFLATION (Fail Fast)
     # inflate() handles validation errors by logging and returning None.
     # analyst_output already set via get_context
-    
+
     if not analyst_output:
         # If raw data exists but fails validation -> CRITICAL INTEGRITY ERROR
         error_code = ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
         msg = f"Invalid AnalystOutput data in context. Failed to inflate {type(step_analyst_data)}."
         logger.error(f"[SearchHook] {error_code}: {msg}")
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": error_code, "step": "step_search"}
-        )
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code, "step": "step_search"})
 
     # 3. Extract Queries
-    queries: List[str] = []
+    queries: list[str] = []
     if analyst_output.hypotheses:
         for hyp in analyst_output.hypotheses:
             if hyp.search_query and len(hyp.search_query.strip()) > 3:
                 queries.append(hyp.search_query)
-    
+
     if not queries:
         logger.debug("[SearchHook] No valid queries generated. Skipping search.")
         return state
@@ -89,11 +84,11 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
     input_data = state.context_variables.get("inputs")
     inputs = inflate(input_data, WorkflowInputs)
     lang_code = inputs.language if inputs else "en"
-    
+
     # 6. Execute Search (Vertex AI Grounding)
     try:
         logger.debug(f"[SearchHook] Executing {len(queries)} searches (Lang: {lang_code})...")
-        
+
         # tool.search raises ServiceUnavailableError or AppException on failure.
         client_results = tool.search(queries, limit=3, language=lang_code)
 
@@ -102,39 +97,29 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
             msg = "Search Tool returned dicts instead of Pydantic Models. Strict Pydantic Enforcement Violation."
             logger.error(f"[SearchHook] {error_code.name}: {msg}")
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": error_code}
-            )
+            raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
         # Convert Client Model -> Domain Model (Strict Mapping)
-        domain_items: List[SearchResultItem] = []
-        for r in client_results:
-            domain_items.append(
-                SearchResultItem(
-                    title=r.title,
-                    link=r.link,
-                    snippet=r.snippet
-                )
-            )
+        domain_items: list[SearchResultItem] = []
+        for c_res in client_results:
+            domain_items.append(SearchResultItem(title=c_res.title, link=c_res.link, snippet=c_res.snippet))
 
         search_result = SearchResult(results=domain_items)
 
         # 6.5 Update Analyst Output with newly found evidence
         # This resolves the warning: "step_analyst exists but 'rag_evidence' data is missing or empty"
         current_evidence = list(analyst_output.rag_evidence) if analyst_output.rag_evidence else []
-        for r in domain_items:
-             if r.snippet:
-                 current_evidence.append(f"[{r.title}] {r.snippet}")
-                 
+        for d_res in domain_items:
+            if d_res.snippet:
+                current_evidence.append(f"[{d_res.title}] {d_res.snippet}")
+
         updated_analyst = analyst_output.model_copy(update={"rag_evidence": current_evidence})
 
         # 7. Update State (Immutable)
         new_context = state.context_variables.copy()
         new_context["search_result"] = search_result
         new_context["step_analyst"] = updated_analyst
-        
+
         logger.info(f"[SearchHook] Search complete. Found {len(domain_items)} results. Added to rag_evidence.")
         return state.model_copy(update={"context_variables": new_context})
 
@@ -147,8 +132,4 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
         error_code = ErrorCodes.SEARCH_EXECUTION_FAILED
         msg = f"Unexpected error in Search Hook: {e}"
         logger.error(f"[SearchHook] {error_code.name}: {msg}", exc_info=True)
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": error_code}
-        ) from e
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code}) from e

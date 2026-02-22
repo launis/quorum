@@ -42,7 +42,6 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerOutput]):
         """
         return ProfilerDTO
 
-
     async def execute(
         self,
         input_data: ProfilerInput,
@@ -68,30 +67,32 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerOutput]):
         # Strict Input Validation already handled by BaseAgent (INPUT_SCHEMA).
         # Double check mandatory string content.
         if not input_data.history_text or not input_data.history_text.strip():
-             error_msg = "Mandatory input 'history_text' is empty. Assessment aborted."
-             logger.error(f"[ProfilerAgent] {error_msg}")
-             raise AgentExecutionError(
-                 detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                 original_error=ValueError(error_msg),
-                 agent_name="ProfilerAgent"
-             )
+            error_msg = "Mandatory input 'history_text' is empty. Assessment aborted."
+            logger.error(f"[ProfilerAgent] {error_msg}")
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                original_error=ValueError(error_msg),
+                agent_name="ProfilerAgent",
+            )
 
         # 1. VALIDATION (Fail Fast)
         hook_metrics = None
         if input_data.profiler_metrics:
-             hook_metrics = input_data.profiler_metrics
-             logger.info(f"[ProfilerAgent] Metrics found in input model.")
+            hook_metrics = input_data.profiler_metrics
+            logger.info("[ProfilerAgent] Metrics found in input model.")
 
-             # FAIL FAST: Output Control relies on 'control_ratio'
-             if "control_ratio" not in hook_metrics:
-                  logger.warning("[ProfilerAgent] 'control_ratio' missing in hook_metrics. Output Control may default to unsafe.")
+            # FAIL FAST: Output Control relies on 'control_ratio'
+            if "control_ratio" not in hook_metrics:
+                logger.warning(
+                    "[ProfilerAgent] 'control_ratio' missing in hook_metrics. Output Control may default to unsafe."
+                )
 
-             # Force clamp logic for dict
-             if "control_ratio" in hook_metrics:
-                 val = hook_metrics["control_ratio"]
-                 if isinstance(val, (int, float)) and val > 1.0:
-                     logger.warning(f"[ProfilerAgent] Anomaly detected: control_ratio {val} > 1.0. Clamping to 1.0.")
-                     hook_metrics["control_ratio"] = 1.0
+            # Force clamp logic for dict
+            if "control_ratio" in hook_metrics:
+                val = hook_metrics["control_ratio"]
+                if isinstance(val, (int, float)) and val > 1.0:
+                    logger.warning(f"[ProfilerAgent] Anomaly detected: control_ratio {val} > 1.0. Clamping to 1.0.")
+                    hook_metrics["control_ratio"] = 1.0
 
         # 2. EXECUTION (LLM)
         try:
@@ -99,41 +100,38 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerOutput]):
                 input_data=input_data,
                 execution_context=execution_context,
                 system_instruction=system_instruction,
-                **kwargs
+                **kwargs,
             )
         except Exception as e:
             # Re-raise AppExceptions/AgentExecutionErrors as is
             from backend.exceptions import AppException
+
             if isinstance(e, AppException):
                 raise e
 
             # Re-raise unexpected execution errors with context
             raise AgentExecutionError(
-                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                original_error=e,
-                agent_name="ProfilerAgent"
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name="ProfilerAgent"
             ) from e
 
         # 3. MERGING
         try:
-             # MERGE HOOK METRICS (Linguistic) with LLM METRICS (Psychometric)
-             if hook_metrics:
-                 # Handle Pydantic Model (Frozen or not)
-                 # We use model_copy to safely update even if frozen
-                 current_metrics = result.metrics or {}
-                 merged_metrics = {**current_metrics, **hook_metrics}
-                 result = result.model_copy(update={"metrics": merged_metrics})
+            # MERGE HOOK METRICS (Linguistic) with LLM METRICS (Psychometric)
+            if hook_metrics:
+                # Handle Pydantic Model (Frozen or not)
+                # We use model_copy to safely update even if frozen
+                current_metrics = result.metrics or {}
+                merged_metrics = {**current_metrics, **hook_metrics}
+                result = result.model_copy(update={"metrics": merged_metrics})
 
-             return result
+            return result
 
         except Exception as e:
             if isinstance(e, AgentExecutionError):
                 raise e
             logger.critical(f"[ProfilerAgent] CRASHED during merging: {e}", exc_info=True)
             raise AgentExecutionError(
-                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                original_error=e,
-                agent_name="ProfilerAgent"
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name="ProfilerAgent"
             ) from e
 
     # _update_state removed. Logic for metrics injection should be in a hook or pre-processing.

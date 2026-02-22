@@ -12,10 +12,9 @@ def register_interaction_tasks():
     logger.info("Registering interaction tasks...")
 
     TaskRegistry.register_agent(
-        task_keys=["interaction"],
-        agent_cls=InteractionAnalystAgent,
-        output_model=InteractionAnalysis
+        task_keys=["interaction"], agent_cls=InteractionAnalystAgent, output_model=InteractionAnalysis
     )
+
 
 # Execute registration on import
 register_interaction_tasks()

@@ -1,14 +1,13 @@
 """Archival hooks for retrieving system precedents."""
 
 import logging
-from typing import Any, List, Optional
 from datetime import datetime, timezone
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import AppException, ErrorCodes
+from backend.models.domain.judge import JudgeOutput
 from backend.models.state import WorkflowState
 from backend.utils.pydantic_utils import inflate
-from backend.models.domain.judge import JudgeOutput
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +38,7 @@ async def retrieve_precedent(
         raise AppException(
             message="Archival Hook received dict state. Strict Pydantic Enforcement Violation.",
             status_code=500,
-            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
         )
 
     if not repository:
@@ -55,14 +54,10 @@ async def retrieve_precedent(
 
         # STRICT Enforce: Repository must return List[ExecutionRecord] objects, NOT dicts.
         if all_executions and isinstance(all_executions[0], dict):
-             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
-             msg = "Repository returned dicts instead of Pydantic Models. Strict Pydantic Enforcement Violation."
-             logger.error(f"[ArchivalHook] {error_code.name}: {msg}")
-             raise AppException(
-                 message=msg,
-                 status_code=500,
-                 details={"error_code": error_code}
-             )
+            error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
+            msg = "Repository returned dicts instead of Pydantic Models. Strict Pydantic Enforcement Violation."
+            logger.error(f"[ArchivalHook] {error_code.name}: {msg}")
+            raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
         # 2. Query Completed Executions (Memory Filter)
         # Optimization: In a real DB, this should be a filtered query
@@ -71,17 +66,17 @@ async def retrieve_precedent(
 
         # 3. Filter and Format
         precedents = []
-        
+
         # FAIL FAST: Strict Sort (All completed executions must have a completed_at timestamp)
         for res in results:
-             if not res.completed_at:
-                 # Should we fail execution if archived data is bad? 
-                 # Maybe logs warning but skip. Mandate says Fail Fast.
-                 # But past data shouldn't crash current run unless critical.
-                 # Let's skip with warning to preserve robustness against legacy data.
-                 logger.warning(f"Execution {res.id} is 'completed' but missing 'completed_at'. Skipping.")
-                 continue
-        
+            if not res.completed_at:
+                # Should we fail execution if archived data is bad?
+                # Maybe logs warning but skip. Mandate says Fail Fast.
+                # But past data shouldn't crash current run unless critical.
+                # Let's skip with warning to preserve robustness against legacy data.
+                logger.warning(f"Execution {res.id} is 'completed' but missing 'completed_at'. Skipping.")
+                continue
+
         # Sort by completed_at desc (renamed from end_time in V2 domain)
         # Filter out None completed_at safely (though loop above caught most)
         results = [r for r in results if r.completed_at]
@@ -91,60 +86,66 @@ async def retrieve_precedent(
         for res in recent_results:
             # Check if it has judge output
             # ExecutionRecord -> results (WorkflowState) -> execution_trace (List[TraceEvent])
-            
+
             # FAIL FAST: Strict Type Enforcement
             wf_state = res.results
             if isinstance(wf_state, dict):
-                 # Attempt to strict inflate if it's a dict (e.g. from JSON serialization in DB)
-                 wf_state = inflate(wf_state, WorkflowState)
-            
+                # Attempt to strict inflate if it's a dict (e.g. from JSON serialization in DB)
+                wf_state = inflate(wf_state, WorkflowState)
+
             if not isinstance(wf_state, WorkflowState):
                 # If it's still not a WorkflowState, we have invalid data structure for a completed execution
                 logger.warning(f"Execution {res.id} results is not a valid WorkflowState. Skipping.")
                 continue
-            
+
             # Find ALL Judge outputs in trace (Generic Detection)
             judge_outputs = {}
-            
+
             # TraceEvents are needing access. Check if WorkflowState has trace?
             # WorkflowState definition: trace_events: List[TraceEvent] = ...
             trace_events = wf_state.execution_trace or []
 
             for event in trace_events:
-                 if event.event_type == "output" and "judge" in event.step_name:
-                     # Attempt strict inflation to see if it's a JudgeOutput
-                     # We don't care about the step name, only the data schema.
-                     try:
-                         judge_candidate = inflate(event.content, JudgeOutput)
-                         if judge_candidate:
-                             # Use step_name as label (e.g. "step_judge" -> "Standard", "step_judge_cognitive" -> "Cognitive")
-                             # Clean up label for UI
-                             label = event.step_name.replace("step_judge_", "").replace("step_judge", "Standard").replace("_", " ").title()
-                             if label == "Standard": label = "Standard" # Keep simple
-                             
-                             judge_outputs[label] = judge_candidate
-                     except:
-                         # Not a JudgeOutput, ignore
-                         continue
+                if event.event_type == "output" and "judge" in event.step_name:
+                    # Attempt strict inflation to see if it's a JudgeOutput
+                    # We don't care about the step name, only the data schema.
+                    try:
+                        judge_candidate = inflate(event.content, JudgeOutput)
+                        if judge_candidate:
+                            # Use step_name as label (e.g. "step_judge" -> "Standard", "step_judge_cognitive" -> "Cognitive")
+                            # Clean up label for UI
+                            label = (
+                                event.step_name.replace("step_judge_", "")
+                                .replace("step_judge", "Standard")
+                                .replace("_", " ")
+                                .title()
+                            )
+                            if label == "Standard":
+                                label = "Standard"  # Keep simple
+
+                            judge_outputs[label] = judge_candidate
+                    except:
+                        # Not a JudgeOutput, ignore
+                        continue
 
             if judge_outputs:
                 score_parts = []
                 verdict_parts = []
-                
+
                 for label, judge_model in judge_outputs.items():
                     avg = judge_model.score_card.total_score
                     score_parts.append(f"{label}: {avg:.2f}")
                     verdict_parts.append(f"{label}: {judge_model.score_card.verdict[:50]}...")
-                
+
                 score_summary = " | ".join(score_parts)
                 verdict_text = " || ".join(verdict_parts)
 
                 precedents.append(
                     {
                         "id": res.id,
-                        "date": res.completed_at.isoformat(),
+                        "date": res.completed_at.isoformat() if res.completed_at else "",
                         "scores": score_summary,
-                        "verdict": verdict_text[:150], # Truncate
+                        "verdict": verdict_text[:150],  # Truncate
                     }
                 )
 

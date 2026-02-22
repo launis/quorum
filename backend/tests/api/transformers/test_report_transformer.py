@@ -1,14 +1,16 @@
 from backend.api.transformers.report_core import ReportTransformer
-from backend.models.view import ReportView, SectionType
+from backend.models.domain.execution import ExecutionRecord
 from backend.models.view import (
     ArchivistDisplay,
     CausalDisplay,
     DriverProfileDisplay,
     LogicAnalysisDisplay,
     ProfilerDisplay,
+    ReportView,
+    SectionType,
     StressTestDisplay,
 )
-from backend.models.domain.execution import ExecutionRecord
+
 
 def test_report_transformer_process_all_stages():
     """Verify ReportTransformer handles a full workflow execution correctly."""
@@ -25,7 +27,7 @@ def test_report_transformer_process_all_stages():
                         "conclusion": "Conclusion",
                         "confidence_score": 0.9,
                         "precedents": "Prec",
-                        "knowledge_items": []
+                        "knowledge_items": [],
                     }
                 },
                 # Logic
@@ -35,15 +37,15 @@ def test_report_transformer_process_all_stages():
                             "strategic_depth": "STRAT_HIGH",
                             "strategic_score": 3.5,
                             "bloom_level": "BLOOM_EVALUATING",
-                            "bloom_score": 5.8
+                            "bloom_score": 5.8,
                         },
                         "toulmin_score": 5.0,
                         "toulmin_analysis": [{"id": "T1", "claim": "C1", "data": "D1", "warrant": "W1"}],
-                        "walton_scheme": {"identified_scheme": "Expert Opinion", "critical_questions": ["Q1"]}
+                        "walton_scheme": {"identified_scheme": "Expert Opinion", "critical_questions": ["Q1"]},
                     },
                     "thought_process": "Thinking...",
                     "conclusion": "Conclusion",
-                    "confidence_score": 0.9
+                    "confidence_score": 0.9,
                 },
                 # Stress
                 "step_falsifier": {
@@ -52,19 +54,13 @@ def test_report_transformer_process_all_stages():
                             "fidelity_score": "FIDELITY_HIGH",
                             "fidelity_numeric": 3.0,
                             "justification": "Solid",
-                            "post_hoc_rationalization": False
+                            "post_hoc_rationalization": False,
                         },
-                        "stress_test_findings": [
-                            {
-                                "question": "Q1",
-                                "evidence_held": True,
-                                "observation": "Obs1"
-                            }
-                        ]
+                        "stress_test_findings": [{"question": "Q1", "evidence_held": True, "observation": "Obs1"}],
                     },
                     "thought_process": "Thinking...",
                     "conclusion": "Conclusion",
-                    "confidence_score": 0.9
+                    "confidence_score": 0.9,
                 },
                 # Causal
                 "step_causal": {
@@ -79,15 +75,15 @@ def test_report_transformer_process_all_stages():
                             "simulated_scenario": "S1",
                             "plausibility_score": "PLAUS_PLAUSIBLE",
                             "plausibility_numeric": 2.0,
-                            "simulation_result": "SimResult"
+                            "simulation_result": "SimResult",
                         },
                         "plausibility_check": {"score": 2.5},
                         "observation": "Obs1",
-                        "hypothesis": "Hyp1"
+                        "hypothesis": "Hyp1",
                     },
                     "thought_process": "Thinking...",
                     "conclusion": "Conclusion",
-                    "confidence_score": 0.9
+                    "confidence_score": 0.9,
                 },
                 # Profiler
                 "step_profiler": {
@@ -99,14 +95,14 @@ def test_report_transformer_process_all_stages():
                             "lexical_diversity": 0.5,
                             "capitalization_ratio": 0.1,
                             "automation_bias": 0.1,
-                            "say_do_gap": 0.9
+                            "say_do_gap": 0.9,
                         },
                         "author_intent": "Info",
                         "emotional_tone": "Neutral",
                         "cognitive_biases": ["Bias1"],
                         "thought_process": "Thinking...",
                         "conclusion": "Conclusion",
-                        "confidence_score": 0.9
+                        "confidence_score": 0.9,
                     }
                 },
                 # Driver
@@ -117,28 +113,28 @@ def test_report_transformer_process_all_stages():
                         "improvement_suggestions": ["Direct"],
                         "thought_process": "Thinking...",
                         "conclusion": "Conclusion",
-                        "confidence_score": 0.9
+                        "confidence_score": 0.9,
                     }
                 },
                 # Archivist
                 "step_archivist": {
-                     "archivist_data": {
-                         "compliance_score": 9.5,
-                         "compliance_analysis": "Aligned",
-                         "description": "Good",
-                         "relevant_cases": [],
-                         "stare_decisis_adherence": True,
-                         "thought_process": "Thinking...",
-                         "conclusion": "Conclusion",
-                         "confidence_score": 0.9,
-                         "consistency_analysis": "Consistent"
-                     }
-                }
+                    "archivist_data": {
+                        "compliance_score": 9.5,
+                        "compliance_analysis": "Aligned",
+                        "description": "Good",
+                        "relevant_cases": [],
+                        "stare_decisis_adherence": True,
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                        "consistency_analysis": "Consistent",
+                    }
+                },
             }
-        }
+        },
     }
 
-    record = ExecutionRecord(**mock_execution)
+    record = ExecutionRecord.model_validate(mock_execution)
     transformer = ReportTransformer()
     report = transformer.transform(record)
 
@@ -165,4 +161,3 @@ def test_report_transformer_process_all_stages():
 
     assert SectionType.ARCHIVIST_CHECK in sec_types
     assert isinstance(sec_types[SectionType.ARCHIVIST_CHECK], ArchivistDisplay)
-

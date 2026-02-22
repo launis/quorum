@@ -1,3 +1,0 @@
---- TEST START: C:\src\quorum\backend\scripts\test_fail_fast.py ---
-Added to sys.path: C:\src\quorum
-Imports successful.

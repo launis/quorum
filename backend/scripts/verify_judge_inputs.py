@@ -1,4 +1,3 @@
-
 import json
 from pathlib import Path
 
@@ -25,8 +24,8 @@ def verify_judge_inputs():
     elif isinstance(workflows, list):
         workflow_list = workflows
 
-
     with open("audit_report.txt", "w", encoding="utf-8") as out:
+
         def log(msg):
             print(msg)
             out.write(msg + "\n")
@@ -60,16 +59,21 @@ def verify_judge_inputs():
 
                     # Check 2: hardcoded expectation
                     known_critics = [
-                       "step_profiler", "step_logician", "step_falsifier",
-                       "step_causal", "step_detector", "step_overseer",
-                       "step_archivist", "step_panel"
+                        "step_profiler",
+                        "step_logician",
+                        "step_falsifier",
+                        "step_causal",
+                        "step_detector",
+                        "step_overseer",
+                        "step_archivist",
+                        "step_panel",
                     ]
 
                     for critic in known_critics:
                         if critic in workflow_step_ids:
                             if critic not in inputs:
-                                 if f"{critic} (from monitored_steps)" not in missing:
-                                     missing.append(f"{critic} (available in workflow but missing in inputs)")
+                                if f"{critic} (from monitored_steps)" not in missing:
+                                    missing.append(f"{critic} (available in workflow but missing in inputs)")
 
                     if missing:
                         log(f"  [FAIL] Step '{step_id}' missing inputs: {missing}")
@@ -81,6 +85,7 @@ def verify_judge_inputs():
             log("\nSUCCESS: All Judge inputs are correctly configured across all workflows.")
         else:
             log("\nFAILURE: Some workflows have missing Judge inputs.")
+
 
 if __name__ == "__main__":
     verify_judge_inputs()

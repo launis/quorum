@@ -79,20 +79,20 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
         # But BaseAgent passes input_data.model_dump() to provider? No, it uses input_data as is.
         # If InputT is passed to LLM...
         # We should use prepare_context to return additional text.
-        
+
         # For now, let's keep the logic but adapt to Read-Only input_data.
         # We cannot do `input_data["rag_context"] = ...`
-        
+
         if execution_context:
             step_context = execution_context.get("step_context")
             if step_context:
-                 # ... extraction logic ...
-                 pass 
-                 # We can't easily inject into frozen model. 
-                 # We'll assume the System Prompt or prepare_context handles it.
-                 # Or we pass it in kwargs? 
-                 # Let's trust prepare_context to handle dynamic context injection (which BaseAgent does).
-        
+                # ... extraction logic ...
+                pass
+                # We can't easily inject into frozen model.
+                # We'll assume the System Prompt or prepare_context handles it.
+                # Or we pass it in kwargs?
+                # Let's trust prepare_context to handle dynamic context injection (which BaseAgent does).
+
         # FAIL FAST: Structural Validation
         # Strict Input Validation (Pydantic) handles types.
         # Length check:
@@ -136,15 +136,15 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
         """Lifecycle Hook: Post-Execution (Healing).
 
         Enforces sequential IDs for Hypotheses (PYTHON AUTHORITY).
-        
+
         PATTERN: Healing / Late Validation
         This hook receives the raw Dict from the LLM *before* strict Pydantic validation.
         This allows us to patch structural issues (like missing IDs) that would otherwise
         cause the validation to fail.
-        
+
         Args:
             response_data (Any): Raw Dict (usually) or Pydantic Model.
-            
+
         Returns:
             Any: Healed data ready for validation.
         """
@@ -176,10 +176,10 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
             else:
                 evidence = getattr(h, "evidence_found", False)
                 orig_id = getattr(h, "id", "")
-            
+
             # Tuple: (Has Evidence DESC, Original ID ASC)
             # False < True, so reverse boolean? Or use -1 for True?
-            # evidence is boolean. True=1, False=0. 
+            # evidence is boolean. True=1, False=0.
             # We want True first. So sort by (not evidence, orig_id)
             return (not evidence, orig_id)
 
@@ -187,18 +187,18 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
         hypotheses.sort(key=sort_key)
 
         updated_hypotheses: list[Any] = []
-        changes_made = True # Force update since we sorted in-place (or need to reflect order)
+        changes_made = True  # Force update since we sorted in-place (or need to reflect order)
 
         for idx, hyp in enumerate(hypotheses, 1):
-            new_id = f"HYP-{idx:03d}" # Zero-padded for clean sorting (HYP-001)
-            
+            new_id = f"HYP-{idx:03d}"  # Zero-padded for clean sorting (HYP-001)
+
             # Access ID
             current_id = None
             if isinstance(hyp, dict):
                 current_id = hyp.get("id")
             else:
                 current_id = hyp.id
-            
+
             if current_id != new_id:
                 # Update ID
                 if isinstance(hyp, dict):

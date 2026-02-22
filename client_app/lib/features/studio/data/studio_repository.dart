@@ -107,7 +107,7 @@ class StudioRepository {
   }
 
   Future<List<StudioComponentDef>> getComponents({String? type, List<String>? excludeTypes}) async {
-    _logger.info('REPO', 'Fetching components: type=$type, excludeTypes=$excludeTypes');
+    _logger.info('REPO', 'Fetching raw text components: type=$type, excludeTypes=$excludeTypes');
     try {
       final Map<String, dynamic> queryParams = {};
       if (type != null) {
@@ -141,9 +141,6 @@ class StudioRepository {
           data['name'] = data['id'] ?? 'Unnamed';
         }
 
-        // 2. Content is dynamic, no wrapping needed
-        // if (data['content'] is! Map) { ... } REMOVED
-
         try {
           parsed.add(StudioComponentDef.fromJson(data));
         } catch (e) {
@@ -156,12 +153,169 @@ class StudioRepository {
           print('Skipping invalid component ${data['id']}: $e');
         }
       }
-      _logger.info('REPO', 'Parsed components count: ${parsed.length}');
+      _logger.info('REPO', 'Parsed text components count: ${parsed.length}');
       return parsed;
     } catch (e) {
       final exception = e is Exception ? e : Exception(e.toString());
       _logger.error('REPO', 'getComponents failed: $e', exception);
       throw AppError.network(exception);
+    }
+  }
+
+  // --- Matrices API ---
+
+  Future<List<MatrixDef>> getMatrices() async {
+    try {
+      final response = await _api.get('/v1/config/matrices');
+      return (response.data as List).map((e) {
+        final json = Map<String, dynamic>.from(e as Map);
+        // Flatten backend DTO "content" to root for MatrixDef
+        final content = json['content'] as Map<String, dynamic>? ?? {};
+        final flattened = {
+           ...json,
+           'scale': content['scale'] ?? {'min': 1, 'max': 5},
+           'criteria': content['criteria'] ?? [],
+           if (content.containsKey('role_description')) 'role_description': content['role_description'],
+        };
+        return MatrixDef.fromJson(flattened);
+      }).toList();
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to fetch matrices: $e');
+    }
+  }
+
+  Future<MatrixDef> fetchMatrix(String id) async {
+    try {
+      final response = await _api.get('/v1/config/matrices/$id');
+      final json = response.data as Map<String, dynamic>;
+      final content = json['content'] as Map<String, dynamic>? ?? {};
+      final flattened = {
+         ...json,
+         'scale': content['scale'] ?? {'min': 1, 'max': 5},
+         'criteria': content['criteria'] ?? [],
+         if (content.containsKey('role_description')) 'role_description': content['role_description'],
+      };
+      return MatrixDef.fromJson(flattened);
+    } catch (e) {
+      throw AppError.network(e);
+    }
+  }
+
+  Future<void> saveMatrix(MatrixDef matrix) async {
+    try {
+      final rawJson = matrix.toJson();
+      
+      // Un-flatten: move MatrixDef specific fields back to 'content' for backend Strict DTO
+      final content = {
+         'scale': rawJson['scale'],
+         'criteria': rawJson['criteria'],
+         if (rawJson.containsKey('role_description')) 'role_description': rawJson['role_description'],
+      };
+
+      final payload = {
+         'id': rawJson['id'],
+         'name': rawJson['name'],
+         'description': rawJson['description'],
+         'type': 'evaluation_matrix',
+         'content': content,
+      };
+
+      if (matrix.id.isEmpty || matrix.id.startsWith('new_')) {
+        await _api.post('/v1/config/matrices', data: payload);
+      } else {
+        await _api.put(
+          '/v1/config/matrices/${matrix.id}',
+          data: payload,
+        );
+      }
+    } catch (e) {
+      throw AppError.server(e.toString());
+    }
+  }
+  
+  Future<void> deleteMatrix(String id) async {
+    try {
+      await _api.delete('/v1/config/matrices/$id');
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to delete matrix $id: $e');
+    }
+  }
+
+  // --- Agents API ---
+
+  Future<List<StudioComponentDef>> getAgents() async {
+    try {
+      final response = await _api.get('/v1/config/agents');
+      return (response.data as List)
+          .map((e) => StudioComponentDef.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to fetch agents: $e');
+    }
+  }
+
+  Future<void> saveAgent(StudioComponentDef agent) async {
+    try {
+      if (agent.id.isEmpty || agent.id.startsWith('new_')) {
+        await _api.post('/v1/config/agents', data: agent.toJson());
+      } else {
+        await _api.put(
+          '/v1/config/agents/${agent.id}',
+          data: agent.toJson(),
+        );
+      }
+    } catch (e) {
+      throw AppError.server(e.toString());
+    }
+  }
+
+  Future<void> deleteAgent(String id) async {
+    try {
+      await _api.delete('/v1/config/agents/$id');
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to delete agent $id: $e');
+    }
+  }
+
+  // --- Outputs API ---
+
+  Future<List<StudioComponentDef>> getOutputConfigs() async {
+    try {
+      final response = await _api.get('/v1/config/outputs');
+      return (response.data as List)
+          .map((e) => StudioComponentDef.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to fetch output configs: $e');
+    }
+  }
+
+  Future<void> saveOutputConfig(StudioComponentDef config) async {
+    try {
+      if (config.id.isEmpty || config.id.startsWith('new_')) {
+        await _api.post('/v1/config/outputs', data: config.toJson());
+      } else {
+        await _api.put(
+          '/v1/config/outputs/${config.id}',
+          data: config.toJson(),
+        );
+      }
+    } catch (e) {
+      throw AppError.server(e.toString());
+    }
+  }
+
+  Future<void> deleteOutputConfig(String id) async {
+    try {
+      await _api.delete('/v1/config/outputs/$id');
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to delete output config $id: $e');
     }
   }
 
@@ -210,59 +364,6 @@ class StudioRepository {
   Future<void> deleteDimension(String id) async {
     try {
       await _api.delete('/v1/config/ontology/dimensions/$id');
-    } catch (e) {
-      throw AppError.server(e.toString());
-    }
-  }
-
-  Future<MatrixDef> fetchMatrix(String id) async {
-    try {
-      // First get the component wrapper
-      final response = await _api.get('/v1/config/components/$id');
-      final compData = response.data as Map<String, dynamic>;
-
-      // Extract inner content and merge with top-level metadata if needed
-      // MatrixDef expects {id, name, description, scale, criteria...}
-      // content has {scale, criteria...}
-      // wrapper has {id, name, description...}
-
-      final content = compData['content'] as Map<String, dynamic>;
-
-      return MatrixDef(
-        id: compData['id'] as String,
-        name: compData['name'] as String,
-        description: (compData['description'] as String?) ?? '',
-        scale: Map<String, int>.from(
-          (content['scale'] as Map?) ?? {'min': 1, 'max': 5},
-        ),
-        roleDescription: content['role_description'] as String?,
-        criteria:
-            (content['criteria'] as List? ?? [])
-                .map((e) => MatrixCriterion.fromJson(e as Map<String, dynamic>))
-                .toList(),
-      );
-    } catch (e) {
-      throw AppError.network(e);
-    }
-  }
-
-  Future<void> saveMatrix(MatrixDef matrix) async {
-    try {
-      // Wrap it back into component structure
-      final contentMap = <String, dynamic>{
-        'scale': matrix.scale,
-        'role_description': matrix.roleDescription,
-        'criteria': matrix.criteria.map((e) => e.toJson()).toList(),
-      };
-
-      final component = StudioComponentDef(
-        id: matrix.id,
-        name: matrix.name,
-        type: 'evaluation_matrix',
-        description: matrix.description,
-        content: contentMap,
-      );
-      await saveComponent(component);
     } catch (e) {
       throw AppError.server(e.toString());
     }

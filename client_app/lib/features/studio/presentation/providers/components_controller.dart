@@ -8,13 +8,8 @@ part 'components_controller.g.dart';
 class ComponentsController extends _$ComponentsController {
   @override
   FutureOr<List<StudioComponentDef>> build() async {
-    return ref.watch(studioRepositoryProvider).getComponents(excludeTypes: [
-      'evaluation_matrix',
-      'system_config',
-      'agent',
-      'processor',
-      'output_config'
-    ]);
+    // The strict SSOT API now guarantees /components only returns text/rule configurations
+    return ref.watch(studioRepositoryProvider).getComponents();
   }
 
   Future<void> create(StudioComponentDef component) async {

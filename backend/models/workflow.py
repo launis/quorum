@@ -1,6 +1,7 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, AliasChoices
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+
 
 class WorkflowStep(BaseModel):
     """Represents a single step in a workflow execution.
@@ -40,18 +41,12 @@ class WorkflowStep(BaseModel):
         description="Optional static config for the task",
         json_schema_extra={"x-ui-label": "Configuration"},
     )
-    hoist_keys: list[str] = Field(
-        default_factory=list,
-        description="Defines which keys from the task's result should be promoted to the top-level execution state",
-        json_schema_extra={"x-ui-label": "Hoist Keys"},
-    )
-    metadata: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Arbitrary metadata for the step (e.g., 'agent_class')",
-        json_schema_extra={"x-ui-label": "Metadata"},
+    is_missing_registry: bool = Field(
+        default=False,
+        description="UI Helper: True if this step references a task_key not in the backend registry.",
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id", "task_key")
     @classmethod
@@ -59,10 +54,6 @@ class WorkflowStep(BaseModel):
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
-
-
-
-
 
 
 class ComponentScoringRule(BaseModel):
@@ -138,11 +129,7 @@ class WorkflowDefinition(BaseModel):
     steps: list[str] = Field(
         default_factory=list,
         description="Ordered list of step IDs to execute",
-        json_schema_extra={
-            "x-ui-widget": "reorderable-list",
-            "x-ui-group": "Steps",
-            "x-ui-label": "Steps"
-        },
+        json_schema_extra={"x-ui-widget": "reorderable-list", "x-ui-group": "Steps", "x-ui-label": "Steps"},
     )
     description: str = Field(
         ...,
@@ -158,19 +145,19 @@ class WorkflowDefinition(BaseModel):
         json_schema_extra={
             "x-ui-widget": "select",
             "enum": ["draft", "active", "deprecated", "archived"],
-            "x-ui-label": "Status"
-        }
+            "x-ui-label": "Status",
+        },
     )
     version: int = Field(1, description="Numeric version")
     is_public: bool = Field(
         False,
         description="If checked, visible to all tenants (System Only)",
-        json_schema_extra={"x-ui-label": "Publicly Available"}
+        json_schema_extra={"x-ui-label": "Publicly Available"},
     )
     organization_id: str = Field(
         ...,
         description="Organization ID this workflow belongs to (or 'system')",
-        json_schema_extra={"x-ui-label": "Organization ID"}
+        json_schema_extra={"x-ui-label": "Organization ID"},
     )
     scoring_logic: list[ScoringLogic] = Field(
         default_factory=list,

@@ -10,8 +10,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import CoachingPlan, CoachInput, CoachingPlanDTO
-from backend.models.domain.base import ReasoningTraceDTO
+from backend.models.domain import CoachingPlan, CoachingPlanDTO, CoachInput
 
 if TYPE_CHECKING:
     pass
@@ -28,7 +27,7 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
 
     state_field = "step_coach"
     REQUIRES_KEYS = ["step_judge"]
-    
+
     INPUT_SCHEMA = CoachInput
     OUTPUT_SCHEMA = CoachingPlan
     DTO_SCHEMA = CoachingPlanDTO
@@ -65,11 +64,11 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
 
         # 2. Enrichment (Bibliography)
         if not hasattr(self, "knowledge_base") or self.knowledge_base is None:
-             # If prepare_context failed or didn't run? (Should be caught in super)
-             logger.warning("[CoachAgent] Knowledge Base missing during enrichment. Bibliography will be empty.")
-             
-             # Early return (BaseAgent ensures it's CoachingPlan)
-             return result
+            # If prepare_context failed or didn't run? (Should be caught in super)
+            logger.warning("[CoachAgent] Knowledge Base missing during enrichment. Bibliography will be empty.")
+
+            # Early return (BaseAgent ensures it's CoachingPlan)
+            return result
 
         logger.info("[CoachAgent] Running post-execution enrichment (Bibliography)...")
 
@@ -78,8 +77,8 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
             # Combine relevant inputs and result for scanning
             # We know result is a BaseModel
             scan_target = {
-                "inputs": input_data.model_dump(), # Convert to dict
-                "result": result.model_dump()
+                "inputs": input_data.model_dump(),  # Convert to dict
+                "result": result.model_dump(),
             }
             text_dump = str(scan_target)
         except Exception as e:
@@ -94,36 +93,35 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
         # SCHEMA ADAPTER: CoachingPlan expects list[dict], but hook returns list[str].
         final_bib = []
         for ref_str in formatted_list:
-            final_bib.append({
-                "source_id": "ref_generated", # Placeholder or hash?
-                "title": ref_str,
-                "url": None,
-                "snippet": None
-            })
+            final_bib.append(
+                {
+                    "source_id": "ref_generated",  # Placeholder or hash?
+                    "title": ref_str,
+                    "url": None,
+                    "snippet": None,
+                }
+            )
 
         # 3. Update Result
         # Handle strict Pydantic Model return
         # Create a copy with updated bibliography
         if hasattr(result, "bibliography"):
-             # If mutable (unlikely for frozen model)
-             try:
+            # If mutable (unlikely for frozen model)
+            try:
                 result_dict = result.model_dump()
                 result_dict["bibliography"] = final_bib
                 final_result = type(result)(**result_dict)
-             except Exception:
+            except Exception:
                 final_result = result
         else:
-             final_result = result
+            final_result = result
 
         logger.info(f"[CoachAgent] Populated bibliography with {len(final_bib)} references.")
-        
+
         return final_result
 
     async def prepare_context(
-        self,
-        input_data: CoachInput,
-        execution_context: dict[str, Any] | None,
-        **kwargs: Any
+        self, input_data: CoachInput, execution_context: dict[str, Any] | None, **kwargs: Any
     ) -> str | None:
         """Lifecycle Hook: Pre-Execution with INTELLIGENT FILTERING.
 
@@ -151,13 +149,13 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
         judge_inputs = []
         # Convert Pydantic model to dict to iterate over all fields (including extras)
         input_dict = input_data.model_dump()
-        
+
         for key, value in input_dict.items():
-             if key.startswith("step_judge") and value:
-                 judge_inputs.append((key, value))
+            if key.startswith("step_judge") and value:
+                judge_inputs.append((key, value))
 
         if kwargs.get("verdict"):
-             judge_inputs.append(("kwargs_verdict", kwargs.get("verdict")))
+            judge_inputs.append(("kwargs_verdict", kwargs.get("verdict")))
 
         if not judge_inputs:
             # STRICT FAIL FAST: Coach requires a Verdict (step_judge) to function.
@@ -167,11 +165,7 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
                 "Cannot generate coaching plan without legal basis."
             )
             logger.error(f"{error_code}: {error_msg}")
-            raise AgentExecutionError(
-                detail=error_code,
-                original_error=ValueError(error_msg),
-                agent_name="CoachAgent"
-            )
+            raise AgentExecutionError(detail=error_code, original_error=ValueError(error_msg), agent_name="CoachAgent")
 
         if judge_inputs:
             for key, tuomio in judge_inputs:
@@ -180,49 +174,45 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
                     # If it came from input_data (CoachInput), it's either dict or Any.
                     content = str(tuomio)
                     if hasattr(tuomio, "model_dump_json"):
-                         content = tuomio.model_dump_json(indent=2)
+                        content = tuomio.model_dump_json(indent=2)
                     elif isinstance(tuomio, dict):
-                         import json
-                         content = json.dumps(tuomio, indent=2, default=str)
-                         
+                        import json
+
+                        content = json.dumps(tuomio, indent=2, default=str)
+
                     parts.append(f"### VERDICT (from {key}):\n{content}")
 
                     data = tuomio
                     if hasattr(tuomio, "model_dump"):
                         data = tuomio.model_dump()
-                    
+
                     if isinstance(data, dict):
                         # Check dimensions field (Standard)
                         dimensions = data.get("dimensions", [])
                         if dimensions:
-                             for dim in dimensions:
-                                 # Normalize
-                                 d_data = dim if isinstance(dim, dict) else dim.__dict__
-                                 score = d_data.get("score")
-                                 dim_id = d_data.get("dimension_id", "").lower()
-                                 if isinstance(score, (int, float)) and score < 3:
-                                     weak_areas.append(f"- [{key}] {dim_id}: Score {score} (Low)")
-                                     focus_keywords.add(dim_id)
-                                     # Add related keywords based on dimension
-                                     if "analy" in dim_id:
-                                         focus_keywords.update(["bias", "analy", "cognitive", "heuristic"])
-                                     elif "logi" in dim_id:
-                                         focus_keywords.update(["logic", "fallacy", "argument", "toulmin", "deduct"])
-                                     elif "falsi" in dim_id:
-                                         focus_keywords.update(["falsif", "popp", "scien", "test"])
+                            for dim in dimensions:
+                                # Normalize
+                                d_data = dim if isinstance(dim, dict) else dim.__dict__
+                                score = d_data.get("score")
+                                dim_id = d_data.get("dimension_id", "").lower()
+                                if isinstance(score, (int, float)) and score < 3:
+                                    weak_areas.append(f"- [{key}] {dim_id}: Score {score} (Low)")
+                                    focus_keywords.add(dim_id)
+                                    # Add related keywords based on dimension
+                                    if "analy" in dim_id:
+                                        focus_keywords.update(["bias", "analy", "cognitive", "heuristic"])
+                                    elif "logi" in dim_id:
+                                        focus_keywords.update(["logic", "fallacy", "argument", "toulmin", "deduct"])
+                                    elif "falsi" in dim_id:
+                                        focus_keywords.update(["falsif", "popp", "scien", "test"])
 
                 except Exception as e:
                     # FAIL FAST
                     error_code = ErrorCodes.AGENT_EXECUTION_CRITICAL
                     logger.error(
-                        f"[CoachAgent] {error_code}: Failed to analyze weak areas for {key}: {e}",
-                        exc_info=True
+                        f"[CoachAgent] {error_code}: Failed to analyze weak areas for {key}: {e}", exc_info=True
                     )
-                    raise AgentExecutionError(
-                        detail=error_code,
-                        original_error=e,
-                        agent_name="CoachAgent"
-                    ) from e
+                    raise AgentExecutionError(detail=error_code, original_error=e, agent_name="CoachAgent") from e
 
             if weak_areas:
                 parts.append("### IDENTIFIED WEAK AREAS (FOCUS FOR COACHING):")
@@ -240,78 +230,65 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
 
         # If no repository in kwargs, check execution_context?
         if not repository and execution_context:
-             # Some engines pass repository in execution_context
-             repository = execution_context.get("repository")
+            # Some engines pass repository in execution_context
+            repository = execution_context.get("repository")
 
         if not repository:
-             # FAIL FAST: Repository is critical for Coach functionality (Knowledge Base)
-             error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
-             msg = "Repository not injected. Coach Agent cannot load Knowledge Base."
-             logger.error(f"[CoachAgent] {error_code}: {msg}")
-             raise AgentExecutionError(
-                 detail=error_code,
-                 original_error=ValueError(msg),
-                 agent_name="CoachAgent"
-             )
+            # FAIL FAST: Repository is critical for Coach functionality (Knowledge Base)
+            error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
+            msg = "Repository not injected. Coach Agent cannot load Knowledge Base."
+            logger.error(f"[CoachAgent] {error_code}: {msg}")
+            raise AgentExecutionError(detail=error_code, original_error=ValueError(msg), agent_name="CoachAgent")
 
         # Load items from DB
         try:
-            items = await repository.get_knowledge_base_items()
-
-            # STRICT: ReferenceManager expects a Dict with 'references' and 'concepts' lists.
-            references = [i for i in items if i.get("type") == "reference" or "citation" in i]
-            concepts = [i for i in items if i.get("type") == "concept" or "term" in i]
+            # STRICT: Fetch specific collections directly
+            references = await repository.get_references()
+            concepts = await repository.get_concepts()
 
             # Store structured KB for ReferenceManager compatibility
-            self.knowledge_base = {
-                "references": references,
-                "concepts": concepts
-            }
-            
+            self.knowledge_base = {"references": references, "concepts": concepts}
+
             # ROOT CAUSE FIX: Inject into execution_context so global ReferenceHook can see it
             if execution_context is not None:
-                 execution_context["knowledge_base"] = self.knowledge_base
+                execution_context["knowledge_base"] = self.knowledge_base
 
             if not references and not concepts:
-                 logger.warning(
-                     "[CoachAgent] Knowledge Base is empty (no refs/concepts). Bibliography will be empty."
-                 )
+                logger.warning("[CoachAgent] Knowledge Base is empty (no refs/concepts). Bibliography will be empty.")
 
             # Simple format for Promopt Context using the structured data
             parts.append("### KNOWLEDGE BASE (TIETOPANKKI):")
 
             if references:
                 parts.append("\n**LÄHTEET (REFERENCES):**")
-                for ref in references[:20]: # Limit for context window
-                     parts.append(f"- {ref.get('short_citation', 'Ref')}: {ref.get('citation', '')[:200]}...")
+                for ref in references[:20]:  # Limit for context window
+                    parts.append(f"- {ref.get('short_citation', 'Ref')}: {ref.get('citation', '')[:200]}...")
 
             if concepts:
                 parts.append("\n**KÄSITTEET (CONCEPTS):**")
                 for con in concepts[:20]:
-                     parts.append(f"- {con.get('term', 'Term')}: {con.get('definition', '')[:200]}...")
+                    parts.append(f"- {con.get('term', 'Term')}: {con.get('definition', '')[:200]}...")
 
         except Exception as e:
-             error_code = ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED
-             logger.error(f"[CoachAgent] {error_code}: {e}", exc_info=True)
-             raise AgentExecutionError(
-                 detail=error_code,
-                 original_error=e,
-                 agent_name="CoachAgent"
-             ) from e
+            error_code = ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED
+            logger.error(f"[CoachAgent] {error_code}: {e}", exc_info=True)
+            raise AgentExecutionError(detail=error_code, original_error=e, agent_name="CoachAgent") from e
+
+        return "\n\n".join(parts) if parts else None
 
     def post_process(self, response_data: Any) -> Any:
         """Lifecycle Hook: Post-Execution (Healing & Python Authority).
-        
+
         Enforces:
         1. DEDUPLICATION: Removes duplicate bibliography items and actionable steps.
         2. FAIL FAST: Ensures actionable_steps is not empty.
         """
         # 1. Access Data
         is_dict = isinstance(response_data, dict)
-        
+
         actionable_steps = []
         bibliography = []
-        
+
         if is_dict:
             actionable_steps = response_data.get("actionable_steps", [])
             bibliography = response_data.get("bibliography", [])
@@ -321,15 +298,17 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
 
         # 2. FAIL FAST: Empty Steps (Coach MUST advise)
         if not actionable_steps:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
-                 original_error=ValueError("Coach returned empty 'actionable_steps'. Assistance failed."),
-                 agent_name="CoachAgent"
-             )
+            raise AgentExecutionError(
+                detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
+                original_error=ValueError("Coach returned empty 'actionable_steps'. Assistance failed."),
+                agent_name="CoachAgent",
+            )
 
         # 3. DEDUPLICATION AUTHORITY
-        logger.info(f"[CoachAgent] Deduplicating Steps ({len(actionable_steps)}) and Bibliography ({len(bibliography)})...")
-        
+        logger.info(
+            f"[CoachAgent] Deduplicating Steps ({len(actionable_steps)}) and Bibliography ({len(bibliography)})..."
+        )
+
         # Steps (Simple String Dedup)
         unique_steps = []
         seen_steps = set()
@@ -338,46 +317,45 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
             if step not in seen_steps:
                 unique_steps.append(step)
                 seen_steps.add(step)
-        
+
         # Bibliography (Dict/Object Dedup)
         unique_bib = []
         seen_bib = set()
-        
+
         for item in bibliography:
             # Hash by Title (or URL if robust)
             title = ""
             url = ""
-            
+
             if isinstance(item, dict):
                 title = item.get("title", "")
                 url = item.get("url", "")
             else:
                 title = getattr(item, "title", "")
                 url = getattr(item, "url", "")
-            
+
             # Key: Title + URL (Handle variants?)
             # Just Title is often enough for duplicate suppression
             key = (title, url)
-            
+
             if key not in seen_bib:
                 unique_bib.append(item)
                 seen_bib.add(key)
-        
+
         # 4. Apply Updates
         changes_necessary = (len(unique_steps) != len(actionable_steps)) or (len(unique_bib) != len(bibliography))
-        
+
         if changes_necessary:
-            logger.info(f"[CoachAgent] Dedup Complete: Steps {len(actionable_steps)}->{len(unique_steps)}, Bib {len(bibliography)}->{len(unique_bib)}")
-            
+            logger.info(
+                f"[CoachAgent] Dedup Complete: Steps {len(actionable_steps)}->{len(unique_steps)}, Bib {len(bibliography)}->{len(unique_bib)}"
+            )
+
             if is_dict:
                 response_data["actionable_steps"] = unique_steps
                 response_data["bibliography"] = unique_bib
                 return response_data
             else:
                 # Pydantic Copy
-                return response_data.model_copy(update={
-                    "actionable_steps": unique_steps,
-                    "bibliography": unique_bib
-                })
+                return response_data.model_copy(update={"actionable_steps": unique_steps, "bibliography": unique_bib})
 
         return response_data

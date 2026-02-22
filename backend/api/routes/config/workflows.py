@@ -1,25 +1,24 @@
 """API Router for Workflows and Steps."""
 
 import logging
-from typing import Annotated, Any
+from typing import Any
 
 from fastapi import APIRouter, status
-from pydantic import BaseModel, Field
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep
-from backend.services.localization import localize_schema
-from backend.services.validation_service import WorkflowValidator
-from backend.exceptions import ConflictError, ResourceNotFoundError, AppException
+from backend.exceptions import AppException, ConflictError, ResourceNotFoundError
 from backend.models.dtos.config import (
     StepDefinition,
     StepDeleteResponse,
-    WorkflowConfigDefinition,
+    ValidationReportResponse,
     WorkflowConfigCreate,
+    WorkflowConfigDefinition,
     WorkflowConfigUpdate,
     WorkflowDeleteResponse,
-    ValidationReportResponse
 )
+from backend.services.localization import localize_schema
+from backend.services.validation_service import WorkflowValidator
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +36,7 @@ def get_steps(db: DatabaseDep) -> list[StepDefinition]:
     except Exception as e:
         error_code = "STEP_LIST_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.post("/steps", summary="Create Step", response_description="Created ID.", response_model=StepDefinition)
@@ -49,54 +46,54 @@ def create_step(step: StepDefinition, db: DatabaseDep) -> StepDefinition:
         table = db.table("steps")
         if table.search(Query().id == step.id):
             raise ConflictError(message="Resource conflict", details={"error_code": "STEP_ID_EXISTS"})
-        
-        doc = step.model_dump(exclude={'component', 'execution_config'})
+
+        doc = step.model_dump(exclude={"component", "execution_config"})
         table.insert(doc)
         return step
     except Exception as e:
         if isinstance(e, ConflictError):
-             raise e
-        
+            raise e
+
         error_code = "STEP_CREATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
-@router.put("/steps/{step_id}", summary="Update Step", response_description="Update status.", response_model=StepDefinition)
+@router.put(
+    "/steps/{step_id}", summary="Update Step", response_description="Update status.", response_model=StepDefinition
+)
 def update_step(step_id: str, step: StepDefinition, db: DatabaseDep) -> StepDefinition:
     """Update a step configuration."""
     try:
         table = db.table("steps")
         if not table.search(Query().id == step_id):
             raise ResourceNotFoundError("Step", step_id, details={"error_code": "STEP_NOT_FOUND"})
-        
+
         # Prevent ID change collision
         if step.id != step_id and table.contains(Query().id == step.id):
-             raise ConflictError(message="New Step ID already exists", details={"id": step.id})
+            raise ConflictError(message="New Step ID already exists", details={"id": step.id})
 
-        doc = step.model_dump(exclude={'component', 'execution_config'})
-        
+        doc = step.model_dump(exclude={"component", "execution_config"})
+
         if step.id == step_id:
             table.update(doc, Query().id == step_id)
         else:
             table.remove(Query().id == step_id)
             table.insert(doc)
-            
+
         return step
     except Exception as e:
-         if isinstance(e, (ResourceNotFoundError, ConflictError)):
-             raise e
-         
-         error_code = "STEP_UPDATE_FAILED"
-         logger.error(f"{error_code}: {e}", exc_info=True)
-         raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-         ) from e
+        if isinstance(e, (ResourceNotFoundError, ConflictError)):
+            raise e
+
+        error_code = "STEP_UPDATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
-@router.delete("/steps/{step_id}", summary="Delete Step", response_description="Delete status.", response_model=StepDeleteResponse)
+@router.delete(
+    "/steps/{step_id}", summary="Delete Step", response_description="Delete status.", response_model=StepDeleteResponse
+)
 def delete_step(step_id: str, db: DatabaseDep) -> StepDeleteResponse:
     """Delete a step.
 
@@ -122,18 +119,15 @@ def delete_step(step_id: str, db: DatabaseDep) -> StepDeleteResponse:
         table.remove(Query().id == step_id)
         return StepDeleteResponse(status="deleted", id=step_id)
     except Exception as e:
-         if isinstance(e, (ResourceNotFoundError, ConflictError)):
-             raise e
-         
-         error_code = "STEP_DELETE_FAILED"
-         logger.error(f"{error_code}: {e}", exc_info=True)
-         raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-         ) from e
+        if isinstance(e, (ResourceNotFoundError, ConflictError)):
+            raise e
+
+        error_code = "STEP_DELETE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
 # --- WORKFLOW ENDPOINTS ---
-
 
 
 # --- HELPER: HYDRATION ---
@@ -179,7 +173,9 @@ async def _hydrate_workflow_steps(workflow_data: dict[str, Any], repository: Any
     return workflow_data
 
 
-@router.get("", summary="List Workflows", response_description="All workflows.", response_model=list[WorkflowConfigDefinition])
+@router.get(
+    "", summary="List Workflows", response_description="All workflows.", response_model=list[WorkflowConfigDefinition]
+)
 async def get_workflows(repository: RepositoryDep) -> list[WorkflowConfigDefinition]:
     """List all workflows."""
     try:
@@ -196,12 +192,15 @@ async def get_workflows(repository: RepositoryDep) -> list[WorkflowConfigDefinit
     except Exception as e:
         error_code = "WORKFLOW_LIST_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
-@router.get("/{wf_id}", summary="Get Workflow", response_description="Requested workflow.", response_model=WorkflowConfigDefinition)
+@router.get(
+    "/{wf_id}",
+    summary="Get Workflow",
+    response_description="Requested workflow.",
+    response_model=WorkflowConfigDefinition,
+)
 async def get_workflow(wf_id: str, repository: RepositoryDep) -> WorkflowConfigDefinition:
     """Get a specific workflow."""
     try:
@@ -218,16 +217,19 @@ async def get_workflow(wf_id: str, repository: RepositoryDep) -> WorkflowConfigD
         return WorkflowConfigDefinition(**hydrated)
     except Exception as e:
         if isinstance(e, ResourceNotFoundError):
-             raise e
-        
+            raise e
+
         error_code = "WORKFLOW_FETCH_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
-@router.put("/{wf_id}", summary="Update Workflow", response_description="Update status.", response_model=WorkflowConfigDefinition)
+@router.put(
+    "/{wf_id}",
+    summary="Update Workflow",
+    response_description="Update status.",
+    response_model=WorkflowConfigDefinition,
+)
 def update_workflow(wf_id: str, update: WorkflowConfigUpdate, db: DatabaseDep) -> WorkflowConfigDefinition:
     """Update a workflow definition."""
     try:
@@ -269,16 +271,16 @@ def update_workflow(wf_id: str, update: WorkflowConfigUpdate, db: DatabaseDep) -
         table.update(update_data, Workflow.id == wf_id)
         # Fetch updated to return full object
         updated_doc = table.get(Workflow.id == wf_id)
+        if not updated_doc:
+            raise AppException(message="Failed to fetch after update", status_code=500)
         return WorkflowConfigDefinition(**updated_doc)
     except Exception as e:
         if isinstance(e, (ResourceNotFoundError, AppException)):
-             raise e
-        
+            raise e
+
         error_code = "WORKFLOW_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.post("", summary="Create Workflow", response_description="Created ID.", response_model=WorkflowConfigDefinition)
@@ -306,16 +308,16 @@ def create_workflow(workflow: WorkflowConfigCreate, db: DatabaseDep) -> Workflow
         return WorkflowConfigDefinition(**new_wf)
     except Exception as e:
         if isinstance(e, (ConflictError, AppException)):
-             raise e
-        
+            raise e
+
         error_code = "WORKFLOW_CREATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
-@router.delete("/{wf_id}", summary="Delete Workflow", response_description="Delete status.", response_model=WorkflowDeleteResponse)
+@router.delete(
+    "/{wf_id}", summary="Delete Workflow", response_description="Delete status.", response_model=WorkflowDeleteResponse
+)
 def delete_workflow(wf_id: str, db: DatabaseDep) -> WorkflowDeleteResponse:
     """Delete a workflow."""
     try:
@@ -327,17 +329,22 @@ def delete_workflow(wf_id: str, db: DatabaseDep) -> WorkflowDeleteResponse:
         return WorkflowDeleteResponse(status="deleted", id=wf_id)
     except Exception as e:
         if isinstance(e, ResourceNotFoundError):
-             raise e
-        
+            raise e
+
         error_code = "WORKFLOW_DELETE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
-@router.post("/validate-flow", summary="Validate Flow", response_description="Validation Report.", response_model=ValidationReportResponse)
-async def validate_flow(workflow: WorkflowConfigCreate, db: DatabaseDep, registry: RegistryDep) -> ValidationReportResponse:
+@router.post(
+    "/validate-flow",
+    summary="Validate Flow",
+    response_description="Validation Report.",
+    response_model=ValidationReportResponse,
+)
+async def validate_flow(
+    workflow: WorkflowConfigCreate, db: DatabaseDep, registry: RegistryDep
+) -> ValidationReportResponse:
     """Dry run validation."""
     try:
         all_steps_config = db.table("steps").all()
@@ -348,10 +355,8 @@ async def validate_flow(workflow: WorkflowConfigCreate, db: DatabaseDep, registr
             steps_db_map=steps_db_map,
             registry=registry,
         )
-        return ValidationReportResponse(**report)
+        return report
     except Exception as e:
         error_code = "WORKFLOW_VALIDATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e

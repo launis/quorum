@@ -18,18 +18,11 @@ def register_retrieval_tasks():
     logger.info("Registering retrieval tasks...")
 
     # 1. Retrieval (Context)
-    TaskRegistry.register_agent(
-        task_keys=["retrieve_context"],
-        agent_cls=RetrievalAgent,
-        output_model=ContextData
-    )
+    TaskRegistry.register_agent(task_keys=["retrieve_context"], agent_cls=RetrievalAgent, output_model=ContextData)
 
     # 2. Archivist (Precedents)
-    TaskRegistry.register_agent(
-        task_keys=["archivist"],
-        agent_cls=ArchivistAgent,
-        output_model=ArchivistOutput
-    )
+    TaskRegistry.register_agent(task_keys=["archivist"], agent_cls=ArchivistAgent, output_model=ArchivistOutput)
+
 
 # Execute registration on import
 register_retrieval_tasks()

@@ -4,8 +4,8 @@ import logging
 from typing import Any
 
 from backend.dependencies import RegistryDep
-from backend.models.dtos.config import ValidationReportResponse
 from backend.exceptions import AppException, ErrorCodes
+from backend.models.dtos.config import ValidationReportResponse
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class WorkflowValidator:
 
         Returns:
             ValidationReportResponse: Validation report.
-        
+
         Raises:
             AppException: If critical system integrity issues (Registry corruption) are detected.
         """
@@ -36,7 +36,7 @@ class WorkflowValidator:
         pseudo_state = list(known_keys)
 
         # Cache for loaded classes to avoid repeated imports
-        loaded_classes = {}
+        loaded_classes: dict[str, type] = {}
 
         for i, step_id in enumerate(sequence):
             if step_id not in steps_db_map:
@@ -60,8 +60,8 @@ class WorkflowValidator:
                 # registry is AgentRegistry instance
                 comp = await registry.repository.get_component_by_name(agent_ref)
                 if not comp:
-                     errors.append(f"Unknown Agent/Task: {agent_ref} in {step_id}")
-                     continue
+                    errors.append(f"Unknown Agent/Task: {agent_ref} in {step_id}")
+                    continue
 
                 module_name = comp.get("module")
                 class_name = comp.get("class_name")
@@ -71,11 +71,12 @@ class WorkflowValidator:
                     raise AppException(
                         message=f"Corrupt Registry: {agent_ref} missing module/class info",
                         status_code=500,
-                        details={"error_code": ErrorCodes.REGISTRY_CORRUPTION, "agent_ref": agent_ref}
+                        details={"error_code": ErrorCodes.REGISTRY_CORRUPTION, "agent_ref": agent_ref},
                     )
 
                 try:
                     import importlib
+
                     mod = importlib.import_module(module_name)
                     agent_class = getattr(mod, class_name)
                     loaded_classes[agent_ref] = agent_class
@@ -85,7 +86,7 @@ class WorkflowValidator:
                     raise AppException(
                         message=f"Failed to load code for {agent_ref}: {e}",
                         status_code=500,
-                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "agent_ref": agent_ref}
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "agent_ref": agent_ref},
                     ) from e
 
             # Static Inspection of Class Attributes
@@ -100,8 +101,5 @@ class WorkflowValidator:
                     pseudo_state.append(k)
 
         return ValidationReportResponse(
-            valid=len(errors) == 0,
-            errors=errors,
-            trace=trace_log,
-            final_state_keys=pseudo_state
+            valid=len(errors) == 0, errors=errors, trace=trace_log, final_state_keys=pseudo_state
         )

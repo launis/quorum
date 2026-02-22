@@ -19,6 +19,7 @@ except ImportError as e:
     logger.error(f"Import Error: {e}")
     exit(1)
 
+
 async def run_integration_test():
     logger.info("Starting Integration Test for Metrics...")
 
@@ -26,26 +27,15 @@ async def run_integration_test():
     # To be sure, let's construct a definition that matches strict schema
     # We use step_analyst configuration exactly as in seed_data
 
-    step_analyst = WorkflowStep(
-        id="step_analyst",
-        task_key="analyst",
-        config={
-            "pre_hooks": ["calculate_text_metrics", "calculate_control_ratio"],
-            # "model": "gpt-4o" # Optional
-        },
-        inputs={
-            "history_text": "$inputs.history_text",
-            "product_text": "$inputs.product_text",
-            "reflection_text": "$inputs.reflection_text"
-        }
-    )
-
     wf_def = WorkflowDefinition(
         id="test_workflow_metrics",
         name="Test Workflow",
         description="Integration Test for Metrics",
-        steps=[step_analyst],
-        ui_schema={}
+        status="draft",
+        version=1,
+        is_public=False,
+        organization_id="org-123",
+        steps=["step_analyst"],
     )
 
     # 2. Mock the Analyst Task (to avoid calling real LLM)
@@ -55,10 +45,7 @@ async def run_integration_test():
         reflection_text: str | None = None
 
     @TaskRegistry.register_task(
-        name="analyst",
-        input_schema=AnalystInput,
-        output_schema=BaseModel,
-        description="Mock Analyst"
+        name="analyst", input_schema=AnalystInput, output_schema=BaseModel, description="Mock Analyst"
     )
     async def mock_analyst_handler(inputs: AnalystInput, execution_config=None):
         logger.info(f"Mock Analyst Running with inputs: {inputs}")
@@ -69,7 +56,7 @@ async def run_integration_test():
         "inputs": {
             "history_text": "User: This is a test.\nAI: Indeed it is.",
             "product_text": "Product sample.",
-            "reflection_text": "Reflection sample."
+            "reflection_text": "Reflection sample.",
         }
     }
 
@@ -77,9 +64,7 @@ async def run_integration_test():
     engine = GraphEngine()
     try:
         final_state_dict = await engine.execute_workflow(
-            definition=wf_def,
-            initial_input=repo_inputs,
-            execution_id=str(uuid.uuid4())
+            definition=wf_def, initial_input=repo_inputs, execution_id=str(uuid.uuid4())
         )
 
         # 5. Verify Metrics
@@ -96,6 +81,7 @@ async def run_integration_test():
 
     except Exception as e:
         logger.error(f"Execution Failed: {e}", exc_info=True)
+
 
 if __name__ == "__main__":
     asyncio.run(run_integration_test())

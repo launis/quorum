@@ -28,32 +28,19 @@ def register_critique_tasks():
     logger.info("Registering critique tasks...")
 
     # 1. Falsifier (Logic)
-    TaskRegistry.register_agent(
-        task_keys=["falsifier"],
-        agent_cls=LogicalFalsifierAgent,
-        output_model=FalsifierOutput
-    )
+    TaskRegistry.register_agent(task_keys=["falsifier"], agent_cls=LogicalFalsifierAgent, output_model=FalsifierOutput)
 
     # 2. Overseer (Fact)
-    TaskRegistry.register_agent(
-        task_keys=["overseer"],
-        agent_cls=FactualOverseerAgent,
-        output_model=OverseerOutput
-    )
+    TaskRegistry.register_agent(task_keys=["overseer"], agent_cls=FactualOverseerAgent, output_model=OverseerOutput)
 
     # 3. Causal (Cause-Effect)
-    TaskRegistry.register_agent(
-        task_keys=["causal"],
-        agent_cls=CausalAnalystAgent,
-        output_model=CausalOutput
-    )
+    TaskRegistry.register_agent(task_keys=["causal"], agent_cls=CausalAnalystAgent, output_model=CausalOutput)
 
     # 4. Detector (Performativity)
     TaskRegistry.register_agent(
-        task_keys=["detector"],
-        agent_cls=PerformativityDetectorAgent,
-        output_model=PerformativityOutput
+        task_keys=["detector"], agent_cls=PerformativityDetectorAgent, output_model=PerformativityOutput
     )
+
 
 # Execute registration on import
 register_critique_tasks()

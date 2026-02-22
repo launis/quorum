@@ -8,23 +8,26 @@ from .base import BaseTransformer
 
 logger = logging.getLogger(__name__)
 
+
 class AssessmentTransformer(BaseTransformer):
-    def _get_workflow_steps(self, workflow_id: str, current_data: dict, workflow_definition: Any | None = None) -> list[StepProgressItem]:
+    def _get_workflow_steps(
+        self, workflow_id: str, current_data: dict, workflow_definition: Any | None = None
+    ) -> list[StepProgressItem]:
         """Determines the steps for the workflow and their status dynamically."""
         chain = []
         if workflow_definition:
-             # Extract steps from definition
-             # Assuming workflow_definition is a dict or Pydantic model with 'steps'
-             steps = getattr(workflow_definition, "steps", [])
-             if isinstance(steps, list):
-                 for s in steps:
-                     if isinstance(s, str):
-                         sid = s
-                     else:
-                         # Handle fallback Pydantic model or dict
-                         sid = getattr(s, "id", None) or s.get("id")
-                     if sid:
-                         chain.append(sid)
+            # Extract steps from definition
+            # Assuming workflow_definition is a dict or Pydantic model with 'steps'
+            steps = getattr(workflow_definition, "steps", [])
+            if isinstance(steps, list):
+                for s in steps:
+                    if isinstance(s, str):
+                        sid = s
+                    else:
+                        # Handle fallback Pydantic model or dict
+                        sid = getattr(s, "id", None) or s.get("id")
+                    if sid:
+                        chain.append(sid)
 
         if not chain:
             # Fallback for legacy/missing definition
@@ -43,11 +46,7 @@ class AssessmentTransformer(BaseTransformer):
                     step_status = "failed"
 
             label = self._t(f"STEP_{step_id.upper()}", step_id)
-            progress_items.append(StepProgressItem(
-                id=step_id,
-                label=label,
-                status=step_status
-            ))
+            progress_items.append(StepProgressItem(id=step_id, label=label, status=step_status))
 
         return progress_items
 
@@ -100,13 +99,17 @@ class AssessmentTransformer(BaseTransformer):
 
             if status == "failed":
                 error_details = str(raw_data.get("error") or raw_data.get("result", {}).get("error") or "")
-                
+
                 # Localize common error codes
                 if "AGENT_EXECUTION_CRITICAL" in error_details:
                     if "InstructorRetryException" in error_details:
-                        status_message = self._t("error.llm_retry", "Kielimallin vastaus epäonnistui (Yhteys- tai muotoiluvirhe).")
+                        status_message = self._t(
+                            "error.llm_retry", "Kielimallin vastaus epäonnistui (Yhteys- tai muotoiluvirhe)."
+                        )
                     else:
-                        status_message = self._t("error.agent_critical", "Agentin suoritus keskeytyi kriittiseen virheeseen.")
+                        status_message = self._t(
+                            "error.agent_critical", "Agentin suoritus keskeytyi kriittiseen virheeseen."
+                        )
                 elif "Validation Error" in error_details:
                     status_message = self._t("error.validation", "Validointivirhe syötteessä tai tulosteessa.")
                 else:
@@ -127,11 +130,7 @@ class AssessmentTransformer(BaseTransformer):
                     for i, item in enumerate(steps_list):
                         if item.id not in completed_ids:
                             # Create new instance as model is frozen
-                            steps_list[i] = StepProgressItem(
-                                id=item.id,
-                                label=item.label,
-                                status="running"
-                            )
+                            steps_list[i] = StepProgressItem(id=item.id, label=item.label, status="running")
                             # UPDATE: If we know the next step, show THAT as processing
                             running_step = item.id.replace("step_", "").capitalize()
                             status_message = f"{self._t('status.running', 'Käsitellään')}: {running_step}"
@@ -176,4 +175,6 @@ class AssessmentTransformer(BaseTransformer):
         except Exception as e:
             error_code = "TRANSFORMATION_FAILED"
             logger.error(f"[{error_code}] Failed to create AssessmentView: {e}", exc_info=True)
-            raise AppException(message=f"Transformation failed: {e}", status_code=500, details={"error_code": error_code}) from e
+            raise AppException(
+                message=f"Transformation failed: {e}", status_code=500, details={"error_code": error_code}
+            ) from e

@@ -63,7 +63,7 @@ class TestLocalFileDriver(unittest.TestCase):
             await self.driver.save(path, content)
 
             read_bytes = await self.driver.read(path)
-            self.assertEqual(read_bytes.decode('utf-8'), content)
+            self.assertEqual(read_bytes.decode("utf-8"), content)
 
         asyncio.run(run())
 

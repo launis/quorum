@@ -1,20 +1,19 @@
 import logging
 
-from typing import Any
-
+from backend.exceptions import AppException
 from backend.models.domain.execution import ExecutionRecord
 from backend.models.enums import HelpTextKey, LabelKey, RiskLevel, TitleKey
-from backend.models.state import TraceEvent, WorkflowState
+from backend.models.state import WorkflowState
 from backend.models.view import (
-    ReportView, SectionType, SystemNotification, UiSection,
-    EvidenceList, EvidenceItem,
-    LogicAnalysisDisplay, ToulminDisplay,
-    StressTestDisplay, StressFindingDisplay,
-    CausalDisplay,
-    PerformativityDisplay, HeuristicDisplay,
-    ScoreCardDisplay, DimensionDisplay
+    DimensionDisplay,
+    EvidenceItem,
+    EvidenceList,
+    ReportView,
+    ScoreCardDisplay,
+    SectionType,
+    SystemNotification,
+    UiSection,
 )
-from backend.exceptions import AppException, status
 
 from .base import BaseTransformer
 from .domain.causal import CausalDomainTransformer
@@ -31,6 +30,7 @@ logger = logging.getLogger(__name__)
 # Python supports multiple inheritance. Let's use it for the "Monolithic Facade" feel
 # while keeping code separate.
 
+
 class ReportTransformer(
     LogicDomainTransformer,
     ProfilingDomainTransformer,
@@ -39,7 +39,7 @@ class ReportTransformer(
     CausalDomainTransformer,
     OverseerDomainTransformer,
     RetrievalDomainTransformer,
-    BaseTransformer
+    BaseTransformer,
 ):
     def transform(self, raw_data: ExecutionRecord, valid_range: tuple[float, float] | None = None) -> ReportView:
         """Transforms execution data (Pydantic Model) into a clean ReportView model.
@@ -62,7 +62,7 @@ class ReportTransformer(
             execution_id = raw_data.id
             # Results might be WorkflowState or dict
             if isinstance(raw_data.results, WorkflowState):
-                results = raw_data.results.model_dump() # TODO: Use attributes?
+                results = raw_data.results.model_dump()  # TODO: Use attributes?
                 trace = raw_data.results.execution_trace
                 context = raw_data.results.context_variables
             elif isinstance(raw_data.results, dict):
@@ -71,26 +71,26 @@ class ReportTransformer(
                 trace = results.get("execution_trace", [])
                 context = results.get("context_variables", {})
             else:
-                 logger.warning(f"Unrecognized results type {type(raw_data.results)}, defaulting to empty data.")
+                logger.warning(f"Unrecognized results type {type(raw_data.results)}, defaulting to empty data.")
         else:
-             # FAIL FAST: Strict Schema Requirement (Feb 2026 Mandate)
-             raise TypeError(f"ReportTransformer requires ExecutionRecord. Got: {type(raw_data)}")
+            # FAIL FAST: Strict Schema Requirement (Feb 2026 Mandate)
+            raise TypeError(f"ReportTransformer requires ExecutionRecord. Got: {type(raw_data)}")
 
         if not execution_id:
-             # Fail Fast: Strict Schema Requirement
-             raise ValueError("Execution data missing mandatory 'id' field.")
+            # Fail Fast: Strict Schema Requirement
+            raise ValueError("Execution data missing mandatory 'id' field.")
 
         # --- Event Sourcing Adaptation ---
-        
+
         # Standard: ExecutionResponse.results often contains the snapshot "step_results" dict
         # We prioritize the explicit 'results' dict if populated (snapshot).
         steps = {}
         if isinstance(results, dict) and "step_results" in results:
-             steps = results["step_results"]
-        
+            steps = results["step_results"]
+
         # Fallback: Reconstruct from strict Event Trace (Source of Truth)
         if not steps and trace:
-             steps = self._reconstruct_state_from_trace(trace)
+            steps = self._reconstruct_state_from_trace(trace)
 
         sections = []
 
@@ -115,11 +115,11 @@ class ReportTransformer(
                 # Extract all cards (Legacy or V3 Array)
                 cards = []
                 if "score_cards" in step_data and isinstance(step_data["score_cards"], list):
-                     cards = step_data["score_cards"]
+                    cards = step_data["score_cards"]
                 elif "score_card" in step_data:
-                     cards = [step_data["score_card"]]
+                    cards = [step_data["score_card"]]
                 else:
-                     cards = [step_data] # Legacy fallback where step is the card
+                    cards = [step_data]  # Legacy fallback where step is the card
 
                 for idx, card in enumerate(cards):
                     try:
@@ -130,9 +130,9 @@ class ReportTransformer(
 
                         # Construct title
                         if len(cards) > 1 or card_agent_name != base_agent_name:
-                                card_title = f"{base_title} ({card_agent_name})"
+                            card_title = f"{base_title} ({card_agent_name})"
                         else:
-                                card_title = base_title
+                            card_title = base_title
 
                         # Extract score data using the CARD as the source.
                         # STRICT: Card must self-contain scale info if valid_range is None.
@@ -190,7 +190,6 @@ class ReportTransformer(
         if profiler_section:
             sections.append(profiler_section)
 
-
         # RetrievalDomainTransformer handles this
         context_section = self._extract_context_section(steps)
         if context_section:
@@ -201,27 +200,27 @@ class ReportTransformer(
         # 1. Logic / Logician
         logician = self._extract_logician_section(steps)
         if logician:
-             sections.append(logician)
+            sections.append(logician)
 
         # 2. Falsification / Falsifier
         falsifier = self._extract_falsifier_section(steps)
         if falsifier:
-             sections.append(falsifier)
+            sections.append(falsifier)
 
         # 3. Causal / Causal Analyst
         causal = self._extract_causal_section(steps)
         if causal:
-             sections.append(causal)
+            sections.append(causal)
 
         # 4. Performativity / Detector
         detector = self._extract_detector_section(steps)
         if detector:
-             sections.append(detector)
+            sections.append(detector)
 
         # 5. Facts & Ethics / Overseer
         overseer = self._extract_overseer_section(steps)
         if overseer:
-             sections.append(overseer)
+            sections.append(overseer)
 
         interaction_grid = self._extract_interaction_section(steps)
         if interaction_grid:
@@ -247,7 +246,6 @@ class ReportTransformer(
             )
         )
 
-        theme = "success"
 
         # Extract Metrics from context_variables (if available)
         metrics = None
@@ -264,13 +262,12 @@ class ReportTransformer(
             status_theme=status_theme,
             sections=sections,
             metrics=metrics,
-            system_notification=notification
+            system_notification=notification,
         )
 
-
-
-
-    def _determine_report_status(self, metrics: dict | None, guard_section: UiSection | None) -> tuple[str, SystemNotification | None]:
+    def _determine_report_status(
+        self, metrics: dict | None, guard_section: UiSection | None
+    ) -> tuple[str, SystemNotification | None]:
         """Calculates the Report Theme (Success/Warning/Danger) based on heuristics."""
         theme = "success"
         notification = None
@@ -287,7 +284,7 @@ class ReportTransformer(
                 notification = SystemNotification(
                     title="TURVALLISUUSRISKI",
                     message="Raportissa on havaittu kriittisiä tietoturvariskejä. Tarkista 'Turvallisuus & Tietosuoja' -osio välittömästi.",
-                    level="danger"
+                    level="danger",
                 )
                 return theme, notification
 
@@ -301,13 +298,15 @@ class ReportTransformer(
                 notification = SystemNotification(
                     title="ALHAINEN INTERAKTIO",
                     message="Käyttäjän osuus sisällöstä on alle 30%. Raportti saattaa sisältää merkittävästi tekoälyn hallusinoimaa sisältöä.",
-                    level="warning"
+                    level="warning",
                 )
                 return theme, notification
 
         return theme, notification
 
-    def _extract_score_data(self, judge_step: dict, agent_name: str, valid_range: tuple[float, float] | None) -> ScoreCardDisplay:
+    def _extract_score_data(
+        self, judge_step: dict, agent_name: str, valid_range: tuple[float, float] | None
+    ) -> ScoreCardDisplay:
         """Extracts score and verdict from V3 Schema."""
         score = None
         raw_score = None
@@ -321,7 +320,7 @@ class ReportTransformer(
             verdict = card.get("verdict")
             dimensions_list = card.get("dimensions", [])
         elif "score_card" in judge_step:
-             # Legacy/Fallback if card inside 'score_card' key
+            # Legacy/Fallback if card inside 'score_card' key
             card = judge_step["score_card"]
             raw_score = card.get("total_score")
             verdict = card.get("final_verdict")
@@ -352,7 +351,7 @@ class ReportTransformer(
                 # If no scale found, default to 1-4 (Legacy Standard) but WARN or FAIL?
                 # For migration safety, we should stick to Fail Fast if unknown.
                 # However, let's look for known scales in dimensions if absent.
-                 raise ValueError(f"Score validation failed for {agent_name}: No scale definition found.")
+                raise ValueError(f"Score validation failed for {agent_name}: No scale definition found.")
 
         scale_min, scale_max = valid_range
         if not (scale_min <= score <= scale_max):
@@ -373,7 +372,7 @@ class ReportTransformer(
                     score=float(d_data.get("score", 0.0)),
                     max_score=float(d_data.get("max_score", scale_max)),
                     weight=float(d_data.get("weight", 1.0)),
-                    reasoning=d_data.get("reasoning")
+                    reasoning=d_data.get("reasoning", ""),
                 )
             )
 
@@ -490,20 +489,22 @@ class ReportTransformer(
         rows = []
         for h in hypotheses:
             h_data = h if isinstance(h, dict) else h.dict()
-            rows.append({
-                "id": h_data.get("id"),
-                "claim": h_data.get("claim_text") or h_data.get("vaite_teksti"),
-                # Explicit boolean conversion
-                "proven": "✅" if (h_data.get("evidence_found") or h_data.get("loytyyko_todisteita")) else "❌",
-            })
+            rows.append(
+                {
+                    "id": h_data.get("id"),
+                    "claim": h_data.get("claim_text") or h_data.get("vaite_teksti"),
+                    # Explicit boolean conversion
+                    "proven": "✅" if (h_data.get("evidence_found") or h_data.get("loytyyko_todisteita")) else "❌",
+                }
+            )
 
         # Enhancement: Include RAG Evidence if available
         rag_evidence = step.get("rag_evidence")
         evidence_content = ""
         if rag_evidence:
-             evidence_content = f"### {self._get_label(LabelKey.EVIDENCE_FOUND)}\n"
-             for item in rag_evidence:
-                 evidence_content += f"- {item}\n"
+            evidence_content = f"### {self._get_label(LabelKey.EVIDENCE_FOUND)}\n"
+            for item in rag_evidence:
+                evidence_content += f"- {item}\n"
 
         return UiSection(
             id="hypotheses-table",
@@ -517,34 +518,26 @@ class ReportTransformer(
                 ],
                 "rows": rows,
                 # New field for Evidence (handled by frontend if present, or we create separate section)
-                "rag_evidence": rag_evidence or [] 
+                "rag_evidence": rag_evidence or [],
             },
         )
-        
+
     def _extract_analyst_evidence(self, steps: dict) -> UiSection | None:
         """Helper to extract RAG evidence as a separate section if needed."""
         step = steps.get("step_analyst")
         if not step:
             logger.warning("Missing data for step_analyst in Analyst Evidence layout")
             return None
-        
+
         rag_evidence = step.get("rag_evidence")
         if not rag_evidence:
             logger.warning("step_analyst exists but 'rag_evidence' data is missing or empty")
             return None
-            
+
         items = []
         for i, item in enumerate(rag_evidence):
-             items.append(
-                 EvidenceItem(
-                     id=f"evidence-{i}",
-                     source="RAG Search",
-                     content=item,
-                     score=1.0, 
-                     type="concept"
-                 )
-             )
-            
+            items.append(EvidenceItem(id=f"evidence-{i}", source="RAG Search", content=item, score=1.0, type="concept"))
+
         return UiSection(
             id="analyst-evidence",
             type=SectionType.EVIDENCE_LIST,
@@ -566,18 +559,18 @@ class ReportTransformer(
         # Access results safely
         res_data = {}
         if isinstance(record.results, WorkflowState):
-             # No standard 'usage' field in WorkflowState yet? Check context?
-             # Or maybe it's in context_variables.audit_metrics?
-             pass 
+            # No standard 'usage' field in WorkflowState yet? Check context?
+            # Or maybe it's in context_variables.audit_metrics?
+            pass
         elif isinstance(record.results, dict):
-             res_data = record.results
+            res_data = record.results
 
         # Try to find usage dict
         usage = res_data.get("usage")
         if not usage and "result" in res_data:
-             usage = res_data["result"].get("usage")
+            usage = res_data["result"].get("usage")
         if not usage and "context_variables" in res_data:
-             usage = res_data["context_variables"].get("usage")
+            usage = res_data["context_variables"].get("usage")
 
         if usage:
             total_tokens = usage.get("total_tokens", 0)
@@ -591,37 +584,36 @@ class ReportTransformer(
             {"label": self._t("lblTotalTokens", "Kokonaistokenit"), "value": str(total_tokens)},
             {"label": self._t("lblPromptTokens", "Syötetokenit"), "value": str(prompt_tokens)},
             {"label": self._t("lblCompletionTokens", "Vastaustokenit"), "value": str(completion_tokens)},
-            {"label": self._t("lblCostEstimate", "Kustannusarvio ($)"), "value": f"${cost:.4f}" if cost > 0 else "N/A", "highlight": True}
+            {
+                "label": self._t("lblCostEstimate", "Kustannusarvio ($)"),
+                "value": f"${cost:.4f}" if cost > 0 else "N/A",
+                "highlight": True,
+            },
         ]
 
-        data = {
-            "items": items
-        }
+        data = {"items": items}
 
         return UiSection(
-            id="usage-stats",
-            type=SectionType.USAGE_STATS,
-            title=self._get_title(TitleKey.USAGE),
-            data=data
+            id="usage-stats", type=SectionType.USAGE_STATS, title=self._get_title(TitleKey.USAGE), data=data
         )
 
     def _extract_critical_findings(self, steps: dict) -> UiSection | None:
         """Extracts Truth Protocol findings (Critical Findings) from Judge step."""
         findings = []
-        
+
         # Check both judges
         for key in ["step_judge", "step_judge_cognitive"]:
             step = steps.get(key)
             if not step:
                 logger.warning(f"Missing data for {key} in Critical Findings layout")
                 continue
-                
+
             # Direct list from dict or Pydantic model dump
             f_list = step.get("critical_findings", [])
-            
+
             # Legacy/Fallback: Check inside score_card if not at top level (unlikely with current hook, but safe)
             if not f_list and "score_card" in step:
-                 f_list = step["score_card"].get("critical_findings", [])
+                f_list = step["score_card"].get("critical_findings", [])
 
             if f_list:
                 findings.extend(f_list)
@@ -641,12 +633,14 @@ class ReportTransformer(
         content = "### ⚠️ TOTUUSPROTOKOLLAN LÖYDÖKSET\n\n"
         for item in unique_findings:
             content += f"- {item}\n"
-            
-        content += "\n*Nämä löydökset perustuvat Tietopankin (Laki), Hakutulosten (Faktat) ja Lokien (Teot) vertailuun.*"
+
+        content += (
+            "\n*Nämä löydökset perustuvat Tietopankin (Laki), Hakutulosten (Faktat) ja Lokien (Teot) vertailuun.*"
+        )
 
         return UiSection(
             id="critical-findings",
             type=SectionType.MARKDOWN_BLOCK,
-            title="TOTUUSPROTOKOLLA", # Hardcoded or use TitleKey if exists
-            data={"content": content}
+            title="TOTUUSPROTOKOLLA",  # Hardcoded or use TitleKey if exists
+            data={"content": content},
         )

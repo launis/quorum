@@ -9,9 +9,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from typing import Any
-from backend.exceptions import AppException, ErrorCodes
 from fastapi import status
+
+from backend.exceptions import AppException, ErrorCodes
+
 
 def validate_content_structure(
     history_text: str | None, product_text: str | None, reflection_text: str | None, min_chars: int = 100
@@ -34,7 +35,7 @@ def validate_content_structure(
 
     for key, text in inputs.items():
         if not text:
-             errors.append(f"Field '{key}' is missing or empty.")
+            errors.append(f"Field '{key}' is missing or empty.")
         elif len(text) < min_chars:
             errors.append(f"Input '{key}' is too short ({len(text)} < {min_chars} chars).")
 
@@ -42,8 +43,5 @@ def validate_content_structure(
         raise AppException(
             message="Content validation failed.",
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            details={
-                "error_code": ErrorCodes.INVALID_JSON_PAYLOAD,
-                "validation_errors": errors
-            }
+            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "validation_errors": errors},
         )

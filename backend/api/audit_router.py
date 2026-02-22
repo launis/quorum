@@ -8,8 +8,6 @@ import logging
 from fastapi import APIRouter, Query, status
 
 from backend.dependencies import AuditServiceDep, CurrentUserDep
-from typing import List
-
 from backend.models.audit import AuditEvent
 from backend.models.auth import UserRole
 
@@ -17,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
 
-@router.get("/logs", response_model=List[AuditEvent])
+
+@router.get("/logs", response_model=list[AuditEvent])
 async def get_audit_logs(
     user: CurrentUserDep,
     audit_service: AuditServiceDep,
@@ -48,7 +47,7 @@ async def get_audit_logs(
                 error_code = "ACCESS_DENIED_ORGANIZATION_MISMATCH"
                 logger.warning(f"{error_code}: Admin {user.uid} tried to access org {organization_id}")
                 raise PermissionDeniedError(message="Organization mismatch", details={"error_code": error_code})
-            
+
             # Auto-scope if not provided or provided correctly
             target_org = user.organization_id
         else:
@@ -78,4 +77,3 @@ async def get_audit_logs(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code},
         ) from e
-

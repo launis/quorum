@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 import sys
@@ -6,17 +5,20 @@ import sys
 # Add project root to path
 sys.path.append("c:/src/quorum")
 
-from backend.database.repository import AsyncRepository
+from backend.database.factory import get_repository
+from backend.database.wrapper import get_db_client
 from backend.services.agent_registry import AgentRegistry
+from backend.settings import get_settings
 
 # Minimal Logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("VERIFY")
 
+
 async def verify():
     print("--- Light Verification ---")
     try:
-        repo = AsyncRepository()
+        repo = await get_repository(get_settings(), get_db_client())
         registry = AgentRegistry(repo)
 
         # Test 1: Fetch Strategies
@@ -35,7 +37,9 @@ async def verify():
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     asyncio.run(verify())

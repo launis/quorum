@@ -34,7 +34,7 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> lis
         references_map = rm.advanced_scan(text_dump)
 
         # We return just the keys (Full References) sorted
-        formatted_list = sorted(list(references_map.keys()))
+        formatted_list = sorted(list(references_map.relevance_map.keys()))
 
         logger.debug(f"[Bibliography] Scan complete. Found {len(formatted_list)} unique references.")
         return formatted_list

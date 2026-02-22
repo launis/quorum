@@ -339,7 +339,7 @@ class MockLLMService:
         # Fix: Handle datetime objects (e.g. from MOCK_METADATA) using a custom default handler.
         def _json_serial(obj):
             if hasattr(obj, "isoformat"):
-                 return obj.isoformat()
+                return obj.isoformat()
             raise TypeError(f"Type {type(obj)} not serializable")
 
         return json.dumps(data, ensure_ascii=False, default=_json_serial)

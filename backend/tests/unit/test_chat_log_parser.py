@@ -1,4 +1,3 @@
-
 import pytest
 
 from backend.exceptions import AppException
@@ -6,7 +5,6 @@ from backend.services.chat_log_parser import ChatLogParser
 
 
 class TestChatLogParser:
-
     def test_parse_explicit_format(self):
         """Test already formatted text (User:/AI: prefix)."""
         text = "User: Hello\nAI: Hi there"
@@ -16,13 +14,13 @@ class TestChatLogParser:
     def test_parse_gemini_format(self):
         """Test Gemini copy-paste format."""
         text = """Gemini Chat
-        
+
         Hello, I have a question.
-        
+
         Sure, ask away!
-        
+
         What is the capital of Finland?
-        
+
         Helsinki is the capital.
         """
         parsed = ChatLogParser.parse(text)

@@ -2,15 +2,15 @@
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Union
-
-import docx
 import uuid
 from datetime import datetime, timezone
+from typing import Any
+
+import docx
 from fastapi import status
 
 from backend.exceptions import AppException, ErrorCodes
-from backend.models.domain.knowledge import KnowledgeBaseDocument, Concept, Reference, Claim, DocumentChunk
+from backend.models.domain.knowledge import Claim, Concept, DocumentChunk, KnowledgeBaseDocument, Reference
 
 logger = logging.getLogger(__name__)
 
@@ -24,30 +24,39 @@ class KnowledgeBaseParser:
 
     # Multilingual Configuration
     BIBLIOGRAPHY_HEADERS = {
-        "lähdeluettelo", "lähteet",  # FI
-        "bibliography", "references", "works cited",  # EN
+        "lähdeluettelo",
+        "lähteet",  # FI
+        "bibliography",
+        "references",
+        "works cited",  # EN
     }
 
     STRUCTURAL_KEYWORDS = {
-        "lähdeluettelo", "lähteet", "abstrakti", "tiivistelmä", "analyysi", "johdanto",  # FI
-        "bibliography", "references", "abstract", "summary", "analysis", "introduction",  # EN
+        "lähdeluettelo",
+        "lähteet",
+        "abstrakti",
+        "tiivistelmä",
+        "analyysi",
+        "johdanto",  # FI
+        "bibliography",
+        "references",
+        "abstract",
+        "summary",
+        "analysis",
+        "introduction",  # EN
     }
 
-    COMPARE_MARKERS = [
-        "vrt.", "cf."
-    ]
+    COMPARE_MARKERS = ["vrt.", "cf."]
 
-    AND_MARKERS = [
-        " and ", " ja ", " & "
-    ]
+    AND_MARKERS = [" and ", " ja ", " & "]
 
     @staticmethod
-    def extract_claims_from_text(text: str) -> List[Claim]:
+    def extract_claims_from_text(text: str) -> list[Claim]:
         """Extracts sentences containing citations (claims) from text using ReGex.
-        
+
         Returns strictly typed Claim objects.
         """
-        claims: List[Claim] = []
+        claims: list[Claim] = []
         if not text:
             return claims
 
@@ -55,14 +64,13 @@ class KnowledgeBaseParser:
         link_pattern = re.compile(r"\[([^\]]+)\]\(#([a-zA-Z0-9_-]+)\)")
         # Robust multilingual citation regex with \w+
         text_cit_pattern = re.compile(
-            r"(\((?:(?:vrt\.|cf\.)\s*)?(?:[\w&,-]+\s+)+(?:et\s+al\.|ym\.)?\s*,?\s*\d{4}[a-z]?\))",
-            re.IGNORECASE
+            r"(\((?:(?:vrt\.|cf\.)\s*)?(?:[\w&,-]+\s+)+(?:et\s+al\.|ym\.)?\s*,?\s*\d{4}[a-z]?\))", re.IGNORECASE
         )
 
         # 1. Mask Citations
         # Store replacements to restore later
-        replacements: Dict[str, str] = {}
-        
+        replacements: dict[str, str] = {}
+
         def mask_match(match):
             key = f"__CIT_MASK_{len(replacements)}__"
             replacements[key] = match.group(0)
@@ -85,23 +93,23 @@ class KnowledgeBaseParser:
             # Check if sentence has masks
             # Find all mask keys in this sentence
             found_masks = re.findall(r"__CIT_MASK_\d+__", sent)
-            
+
             if found_masks:
                 # This sentence has citations
-                
+
                 # 3. Restore Citations for Analysis
                 # We need to extract the content from the masks
-                
+
                 citation_labels = []
                 citation_keys = []
                 matches_text_citation = False
 
                 # Clean claim text (remove the masks/citations)
                 clean_claim = sent
-                
+
                 for mask in found_masks:
                     original = replacements[mask]
-                    
+
                     # Analyze the original citation
                     # Determine if it's Link or Text
                     # Simple heuristic: starts with '[' is link, '(' is text
@@ -120,12 +128,12 @@ class KnowledgeBaseParser:
                         # Remove markers
                         for marker in KnowledgeBaseParser.COMPARE_MARKERS:
                             if inner.lower().startswith(marker):
-                                inner = inner[len(marker):].strip()
-                        
+                                inner = inner[len(marker) :].strip()
+
                         # Deduplicate labels
                         if inner not in citation_labels:
                             citation_labels.append(inner)
-                    
+
                     # Remove mask from Clean Claim
                     clean_claim = clean_claim.replace(mask, "")
 
@@ -133,7 +141,7 @@ class KnowledgeBaseParser:
                 clean_claim = re.sub(r"\s+", " ", clean_claim)
                 clean_claim = re.sub(r"\s+\.", ".", clean_claim)
                 clean_claim = re.sub(r"\s+,", ",", clean_claim)
-                clean_claim = re.sub(r"\(\)", "", clean_claim) # Should be handled by mask removal but good safety
+                clean_claim = re.sub(r"\(\)", "", clean_claim)  # Should be handled by mask removal but good safety
                 clean_claim = clean_claim.strip()
 
                 # Filter junk
@@ -178,23 +186,23 @@ class KnowledgeBaseParser:
             raise AppException(
                 message=f"Failed to open DOCX document: {str(e)}",
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "original_error": str(e)}
+                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "original_error": str(e)},
             ) from e
 
         # Data containers
-        concepts: List[Concept] = []
-        references: List[Reference] = []
-        claims: List[Claim] = []
-        
+        concepts: list[Concept] = []
+        references: list[Reference] = []
+        claims: list[Claim] = []
+
         # We also collect raw chunks for the document model
-        chunks: List[DocumentChunk] = []
-        total_tokens = 0 # Estimate
+        chunks: list[DocumentChunk] = []
+        total_tokens = 0  # Estimate
 
         # Regex for DOI
         doi_pattern = re.compile(r"\b(10.\d{4,9}/[-._;()/:A-Z0-9]+)\b", re.IGNORECASE)
 
         current_concept = None
-        current_definition: List[str] = []
+        current_definition: list[str] = []
 
         in_bibliography = False
 
@@ -212,7 +220,7 @@ class KnowledgeBaseParser:
             if any(t in text.lower() for t in KnowledgeBaseParser.BIBLIOGRAPHY_HEADERS):
                 # Loose check: Heading style OR bold OR distinct short text
                 is_header = "heading" in style_name or len(text) < 60
-                
+
                 if is_header:
                     in_bibliography = True
                     # Close previous concept if open
@@ -222,19 +230,19 @@ class KnowledgeBaseParser:
                         # Extract Claims
                         section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
                         for c in section_claims:
-                            # Update context (since Claim is frozen, we might need to recreate or use dict first? 
+                            # Update context (since Claim is frozen, we might need to recreate or use dict first?
                             # Claim is Pydantic. We can use model_copy if needed, but easier to construct directly.
                             # extract_claims now returns Claim objects.
                             # We need to set concept_context. Models are frozen=True.
                             # So we must reconstitute.
                             claims.append(
                                 Claim(
-                                    claim_text=c.claim_text, 
+                                    claim_text=c.claim_text,
                                     citation_keys=c.citation_keys,
                                     citation_text=c.citation_text,
                                     original_markdown=c.original_markdown,
                                     matches_text_citation=c.matches_text_citation,
-                                    concept_context=current_concept
+                                    concept_context=current_concept,
                                 )
                             )
 
@@ -256,7 +264,7 @@ class KnowledgeBaseParser:
                     Reference(
                         citation=citation,
                         short_citation=KnowledgeBaseParser.extract_short_citation(citation),
-                        doi_link=doi_link
+                        doi_link=doi_link,
                     )
                 )
             else:
@@ -268,16 +276,16 @@ class KnowledgeBaseParser:
                             # Extract Claims
                             section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
                         else:
-                            section_claims = [] # No text, no claims
+                            section_claims = []  # No text, no claims
                         for c in section_claims:
                             claims.append(
                                 Claim(
-                                    claim_text=c.claim_text, 
+                                    claim_text=c.claim_text,
                                     citation_keys=c.citation_keys,
                                     citation_text=c.citation_text,
                                     original_markdown=c.original_markdown,
                                     matches_text_citation=c.matches_text_citation,
-                                    concept_context=current_concept
+                                    concept_context=current_concept,
                                 )
                             )
 
@@ -285,7 +293,7 @@ class KnowledgeBaseParser:
                     current_definition = []
                 elif "heading" in style_name or (len(text) < 50 and text.isupper()):
                     # GENERALIZED LOGIC: Use Heading Levels
-                    
+
                     is_structural = False
 
                     # 1. Check Style Level
@@ -314,17 +322,17 @@ class KnowledgeBaseParser:
                             # Extract Claims
                             section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
                         else:
-                             section_claims = []
+                            section_claims = []
 
                         for c in section_claims:
-                             claims.append(
+                            claims.append(
                                 Claim(
-                                    claim_text=c.claim_text, 
+                                    claim_text=c.claim_text,
                                     citation_keys=c.citation_keys,
                                     citation_text=c.citation_text,
                                     original_markdown=c.original_markdown,
                                     matches_text_citation=c.matches_text_citation,
-                                    concept_context=current_concept
+                                    concept_context=current_concept,
                                 )
                             )
 
@@ -349,16 +357,16 @@ class KnowledgeBaseParser:
             else:
                 section_claims = []
             for c in section_claims:
-                  claims.append(
-                        Claim(
-                            claim_text=c.claim_text, 
-                            citation_keys=c.citation_keys,
-                            citation_text=c.citation_text,
-                            original_markdown=c.original_markdown,
-                            matches_text_citation=c.matches_text_citation,
-                            concept_context=current_concept
-                        )
+                claims.append(
+                    Claim(
+                        claim_text=c.claim_text,
+                        citation_keys=c.citation_keys,
+                        citation_text=c.citation_text,
+                        original_markdown=c.original_markdown,
+                        matches_text_citation=c.matches_text_citation,
+                        concept_context=current_concept,
                     )
+                )
 
         # Resolve Claims to Full References
         KnowledgeBaseParser._resolve_claims(claims, references)
@@ -370,16 +378,16 @@ class KnowledgeBaseParser:
                     chunk_id=f"chunk-{i}",
                     content=f"{concept.term}\n\n{concept.definition}",
                     page_number=None,
-                    metadata={"term": concept.term}
+                    metadata={"term": concept.term},
                 )
             )
-            total_tokens += len(concept.definition.split()) # Rough estimate
+            total_tokens += len(concept.definition.split())  # Rough estimate
 
         logger.info(
             f"[KBParser] Extracted {len(concepts)} concepts, "
             f"{len(references)} references, and {len(claims)} claims from DOCX."
         )
-        
+
         return KnowledgeBaseDocument(
             document_id=str(uuid.uuid4()),
             filename=filename,
@@ -390,7 +398,7 @@ class KnowledgeBaseParser:
             references=references,
             claims=claims,
             parsed_at=datetime.now(timezone.utc),
-            metadata={"source": "docx_upload"}
+            metadata={"source": "docx_upload"},
         )
 
     @staticmethod
@@ -403,7 +411,7 @@ class KnowledgeBaseParser:
         return text
 
     @staticmethod
-    def extract_short_citation(full_entry: str) -> Optional[str]:
+    def extract_short_citation(full_entry: str) -> str | None:
         """Extracts concise 'Author Year' or 'Author & Author Year' label from a full bibliographic entry.
 
         Supported formats:
@@ -449,7 +457,7 @@ class KnowledgeBaseParser:
 
             # Extract surnames
             authors = []
-            
+
             # Normalize separators to & (Multilingual)
             for sep in KnowledgeBaseParser.AND_MARKERS:
                 authors_part = authors_part.replace(sep, " & ")
@@ -473,9 +481,9 @@ class KnowledgeBaseParser:
             if len(authors) > 2:
                 # Multilingual "et al" - defaulting to "ym." if mostly Finnish context, or "et al."
                 # Ideally detection? Defaulting to "et al." as strict academic standard, or "ym." for consistency with regex.
-                # Let's use "et al." as international standard unless detected otherwise. 
+                # Let's use "et al." as international standard unless detected otherwise.
                 # Actually, previous code used "ym." hardcoded!
-                short_authors = f"{authors[0]} et al." 
+                short_authors = f"{authors[0]} et al."
 
             return f"{short_authors} {year}"
         return None
@@ -521,31 +529,28 @@ class KnowledgeBaseParser:
             raise AppException(
                 message=f"Failed to read Markdown content: {str(e)}",
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "original_error": str(e)}
+                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "original_error": str(e)},
             ) from e
 
         lines = content_str.splitlines()
 
         # Data containers
-        concepts: List[Concept] = []
-        references: List[Reference] = []
-        claims: List[Claim] = []
-        chunks: List[DocumentChunk] = []
+        concepts: list[Concept] = []
+        references: list[Reference] = []
+        claims: list[Claim] = []
+        chunks: list[DocumentChunk] = []
         total_tokens = 0
 
         # Regex for DOI
         doi_pattern = re.compile(r"\b(10.\d{4,9}/[-._;()/:A-Z0-9]+)\b", re.IGNORECASE)
-        
+
         # Regex for Bibliography Header (Multilingual)
         # Construct pattern from BIBLIOGRAPHY_HEADERS
         headers_pattern_str = "|".join(re.escape(h) for h in KnowledgeBaseParser.BIBLIOGRAPHY_HEADERS)
-        
+
         # Allow HTML tags (like <a id="...">) between #'s and the text
-        bib_header_pattern = re.compile(
-            r"^#+\s*(?:<[^>]+>\s*)*(" + headers_pattern_str + r")", 
-            re.IGNORECASE
-        )
-        
+        bib_header_pattern = re.compile(r"^#+\s*(?:<[^>]+>\s*)*(" + headers_pattern_str + r")", re.IGNORECASE)
+
         # Regex for Concept Header
         concept_header_pattern = re.compile(r"^(#+)\s*(.+)")
 
@@ -553,7 +558,7 @@ class KnowledgeBaseParser:
         anchor_pattern = re.compile(r'(?:\{\#([a-zA-Z0-9_-]+)\}|<a\s+id="([a-zA-Z0-9_-]+)">)')
 
         current_concept = None
-        current_definition: List[str] = []
+        current_definition: list[str] = []
 
         in_bibliography = False
 
@@ -574,12 +579,12 @@ class KnowledgeBaseParser:
                     for c in section_claims:
                         claims.append(
                             Claim(
-                                claim_text=c.claim_text, 
+                                claim_text=c.claim_text,
                                 citation_keys=c.citation_keys,
                                 citation_text=c.citation_text,
                                 original_markdown=c.original_markdown,
                                 matches_text_citation=c.matches_text_citation,
-                                concept_context=current_concept
+                                concept_context=current_concept,
                             )
                         )
 
@@ -620,7 +625,7 @@ class KnowledgeBaseParser:
                             citation=clean_citation,
                             short_citation=KnowledgeBaseParser.extract_short_citation(clean_citation),
                             doi_link=doi_link,
-                            anchor_id=anchor_id
+                            anchor_id=anchor_id,
                         )
                     )
                 else:
@@ -644,12 +649,12 @@ class KnowledgeBaseParser:
                         for c in section_claims:
                             claims.append(
                                 Claim(
-                                    claim_text=c.claim_text, 
+                                    claim_text=c.claim_text,
                                     citation_keys=c.citation_keys,
                                     citation_text=c.citation_text,
                                     original_markdown=c.original_markdown,
                                     matches_text_citation=c.matches_text_citation,
-                                    concept_context=current_concept
+                                    concept_context=current_concept,
                                 )
                             )
 
@@ -671,18 +676,18 @@ class KnowledgeBaseParser:
             for c in section_claims:
                 claims.append(
                     Claim(
-                        claim_text=c.claim_text, 
+                        claim_text=c.claim_text,
                         citation_keys=c.citation_keys,
                         citation_text=c.citation_text,
                         original_markdown=c.original_markdown,
                         matches_text_citation=c.matches_text_citation,
-                        concept_context=current_concept
+                        concept_context=current_concept,
                     )
                 )
 
         # Resolve Claims to Full References
         KnowledgeBaseParser._resolve_claims(claims, references)
-        
+
         # Build chunks
         for i, concept in enumerate(concepts):
             chunks.append(
@@ -690,7 +695,7 @@ class KnowledgeBaseParser:
                     chunk_id=f"chunk-{i}",
                     content=f"{concept.term}\n\n{concept.definition}",
                     page_number=None,
-                    metadata={"term": concept.term}
+                    metadata={"term": concept.term},
                 )
             )
             total_tokens += len(concept.definition.split())
@@ -699,7 +704,7 @@ class KnowledgeBaseParser:
             f"[KBParser] Extracted {len(concepts)} concepts, "
             f"{len(references)} references, and {len(claims)} claims from MD."
         )
-        
+
         return KnowledgeBaseDocument(
             document_id=str(uuid.uuid4()),
             filename=filename,
@@ -710,11 +715,11 @@ class KnowledgeBaseParser:
             references=references,
             claims=claims,
             parsed_at=datetime.now(timezone.utc),
-            metadata={"source": "markdown_upload"}
+            metadata={"source": "markdown_upload"},
         )
 
     @staticmethod
-    def _resolve_claims(claims: List[Claim], references: List[Reference]):
+    def _resolve_claims(claims: list[Claim], references: list[Reference]):
         """Internal Helper: Resolves textual claims to their full bibliographic references.
 
         Populates 'original_markdown' field in claims.
@@ -746,12 +751,12 @@ class KnowledgeBaseParser:
             # SOLUTION:
             # 1. We need to iterate the list and REPLACE items with updated versions.
             pass
-            
+
             # REFACTOR: _resolve_claims should take the list and return a NEW list, or we assume caller knows we need to replace.
             # ACTUALLY: Since we are in strict mode, let's just do it in place by replacing the list elements.
             # BUT frozen objects can't be modified.
             # So: c.original_markdown = ... WILL FAIL.
-            
+
             # We must reconstruct the claim.
             pass
         # Since we cannot modify frozen objects in place easily, we will do a second pass in the main method?

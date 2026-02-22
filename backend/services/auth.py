@@ -6,8 +6,9 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import jwt
 from fastapi import Depends
@@ -41,7 +42,7 @@ class OrganizationRepository:
         """Initialize OrganizationRepository."""
         self.table: AbstractTable = db_client.table("organizations")
 
-    def get_by_id(self, org_id: str) -> Optional[Organization]:
+    def get_by_id(self, org_id: str) -> Organization | None:
         """Retrieves an organization by ID.
 
         Args:
@@ -71,7 +72,7 @@ class OrganizationRepository:
         self.table.insert(org.model_dump())
         return org
 
-    def list_all(self) -> List[Organization]:
+    def list_all(self) -> list[Organization]:
         """List all organizations."""
         results = []
         for o in self.table.all():
@@ -94,7 +95,7 @@ class UserRepository:
         """Initialize UserRepository."""
         self.table: AbstractTable = db_client.table("users")
 
-    def get_by_uid(self, uid: str) -> Optional[User]:
+    def get_by_uid(self, uid: str) -> User | None:
         """Retrieves user by UID.
 
         Args:
@@ -111,7 +112,7 @@ class UserRepository:
             return User(**result)
         return None
 
-    def get_by_email(self, email: str) -> Optional[User]:
+    def get_by_email(self, email: str) -> User | None:
         """Retrieve user by email."""
         # FIX: Use explicit Query object for robustness
         UserQuery = Query()
@@ -126,7 +127,7 @@ class UserRepository:
         self.table.insert(data)
         return user
 
-    def update(self, uid: str, updates: UserUpdate) -> Optional[User]:
+    def update(self, uid: str, updates: UserUpdate) -> User | None:
         """Update a user."""
         user = self.get_by_uid(uid)
         if not user:
@@ -142,7 +143,7 @@ class UserRepository:
         # Return updated
         return self.get_by_uid(uid)
 
-    def list_all(self) -> List[User]:
+    def list_all(self) -> list[User]:
         """List all users."""
         raw_users = self.table.all()
         return [User(**u) for u in raw_users]
@@ -153,7 +154,7 @@ class UserRepository:
         ids = self.table.remove(Query().uid == uid)
         return len(ids) > 0
 
-    def get_by_organization(self, org_id: str) -> List[User]:
+    def get_by_organization(self, org_id: str) -> list[User]:
         """Retrieve all users associated with an organization ID."""
         results = self.table.search(Query().organization_id == org_id)
         return [User(**u) for u in results]
@@ -225,13 +226,12 @@ class AuthService:
                 if not user:
                     raise AuthenticationError(
                         message=f"Impersonated User not found: {uid}",
-                        details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED} # Reusing token code or general
+                        details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED},  # Reusing token code or general
                     )
                 return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
         except jwt.ExpiredSignatureError:
             raise AuthenticationError(
-                message="Token expired",
-                details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED}
+                message="Token expired", details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED}
             ) from None
         except jwt.PyJWTError:
             pass
@@ -249,7 +249,7 @@ class AuthService:
             if not user:
                 raise AuthenticationError(
                     message=f"Mock User not found for UID: {uid}",
-                    details={"error_code": ErrorCodes.PERMISSION_DENIED} # Or similar
+                    details={"error_code": ErrorCodes.PERMISSION_DENIED},  # Or similar
                 )
 
             return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
@@ -283,10 +283,7 @@ class AuthService:
         except Exception as e:
             error_code = "AUTH_TOKEN_VERIFICATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise AuthenticationError(
-                message="Invalid credentials",
-                details={"error_code": error_code}
-            ) from e
+            raise AuthenticationError(message="Invalid credentials", details={"error_code": error_code}) from e
 
     async def create_organization(self, creator_uid: str, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.
@@ -359,14 +356,14 @@ class AuthService:
             if target_org_id == "system":
                 # System org acts as a special bootstrap case, but usually should exist.
                 pass
-            
+
             org_exists = self.org_repo.get_by_id(target_org_id)
             if not org_exists and target_org_id != "system":
-                 raise AppException(
-                     message=f"Target Organization '{target_org_id}' does not exist.",
-                     status_code=404,
-                     details={"error_code": ErrorCodes.VALIDATION_FAILED}
-                 )
+                raise AppException(
+                    message=f"Target Organization '{target_org_id}' does not exist.",
+                    status_code=404,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                )
 
         # Enforce Role Hierarchy
         self._enforce_hierarchy(creator, user_data.role)
@@ -388,11 +385,11 @@ class AuthService:
                     new_uid = existing.uid
                     logger.info(f"User {user_data.email} already in Firebase. Using existing UID.")
                 except Exception:
-                     raise AppException(
-                         message=f"Failed to create Firebase user: {e}",
-                         status_code=500,
-                         details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
-                     ) from e
+                    raise AppException(
+                        message=f"Failed to create Firebase user: {e}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+                    ) from e
         else:
             # Generate a mock UID
             new_uid = f"local_{uuid.uuid4().hex[:8]}"
@@ -442,7 +439,7 @@ class AuthService:
         all_users = self.repo.list_all()
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
-    async def get_users_by_organization(self, organization_id: str) -> List[User]:
+    async def get_users_by_organization(self, organization_id: str) -> list[User]:
         """Async retrieval of all users for a given organization."""
         return await asyncio.to_thread(self.repo.get_by_organization, organization_id)
 
@@ -681,13 +678,13 @@ class AuthService:
                     # Specific error string to be caught by router
                     raise ConflictError(
                         message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
-                        details={"error_code": "LAST_ADMIN_PROTECTION"}
+                        details={"error_code": "LAST_ADMIN_PROTECTION"},
                     )
 
         # 3. Apply Update
         updated = self.repo.update(target_uid, UserUpdate(role=new_role))
         if not updated:
-             raise AppException("User update failed (user reference lost).", status_code=500)
+            raise AppException("User update failed (user reference lost).", status_code=500)
 
         # 4. Audit
         if self.audit_service:
@@ -707,23 +704,25 @@ class AuthService:
         if not self.org_repo.get_by_id("system"):
             logger.info("[AuthService] Creating 'system' Organization.")
             self.org_repo.create(
-                Organization(id="system", name="System Administration", created_at=datetime.now(timezone.utc), tier="enterprise")
+                Organization(
+                    id="system", name="System Administration", created_at=datetime.now(timezone.utc), tier="enterprise"
+                )
             )
 
         # 1. ROOT
         root = self.repo.get_by_uid("root_master")
         if not root:
-             # STRICT DB AUTHORITY: No fallback creation.
-             # User must run 'backend.seed.run_seed' to populate db.json.
-             logger.critical("No Root user found in database! Strict Authority Enforced. Please run seed script.")
-             # We return None or raise? If we raise, app startup crashes.
-             # If we log critical, app starts but Auth might fail.
-             # Let's log CRITICAL and return None/Raise.
-             raise AppException(
-                 message="Root user 'root_master' missing from DB. Run 'python -m backend.seed.run_seed local'.",
-                 status_code=500,
-                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
-             )
+            # STRICT DB AUTHORITY: No fallback creation.
+            # User must run 'backend.seed.run_seed' to populate db.json.
+            logger.critical("No Root user found in database! Strict Authority Enforced. Please run seed script.")
+            # We return None or raise? If we raise, app startup crashes.
+            # If we log critical, app starts but Auth might fail.
+            # Let's log CRITICAL and return None/Raise.
+            raise AppException(
+                message="Root user 'root_master' missing from DB. Run 'python -m backend.seed.run_seed local'.",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            )
 
         if root.organization_id != "system":
             # Fix casing or drift if it was "SYSTEM" or None
@@ -732,11 +731,11 @@ class AuthService:
             root = self.repo.get_by_uid("root_master")  # Refresh
 
         if not root:
-             raise AppException(
-                 message="Failed to obtain Root user.",
-                 status_code=500,
-                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
-             )
+            raise AppException(
+                message="Failed to obtain Root user.",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+            )
 
         return root
 

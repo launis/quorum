@@ -20,10 +20,7 @@ async def test_ingest_knowledge_base_success():
 
     # Act
     response = await ingest_knowledge_base(
-        background_tasks=mock_background_tasks,
-        file=mock_file,
-        service=mock_service,
-        language="en"
+        background_tasks=mock_background_tasks, file=mock_file, service=mock_service, language="en"
     )
 
     # Assert
@@ -35,6 +32,7 @@ async def test_ingest_knowledge_base_success():
     # Verify background task was added
     mock_background_tasks.add_task.assert_called_once()
 
+
 @pytest.mark.asyncio
 async def test_get_ingestion_status_found():
     # Arrange
@@ -43,7 +41,7 @@ async def test_get_ingestion_status_found():
         "status": "completed",
         "progress": 100,
         "stage": "Finished",
-        "result": {"summary": "done"}
+        "result": {"summary": "done"},
     }
 
     # Act
@@ -52,6 +50,7 @@ async def test_get_ingestion_status_found():
     # Assert
     assert result.status == "completed"
     assert result.progress == 100
+
 
 @pytest.mark.asyncio
 async def test_get_ingestion_status_not_found():

@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import List, Optional
 
 from fastapi import status
 
@@ -13,7 +12,7 @@ class ChatLogParser:
     """Parses raw text into structured chat logs with explicit User/AI labeling."""
 
     @staticmethod
-    def parse(text: Optional[str]) -> str:
+    def parse(text: str | None) -> str:
         """Sanitizes chat logs by ensuring speaker labels and normalized formatting.
 
         Args:
@@ -31,9 +30,7 @@ class ChatLogParser:
             error_message = "ChatLogParser received empty input."
             logger.error(f"{error_code}: {error_message}")
             raise AppException(
-                message=error_message,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": error_code}
+                message=error_message, status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}
             )
 
         # DEBUG DIAGNOSTICS (Context Bloat Investigation)
@@ -87,12 +84,12 @@ class ChatLogParser:
     @staticmethod
     def _parse_gemini(text: str) -> str:
         """Parses Gemini copy-pastes where speaker isn't always explicit."""
-        lines = text.split('\n')
-        output: List[str] = []
+        lines = text.split("\n")
+        output: list[str] = []
         role = "User"
 
         # Buffer for current speaker's text
-        current_block: List[str] = []
+        current_block: list[str] = []
 
         for line in lines:
             clean_line = line.strip()
@@ -116,7 +113,7 @@ class ChatLogParser:
                 if current_block:
                     output.append(f"{role}: {' '.join(current_block)}")
                     current_block = []
-                
+
                 # Check for inline content (e.g. "User: Hello")
                 parts = clean_line.split(":", 1)
                 label_candidate = parts[0]
@@ -126,11 +123,11 @@ class ChatLogParser:
                     role = "User"
                 elif label_candidate == "AI":
                     role = "AI"
-                
+
                 # If there is inline content, add it to block to be flushed properly
                 if content_candidate:
                     current_block.append(content_candidate)
-                
+
                 # Continue to next line, now in the correct role
                 continue
 
@@ -146,8 +143,8 @@ class ChatLogParser:
     @staticmethod
     def _parse_chatgpt(text: str) -> str:
         """Parses ChatGPT copy-pastes."""
-        lines = text.split('\n')
-        output: List[str] = []
+        lines = text.split("\n")
+        output: list[str] = []
 
         for line in lines:
             clean = line.strip()
@@ -158,13 +155,12 @@ class ChatLogParser:
             elif clean == "ChatGPT":
                 output.append("\nAI: ")
                 continue
-            
+
             # If plain text, append to last line if it's a header
             if output and output[-1].strip().endswith(":"):
                 output[-1] += clean
             else:
                 output.append(clean)
-
 
         return "\n".join(output).replace("\n\nUser:", "\nUser:").strip()
 
@@ -200,7 +196,7 @@ class ChatLogParser:
         # AI Response (often starting with formatted list or header)
 
         parts = text.split("\u2192")
-        output: List[str] = []
+        output: list[str] = []
 
         # Part 0 is usually initial AI context or Metadata (or explicit previous chat)
         if parts[0].strip():

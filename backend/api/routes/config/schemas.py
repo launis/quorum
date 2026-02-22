@@ -6,12 +6,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from backend.exceptions import ResourceNotFoundError, AppException
-from backend.models.dtos.config import (
-    SchemaInfo,
-    SchemaListResponse,
-    SchemaResponse,
-)
+from backend.exceptions import AppException, ResourceNotFoundError
 from backend.models.domain import (
     AnalystOutput,
     ArchivistOutput,
@@ -29,6 +24,11 @@ from backend.models.domain import (
     TaintedDataContent,
     XAIOutput,
 )
+from backend.models.dtos.config import (
+    SchemaInfo,
+    SchemaListResponse,
+    SchemaResponse,
+)
 from backend.models.workflow import WorkflowDefinition
 
 # ... (imports)
@@ -44,7 +44,6 @@ MODEL_REGISTRY = {
     # Configuration Models
     "workflow_definition": WorkflowDefinition,
     "evaluation_matrix": EvaluationMatrixConfig,
-
     # Agent Output Models (Domain)
     "tainted_data": TaintedDataContent,  # Guard
     "todistus_kartta": AnalystOutput,  # Analyst
@@ -54,11 +53,10 @@ MODEL_REGISTRY = {
     "etiikka_ja_fakta": OverseerData,  # Overseer
     "kausaalinen_auditointi": CausalAnalysis,  # Causal
     "performatiivisuus_auditointi": PerformativityAnalysis,  # Performativity
-    "coaching_plan": CoachingPlan, # Coach
-    "archivist_output": ArchivistOutput, # Archivist
-    "interaction_analysis": InteractionAnalysis, # Interaction
+    "coaching_plan": CoachingPlan,  # Coach
+    "archivist_output": ArchivistOutput,  # Archivist
+    "interaction_analysis": InteractionAnalysis,  # Interaction
     "xai_report": XAIOutput,  # XAI
-
     # Aggregates
     "panel_audit": PanelOutput,
     "evaluation_result": EvaluationResult,
@@ -82,29 +80,28 @@ def get_model_schema(
             raise ResourceNotFoundError(
                 resource_type="Schema",
                 resource_id=model_name,
-                details={"available_models": list(MODEL_REGISTRY.keys()), "error_code": error_code}
+                details={"available_models": list(MODEL_REGISTRY.keys()), "error_code": error_code},
             )
 
         from typing import cast
 
         from pydantic import BaseModel
+
         # Validated existence above
         model_class = cast(type[BaseModel], MODEL_REGISTRY[model_name])
 
         schema = model_class.model_json_schema()
         localized = localize_schema(schema)
-        
+
         return SchemaResponse(model_name=model_name, schema_def=localized)
 
     except Exception as e:
         if isinstance(e, (ResourceNotFoundError, AppException)):
-             raise e
+            raise e
 
         error_code = "SCHEMA_FETCH_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.get("", summary="List Schemas", response_description="All Pydantic Schemas.", response_model=SchemaListResponse)
@@ -123,7 +120,7 @@ def get_schemas() -> SchemaListResponse:
         # 1. Registry (Preferred for SDUI)
         for name, model_cls in MODEL_REGISTRY.items():
             try:
-                json_schema = model_cls.model_json_schema()
+                json_schema = model_cls.model_json_schema()  # type: ignore
                 json_schema = localize_schema(json_schema)
                 # SchemaInfo has alias="schema", so we use that key in dict construction
                 schema_data[name] = SchemaInfo(schema=json_schema)
@@ -158,6 +155,4 @@ def get_schemas() -> SchemaListResponse:
     except Exception as e:
         error_code = "SCHEMA_LIST_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e

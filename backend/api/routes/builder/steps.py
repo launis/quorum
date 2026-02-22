@@ -6,6 +6,8 @@ Handles step listing, details, and customization endpoints.
 import copy
 import logging
 import uuid
+
+from typing import Any
 from fastapi import APIRouter, Body, status
 
 from backend.dependencies import PromptBuilderDep, RepositoryDep
@@ -23,13 +25,17 @@ logger = logging.getLogger(__name__)
 
 # --- Endpoints ---
 
+
 @router.get("/steps", summary="List Steps", response_description="All Steps.", response_model=list[StepDTO])
 async def list_steps(repository: RepositoryDep) -> list[StepDTO]:
     """List all available steps."""
-    return await repository.get_all_steps()
+    steps = await repository.get_all_steps()
+    return [StepDTO.model_validate(s) for s in steps]
 
 
-@router.get("/steps/{step_id}", summary="Get Step Details", response_description="Step configuration.", response_model=StepDTO)
+@router.get(
+    "/steps/{step_id}", summary="Get Step Details", response_description="Step configuration.", response_model=StepDTO
+)
 async def get_step_details(step_id: str, repository: RepositoryDep) -> StepDTO:
     """V2: Get full configuration of a step."""
     step = await repository.get_step_by_id(step_id)
@@ -59,15 +65,17 @@ async def update_step(step_id: str, request: StepUpdateRequest, repository: Repo
     update_data: dict[str, Any] = {}
     if request.name is not None:
         update_data["name"] = request.name
-    if request.execution_config is not None:
-        update_data["execution_config"] = request.execution_config
+    if request.config is not None:
+        update_data["config"] = request.config
 
     await repository.update_step(step_id, update_data)
 
     return StepDTO(**{**step, **update_data})
 
 
-@router.post("/steps/clone", summary="Clone Step", response_description="The new custom step config.", response_model=StepDTO)
+@router.post(
+    "/steps/clone", summary="Clone Step", response_description="The new custom step config.", response_model=StepDTO
+)
 async def clone_step(repository: RepositoryDep, source_step_id: str = Body(..., embed=True)) -> StepDTO:
     """V2: Clone a step to a new Custom Step (Copy-on-Write)."""
     step = await repository.get_step_by_id(source_step_id)
@@ -118,42 +126,35 @@ async def create_custom_step(req: CustomStepCreateRequest, repository: Repositor
     new_step = {
         "id": new_id,
         "name": name,
-        "component": req.component_type,
+        "task_key": req.component_type,
         "description": "Created via Workflow Builder",
-        "execution_config": execution_config,
-        "output_config_component": None,
-        "output_filename": f"{new_id}.json",
-        "is_custom": True,
+        "config": execution_config,
     }
 
     # 4. Save
     try:
         await repository.create_step(new_step)
-        return StepDTO(**new_step)
+        return StepDTO.model_validate(new_step)
     except Exception as e:
         from backend.exceptions import AppException
 
         error_code = "CUSTOM_STEP_CREATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
-            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code, "original_error": str(e)},
         ) from e
-
-
-
 
 
 @router.post(
     "/steps/{step_id}/preview",
     summary="Preview Step Prompt",
     response_description="Generated prompt preview.",
-    response_model=StepPreviewResponse
+    response_model=StepPreviewResponse,
 )
 async def preview_step(
-    step_id: str,
-    repository: RepositoryDep,
-    prompt_builder: PromptBuilderDep
+    step_id: str, repository: RepositoryDep, prompt_builder: PromptBuilderDep
 ) -> StepPreviewResponse:
     """Previews the LLM prompt for a step.
 
@@ -167,7 +168,7 @@ async def preview_step(
         return StepPreviewResponse(
             system_instruction=preview_data.get("system_instruction", ""),
             user_prompt=preview_data.get("user_prompt", ""),
-            agent_class=preview_data.get("agent_class", "Unknown")
+            agent_class=preview_data.get("agent_class", "Unknown"),
         )
 
     except Exception as e:
@@ -175,17 +176,20 @@ async def preview_step(
 
         error_msg = str(e).lower()
         if "not found" in error_msg or "missing" in error_msg:
-             # Map internal StepNotFoundError (if raised by service) or generic lookup failure
-             raise ResourceNotFoundError("Step", step_id)
+            # Map internal StepNotFoundError (if raised by service) or generic lookup failure
+            raise ResourceNotFoundError("Step", step_id)
 
         error_code = "PREVIEW_GENERATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
-@router.get("/utils/generate-id", summary="Generate ID", response_description="A unique ID string.", response_model=GeneratedIdResponse)
+@router.get(
+    "/utils/generate-id",
+    summary="Generate ID",
+    response_description="A unique ID string.",
+    response_model=GeneratedIdResponse,
+)
 async def generate_id(prefix: str = "custom_step") -> GeneratedIdResponse:
     """Generates a unique ID with optional prefix."""
     return GeneratedIdResponse(id=f"{prefix}_{uuid.uuid4().hex[:6]}")

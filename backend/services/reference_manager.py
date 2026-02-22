@@ -4,9 +4,10 @@ import logging
 import re
 from typing import Any
 
-from backend.models.dtos.knowledge_base import KnowledgeBaseSchema, CitationReport
-from backend.exceptions import AppException, ErrorCodes
 from pydantic import ValidationError
+
+from backend.exceptions import AppException, ErrorCodes
+from backend.models.dtos.knowledge_base import CitationReport, KnowledgeBaseSchema
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class ReferenceManager:
                 raise AppException(
                     message="Refusing to initialize ReferenceManager with invalid Knowledge Base.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.KNOWLEDGE_BASE_INVALID, "validation_errors": str(e)}
+                    details={"error_code": ErrorCodes.KNOWLEDGE_BASE_INVALID, "validation_errors": str(e)},
                 ) from e
 
         self.references_map = self._build_reference_map()
@@ -60,7 +61,7 @@ class ReferenceManager:
 
         """
         ref_map = {}
-        
+
         # Safe strict usage of typed KB
         for r in self.kb.references:
             full = r.full_text
@@ -117,7 +118,7 @@ class ReferenceManager:
             raise AppException(
                 message="Critical Regex failure in citation parsing.",
                 status_code=500,
-                details={"error_code": ErrorCodes.CITATION_PARSING_FAILED, "original_error": str(e)}
+                details={"error_code": ErrorCodes.CITATION_PARSING_FAILED, "original_error": str(e)},
             ) from e
 
         for match in matches:

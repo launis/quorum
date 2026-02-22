@@ -27,8 +27,8 @@ The V3.2 iteration enforces a **Unidirectional Data Flow** where the "DNA" of th
 
 ## 2. Advanced Implementation Patterns
 
-### Strict DTO Pattern (The "Air Gap")
-To prevent LLM hallucinations of system metadata (timestamps, IDs), we use a strict **DTO Pattern**:
+### Strict DTO Pattern & Prefixed IDs (The "Air Gap")
+To prevent LLM hallucinations of system metadata (timestamps, IDs) and guarantee relational integrity, we use a strict **DTO Pattern** combined with **Prefixed NewTypes**:
 1.  **LLM Output**: The model generates a lean **PROPOSAL** (DTO), e.g., `PanelOutputDTO`. It contains *only* content (analysis, scores).
 2.  **Python Authority**: The Agent's Python code acts as the **AUTHORITY**. It receives the DTO, validates it, and injects system metadata (Run ID, Timestamp, Model Name).
 3.  **Domain Promotion**: The enriched object is promoted to a full **Domain Model** (e.g., `PanelOutput`) before entering the `WorkflowState`.

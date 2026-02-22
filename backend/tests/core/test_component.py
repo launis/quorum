@@ -1,16 +1,17 @@
+from typing import Any
 
 import pytest
-import asyncio
-from typing import Any, Dict
+
 from backend.core.component import BaseComponent
 from backend.exceptions import AppException, ErrorCodes
 
+
 # Mock Implementation
-class StrictComponent(BaseComponent[Dict[str, Any], str]):
+class StrictComponent(BaseComponent[dict[str, Any], str]):
     async def execute(
         self,
-        input_data: Dict[str, Any],
-        execution_context: Dict[str, Any] | None = None,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> str:
         if "fail" in input_data:
@@ -18,12 +19,14 @@ class StrictComponent(BaseComponent[Dict[str, Any], str]):
             raise AppException(message="Mock Failure", details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR})
         return input_data.get("value", "default")
 
+
 @pytest.mark.asyncio
 async def test_strict_component_execution():
     """Verify strict component works as expected."""
     comp = StrictComponent()
     result = await comp.execute({"value": "test_ok"})
     assert result == "test_ok"
+
 
 @pytest.mark.asyncio
 async def test_strict_component_failure():
@@ -33,6 +36,7 @@ async def test_strict_component_failure():
         await comp.execute({"fail": True})
     assert exc.value.error_code == ErrorCodes.INTERNAL_SERVER_ERROR
 
+
 def test_base_agent_compatibility():
     """Check if BaseAgent can still be imported (signature check)."""
     try:
@@ -40,6 +44,6 @@ def test_base_agent_compatibility():
     except TypeError as e:
         pytest.fail(f"BaseAgent incompatible with new BaseComponent: {e}")
     except ImportError:
-        # Ignore import errors related to missing deps in test env if any, 
+        # Ignore import errors related to missing deps in test env if any,
         # but BaseAgent should import fine.
         pass

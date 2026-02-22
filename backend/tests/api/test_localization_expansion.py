@@ -8,15 +8,18 @@ client = TestClient(app)
 
 import pytest
 
+
 # Mock Auth Dependency
 async def mock_get_current_user():
     return TokenData(uid="test-user", role=UserRole.ADMIN, organization_id="test-org")
+
 
 @pytest.fixture(autouse=True)
 def setup_dependencies():
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
     yield
     app.dependency_overrides.pop(get_current_user_from_header, None)
+
 
 def test_get_generic_schema_fi():
     """Verify that general schemas endpoint respects Accept-Language: fi."""
@@ -36,6 +39,7 @@ def test_get_generic_schema_fi():
     assert properties["name"]["x-ui-label"] == "Työnkulun Nimi"
     assert properties["description"]["x-ui-label"] == "Kuvaus"
 
+
 def test_get_evaluation_matrix_schema_fi():
     """Verify that EvaluationMatrixConfig endpoint respects Accept-Language: fi."""
     headers = {"Accept-Language": "fi-FI"}
@@ -46,6 +50,7 @@ def test_get_evaluation_matrix_schema_fi():
     properties = schema.get("properties", {})
     # Verify new hints added to domain.py
     assert properties["criteria"]["x-ui-group"] == "Arviointikriteerit"
+
 
 def test_get_agents_list_fi():
     """Verify that agents list endpoint localizes input/output schemas."""
@@ -63,6 +68,7 @@ def test_get_agents_list_fi():
         # If any agent has a schema with known keys, it should be translated.
         assert "name" in agent
 
+
 def test_get_schemas_list_fi():
     """Verify that the global schemas list endpoint works and localizes."""
     headers = {"Accept-Language": "fi-FI"}
@@ -75,6 +81,7 @@ def test_get_schemas_list_fi():
         props = data["workflow_definition"]["schema"]["properties"]
         assert props["name"]["x-ui-label"] == "Työnkulun Nimi"
 
+
 from unittest.mock import AsyncMock
 
 from backend.dependencies import get_async_repository
@@ -84,19 +91,13 @@ def test_get_execution_view_fi():
     """Verify that Execution View (Report) is localized."""
     mock_repo = AsyncMock()
     from backend.models.domain.execution import ExecutionRecord
+
     mock_execution = ExecutionRecord(
         id="test-exec-1",
         status="completed",
         results={
-            "step_results": {
-                "step_judge": {
-                    "total_score": 3,
-                "final_verdict": "Good",
-                "scale_min": 1,
-                "scale_max": 5
-                }
-            }
-        }
+            "step_results": {"step_judge": {"total_score": 3, "final_verdict": "Good", "scale_min": 1, "scale_max": 5}}
+        },
     )
     mock_repo.get_execution.return_value = mock_execution
 
@@ -113,6 +114,7 @@ def test_get_execution_view_fi():
     assert response.status_code == 200
     view = response.json()
     import json
+
     print("DEBUG VIEW:", json.dumps(view, indent=2, ensure_ascii=False))
 
     # Check Score Card Title Translation

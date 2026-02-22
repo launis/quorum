@@ -43,4 +43,3 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Res
 # Initialize Limiter with Remote Address as key
 # TODO: In production, configure storage_uri (Redis) for distributed limiting.
 limiter = Limiter(key_func=get_remote_address)
-

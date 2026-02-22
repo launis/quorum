@@ -6,7 +6,7 @@ Handles Creation, Update, Deletion, and Listing of Workflows.
 import copy
 import logging
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, status
@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 # --- Helpers ---
 
+
 async def _expand_workflow(wf: dict[str, Any], repository: RepositoryDep) -> dict[str, Any]:
     """Hydrates step IDs into full step objects using SSOT Registry.
     Hyper-Strict Mode: Only pure string IDs are permitted in the workflow.
@@ -48,7 +49,7 @@ async def _expand_workflow(wf: dict[str, Any], repository: RepositoryDep) -> dic
         if canonical_step:
             # We copy canonical to avoid mutating cache/db result
             merged = canonical_step.copy()
-            
+
             # Ensure 'task_key' exists for frontend strict parsing
             if "task_key" not in merged:
                 merged["task_key"] = merged.get("component", "unknown")
@@ -56,13 +57,15 @@ async def _expand_workflow(wf: dict[str, Any], repository: RepositoryDep) -> dic
             hydrated_steps.append(merged)
         else:
             # Fallback for missing registry component to prevent Frontend Crash
-            logger.warning(f"Workflow {wf.get('id')} references missing registry step {step_id}")
-            hydrated_steps.append({
-                "id": step_id,
-                "name": f"Missing Step ({step_id})",
-                "task_key": "unknown",
-                "is_missing_registry": True
-            })
+            logger.warning(
+                f"\n[ORPHANED STEP DETECTED] Workflow: '{wf.get('name', 'Unknown')}' (ID: {wf.get('id')})\n"
+                f"└── Missing Step ID: '{step_id}'\n"
+                f"└── Action Required: Open this workflow in Cognitive Studio. The missing step will be highlighted in red. "
+                f"Delete it from the workflow graph or restore the step definition to your database."
+            )
+            hydrated_steps.append(
+                {"id": step_id, "name": f"Missing Step ({step_id})", "task_key": "unknown", "is_missing_registry": True}
+            )
 
     full_wf["steps"] = hydrated_steps
     return full_wf
@@ -70,7 +73,10 @@ async def _expand_workflow(wf: dict[str, Any], repository: RepositoryDep) -> dic
 
 # --- Endpoints ---
 
-@router.get("/workflows", summary="List Workflows", response_description="All Workflows.", response_model=list[WorkflowResponse])
+
+@router.get(
+    "/workflows", summary="List Workflows", response_description="All Workflows.", response_model=list[WorkflowResponse]
+)
 async def list_workflows(repository: RepositoryDep, current_user: CurrentUserDep) -> list[WorkflowResponse]:
     """List all workflows visible to the current user."""
     raw_wfs = await repository.get_all_workflows(organization_id=current_user.organization_id, role=current_user.role)
@@ -78,7 +84,12 @@ async def list_workflows(repository: RepositoryDep, current_user: CurrentUserDep
     return [WorkflowResponse(**wf) for wf in expanded]
 
 
-@router.post("/workflows", summary="Create Workflow", response_description="Created workflow data.", response_model=WorkflowResponse)
+@router.post(
+    "/workflows",
+    summary="Create Workflow",
+    response_description="Created workflow data.",
+    response_model=WorkflowResponse,
+)
 async def create_workflow(
     request: BuilderWorkflowCreateRequest, repository: RepositoryDep, current_user: CurrentUserDep
 ) -> WorkflowResponse:
@@ -95,12 +106,13 @@ async def create_workflow(
     target_org = current_user.organization_id
     if not target_org:
         from backend.exceptions import AppException
+
         error_code = "WORKFLOW_MISSING_ORGANIZATION_ID"
         logger.error(f"{error_code}: User {current_user.uid} has no organization_id assigned.", exc_info=True)
         raise AppException(
-            message="User must belong to an organization to create workflows.", 
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            details={"error_code": error_code}
+            message="User must belong to an organization to create workflows.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code},
         )
 
     # 3. Visibility Check
@@ -131,10 +143,11 @@ async def create_workflow(
             # We assume client provides IDs or references.
 
     mapped_steps = set(request.default_model_mapping.keys()) if request.default_model_mapping else set()
-    
+
     missing_mapping = requested_step_ids - mapped_steps
     if missing_mapping:
         from backend.exceptions import AppException
+
         error_code = "WORKFLOW_MISSING_MODEL_MAPPING"
         logger.error(f"{error_code}: Steps {missing_mapping} missing from model mapping.")
         raise AppException(
@@ -155,7 +168,6 @@ async def create_workflow(
             "created_at": datetime.now(UTC),
             "organization_id": target_org,
             "is_public": is_public_val,
-
             "status": request.status,
             "version": request.version,
             "scoring_logic": request.scoring_logic,
@@ -176,7 +188,12 @@ async def create_workflow(
         ) from e
 
 
-@router.get("/workflows/{workflow_id}", summary="Get Workflow", response_description="Workflow details.", response_model=WorkflowResponse)
+@router.get(
+    "/workflows/{workflow_id}",
+    summary="Get Workflow",
+    response_description="Workflow details.",
+    response_model=WorkflowResponse,
+)
 async def get_workflow(workflow_id: str, repository: RepositoryDep) -> WorkflowResponse:
     """Get details of a specific workflow."""
     logger.info(f"GET Workflow Request. ID: '{workflow_id}'")
@@ -193,7 +210,12 @@ async def get_workflow(workflow_id: str, repository: RepositoryDep) -> WorkflowR
     return WorkflowResponse(**expanded)
 
 
-@router.put("/workflows/{workflow_id}", summary="Update Workflow", response_description="Updated workflow.", response_model=WorkflowResponse)
+@router.put(
+    "/workflows/{workflow_id}",
+    summary="Update Workflow",
+    response_description="Updated workflow.",
+    response_model=WorkflowResponse,
+)
 async def update_workflow(
     workflow_id: str, request: WorkflowUpdateRequest, repository: RepositoryDep, current_user: CurrentUserDep
 ) -> WorkflowResponse:
@@ -308,12 +330,13 @@ async def update_workflow(
         final_mapping = update_data.get("default_model_mapping", wf.get("default_model_mapping", {})).copy()
 
         # Strict Validation: All steps MUST have a mapping
-        final_step_ids = set(final_steps) # Assuming list of strings (IDs) at this point
+        final_step_id_set = set(final_steps)  # Assuming list of strings (IDs) at this point
         mapped_step_ids = set(final_mapping.keys())
-        
-        missing_mapping = final_step_ids - mapped_step_ids
+
+        missing_mapping = final_step_id_set - mapped_step_ids
         if missing_mapping:
             from backend.exceptions import AppException
+
             error_code = "WORKFLOW_MISSING_MODEL_MAPPING"
             logger.error(f"{error_code}: Steps {missing_mapping} missing from model mapping (Update).")
             raise AppException(
@@ -321,7 +344,7 @@ async def update_workflow(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 details={"error_code": error_code, "missing_steps": list(missing_mapping)},
             )
-            
+
         await repository.update_workflow(workflow_id, update_data)
 
         # Return Result with expanded steps
@@ -331,10 +354,11 @@ async def update_workflow(
 
     except Exception as e:
         from backend.exceptions import AppException
+
         # Allow specialized exceptions to bubble up if already raised
         if isinstance(e, AppException):
-             raise e
-        
+            raise e
+
         error_code = "WORKFLOW_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
@@ -348,7 +372,9 @@ async def update_workflow(
     response_description="Deletion status and cleaned up orphans.",
     response_model=WorkflowDeleteResponse,
 )
-async def delete_workflow(workflow_id: str, repository: RepositoryDep, current_user: CurrentUserDep) -> WorkflowDeleteResponse:
+async def delete_workflow(
+    workflow_id: str, repository: RepositoryDep, current_user: CurrentUserDep
+) -> WorkflowDeleteResponse:
     """Delete a workflow AND its orphan steps (Garbage Collection)."""
     wf = await repository.get_workflow_by_id(workflow_id)
     if not wf:
@@ -386,7 +412,7 @@ async def delete_workflow(workflow_id: str, repository: RepositoryDep, current_u
     # 0. Integrity Check: Execution History
     try:
         all_execs = await repository.get_all_executions()
-        related_execs = [e for e in all_execs if e.get("workflow_id") == workflow_id]
+        related_execs = [e for e in all_execs if getattr(e, "workflow_id", None) == workflow_id]
 
         if related_execs:
             error_code = "WORKFLOW_HAS_EXECUTIONS"
@@ -429,9 +455,10 @@ async def delete_workflow(workflow_id: str, repository: RepositoryDep, current_u
 
     except Exception as e:
         from backend.exceptions import AppException
+
         if isinstance(e, AppException):
-             raise e
-        
+            raise e
+
         error_code = "WORKFLOW_DELETION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
@@ -439,7 +466,12 @@ async def delete_workflow(workflow_id: str, repository: RepositoryDep, current_u
         ) from e
 
 
-@router.post("/workflows/{workflow_id}/copy", summary="Copy Workflow", response_description="The new workflow object.", response_model=WorkflowResponse)
+@router.post(
+    "/workflows/{workflow_id}/copy",
+    summary="Copy Workflow",
+    response_description="The new workflow object.",
+    response_model=WorkflowResponse,
+)
 async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, repository: RepositoryDep) -> WorkflowResponse:
     """Deep Copy a workflow structure (Shallow copy of steps)."""
     original = await repository.get_workflow_by_id(workflow_id)
@@ -471,24 +503,20 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, reposito
         error_code = "WORKFLOW_COPY_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
-            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code, "original_error": str(e)},
         ) from e
-
-
-
 
 
 @router.get(
     "/workflows/{workflow_id}/chain-preview",
     summary="Preview Full Chain",
     response_description="Markdown content of the full chain.",
-    response_model=ChainPreviewResponse
+    response_model=ChainPreviewResponse,
 )
 async def preview_chain(
-    workflow_id: str,
-    repository: RepositoryDep,
-    prompt_builder: PromptBuilderDep
+    workflow_id: str, repository: RepositoryDep, prompt_builder: PromptBuilderDep
 ) -> ChainPreviewResponse:
     """Generates a markdown preview of the entire workflow chain."""
     logger.info(f"Generating chain preview for workflow: {workflow_id}")
@@ -503,6 +531,4 @@ async def preview_chain(
 
         error_code = "CHAIN_PREVIEW_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e

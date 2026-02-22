@@ -15,4 +15,3 @@ router.include_router(executions_router)
 router.include_router(monitor_router)
 router.include_router(artifacts_router)
 router.include_router(views_router)
-

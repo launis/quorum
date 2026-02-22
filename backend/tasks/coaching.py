@@ -11,11 +11,8 @@ def register_coaching_tasks():
     """Registers coaching-related agents with the TaskRegistry."""
     logger.info("Registering coaching tasks...")
 
-    TaskRegistry.register_agent(
-        task_keys=["coach"],
-        agent_cls=CoachAgent,
-        output_model=CoachingPlan
-    )
+    TaskRegistry.register_agent(task_keys=["coach"], agent_cls=CoachAgent, output_model=CoachingPlan)
+
 
 # Execute registration on import
 register_coaching_tasks()

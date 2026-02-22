@@ -5,7 +5,8 @@ retrieving organization details.
 """
 
 import logging
-from typing import Annotated, Any, Dict, List
+from datetime import UTC, datetime
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
@@ -13,7 +14,6 @@ from pydantic import BaseModel
 from backend.dependencies import AuditServiceDep, AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
-from datetime import datetime, UTC
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class OrganizationCreateRequest(BaseModel):
     billing_id: str | None = None
     subscription_status: SubscriptionStatus = SubscriptionStatus.TRIAL
     quota_limit: float = 10.0
-    settings_override: Dict[str, Any] | None = None
+    settings_override: dict[str, Any] | None = None
 
 
 class OrganizationUpdate(BaseModel):
@@ -43,7 +43,7 @@ class OrganizationUpdate(BaseModel):
     quota_limit: float | None = None
     tpm_limit: int | None = None
     rpm_limit: int | None = None
-    settings_override: Dict[str, Any] | None = None
+    settings_override: dict[str, Any] | None = None
 
 
 class OrganizationResponse(BaseModel):
@@ -197,7 +197,7 @@ async def get_my_organization(
     return OrganizationResponse(**Organization(**org).model_dump())
 
 
-@router.get("/", response_model=List[OrganizationResponse])
+@router.get("/", response_model=list[OrganizationResponse])
 async def list_organizations(
     user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
     repo: RepositoryDep,
@@ -254,6 +254,7 @@ async def get_organization(
 
 
 from backend.models.dtos.organization import OrganizationUsageResponse
+
 
 @router.get("/{org_id}/usage", response_model=OrganizationUsageResponse)
 async def get_organization_usage(
@@ -315,6 +316,7 @@ async def get_organization_usage(
 
     except Exception as e:
         from backend.exceptions import AppException
+
         if isinstance(e, AppException):
             raise
 
@@ -561,7 +563,7 @@ async def delete_organization_user(
     # Note: Workflows are Org-owned, so no check needed there.
     user_execs = await repo.get_all_executions(organization_id=org_id)
     active_user_execs = [
-        e for e in user_execs if e.get("user_id") == target_uid and e.get("status") in ["running", "pending", "queued"]
+        e for e in user_execs if getattr(e, "user_id", None) == target_uid and getattr(e, "status", None) in ["running", "pending", "queued"]
     ]
 
     if active_user_execs:

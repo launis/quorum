@@ -3,13 +3,14 @@
 import json
 import logging
 import os
+import uuid
 from typing import Any
 
 from google.cloud import firestore  # type: ignore
 
 from backend.database.repository import AbstractWorkflowRepository
-from backend.models.workflow import WorkflowDefinition
 from backend.models.domain.execution import ExecutionRecord
+from backend.models.workflow import WorkflowDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +249,22 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         results = [doc.to_dict() async for doc in docs]
         return results[0] if results else None
 
+    async def get_matrix_by_id(self, matrix_id: str) -> dict[str, Any] | None:
+        doc = await self.db.collection("matrices").document(matrix_id).get()
+        return doc.to_dict() if doc.exists else None
+
+    async def get_agent_by_id(self, agent_id: str) -> dict[str, Any] | None:
+        doc = await self.db.collection("agents").document(agent_id).get()
+        return doc.to_dict() if doc.exists else None
+
+    async def get_dimension_by_id(self, dimension_id: str) -> dict[str, Any] | None:
+        doc = await self.db.collection("dimensions").document(dimension_id).get()
+        return doc.to_dict() if doc.exists else None
+
+    async def get_output_config_by_id(self, config_id: str) -> dict[str, Any] | None:
+        doc = await self.db.collection("output_configs").document(config_id).get()
+        return doc.to_dict() if doc.exists else None
+
     async def get_workflow_definition(self, workflow_id: str) -> WorkflowDefinition | None:
         """Retrieves workflow definition.
         Strategy:
@@ -360,6 +377,22 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             deleted = True
         return deleted
 
+    async def clear_knowledge_base(self) -> None:
+        """Delete all documents from concepts, references, and claims collections."""
+        all_deleted = True
+        for col in ["concepts", "references", "claims"]:
+            docs = await self.db.collection(col).get()
+            if not docs:
+                continue  # No documents in this collection, move to next
+
+            for doc in docs:
+                try:
+                    await doc.reference.delete()
+                except Exception as e:
+                    logger.error(f"Failed to delete document {doc.id} from collection {col}: {e}")
+                    all_deleted = False  # Mark as false if any deletion fails
+        return None
+
     async def count_workflows(self) -> int:
         """Count total workflows."""
         try:
@@ -390,10 +423,35 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
         return None
 
-    async def get_knowledge_base_items(self) -> list[dict[str, Any]]:
-        """Retrieve all knowledge base items."""
-        docs = await self.db.collection("knowledge_base").stream()
-        return [doc.to_dict() async for doc in docs]
+    async def get_concepts(self) -> list[dict[str, Any]]:
+        c_docs = await self.db.collection("concepts").get()
+        return [doc.to_dict() for doc in c_docs]
+
+    async def get_references(self) -> list[dict[str, Any]]:
+        r_docs = await self.db.collection("references").get()
+        return [doc.to_dict() for doc in r_docs]
+
+    async def get_claims(self) -> list[dict[str, Any]]:
+        cl_docs = await self.db.collection("claims").get()
+        return [doc.to_dict() for doc in cl_docs]
+
+    async def add_concept(self, item: dict[str, Any]) -> str:
+        doc_id = item.setdefault("id", str(uuid.uuid4()) if "uuid" in globals() else "gen_id")
+        doc_ref = self.db.collection("concepts").document(doc_id)
+        await doc_ref.set(item)
+        return doc_id
+
+    async def add_reference(self, item: dict[str, Any]) -> str:
+        doc_id = item.setdefault("id", str(uuid.uuid4()) if "uuid" in globals() else "gen_id")
+        doc_ref = self.db.collection("references").document(doc_id)
+        await doc_ref.set(item)
+        return doc_id
+
+    async def add_claim(self, item: dict[str, Any]) -> str:
+        doc_id = item.setdefault("id", str(uuid.uuid4()) if "uuid" in globals() else "gen_id")
+        doc_ref = self.db.collection("claims").document(doc_id)
+        await doc_ref.set(item)
+        return doc_id
 
     async def get_model_registry(self) -> dict[str, Any]:
         """Retrieve the model registry configuration."""

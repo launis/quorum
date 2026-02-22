@@ -1,19 +1,17 @@
 """Linguistics hooks for analyzing text patterns and language use."""
 
 import logging
-from typing import Any, List, Dict
 
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain import LinguisticsResult, PerformativePattern
-from backend.models.state import WorkflowState
 from backend.models.domain.inputs import WorkflowInputs
-from backend.utils.pydantic_utils import inflate
+from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
 # Structured dictionaries for multi-language support (Zero-Fallback)
-PERFORMATIVE_PATTERNS: Dict[str, List[str]] = {
+PERFORMATIVE_PATTERNS: dict[str, list[str]] = {
     "en": [
         "delve into",
         "tapestry",
@@ -46,7 +44,7 @@ PERFORMATIVE_PATTERNS: Dict[str, List[str]] = {
         "keskeinen rooli",
         "merkittävä rooli",
         "maisema",  # in metaphorical sense "landscape"
-        "kenttä",   # in metaphorical sense "realm"
+        "kenttä",  # in metaphorical sense "realm"
         "luoda tunnetta",
         "mullistava",
         "huippuluokan",
@@ -77,8 +75,9 @@ PERFORMATIVE_PATTERNS: Dict[str, List[str]] = {
         "optimoitu",
         "resonoimaan",
         "navigoida",  # metaphorical
-    ]
+    ],
 }
+
 
 def detect_performative_patterns(state: WorkflowState) -> WorkflowState:
     """HOOK: detect_performative_patterns.
@@ -103,51 +102,49 @@ def detect_performative_patterns(state: WorkflowState) -> WorkflowState:
         raise AppException(
             message="Linguistics Hook received dict state. Strict Pydantic Enforcement Violation.",
             status_code=500,
-            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
         )
-    
+
     # Strict Input Validation
-    input_data = state.context_variables.get("inputs") # Keep for null check
+    input_data = state.context_variables.get("inputs")  # Keep for null check
     inputs = state.get_context("inputs", WorkflowInputs)
-    
+
     if not inputs:
         # Distinguish Missing vs Invalid
         if input_data is None:
-             error_code = ErrorCodes.EMPTY_INPUT
-             msg = "Missing 'inputs' in context_variables."
-             status_code = 400
+            error_code = ErrorCodes.EMPTY_INPUT
+            msg = "Missing 'inputs' in context_variables."
+            status_code = 400
         else:
-             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
-             msg = f"Context 'inputs' is {type(input_data)}, expected WorkflowInputs."
-             status_code = 500
-        
+            error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
+            msg = f"Context 'inputs' is {type(input_data)}, expected WorkflowInputs."
+            status_code = 500
+
         logger.error(f"[LinguisticsHook] {error_code.name}: {msg}")
-        raise AppException(
-            message=msg, status_code=status_code, details={"error_code": error_code}
-        )
-    
+        raise AppException(message=msg, status_code=status_code, details={"error_code": error_code})
+
     # Detect Language
     lang_code = state.context_variables.get("language")
     if not lang_code:
         lang_code = inputs.language or "en"
-    
+
     # Normalize "fi-FI" -> "fi"
     lang_simple = str(lang_code).split("-")[0].lower()
-    
+
     # Select patterns securely
     patterns_to_check = PERFORMATIVE_PATTERNS.get(lang_simple, PERFORMATIVE_PATTERNS["en"])
     logger.debug(f"[LinguisticsHook] Using language '{lang_simple}' with {len(patterns_to_check)} patterns.")
 
-    detected: List[str] = []
-    
+    detected: list[str] = []
+
     # Scan history and product text
     history = inputs.history_text
     product = inputs.product_text
 
     if not history and not product:
-         # Loophole fix: if mandatory inputs are None but inputs dict input handling allowed it,
-         # we treat it as empty text but warn.
-         pass
+        # Loophole fix: if mandatory inputs are None but inputs dict input handling allowed it,
+        # we treat it as empty text but warn.
+        pass
 
     text_to_scan = (str(history or "") + str(product or "")).lower()
 
@@ -157,7 +154,7 @@ def detect_performative_patterns(state: WorkflowState) -> WorkflowState:
 
     # Create strictly typed result
     try:
-        patterns_list: List[PerformativePattern] = []
+        patterns_list: list[PerformativePattern] = []
         if detected:
             for p in detected:
                 # We are creating these from known strings, so we can be sure of structure
@@ -175,9 +172,7 @@ def detect_performative_patterns(state: WorkflowState) -> WorkflowState:
         # Generic catch for Pydantic failures
         error_code = ErrorCodes.VALIDATION_FAILED
         logger.error(f"[LinguisticsHook] {error_code.name}: {e}")
-        raise AppException(
-            message=f"Validation Error: {e}", status_code=500, details={"error_code": error_code}
-        ) from e
+        raise AppException(message=f"Validation Error: {e}", status_code=500, details={"error_code": error_code}) from e
 
     # IMMUTABILITY FIX
     new_context = state.context_variables.copy()

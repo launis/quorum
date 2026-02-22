@@ -123,7 +123,7 @@ Argumentation Structure Analysis.
 | `falsifier_data` | `FalsifierData` | Stress test findings (`stress_test_findings`). |
 | `overseer_data` | `OverseerData` | Fact checks & ethical audit. |
 | `causal_analysis` | `CausalAnalysis` | Counterfactuals & abductive reasoning. |
-| `performativity_analysis` | `PerformativityAnalysis` | `AuthenticityLevel` assessment. |
+x§| `performativity_analysis` | `PerformativityAnalysis` | `AuthenticityLevel` assessment. |
 
 ### 8. Archivist Agent (`ArchivistOutput`)
 Precedent & Compliance Audit.
@@ -165,6 +165,25 @@ Final Report Generation.
 
 ---
 
+## 🏛️ SSOT Data Skeletons (`backend.seed.seed_registry`)
+
+To prevent logic duplication across seeding and database migration operations, the system enforces a **Universal Seed Registry**. 
+
+### `STANDARD_REGISTRY`
+A centralized dictionary mapping NoSQL collection names to their authoritative Pydantic models. This ensures that any change to an API Model is instantly and automatically reflected in the database seeding process without touching `run_seed.py`.
+
+| Dictionary Key | Model | Target ID Field | Purpose |
+| :--- | :--- | :--- | :--- |
+| `workflows` | `WorkflowDefinition` | `id` | Validates entire graph blueprints. |
+| `users` | `User` | `uid` | Validates Firebase-native user identities. |
+| `concepts` | `TypeAdapter(KBConcept)` | `id` | Decoupled knowledge definition strictly typed for concepts. |
+| `references` | `TypeAdapter(KBReference)` | `id` | Decoupled knowledge reference strictly typed. |
+| `claims` | `TypeAdapter(KBClaim)` | `id` | Decoupled knowledge claim strictly typed. |
+
+*   **Fail Fast Validation**: The seeder applies Pydantic's strict validation to every single row in `seed_data.json`. Any failure immediately halts the deployment.
+
+---
+
 ## 🔄 Dynamic Evaluation Models (`backend.models.workflow`)
 
 ### `EvaluationMatrixConfig`
@@ -185,6 +204,24 @@ Defines the graph.
 
 ---
 
+## 🚦 Component REST APIs (Strict Separation)
+
+In the past, the system utilized a polymorphic `/v1/config/components` route returning a massive `ComponentResponse` union containing matrices, agents, output configurations, and text snippets all mixed together. Following the **Strict SSOT Architecture Implementation**, this route has been dismantled to enforce **Fail-Fast** typing and eliminate "ghost data".
+
+Each specific entity now has its own strictly typed API Controller and Pydantic validation model.
+
+| Entity | REST URI | Pydantic Model (Response/Create/Update) | Description |
+| :--- | :--- | :--- | :--- |
+| **Logic Matrices** | `/v1/config/matrices` | `MatrixComponentResponse` | Scoring rubrics with strictly numerical Scales & Criteria. No visual data. |
+| **Active Agents** | `/v1/config/agents` | `AgentComponentResponse` | Model boundaries, prompts, and execution rules. |
+| **Outputs & Reports** | `/v1/config/outputs` | `ConfigComponentResponse` | Defines the final XAI outputs. The *only* location where `ui_hints` are permitted. |
+| **Ontology Dimensions** | `/v1/config/ontology/dimensions` | `DimensionDefinition` | BARS evaluation axes. |
+| **Text Components** | `/v1/config/components` | `TextComponentResponse` | Generic pure text rules and instructions (e.g. system mandates). |
+
+This isolation ensures that a schema error on Matrix creation (e.g. string instead of int) will instantly trigger an RFC 7807 `422 Unprocessable Entity` natively via Pydantic on the `/v1/config/matrices` boundary, protecting downstream agents and the UI from processing poisoned state data.
+
+---
+
 ## 🎭 BFF Transformers & View Models (`backend.api.transformers`)
 
 The Backend-For-Frontend (BFF) layer is responsible for translating the strict, backend-centric State/Domain models into UI-optimized View Models ready for Flutter Server-Driven UI (SDUI) consumption.
@@ -196,3 +233,11 @@ The Backend-For-Frontend (BFF) layer is responsible for translating the strict, 
 ### 2. `ReportTransformer` (Core/Mixin Layer) (`report_core.py`)
 *   **Purpose**: The deeper, monolithic mixin-based implementation responsible for granular data extraction across various specialized agent outputs.
 *   **Role**: Safely parses the complex `WorkflowState` snapshots or `TraceEvent` logs, extracting deeply nested and domain-specific objects. It utilizes strict Pydantic `model_dump()` serialization with Safe Fallbacks to prevent `None` or `Null` values from leaking past the API boundary into the Flutter frontend.
+
+---
+
+## 🧱 UI Hints Normalization (Component Configurations)
+
+To enforce strict Pydantic dataminimalism ("Only carry what you strictly need"), visual rendering dictionaries (`ui_hints`) are purposefully banned globally across the API schema definitions using `extra="forbid"`.
+*   **The Global Ban**: Standard components, agents, matrices, and text components (`AgentComponentResponse`, `MatrixComponentResponse`, etc.) cannot carry visual hints, preventing UI-specific "ghost data" from leaking into deep backend domain logic.
+*   **The Single Exception**: UI layout guidelines (`ui_hints`) are exclusively authorized inside the `ConfigComponentResponse` model (representing `output_configs`). This is the *only* place where UI visual configurations legitimately belong.

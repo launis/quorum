@@ -1,14 +1,14 @@
 """Component definition model."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, TypeVar
 
 # Generic Types for flexible but strict interfaces
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
 
 
-class BaseComponent(ABC, Generic[InputT, OutputT]):
+class BaseComponent[InputT, OutputT](ABC):
     """Abstract base class for all workflow components.
 
     Enforces strictly typed, asynchronous execution contracts.
@@ -23,7 +23,7 @@ class BaseComponent(ABC, Generic[InputT, OutputT]):
     async def execute(
         self,
         input_data: InputT,
-        execution_context: Optional[Dict[str, Any]] = None,
+        execution_context: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> OutputT:
         """Executes the component logic.

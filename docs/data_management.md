@@ -46,6 +46,17 @@ The system utilizes a 3-tier hierarchy to differentiate between development spee
 
 ## 3. Backend Data Layer (`backend/`)
 
+### 3.0. The "No-ORM" Pydantic Architecture
+The Cognitive Quorum backend is uniquely designed **without any traditional Object-Relational Mappers (ORMs)**. There is no SQLAlchemy, Django ORM, Prisma, or isolated database schema definitions. 
+
+**Pydantic V2 is the Absolute Single Source of Truth (SSOT).**
+*   **Validation**: Pydantic validates incoming API requests.
+*   **Datastore**: Pydantic defines the structure written to the database (TinyDB/Firestore).
+*   **Documentation**: Pydantic generates the OpenAPI specifications.
+*   **Seeding**: Pydantic dictates what the seeder scripts accept.
+
+Because NoSQL document stores (TinyDB / Firestore) are used, the system avoids "Object-Relational Impedance Mismatch." Adding a new field to a Pydantic model instantly propagates it throughout the entire slice of the application—from the database to the REST API—without requiring explicitly coded database migrations.
+
 ### Unified Workflow Repository & Storage Drivers
 The system abstracts data access via the **Storage Driver Pattern**, enabling a single repository implementation to support multiple backends with identical business logic.
 
@@ -250,3 +261,27 @@ Limits are enforced at the **Strategy Definition** level in the database (`limit
 *   **Pro Bucket**: Shared by all agents using `deep`/`precise`. (e.g., 500k TPM).
 *   **Flash Bucket**: Shared by all agents using `fast`/`strict`. (e.g., 2M TPM).
 *   **Tuning**: When re-mapping agents to Flash, ensure the Flash strategy has sufficient TPM/RPM limits (e.g., `max_tokens: 65536` to match Flash limits) to handle the increased load.
+
+---
+
+## 11. Database Schema & Firestore Deployment Strategy
+
+The Cognitive Quorum database architecture operates fundamentally under NoSQL best practices. The transition from local `db.json` to Google Cloud Firestore dictates how collections are segregated to guarantee infinite scalability and high-performance querying without relational `JOIN` penalties.
+
+### 11.1. Polymorphic Collections (The Components Table)
+In a relational model, UI Components, Evaluation Matrices, and Output Configurations might live in distinct SQL tables. In our NoSQL architecture, these are purposefully **consolidated into a single `components` collection** leveraging a polymorphic "type" discriminator.
+
+*   **The NoSQL Join Penalty:** Firestore does not support relational JOINs. If matrices and text inputs were separated, rendering a single Dashboard `Step` would require multiple independent HTTP round-trips to the database. By consolidating them, the frontend retrieves the entire UI layout in one continuous stream or a single queried batch (`O(1)` request efficiency).
+*   **Polymorphic Reconstruction:** The backend Pydantic tier seamlessly reconstructs these grouped objects back into their native strongly-typed DTOs (e.g., `EvaluationMatrix`, `OutputConfig`) locally parsing the `"type"` field during API egress.
+*   **Seeder Integrity (`seed_registry.py`)**: Our centralized seeder extracts these from `seed_data.json` visually segregated lists but forcefully pushes them back into the unified `components` collection, abstracting the NoSQL complexity from developers.
+
+### 11.2. Isolated Entities (Users & Organizations)
+Unlike polymorphic data units, Core Entities (like `users` and `organizations`) are strictly isolated into their own dedicated collections.
+
+*   **Security & Granular Permissions (Firestore Rules):** Firestore Security Rules (`firestore.rules`) are enforced path-dependently. Keeping `users` and `organizations` separated allows the system to enforce explicit ACL boundary rules (e.g., `match /users/{userId}` allows self-read, whereas `match /organizations/{id}` requires an `admin` role cache verification).
+*   **Hierarchical Scaling:** Core entities represent independent hierarchies rather than bundled presentation parts. The system queries an Organization's configuration uniquely to enforce quotas long before user-level inputs or component layouts are even evaluated. Attempting to group structural entities limits database-level index efficiencies.
+
+### 11.3. Knowledge Base Decoupling (Strict SSO Separation)
+Previously, the system utilized a polymorphic "One Big Table" approach (`knowledge_base`) to store concepts, references, and claims. To align with the strict Domain-DTO isolation and ensure higher query performance, this was forcefully decoupled.
+*   **Separation of Concerns**: The monolithic `knowledge_base` array is entirely deleted. It has been replaced by three completely independent, strict SSOT physical collections: `concepts`, `references`, and `claims`.
+*   **Metadata Stripping**: During this transition, unauthorized data bags (`metadata`, `hoist_keys`) were stripped completely out of the domain models and the underlying database documents. The NoSQL backend now guarantees type-pure collections without any ghost data fields.

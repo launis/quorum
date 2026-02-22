@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -15,7 +14,7 @@ MOCK_VIEW = {
         "lexical_diversity": 0.5,
         "control_ratio": 0.2,
         "automation_bias": 0.8,
-        "say_do_gap": 0.1
+        "say_do_gap": 0.1,
     },
     "sections": [
         {
@@ -26,33 +25,25 @@ MOCK_VIEW = {
                     "bloom_level": "BLOOM_EVALUATING",
                     "bloom_score": 4.5,
                     "strategic_depth": "STRAT_HIGH",
-                    "strategic_score": 3.0
+                    "strategic_score": 3.0,
                 },
-                "toulmin_analysis": [
-                    {"claim": "X is Y", "warrant": "Because Z"}
-                ],
+                "toulmin_analysis": [{"claim": "X is Y", "warrant": "Because Z"}],
                 "toulmin_score": 5.0,
                 # NEW HOISTED DATA
                 "logic_display": {
                     "bloom_score": 4.5,
                     "bloom_percent": 75.0,
                     "bloom_label_key": "BLOOM_EVALUATING",
-
                     "strategic_score": 3.0,
                     "strategic_percent": 75.0,
                     "strategic_label_key": "STRAT_HIGH",
-
                     "toulmin_score": 5.0,
                     "toulmin_percent": 83.3,
-
                     "quadrant_key": "QUADRANT_VISIONARY",
                     "quadrant_label_key": "QUADRANT_VISIONARY",
                 },
                 "stress_display": {
-                    "fidelity_audit": {
-                        "post_hoc_rationalization_suspected": False,
-                        "reasoning": "Fidelity Verified"
-                    },
+                    "fidelity_audit": {"post_hoc_rationalization_suspected": False, "reasoning": "Fidelity Verified"},
                     "fidelity_help": "Fidelity Help",
                     "abductive_score": 2.5,
                     "abductive_percent": 83.3,
@@ -70,20 +61,22 @@ MOCK_VIEW = {
                             "is_held": True,
                             "color_class": "finding-held",
                             "text_class": "text-held",
-                            "observation": "Observed"
+                            "observation": "Observed",
                         }
-                    ]
+                    ],
                 },
                 "performativity_display": {
                     "authenticity_score": 2.9,
                     "authenticity_percent": 96.6,
                     "authenticity_assessment": "High Authenticity",
                     "authenticity_help": "Authenticity Help",
-                    "heuristics": [{"name": "H1", "flag": False, "color": "green", "icon": "✓"}]
+                    "heuristics": [{"name": "H1", "flag": False, "color": "green", "icon": "✓"}],
                 },
                 "fact_check_display": {
-                    "verified_facts": [{"claim": "Fact 1", "source": "Source A", "color": "green", "label_key": "VERIFIED"}],
-                    "ethical_issues": []
+                    "verified_facts": [
+                        {"claim": "Fact 1", "source": "Source A", "color": "green", "label_key": "VERIFIED"}
+                    ],
+                    "ethical_issues": [],
                 },
                 "security_display": {
                     "threat_detected": False,
@@ -94,7 +87,7 @@ MOCK_VIEW = {
                     "anonymized": True,
                     "anonymized_color": "blue",
                     "anonymized_label": "ANON",
-                    "findings": []
+                    "findings": [],
                 },
                 "profiler_display": {
                     "control_ratio_percent": 85.0,
@@ -110,41 +103,38 @@ MOCK_VIEW = {
                     "say_do_gap_label": "NONE",
                     "say_do_gap_color": "black",
                     "psychological_profile": "Standard Profile",
-                    "intent_analysis": "Clear Intent"
+                    "intent_analysis": "Clear Intent",
                 },
                 "archivist_display": {
                     "compliance_score": 4.8,
                     "compliance_analysis": "Compliant",
                     "compliance_help": "Compliance Help",
-                    "recommendations": ["Rec 1"]
+                    "recommendations": ["Rec 1"],
                 },
                 "driver_display": {
                     "classification": "Strategist",
                     "input_quality_label": "High",
-                    "strategies": ["Strat 1"]
+                    "strategies": ["Strat 1"],
                 },
-                "position_label": "Bloom 4.5 / Toulmin 5.0 (Strat: 3.0)"
-            }
+                "position_label": "Bloom 4.5 / Toulmin 5.0 (Strat: 3.0)",
+            },
         },
         {
             "type": "PROFILER_ANALYSIS",
             "title": "Profiler Test",
             "data": {
-                 "metrics": {
-                    "word_count": 100,
-                    "sentence_count": 10,
-                    "lexical_diversity": 0.5,
-                    "control_ratio": 0.2
-                 }
-            }
-        }
-    ]
+                "metrics": {"word_count": 100, "sentence_count": 10, "lexical_diversity": 0.5, "control_ratio": 0.2}
+            },
+        },
+    ],
 }
+
 
 # Mock Translator
 def mock_translate(key, **kwargs):
     # Return a distinct wrapper to verify usage
     return f"[[{key}]]"
+
 
 def main():
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
@@ -152,10 +142,7 @@ def main():
 
     print(f"Loading templates from: {template_dir}")
 
-    env = Environment(
-        loader=FileSystemLoader(template_dir),
-        autoescape=select_autoescape(['html', 'xml'])
-    )
+    env = Environment(loader=FileSystemLoader(template_dir), autoescape=select_autoescape(["html", "xml"]))
     env.filters["translate"] = mock_translate
 
     try:
@@ -168,10 +155,9 @@ def main():
             "Text Metrics (Tekstimetriikka)",
             "Strategic Depth",
             "Argument Integrity",
-            "ARGUMENTS (TOULMIN)"
+            "ARGUMENTS (TOULMIN)",
         ]
 
-        errors = []
         for s in forbidden_strings:
             if s in rendered:
                 # Be careful, some might be in CSS classes or comments?
@@ -182,7 +168,7 @@ def main():
                 # Exception: "Strategic Depth" label might still be in the gauge header if I missed it.
                 # I changed it to {{ 'Strategic Depth' | translate }} so it should render as [[Strategic Depth]]
 
-                pass # verify visually
+                pass  # verify visually
 
         # Validation 2: Check for successful translation injection
         required_keys = [
@@ -190,7 +176,7 @@ def main():
             "[[COGNITIVE_LEVEL_LABEL]]",
             "[[ARGUMENT_INTEGRITY_LABEL]]",
             "[[LOGIC_MATRIX_LABEL]]",
-            "[[QUADRANT_VISIONARY]]" # from quadrant logic
+            "[[QUADRANT_VISIONARY]]",  # from quadrant logic
         ]
 
         print("--- Verification Results ---")
@@ -216,6 +202,7 @@ def main():
     except Exception as e:
         print(f"Template Rendering Failed: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

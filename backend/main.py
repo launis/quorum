@@ -23,13 +23,13 @@ from backend.api import (
     admin_router,
     agents_router,
     api_router,
+    audit_router,
     auth_router,
     builder_router,
     llm_router,
     organization_router,
     settings_router,
     tools_router,
-    audit_router,
 )
 from backend.context import set_request_context
 from backend.core.registry import TaskRegistry
@@ -142,6 +142,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 
         return response
 
+
 app.add_middleware(RequestIdMiddleware)
 
 
@@ -165,12 +166,13 @@ class LocalizationMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         return response
 
+
 app.add_middleware(LocalizationMiddleware)
 
 
 # --- 4. Global Error Handlers (RFC 7807 Problem Details) ---
 
-from backend.exceptions import AppException, format_validation_error, ErrorCodes
+from backend.exceptions import AppException, ErrorCodes, format_validation_error
 
 
 @app.exception_handler(AppException)
@@ -195,31 +197,35 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     readable_detail = format_validation_error(exc)
 
     # 2. Log: Summary first (easy to read), then details
-    logger.error(f"VALIDATION ERROR: {readable_detail}") 
+    logger.error(f"VALIDATION ERROR: {readable_detail}")
     logger.debug(f"Raw Schema Errors: {exc.errors()}")
 
     # 3. Return RFC 7807 with Error Code for Client Localization
     error_code = ErrorCodes.VALIDATION_FAILED
-    
+
     return JSONResponse(
         status_code=422,
-        content=jsonable_encoder({
-            "type": f"https://api.quorum.fi/errors/validation-failed", # Machine readable URI
-            "title": "Validation Failed", # Fallback title
-            "status": 422,
-            "detail": readable_detail,
-            "instance": str(request.url.path),
-            "extensions": {
-                "error_code": error_code.value, # Client uses this for L10n key
-                "errors": exc.errors()
+        content=jsonable_encoder(
+            {
+                "type": "https://api.quorum.fi/errors/validation-failed",  # Machine readable URI
+                "title": "Validation Failed",  # Fallback title
+                "status": 422,
+                "detail": readable_detail,
+                "instance": str(request.url.path),
+                "extensions": {
+                    "error_code": error_code.value,  # Client uses this for L10n key
+                    "errors": exc.errors(),
+                },
             }
-        }),
+        ),
         media_type="application/problem+json",
     )
 
 
 from slowapi.errors import RateLimitExceeded
+
 from backend.core.rate_limit import rate_limit_exceeded_handler
+
 
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded):
@@ -229,6 +235,7 @@ async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded)
 
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     """Catches standard HTTP errors (404, 405) and returns RFC 7807."""
@@ -237,29 +244,28 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
     # Map HTTP status to approximate error code for L10n
     if exc.status_code == 404:
-        error_code = ErrorCodes.RESOURCE_NOT_FOUND
+        error_code = ErrorCodes.RESOURCE_NOT_FOUND.value
     elif exc.status_code == 401:
-        error_code = ErrorCodes.AUTHENTICATION_FAILED
+        error_code = ErrorCodes.AUTHENTICATION_FAILED.value
     elif exc.status_code == 403:
-        error_code = ErrorCodes.PERMISSION_DENIED
+        error_code = ErrorCodes.PERMISSION_DENIED.value
     else:
         error_code = "HTTP_ERROR"
 
     return JSONResponse(
         status_code=exc.status_code,
-        content=jsonable_encoder({
-            "type": "about:blank",
-            "title": "HTTP Error",
-            "status": exc.status_code,
-            "detail": exc.detail,
-            "instance": str(request.url.path),
-            "extensions": {
-                "error_code": error_code.value if hasattr(error_code, "value") else error_code
+        content=jsonable_encoder(
+            {
+                "type": "about:blank",
+                "title": "HTTP Error",
+                "status": exc.status_code,
+                "detail": exc.detail,
+                "instance": str(request.url.path),
+                "extensions": {"error_code": error_code.value if hasattr(error_code, "value") else error_code},
             }
-        }),
+        ),
         media_type="application/problem+json",
     )
-
 
 
 @app.exception_handler(Exception)
@@ -280,9 +286,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         content=error.to_problem_detail(instance=str(request.url.path)),
         media_type="application/problem+json",
     )
-
-
-
 
 
 # --- 5. Routers ---

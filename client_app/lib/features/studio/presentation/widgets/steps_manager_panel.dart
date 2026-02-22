@@ -3,6 +3,8 @@ import 'package:client_app/features/studio/data/studio_repository.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/step_config.dart';
 import 'package:client_app/features/studio/presentation/providers/steps_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/available_matrices_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -210,8 +212,8 @@ class _StepEditor extends HookConsumerWidget {
     final selectedAgent = useState<String>('AnalystAgent');
 
     // Fetch Data for Selectors
-    final componentsFuture = useMemoized(() => repo.getComponents());
-    final componentsSnapshot = useFuture(componentsFuture);
+    final studioState = ref.watch(studioControllerProvider);
+    final matricesState = ref.watch(availableMatricesControllerProvider);
     
     // Derived: Step Prompts
     final llmPrompts = useState<List<String>>([]);
@@ -465,9 +467,9 @@ class _StepEditor extends HookConsumerWidget {
             if (selectedAgent.value == 'JudgeAgent') ...[
                 const SizedBox(height: 16),
                 Text(l10n.stepJudgeConfig, style: const TextStyle(fontWeight: FontWeight.bold)),
-                if (componentsSnapshot.hasData) ...[
+                if (matricesState.hasValue) ...[
                     Builder(builder: (context) {
-                        final matrices = componentsSnapshot.data!.where((c) => c.type == 'evaluation_matrix').toList();
+                        final matrices = matricesState.value ?? [];
                         // Ensure selected ID exists in the list, otherwise null
                         final currentValue = matrices.any((m) => m.id == selectedMatrixId.value) 
                             ? selectedMatrixId.value 
@@ -503,8 +505,8 @@ class _StepEditor extends HookConsumerWidget {
                     icon: const Icon(Icons.add),
                     label: Text(l10n.stepAddPrompt),
                     onPressed: () {
-                         if (componentsSnapshot.hasData) {
-                             showAddPromptDialog(componentsSnapshot.data!);
+                         if (studioState.components.hasValue) {
+                             showAddPromptDialog(studioState.components.value ?? []);
                          }
                     },
                 ),
@@ -513,12 +515,12 @@ class _StepEditor extends HookConsumerWidget {
             const SizedBox(height: 8),
 
             // Prompt Chips
-            componentsSnapshot.hasData 
+            studioState.components.hasValue 
             ? Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: llmPrompts.value.map((pid) {
-                     final comp = componentsSnapshot.data!.firstWhere((c) => c.id == pid, orElse: () => StudioComponentDef(id: pid, name: pid, type: '?', content: const {}));
+                     final comp = (studioState.components.value ?? []).firstWhere((c) => c.id == pid, orElse: () => StudioComponentDef(id: pid, name: pid, type: '?', content: const {}));
                      return InputChip(
                          label: Text(comp.name),
                          tooltip: comp.id,

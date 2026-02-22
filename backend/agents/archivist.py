@@ -4,8 +4,6 @@ import logging
 from typing import Any
 
 # 2. Third Party
-from pydantic import BaseModel
-
 from backend.agents.base import BaseAgent
 from backend.exceptions import AgentExecutionError, ErrorCodes
 
@@ -53,19 +51,17 @@ class ArchivistAgent(BaseAgent[ArchivistInput, ArchivistOutput]):
         precedents = input_data.archivist_precedents
 
         if precedents is None:
-             # If strictly None, dependency injection failed
-             error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
-             error_msg = "[ArchivistAgent] Missing 'archivist_precedents'. Archival Hook not configured or failed."
-             logger.error(f"{error_code}: {error_msg}")
+            # If strictly None, dependency injection failed
+            error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
+            error_msg = "[ArchivistAgent] Missing 'archivist_precedents'. Archival Hook not configured or failed."
+            logger.error(f"{error_code}: {error_msg}")
 
-             raise AgentExecutionError(
-                 detail=error_code,
-                 original_error=ValueError(error_msg),
-                 agent_name="ArchivistAgent"
-             )
-        
+            raise AgentExecutionError(
+                detail=error_code, original_error=ValueError(error_msg), agent_name="ArchivistAgent"
+            )
+
         if not precedents:
-             logger.info("[ArchivistAgent] No precedents found (List is empty). Proceeding without historical context.")
+            logger.info("[ArchivistAgent] No precedents found (List is empty). Proceeding without historical context.")
 
         result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
@@ -74,17 +70,14 @@ class ArchivistAgent(BaseAgent[ArchivistInput, ArchivistOutput]):
         elif isinstance(result_obj, dict):
             return ArchivistOutput(**result_obj)
         else:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"ArchivistAgent returned {type(result_obj)} instead of ArchivistOutput"),
-                 agent_name="ArchivistAgent"
-             )
+            raise AgentExecutionError(
+                detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                original_error=TypeError(f"ArchivistAgent returned {type(result_obj)} instead of ArchivistOutput"),
+                agent_name="ArchivistAgent",
+            )
 
     async def prepare_context(
-        self,
-        input_data: ArchivistInput,
-        execution_context: dict[str, Any] | None,
-        **kwargs: Any
+        self, input_data: ArchivistInput, execution_context: dict[str, Any] | None, **kwargs: Any
     ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
@@ -99,7 +92,7 @@ class ArchivistAgent(BaseAgent[ArchivistInput, ArchivistOutput]):
             str | None: Context string.
         """
         precedents = input_data.archivist_precedents
-        
+
         summary_text = "=== ENNAKKOTAPAUKSET (PRECEDENTS) ===\n"
         if not precedents:
             summary_text += "Ei aiempia tapauksia tiedostossa."
@@ -110,12 +103,10 @@ class ArchivistAgent(BaseAgent[ArchivistInput, ArchivistOutput]):
                 p_date = p.get("date", "Unknown")
                 p_scores = p.get("scores", "N/A")
                 p_verdict = p.get("verdict", "N/A")
-                
-                summary_text += (
-                    f"- Case {p_id} ({p_date}): {p_scores}. Verdict: {p_verdict}\n"
-                )
+
+                summary_text += f"- Case {p_id} ({p_date}): {p_scores}. Verdict: {p_verdict}\n"
         summary_text += "====================================="
-        
+
         return summary_text
 
     # --- PYTHON HOOKS ---

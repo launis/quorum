@@ -4,13 +4,11 @@ import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, Response, status
-from fastapi.responses import JSONResponse
 
 from backend.api.transformers.report_transformer import ReportTransformer
 from backend.database.repository import AbstractWorkflowRepository
 from backend.dependencies import get_async_repository
-from backend.exceptions import AppException, ResourceNotFoundError, ErrorCodes
-from backend.logging_config import log_error
+from backend.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend.models.dtos.execution import ExecutionRawResponse
 from backend.models.dtos.report import XAIFlatReportDTO
 from backend.models.view.sdui import ReportView
@@ -48,7 +46,7 @@ async def get_execution_view(
 
         # Transform logic
         transformer = ReportTransformer(language=accept_language or "en")
-        
+
         # STRICT TYPING MANDATE: Pass Pydantic Model.
         view = transformer.transform(execution)
         return view
@@ -57,7 +55,7 @@ async def get_execution_view(
         raise AppException(
             message=str(e),
             status_code=status.HTTP_404_NOT_FOUND,
-            details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND}
+            details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND},
         ) from e
     except AppException:
         raise
@@ -65,9 +63,7 @@ async def get_execution_view(
         error_code = ErrorCodes.REPORT_GENERATION_FAILED
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         ) from e
 
 
@@ -91,28 +87,43 @@ async def get_flat_report(
         if not execution:
             raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
 
-        if not execution.results or not execution.results.context_variables:
-             raise AppException(
+        if not execution.results:
+            raise AppException(
                 message="Workflow state (results) missing in execution.",
                 status_code=status.HTTP_404_NOT_FOUND,
-                details={"error_code": ErrorCodes.REPORT_NOT_READY}
+                details={"error_code": ErrorCodes.REPORT_NOT_READY},
+            )
+
+        from backend.models.state import WorkflowState
+        
+        ctx = {}
+        if isinstance(execution.results, WorkflowState):
+            ctx = execution.results.context_variables
+        elif isinstance(execution.results, dict):
+            ctx = execution.results.get("context_variables", {})
+            
+        if not ctx:
+            raise AppException(
+                message="Context variables missing in execution.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                details={"error_code": ErrorCodes.REPORT_NOT_READY},
             )
         # Extract from step_xai
-        xai_data = execution.results.context_variables.get("step_xai")
+        xai_data = ctx.get("step_xai")
         if not xai_data or "flat_report" not in xai_data:
-             raise AppException(
+            raise AppException(
                 message="Flat report not found in execution state.",
                 status_code=status.HTTP_404_NOT_FOUND,
-                details={"error_code": ErrorCodes.REPORT_NOT_READY}
+                details={"error_code": ErrorCodes.REPORT_NOT_READY},
             )
-            
+
         return XAIFlatReportDTO(**xai_data["flat_report"])
 
     except ResourceNotFoundError as e:
         raise AppException(
             message=str(e),
             status_code=status.HTTP_404_NOT_FOUND,
-            details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND}
+            details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND},
         ) from e
     except AppException:
         raise
@@ -120,9 +131,7 @@ async def get_flat_report(
         error_code = ErrorCodes.INTERNAL_SERVER_ERROR
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         ) from e
 
 
@@ -149,30 +158,30 @@ async def get_pdf_report(
 
         # Use the standard PDF Service
         from backend.services.pdf_generator import PdfReportService
-        
+
         # We instantiate with repository. Progress service is optional (None).
         service = PdfReportService(repository=repository)
-        
+
         pdf_bytes = await service.generate_execution_pdf(execution_id)
-        
+
         if not pdf_bytes:
-             raise AppException(
+            raise AppException(
                 message="PDF generation failed (empty output).",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.PDF_GENERATION_FAILED}
+                details={"error_code": ErrorCodes.PDF_GENERATION_FAILED},
             )
 
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=report_{execution_id}.pdf"}
+            headers={"Content-Disposition": f"attachment; filename=report_{execution_id}.pdf"},
         )
 
     except ResourceNotFoundError as e:
         raise AppException(
             message=str(e),
             status_code=status.HTTP_404_NOT_FOUND,
-            details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND}
+            details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND},
         ) from e
     except AppException:
         raise
@@ -180,9 +189,7 @@ async def get_pdf_report(
         error_code = ErrorCodes.PDF_GENERATION_FAILED
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         ) from e
 
 
@@ -213,7 +220,7 @@ async def get_execution_json_export(
         # but if it did (line 204 in original was `ReportTransformer(language="en")`), we adjust.
         # My impl assumes static transform.
         transformer = ReportTransformer()
-        
+
         # STRICT TYPING MANDATE (Part 2.4): Pass Pydantic Model, NOT dict.
         view = transformer.transform(execution)
 
@@ -223,9 +230,7 @@ async def get_execution_json_export(
 
     except ResourceNotFoundError as e:
         raise AppException(
-            message=str(e),
-            status_code=status.HTTP_404_NOT_FOUND,
-            details={"error_code": "EXECUTION_NOT_FOUND"}
+            message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": "EXECUTION_NOT_FOUND"}
         ) from e
     except AppException:
         raise
@@ -233,9 +238,7 @@ async def get_execution_json_export(
         error_code = "EXPORT_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         ) from e
 
 
@@ -258,10 +261,11 @@ async def get_execution_raw(
             raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
 
         # Normalize record to dict
-        if hasattr(execution, "model_dump"):
-             execution_dict = execution.model_dump()
+        from pydantic import BaseModel
+        if isinstance(execution, BaseModel):
+            execution_dict: dict[str, Any] = execution.model_dump()
         else:
-             execution_dict = execution
+            execution_dict: dict[str, Any] = dict(execution) # type: ignore
 
         raw_data = {
             "execution_id": execution_dict.get("id"),
@@ -271,7 +275,7 @@ async def get_execution_raw(
             "completed_at": execution_dict.get("completed_at"),
             "duration_seconds": None,
             "inputs": execution_dict.get("inputs", {}),
-            "results": execution_dict.get("results", {}),
+            "results": execution_dict.get("results"), 
             "state": execution_dict.get("state", {}),
             "user_id": execution_dict.get("user_id"),
         }
@@ -279,6 +283,7 @@ async def get_execution_raw(
         if raw_data["started_at"] and raw_data["completed_at"]:
             try:
                 from datetime import datetime
+
                 # Handle inconsistent types (str vs datetime)
                 start_raw = raw_data["started_at"]
                 end_raw = raw_data["completed_at"]
@@ -289,9 +294,7 @@ async def get_execution_raw(
                     else start_raw
                 )
                 end = (
-                    datetime.fromisoformat(str(end_raw).replace("Z", "+00:00"))
-                    if isinstance(end_raw, str)
-                    else end_raw
+                    datetime.fromisoformat(str(end_raw).replace("Z", "+00:00")) if isinstance(end_raw, str) else end_raw
                 )
 
                 if start and end:
@@ -303,9 +306,18 @@ async def get_execution_raw(
         raw_data["agent_outputs"] = {
             key: results.get(key)
             for key in [
-                "step_guard", "step_analyst", "step_profiler", "step_logician",
-                "step_falsifier", "step_causal", "step_detector", "step_overseer",
-                "step_archivist", "step_judge", "step_coach", "step_xai"
+                "step_guard",
+                "step_analyst",
+                "step_profiler",
+                "step_logician",
+                "step_falsifier",
+                "step_causal",
+                "step_detector",
+                "step_overseer",
+                "step_archivist",
+                "step_judge",
+                "step_coach",
+                "step_xai",
             ]
             if results.get(key)
         }

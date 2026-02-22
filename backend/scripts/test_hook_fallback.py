@@ -6,22 +6,19 @@ from backend.models.state import WorkflowState
 
 logging.basicConfig(level=logging.DEBUG)
 
+
 def test_fallback():
     print("Testing Hook Fallback...")
 
     # Scene 1: Flattened Context (simulating what might be in DB)
-    flat_context = {
-        "history_text": "User: Hello.",
-        "product_text": "Product.",
-        "reflection_text": "Reflect."
-    }
+    flat_context = {"history_text": "User: Hello.", "product_text": "Product.", "reflection_text": "Reflect."}
 
     state1 = WorkflowState(
         execution_id=uuid.uuid4(),
         workflow_id="wf_flat",
         status="running",
         execution_trace=[],
-        context_variables=flat_context
+        context_variables=flat_context,
     )
 
     new_state1 = calculate_text_metrics_hook(state1)
@@ -33,16 +30,14 @@ def test_fallback():
         print("FAILURE: Flat context failed.")
 
     # Scene 2: Missing Inputs (empty)
-    empty_context = {
-        "some_other_key": "value"
-    }
+    empty_context = {"some_other_key": "value"}
 
     state2 = WorkflowState(
         execution_id=uuid.uuid4(),
         workflow_id="wf_empty",
         status="running",
         execution_trace=[],
-        context_variables=empty_context
+        context_variables=empty_context,
     )
 
     new_state2 = calculate_text_metrics_hook(state2)
@@ -52,6 +47,7 @@ def test_fallback():
         print(metrics2)
     else:
         print("FAILURE: Empty context result missing.")
+
 
 if __name__ == "__main__":
     test_fallback()

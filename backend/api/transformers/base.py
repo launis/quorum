@@ -1,7 +1,6 @@
-
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Sequence
 
 from backend.exceptions import AppException
 from backend.models.enums import LabelKey, TitleKey
@@ -50,7 +49,7 @@ class BaseTransformer:
             return "-"
 
         # Basic Locale Logic (Expand if using Babel later)
-        is_fi = self.language == 'fi'
+        is_fi = self.language == "fi"
 
         # 2. Formatting
         try:
@@ -71,7 +70,7 @@ class BaseTransformer:
             # Thousand separator (Space for FI, Comma for EN)
 
             # Default (EN-ish)
-            s_en = f"{rounded:,}" # 1,200.5
+            s_en = f"{rounded:,}"  # 1,200.5
 
             if is_fi:
                 # 1 200,5
@@ -84,7 +83,7 @@ class BaseTransformer:
             logger.warning(f"Number formatting failed for '{value}': {e}")
             return str(value)
 
-    def _reconstruct_state_from_trace(self, trace: list[TraceEvent | dict[str, Any]]) -> dict[str, Any]:
+    def _reconstruct_state_from_trace(self, trace: Sequence[TraceEvent | dict[str, Any]]) -> dict[str, Any]:
         """Reconstructs the 'step_results' map from an append-only linear trace."""
         reconstructed = {}
 
@@ -92,11 +91,11 @@ class BaseTransformer:
             for event in trace:
                 # Handle both Pydantic TraceEvent and legacy dict
                 evt_type = event.event_type if isinstance(event, TraceEvent) else event.get("event_type")
-                
+
                 # We are interested in OUTPUT events
                 if evt_type == "output":
                     step_name = event.step_name if isinstance(event, TraceEvent) else event.get("step_name")
-                    
+
                     if not step_name or not isinstance(step_name, str):
                         continue
 
@@ -116,17 +115,17 @@ class BaseTransformer:
                     # Check for reasoning trace availability (optional optimization)
                     if reasoning:
                         if isinstance(reasoning, dict):
-                             content["reasoning_trace"] = reasoning.get("thought_process")
-                        elif hasattr(reasoning, "thought_process"): # Pydantic ReasoningTrace
-                             content["reasoning_trace"] = reasoning.thought_process
+                            content["reasoning_trace"] = reasoning.get("thought_process")
+                        elif hasattr(reasoning, "thought_process"):  # Pydantic ReasoningTrace
+                            content["reasoning_trace"] = reasoning.thought_process
 
                     # Timestamp to metadata
                     if timestamp:
                         if content.get("metadata") is None:
                             content["metadata"] = {}
-                        
+
                         # Normalize Pydantic datetime to string for Dict compatibility (or keep object?)
-                        
+
                         # KEEP ORIGINAL for Pydantic Validation:
                         content["metadata"]["luontiaika"] = timestamp
                         # Add formatted for UI:
@@ -134,6 +133,6 @@ class BaseTransformer:
 
                     reconstructed[step_name] = content
         except Exception as e:
-             raise AppException(f"Failed to reconstruct state from trace: {e}", 500) from e
+            raise AppException(f"Failed to reconstruct state from trace: {e}", 500) from e
 
         return reconstructed

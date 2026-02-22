@@ -77,7 +77,7 @@ def test_delete_nested_default_strategy(mock_settings):
 def test_delete_used_strategy():
     """Ensure deleting a strategy used by a step returns 409."""
     # Setup usage
-    repo = app.dependency_overrides.get(get_async_repository)
+    app.dependency_overrides.get(get_async_repository)
     # Wait, dependency_overrides[get_repository] is a coroutine function.
     # But for TestClient, it instantiates it per request?
     # Actually, to share state with the test, we should modify the override to return a SHARED instance.
@@ -125,4 +125,7 @@ def test_delete_nested_strategy():
     response = client.delete("/v1/config/models/provider_x/strategy_y")
     assert response.status_code == 204
 
-    assert "provider_x" not in shared_repo.registry["models"] or "strategy_y" not in shared_repo.registry["models"]["provider_x"]
+    assert (
+        "provider_x" not in shared_repo.registry["models"]
+        or "strategy_y" not in shared_repo.registry["models"]["provider_x"]
+    )

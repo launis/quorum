@@ -1,26 +1,25 @@
-
-"""
-Extra UI models for specific section types.
+"""Extra UI models for specific section types.
 
 This module defines the structured data payloads for enhanced UiSections
 such as Evidence Tables, Reference Lists, and Timeline Feeds.
 Strictly adhered to Pydantic V2 and SSOT principles.
 """
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # --- 1. Retrieval / Context ---
 
+
 class EvidenceItem(BaseModel):
     """A single piece of evidence or knowledge item."""
+
     id: str = Field(..., description="Unique ID of the item.")
     source: str = Field(..., description="Source document or origin.")
     content: str = Field(..., description="Snippet or summary content.")
     score: float | None = Field(default=None, description="Relevance score (0-1).")
     type: Literal["precedent", "regulation", "concept"] = Field(..., description="Type of evidence.")
-
-
 
     model_config = ConfigDict(frozen=True, strict=True)
 
@@ -34,24 +33,23 @@ class EvidenceItem(BaseModel):
 
 class EvidenceList(BaseModel):
     """Payload for SECTION_TYPE.EVIDENCE_LIST."""
+
     items: list[EvidenceItem] = Field(..., description="List of evidence items.")
     total_count: int = Field(..., description="Total number of items.")
-
-
 
     model_config = ConfigDict(frozen=True, strict=True)
 
 
 # --- 2. Analyst / Hypotheses ---
 
+
 class AnalystHypothesis(BaseModel):
     """A single hypothesis row for the Analyst Table."""
+
     id: str
     claim: str
     proven: bool
     evidence_refs: list[str] = Field(default_factory=list, description="IDs of related evidence.")
-
-
 
     model_config = ConfigDict(frozen=True, strict=True)
 
@@ -65,15 +63,15 @@ class AnalystHypothesis(BaseModel):
 
 class AnalystTable(BaseModel):
     """Payload for SECTION_TYPE.ANALYST_TABLE."""
+
     hypotheses: list[AnalystHypothesis]
     rag_evidence: list[str] | None = Field(default=None, description="Legacy list of evidence strings (deprecated).")
-
-
 
     model_config = ConfigDict(frozen=True, strict=True)
 
 
 # --- 3. Logic / Logician ---
+
 
 class Argument(BaseModel):
     claim: str
@@ -86,6 +84,7 @@ class Argument(BaseModel):
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
+
 
 class LogicDisplay(BaseModel):
     bloom_label: str
@@ -112,6 +111,7 @@ class LogicDisplay(BaseModel):
 
 # --- 4. Falsification / Stress Test ---
 
+
 class StressFinding(BaseModel):
     question: str
     result_label: str
@@ -126,6 +126,7 @@ class StressFinding(BaseModel):
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
+
 
 class FidelityAudit(BaseModel):
     fidelity_score_display: str
@@ -142,6 +143,7 @@ class FidelityAudit(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class StressDisplay(BaseModel):
     fidelity_audit: FidelityAudit | None
     findings: list[StressFinding]
@@ -152,6 +154,7 @@ class StressDisplay(BaseModel):
 
 
 # --- 5. Causal Analyst ---
+
 
 class CausalDisplay(BaseModel):
     abductive_score_display: str
@@ -164,7 +167,13 @@ class CausalDisplay(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True)
 
-    @field_validator("abductive_score_display", "abductive_conclusion", "counterfactual_actual", "counterfactual_simulated", "plausibility_score_display")
+    @field_validator(
+        "abductive_score_display",
+        "abductive_conclusion",
+        "counterfactual_actual",
+        "counterfactual_simulated",
+        "plausibility_score_display",
+    )
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
@@ -172,9 +181,8 @@ class CausalDisplay(BaseModel):
         return v.strip()
 
 
-
-
 # --- 6. Performativity / Detector ---
+
 
 class Heuristic(BaseModel):
     name: str
@@ -189,6 +197,7 @@ class Heuristic(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class PerformativityDisplay(BaseModel):
     authenticity_score: float
     authenticity_percent: float | None
@@ -199,6 +208,7 @@ class PerformativityDisplay(BaseModel):
 
 
 # --- 7. Fact Check / Overseer ---
+
 
 class VerifiedFact(BaseModel):
     label: str
@@ -215,6 +225,7 @@ class VerifiedFact(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class EthicalIssue(BaseModel):
     issue: str
     label: str
@@ -230,6 +241,7 @@ class EthicalIssue(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class FactCheckDisplay(BaseModel):
     verified_facts: list[VerifiedFact]
     ethical_issues: list[EthicalIssue]
@@ -237,6 +249,7 @@ class FactCheckDisplay(BaseModel):
 
 
 # --- 8. Profiler / Control Ratio ---
+
 
 class ProfilerDisplay(BaseModel):
     control_ratio_display: str
@@ -255,7 +268,15 @@ class ProfilerDisplay(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True)
 
-    @field_validator("control_label", "automation_bias_label", "automation_bias_color", "say_do_gap_label", "say_do_gap_color", "psychological_profile", "intent_analysis")
+    @field_validator(
+        "control_label",
+        "automation_bias_label",
+        "automation_bias_color",
+        "say_do_gap_label",
+        "say_do_gap_color",
+        "psychological_profile",
+        "intent_analysis",
+    )
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
@@ -263,9 +284,8 @@ class ProfilerDisplay(BaseModel):
         return v.strip()
 
 
-
-
 # --- 9. Archivist / Compliance ---
+
 
 class ArchivistDisplay(BaseModel):
     compliance_score: float | None
@@ -274,8 +294,8 @@ class ArchivistDisplay(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True)
 
-    # No fields to validate for non-empty string in ArchivistDisplay currently, 
-    # or add correct validator if needed. 
+    # No fields to validate for non-empty string in ArchivistDisplay currently,
+    # or add correct validator if needed.
     # compliance_analysis is str. recommendations is list.
     @field_validator("compliance_analysis")
     @classmethod
@@ -286,6 +306,7 @@ class ArchivistDisplay(BaseModel):
 
 
 # --- 10. Driver Profile / Interaction ---
+
 
 class DriverDisplay(BaseModel):
     classification: str
@@ -302,9 +323,8 @@ class DriverDisplay(BaseModel):
         return v.strip()
 
 
-
-
 # --- 11. Security / Guard ---
+
 
 class SecurityDisplay(BaseModel):
     threat_label: str
@@ -323,9 +343,3 @@ class SecurityDisplay(BaseModel):
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
-
-
-
-
-
-

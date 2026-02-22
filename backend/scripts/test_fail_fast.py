@@ -1,4 +1,3 @@
-
 import logging
 import os
 import sys
@@ -20,6 +19,7 @@ try:
     from backend.hooks.reporting import generate_report
     from backend.hooks.scoring import apply_scoring_logic
     from backend.models.state import WorkflowState
+
     print("Imports successful.")
 except Exception as e:
     print(f"CRITICAL IMPORT ERROR: {e}")
@@ -29,14 +29,11 @@ except Exception as e:
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger("fail_fast_test")
 
+
 def test_scoring_fail_fast():
     print("\n--- Testing ScoringHook Fail Fast ---")
     # specific empty state (no judge)
-    state = WorkflowState(
-        workflow_id="test-scoring-fail",
-        context_variables={},
-        step_judge=None
-    )
+    state = WorkflowState(workflow_id="test-scoring-fail", context_variables={})
 
     try:
         apply_scoring_logic(state)
@@ -53,18 +50,17 @@ def test_scoring_fail_fast():
         print(f"❌ FAILED: Caught wrong exception type: {type(e)}")
         # Print traceback for debugging
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_reporting_fail_fast():
     print("\n--- Testing ReportingHook Fail Fast ---")
     # specific invalid context (missing required fields for ReportContext)
 
-    mock_xai = {"some_data": "value"} # minimal to pass first check
-    state = WorkflowState(
-        workflow_id="test-reporting-fail",
-        context_variables={"step_xai": mock_xai}
-    )
+    mock_xai = {"some_data": "value"}  # minimal to pass first check
+    state = WorkflowState(workflow_id="test-reporting-fail", context_variables={"step_xai": mock_xai})
 
     try:
         generate_report(state)
@@ -80,8 +76,10 @@ def test_reporting_fail_fast():
     except Exception as e:
         print(f"❌ FAILED: Caught wrong exception type: {type(e)}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = True

@@ -39,20 +39,20 @@ class LocalizationService:
 
         try:
             if not cls.L10N_DIR.exists():
-                 # Fail Fast: Missing localization directory is a critical deployment error.
+                # Fail Fast: Missing localization directory is a critical deployment error.
                 raise AppException(
                     message=f"Localization directory not found: {cls.L10N_DIR}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
             json_files = list(cls.L10N_DIR.glob("*.json"))
             if not json_files:
-                 # Fail Fast: No translation files found.
-                 raise AppException(
+                # Fail Fast: No translation files found.
+                raise AppException(
                     message=f"No translation files found in {cls.L10N_DIR}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
             for file_path in json_files:
@@ -62,11 +62,11 @@ class LocalizationService:
                         data = json.load(f)
                         cls._translations[lang_code] = data
                 except Exception as e:
-                     # Fail Fast: Corrupt translation file.
+                    # Fail Fast: Corrupt translation file.
                     raise AppException(
                         message=f"Failed to load translation file {file_path}",
                         status_code=500,
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)}
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)},
                     ) from e
 
             cls._loaded = True
@@ -78,18 +78,18 @@ class LocalizationService:
             raise AppException(
                 message=f"Critical error loading translations: {e}",
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)}
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)},
             ) from e
 
     @classmethod
     def translate(cls, key: str, lang: str | None = None, **kwargs) -> str:
         """Translates a key into the target language with optional interpolation.
-        
+
         Args:
             key (str): The translation key.
             lang (str): The target language code (e.g., 'fi'). If None, uses Context.
             **kwargs: Arguments for string interpolation (e.g., name="User").
-            
+
         Returns:
             str: The translated and formatted string.
         """
@@ -108,7 +108,7 @@ class LocalizationService:
 
         # 2. Try Fallback to English
         if val is None and lang_simple != "en":
-             val = cls._translations.get("en", {}).get(key)
+            val = cls._translations.get("en", {}).get(key)
 
         # 3. Fallback to Key
         if val is None:
@@ -123,14 +123,14 @@ class LocalizationService:
                 raise AppException(
                     message=f"Localization missing argument '{e.args[0]}' for key '{key}' in lang '{lang}'",
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "missing_arg": str(e.args[0])}
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "missing_arg": str(e.args[0])},
                 ) from e
             except Exception as e:
                 # Fail Fast: Invalid format string
                 raise AppException(
                     message=f"Localization format error for key '{key}': {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)}
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)},
                 ) from e
 
         return val
@@ -159,10 +159,10 @@ def localize_schema(schema: dict[str, Any], lang: str | None = None) -> dict[str
         # 2. Translate Generic UI Schema (Workflow Config)
         # Seed data uses "label" for input fields
         if "label" in schema and isinstance(schema["label"], str):
-             # heuristic: only translate if it looks like a key (uppercase start?)
-             # or just always try. If key missing, it falls back to value.
-             # But if value is long English text "1. Chat History...", we don't want to use that as key.
-             # We rely on seed_data being updated to simple keys first.
+            # heuristic: only translate if it looks like a key (uppercase start?)
+            # or just always try. If key missing, it falls back to value.
+            # But if value is long English text "1. Chat History...", we don't want to use that as key.
+            # We rely on seed_data being updated to simple keys first.
             schema["label"] = LocalizationService.translate(schema["label"], lang)
 
         # 3. Recurse into children
@@ -170,7 +170,7 @@ def localize_schema(schema: dict[str, Any], lang: str | None = None) -> dict[str
             schema[key] = localize_schema(value, lang)
 
     elif isinstance(schema, list):
-         for i, item in enumerate(schema):
-             schema[i] = localize_schema(item, lang)
+        for i, item in enumerate(schema):
+            schema[i] = localize_schema(item, lang)
 
     return schema

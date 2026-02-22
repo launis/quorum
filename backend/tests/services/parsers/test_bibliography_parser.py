@@ -1,16 +1,16 @@
 import pytest
-from backend.services.parsers.bibliography_parser import BibliographyParser
+
 from backend.exceptions import AppException
+from backend.services.parsers.bibliography_parser import BibliographyParser
 
 
 class TestBibliographyParser:
-
     def test_detect_bibliography_header(self):
         parser = BibliographyParser()
         text = """
         Some content here.
         More content.
-        
+
         References
         [1] Smith, J. (2020). AI Ethics.
         [2] Doe, A. (2021). Machine Learning.
@@ -24,7 +24,7 @@ class TestBibliographyParser:
         parser = BibliographyParser()
         text = """
         Jotain tekstiä.
-        
+
         Lähdeluettelo
         [1] Virtanen, M. (2020). Tekoäly.
         """
@@ -36,7 +36,7 @@ class TestBibliographyParser:
         parser = BibliographyParser()
         text = """
         Some text.
-        
+
         Bibliography
         [1] Smith, J. (2020). AI Ethics.
         [2] Doe, A. (2021). Machine Learning.
@@ -64,4 +64,4 @@ class TestBibliographyParser:
         parser = BibliographyParser()
         text = "Just some text without references."
         with pytest.raises(AppException):
-            refs = parser.parse_references(text)
+            parser.parse_references(text)

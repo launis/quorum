@@ -12,26 +12,28 @@ class SectionType(str, Enum):
     HEADER = "HEADER"
     KEY_METRICS = "KEY_METRICS"
     EVIDENCE_LIST = "EVIDENCE_LIST"
-    KEY_VALUE_GRID = "KEY_VALUE_GRID" # For structured properties (e.g. Guard flags)
-    DATA_TABLE = "DATA_TABLE"         # For lists of rows (e.g. Hypotheses)
-    ACCORDION = "ACCORDION"           # For nested details
-    USAGE_STATS = "USAGE_STATS"       # Token usage & cost
+    KEY_VALUE_GRID = "KEY_VALUE_GRID"  # For structured properties (e.g. Guard flags)
+    DATA_TABLE = "DATA_TABLE"  # For lists of rows (e.g. Hypotheses)
+    ACCORDION = "ACCORDION"  # For nested details
+    USAGE_STATS = "USAGE_STATS"  # Token usage & cost
 
     # Specialist Agent Sections (Courtroom 3.0 Backbone)
-    LOGIC_ANALYSIS = "LOGIC_ANALYSIS"             # Toulmin & Cognitive Level
-    STRESS_TEST = "STRESS_TEST"                   # Walton Falsification
-    CAUSAL_ANALYSIS = "CAUSAL_ANALYSIS"           # Counterfactuals
-    PERFORMATIVITY_CHECK = "PERFORMATIVITY_CHECK" # Illusion of Competence
-    FACT_CHECK = "FACT_CHECK"                     # Hallucination & Ethics
-    PROFILER_ANALYSIS = "PROFILER_ANALYSIS"       # Biases & Psych Profile
-    ARCHIVIST_CHECK = "ARCHIVIST_CHECK"           # Compliance & Precedents
-    DRIVER_PROFILE = "DRIVER_PROFILE"             # Interaction / Driver Classification
-    SECURITY_CHECK = "SECURITY_CHECK"             # Security / Guard
+    LOGIC_ANALYSIS = "LOGIC_ANALYSIS"  # Toulmin & Cognitive Level
+    STRESS_TEST = "STRESS_TEST"  # Walton Falsification
+    CAUSAL_ANALYSIS = "CAUSAL_ANALYSIS"  # Counterfactuals
+    PERFORMATIVITY_CHECK = "PERFORMATIVITY_CHECK"  # Illusion of Competence
+    FACT_CHECK = "FACT_CHECK"  # Hallucination & Ethics
+    PROFILER_ANALYSIS = "PROFILER_ANALYSIS"  # Biases & Psych Profile
+    ARCHIVIST_CHECK = "ARCHIVIST_CHECK"  # Compliance & Precedents
+    DRIVER_PROFILE = "DRIVER_PROFILE"  # Interaction / Driver Classification
+    SECURITY_CHECK = "SECURITY_CHECK"  # Security / Guard
+
 
 class Authenticity(str, Enum):
     ORGANIC = "AUTH_ORGANIC"
     PERFORMATIVE = "AUTH_PERFORMATIVE"
     UNKNOWN = "AUTH_UNKNOWN"
+
 
 class VerificationResult(str, Enum):
     VERIFIED = "VER_VERIFIED"
@@ -39,14 +41,14 @@ class VerificationResult(str, Enum):
     UNCERTAIN = "VER_UNCERTAIN"
 
 
-
 class EvidenceItem(BaseModel):
     """Strict View Model for a single piece of Evidence."""
+
     id: str
     source: str
     content: str
     score: float | None
-    type: str # "precedent" | "regulation" | "concept"
+    type: str  # "precedent" | "regulation" | "concept"
 
     model_config = ConfigDict(frozen=True, strict=False)
 
@@ -57,12 +59,14 @@ class EvidenceItem(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class MarkdownBlockDisplay(BaseModel):
     """Server-Driven UI Data for Markdown Content."""
+
     content: str
-    
+
     model_config = ConfigDict(frozen=True, strict=False)
-    
+
     @field_validator("content")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
@@ -70,21 +74,27 @@ class MarkdownBlockDisplay(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class EvidenceList(BaseModel):
     """Server-Driven UI Data for Evidence List."""
+
     items: list[EvidenceItem]
     total_count: int
 
     model_config = ConfigDict(frozen=True, strict=False)
 
+
 class UiSection(BaseModel):
     """Abstract UI Section.
     Frontend renders the component based on 'type'.
     """
+
     id: str = Field(..., description="Unique identifier for the section (e.g. 'verdict-card')")
     type: SectionType = Field(..., description="Determines which UI component to render")
     title: str = Field(..., description="User-facing title of the section")
-    data: Any = Field(default_factory=dict, description="Flexible payload specific to the section type (dict or Pydantic Model)")
+    data: Any = Field(
+        default_factory=dict, description="Flexible payload specific to the section type (dict or Pydantic Model)"
+    )
 
     model_config = ConfigDict(frozen=False, strict=False)
 
@@ -95,11 +105,13 @@ class UiSection(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class SystemNotification(BaseModel):
     """Server-Driven Notification for the Report Header."""
+
     title: str
     message: str
-    level: str = "info" # info, warning, danger
+    level: str = "info"  # info, warning, danger
 
     model_config = ConfigDict(frozen=True, strict=False)
 
@@ -115,6 +127,7 @@ class ReportView(BaseModel):
     """Top-level View Model for the Execution Report.
     This replaces the raw 'Execution' object for frontend consumption.
     """
+
     view_id: str = Field(..., description="The Execution ID")
     title: str = Field(default="Auditintiraportti", description="Page title")
     status_theme: str = Field(default="success", description="Visual theme: 'success' | 'warning' | 'danger'")
@@ -134,6 +147,7 @@ class ReportView(BaseModel):
 
 class StepProgressItem(BaseModel):
     """Progress indicator for a single step (BFF)."""
+
     id: str = Field(..., description="Step ID (e.g. step_guard)")
     label: str = Field(..., description="Human-readable label")
     status: str = Field(..., description="Status: pending, running, completed, failed")
@@ -174,9 +188,9 @@ class AssessmentView(BaseModel):
         return v.strip()
 
 
-
 class ToulminDisplay(BaseModel):
     """Strict View Model for Toulmin Arguments."""
+
     claim: str
     warrant: str
 
@@ -189,14 +203,16 @@ class ToulminDisplay(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class LogicAnalysisDisplay(BaseModel):
     """Server-Driven UI Data for Logic Analysis Section.
     Hoists presentation logic (quadrants, percentages, colors) from client to backend.
     """
+
     bloom_score: float | None
     bloom_percent: float | None
     bloom_label_key: str | None
-    bloom_help: str | None # Localized help text
+    bloom_help: str | None  # Localized help text
 
     # Strategic
     strategic_score: float | None
@@ -212,8 +228,8 @@ class LogicAnalysisDisplay(BaseModel):
     toulmin_help: str | None
 
     quadrant_key: str | None
-    quadrant_label_key: str | None # e.g. "QUADRANT_VISIONARY"
-    position_label: str | None     # Pre-formatted "Bloom X / Toulmin Y"
+    quadrant_label_key: str | None  # e.g. "QUADRANT_VISIONARY"
+    position_label: str | None  # Pre-formatted "Bloom X / Toulmin Y"
 
     # Raw Data (for detail views if needed)
     bloom_level_raw: str | None
@@ -223,14 +239,12 @@ class LogicAnalysisDisplay(BaseModel):
     model_config = ConfigDict(frozen=True, strict=False)
 
 
-
-
-
 class HeuristicDisplay(BaseModel):
     """Strict View Model for a single Heuristic."""
+
     name: str
     flag: bool
-    color: str # 'red' | 'green'
+    color: str  # 'red' | 'green'
 
     model_config = ConfigDict(frozen=True, strict=False)
 
@@ -241,8 +255,10 @@ class HeuristicDisplay(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class PerformativityDisplay(BaseModel):
     """Server-Driven UI Data for Performativity Check."""
+
     authenticity_score: float | None
     authenticity_percent: float | None
     authenticity_assessment: str | None
@@ -252,8 +268,10 @@ class PerformativityDisplay(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=False)
 
+
 class CausalDisplay(BaseModel):
     """Server-Driven UI Data for Causal Analysis."""
+
     # Abductive
     abductive_score: float | None
     abductive_score_display: str | None = None
@@ -267,7 +285,7 @@ class CausalDisplay(BaseModel):
     plausibility_score_display: str | None = None
     plausibility_percent: float | None
     plausibility_percent_display: str | None = None
-    plausibility_label: str | None # localized enum
+    plausibility_label: str | None  # localized enum
 
     counterfactual_actual: str | None
     counterfactual_simulated: str | None
@@ -284,9 +302,10 @@ class CausalDisplay(BaseModel):
 
 class VerifiedFactDisplay(BaseModel):
     """Strict View Model for a Verified Fact."""
+
     claim: str | None
     source: str | None
-    color: str # 'green' | 'red' | 'orange'
+    color: str  # 'green' | 'red' | 'orange'
     label_key: str
     label: str | None
     verification_result: str | None
@@ -294,11 +313,13 @@ class VerifiedFactDisplay(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=False)
 
+
 class EthicalIssueDisplay(BaseModel):
     """Strict View Model for an Ethical Issue."""
+
     issue_type: str | None
     description: str | None
-    color: str # 'red' | 'orange'
+    color: str  # 'red' | 'orange'
     label_key: str
     label: str | None
     is_critical: bool
@@ -306,8 +327,10 @@ class EthicalIssueDisplay(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=False)
 
+
 class FactCheckDisplay(BaseModel):
     """Server-Driven UI Data for Fact & Ethics Check."""
+
     verified_facts: list[VerifiedFactDisplay]
     ethical_issues: list[EthicalIssueDisplay]
 
@@ -316,16 +339,17 @@ class FactCheckDisplay(BaseModel):
 
 class SecurityDisplay(BaseModel):
     """Server-Driven UI Data for Security Check."""
+
     threat_detected: bool
-    threat_color: str # 'red' | 'green'
-    threat_label: str # 'UHKA: KYLLÄ' | 'UHKA: EI'
+    threat_color: str  # 'red' | 'green'
+    threat_label: str  # 'UHKA: KYLLÄ' | 'UHKA: EI'
 
     risk_level: str
-    risk_color: str # 'red' | 'orange' | 'green'
+    risk_color: str  # 'red' | 'orange' | 'green'
     risk_label: str | None = None
 
     anonymized: bool
-    anonymized_color: str # 'blue' | 'orange'
+    anonymized_color: str  # 'blue' | 'orange'
     anonymized_label: str
 
     findings: list[str]
@@ -342,10 +366,11 @@ class SecurityDisplay(BaseModel):
 
 class StressFindingDisplay(BaseModel):
     """Single finding for Stress Test."""
+
     question: str
-    result_label: str # "HELD" / "BROKEN" (Localized key or value)
+    result_label: str  # "HELD" / "BROKEN" (Localized key or value)
     is_held: bool
-    color_class: str # "finding-held" / "finding-broken"
+    color_class: str  # "finding-held" / "finding-broken"
     text_class: str  # "text-held" / "text-broken"
     observation: str
 
@@ -361,6 +386,7 @@ class StressFindingDisplay(BaseModel):
 
 class FidelityAudit(BaseModel):
     """Strict View Model for Fidelity Audit."""
+
     fidelity_score_display: str
     fidelity_percent: float | None
     fidelity_label: str
@@ -369,8 +395,10 @@ class FidelityAudit(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=False)
 
+
 class StressTestDisplay(BaseModel):
     """Server-Driven UI Data for Stress Test / Falsifier."""
+
     fidelity_audit: FidelityAudit | None
     fidelity_help: str | None
 
@@ -396,6 +424,7 @@ class StressTestDisplay(BaseModel):
 
 class ProfilerDisplay(BaseModel):
     """Server-Driven UI for Profiler Analysis."""
+
     # Control Ratio
     control_ratio_percent: float | None
     control_label_key: str | None
@@ -417,10 +446,10 @@ class ProfilerDisplay(BaseModel):
 
     # Bias / Gap (Hoisted Thresholds)
     automation_bias_label: str
-    automation_bias_color: str # "red" | "black"
+    automation_bias_color: str  # "red" | "black"
 
     say_do_gap_label: str
-    say_do_gap_color: str # "red" | "black"
+    say_do_gap_color: str  # "red" | "black"
 
     psychological_profile: str | None
     intent_analysis: str | None
@@ -430,6 +459,7 @@ class ProfilerDisplay(BaseModel):
 
 class ArchivistDisplay(BaseModel):
     """Server-Driven UI for Archivist Check."""
+
     compliance_score: float | None
     compliance_score_display: str | None = None
     compliance_analysis: str | None
@@ -441,18 +471,20 @@ class ArchivistDisplay(BaseModel):
 
 class DimensionDisplay(BaseModel):
     """Strict View Model for a single Scoring Dimension."""
+
     dimension_id: str
     dimension_label: str  # Localization key
     score: float
     max_score: float
     weight: float
     reasoning: str
-    
+
     model_config = ConfigDict(frozen=True, strict=False)
 
 
 class ScoreCardDisplay(BaseModel):
     """Server-Driven UI Data for Judge Score Card."""
+
     agent_name: str
     total_score: float
     min_score: int
@@ -465,6 +497,7 @@ class ScoreCardDisplay(BaseModel):
 
 class DriverProfileDisplay(BaseModel):
     """Server-Driven UI for Driver Profile."""
+
     classification: str | None
     input_quality_label: str | None
     strategies: list[str]

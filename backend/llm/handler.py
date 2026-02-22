@@ -7,10 +7,10 @@ from typing import Any
 import openai
 from tinydb import Query
 
-from backend.models.llm import LLMProviderConfig
+from backend.exceptions import ConfigurationError, ErrorCodes, ServiceUnavailableError
 from backend.llm.provider import LLMFactory
+from backend.models.llm import LLMProviderConfig
 from backend.settings import get_settings
-from backend.exceptions import ServiceUnavailableError, ConfigurationError, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +28,8 @@ class LLMHandler:
         """
         try:
             # Dynamic import to avoid top-level crash if library missing
-            from google.cloud import aiplatform_v1
             from google.api_core import client_options as g_client_options
+            from google.cloud import aiplatform_v1
 
             api_endpoint = f"{location}-aiplatform.googleapis.com"
             client = aiplatform_v1.ModelGardenServiceClient(
@@ -123,65 +123,68 @@ class LLMHandler:
                 logger.debug(f"[LLMHandler] Initiating Model Discovery (Source: {source_region})...")
 
                 try:
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+                    import google.auth
                     import litellm
                     import requests
-                    import google.auth
                     from google.auth.transport.requests import Request as GRequest
-                    from concurrent.futures import ThreadPoolExecutor, as_completed
                 except ImportError as ie:
                     from backend.exceptions import ConfigurationError, ErrorCodes
+
                     raise ConfigurationError(
                         message="Missing required dependencies for Google discovery.",
-                        details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING, "original_error": str(ie)}
+                        details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING, "original_error": str(ie)},
                     ) from ie
 
                 # Get all candidates
                 all_models = litellm.model_list
                 candidates = []
                 for m in all_models:
-                    if not isinstance(m, str): continue
+                    if not isinstance(m, str):
+                        continue
                     m_lower = m.lower()
                     if "gemini" in m_lower:
-                         # We prefer vertex_ai prefix, but keep raw 'gemini' if valid
+                        # We prefer vertex_ai prefix, but keep raw 'gemini' if valid
                         if m_lower.startswith("vertex_ai/") or m_lower.startswith("gemini"):
                             candidates.append(m)
-                
+
                 candidates = sorted(list(set(candidates)))
-                
+
                 # 2. Validation (Target Region: Finland / europe-north1)
                 final_list = []
-                
+
                 # Setup Auth (once)
                 try:
-                    credentials, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+                    credentials, project = google.auth.default(
+                        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+                    )
                     credentials.refresh(GRequest())
                     token = credentials.token
                 except Exception as auth_err:
-                     from backend.exceptions import ConfigurationError, ErrorCodes
-                     # Fail Fast: If we can't authenticate, we can't discover or use models.
-                     raise ConfigurationError(
-                         message="Google Authentication failed during discovery.",
-                         details={"error_code": ErrorCodes.AUTHENTICATION_FAILED, "original_error": str(auth_err)}
-                     ) from auth_err
+                    from backend.exceptions import ConfigurationError, ErrorCodes
 
-                headers = {
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                }
+                    # Fail Fast: If we can't authenticate, we can't discover or use models.
+                    raise ConfigurationError(
+                        message="Google Authentication failed during discovery.",
+                        details={"error_code": ErrorCodes.AUTHENTICATION_FAILED, "original_error": str(auth_err)},
+                    ) from auth_err
+
+                headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
                 def check_model(model_id: str) -> str | None:
                     # Clean model ID for API call (strip prefixes)
                     # We want the distinct model ID, e.g. "gemini-1.5-pro"
                     # Input could be "vertex_ai/gemini-1.5-pro", "gemini/gemini-1.5-pro", or just "gemini-1.5-pro"
-                    
+
                     clean_id = model_id
                     for prefix in ["vertex_ai/", "gemini/", "models/"]:
                         if clean_id.startswith(prefix):
-                            clean_id = clean_id[len(prefix):]
-                    
+                            clean_id = clean_id[len(prefix) :]
+
                     # Endpoint: https://{location}-aiplatform.googleapis.com/v1/publishers/google/models/{model}
                     url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/google/models/{clean_id}"
-                    
+
                     try:
                         resp = requests.get(url, headers=headers, timeout=5)
                         if resp.status_code == 200:
@@ -193,16 +196,16 @@ class LLMHandler:
 
                 # Parallel Validation
                 logger.info(f"[LLMHandler] discovering {len(candidates)} models; validating in {target_location}...")
-                
+
                 with ThreadPoolExecutor(max_workers=20) as executor:
                     future_to_model = {executor.submit(check_model, m): m for m in candidates}
                     for future in as_completed(future_to_model):
                         result = future.result()
                         if result:
                             final_list.append(result)
-                
+
                 final_list = sorted(final_list)
-                
+
                 # Fallback if validation fails hard (empty list)
                 if not final_list:
                     # STRICT: We do not fallback. We return empty.
@@ -213,22 +216,25 @@ class LLMHandler:
 
                 models["google"] = final_list
                 self._cached_google_models = final_list
-                
-                logger.info(f"[LLMHandler] Discovered & Validated {len(final_list)} Gemini models in {target_location}.")
+
+                logger.info(
+                    f"[LLMHandler] Discovered & Validated {len(final_list)} Gemini models in {target_location}."
+                )
 
             except Exception as e:
                 # If it's already an AppException, re-raise
-                from backend.exceptions import AppException, ServiceUnavailableError, ErrorCodes
+                from backend.exceptions import AppException, ErrorCodes, ServiceUnavailableError
+
                 if isinstance(e, AppException):
                     raise e
-                
+
                 # Otherwise wrap in ServiceUnavailable (upstream failure)
                 logger.error(f"Error fetching/validating Google models: {e}")
-                
+
                 # STRICT: Do not return error strings. Raise.
                 raise ServiceUnavailableError(
                     message=f"Google Model Discovery Failed: {e}",
-                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED, "original_error": str(e)}
+                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED, "original_error": str(e)},
                 ) from e
 
         # --- OPENAI ---
@@ -247,7 +253,7 @@ class LLMHandler:
                     else:
                         raise ConfigurationError(
                             message="OPENAI_API_KEY not found in environment or settings.",
-                            details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING}
+                            details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING},
                         )
             except Exception as e:
                 # STRICT TYPE SAFETY: Do not assign string error messages to a Dict[str, List[str]]
@@ -345,17 +351,17 @@ class LLMHandler:
 
         temperature = cd.get("temperature")
         if temperature is None:
-             raise ConfigurationError(
-                 message=f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' is missing required 'temperature'.",
-                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
-             )
-        
+            raise ConfigurationError(
+                message=f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' is missing required 'temperature'.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            )
+
         max_tokens = cd.get("max_tokens")
         if max_tokens is None:
-             raise ConfigurationError(
-                 message=f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' is missing required 'max_tokens'.",
-                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
-             )
+            raise ConfigurationError(
+                message=f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' is missing required 'max_tokens'.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            )
 
         # Extract API Key from DB Config
         api_key = cd.get("api_key")
@@ -388,7 +394,7 @@ class LLMHandler:
                 f"[LLM Execution] Strategy: {provider}/{mode} -> Model: {model_name} "
                 f"(Temp: {temperature}, MaxTokens: {max_tokens})"
             )
-            
+
             # Construct strict config object
             # We map dict fields to LLMProviderConfig
             # Note: 'cd' is the raw dict from DB
@@ -410,17 +416,17 @@ class LLMHandler:
 
             # FAIL FAST: Check Active Status
             if not provider_config.is_active:
-                 raise ServiceUnavailableError(
-                     message=f"Model Strategy '{provider}/{mode}' is deactivated.",
-                     details={"error_code": ErrorCodes.SERVICE_DISABLED}
-                 )
+                raise ServiceUnavailableError(
+                    message=f"Model Strategy '{provider}/{mode}' is deactivated.",
+                    details={"error_code": ErrorCodes.SERVICE_DISABLED},
+                )
 
             # Pass config object to factory
             llm_provider = LLMFactory.create_provider(
-                provider_type=provider, # Redundant but kept for signature
+                provider_type=provider,  # Redundant but kept for signature
                 model_name=model_name,  # Redundant but kept for signature
                 config=provider_config,
-                api_key=api_key # Pass explicit key if needed, but config has it
+                api_key=api_key,  # Pass explicit key if needed, but config has it
             )
 
             response = await llm_provider.generate(
@@ -443,4 +449,4 @@ class LLMHandler:
             if isinstance(e, (ServiceUnavailableError, ConfigurationError)):
                 raise e
             logger.error(f"[LLMHandler] Unified Call Failed: {e}", exc_info=True)
-            raise e # Strict raising instead of returning string error
+            raise e  # Strict raising instead of returning string error

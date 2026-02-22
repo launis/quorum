@@ -5,6 +5,7 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def check_step_config():
     db_path = "data/db.json"
     if not os.path.exists(db_path):
@@ -19,7 +20,7 @@ def check_step_config():
         return
 
     # Inspect structure
-    workflows = data.get("workflows", {}) # Seeder likely puts definitions here?
+    data.get("workflows", {})  # Seeder likely puts definitions here?
     # Or in 'workflow_definitions'?
     # Let's check common keys.
 
@@ -51,6 +52,7 @@ def check_step_config():
 
     if not found:
         logger.warning("step_analyst NOT FOUND in db.json")
+
 
 if __name__ == "__main__":
     check_step_config()

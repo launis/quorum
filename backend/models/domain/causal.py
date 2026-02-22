@@ -4,27 +4,25 @@ This module contains the schemas for the Causal Agent,
 including counterfactual testing and abductive reasoning.
 """
 
-
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.models.domain.analyst import AnalystOutput
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.enums import AbductiveConclusion, PlausibilityLevel
-from typing import TYPE_CHECKING
-from backend.models.domain.analyst import AnalystOutput
 
 
 class CausalInput(BaseModel):
     """Strict input schema for CausalAgent."""
+
     history_text: str = Field(..., description="Chat history to analyze.")
-    step_analyst: Optional[AnalystOutput] = Field(None, description="Analyst hypotheses/timeline.")
-    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
+    step_analyst: AnalystOutput | None = Field(None, description="Analyst hypotheses/timeline.")
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
     model_config = ConfigDict(frozen=True, extra="ignore")
-
 
 
 class CausalAnalysisData(BaseModel):
@@ -63,8 +61,12 @@ class CounterfactualTest(BaseModel):
         description="Numeric plausibility (1-3).",
         json_schema_extra={"x-ui-label": "Plausibility Numeric"},
     )
-    actual_scenario: str = Field(..., description="Actual outcome.", json_schema_extra={"x-ui-label": "Actual Scenario"})
-    simulation_result: str = Field(..., description="Simulation outcome.", json_schema_extra={"x-ui-label": "Simulation Result"})
+    actual_scenario: str = Field(
+        ..., description="Actual outcome.", json_schema_extra={"x-ui-label": "Actual Scenario"}
+    )
+    simulation_result: str = Field(
+        ..., description="Simulation outcome.", json_schema_extra={"x-ui-label": "Simulation Result"}
+    )
 
     @field_validator("actual_scenario", "simulation_result")
     @classmethod
@@ -77,22 +79,18 @@ class CounterfactualTest(BaseModel):
     @classmethod
     def calc_plausibility(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            mapping = {
-                PlausibilityLevel.IMPOSSIBLE: 1.0,
-                PlausibilityLevel.PLAUSIBLE: 2.0,
-                PlausibilityLevel.HIGH: 3.0
-            }
+            mapping = {PlausibilityLevel.IMPOSSIBLE: 1.0, PlausibilityLevel.PLAUSIBLE: 2.0, PlausibilityLevel.HIGH: 3.0}
             val = data.get("plausibility_score")
             # If numeric is missing, try to derive from score
             if data.get("plausibility_numeric") is None and val:
-                 try:
+                try:
                     # Pydantic will validate the Enum type later, but here we try to map.
                     # If val is a valid string/enum, we map it.
                     # We don't need to over-validate type here, just map if known.
                     enum_val = val if isinstance(val, PlausibilityLevel) else PlausibilityLevel(val)
                     if enum_val in mapping:
                         data["plausibility_numeric"] = mapping[enum_val]
-                 except ValueError:
+                except ValueError:
                     # Fail Fast: If we have a score but can't map it, it might be invalid.
                     # However, Pydantic's main validation happens *after* this pre-validator (for the field itself).
                     # But if we need the numeric value, we should ensure we can get it.
@@ -138,7 +136,7 @@ class CausalAnalysis(BaseModel):
             mapping = {
                 AbductiveConclusion.POST_HOC: 1.0,
                 AbductiveConclusion.UNCERTAIN: 2.0,
-                AbductiveConclusion.GENUINE: 3.0
+                AbductiveConclusion.GENUINE: 3.0,
             }
             val = data.get("abductive_conclusion")
             if data.get("abductive_score") is None and val:
@@ -155,6 +153,7 @@ class CausalAnalysis(BaseModel):
 
 class CausalDTO(ReasoningTraceDTO):
     """Causal DTO (Content Only)."""
+
     causal_analysis: CausalAnalysis = Field(
         ...,
         description="Causal audit result.",
@@ -165,4 +164,5 @@ class CausalDTO(ReasoningTraceDTO):
 
 class CausalOutput(CausalDTO, ReasoningTrace):
     """Output schema for the Causal Agent."""
+
     model_config = ConfigDict(frozen=True, strict=False)

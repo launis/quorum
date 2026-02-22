@@ -1,6 +1,5 @@
-
 import logging
-from typing import Type, TypeVar, Any, Dict
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -8,7 +7,8 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
-def inflate(data: Any, model_class: Type[T]) -> T | None:
+
+def inflate[T: BaseModel](data: Any, model_class: type[T]) -> T | None:
     """Safely inflates a dictionary or object into a strict Pydantic model.
 
     Args:
@@ -34,8 +34,8 @@ def inflate(data: Any, model_class: Type[T]) -> T | None:
             logger.error(f"Failed to inflate {model_class.__name__}: {e}")
             # Fail Fast: Re-raise or return None? Mandate says "Fail Fast"
             # typically implies raising exceptions for invalid states.
-            # However, returning None is safer for optional steps. 
-            # Context-dependent. Let's start with logging and returning None, 
+            # However, returning None is safer for optional steps.
+            # Context-dependent. Let's start with logging and returning None,
             # allowing the caller to decide if it's fatal.
             return None
 
@@ -47,6 +47,6 @@ def inflate(data: Any, model_class: Type[T]) -> T | None:
         if hasattr(data, "__dict__"):
             return model_class.model_validate(data.__dict__)
     except Exception as e:
-         logger.warning(f"Failed to convert object to {model_class.__name__}: {e}")
+        logger.warning(f"Failed to convert object to {model_class.__name__}: {e}")
 
     return None

@@ -11,16 +11,15 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from backend.database.driver import Filter, StorageDriver
-from backend.database.driver import Filter, StorageDriver
-from backend.models.workflow import WorkflowDefinition
 from backend.models.domain.execution import ExecutionRecord
+from backend.models.workflow import WorkflowDefinition
 
 logger = logging.getLogger(__name__)
 
 
 class AbstractWorkflowRepository(ABC):
     """Abstract base class for asynchronous data access.
-    
+
     Kept for dependency injection compatibility.
     """
 
@@ -140,6 +139,86 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_matrix_by_id(self, matrix_id: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
+    async def get_all_matrices(self) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def create_matrix(self, matrix_data: dict[str, Any]) -> str:
+        pass
+
+    @abstractmethod
+    async def update_matrix(self, matrix_id: str, updates: dict[str, Any]) -> bool:
+        pass
+
+    @abstractmethod
+    async def delete_matrix(self, matrix_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    async def get_agent_by_id(self, agent_id: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
+    async def get_all_agents(self) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def create_agent(self, agent_data: dict[str, Any]) -> str:
+        pass
+
+    @abstractmethod
+    async def update_agent(self, agent_id: str, updates: dict[str, Any]) -> bool:
+        pass
+
+    @abstractmethod
+    async def delete_agent(self, agent_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    async def get_dimension_by_id(self, dimension_id: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
+    async def get_all_dimensions(self) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def create_dimension(self, dimension_data: dict[str, Any]) -> str:
+        pass
+
+    @abstractmethod
+    async def update_dimension(self, dimension_id: str, updates: dict[str, Any]) -> bool:
+        pass
+
+    @abstractmethod
+    async def delete_dimension(self, dimension_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    async def get_output_config_by_id(self, config_id: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
+    async def get_all_output_configs(self) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def create_output_config(self, config_data: dict[str, Any]) -> str:
+        pass
+
+    @abstractmethod
+    async def update_output_config(self, config_id: str, updates: dict[str, Any]) -> bool:
+        pass
+
+    @abstractmethod
+    async def delete_output_config(self, config_id: str) -> bool:
+        pass
+
+    @abstractmethod
     async def update_component(self, component_id: str, updates: dict[str, Any]) -> bool:
         pass
 
@@ -168,7 +247,15 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_knowledge_base_items(self) -> list[dict[str, Any]]:
+    async def get_concepts(self) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_references(self) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_claims(self) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
@@ -228,21 +315,32 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def add_knowledge_base_item(self, item: dict[str, Any]) -> str:
-        """Adds an item to the knowledge base collection.
+    async def add_concept(self, item: dict[str, Any]) -> str:
+        """Adds an item to the concepts collection."""
+        pass
 
-        Args:
-            item: The knowledge base item to add. Must contain an 'id' field.
+    @abstractmethod
+    async def add_reference(self, item: dict[str, Any]) -> str:
+        """Adds an item to the references collection."""
+        pass
 
-        Returns:
-            The ID of the added item.
-        """
+    @abstractmethod
+    async def add_claim(self, item: dict[str, Any]) -> str:
+        """Adds an item to the claims collection."""
+        pass
+
+    @abstractmethod
+    async def get_system_settings(self) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
+    async def update_system_settings(self, updates: dict[str, Any]) -> bool:
         pass
 
 
 class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     """Unified implementation using the StorageDriver pattern.
-    
+
     This replaces both TinyDBRepository and FirestoreWorkflowRepository.
     """
 
@@ -292,6 +390,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         if not data:
             import json
             import os
+
             file_path = f"data/workflows/{workflow_id}.json"
             if os.path.exists(file_path):
                 try:
@@ -305,7 +404,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             else:
                 return None
 
-        # Note: Hydration is strictly handled at the execution (engine.py) 
+        # Note: Hydration is strictly handled at the execution (engine.py)
         # or presentation (_expand_workflow) layer according to Strict SSOT API.
 
         return WorkflowDefinition(**data)
@@ -331,11 +430,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             filters.append(Filter("action", "==", action))
 
         return await self.driver.query(
-            "audit_logs",
-            filters=filters,
-            limit=limit,
-            order_by="timestamp",
-            descending=True
+            "audit_logs", filters=filters, limit=limit, order_by="timestamp", descending=True
         )
 
     async def get_all_workflows(
@@ -417,12 +512,99 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         res = await self.driver.query("components", [Filter("name", "==", name)], limit=1)
         return res[0] if res else None
 
+    async def get_matrix_by_id(self, matrix_id: str) -> dict[str, Any] | None:
+        return await self.driver.get("matrices", matrix_id)
+
+    async def get_all_matrices(self) -> list[dict[str, Any]]:
+        return await self.driver.query("matrices")
+
+    async def create_matrix(self, matrix_data: dict[str, Any]) -> str:
+        doc_id = matrix_data["id"]
+        return await self.driver.upsert("matrices", matrix_data, doc_id)
+
+    async def update_matrix(self, matrix_id: str, updates: dict[str, Any]) -> bool:
+        matrix = await self.get_matrix_by_id(matrix_id)
+        if not matrix:
+            return False
+        return await self.driver.update("matrices", matrix_id, updates)
+
+    async def delete_matrix(self, matrix_id: str) -> bool:
+        matrix = await self.get_matrix_by_id(matrix_id)
+        if not matrix:
+            return False
+        return await self.driver.delete("matrices", matrix_id)
+
+    async def get_agent_by_id(self, agent_id: str) -> dict[str, Any] | None:
+        return await self.driver.get("agents", agent_id)
+
+    async def get_all_agents(self) -> list[dict[str, Any]]:
+        return await self.driver.query("agents")
+
+    async def create_agent(self, agent_data: dict[str, Any]) -> str:
+        doc_id = agent_data["id"]
+        return await self.driver.upsert("agents", agent_data, doc_id)
+
+    async def update_agent(self, agent_id: str, updates: dict[str, Any]) -> bool:
+        agent = await self.get_agent_by_id(agent_id)
+        if not agent:
+            return False
+        return await self.driver.update("agents", agent_id, updates)
+
+    async def delete_agent(self, agent_id: str) -> bool:
+        agent = await self.get_agent_by_id(agent_id)
+        if not agent:
+            return False
+        return await self.driver.delete("agents", agent_id)
+
+    async def get_dimension_by_id(self, dimension_id: str) -> dict[str, Any] | None:
+        return await self.driver.get("dimensions", dimension_id)
+
+    async def get_all_dimensions(self) -> list[dict[str, Any]]:
+        return await self.driver.query("dimensions")
+
+    async def create_dimension(self, dimension_data: dict[str, Any]) -> str:
+        doc_id = dimension_data["id"]
+        return await self.driver.upsert("dimensions", dimension_data, doc_id)
+
+    async def update_dimension(self, dimension_id: str, updates: dict[str, Any]) -> bool:
+        dimension = await self.get_dimension_by_id(dimension_id)
+        if not dimension:
+            return False
+        return await self.driver.update("dimensions", dimension_id, updates)
+
+    async def delete_dimension(self, dimension_id: str) -> bool:
+        dimension = await self.get_dimension_by_id(dimension_id)
+        if not dimension:
+            return False
+        return await self.driver.delete("dimensions", dimension_id)
+
+    async def get_output_config_by_id(self, config_id: str) -> dict[str, Any] | None:
+        return await self.driver.get("output_configs", config_id)
+
+    async def get_all_output_configs(self) -> list[dict[str, Any]]:
+        return await self.driver.query("output_configs")
+
+    async def create_output_config(self, config_data: dict[str, Any]) -> str:
+        doc_id = config_data["id"]
+        return await self.driver.upsert("output_configs", config_data, doc_id)
+
+    async def update_output_config(self, config_id: str, updates: dict[str, Any]) -> bool:
+        config = await self.get_output_config_by_id(config_id)
+        if not config:
+            return False
+        return await self.driver.update("output_configs", config_id, updates)
+
+    async def delete_output_config(self, config_id: str) -> bool:
+        config = await self.get_output_config_by_id(config_id)
+        if not config:
+            return False
+        return await self.driver.delete("output_configs", config_id)
+
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
-        return await self.driver.update(
-            "components",
-            component_id,
-            {"module": module, "class_name": component_class}
-        )
+        comp = await self.get_component_by_id(component_id)
+        if not comp:
+            return False
+        return await self.driver.update("components", component_id, {"module": module, "class_name": component_class})
 
     async def register_component(self, component_data: dict[str, Any]) -> str:
         doc_id = component_data["id"]
@@ -432,9 +614,15 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         return await self.register_component(component_data)
 
     async def update_component(self, component_id: str, updates: dict[str, Any]) -> bool:
+        comp = await self.get_component_by_id(component_id)
+        if not comp:
+            return False
         return await self.driver.update("components", component_id, updates)
 
     async def delete_component(self, component_id: str) -> bool:
+        comp = await self.get_component_by_id(component_id)
+        if not comp:
+            return False
         return await self.driver.delete("components", component_id)
 
     # --- Banned Phrases ---
@@ -447,11 +635,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         existing = await self.driver.query("banned_phrases", [Filter("phrase", "==", phrase)], limit=1)
         if not existing:
             doc_id = str(uuid.uuid4())
-            await self.driver.upsert(
-                "banned_phrases",
-                {"phrase": phrase, "language": language, "id": doc_id},
-                doc_id
-            )
+            await self.driver.upsert("banned_phrases", {"phrase": phrase, "language": language, "id": doc_id}, doc_id)
 
     async def delete_banned_phrase(self, phrase: str) -> bool:
         existing = await self.driver.query("banned_phrases", [Filter("phrase", "==", phrase)], limit=1)
@@ -468,27 +652,42 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         # Check prompts table
         res = await self.driver.get("prompts", template_id)
         if res:
-             return {"system": res.get("system_prompt", ""), "user": res.get("user_prompt", "")}
+            return {"system": res.get("system_prompt", ""), "user": res.get("user_prompt", "")}
 
         # Fallback query by 'id' field if doc_id mismatch
         res_list = await self.driver.query("prompts", [Filter("id", "==", template_id)], limit=1)
         if res_list:
-             res = res_list[0]
-             return {"system": res.get("system_prompt", ""), "user": res.get("user_prompt", "")}
+            res = res_list[0]
+            return {"system": res.get("system_prompt", ""), "user": res.get("user_prompt", "")}
 
         return None
 
-    async def get_knowledge_base_items(self) -> list[dict[str, Any]]:
-        return await self.driver.query("knowledge_base")
+    async def get_concepts(self) -> list[dict[str, Any]]:
+        return await self.driver.query("concepts")
 
-    async def add_knowledge_base_item(self, item: dict[str, Any]) -> str:
-        """Adds an item to the knowledge base collection."""
+    async def get_references(self) -> list[dict[str, Any]]:
+        return await self.driver.query("references")
+
+    async def get_claims(self) -> list[dict[str, Any]]:
+        return await self.driver.query("claims")
+
+    async def add_concept(self, item: dict[str, Any]) -> str:
         doc_id = item["id"]
-        return await self.driver.upsert("knowledge_base", item, doc_id)
+        return await self.driver.upsert("concepts", item, doc_id)
+
+    async def add_reference(self, item: dict[str, Any]) -> str:
+        doc_id = item["id"]
+        return await self.driver.upsert("references", item, doc_id)
+
+    async def add_claim(self, item: dict[str, Any]) -> str:
+        doc_id = item["id"]
+        return await self.driver.upsert("claims", item, doc_id)
 
     async def clear_knowledge_base(self) -> None:
-        """Removes all items from the knowledge base collection."""
-        await self.driver.clear("knowledge_base")
+        """Removes all items from the separated knowledge base collections."""
+        await self.driver.clear("concepts")
+        await self.driver.clear("references")
+        await self.driver.clear("claims")
 
     async def get_model_registry(self) -> dict[str, Any]:
         # Config stored in system_config/model_registry
@@ -497,6 +696,14 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
         registry_data["id"] = "model_registry"
         await self.driver.upsert("system_config", registry_data, "model_registry")
+        return True
+
+    async def get_system_settings(self) -> dict[str, Any] | None:
+        return await self.driver.get("system_config", "global_settings")
+
+    async def update_system_settings(self, updates: dict[str, Any]) -> bool:
+        updates["id"] = "global_settings"
+        await self.driver.upsert("system_config", updates, "global_settings")
         return True
 
     async def count_executions_by_matrix(self, matrix_id: str) -> int:
@@ -512,14 +719,16 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         matches = []
         for m in matrices:
             content = m.get("content", {})
-            if not isinstance(content, dict): continue
+            if not isinstance(content, dict):
+                continue
             criteria = content.get("criteria", [])
-            if not isinstance(criteria, list): continue
+            if not isinstance(criteria, list):
+                continue
 
             for crit in criteria:
-                 if isinstance(crit, dict) and crit.get("dimension_id") == dimension_id:
-                     matches.append(m["id"])
-                     break
+                if isinstance(crit, dict) and crit.get("dimension_id") == dimension_id:
+                    matches.append(m["id"])
+                    break
         return matches
 
     async def log_usage(self, record: Any) -> None:

@@ -1,13 +1,14 @@
 import logging
 import os
-from typing import List, Any
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
 from fastapi import status
+from pydantic import BaseModel, ConfigDict, Field
 
 try:
     import vertexai
-    from vertexai.preview.generative_models import GenerativeModel, Tool, GenerationConfig
+    from vertexai.preview.generative_models import GenerationConfig, GenerativeModel, Tool
+
     VERTEX_AVAILABLE = True
     _IMPORT_ERROR = None
 except ImportError as e:
@@ -70,15 +71,17 @@ class VertexAISearchTool:
                 details={
                     "error_code": error_code,
                     "instruction": "pip install google-cloud-aiplatform",
-                    "original_error": str(_IMPORT_ERROR)
-                }
+                    "original_error": str(_IMPORT_ERROR),
+                },
             )
 
         # 1. Feature Flag Check (Fail Fast - Skip Init)
         try:
             settings = get_settings()
             if not settings.enable_vertex_search:
-                logger.info("[VertexAISearchTool] Feature disabled via 'enable_vertex_search=False'. Skipping initialization.")
+                logger.info(
+                    "[VertexAISearchTool] Feature disabled via 'enable_vertex_search=False'. Skipping initialization."
+                )
                 self._model = None
                 return
         except Exception as e:
@@ -101,27 +104,27 @@ class VertexAISearchTool:
         # Initialize Vertex AI SDK
         try:
             vertexai.init(project=self.project_id, location=self.location)
-            
+
             # Initialize Tool
-            self._tools = [
-                Tool.from_dict({"google_search": {}})
-            ]
-            
+            self._tools = [Tool.from_dict({"google_search": {}})]
+
             # Initialize Model
             if not self.model_id:
-                 raise ConfigurationError("Vertex Search Model ID is not configured.", details={"error_code": ErrorCodes.SEARCH_CONFIG_ERROR})
+                raise ConfigurationError(
+                    "Vertex Search Model ID is not configured.", details={"error_code": ErrorCodes.SEARCH_CONFIG_ERROR}
+                )
 
             self._model = GenerativeModel(self.model_id)
-            
+
         except Exception as e:
             error_code = ErrorCodes.SEARCH_CONFIG_ERROR
             msg = f"Failed to initialize Vertex AI SDK: {e}"
             logger.error(f"[VertexAISearchTool] {error_code}: {msg}", exc_info=True)
             raise ConfigurationError(msg, details={"error_code": error_code, "original_error": str(e)}) from e
 
-    def search(self, queries: List[str], limit: int = 3, language: str = "en") -> List[SearchResultItem]:
+    def search(self, queries: list[str], limit: int = 3, language: str = "en") -> list[SearchResultItem]:
         """Execute search via Vertex AI Grounding.
-        
+
         Args:
             queries: List of query strings.
             limit: Max queries to execute (per call).
@@ -129,39 +132,39 @@ class VertexAISearchTool:
 
         Returns:
             List[SearchResultItem]: Strictly typed list of unique results.
-            
+
         Raises:
             ServiceUnavailableError: If quota exceeded or service down.
             AppException: If execution fails critically.
         """
-        all_results: List[SearchResultItem] = []
+        all_results: list[SearchResultItem] = []
 
         if not queries:
             logger.warning("[VertexAISearchTool] No queries provided. Returning empty list.")
             return []
 
         # Feature Flag Logic (Runtime Check)
-        if getattr(self, "_model", None) is None:
-             logger.info("[VertexAISearchTool] Search skipped (Disabled or Not Initialized).")
-             return []
-    
+        model = getattr(self, "_model", None)
+        if model is None:
+            logger.info("[VertexAISearchTool] Search skipped (Disabled or Not Initialized).")
+            return []
 
         # Grounding loop
         for i, query in enumerate(queries[:limit]):
             logger.debug(f"[VertexAISearchTool] Processing query {i + 1}: {query}")
-            
+
             try:
                 # Construct Prompt
                 prompt_text = f"Search for the following topic and provide key findings with sources: '{query}'"
                 if language == "fi":
                     prompt_text = f"Etsi tietoa seuraavasta aiheesta ja listaa lähteet: '{query}'"
 
-                response = self._model.generate_content(
+                response = model.generate_content(
                     prompt_text,
                     tools=self._tools,
                     generation_config=GenerationConfig(
-                        temperature=0.0 # Deterministic
-                    )
+                        temperature=0.0  # Deterministic
+                    ),
                 )
 
                 # Extract Grounding Metadata
@@ -170,18 +173,18 @@ class VertexAISearchTool:
                     continue
 
                 candidate = response.candidates[0]
-                
+
                 # Check for blocking (Safety)
-                if candidate.finish_reason != 0 and candidate.finish_reason != 1: # STOP or MAX_TOKENS
-                     logger.warning(f"[VertexAISearchTool] Query blocked. Finish Reason: {candidate.finish_reason}")
-                     continue
+                if candidate.finish_reason != 0 and candidate.finish_reason != 1:  # STOP or MAX_TOKENS
+                    logger.warning(f"[VertexAISearchTool] Query blocked. Finish Reason: {candidate.finish_reason}")
+                    continue
 
                 if not candidate.grounding_metadata:
                     logger.warning(f"[VertexAISearchTool] No grounding metadata for query: {query}")
                     continue
-                
+
                 metadata = candidate.grounding_metadata
-                
+
                 # Extract Chunks (Web Sources)
                 if metadata.grounding_chunks:
                     for chunk in metadata.grounding_chunks:
@@ -189,15 +192,15 @@ class VertexAISearchTool:
                             # Normalize
                             title = chunk.web.title or "Untitled Source"
                             uri = chunk.web.uri
-                            
+
                             if not uri:
                                 continue
 
                             item = SearchResultItem(
                                 title=title,
                                 link=uri,
-                                snippet=f"Source via Vertex AI: {query}...", # Placeholder as snippets are complex in Grounding
-                                query=query
+                                snippet=f"Source via Vertex AI: {query}...",  # Placeholder as snippets are complex in Grounding
+                                query=query,
                             )
                             all_results.append(item)
 
@@ -208,19 +211,19 @@ class VertexAISearchTool:
                     error_code = ErrorCodes.SEARCH_QUOTA_EXCEEDED
                     raise ServiceUnavailableError(
                         message="Vertex AI Quota Exceeded",
-                        details={"error_code": error_code, "original_error": error_msg}
+                        details={"error_code": error_code, "original_error": error_msg},
                     ) from e
-                
+
                 error_code = ErrorCodes.SEARCH_EXECUTION_FAILED
                 logger.error(f"[VertexAISearchTool] {error_code}: Grounding failed for '{query}': {e}", exc_info=True)
-                
+
                 # Fail Fast: Raise exception immediately on critical failure
                 raise AppException(
                     message=f"Vertex AI Grounding failed: {e}",
                     status_code=status.HTTP_502_BAD_GATEWAY,
-                    details={"error_code": error_code, "query": query}
+                    details={"error_code": error_code, "query": query},
                 ) from e
-                
+
         # Deduplication Strategy
         unique_results = []
         seen_links = set()

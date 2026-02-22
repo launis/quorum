@@ -23,10 +23,7 @@ final availableMatricesControllerProvider =
 /// "Optimistic Update + Silent Invalidation" pattern (Riverpod 3.0 Best Practice).
 final class AvailableMatricesControllerProvider
     extends
-        $AsyncNotifierProvider<
-          AvailableMatricesController,
-          List<StudioComponentDef>
-        > {
+        $AsyncNotifierProvider<AvailableMatricesController, List<MatrixDef>> {
   /// **Available Matrices Controller**
   ///
   /// Manages the list of available Evaluation Matrices using the modern
@@ -51,7 +48,7 @@ final class AvailableMatricesControllerProvider
 }
 
 String _$availableMatricesControllerHash() =>
-    r'8626cd687cc8797a3ba0f22c25a7170946498b82';
+    r'f91806aed21465eaf3438d12aef69fca4a938dfd';
 
 /// **Available Matrices Controller**
 ///
@@ -59,25 +56,17 @@ String _$availableMatricesControllerHash() =>
 /// "Optimistic Update + Silent Invalidation" pattern (Riverpod 3.0 Best Practice).
 
 abstract class _$AvailableMatricesController
-    extends $AsyncNotifier<List<StudioComponentDef>> {
-  FutureOr<List<StudioComponentDef>> build();
+    extends $AsyncNotifier<List<MatrixDef>> {
+  FutureOr<List<MatrixDef>> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<
-              AsyncValue<List<StudioComponentDef>>,
-              List<StudioComponentDef>
-            >;
+    final ref = this.ref as $Ref<AsyncValue<List<MatrixDef>>, List<MatrixDef>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<List<StudioComponentDef>>,
-                List<StudioComponentDef>
-              >,
-              AsyncValue<List<StudioComponentDef>>,
+              AnyNotifier<AsyncValue<List<MatrixDef>>, List<MatrixDef>>,
+              AsyncValue<List<MatrixDef>>,
               Object?,
               Object?
             >;

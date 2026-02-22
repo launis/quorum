@@ -5,9 +5,10 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+
 def json_serial(obj: Any) -> Any:
     """JSON serializer for objects not serializable by default json code.
-    
+
     Handles:
     - datetime/date -> ISO format string
     - Pydantic models -> dict (via model_dump)
@@ -26,19 +27,20 @@ def json_serial(obj: Any) -> Any:
 
 def flexible_json_dump(data: Any, indent: int = 2, ensure_ascii: bool = False) -> str:
     """Dumps data to JSON string with strict error handling.
-    
+
     Raises:
         AppException: If serialization fails (INTERNAL_SERVER_ERROR).
     """
     try:
         return json.dumps(data, indent=indent, ensure_ascii=ensure_ascii, default=json_serial)
     except (TypeError, ValueError) as e:
-        from backend.exceptions import AppException, ErrorCodes
         from fastapi import status
-        
+
+        from backend.exceptions import AppException, ErrorCodes
+
         logger.error(f"JSON Serialization Failed: {e}")
         raise AppException(
             message=f"JSON Serialization Failed: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR} # Could add SERIALIZATION_FAILED if needed
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},  # Could add SERIALIZATION_FAILED if needed
         )

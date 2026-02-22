@@ -189,6 +189,12 @@ JSON
     *   **Deduplication**: NEVER trust LLM uniqueness. Deduplicate lists in `post_process`.
     *   **Structure**: Enforce IDs and strict types in `post_process`.
 
+### **2.8. No-ORM Pydantic Datastore Mandate**
+
+* **The Rule**: The project uses **100% Pydantic V2** as the Absolute Single Source of Truth (SSOT). Using traditional Object-Relational Mappers (ORMs) like SQLAlchemy, Prisma, or Django ORM is **STRICTLY FORBIDDEN**.
+* **Implication**: Any new database field, configuration option, or API parameter MUST be defined exclusively as a field in a Pydantic model inside `backend/models/`.
+* **Symbiosis**: Because the database layer relies on NoSQL document stores (TinyDB / Firestore), Pydantic's `model_dump()` directly translates to the database schema. Adding a new field to a Pydantic model automatically ensures the Seeder (`run_seed.py`), API Router, and Database recognize it instantly—without requiring schema migration scripts.
+
 ## ---
 
 **⚠️ PART 3: ERROR HANDLING CONTRACT (RFC 7807 & FAIL FAST)**

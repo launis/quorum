@@ -72,20 +72,19 @@ graph TD
     *   `config/`: CRUD for `workflows`, `steps`, `components` (The "Brains").
     *   `execution/`: `lifecycle` (Run/Stop), `monitor` (Status), `views` (BFF).
 *   **Pattern**: This separation ensures that high-volume execution logic is isolated from low-volume administrative tasks.
-*   **Event Sourcing**:
-    *   The Engine does not mutate a "Blackboard".
-    *   Instead, it appends `TraceEvent` items to an immutable `execution_trace`.
-    *   State is derived by replaying these events (or checking the latest snapshot `context_variables`).
+*   **Event Sourcing & Prefixed Identifiers**:
+    *   The Engine appends `TraceEvent` items to an immutable `execution_trace`.
+    *   **Prefixed UUIDs**: All systemic identifiers follow a strict prefixed schema (e.g., `wf-` for workflows, `mx-` for matrices) and are statically enforced via Pydantic `NewType` (e.g., `WorkflowID`, not `str`), enabling automatic relation resolution and preventing ID swap errors at compile-time.
 *   **Key Feature: Strict Object Mode**:
     *   The Engine **never** passes raw dictionaries to Agents.
-    *   It hydrates a `WorkflowState` Pydantic object before execution.
+    *   It operates strictly on Domain Models (which wrap pure DTOs).
     *   If the DB data does not match the Schema, the Engine **crashes fast** rather than propagating corruption.
     *   **Strict Enums**: Categorical data (Risk, Fidelity, etc.) is typed as strict Enums (`backend.models.enums`), rejecting fuzzy string matching.
 
-### B. The "Mind" (Agent Graph)
+### B. The "Mind" (Agent Graph & Strict DTO)
 *   **Location**: `backend/agents/`
-*   **Pattern**: Functional Wrapper.
-*   **Behavior**: Agents are stateless logic units. They receive `WorkflowState`, perform **one** specific cognitive task, and return a structured Pydantic object (e.g., `AnalystOutput`).
+*   **Pattern**: Functional Wrapper with Strict DTO Separation.
+*   **Behavior**: Agents are stateless. To prevent metadata hallucination, the LLM exclusively generates pure **Data Transfer Objects (DTOs)**. The Agent's Python wrapper then acts as the system authority, injecting system properties (Run ID, timestamps) to promote the DTO into a fully hydrated **Domain Model**.
 *   **Reasoning Continuity**: To solve "Chain-of-Thought Amnesia", the engine extracts hidden "Thinking Tokens" from Gemini and passes them to the next agent via `ReasoningTrace`.
 
 ### C. The "Hand" (Async Worker)
@@ -101,7 +100,7 @@ graph TD
     *   `orchestration`: The flowchart UI and execution monitoring.
     *   `studio`: The Matrix Editor and Configuration tools.
     *   `admin`: User management and System settings.
-*   **BFF Pattern**: The frontend does not parse raw Agent outputs. The Backend exposes a "BFF" (Backend for Frontend) view that transforms complex graphs into UI-ready view models.
+*   **BFF/UI Resilience (Dual-Reporting)**: The frontend MUST gracefully degrade (e.g., rendering empty widgets instead of white-screens) to preserve UX when the underlying Domain strictly rejects invalid data. *Critically*, all such silent UI salvages in the BFF or Flutter must raise a `logger.warning` / `debugPrint` for developer visibility to ensure data drops are investigated.
 
 ---
 

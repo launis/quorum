@@ -23,7 +23,7 @@ class ConceptResponse(BaseModel):
     """Response schema for concept extraction."""
 
     concepts: list[ConceptItem] = Field(default_factory=list, description="List of extracted concepts.")
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -46,4 +46,3 @@ class IngestionSummary(BaseModel):
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
-

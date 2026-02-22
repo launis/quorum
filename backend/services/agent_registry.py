@@ -2,14 +2,12 @@
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 from backend.core.registry import TaskRegistry
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import (
-    AppException,
     ConfigurationError,
-    ErrorCodes,
     FatalInterruption,
 )
 from backend.models.domain.agent import ModelConfig
@@ -34,7 +32,7 @@ class AgentRegistry:
 
         """
         self.repository = repository
-        self.agents_map: Dict[str, "BaseAgent"] = {}
+        self.agents_map: dict[str, BaseAgent] = {}
 
     async def resolve_model_name(self, model_identifier: str) -> str:
         """Resolves a high-level model key (e.g. 'fast', 'smart') to a concrete model name.
@@ -89,18 +87,20 @@ class AgentRegistry:
         # This makes the code vendor-agnostic.
         for provider_key, strategies in dynamic_strategies_map.items():
             found_strategy = None
-            
+
             # Case A: Direct Match (e.g. "fast")
             if model_identifier in strategies:
                 logger.info(f"[AgentRegistry] Found identifier '{model_identifier}' in provider '{provider_key}'")
                 found_strategy = strategies[model_identifier]
-            
+
             # Case B: Scoped Match (e.g. "google/deep")
             elif "/" in model_identifier:
                 parts = model_identifier.split("/", 1)
                 if parts[0] == provider_key and parts[1] in strategies:
-                     logger.info(f"[AgentRegistry] Found scoped identifier '{model_identifier}' in provider '{provider_key}'")
-                     found_strategy = strategies[parts[1]]
+                    logger.info(
+                        f"[AgentRegistry] Found scoped identifier '{model_identifier}' in provider '{provider_key}'"
+                    )
+                    found_strategy = strategies[parts[1]]
 
             if found_strategy:
                 logger.debug(f"[AgentRegistry] Raw Strategy Data: {found_strategy}")
@@ -124,10 +124,10 @@ class AgentRegistry:
                     # This is a reference to another alias - resolve recursively
                     logger.debug(f"[AgentRegistry] Chained resolution: '{model_identifier}' -> '{model_name}'")
                     referenced_config = await self.resolve_model_config(model_name)
-                    
+
                     # Convert referenced_config (ModelConfig) to dict to serve as base
                     base_dict = referenced_config.model_dump()
-                    
+
                     # Apply overrides from current alias definition
                     for k, v in config.items():
                         if k != "model_name":
@@ -146,8 +146,16 @@ class AgentRegistry:
 
                     # 4. Construct strict ModelConfig
                     keys_to_exclude = {
-                        "model_name", "provider", "max_tokens", "temperature", "top_p", 
-                        "supports_grounding", "is_active", "tpm_limit", "rpm_limit", "api_key"
+                        "model_name",
+                        "provider",
+                        "max_tokens",
+                        "temperature",
+                        "top_p",
+                        "supports_grounding",
+                        "is_active",
+                        "tpm_limit",
+                        "rpm_limit",
+                        "api_key",
                     }
                     return ModelConfig(
                         model_name=config.get("model_name", "unknown"),
@@ -156,11 +164,11 @@ class AgentRegistry:
                         temperature=config.get("temperature"),
                         top_p=config.get("top_p"),
                         supports_grounding=config.get("supports_grounding", False),
-                        is_active=config.get("is_active"),
-                        tpm_limit=config.get("tpm_limit"),
-                        rpm_limit=config.get("rpm_limit"),
+                        is_active=bool(config.get("is_active", True)),
+                        tpm_limit=int(config["tpm_limit"]) if config.get("tpm_limit") is not None else 0,
+                        rpm_limit=int(config["rpm_limit"]) if config.get("rpm_limit") is not None else 0,
                         api_key=config.get("api_key"),
-                        extra_params={k: v for k, v in config.items() if k not in keys_to_exclude}
+                        extra_params={k: v for k, v in config.items() if k not in keys_to_exclude},
                     )
 
         # 3. Fail if not found
@@ -246,9 +254,7 @@ class AgentRegistry:
 
                     # 2. Update Metadata
                     await self._update_component_metadata(
-                        task_key,
-                        module=module_name,
-                        component_class=agent_class_name
+                        task_key, module=module_name, component_class=agent_class_name
                     )
 
                     logger.debug(f"[AgentRegistry] Registered {task_key} ({agent_class_name})")
@@ -267,7 +273,7 @@ class AgentRegistry:
                 details={"error": str(e)},
             ) from e
 
-    def get_agent(self, agent_name: str) -> Optional["BaseAgent"]:
+    def get_agent(self, agent_name: str) -> BaseAgent | None:
         """Retrieves an instantiated agent by name.
 
         Args:
@@ -279,7 +285,7 @@ class AgentRegistry:
         """
         return self.agents_map.get(agent_name)
 
-    def get_all_agents(self) -> Dict[str, "BaseAgent"]:
+    def get_all_agents(self) -> dict[str, BaseAgent]:
         """Returns all registered agent instances.
 
         Returns:
@@ -288,11 +294,11 @@ class AgentRegistry:
         """
         return self.agents_map.copy()
 
-    def get_agent_config(self, agent_name: str) -> Optional["BaseAgent"]:
+    def get_agent_config(self, agent_name: str) -> BaseAgent | None:
         """Retrieves agent configuration (the Agent Instance itself).
 
         Used by functional tasks to resolve model strategies.
-        
+
         Args:
             agent_name (str): Agent name.
 
@@ -301,7 +307,7 @@ class AgentRegistry:
         """
         return self.get_agent(agent_name)
 
-    async def get_all_strategies(self) -> Dict[str, str]:
+    async def get_all_strategies(self) -> dict[str, str]:
         """Retrieves all available model strategies and their resolved model names.
 
         Returns:
@@ -326,10 +332,10 @@ class AgentRegistry:
             except Exception as e:
                 # Skip invalid strategies (e.g. missing recursive definitions)
                 logger.warning(f"[AgentRegistry] Skipping unresolvable strategy '{key}': {e}")
-        
+
         return strategies
 
-    async def update_model_registry_config(self, registry_data: Dict[str, Dict[str, str]]) -> None:
+    async def update_model_registry_config(self, registry_data: dict[str, dict[str, str]]) -> None:
         """Updates the system's model registry configuration.
 
         Args:
@@ -340,7 +346,7 @@ class AgentRegistry:
         # implementation details: repo.update_model_registry saves the dict passed to it.
         # But list_strategies expects 'models' key in the saved record.
         # So we should save {"models": registry_data}
-        
+
         payload = {"models": registry_data}
         await self.repository.update_model_registry(payload)
         logger.info(f"[AgentRegistry] Updated model registry with {len(registry_data)} strategies.")

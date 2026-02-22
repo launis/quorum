@@ -1,12 +1,9 @@
-
 import json
-import shutil
 import os
+import shutil
 import sys
-from pathlib import Path
 from datetime import datetime
-from typing import Any, List, Union, Literal
-from pydantic import BaseModel, TypeAdapter, ValidationError, Field
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -14,21 +11,21 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 
-# Strict Pydantic models for validation
-from backend.models.auth import User, Organization
-from backend.models.workflow import WorkflowDefinition
-from backend.models.dtos.config import StepDefinition, ComponentResponse, DimensionDefinition
-from backend.models.domain.knowledge_items import KBItem
+import argparse
+
+# Centralized Registry
+from backend.seed.seed_registry import STANDARD_REGISTRY
 
 SOURCE_DB_PATH = r"c:\src\quorum\data\db.json"
 TARGET_SEED_PATH = r"c:\src\quorum\backend\seed\seed_data.json"
 
-def migrate_db_to_seed():
-    print(f"--- MIGRATION STARTED (Robust Restoration Mode) ---")
-    print(f"Source: {SOURCE_DB_PATH}")
+
+def migrate_db_to_seed(source_type: str = "local"):
+    print("--- MIGRATION STARTED (Robust Restoration Mode) ---")
+    print(f"Source: {source_type.upper()}")
     print(f"Target: {TARGET_SEED_PATH}")
 
-    if not os.path.exists(SOURCE_DB_PATH):
+    if source_type == "local" and not os.path.exists(SOURCE_DB_PATH):
         print(f"ERROR: Source file not found: {SOURCE_DB_PATH}")
         return
 
@@ -44,13 +41,20 @@ def migrate_db_to_seed():
             return
 
     try:
-        with open(SOURCE_DB_PATH, 'r', encoding='utf-8') as f:
-            source_data = json.load(f)
+        source_data = {}
+        if source_type == "local":
+            with open(SOURCE_DB_PATH, encoding="utf-8") as f:
+                source_data = json.load(f)
 
-        new_seed_data = {}
+        # Load current seed_data.json to act as the baseline template.
+        # This is CRITICAL to ensure exact bit-for-bit ordering and formatting.
+        current_seed = {}
+        if os.path.exists(TARGET_SEED_PATH):
+            with open(TARGET_SEED_PATH, encoding="utf-8") as f:
+                current_seed = json.load(f)
 
-        # Helper: Extract list from TinyDB dict structure
-        def extract_list(key):
+        # Extraction Helpers
+        def extract_from_tinydb(key):
             if key not in source_data:
                 return []
             raw = source_data[key]
@@ -58,94 +62,107 @@ def migrate_db_to_seed():
                 return list(raw.values())
             return raw
 
-        # Helper: Normalize System Config (Explicit None for missing optional fields)
-        def normalize_system_config(items):
-            normalized = []
-            for item in items:
-                # Fields that might be missing in DB but needed in Seed for strict equality
-                defaults = {
-                    "name": None, "description": None, "citation": None, 
-                    "citation_full": None, "module": None, 
-                    "component_class": None, "class_name": None, 
-                    "registered_at": None
-                }
-                if item.get("type") == "knowledge_base":
-                    for k, v in defaults.items():
-                        if k not in item:
-                            item[k] = v
-                normalized.append(item)
-            return normalized
+        def extract_from_firestore(collection_name):
+            try:
+                from google.cloud import firestore  # type: ignore[attr-defined]
 
-        # Helper: Minimize Workflow Steps (Strip config/metadata/hoist_keys from nested steps)
-        def minimize_workflow_steps(workflows):
-            minimized = []
-            allowed_keys = {
-                "id", "task_key", "name", "description", "inputs", 
-                "is_custom", "execution_config", "output_config_component", "output_filename"
+                db = firestore.Client()
+                docs = db.collection(collection_name).stream()
+                # Ensure predictable ordering if possible, though dicts will be handled by in-place merger
+                return [doc.to_dict() for doc in docs]
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"  [!] Failed reading from Firestore ({collection_name}): {e}", exc_info=True)
+                return []
+
+        def extract_list(collection_name):
+            if source_type == "firestore":
+                return extract_from_firestore(collection_name)
+            return extract_from_tinydb(collection_name)
+
+        def update_collection_in_place(target_list, source_list, id_field="id"):
+            """Updates target list in-place using source list, preserving dictionary key order."""
+            if target_list is None:
+                target_list = []
+
+            source_dict = {
+                item.get(id_field): item for item in source_list if isinstance(item, dict) and item.get(id_field)
             }
-            for wf in workflows:
-                # Deep copy to avoid modifying source
-                wf_copy = json.loads(json.dumps(wf))
-                if "steps" in wf_copy:
-                    new_steps = []
-                    for step in wf_copy["steps"]:
-                        if isinstance(step, str):
-                            new_steps.append(step)
-                        elif isinstance(step, dict):
-                            link = {k: v for k, v in step.items() if k in allowed_keys}
-                            new_steps.append(link)
-                    wf_copy["steps"] = new_steps
-                minimized.append(wf_copy)
-            return minimized
 
-        # Process Collections
-        print("Processing collections...")
-        
-        # 1. System Config
-        sys_config = extract_list("system_config")
-        new_seed_data["system_config"] = normalize_system_config(sys_config)
-        print(f"  [+] system_config: {len(new_seed_data['system_config'])} items")
+            new_target_list = []
+            seen_ids = set()
 
-        # 2. Steps
-        new_seed_data["steps"] = extract_list("steps")
-        print(f"  [+] steps: {len(new_seed_data['steps'])} items")
+            # Pass 1: Update existing items and keep them in place
+            for existing_item in target_list:
+                item_id = existing_item.get(id_field)
+                if not item_id or item_id not in source_dict:
+                    # Item no longer exists in DB, drop it
+                    continue
 
-        # 3. Workflows
-        new_seed_data["workflows"] = minimize_workflow_steps(extract_list("workflows"))
-        print(f"  [+] workflows: {len(new_seed_data['workflows'])} items")
+                source_item = source_dict[item_id]
 
-        # 4. Components
-        new_seed_data["components"] = extract_list("components")
-        print(f"  [+] components: {len(new_seed_data['components'])} items")
+                # In-place update of keys to preserve order
+                # 1. Update existing keys AND add completely new keys automatically
+                for k, v in source_item.items():
+                    existing_item[k] = v
 
-        # 5. Knowledge Base
-        new_seed_data["knowledge_base"] = extract_list("knowledge_base")
-        print(f"  [+] knowledge_base: {len(new_seed_data['knowledge_base'])} items")
+                # 2. Remove deleted keys (present in existing, but dropped from source)
+                for k in list(existing_item.keys()):
+                    if k not in source_item:
+                        del existing_item[k]
 
-        # 6. Dimensions
-        new_seed_data["dimensions"] = extract_list("dimensions")
-        print(f"  [+] dimensions: {len(new_seed_data['dimensions'])} items")
+                new_target_list.append(existing_item)
+                seen_ids.add(item_id)
 
-        # 7. Users
-        new_seed_data["users"] = extract_list("users")
-        print(f"  [+] users: {len(new_seed_data['users'])} items")
+            # Pass 2: Append purely new items at the end
+            for source_item in source_list:
+                item_id = source_item.get(id_field)
+                if item_id and item_id not in seen_ids:
+                    new_target_list.append(source_item)
 
-        # 8. Organizations
-        new_seed_data["organizations"] = extract_list("organizations")
-        print(f"  [+] organizations: {len(new_seed_data['organizations'])} items")
+            return new_target_list
+
+        # Process Standard Collections dynamically based on seed file structure and Unified Registry
+        print("Processing standard collections dynamically with SSOT Order Preservation...")
+
+        # We find all root keys that contain lists, all handled dynamically now by STANDARD_REGISTRY
+        for collection_name, current_list in current_seed.items():
+            if not isinstance(current_list, list):
+                continue
+
+            db_list = extract_list(collection_name)
+
+            # Request explicit configuration rules from the unified registry (applies DRY)
+            registry_entry = STANDARD_REGISTRY.get(collection_name, {})
+            id_key = registry_entry.get("id_field", "id")
+
+            current_seed[collection_name] = update_collection_in_place(current_list, db_list, id_field=id_key)
+            print(f"  [+] {collection_name}: {len(current_seed[collection_name])} items")
 
         # Write to file
-        with open(TARGET_SEED_PATH, 'w', encoding='utf-8') as f:
-            json.dump(new_seed_data, f, indent=4, ensure_ascii=False)
+        with open(TARGET_SEED_PATH, "w", encoding="utf-8") as f:
+            json.dump(current_seed, f, indent=4, ensure_ascii=False)
 
-        print(f"--- MIGRATION SUCCESSFUL ---")
+        print("--- MIGRATION SUCCESSFUL ---")
         print(f"✅ Data written to {TARGET_SEED_PATH}")
-        print(f"✅ JSON Format: Indented (4 spaces), UTF-8")
+        print("✅ JSON Format: Indented (4 spaces), UTF-8")
 
     except Exception as e:
         print(f"❌ ERROR: Migration failed: {e}")
         import traceback
+
         traceback.print_exc()
 
+
 if __name__ == "__main__":
-    migrate_db_to_seed()
+    parser = argparse.ArgumentParser(description="Migrate live database back to seed_data.json")
+    parser.add_argument(
+        "target",
+        nargs="?",
+        default="local",
+        choices=["local", "firestore"],
+        help="Target database to extract from (local or firestore)",
+    )
+    args = parser.parse_args()
+
+    migrate_db_to_seed(source_type=args.target)

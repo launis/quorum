@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class TinyDBDriver(StorageDriver):
     """TinyDB adapter for StorageDriver protocol.
-    
+
     Wraps the synchronous AbstractDatabase/AbstractTable interface.
     """
 
@@ -106,7 +106,7 @@ class TinyDBDriver(StorageDriver):
         filters: list[Filter] | None = None,
         limit: int | None = None,
         order_by: str | None = None,
-        descending: bool = False
+        descending: bool = False,
     ) -> list[dict[str, Any]]:
         table = self._get_table(collection)
         docs = table.all()
@@ -128,8 +128,8 @@ class TinyDBDriver(StorageDriver):
         # 2. Sort
         if order_by:
             filtered_docs.sort(
-                key=lambda x: x.get(order_by) or "", # Safe get
-                reverse=descending
+                key=lambda x: x.get(order_by) or "",  # Safe get
+                reverse=descending,
             )
 
         # 3. Limit

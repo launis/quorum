@@ -4,15 +4,17 @@ import sys
 
 SEED_FILE = os.path.join("backend", "seed", "seed_data.json")
 
+
 def get_step_id(step_obj):
     return step_obj if isinstance(step_obj, str) else step_obj.get("id")
+
 
 def verify_final_state():
     target_file = SEED_FILE
     if not os.path.exists(target_file):
         target_file = os.path.join("..", "seed", "seed_data.json")
 
-    with open(target_file, encoding='utf-8') as f:
+    with open(target_file, encoding="utf-8") as f:
         data = json.load(f)
 
     workflows = data.get("workflows", [])
@@ -34,7 +36,7 @@ def verify_final_state():
             c_idx = ids.index("step_context")
 
             if c_idx != g_idx + 1:
-                print(f"[FAIL] {wf_id}: Order wrong. Context at {c_idx}, expected {g_idx+1}")
+                print(f"[FAIL] {wf_id}: Order wrong. Context at {c_idx}, expected {g_idx + 1}")
                 errors += 1
 
             # Check Causal Position (Must be downstream of Context)
@@ -50,21 +52,24 @@ def verify_final_state():
                     if isinstance(step, dict):
                         for key in forbidden_keys:
                             if key in step:
-                                print(f"[FAIL] {wf_id}: Step {i} ({step.get('id')}) contains forbidden definition key '{key}'. Define this in top-level 'steps' registry instead.")
+                                print(
+                                    f"[FAIL] {wf_id}: Step {i} ({step.get('id')}) contains forbidden definition key '{key}'. Define this in top-level 'steps' registry instead."
+                                )
                                 errors += 1
 
                 # Verify Reference Integrity (Is it in the Registry?)
                 if "step_causal" not in registry_step_ids:
-                     print(f"[FAIL] {wf_id}: step_causal referenced but NOT found in Registry (top-level steps)!")
-                     errors += 1
+                    print(f"[FAIL] {wf_id}: step_causal referenced but NOT found in Registry (top-level steps)!")
+                    errors += 1
                 else:
-                     pass # OK - Reference is valid
+                    pass  # OK - Reference is valid
 
     if errors > 0:
         print(f"Verification FAILED with {errors} errors.")
         sys.exit(1)
 
     print("Verification SUCCESS: Context positioned correctly, Causal flow intact.")
+
 
 if __name__ == "__main__":
     verify_final_state()

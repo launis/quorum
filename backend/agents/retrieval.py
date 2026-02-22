@@ -9,9 +9,8 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 from backend.database.factory import get_repository
 from backend.database.wrapper import get_db_client
-from backend.exceptions import AgentExecutionError, ErrorCodes, AppException
+from backend.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend.models.domain import ContextData, Precedent, RetrievalInput
-from backend.services.localization import LocalizationService
 
 # 3. Local Imports
 from backend.settings import get_settings
@@ -27,7 +26,7 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
     """
 
     state_field = "step_context"
-    
+
     INPUT_SCHEMA = RetrievalInput
     OUTPUT_SCHEMA = ContextData
 
@@ -71,7 +70,9 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
         # Trust that if we are running, the ID exists or Guard failed.
         # However, for type safety, we still need the variable.
         if not org_id:
-            logger.warning(f"[{self.__class__.__name__}] organization_id missing. Guard should have caught this. Trace consistency risk.")
+            logger.warning(
+                f"[{self.__class__.__name__}] organization_id missing. Guard should have caught this. Trace consistency risk."
+            )
 
         logger.info(f"[{self.__class__.__name__}] Running for Org: {org_id}...")
 
@@ -92,10 +93,11 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
             results = [x for x in all_execs if x.status == "completed"]
             # executed_at/end_time is now completed_at in V2 domain
             from datetime import datetime, timezone
+
             results.sort(key=lambda x: x.completed_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
 
             precedents: list[Precedent] = []
-            
+
             # Use Configured Limits (No Magic Numbers)
             scan_depth = settings.max_precedent_scan_depth
             return_count = settings.max_precedent_return_count
@@ -104,63 +106,69 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
             for res in results[:scan_depth]:
                 # ExecutionRecord -> results (WorkflowState) -> execution_trace (List[TraceEvent])
                 wf_state = res.results
-                
+
                 # Zero-Compromise: No Surface-Level Patches.
                 # If the DB returns a dict for a Pydantic field, that is a Data Integrity Violation.
                 # However, Pydantic V2 often auto-inflates. If it IS a dict here, it means
                 # strict typing failed upstream or DB driver is loose.
                 # We raise an error instead of patching it silent_ly.
-                
+
                 from backend.models.state import WorkflowState
-                
+
                 # RECOVERY: If Pydantic loaded results as strict Dict (due to Union type), inflate it here.
                 if isinstance(wf_state, dict):
-                     try:
-                         wf_state = WorkflowState.model_validate(wf_state)
-                     except Exception as e:
-                         # Fallthrough to fail-fast below if inflation fails
-                         logger.warning(f"[RetrievalAgent] Failed to auto-inflate execution {res.id}: {e}")
+                    try:
+                        wf_state = WorkflowState.model_validate(wf_state)
+                    except Exception as e:
+                        # Fallthrough to fail-fast below if inflation fails
+                        logger.warning(f"[RetrievalAgent] Failed to auto-inflate execution {res.id}: {e}")
 
                 if not isinstance(wf_state, WorkflowState):
                     # FAIL FAST: Data Corruption detected.
                     raise AppException(
                         message=f"Execution {res.id} has invalid state type: {type(wf_state)}. Expected WorkflowState.",
                         status_code=500,
-                        details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR}
+                        details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
                     )
-                
+
                 trace_events = wf_state.execution_trace
                 if not trace_events:
                     continue
 
                 judge_outputs = {}
-                
+
                 from backend.models.domain.judge import JudgeOutput
                 from backend.utils.pydantic_utils import inflate
 
                 for event in trace_events:
-                     if event.event_type == "output" and "judge" in event.step_name:
-                         # Attempt strict inflation -> "Quacks like a Judge"
-                         try:
-                             judge_candidate = inflate(event.content, JudgeOutput)
-                             if judge_candidate:
-                                 # Use step_name as label
-                                 label = event.step_name.replace("step_judge_", "").replace("step_judge", "Standard").replace("_", " ").title()
-                                 if label == "Standard": label = "Standard"
-                                 
-                                 judge_outputs[label] = judge_candidate
-                         except:
-                             continue
+                    if event.event_type == "output" and "judge" in event.step_name:
+                        # Attempt strict inflation -> "Quacks like a Judge"
+                        try:
+                            judge_candidate = inflate(event.content, JudgeOutput)
+                            if judge_candidate:
+                                # Use step_name as label
+                                label = (
+                                    event.step_name.replace("step_judge_", "")
+                                    .replace("step_judge", "Standard")
+                                    .replace("_", " ")
+                                    .title()
+                                )
+                                if label == "Standard":
+                                    label = "Standard"
+
+                                judge_outputs[label] = judge_candidate
+                        except:
+                            continue
 
                 if judge_outputs:
                     score_parts = []
                     verdict_parts = []
-                    
+
                     for label, judge_model in judge_outputs.items():
                         avg = judge_model.score_card.total_score
                         score_parts.append(f"{label}: {avg:.2f}")
                         verdict_parts.append(f"{label}: {judge_model.score_card.verdict[:50]}...")
-                    
+
                     score_summary = " | ".join(score_parts)
                     verdict_summary = " || ".join(verdict_parts)
 
@@ -169,7 +177,7 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
                             id=str(res.id),
                             date=str(res.completed_at.isoformat() if res.completed_at else "unknown"),
                             scores=score_summary,
-                            verdict=verdict_summary
+                            verdict=verdict_summary,
                         )
                     )
             # Keep last N (most recent)
@@ -189,8 +197,8 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
 
             try:
                 # Lazy import to avoid circular dep issues at module level if any
-                from backend.services.knowledge_base_service import KnowledgeBaseService
                 from backend.dependencies import get_agent_registry_dep, get_usage_service
+                from backend.services.knowledge_base_service import KnowledgeBaseService
 
                 # Resolve dependencies for Smart Ingestion (Registry + Usage)
                 # This fixes the "[KBService] Smart Ingestion Capability Disabled" warning.
@@ -198,11 +206,7 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
                 usage_service = get_usage_service(repo)
 
                 # Initialize Service with full dependencies
-                kb_service = KnowledgeBaseService(
-                    repository=repo,
-                    registry=registry,
-                    usage_service=usage_service
-                )
+                kb_service = KnowledgeBaseService(repository=repo, registry=registry, usage_service=usage_service)
 
                 # Check for query in input
                 query = input_data.query
@@ -214,62 +218,67 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
                 if kb_items:
                     summary_lines = [f"=== TIETOPANKKI (KNOWLEDGE BASE) - {len(kb_items)} matches ==="]
                     for item in kb_items:
-                        summary_lines.append(f"[{item.type.upper()}] {item.term}: {item.definition} (Source: {item.source})")
+                        summary_lines.append(
+                            f"[{item.type.upper()}] {item.term}: {item.definition} (Source: {item.source})"
+                        )
                     kb_text_summary = "\n".join(summary_lines)
                 else:
-                     kb_text_summary = "Knowledge Base search returned no results."
+                    kb_text_summary = "Knowledge Base search returned no results."
 
             except Exception as e:
                 # ZERO-COMPROMISE: 18.1 Generic Exception Handling
                 # We catch specific AppExceptions for "Composite UI" partial failure.
                 # Everything else must bubble up or be treated as Critical.
-                
+
                 # from backend.exceptions import AppException - REMOVED (Shadows global)
-                
+
                 if isinstance(e, AppException) and e.error_code == ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED:
-                     # Known partial failure (e.g. Pinecone down). Log warning, allow degraded UI.
-                     logger.warning(f"[RetrievalAgent] KB Partial Failure: {e}")
-                     kb_text_summary = "Knowledge Base retrieval unavailable."
+                    # Known partial failure (e.g. Pinecone down). Log warning, allow degraded UI.
+                    logger.warning(f"[RetrievalAgent] KB Partial Failure: {e}")
+                    kb_text_summary = "Knowledge Base retrieval unavailable."
                 elif isinstance(e, AppException) and e.error_code == ErrorCodes.KNOWLEDGE_NOT_INGESTED:
-                     # Expected state for new orgs. Log info.
-                     logger.info(f"[RetrievalAgent] KB Empty: {e}")
-                     kb_text_summary = "No Knowledge Base found."
+                    # Expected state for new orgs. Log info.
+                    logger.info(f"[RetrievalAgent] KB Empty: {e}")
+                    kb_text_summary = "No Knowledge Base found."
                 else:
-                     # CRITICAL: Unexpected error (Code bug, Network, etc).
-                     # "Fail Fast" implies we should crash, BUT...
-                     # If Precedents exist, we might want to return them?
-                     # Docs say: "Graceful Degradation are only permitted at Presentation/BFF layer".
-                     # This IS a Backend Agent. It should probably fail if it breaks.
-                     # However, Part 3.6 says "Composite Dashboard" can handle partials.
-                     # DECISION: Raise Critical for unknown errors to force fix.
-                     logger.error(f"[RetrievalAgent] KB Critical Failure: {e}", exc_info=True)
-                     raise AppException(
-                         message="Critical Failure in Knowledge Base Retrieval.",
-                         status_code=500,
-                         details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL, "original_error": str(e)}
-                     )
+                    # CRITICAL: Unexpected error (Code bug, Network, etc).
+                    # "Fail Fast" implies we should crash, BUT...
+                    # If Precedents exist, we might want to return them?
+                    # Docs say: "Graceful Degradation are only permitted at Presentation/BFF layer".
+                    # This IS a Backend Agent. It should probably fail if it breaks.
+                    # However, Part 3.6 says "Composite Dashboard" can handle partials.
+                    # DECISION: Raise Critical for unknown errors to force fix.
+                    logger.error(f"[RetrievalAgent] KB Critical Failure: {e}", exc_info=True)
+                    raise AppException(
+                        message="Critical Failure in Knowledge Base Retrieval.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL, "original_error": str(e)},
+                    )
 
             # 7. Combine Contexts
             final_summary_text = f"{precedent_text}\n\n{kb_text_summary}"
 
-            logger.info(f"[{self.__class__.__name__}] Complete. Found {len(selected_precedents)} precedents and {len(kb_items)} KB items.")
+            logger.info(
+                f"[{self.__class__.__name__}] Complete. Found {len(selected_precedents)} precedents and {len(kb_items)} KB items."
+            )
 
             # FAIL FAST: If NO context is available at all (fresh install), block execution.
             # This aligns with the "Explicit Ingestion" requirement.
             if not selected_precedents and not kb_items:
-                 raise AgentExecutionError(
-                     detail=ErrorCodes.KNOWLEDGE_NOT_INGESTED,
-                     agent_name="RetrievalAgent",
-                     original_error=ValueError("No precedents or knowledge base items found.")
-                 )
+                raise AgentExecutionError(
+                    detail=ErrorCodes.KNOWLEDGE_NOT_INGESTED,
+                    agent_name="RetrievalAgent",
+                    original_error=ValueError("No precedents or knowledge base items found."),
+                )
 
             # 6. Construct Output
-            # ContextData does not have metadata field.
             result_data = ContextData(
+                thought_process="Retrieved relevant precedents.",
+                conclusion="Context gathering complete.",
+                confidence_score=1.0,
                 precedents=final_summary_text,
                 precedent_list=selected_precedents,
                 knowledge_items=kb_items,
-                # metadata removed per schema fix
             )
 
             # IMPORTANT: Return ContextData model. Engine handles storage.
@@ -277,7 +286,7 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
 
         except Exception as e:
             logger.error(f"[RetrievalAgent] Execution failed: {e}", exc_info=True)
-            
+
             # Don't wrap specific AppExceptions (like KNOWLEDGE_NOT_INGESTED)
             # This allows the specific error code to reach the client.
             # from backend.exceptions import AppException - REMOVED (Shadows global)
@@ -286,7 +295,5 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
 
             # Use SSOT ErrorCode for generic/unexpected errors
             raise AgentExecutionError(
-                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                original_error=e,
-                agent_name="RetrievalAgent"
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name="RetrievalAgent"
             ) from e

@@ -6,7 +6,7 @@ including input validation and security check results.
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from backend.models.domain.base import ReasoningTrace
 from backend.models.enums import RiskLevel, SimulationType
@@ -14,6 +14,7 @@ from backend.models.enums import RiskLevel, SimulationType
 
 class GuardInput(BaseModel):
     """Input schema for the Guard Agent, supporting strict validation."""
+
     history_text: str = Field(..., json_schema_extra={"x-ui-label": "INPUT_HISTORY_TEXT"})
     product_text: str = Field(..., json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"})
     reflection_text: str | None = Field(default=None, json_schema_extra={"x-ui-label": "INPUT_REFLECTION_TEXT"})
@@ -30,7 +31,7 @@ class GuardInput(BaseModel):
     @classmethod
     def validate_reflection(cls, v: str | None) -> str | None:
         if v is not None and not v.strip():
-             raise ValueError("Reflection text cannot be empty if provided.")
+            raise ValueError("Reflection text cannot be empty if provided.")
         return v.strip() if v else None
 
     @model_validator(mode="after")
@@ -59,7 +60,9 @@ class TaintedDataContent(BaseModel):
 
     chat_history: str = Field(..., description="Chat history.", json_schema_extra={"x-ui-label": "INPUT_CHAT_HISTORY"})
     product_text: str = Field(..., description="Product text.", json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"})
-    reflection_text: str = Field(..., description="Reflection text.", json_schema_extra={"x-ui-label": "INPUT_REFLECTION_TEXT"})
+    reflection_text: str = Field(
+        ..., description="Reflection text.", json_schema_extra={"x-ui-label": "INPUT_REFLECTION_TEXT"}
+    )
     safe_data: str = Field(..., description="Safe data marker.", json_schema_extra={"x-ui-label": "INPUT_SAFE_DATA"})
 
     @field_validator("chat_history", "product_text", "reflection_text", "safe_data")
@@ -107,11 +110,7 @@ class SecurityCheck(BaseModel):
         if isinstance(data, dict):
             # 1. Calc Risk
             # Map Enum -> Score directly (Strict)
-            risk_map = {
-                RiskLevel.LOW: 1.0,
-                RiskLevel.MEDIUM: 2.0,
-                RiskLevel.HIGH: 3.0
-            }
+            risk_map = {RiskLevel.LOW: 1.0, RiskLevel.MEDIUM: 2.0, RiskLevel.HIGH: 3.0}
 
             risk_score = data.get("risk_score")
             risk_level = data.get("risk_level")
@@ -120,22 +119,18 @@ class SecurityCheck(BaseModel):
             if risk_score is None and risk_level:
                 # If incoming data is already an Enum member (during object construction)
                 if isinstance(risk_level, RiskLevel):
-                     data["risk_score"] = risk_map[risk_level]
+                    data["risk_score"] = risk_map[risk_level]
                 # If incoming data is a raw string (from JSON/LLM)
                 elif isinstance(risk_level, str):
-                     try:
-                         # Try to convert string to Enum
-                         risk_enum = RiskLevel(risk_level)
-                         data["risk_score"] = risk_map[risk_enum]
-                     except ValueError:
-                         pass
+                    try:
+                        # Try to convert string to Enum
+                        risk_enum = RiskLevel(risk_level)
+                        data["risk_score"] = risk_map[risk_enum]
+                    except ValueError:
+                        pass
 
             # 2. Calc Simulation
-            sim_map = {
-                SimulationType.PASSIVE: 1.0,
-                SimulationType.ACTIVE: 2.0,
-                SimulationType.MALICIOUS: 3.0
-            }
+            sim_map = {SimulationType.PASSIVE: 1.0, SimulationType.ACTIVE: 2.0, SimulationType.MALICIOUS: 3.0}
 
             sim_score = data.get("simulation_score")
             sim_res = data.get("simulation_result")
@@ -151,9 +146,9 @@ class SecurityCheck(BaseModel):
         return data
 
     simulation_result: SimulationType | None = Field(
-         default=None,
-         description="Simulation result description.",
-         json_schema_extra={"x-ui-label": "Simulation Result"},
+        default=None,
+        description="Simulation result description.",
+        json_schema_extra={"x-ui-label": "Simulation Result"},
     )
     anonymized: bool = Field(
         ...,
@@ -186,25 +181,24 @@ class GuardOutput(ReasoningTrace):
 
 class SanitizationResult(BaseModel):
     """Result of the text sanitization process (Security Hook)."""
+
     sanitized_inputs: dict[str, str] = Field(
-        ...,
-        description="Sanitized input text fields.",
-        json_schema_extra={"x-ui-label": "Sanitized Inputs"}
+        ..., description="Sanitized input text fields.", json_schema_extra={"x-ui-label": "Sanitized Inputs"}
     )
     pii_threats_detected: list[str] = Field(
         default_factory=list,
         description="List of detected PII threats.",
-        json_schema_extra={"x-ui-label": "PII Threats"}
+        json_schema_extra={"x-ui-label": "PII Threats"},
     )
     banned_phrases_detected: list[str] = Field(
         default_factory=list,
         description="List of detected banned phrases.",
-        json_schema_extra={"x-ui-label": "Banned Phrases"}
+        json_schema_extra={"x-ui-label": "Banned Phrases"},
     )
     banned_phrases_error: str | None = Field(
         default=None,
         description="Error message if banned phrases fetch failed.",
-        json_schema_extra={"x-ui-label": "Banned Phrases Error"}
+        json_schema_extra={"x-ui-label": "Banned Phrases Error"},
     )
 
     model_config = ConfigDict(frozen=True, strict=True)

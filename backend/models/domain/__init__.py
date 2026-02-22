@@ -97,8 +97,8 @@ from backend.models.domain.retrieval import ContextData, Precedent, RetrievalInp
 from backend.models.domain.xai import (
     ReportResult,
     XAIOutput,
-    XAIScoreItem,
     XAIReporterInput,
+    XAIScoreItem,
 )
 from backend.models.dtos.pdf_context import ReportContext
 
@@ -124,7 +124,6 @@ DOMAIN_REGISTRY = {
     "TextMetrics": TextMetrics,
     "ScoringResult": ScoringResult,
     "ReportResult": ReportResult,
-    "ValidationResult": ValidationResult,
     "ValidationResult": ValidationResult,
     "SearchResult": SearchResult,
     # Inputs
@@ -221,4 +220,3 @@ __all__ = [
     "CoachInput",
     "XAIReporterInput",
 ]
-

@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class AuditLogEntry(BaseModel):
     """Strict model for a single audit log entry."""
+
     timestamp: datetime = Field(..., description="Timestamp of the log entry.")
     level: str = Field(..., description="Log level (INFO, WARN, ERROR).")
     message: str = Field(..., description="Log message.")
@@ -26,16 +27,26 @@ class AuditLogEntry(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class Metadata(BaseModel):
     """Metadata container for agent outputs."""
-    luontiaika: datetime = Field(..., description="Creation timestamp.", json_schema_extra={"x-ui-label": "Creation Time"})
+
+    luontiaika: datetime = Field(
+        ..., description="Creation timestamp.", json_schema_extra={"x-ui-label": "Creation Time"}
+    )
     agentti: str = Field(..., description="Agent name.", json_schema_extra={"x-ui-label": "Agent Name"})
     vaihe: int = Field(default=0, description="Step number.", json_schema_extra={"x-ui-label": "Step Number"})
     versio: str = Field(default="1.0", description="Schema version.", json_schema_extra={"x-ui-label": "Version"})
     suoritus_ymparisto: str = Field(..., description="Environment.", json_schema_extra={"x-ui-label": "Environment"})
-    organization_id: str | None = Field(default=None, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"})
-    workflow: str | None = Field(default=None, description="Workflow name.", json_schema_extra={"x-ui-label": "Workflow"})
-    audit_logs: list[AuditLogEntry] | None = Field(default=None, description="Audit logs.", json_schema_extra={"x-ui-label": "Audit Logs"})
+    organization_id: str | None = Field(
+        default=None, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"}
+    )
+    workflow: str | None = Field(
+        default=None, description="Workflow name.", json_schema_extra={"x-ui-label": "Workflow"}
+    )
+    audit_logs: list[AuditLogEntry] | None = Field(
+        default=None, description="Audit logs.", json_schema_extra={"x-ui-label": "Audit Logs"}
+    )
     token_usage: dict[str, int] | None = Field(default=None, description="Token usage statistics from language model.")
 
     @field_validator("agentti", "suoritus_ymparisto")
@@ -45,7 +56,7 @@ class Metadata(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
-    @field_validator('luontiaika', mode='before')
+    @field_validator("luontiaika", mode="before")
     @classmethod
     def parse_datetime(cls, v: Any) -> Any:
         if isinstance(v, str):
@@ -57,10 +68,11 @@ class Metadata(BaseModel):
 
 class ReasoningTraceDTO(BaseModel):
     """Data Transfer Object for LLM reasoning responses (Content Only).
-    
+
     This contains the 'Reasoning' that the LLM generates.
     It DOES NOT contain system metadata (timestamps, versions) which must be injected by the Backend.
     """
+
     thought_process: str = Field(
         ...,
         description="Step-by-step thinking process leading to the result.",
@@ -76,7 +88,7 @@ class ReasoningTraceDTO(BaseModel):
         description="Self-assessed confidence score (0.0 - 1.0).",
         json_schema_extra={"x-ui-label": "Confidence Score"},
     )
-    
+
     model_config = ConfigDict(frozen=True)
 
     @field_validator("thought_process", "conclusion")
@@ -96,10 +108,11 @@ class ReasoningTraceDTO(BaseModel):
 
 class ReasoningTrace(ReasoningTraceDTO):
     """Domain model with system-authoritative metadata.
-    
+
     Inherits content from ReasoningTraceDTO and adds system-managed fields.
     LLMs never see or generate this model directly.
     """
+
     metadata: Metadata | None = Field(
         default=None,
         description="System metadata (Injected by Backend).",
@@ -110,9 +123,8 @@ class ReasoningTrace(ReasoningTraceDTO):
         description="Semantic checksum (Calculated by Backend).",
         json_schema_extra={"x-ui-label": "Checksum"},
     )
-    
-    model_config = ConfigDict(frozen=True, strict=True)
 
+    model_config = ConfigDict(frozen=True, strict=True)
 
 
 class UsageRecord(BaseModel):
@@ -123,11 +135,13 @@ class UsageRecord(BaseModel):
     user_id: str = Field(..., description="User ID.", json_schema_extra={"x-ui-label": "User ID"})
     model: str = Field(..., description="Model name.", json_schema_extra={"x-ui-label": "Model"})
     input_tokens: int = Field(..., description="Input token count.", json_schema_extra={"x-ui-label": "Input Tokens"})
-    output_tokens: int = Field(..., description="Output token count.", json_schema_extra={"x-ui-label": "Output Tokens"})
+    output_tokens: int = Field(
+        ..., description="Output token count.", json_schema_extra={"x-ui-label": "Output Tokens"}
+    )
     cost_usd: float = Field(..., description="Cost in USD.", json_schema_extra={"x-ui-label": "Cost (USD)"})
     timestamp: datetime = Field(..., description="Timestamp of usage.", json_schema_extra={"x-ui-label": "Timestamp"})
 
-    @field_validator('timestamp', mode='before')
+    @field_validator("timestamp", mode="before")
     @classmethod
     def parse_datetime(cls, v: Any) -> Any:
         if isinstance(v, str):

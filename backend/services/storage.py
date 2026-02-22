@@ -3,14 +3,15 @@
 This module provides a singleton factory for obtaining the active StorageDriver
 based on the application configuration.
 """
+
 import logging
 from functools import lru_cache
 
+from backend.exceptions import AppException, ErrorCodes
 from backend.services.drivers.gcs_file_driver import GCSFileDriver
 from backend.services.drivers.local_file_driver import LocalFileDriver
 from backend.services.file_driver import FileDriver
 from backend.settings import StorageBackend, get_settings
-from backend.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -18,15 +19,15 @@ logger = logging.getLogger(__name__)
 @lru_cache
 def get_storage_driver() -> FileDriver:
     """Returns the singleton StorageDriver instance.
-    
+
     The driver is selected based on settings.storage_backend:
     - FIRESTORE -> GCSFileDriver (using settings.storage_bucket_name)
     - LOCAL -> LocalFileDriver (using settings.files_dir)
     - MOCK -> LocalFileDriver (using settings.files_dir)
-    
+
     Returns:
         FileDriver: The initialized driver.
-        
+
     Raises:
         ValueError: If FIRESTORE backend is selected but storage_bucket_name is missing.
     """
@@ -39,7 +40,7 @@ def get_storage_driver() -> FileDriver:
             raise AppException(
                 message="CRITICAL: STORAGE_BACKEND=FIRESTORE requires STORAGE_BUCKET_NAME to be set.",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_CONFIG_ERROR}
+                details={"error_code": ErrorCodes.STORAGE_CONFIG_ERROR},
             )
         logger.info(f"Initializing GCSFileDriver with bucket: {bucket_name}")
         return GCSFileDriver(bucket_name=bucket_name)

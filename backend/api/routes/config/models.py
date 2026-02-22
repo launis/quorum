@@ -2,7 +2,7 @@
 
 import logging
 import time
-from typing import Annotated, Dict, Any, List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
@@ -14,8 +14,8 @@ from backend.dependencies import (
 )
 from backend.exceptions import AppException, ErrorCodes, status
 from backend.llm.provider import LLMFactory
-from backend.models.llm import AdHocTestRequest, AdHocTestResponse, LLMProviderConfig
 from backend.models.dtos.config import ModelOptionsResponse
+from backend.models.llm import AdHocTestRequest, AdHocTestResponse, LLMProviderConfig
 from backend.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Config: Models"])
 
 
-@router.get("", response_model=List[LLMProviderConfig])
+@router.get("", response_model=list[LLMProviderConfig])
 async def list_models(
     repository: RepositoryDep,
 ):
@@ -43,15 +43,17 @@ async def list_models(
             raise AppException(
                 message="Model Registry corrupted: 'models' is not a dictionary.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code}
+                details={"error_code": error_code},
             )
 
-        results: List[LLMProviderConfig] = []
+        results: list[LLMProviderConfig] = []
 
         for provider_name, provider_strategies in strategies.items():
             # Skip if not a dict (malformed provider bucket)
             if not isinstance(provider_strategies, dict):
-                logger.warning(f"[Config] Skipping invalid provider bucket '{provider_name}': Expected dict, got {type(provider_strategies)}")
+                logger.warning(
+                    f"[Config] Skipping invalid provider bucket '{provider_name}': Expected dict, got {type(provider_strategies)}"
+                )
                 continue
 
             for strategy_name, strategy_config in provider_strategies.items():
@@ -71,7 +73,7 @@ async def list_models(
                     # Parse into Pydantic Model
                     # We manually construct to handle flexible additional_params
                     # STRICT TYPING: Ensure all fields are valid
-                    
+
                     # Extract standard fields
                     provider_val = safe_config.get("provider", provider_name)
                     model_name_val = safe_config.get("model_name", "unknown")
@@ -86,7 +88,7 @@ async def list_models(
                     vertex_location_val = safe_config.get("vertex_location")
                     supports_grounding_val = safe_config.get("supports_grounding", False)
                     is_active_val = safe_config.get("is_active", True)
-                    
+
                     # Collect leftovers
                     known_keys = {
                         "provider",
@@ -113,7 +115,9 @@ async def list_models(
                             temperature=float(temperature_val) if temperature_val is not None else 0.7,
                             tpm_limit=int(tpm_val),
                             rpm_limit=int(rpm_val),
-                            default_max_tokens=int(default_max_tokens_val) if default_max_tokens_val is not None else None,
+                            default_max_tokens=int(default_max_tokens_val)
+                            if default_max_tokens_val is not None
+                            else None,
                             vertex_location=str(vertex_location_val) if vertex_location_val else None,
                             supports_grounding=bool(supports_grounding_val),
                             is_active=bool(is_active_val),
@@ -128,13 +132,11 @@ async def list_models(
     except Exception as e:
         if isinstance(e, AppException):
             raise e
-            
+
         error_code = ErrorCodes.MODEL_LIST_FAILED
         logger.error(f"[Config] {error_code.value}: {e}", exc_info=True)
         raise AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         ) from e
 
 
@@ -168,15 +170,15 @@ async def update_model_config(
         current_models = registry["models"]
         # Ensure 'models' is dict
         if not isinstance(current_models, dict):
-             # Auto-recover empty/invalid registry? No, Fail Fast. Admin intervention needed or clear it.
-             # Actually, we can reset it if it's junk, but strict safety says fail.
-             # But here we are WRITING, maybe we can overwrite?
-             # Let's enforce structure.
-             if current_models is not None:
-                  # If it's trash, error out
-                  pass
-             else:
-                 current_models = {}
+            # Auto-recover empty/invalid registry? No, Fail Fast. Admin intervention needed or clear it.
+            # Actually, we can reset it if it's junk, but strict safety says fail.
+            # But here we are WRITING, maybe we can overwrite?
+            # Let's enforce structure.
+            if current_models is not None:
+                # If it's trash, error out
+                pass
+            else:
+                current_models = {}
 
         # 2. Resolve Old Config to restore keys
         old_config = {}
@@ -200,7 +202,7 @@ async def update_model_config(
         # 4. Write Back (Strict Nested)
         if target_provider not in current_models or not isinstance(current_models[target_provider], dict):
             current_models[target_provider] = {}
-        
+
         current_models[target_provider][target_strategy] = final_storage
         registry["models"] = current_models
 
@@ -210,21 +212,19 @@ async def update_model_config(
             raise AppException(
                 message="Failed to save Model Registry configuration.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.REGISTRY_SAVE_FAILED},
+                details={"error_code": "REGISTRY_SAVE_FAILED"},
             )
 
         return update_data
 
     except Exception as e:
         if isinstance(e, AppException):
-             raise e
-        
+            raise e
+
         error_code = ErrorCodes.MODEL_UPDATE_FAILED
         logger.error(f"[Config] {error_code.value}: {e}", exc_info=True)
         raise AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         ) from e
 
 
@@ -248,7 +248,7 @@ async def delete_model_config(
             raise AppException(
                 message=f"Cannot delete system default strategy '{provider_id}'. Change default in settings first.",
                 status_code=status.HTTP_403_FORBIDDEN,
-                details={"error_code": ErrorCodes.DELETE_BLOCKED_SYSTEM_DEFAULT}
+                details={"error_code": ErrorCodes.DELETE_BLOCKED_SYSTEM_DEFAULT},
             )
 
         # 2. Reference Integrity Check (Workflow Steps)
@@ -260,7 +260,7 @@ async def delete_model_config(
                 raise AppException(
                     message=f"Cannot delete strategy '{provider_id}'. It is currently used by step '{step.get('id')}' ({step.get('name')}).",
                     status_code=status.HTTP_409_CONFLICT,
-                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE, "step_id": step.get("id")}
+                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE, "step_id": step.get("id")},
                 )
 
         # 3. Fetch existing
@@ -269,7 +269,7 @@ async def delete_model_config(
             return  # Nothing to delete
 
         current_models = registry["models"]
-        
+
         if "/" in provider_id:
             parts = provider_id.split("/", 1)
             target_provider = parts[0]
@@ -289,7 +289,7 @@ async def delete_model_config(
                     del current_models[target_provider]
 
         if not deleted:
-            return # Idempotent
+            return  # Idempotent
 
         registry["models"] = current_models
 
@@ -299,19 +299,17 @@ async def delete_model_config(
             raise AppException(
                 message="Failed to save Model Registry configuration after delete.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.REGISTRY_SAVE_FAILED},
+                details={"error_code": "REGISTRY_SAVE_FAILED"},
             )
 
     except Exception as e:
         if isinstance(e, AppException):
-             raise e
-        
+            raise e
+
         error_code = ErrorCodes.MODEL_DELETE_FAILED
         logger.error(f"[Config] {error_code.value}: {e}", exc_info=True)
         raise AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         ) from e
 
 
@@ -402,5 +400,5 @@ async def list_model_options(
     except Exception as e:
         logger.error(f"[Config] Failed to fetch model options: {e}")
         # Fallback to just known providers
-        fallback = {p: [] for p in known_providers}
+        fallback: dict[str, list[str]] = {p: [] for p in known_providers}
         return ModelOptionsResponse(options=fallback)

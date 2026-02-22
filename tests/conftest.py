@@ -114,6 +114,30 @@ async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient]
     # Align Global Helper for direct usage (e.g. in test fixtures)
     backend.dependencies._db_client_instance = test_db
 
+    # --- INJECT SEED DATA INTO MOCK DB ---
+    import json
+    seed_path = os.path.join(os.path.dirname(__file__), "..", "backend", "seed", "seed_data.json")
+    if os.path.exists(seed_path):
+        with open(seed_path, "r", encoding="utf-8") as f:
+            seed_data = json.load(f)
+            
+            if "system_config" in seed_data:
+                test_db.table("system_config").insert_multiple(seed_data["system_config"])
+            if "components" in seed_data:
+                test_db.table("components").insert_multiple(seed_data["components"])
+            if "matrices" in seed_data:
+                test_db.table("components").insert_multiple(seed_data["matrices"])
+            if "output_configs" in seed_data:
+                test_db.table("components").insert_multiple(seed_data["output_configs"])
+                
+            from backend.seed.seed_registry import STANDARD_REGISTRY
+            for col_key, config in STANDARD_REGISTRY.items():
+                if col_key in ["users"]: 
+                    continue # Handled dynamically below
+                table_name = config["table"]
+                if col_key in seed_data and seed_data[col_key]:
+                    test_db.table(table_name).insert_multiple(seed_data[col_key])
+
     app.dependency_overrides[get_settings_dep] = override_settings
     app.dependency_overrides[get_db_client_dep] = lambda: test_db
 

@@ -1,5 +1,6 @@
 import asyncio
 import sys
+
 import pytest
 
 pytestmark = pytest.mark.skip(reason="Manual API test requiring live server")
@@ -7,6 +8,7 @@ pytestmark = pytest.mark.skip(reason="Manual API test requiring live server")
 import httpx
 
 BASE_URL = "http://127.0.0.1:8000/api/v1"
+
 
 async def test_safety():
     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -32,11 +34,7 @@ async def test_safety():
         # 2. Setup: Create Temp Strategy
         temp_strat = "safety_test_strat"
         print(f"\n[2] Creating temp strategy '{temp_strat}'...")
-        config = {
-            "provider": "vertex_ai",
-            "model_name": "gemini-pro",
-            "id": temp_strat
-        }
+        config = {"provider": "vertex_ai", "model_name": "gemini-pro", "id": temp_strat}
         resp = await client.put(f"{BASE_URL}/config/models/{temp_strat}", json=config)
         assert resp.status_code in (200, 201), f"Setup failed: {resp.text}"
 
@@ -47,18 +45,16 @@ async def test_safety():
             "id": step_id,
             "name": "Safety Test Step",
             "task_key": "analyst",
-            "config": {
-                "model_strategy": temp_strat
-            }
+            "config": {"model_strategy": temp_strat},
         }
         # Try to delete step first just in case
         await client.delete(f"{BASE_URL}/config/steps/{step_id}")
 
         resp = await client.post(f"{BASE_URL}/config/steps", json=step_payload)
         if resp.status_code not in (200, 201):
-             print(f"⚠️ Setup warning: Step creation failed {resp.status_code} {resp.text}. Trying PUT...")
-             resp = await client.put(f"{BASE_URL}/config/steps/{step_id}", json=step_payload)
-             assert resp.status_code in (200, 201), f"Setup failed: {resp.text}"
+            print(f"⚠️ Setup warning: Step creation failed {resp.status_code} {resp.text}. Trying PUT...")
+            resp = await client.put(f"{BASE_URL}/config/steps/{step_id}", json=step_payload)
+            assert resp.status_code in (200, 201), f"Setup failed: {resp.text}"
 
         # 4. Test Reference Integrity (Cannot delete used strategy)
         print(f"[4] Attempting to delete strategy '{temp_strat}' (in use)...")
@@ -66,7 +62,7 @@ async def test_safety():
         if resp.status_code == 409:
             print("✅ PASS: Blocked with 409 Conflict.")
         else:
-             print(f"❌ FAIL: Expected 409, got {resp.status_code} {resp.text}")
+            print(f"❌ FAIL: Expected 409, got {resp.status_code} {resp.text}")
 
         # 5. Cleanup: Remove Usage (Delete Step)
         print(f"\n[5] Deleting step '{step_id}' to remove usage...")
@@ -80,6 +76,7 @@ async def test_safety():
             print("✅ PASS: Deleted successfully (204).")
         else:
             print(f"❌ FAIL: Expected 204, got {resp.status_code} {resp.text}")
+
 
 if __name__ == "__main__":
     try:

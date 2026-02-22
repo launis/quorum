@@ -88,14 +88,12 @@ def validate_no_banned_phrases(text: str, phrases: list[str]) -> None:
     """
     detected = check_banned_phrases(text, phrases)
     if detected:
-        from backend.exceptions import AppException, ErrorCodes
         from fastapi import status
+
+        from backend.exceptions import AppException, ErrorCodes
 
         raise AppException(
             message=f"Security Violation: Input contains banned phrases: {detected}",
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={
-                "error_code": ErrorCodes.SECURITY_VIOLATION,
-                "banned_phrases": detected
-            }
+            details={"error_code": ErrorCodes.SECURITY_VIOLATION, "banned_phrases": detected},
         )

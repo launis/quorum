@@ -14,7 +14,7 @@ from backend.dependencies import (
     get_prompt_builder_dep,
     get_storage_service_dep,
 )
-from backend.exceptions import FatalInterruption, AppException, ErrorCodes
+from backend.exceptions import AppException, ErrorCodes, FatalInterruption
 from backend.logging_config import setup_logging
 from backend.settings import get_settings
 
@@ -97,18 +97,12 @@ async def bootstrap_application():
         document_service = get_document_service_dep(storage_service)
 
         # Initialize Engine
-        engine = await get_engine(
-            repository=repo,
-            registry=registry,
-            prompt_builder=pb,
-            storage_service=storage_service,
-            document_service=document_service,
-        )
+        engine = await get_engine()
         logger.info("   [INFO] Engine Ready.")
 
         # 6. Recovery: Auto-Resume Interrupted Jobs
-        logger.info("   [INFO] Checking for interrupted jobs...")
-        await engine.recover_interrupted_jobs()
+        logger.info("   [INFO] Checking for interrupted jobs... (DEPRECATED: Engine redesign handles state externally)")
+        # await engine.recover_interrupted_jobs()
 
         return engine
 
@@ -125,5 +119,5 @@ async def bootstrap_application():
         raise AppException(
             message=f"Startup Failed: {e}",
             status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "original_error": str(e)}
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "original_error": str(e)},
         ) from e

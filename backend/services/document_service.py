@@ -3,18 +3,17 @@
 import io
 import logging
 import os
-from typing import Any, Dict, Tuple, Union
 
 import docx
 import fitz  # PyMuPDF
 from fastapi import status
 from fastapi.concurrency import run_in_threadpool
 
-from backend.exceptions import AppException, ErrorCodes, FatalInterruption
+from backend.exceptions import AppException, ErrorCodes
+from backend.models.domain.knowledge import KnowledgeBaseDocument
 from backend.services.chat_log_parser import ChatLogParser
 from backend.services.file_driver import FileDriver
 from backend.services.knowledge_base_parser import KnowledgeBaseParser
-from backend.models.domain.knowledge import KnowledgeBaseDocument
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +39,7 @@ class DocumentService:
         """
         self.storage_client = storage_client
 
-    async def process_evidence_files(self, execution_id: str, files: Dict[str, Tuple[str, bytes]]) -> Dict[str, str]:
+    async def process_evidence_files(self, execution_id: str, files: dict[str, tuple[str, bytes]]) -> dict[str, str]:
         """Archives evidence files to storage and extracts text for workflow execution.
 
         Handles PDF and DOCX formats automatically.
@@ -62,7 +61,7 @@ class DocumentService:
             # Here we just return empty dict if empty, but if files are provided, we process strictly.
             return {}
 
-        extracted_data: Dict[str, str] = {}
+        extracted_data: dict[str, str] = {}
 
         for input_key, (filename, file_bytes) in files.items():
             try:
@@ -98,19 +97,19 @@ class DocumentService:
             except Exception as e:
                 # Catch-all to wrap in AppException (RFC 7807)
                 logger.error(f"[DocumentService] Failed to ingest evidence {filename} ({input_key}): {e}")
-                
+
                 # If it's already an AppException, re-raise
                 if isinstance(e, AppException):
                     raise e
-                
+
                 raise AppException(
                     message=f"Failed to ingest evidence {filename}: {str(e)}",
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={
                         "error_code": ErrorCodes.DOCUMENT_PROCESSING_FAILED,
                         "filename": filename,
-                        "original_error": str(e)
-                    }
+                        "original_error": str(e),
+                    },
                 ) from e
 
         return extracted_data
@@ -133,10 +132,10 @@ class DocumentService:
         """
         # FAIL FAST: Empty Content
         if not content:
-             raise AppException(
+            raise AppException(
                 message="Knowledge Base file content is empty.",
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "filename": filename}
+                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "filename": filename},
             )
 
         is_docx = filename.lower().endswith(".docx")
@@ -146,7 +145,7 @@ class DocumentService:
             raise AppException(
                 message=f"Knowledge Base must be a DOCX or MD file. Got: {filename}",
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "filename": filename}
+                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "filename": filename},
             )
 
         try:
@@ -168,9 +167,7 @@ class DocumentService:
                 file_stream = io.BytesIO(content)
                 parsed_doc = await run_in_threadpool(KnowledgeBaseParser.parse_md, file_stream, filename)
 
-            logger.info(
-                f"[DocumentService] KB {filename} processed. Found {len(parsed_doc.concepts)} concepts."
-            )
+            logger.info(f"[DocumentService] KB {filename} processed. Found {len(parsed_doc.concepts)} concepts.")
             return parsed_doc
 
         except Exception as e:
@@ -180,19 +177,19 @@ class DocumentService:
             raise AppException(
                 message=f"Knowledge Base processing failed: {str(e)}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.KNOWLEDGE_INGESTION_FAILED, "original_error": str(e)}
+                details={"error_code": ErrorCodes.KNOWLEDGE_INGESTION_FAILED, "original_error": str(e)},
             ) from e
 
     # --- Internal Text Extraction Helpers (Migrated from DocumentProcessor) ---
 
-    def extract_text(self, input_data: Union[str, bytes]) -> str:
+    def extract_text(self, input_data: str | bytes) -> str:
         """Unified text extraction method (Public API).
 
         Routes to PDF or DOCX extractors based on content or filename.
 
         Args:
             input_data (Union[str, bytes]): File path or file content bytes.
-        
+
         Returns:
             str: Extracted text.
 
@@ -206,7 +203,7 @@ class DocumentService:
                     raise AppException(
                         message=f"File not found: {input_data}",
                         status_code=status.HTTP_404_NOT_FOUND,
-                        details={"error_code": ErrorCodes.FILE_NOT_FOUND, "path": input_data}
+                        details={"error_code": ErrorCodes.FILE_NOT_FOUND, "path": input_data},
                     )
 
                 # Path based dispatch
@@ -216,13 +213,13 @@ class DocumentService:
                 elif lower.endswith(".docx"):
                     return self._extract_text_from_docx(input_data)
                 else:
-                     # Try simple read for text files
+                    # Try simple read for text files
                     with open(input_data, encoding="utf-8") as f:
                         return f.read()
 
             elif isinstance(input_data, bytes):
                 # In-memory dispatch using magic numbers or caller context?
-                # This seems risky for strict Fail Fast if we guess wrong. 
+                # This seems risky for strict Fail Fast if we guess wrong.
                 # But for now, we assume if bytes are passed, we might need a type hint arg in future.
                 # Current usage usually involves specific methods (process_evidence_files).
                 # extract_text is a helper.
@@ -232,7 +229,7 @@ class DocumentService:
             raise AppException(
                 message="Cannot determine file type or process input data.",
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT}
+                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT},
             )
 
         except Exception as e:
@@ -241,11 +238,11 @@ class DocumentService:
             raise AppException(
                 message=f"Text extraction failed: {str(e)}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.DOCUMENT_PROCESSING_FAILED, "original_error": str(e)}
+                details={"error_code": ErrorCodes.DOCUMENT_PROCESSING_FAILED, "original_error": str(e)},
             ) from e
 
     @staticmethod
-    def _extract_text_from_pdf(input_data: Union[str, bytes]) -> str:
+    def _extract_text_from_pdf(input_data: str | bytes) -> str:
         """Extracts plain text from a PDF file using PyMuPDF (fitz)."""
         try:
             doc = None
@@ -267,11 +264,11 @@ class DocumentService:
             raise AppException(
                 message=f"Failed to extract PDF text: {str(e)}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.DOCUMENT_PROCESSING_FAILED, "format": "pdf"}
+                details={"error_code": ErrorCodes.DOCUMENT_PROCESSING_FAILED, "format": "pdf"},
             ) from e
 
     @staticmethod
-    def _extract_text_from_docx(input_data: Union[str, bytes]) -> str:
+    def _extract_text_from_docx(input_data: str | bytes) -> str:
         """Extracts plain text from a DOCX file using python-docx."""
         try:
             doc = None
@@ -297,8 +294,8 @@ class DocumentService:
 
             return "\n".join(text).strip()
         except Exception as e:
-             raise AppException(
+            raise AppException(
                 message=f"Failed to extract DOCX text: {str(e)}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.DOCUMENT_PROCESSING_FAILED, "format": "docx"}
+                details={"error_code": ErrorCodes.DOCUMENT_PROCESSING_FAILED, "format": "docx"},
             ) from e

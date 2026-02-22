@@ -16,6 +16,10 @@ abstract class StudioState with _$StudioState {
     @Default(AsyncValue.data(null)) AsyncValue<WorkflowDef?> activeWorkflow,
     @Default(AsyncValue.data(<StudioComponentDef>[]))
     AsyncValue<List<StudioComponentDef>> components,
+    @Default(AsyncValue.data(<StudioComponentDef>[]))
+    AsyncValue<List<StudioComponentDef>> agents,
+    @Default(AsyncValue.data(<StudioComponentDef>[]))
+    AsyncValue<List<StudioComponentDef>> outputConfigs,
     // availableMatrices moved to AvailableMatricesController
     @Default(AsyncValue.data(<OntologyDimension>[]))
     AsyncValue<List<OntologyDimension>> ontologyDimensions,
@@ -41,11 +45,23 @@ class StudioController extends _$StudioController {
 
   /// **Load Components List**
   Future<void> loadComponents() async {
-    state = state.copyWith(components: const AsyncLoading<List<StudioComponentDef>>().copyWithPrevious(state.components));
     state = state.copyWith(
-      components: await AsyncValue.guard(() async {
-        return ref.read(studioRepositoryProvider).getComponents();
-      }),
+      components: const AsyncLoading<List<StudioComponentDef>>().copyWithPrevious(state.components),
+      agents: const AsyncLoading<List<StudioComponentDef>>().copyWithPrevious(state.agents),
+      outputConfigs: const AsyncLoading<List<StudioComponentDef>>().copyWithPrevious(state.outputConfigs),
+    );
+
+    // Fetch them in parallel
+    final results = await Future.wait([
+       ref.read(studioRepositoryProvider).getComponents(),
+       ref.read(studioRepositoryProvider).getAgents(),
+       ref.read(studioRepositoryProvider).getOutputConfigs(),
+    ]);
+
+    state = state.copyWith(
+      components: AsyncValue.data(results[0]),
+      agents: AsyncValue.data(results[1]),
+      outputConfigs: AsyncValue.data(results[2]),
     );
   }
 
@@ -109,6 +125,16 @@ class StudioController extends _$StudioController {
   Future<void> saveComponent(StudioComponentDef component) async {
       await ref.read(studioRepositoryProvider).saveComponent(component);
       // Main list is handled by availableMatricesControllerProvider / componentsControllerProvider
+  }
+
+  /// **Save Agent**
+  Future<void> saveAgent(StudioComponentDef agent) async {
+      await ref.read(studioRepositoryProvider).saveAgent(agent);
+  }
+
+  /// **Save Output Config**
+  Future<void> saveOutputConfig(StudioComponentDef outputConfig) async {
+      await ref.read(studioRepositoryProvider).saveOutputConfig(outputConfig);
   }
 
   /// **Update Step Configuration (Active Workflow)**

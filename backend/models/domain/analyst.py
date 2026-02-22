@@ -8,13 +8,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
-
 class AnalystInput(BaseModel):
     """Strict input schema for AnalystAgent."""
+
     history_text: str = Field(..., description="Chat history to analyze.")
     product_text: str | None = Field(None, description="Product context (optional).")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
-    
+
     model_config = ConfigDict(frozen=True, extra="ignore")
 
 
@@ -52,16 +52,17 @@ class Hypothesis(BaseModel):
         return v.strip()
 
     @model_validator(mode="after")
-    def validate_consistency(self) -> "Hypothesis":
+    def validate_consistency(self) -> Hypothesis:
         if self.evidence_found and not self.quotes:
-             # Strict: If evidence is found, quotes MUST be provided.
-             # This prevents "hallucinated" evidence flags without backing data.
-             raise ValueError("Hypothesis claims evidence_found=True but provides no quotes.")
+            # Strict: If evidence is found, quotes MUST be provided.
+            # This prevents "hallucinated" evidence flags without backing data.
+            raise ValueError("Hypothesis claims evidence_found=True but provides no quotes.")
         return self
 
 
 class AnalystDTO(ReasoningTraceDTO):
     """Analyst DTO (Content Only)."""
+
     hypotheses: list[Hypothesis] = Field(
         ...,
         description="List of hypotheses.",
@@ -89,11 +90,13 @@ class AnalystDTO(ReasoningTraceDTO):
 
 class AnalystOutput(AnalystDTO, ReasoningTrace):
     """Output schema for the Analyst Agent."""
+
     model_config = ConfigDict(frozen=True, strict=False)
 
 
 class SearchResultItem(BaseModel):
     """Single search result."""
+
     title: str = Field(..., description="Title of the result.", json_schema_extra={"x-ui-label": "Title"})
     link: str = Field(..., description="Link to the result.", json_schema_extra={"x-ui-label": "Link"})
     snippet: str = Field(..., description="Snippet of the result.", json_schema_extra={"x-ui-label": "Snippet"})
@@ -110,11 +113,12 @@ class SearchResultItem(BaseModel):
 
 class SearchResult(BaseModel):
     """Result of the Google Search (Hook)."""
+
     results: list[SearchResultItem] = Field(
-        default_factory=list,
-        description="Search results.",
-        json_schema_extra={"x-ui-label": "Search Results"}
+        default_factory=list, description="Search results.", json_schema_extra={"x-ui-label": "Search Results"}
     )
-    error: str | None = Field(default=None, description="Error message if search failed.", json_schema_extra={"x-ui-label": "Error"})
+    error: str | None = Field(
+        default=None, description="Error message if search failed.", json_schema_extra={"x-ui-label": "Error"}
+    )
 
     model_config = ConfigDict(frozen=True, strict=False)

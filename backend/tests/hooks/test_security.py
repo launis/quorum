@@ -1,21 +1,22 @@
+from unittest.mock import AsyncMock
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
-from backend.hooks.security import sanitize_text_hook, check_banned_phrases_hook, sanitize_text
-from backend.models.state import WorkflowState
-from backend.models.domain.guard import SanitizationResult
+
 from backend.exceptions import AppException, ErrorCodes, SecurityViolationError
+from backend.hooks.security import check_banned_phrases_hook, sanitize_text, sanitize_text_hook
+from backend.models.domain.guard import SanitizationResult
+from backend.models.state import WorkflowState
+
 
 @pytest.fixture
 def mock_state():
     return WorkflowState(
         workflow_id="test_wf",
-        context_variables={"inputs": {
-            "history_text": "History",
-            "product_text": "Product",
-            "reflection_text": "Reflection"
-        }}
+        context_variables={
+            "inputs": {"history_text": "History", "product_text": "Product", "reflection_text": "Reflection"}
+        },
     )
+
 
 def test_sanitize_text_basic():
     """Verify regex redaction works."""
@@ -25,24 +26,28 @@ def test_sanitize_text_basic():
     assert "[REDACTED_PHONE_FI]" in clean
     assert "EMAIL: 1 items" in threats
 
+
 def test_sanitize_hook_success(mock_state):
     """Verify hook populates SanitizationResult."""
-    mock_state = mock_state.model_copy(update={
-        "context_variables": {
-            "inputs": {
-                "history_text": "My email is foo@bar.com",
-                "product_text": "Clean product",
-                "reflection_text": "Clean reflection"
+    mock_state = mock_state.model_copy(
+        update={
+            "context_variables": {
+                "inputs": {
+                    "history_text": "My email is foo@bar.com",
+                    "product_text": "Clean product",
+                    "reflection_text": "Clean reflection",
+                }
             }
         }
-    })
-    
+    )
+
     new_state = sanitize_text_hook(mock_state)
-    
+
     result = new_state.context_variables.get("sanitization_result")
     assert isinstance(result, SanitizationResult)
     assert "[REDACTED_EMAIL]" in result.sanitized_inputs["history_text"]
     assert "EMAIL: 1 items" in result.pii_threats_detected
+
 
 def test_sanitize_hook_missing_inputs(mock_state):
     """Should handle missing inputs gracefully (or fail fast if strict). Code defaults to empty."""
@@ -51,24 +56,27 @@ def test_sanitize_hook_missing_inputs(mock_state):
     new_state = sanitize_text_hook(mock_state)
     assert new_state == mock_state
 
+
 def test_banned_phrases_check_defaults(mock_state):
     """Verify fallback to DEFAULT_BANNED_PHRASES if no repository."""
     import asyncio
-    
-    mock_state = mock_state.model_copy(update={
-        "context_variables": {
-            "inputs": {
-                "history_text": "History",
-                "product_text": "This contains a system override.",
-                "reflection_text": "Reflection"
+
+    mock_state = mock_state.model_copy(
+        update={
+            "context_variables": {
+                "inputs": {
+                    "history_text": "History",
+                    "product_text": "This contains a system override.",
+                    "reflection_text": "Reflection",
+                }
             }
         }
-    })
+    )
 
     # Should detect "system override" from defaults
     with pytest.raises(SecurityViolationError) as exc:
         asyncio.run(check_banned_phrases_hook(mock_state, repository=None))
-    
+
     assert ErrorCodes.SECURITY_VIOLATION in str(exc.value.error_code)
     assert "system override" in exc.value.details["banned_phrases"]
 
@@ -78,54 +86,56 @@ async def test_banned_phrases_db_error(mock_state):
     """Fail Fast: Repository error raises SECURITY_DB_ERROR."""
     mock_repo = AsyncMock()
     mock_repo.get_banned_phrases.side_effect = Exception("DB Down")
-    
+
     with pytest.raises(AppException) as exc:
         await check_banned_phrases_hook(mock_state, repository=mock_repo)
-    
+
     assert exc.value.error_code == ErrorCodes.SECURITY_DB_ERROR
+
 
 @pytest.mark.asyncio
 async def test_banned_phrases_detected(mock_state):
     """Raise SecurityViolationError if phrase detected."""
     mock_repo = AsyncMock()
     mock_repo.get_banned_phrases.return_value = [{"phrase": "secret"}]
-    
-    mock_state = mock_state.model_copy(update={
-        "context_variables": {
-            "inputs": {
-                "history_text": "History",
-                "product_text": "This is a secret message.",
-                "reflection_text": "Reflection"
+
+    mock_state = mock_state.model_copy(
+        update={
+            "context_variables": {
+                "inputs": {
+                    "history_text": "History",
+                    "product_text": "This is a secret message.",
+                    "reflection_text": "Reflection",
+                }
             }
         }
-    })
-    
+    )
+
     with pytest.raises(SecurityViolationError) as exc:
         await check_banned_phrases_hook(mock_state, repository=mock_repo)
-    
+
     assert exc.value.error_code == ErrorCodes.SECURITY_VIOLATION
     assert "secret" in exc.value.details["banned_phrases"]
+
 
 @pytest.mark.asyncio
 async def test_banned_phrases_clean(mock_state):
     """Valid input updates SanitizationResult."""
     mock_repo = AsyncMock()
     mock_repo.get_banned_phrases.return_value = [{"phrase": "forbidden"}]
-    
-    mock_state = mock_state.model_copy(update={
-        "context_variables": {
-            "inputs": {
-                "history_text": "History",
-                "product_text": "Clean text.",
-                "reflection_text": "Reflection"
-            },
-            # Pre-existing result to verify merge
-            "sanitization_result": SanitizationResult(
-                 sanitized_inputs={}, pii_threats_detected=[], banned_phrases_detected=[]
-            )
+
+    mock_state = mock_state.model_copy(
+        update={
+            "context_variables": {
+                "inputs": {"history_text": "History", "product_text": "Clean text.", "reflection_text": "Reflection"},
+                # Pre-existing result to verify merge
+                "sanitization_result": SanitizationResult(
+                    sanitized_inputs={}, pii_threats_detected=[], banned_phrases_detected=[]
+                ),
+            }
         }
-    })
-    
+    )
+
     new_state = await check_banned_phrases_hook(mock_state, repository=mock_repo)
     result = new_state.context_variables["sanitization_result"]
     assert result.banned_phrases_detected == []

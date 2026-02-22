@@ -56,8 +56,12 @@ def export_db_to_files(source_db_path=None):
             seed_data["system_config"] = system_config_table.all()
 
         # Update Knowledge Base
-        kb_table = db.table("knowledge_base")
-        if kb_table:
+        kb_tables = ["concepts", "references", "claims"]
+        for t in kb_tables:
+            if t in db.tables():
+                seed_data[t] = db.table(t).all()
+            else:
+                seed_data[t] = []
             # We filter out claims or concepts?
             # CoachAgent loads ALL types (concept + reference).
             # But seed_data.json usually only needs references if we want to bootstrap Mock.
@@ -66,7 +70,6 @@ def export_db_to_files(source_db_path=None):
             # CoachAgent prepare_context only looks for 'concept' and 'reference'.
             # And user specifically wants REFERENCES (bibliography).
             # Let's export everything.
-            seed_data["knowledge_base"] = kb_table.all()
 
         # Remove 'content' from components in seed_data if it maps to a template?
         # seeder.py logic:

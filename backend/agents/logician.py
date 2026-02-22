@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-
 class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
     """Loogikko-agentti (Logician Agent).
 
@@ -36,7 +35,6 @@ class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
     DTO_SCHEMA = LogicianOutputDTO
     OUTPUT_SCHEMA = LogicianOutput
 
-
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.
 
@@ -46,10 +44,7 @@ class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
         return LogicianOutput
 
     async def prepare_context(
-        self,
-        input_data: LogicianInput,
-        execution_context: dict[str, Any] | None,
-        **kwargs: Any
+        self, input_data: LogicianInput, execution_context: dict[str, Any] | None, **kwargs: Any
     ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
@@ -68,31 +63,31 @@ class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
         """
         # 1. Resolve Input (Strong Typed)
         analyst_output = input_data.step_analyst
-        # LogicianInput doesn't have step_analyst. Wait. 
+        # LogicianInput doesn't have step_analyst. Wait.
         # Plan said LogicianInput needs history_text.
         # But Logician needs step_analyst!
         # I missed checking if Logician needs AnalystOutput in LogicianInput.
         # Let's check logic: "analyst_output = kwargs.get('step_analyst') or input_data.get('step_analyst')"
         # If I strictly enforce LogicianInput, it must have it if implied.
         # But LogicianInput defined earlier ONLY has history_text.
-        # If step_analyst is passed via kwargs (from graph), it's fine. 
+        # If step_analyst is passed via kwargs (from graph), it's fine.
         # If passed via input_data, it must be in the model.
         # I should probably add step_analyst to LogicianInput?
         # But BaseAgent doesn't enforce kwargs matching INPUT_SCHEMA.
         # BaseAgent.execute takes input_data.
         # If step_analyst comes from previous agent in chain, it might be in state, injected into input_data?
-        # GraphEngine: "inputs = state.get_context(self.INPUT_SCHEMA)" 
+        # GraphEngine: "inputs = state.get_context(self.INPUT_SCHEMA)"
         # If I add step_analyst to LogicianInput, GraphEngine will try to populate it.
         # So I SHOULD have added step_analyst to LogicianInput.
         # Let's assume for now it comes from kwargs (injected by Engine separately) or I need to fix LogicianInput.
         # The existing code checked `input_data.get("step_analyst")`.
         # So I SHOULD FIX LogicianInput.
-        
+
         # NOTE: For now, I will use kwargs.get("step_analyst") which is safer if Engine injects dependencies.
         # But for strictness, it should be in Input.
-        
+
         # Let's rely on kwargs for step_analyst for now, or check raw_text from input_data.history_text.
-        
+
         if not analyst_output:
             # Check for direct text input as fallback
             raw_text = input_data.history_text
@@ -104,8 +99,10 @@ class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
                 # Raise AgentExecutionError for strictness matching other agents
                 raise AgentExecutionError(
                     detail=error_code,
-                    original_error=ValueError("LogicianAgent: Missing mandatory input 'step_analyst' (Evidence Map) or 'history_text'. Cannot construct arguments from nothing."),
-                    agent_name="LogicianAgent"
+                    original_error=ValueError(
+                        "LogicianAgent: Missing mandatory input 'step_analyst' (Evidence Map) or 'history_text'. Cannot construct arguments from nothing."
+                    ),
+                    agent_name="LogicianAgent",
                 )
 
         # 2. Format Context
@@ -114,17 +111,17 @@ class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
             if hasattr(analyst_output, "model_dump_json"):
                 content = analyst_output.model_dump_json(indent=2)
             elif isinstance(analyst_output, dict):
-                 # Backward compatibility but strictly typed expected
-                 import json
+                # Backward compatibility but strictly typed expected
+                import json
 
-                 def strict_serializer(obj):
+                def strict_serializer(obj):
                     if isinstance(obj, (datetime, date)):
                         return obj.isoformat()
                     raise TypeError(f"Type {type(obj)} not serializable")
 
-                 content = json.dumps(analyst_output, indent=2, ensure_ascii=False, default=strict_serializer)
+                content = json.dumps(analyst_output, indent=2, ensure_ascii=False, default=strict_serializer)
             else:
-                 content = str(analyst_output)
+                content = str(analyst_output)
 
             return f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}"
 
@@ -156,5 +153,3 @@ class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
 
         # BaseAgent checks ensure this is LogicianOutput
         return result
-
-

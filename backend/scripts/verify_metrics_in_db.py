@@ -5,6 +5,7 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def check_metrics():
     db_path = "data/db.json"
     if not os.path.exists(db_path):
@@ -27,7 +28,7 @@ def check_metrics():
             workflows = default
             logger.info(f"Using _default table with {len(workflows)} items")
         else:
-             logger.warning("No 'workflows' or '_default' table found.")
+            logger.warning("No 'workflows' or '_default' table found.")
 
     found_metrics = 0
     total_items = 0
@@ -40,15 +41,18 @@ def check_metrics():
 
         if metrics:
             found_metrics += 1
-            logger.info(f"[metrics found] ID: {val.get('id', key)} | Words: {metrics.get('word_count')} | Sentences: {metrics.get('sentence_count')}")
+            logger.info(
+                f"[metrics found] ID: {val.get('id', key)} | Words: {metrics.get('word_count')} | Sentences: {metrics.get('sentence_count')}"
+            )
         else:
             # Check root level just in case
             if "audit_metrics" in val:
-                 found_metrics += 1
-                 m = val["audit_metrics"]
-                 logger.info(f"[metrics found (root)] ID: {val.get('id', key)} | Words: {m.get('word_count')}")
+                found_metrics += 1
+                m = val["audit_metrics"]
+                logger.info(f"[metrics found (root)] ID: {val.get('id', key)} | Words: {m.get('word_count')}")
 
     logger.info(f"Scan Complete. Found metrics in {found_metrics}/{total_items} workflows.")
+
 
 if __name__ == "__main__":
     check_metrics()

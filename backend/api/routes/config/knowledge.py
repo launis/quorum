@@ -54,7 +54,7 @@ async def ingest_knowledge_base(
             "progress": 0,
             "stage": "Aloitetaan",
             "result": None,
-            "error": None
+            "error": None,
         }
 
         # Task Wrapper for Progress Tracking
@@ -70,12 +70,9 @@ async def ingest_knowledge_base(
 
                 def complete(self, result):
                     if job_id in ingestion_jobs:
-                        ingestion_jobs[job_id].update({
-                            "status": "completed",
-                            "result": result,
-                            "progress": 100,
-                            "stage": "Valmis"
-                        })
+                        ingestion_jobs[job_id].update(
+                            {"status": "completed", "result": result, "progress": 100, "stage": "Valmis"}
+                        )
 
                 def fail(self, error):
                     # Extract error code if available, otherwise unknown
@@ -84,12 +81,9 @@ async def ingest_knowledge_base(
                         error_code = error.error_code
 
                     if job_id in ingestion_jobs:
-                        ingestion_jobs[job_id].update({
-                            "status": "failed",
-                            "error": str(error),
-                            "error_code": error_code,
-                            "stage": "Virhe"
-                        })
+                        ingestion_jobs[job_id].update(
+                            {"status": "failed", "error": str(error), "error_code": error_code, "stage": "Virhe"}
+                        )
 
             try:
                 content = await file.read()
@@ -100,7 +94,7 @@ async def ingest_knowledge_base(
                     SimpleTracker(),
                     job_id=job_id,
                     language=language,
-                    model_strategy=model_strategy
+                    model_strategy=model_strategy,
                 )
             except Exception as e:
                 # Catch-all for safety. Only update if not already reported as failed by the service/tracker.
@@ -108,12 +102,14 @@ async def ingest_knowledge_base(
                 logger.error(f"[KnowledgeIngestion] {error_code.value}: Background task failed: {e}", exc_info=True)
 
                 if job_id in ingestion_jobs and ingestion_jobs[job_id].get("status") != "failed":
-                    ingestion_jobs[job_id].update({
-                        "status": "failed",
-                        "error": str(e),
-                        "error_code": error_code.value,
-                        "stage": "Järjestelmävirhe"
-                    })
+                    ingestion_jobs[job_id].update(
+                        {
+                            "status": "failed",
+                            "error": str(e),
+                            "error_code": error_code.value,
+                            "stage": "Järjestelmävirhe",
+                        }
+                    )
 
         background_tasks.add_task(process_task)
         return KnowledgeIngestResponse(job_id=job_id)
@@ -124,7 +120,7 @@ async def ingest_knowledge_base(
         raise AppException(
             message=f"Failed to initiate ingestion: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            details={"error_code": error_code},
         ) from e
 
 
@@ -147,20 +143,20 @@ async def get_ingestion_status(job_id: str) -> KnowledgeJobStatusResponse:
             raise AppException(
                 message=f"Ingestion job '{job_id}' not found",
                 status_code=status.HTTP_404_NOT_FOUND,
-                details={"error_code": ErrorCodes.JOB_NOT_FOUND}
+                details={"error_code": ErrorCodes.JOB_NOT_FOUND},
             )
         # Inject ID for frontend consistency
         return KnowledgeJobStatusResponse(job_id=job_id, **job)
     except Exception as e:
         if isinstance(e, AppException):
-             raise e
-        
+            raise e
+
         error_code = ErrorCodes.KNOWLEDGE_INGESTION_FAILED
         logger.error(f"[KnowledgeConfig] {error_code.value}: Failed to get job status: {e}", exc_info=True)
         raise AppException(
             message=f"Failed to get job status: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            details={"error_code": error_code},
         ) from e
 
 
@@ -185,7 +181,7 @@ async def reset_knowledge_base(
         raise AppException(
             message=f"Failed to reset Knowledge Base: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            details={"error_code": error_code},
         ) from e
 
 
@@ -203,29 +199,28 @@ async def get_knowledge_status(
         # 1. Check Precedents (Completed Executions)
         # We access the repository directly via the service
         repo = service.repository
-        
-        # In V3 (SQL/Vector), use count() query. 
+
+        # In V3 (SQL/Vector), use count() query.
         # For TinyDB, we just check length of all/search.
         all_execs = await repo.get_all_executions()
         precedent_count = len([x for x in all_execs if x.status == "completed"])
 
-        # 2. Check Knowledge Base Documents
-        # MVP: Fetch all items and count. 
+        # MVP: Fetch all items and count.
         # In V3 (Vector DB), replace with count() method.
-        kb_items = await repo.get_knowledge_base_items()
-        document_count = len(kb_items)
-        
+        c = await repo.get_concepts()
+        r = await repo.get_references()
+        cl = await repo.get_claims()
+        document_count = len(c) + len(r) + len(cl)
+
         return KnowledgeStatusResponse(
             has_documents=(precedent_count > 0 or document_count > 0),
             document_count=document_count,
-            precedent_count=precedent_count
+            precedent_count=precedent_count,
         )
 
     except Exception as e:
         error_code = ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED
         logger.error(f"[KnowledgeConfig] {error_code.value}: Failed to check status: {e}", exc_info=True)
         raise AppException(
-            message=f"Failed to check knowledge status: {e}",
-            status_code=500,
-            details={"error_code": error_code}
+            message=f"Failed to check knowledge status: {e}", status_code=500, details={"error_code": error_code}
         ) from e

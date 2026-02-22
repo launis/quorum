@@ -1,4 +1,3 @@
-
 from unittest.mock import AsyncMock
 
 import pytest
@@ -10,6 +9,7 @@ from backend.models.auth import TokenData, UserRole
 from backend.models.domain.execution import ExecutionRecord
 
 # Mock AuthService to bypass token issues
+
 
 @pytest.mark.asyncio
 async def test_cancel_execution_success():
@@ -36,6 +36,7 @@ async def test_cancel_execution_success():
     assert result.status == "cancelling"
     repository.update_execution.assert_called_with(execution_id, {"status": "cancelling"})
 
+
 @pytest.mark.asyncio
 async def test_cancel_execution_already_done():
     # 1. Status completed
@@ -58,6 +59,7 @@ async def test_cancel_execution_already_done():
     assert result.status == "completed"
     repository.update_execution.assert_not_called()
 
+
 @pytest.mark.asyncio
 async def test_cancel_execution_permission_denied():
     # 1. Cross-user access
@@ -66,7 +68,7 @@ async def test_cancel_execution_permission_denied():
         id=execution_id,
         status="running",
         organization_id="org-A",
-        user_id="user-99", # Different user
+        user_id="user-99",  # Different user
     )
 
     repository = AsyncMock()
@@ -82,6 +84,7 @@ async def test_cancel_execution_permission_denied():
         await cancel_execution(execution_id, repository=repository, current_user=user)
 
     assert excinfo.value.status_code == 403
+
 
 # SSE Test (partial)
 # Ideally we mock the redis connection and verify generator yields

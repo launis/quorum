@@ -1,4 +1,3 @@
-
 import asyncio
 import os
 import sys
@@ -22,9 +21,7 @@ async def main():
         print(f"Running LLMClient.run_chat with prompt: '{prompt_text}'")
         print("Model argument is implicitly None (should resolve to default)")
 
-        response = await client.run_chat(
-            messages=[{"role": "user", "content": prompt_text}]
-        )
+        response = await client.run_chat(messages=[{"role": "user", "content": prompt_text}])
 
         print("\n--- RESPONSE ---")
         print(response)
@@ -33,7 +30,9 @@ async def main():
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

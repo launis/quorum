@@ -96,5 +96,13 @@ Execute Phase 7. Audit `[YOUR_FILE.py]`/`[YOUR_FILE.dart]` against Part 17 of `f
 Provide the final refactored code block.
 ```
 
+### Prompt 8: The Zero Error Linter Loop
+```markdown
+Execute Phase 8. After integrating the refactored code from the previous steps, you must now PROVE that the changes strictly comply with the typing and styling standards.
+- Run `ruff check backend/` (Python) or `dart analyze` (Dart). Do NOT proceed until the response contains 0 errors. If errors exist, automatically write the fixes and re-run.
+- Run `mypy backend/` (Python). Do NOT proceed until the response contains 0 errors (ignoring known global exclusions if any). If errors exist, automatically write the typing fixes and re-run.
+You are not allowed to declare the refactoring finished until both static analyzers return completely clean output.
+```
+
 ---
-**Why this works:** Small, targeted prompts prevent the LLM from getting "lazy" or dropping context in the middle of a massive file refactor. You act as the conductor, ensuring standard compliance part by part.
+**Why this works:** Small, targeted prompts prevent the LLM from getting "lazy" or dropping context in the middle of a massive file refactor. You act as the conductor, ensuring standard compliance part by part, ending with an unarguable static analysis proof of correctness.

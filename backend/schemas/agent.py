@@ -1,8 +1,11 @@
 from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 
 class AgentDefinition(BaseModel):
     """Schema for agent metadata exposed by discovery endpoint."""
+
     name: str
     class_name: str = Field(..., alias="class")
     description: str
@@ -19,8 +22,10 @@ class AgentDefinition(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+
 class AgentRunResponse(BaseModel):
     """Schema for single agent execution result."""
+
     agent: str
     result: Any  # The result might be a complex object or dict, but we wrap it.
 

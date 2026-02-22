@@ -1,4 +1,3 @@
-
 from .assessment import AssessmentTransformer
 from .report_core import ReportTransformer
 

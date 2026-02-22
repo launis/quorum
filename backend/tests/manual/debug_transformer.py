@@ -1,18 +1,19 @@
-
-import sys
 import os
+import sys
 
 # Ensure cwd is in path
 sys.path.append(os.getcwd())
 
-from backend.models.state import WorkflowState
 from backend.api.transformers.report_transformer import ReportTransformer
-from backend.exceptions import AppException
+from backend.models.state import WorkflowState
 
 try:
     print("Testing Fail Fast...")
-    state = WorkflowState(workflow_id="fail_test")
-    ReportTransformer.transform(state)
+    from backend.models.domain.execution import ExecutionRecord
+    import uuid
+    state = WorkflowState(workflow_id="fail_test", execution_id=uuid.uuid4())
+    record = ExecutionRecord(id=str(state.execution_id), results=state, status="failed")
+    ReportTransformer().transform(record)
     print("Did not raise exception!")
     sys.exit(1)
 except Exception as e:

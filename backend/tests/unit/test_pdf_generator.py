@@ -9,13 +9,14 @@ sys.modules["matplotlib"] = MagicMock()
 sys.modules["matplotlib.pyplot"] = MagicMock()
 sys.modules["matplotlib.figure"] = MagicMock()
 
+from datetime import datetime, timezone
+
 import pytest
 
-from backend.models.view.sdui import ReportView, SectionType, UiSection
 from backend.exceptions import AppException
 from backend.models.domain.execution import ExecutionRecord
-from backend.models.state import WorkflowState, TraceEvent
-from datetime import datetime, timezone
+from backend.models.state import TraceEvent, WorkflowState
+from backend.models.view.sdui import ReportView, SectionType, UiSection
 from backend.services.pdf_generator import PdfReportService, ProgressServiceProtocol
 
 
@@ -23,10 +24,12 @@ from backend.services.pdf_generator import PdfReportService, ProgressServiceProt
 def mock_repo():
     return AsyncMock()
 
+
 @pytest.fixture
 def mock_progress():
     progress = AsyncMock(spec=ProgressServiceProtocol)
     return progress
+
 
 @pytest.fixture
 def mock_weasyprint():
@@ -36,11 +39,13 @@ def mock_weasyprint():
         mock_html.write_pdf.return_value = b"%PDF-1.4 mock content"
         yield mock_wp
 
+
 @pytest.fixture
 def mock_chart_service():
     with patch("backend.services.pdf_generator.ChartService") as mock_cs:
         mock_cs.generate_radar_chart.return_value = "data:image/png;base64,mock"
         yield mock_cs
+
 
 @pytest.mark.asyncio
 async def test_generate_execution_pdf_success(mock_repo, mock_progress, mock_weasyprint, mock_chart_service):
@@ -50,8 +55,11 @@ async def test_generate_execution_pdf_success(mock_repo, mock_progress, mock_wea
 
     # Mock Repository Return (needed for initial fetch check)
     mock_execution = ExecutionRecord(
-        id=execution_id, workflow_id="test", status="completed",
-        completed_at=datetime.now(timezone.utc), results=WorkflowState(workflow_id="test")
+        id=execution_id,
+        workflow_id="test",
+        status="completed",
+        completed_at=datetime.now(timezone.utc),
+        results=WorkflowState(workflow_id="test"),
     )
     mock_repo.get_execution.return_value = mock_execution
 
@@ -64,13 +72,11 @@ async def test_generate_execution_pdf_success(mock_repo, mock_progress, mock_wea
         title="Test Score Card",
         data={
             "dimensions": [{"dimension_label": "Logic", "score": 4.0, "dimension_id": "logic"}],
-            "max_score": 4
-        } # chart_image will be injected by service
+            "max_score": 4,
+        },  # chart_image will be injected by service
     )
     service.transformer.transform.return_value = ReportView(
-        view_id=execution_id,
-        status_theme="success",
-        sections=[mock_section]
+        view_id=execution_id, status_theme="success", sections=[mock_section]
     )
 
     # Execute
@@ -107,8 +113,11 @@ async def test_generate_execution_pdf_not_found(mock_repo, mock_progress):
 async def test_generate_execution_pdf_error_handling(mock_repo, mock_progress):
     service = PdfReportService(mock_repo, mock_progress)
     mock_execution = ExecutionRecord(
-        id="exec-123", workflow_id="test", status="completed",
-        completed_at=datetime.now(timezone.utc), results=WorkflowState(workflow_id="test")
+        id="exec-123",
+        workflow_id="test",
+        status="completed",
+        completed_at=datetime.now(timezone.utc),
+        results=WorkflowState(workflow_id="test"),
     )
     mock_repo.get_execution.return_value = mock_execution
 
@@ -118,19 +127,16 @@ async def test_generate_execution_pdf_error_handling(mock_repo, mock_progress):
         id="score-card-1",
         type=SectionType.SCORE_CARD,
         title="Test Score Card",
-        data={
-            "max_score": 5,
-            "dimensions": [{"dimension_label": "Logic", "score": 4.0, "dimension_id": "logic"}]
-        }
+        data={"max_score": 5, "dimensions": [{"dimension_label": "Logic", "score": 4.0, "dimension_id": "logic"}]},
     )
     service.transformer.transform.return_value = ReportView(
-        view_id="exec-123",
-        status_theme="success",
-        sections=[mock_section]
+        view_id="exec-123", status_theme="success", sections=[mock_section]
     )
 
     # Force error during chart generation
-    with patch("backend.services.pdf_generator.ChartService.generate_radar_chart", side_effect=ValueError("Chart Error")):
+    with patch(
+        "backend.services.pdf_generator.ChartService.generate_radar_chart", side_effect=ValueError("Chart Error")
+    ):
         with pytest.raises(AppException) as excinfo:
             await service.generate_execution_pdf("exec-123")
 
@@ -150,8 +156,10 @@ async def test_generate_pdf_with_logic_and_ethics(mock_repo, mock_progress, mock
     # Mock Execution with Logic and Ethics Data
     # Create WorkflowState with Context Variables instead of trace_data dicts
     mock_execution = ExecutionRecord(
-        id=execution_id, workflow_id="test", status="completed",
-        completed_at=datetime.now(timezone.utc), 
+        id=execution_id,
+        workflow_id="test",
+        status="completed",
+        completed_at=datetime.now(timezone.utc),
         results=WorkflowState(
             workflow_id="test",
             execution_trace=[
@@ -163,39 +171,58 @@ async def test_generate_pdf_with_logic_and_ethics(mock_repo, mock_progress, mock
                             "bloom_level": "Analyzing",
                             "bloom_score": 4.0,
                             "strategic_depth": "High",
-                            "strategic_score": 3.0
+                            "strategic_score": 3.0,
                         },
-                        "toulmin_analysis": [{"id": "t1", "claim": "C", "data": "D", "warrant": "W", "component_type": "Data", "content": "Facts", "evaluation": "Good"}],
+                        "toulmin_analysis": [
+                            {
+                                "id": "t1",
+                                "claim": "C",
+                                "data": "D",
+                                "warrant": "W",
+                                "component_type": "Data",
+                                "content": "Facts",
+                                "evaluation": "Good",
+                            }
+                        ],
                         "toulmin_score": 4.0,
                         "walton_scheme": {"identified_scheme": "Expert", "critical_questions": []},
-                        "arguments": []
-                    }
+                        "arguments": [],
+                    },
                 ),
                 TraceEvent(
                     event_type="output",
                     step_name="step_judge_cognitive",
                     content={
-                        "score_card": {"agent_name": "Cognitive Analyst", "max_score": 5, "total_score": 4.0, "scale_min": 1, "scale_max": 5, "verdict": "v"},
-                        "pisteet": {
-                            "Bloom's Taxonomy": {"arvosana": 4.0, "perustelu": "Remembering based."}
+                        "score_card": {
+                            "agent_name": "Cognitive Analyst",
+                            "max_score": 5,
+                            "total_score": 4.0,
+                            "scale_min": 1,
+                            "scale_max": 5,
+                            "verdict": "v",
                         },
-                        "kriittiset_havainnot_yhteenveto": []
-                    }
+                        "pisteet": {"Bloom's Taxonomy": {"arvosana": 4.0, "perustelu": "Remembering based."}},
+                        "kriittiset_havainnot_yhteenveto": [],
+                    },
                 ),
                 TraceEvent(
                     event_type="output",
                     step_name="step_overseer",
                     content={
                         "fact_checks": [
-                            {"claim": "Test Claim", "verification_result": "Verified", "source_or_reasoning": "Source A"}
+                            {
+                                "claim": "Test Claim",
+                                "verification_result": "Verified",
+                                "source_or_reasoning": "Source A",
+                            }
                         ],
                         "ethical_issues": [
                             {"issue_type": "Bias", "severity": "Warning", "description": "Minor bias detected"}
-                        ]
-                    }
-                )
-            ]
-        )
+                        ],
+                    },
+                ),
+            ],
+        ),
     )
     mock_repo.get_execution.return_value = mock_execution
 

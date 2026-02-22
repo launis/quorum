@@ -1,18 +1,16 @@
 import logging
-from typing import Annotated
 
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep, RepositoryDep
-
-from backend.exceptions import AppException, ResourceNotFoundError, ErrorCodes, ConflictError
+from backend.exceptions import AppException, ConflictError, ErrorCodes, ResourceNotFoundError
 from backend.models.dtos.config import DimensionDefinition, DimensionDeleteResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Ontology"])
+
 
 @router.get(
     "/dimensions",
@@ -39,14 +37,15 @@ def get_known_dimensions(db: DatabaseDep) -> list[DimensionDefinition]:
     except Exception as e:
         error_code = ErrorCodes.DIMENSION_LIST_FAILED
         logger.error(f"[Config] {error_code.value}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e),
-            status_code=500,
-            details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
-@router.delete("/dimensions/{dim_id}", summary="Delete Dimension", response_description="Delete status.", response_model=DimensionDeleteResponse)
+@router.delete(
+    "/dimensions/{dim_id}",
+    summary="Delete Dimension",
+    response_description="Delete status.",
+    response_model=DimensionDeleteResponse,
+)
 async def delete_dimension(
     dim_id: str,
     db: DatabaseDep,
@@ -75,20 +74,10 @@ async def delete_dimension(
             if comp_res:
                 matrix_name = comp_res[0].get("name", matrix_id)
 
-            msg = (
-                f"Dimension '{dim_id}' is used in matrix '{matrix_name}'. "
-                "Remove it from the matrix first."
-            )
+            msg = f"Dimension '{dim_id}' is used in matrix '{matrix_name}'. Remove it from the matrix first."
             logger.warning(f"[Config] {error_code.value}: {msg}")
 
-            raise ConflictError(
-                message=msg,
-                details={
-                    "error_code": error_code,
-                    "id": dim_id,
-                    "name": matrix_name
-                }
-            )
+            raise ConflictError(message=msg, details={"error_code": error_code, "id": dim_id, "name": matrix_name})
 
         # 3. Delete
         table.remove(Dim.id == dim_id)
@@ -96,18 +85,19 @@ async def delete_dimension(
 
     except Exception as e:
         if isinstance(e, AppException):
-             raise e
-        
+            raise e
+
         error_code = ErrorCodes.DIMENSION_DELETE_FAILED
         logger.error(f"[Config] {error_code.value}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e),
-            status_code=500,
-            details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
-@router.put("/dimensions/{dim_id}", summary="Update Dimension", response_description="Updated dimension.", response_model=DimensionDefinition)
+@router.put(
+    "/dimensions/{dim_id}",
+    summary="Update Dimension",
+    response_description="Updated dimension.",
+    response_model=DimensionDefinition,
+)
 async def update_dimension(
     dim_id: str,
     dimension: DimensionDefinition,
@@ -120,7 +110,7 @@ async def update_dimension(
             raise AppException(
                 message="Dimension ID mismatch.",
                 status_code=400,
-                details={"error_code": ErrorCodes.DIMENSION_ID_MISMATCH}
+                details={"error_code": ErrorCodes.DIMENSION_ID_MISMATCH},
             )
 
         # 1. Existence Check
@@ -136,12 +126,8 @@ async def update_dimension(
 
     except Exception as e:
         if isinstance(e, AppException):
-             raise e
-        
+            raise e
+
         error_code = ErrorCodes.DIMENSION_UPDATE_FAILED
         logger.error(f"[Config] {error_code.value}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e),
-            status_code=500,
-            details={"error_code": error_code}
-        ) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e

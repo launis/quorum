@@ -6,21 +6,21 @@ import logging
 import re
 import uuid
 from datetime import datetime
-from typing import Any, List, Dict, Optional
+from typing import Any
 
 from fastapi.concurrency import run_in_threadpool
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import (
-    AppException,
     AgentExecutionError,
+    AppException,
     ErrorCodes,
     ServiceUnavailableError,
     status,
 )
 from backend.llm.provider import LLMFactory
 from backend.models.domain.retrieval import KnowledgeItem
-from backend.schemas.knowledge import IngestionSummary, ConceptResponse
+from backend.schemas.knowledge import ConceptResponse, IngestionSummary
 from backend.services.document_service import DocumentService
 from backend.services.parsers.bibliography_parser import BibliographyParser
 from backend.services.storage import get_storage_driver
@@ -202,7 +202,7 @@ class KnowledgeBaseService:
                     raise AppException(
                         message="Model Strategy requested but AgentRegistry is unavailable.",
                         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                        details={"error_code": error_code}
+                        details={"error_code": error_code},
                     )
 
                 # Basic Parsing (No Strategy Requested)
@@ -227,16 +227,15 @@ class KnowledgeBaseService:
         except Exception as e:
             error_code = ErrorCodes.KNOWLEDGE_INGESTION_FAILED
             logger.error(f"[KBService] {error_code.value}: Ingestion failed: {e}", exc_info=True)
-            
+
             # Wrap in structured exception for Tracker/Route
             app_error = AppException(
                 message=f"Ingestion failed: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code, "original_error": str(e)}
+                details={"error_code": error_code, "original_error": str(e)},
             )
             tracker.fail(app_error)
             raise app_error from e
-
 
     async def extract_concepts_with_llm(
         self,
@@ -269,13 +268,17 @@ class KnowledgeBaseService:
         if not self.registry or not self.usage_service:
             if strategy:
                 error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
-                logger.error(f"[KBService] {error_code.value}: Registry or UsageService unavailable for prompt-based extraction.")
+                logger.error(
+                    f"[KBService] {error_code.value}: Registry or UsageService unavailable for prompt-based extraction."
+                )
                 raise AppException(
                     message="Registry or UsageService unavailable for prompt-based extraction.",
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    details={"error_code": error_code}
+                    details={"error_code": error_code},
                 )
-            logger.warning("[KBService] Registry or UsageService missing. Skipping LLM extraction (No strategy requested).")
+            logger.warning(
+                "[KBService] Registry or UsageService missing. Skipping LLM extraction (No strategy requested)."
+            )
             return []
 
         try:
@@ -285,18 +288,19 @@ class KnowledgeBaseService:
 
             # Create transient provider for this job
             llm_provider = LLMFactory.create_provider(
-                provider_type=config.provider, 
-                model_name=config.model_name, 
-                usage_service=self.usage_service
+                provider_type=config.provider, model_name=config.model_name, usage_service=self.usage_service
             )
             logger.info(f"[KBService] Using Model: {getattr(llm_provider, 'model_name', 'Unknown')}")
 
         except Exception as e:
             error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
-            logger.error(f"[KBService] {error_code.value}: Failed to resolve/create provider for strategy '{strategy}': {e}", exc_info=True)
+            logger.error(
+                f"[KBService] {error_code.value}: Failed to resolve/create provider for strategy '{strategy}': {e}",
+                exc_info=True,
+            )
             raise ServiceUnavailableError(
                 message=f"Failed to resolve model strategy '{strategy}': {e}",
-                details={"error_code": error_code, "original_error": str(e)}
+                details={"error_code": error_code, "original_error": str(e)},
             ) from e
 
         # 1. Chunking
@@ -340,7 +344,7 @@ class KnowledgeBaseService:
             prompt = f"""
             You are an expert academic research assistant.
             Analyze the following text chunk (Language: {language}). Extract theoretical concepts, models, or frameworks defined in the text.
-            
+
             STRICT GROUNDING RULES:
             1. EXTRACT ONLY concepts explicitly defined in the provided TEXT CHUNK.
             2. DO NOT invent, hallucinate, or infer concepts not present in the text.
@@ -374,10 +378,12 @@ class KnowledgeBaseService:
                 # [Fail Fast] Do not swallow errors. If 1 chunk fails, the integrity of the extraction is compromised.
                 logger.error(f"[KBService] Error calling LLM for chunk {i}: {e}", exc_info=True)
                 raise AgentExecutionError(
-                    detail=ErrorCodes.MODEL_OUTPUT_LIMIT_EXCEEDED.value if "limit" in str(e).lower() else ErrorCodes.AGENT_EXECUTION_CRITICAL.value,
+                    detail=ErrorCodes.MODEL_OUTPUT_LIMIT_EXCEEDED.value
+                    if "limit" in str(e).lower()
+                    else ErrorCodes.AGENT_EXECUTION_CRITICAL.value,
                     original_error=e,
                     agent_name="KnowledgeExtractor",
-                    step_id=f"chunk-{i}"
+                    step_id=f"chunk-{i}",
                 ) from e
 
         # Deduplicate
@@ -398,7 +404,7 @@ class KnowledgeBaseService:
 
     async def _store_parsed_data(
         self,
-        parsed_data: Any, # Actually KnowledgeBaseDocument
+        parsed_data: Any,  # Actually KnowledgeBaseDocument
         source_name: str,
         job_id: str,
         tracker: Any = None,
@@ -438,7 +444,7 @@ class KnowledgeBaseService:
                 "ingested_at": datetime.now(),
                 "metadata": {"language": language},
             }
-            await self.repository.add_knowledge_base_item(item)
+            await self.repository.add_concept(item)
 
             count_concepts += 1
             processed += 1
@@ -460,7 +466,7 @@ class KnowledgeBaseService:
                 "ingested_at": datetime.now(),
                 "metadata": {"short_citation": r.short_citation, "language": language},
             }
-            await self.repository.add_knowledge_base_item(item)
+            await self.repository.add_reference(item)
             count_refs += 1
             processed += 1
             if tracker and total_items > 0 and processed % 10 == 0:
@@ -486,7 +492,7 @@ class KnowledgeBaseService:
                     "language": language,
                 },
             }
-            await self.repository.add_knowledge_base_item(item)
+            await self.repository.add_claim(item)
             count_claims += 1
             processed += 1
 
@@ -521,8 +527,11 @@ class KnowledgeBaseService:
             list[KnowledgeItem]: A list of relevant knowledge items.
         """
         try:
-            # 1. Fetch ALL items (MVP approach)
-            all_items = await self.repository.get_knowledge_base_items()
+            # 1. Fetch ALL items separated by collection (MVP approach)
+            concepts = await self.repository.get_concepts()
+            references = await self.repository.get_references()
+            claims = await self.repository.get_claims()
+            all_items = concepts + references + claims
 
             if not all_items:
                 return []
@@ -554,6 +563,7 @@ class KnowledgeBaseService:
                         term=m.get("term", "N/A"),
                         definition=m.get("definition", "N/A"),
                         source=m.get("source_file", "unknown"),
+                        score=m.get("score", 0.0),
                     )
                 )
 
@@ -562,8 +572,8 @@ class KnowledgeBaseService:
         except Exception as e:
             error_code = ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED
             logger.error(f"[KBService] {error_code.value}: Retrieval failed: {e}", exc_info=True)
-            
+
             raise ServiceUnavailableError(
                 message=f"Knowledge Base retrieval failed: {e}",
-                details={"error_code": error_code, "original_error": str(e)}
+                details={"error_code": error_code, "original_error": str(e)},
             ) from e

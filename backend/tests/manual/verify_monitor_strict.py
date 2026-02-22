@@ -11,9 +11,11 @@ class MockWorkflowStep:
     def __init__(self, id):
         self.id = id
 
+
 class MockWorkflowDefinition:
     def __init__(self, steps):
         self.steps = [MockWorkflowStep(s) for s in steps]
+
 
 def test_strict_monitor():
     print("--- Testing AssessmentTransformer Dynamic Workflow Resolution ---")
@@ -31,9 +33,12 @@ def test_strict_monitor():
         "results": {
             "step_results": {
                 "step_alpha": {"status": "completed", "output": "foo"},
-                "step_gamma": {"status": "completed", "output": "bar"} # Should NOT appear if we strictly follow definition
+                "step_gamma": {
+                    "status": "completed",
+                    "output": "bar",
+                },  # Should NOT appear if we strictly follow definition
             }
-        }
+        },
     }
 
     transformer = AssessmentTransformer()
@@ -66,11 +71,12 @@ def test_strict_monitor():
         print(f"❌ Alpha status mismatch: {vocab['step_alpha']}")
 
     if vocab["step_beta"] == "pending":
-         print("✅ Beta status: pending")
+        print("✅ Beta status: pending")
     else:
-         print(f"❌ Beta status mismatch: {vocab['step_beta']}")
+        print(f"❌ Beta status mismatch: {vocab['step_beta']}")
 
     print("\n🎉 Strict Monitor Test Passed")
+
 
 if __name__ == "__main__":
     test_strict_monitor()

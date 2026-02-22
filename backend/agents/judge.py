@@ -12,18 +12,23 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import JudgeDTO, JudgeInput, JudgeOutput, JudgeScoreCard
+from backend.models.domain import JudgeDTO, JudgeInput, JudgeOutput
 
 # 4. Domain Imports for Forward Ref Resolution
 from backend.models.domain.analyst import AnalystOutput, SearchResult, SearchResultItem
 from backend.models.domain.archivist import ArchivistOutput, ArchivistOutputDTO
-from backend.models.domain.causal import CausalOutput, CausalAnalysis, CausalAnalysisData
-from backend.models.domain.falsifier import FalsifierOutput, FalsifierData, WaltonStressTest, ReasoningFidelity
-from backend.models.domain.guard import GuardOutput, TaintedDataContent, SanitizationResult
-from backend.models.domain.logician import LogicianOutput, LogicianData, ToulminComponent, CognitiveLevel, WaltonScheme
-from backend.models.domain.overseer import OverseerOutput, OverseerData
+from backend.models.domain.causal import CausalAnalysis, CausalAnalysisData, CausalOutput
+from backend.models.domain.falsifier import FalsifierData, FalsifierOutput, ReasoningFidelity, WaltonStressTest
+from backend.models.domain.guard import GuardOutput, SanitizationResult, TaintedDataContent
+from backend.models.domain.logician import CognitiveLevel, LogicianData, LogicianOutput, ToulminComponent, WaltonScheme
+from backend.models.domain.overseer import OverseerData, OverseerOutput
 from backend.models.domain.panel import PanelOutput, PanelOutputDTO
-from backend.models.domain.performativity import PerformativityOutput, PerformativityAnalysis, LinguisticsResult, PreMortemAnalysis
+from backend.models.domain.performativity import (
+    LinguisticsResult,
+    PerformativityAnalysis,
+    PerformativityOutput,
+    PreMortemAnalysis,
+)
 from backend.models.domain.profiler import ProfilerOutput
 
 # Resolve refs
@@ -114,67 +119,69 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
             AgentExecutionError: If strict scale resolution fails.
         """
         # STRICT FAIL FAST: Judge requires scoring_logic to function.
-        # This is typically passed in execution_context.
-        if not execution_context or "scoring_logic" not in execution_context:
-             # Check if inputs contain it? Assuming standard flow, it's config.
-             # If "matrix_id" is provided, we might fetch logic, but basic scoring_logic is required.
-             if not (execution_context and execution_context.get("matrix_id")):
-                  raise AgentExecutionError(
-                      detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                      original_error=ValueError("JudgeAgent: Missing mandatory context 'scoring_logic' (or 'matrix_id'). Cannot evaluate without rules."),
-                      agent_name="JudgeAgent"
-                  )
+        # This is typically passed in execution_context or via kwargs as execution_config.
+        config = execution_context or kwargs.get("execution_config") or {}
+        
+        if "scoring_logic" not in config and "matrix_id" not in config:
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                original_error=ValueError(
+                    "JudgeAgent: Missing mandatory context 'scoring_logic' (or 'matrix_id'). Cannot evaluate without rules."
+                ),
+                agent_name="JudgeAgent",
+            )
 
         result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
-        
+
         if isinstance(result_obj, JudgeOutput):
             result = result_obj
         elif isinstance(result_obj, dict):
             # Strict Casting Phase 1
             result = JudgeOutput(**result_obj)
         else:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"JudgeAgent returned {type(result_obj)} instead of JudgeOutput or dict"),
-                 agent_name="JudgeAgent"
-             )
+            raise AgentExecutionError(
+                detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                original_error=TypeError(f"JudgeAgent returned {type(result_obj)} instead of JudgeOutput or dict"),
+                agent_name="JudgeAgent",
+            )
 
         # STRICT SCALE & METADATA ENFORCEMENT
         # We manipulate the Pydantic Model directly using .model_copy()
-        
+
         updates = {}
-        
+
         # 1. Force Matrix ID
-        if execution_context and "matrix_id" in execution_context:
-            updates["matrix_id"] = execution_context["matrix_id"]
-        
+        config = execution_context or kwargs.get("execution_config") or {}
+        if "matrix_id" in config:
+            updates["matrix_id"] = config["matrix_id"]
+
         # Use updated or existing (JudgeOutput now has matrix_id)
-        matrix_id = updates.get("matrix_id", result.matrix_id) 
+        matrix_id = updates.get("matrix_id", result.matrix_id)
         repo = kwargs.get("repository")
 
         if not matrix_id or not repo:
-             raise AgentExecutionError(
+            raise AgentExecutionError(
                 detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                original_error=ValueError("Cannot resolve scale: Missing matrix_id or repository.")
+                original_error=ValueError("Cannot resolve scale: Missing matrix_id or repository."),
             )
 
         try:
             # Re-fetch component to "hoist" the truth
-            comp = await repo.get_component_by_id(matrix_id)
+            comp = await repo.get_matrix_by_id(matrix_id)
             if not comp or not comp.get("content"):
-                 raise AgentExecutionError(
-                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                     original_error=ValueError(f"Matrix component '{matrix_id}' not found or empty."),
-                     agent_name="JudgeAgent"
-                 )
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                    original_error=ValueError(f"Matrix component '{matrix_id}' not found or empty."),
+                    agent_name="JudgeAgent",
+                )
 
             scale = comp.get("content", {}).get("scale")
             if not scale or "min" not in scale or "max" not in scale:
-                 raise AgentExecutionError(
-                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                     original_error=ValueError(f"Matrix '{matrix_id}' has no defined scale in DB."),
-                     agent_name="JudgeAgent"
-                 )
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                    original_error=ValueError(f"Matrix '{matrix_id}' has no defined scale in DB."),
+                    agent_name="JudgeAgent",
+                )
 
             # FORCE OVERWRITE - The DB is the only Truth.
             updates["scale_min"] = scale["min"]
@@ -182,18 +189,12 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
 
             # FIX: Propagate scale to child score_card (Singular in JudgeOutput)
             if result.score_card:
-                new_card = result.score_card.model_copy(update={
-                    "scale_min": scale["min"],
-                    "scale_max": scale["max"]
-                })
+                new_card = result.score_card.model_copy(update={"scale_min": scale["min"], "scale_max": scale["max"]})
                 updates["score_card"] = new_card
 
         except Exception as e:
             logger.critical(f"[JudgeAgent] STRICT SCALE RESOLUTION FAILED: {e}")
-            raise AgentExecutionError(
-                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                original_error=e
-            )
+            raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e)
 
         # Apply updates so far
         result = result.model_copy(update=updates)
@@ -201,7 +202,7 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
         # --- DETERMINISTIC SCORING HOOK ---
         # User Request: "Miten se lasketaan?" -> We use Python for math.
         from backend.hooks.scoring import enforce_scoring_penalties
-        
+
         # Apply penalties to the result (Strict Pydantic Model)
         try:
             result = enforce_scoring_penalties(result, input_data)
@@ -209,9 +210,7 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
             logger.critical(f"[JudgeAgent] Scoring Hook Failed: {e}", exc_info=True)
             # STRICT FAIL FAST: No partial results. The scoring logic is mandatory.
             raise AgentExecutionError(
-                detail=ErrorCodes.HOOK_EXECUTION_FAILED,
-                original_error=e,
-                agent_name="JudgeAgent"
+                detail=ErrorCodes.HOOK_EXECUTION_FAILED, original_error=e, agent_name="JudgeAgent"
             )
 
         # --- USER REQUEST: Semantic Labels in Reports ---
@@ -230,21 +229,21 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
                     # STRICT MODE: Fail Fast.
                     raise AgentExecutionError(
                         detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                        original_error=ValueError(f"Strict Label Resolution Failed: Dimension ID '{dim.dimension_id}' not found in Matrix '{matrix_id}' criteria."),
-                        agent_name="JudgeAgent"
+                        original_error=ValueError(
+                            f"Strict Label Resolution Failed: Dimension ID '{dim.dimension_id}' not found in Matrix '{matrix_id}' criteria."
+                        ),
+                        agent_name="JudgeAgent",
                     )
-            
+
             # Update score_card with new dimensions
             new_score_card = result.score_card.model_copy(update={"dimensions": new_dimensions})
             result = result.model_copy(update={"score_card": new_score_card})
 
         # FINAL RETURN (Already Validated)
         return result
+
     async def prepare_context(
-        self,
-        input_data: JudgeInput,
-        execution_context: dict[str, Any] | None,
-        **kwargs: Any
+        self, input_data: JudgeInput, execution_context: dict[str, Any] | None, **kwargs: Any
     ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
@@ -271,23 +270,19 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
             msg = "JUDGE_CONFIGURATION_MISSING: No matrix_id configured."
             logger.error(msg)
             # Use SSOT ErrorCode
-            raise AgentExecutionError(
-                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                original_error=ValueError(msg)
-            )
+            raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=ValueError(msg))
 
         if not repo:
             # Should hopefully not happen if framework is robust, but for typed safety:
             raise AgentExecutionError(
-                detail=ErrorCodes.INTERNAL_SERVER_ERROR,
-                original_error=ValueError("Repository not injected.")
+                detail=ErrorCodes.INTERNAL_SERVER_ERROR, original_error=ValueError("Repository not injected.")
             )
 
-        component = await repo.get_component_by_id(matrix_id)
+        component = await repo.get_matrix_by_id(matrix_id)
         if not component:
             raise AgentExecutionError(
                 detail=ErrorCodes.WORKFLOW_EXECUTION_FAILED,
-                original_error=ValueError(f"Matrix '{matrix_id}' not found.")
+                original_error=ValueError(f"Matrix '{matrix_id}' not found."),
             )
 
         # Use shared formatter service (Metadata-Driven)
@@ -313,38 +308,24 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
             eval_ctx.append(f"### TODISTUSKARTTA (PROCESSED EVIDENCE):\n{content}")
             logger.info("[JudgeAgent] Using AnalystOutput (Step 2) for evaluation.")
 
-        # 2. Evidence Collection (Config-Driven + Auto-Discovery)
-        # Scan state for known critic outputs defined in configuration.
-        monitored_steps = config.get("monitored_steps")
-        if not monitored_steps:
-             # FAIL FAST: monitored_steps is MANDATORY.
-             msg = "JUDGE_CONFIGURATION_INVALID: 'monitored_steps' missing in config."
-             logger.error(msg)
-             raise AgentExecutionError(detail=ErrorCodes.AGENT_NOT_CONFIGURED, original_error=ValueError(msg), agent_name="JudgeAgent")
-
+        # 2. Evidence Collection (Dynamic Input Mapping)
+        # Instead of 'monitored_steps' config mapping, we trust the Strict DTO input schema.
+        # Any component output (sub-model) that was successfully routed here is evidence.
         found_evidence_count = 0
-        for key, title in monitored_steps.items():
-            # Check kwargs (injected) first, then inputs (model attributes)
-            evidence = kwargs.get(key)
-            if not evidence:
-                # Dynamically access attribute from input_data model
-                # Strict: access via getattr is necessary here because keys are dynamic (config-driven).
-                # If the key is NOT in the model (but in config), it's a configuration/schema mismatch.
-                try:
-                    evidence = getattr(input_data, key)
-                except AttributeError:
-                    # Log warning but allow proceeding (maybe optional evidence?)
-                    # strictly speaking, if config says "monitor step_foo" and input schema lacks "step_foo", it's a bug.
-                    logger.warning(
-                        f"[JudgeAgent] Configured step '{key}' not found in JudgeInput schema. "
-                        "Check 'monitored_steps' config vs JudgeInput definition."
-                    )
-                    evidence = None
-
-            if evidence:
+        for field_name, field_info in input_data.model_fields.items():
+            if field_name == "step_analyst":
+                continue # Already handled above as core map
+            
+            # Check if this input field was actually populated with data
+            evidence = getattr(input_data, field_name, None)
+            
+            # It's evidence if it's a Pydantic model (DTO) from another agent.
+            if evidence and isinstance(evidence, BaseModel):
                 content = serialize_evidence(evidence)
+                # Use the field description or name as title
+                title = field_info.description or field_name.replace("_", " ").title()
                 eval_ctx.append(f"### {title}:\n{content}")
-                logger.info(f"[JudgeAgent] Auto-Discovered evidence: {key}")
+                logger.info(f"[JudgeAgent] Auto-Discovered evidence: {field_name}")
                 found_evidence_count += 1
 
         if found_evidence_count > 0:
@@ -355,7 +336,9 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
         if not eval_ctx:
             msg = "JUDGE_EVIDENCE_MISSING: No structured evidence found (Analyst or Critic outputs)."
             logger.error(f"[JudgeAgent] {msg}")
-            raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=ValueError(msg), agent_name="JudgeAgent")
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=ValueError(msg), agent_name="JudgeAgent"
+            )
 
         if eval_ctx:
             return base_prompt + "\n\n" + "\n\n".join(eval_ctx)
@@ -366,7 +349,7 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
 
     def post_process(self, response_data: Any) -> Any:
         """Lifecycle Hook: Post-Execution (Healing & Python Authority).
-        
+
         Enforces:
         1. DETERMINISTIC MATH: Re-calculates total_score from dimensions.
         2. FAIL FAST: Raises error on empty dimensions or out-of-bounds scores.
@@ -379,7 +362,7 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
             score_card = response_data.get("score_card")
         else:
             score_card = getattr(response_data, "score_card", None)
-            
+
         if not score_card:
             # Let strict pydantic validation catch this later if missing,
             # or raise here if we want to fail fast on logic.
@@ -399,71 +382,75 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
             raise AgentExecutionError(
                 detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
                 original_error=ValueError("Judge returned empty dimensions list. Assessment impossible."),
-                agent_name="JudgeAgent"
+                agent_name="JudgeAgent",
             )
 
         # 3. Deterministic Math & Validation
         total_sum = 0.0
         count = 0
-        
+
         # 3. Deterministic Math & Validation
         total_sum = 0.0
         count = 0
-        
-        # We need scale info for validation. 
+
+        # We need scale info for validation.
         # CAUTION: scale_min/max might be in response_data or score_card.
         # If response_data is DTO, it has scale_min/max.
         scale_min = None
         scale_max = None
-        
+
         if isinstance(response_data, dict):
-             scale_min = response_data.get("scale_min")
-             scale_max = response_data.get("scale_max")
+            scale_min = response_data.get("scale_min")
+            scale_max = response_data.get("scale_max")
         else:
-             scale_min = getattr(response_data, "scale_min", None)
-             scale_max = getattr(response_data, "scale_max", None)
+            scale_min = getattr(response_data, "scale_min", None)
+            scale_max = getattr(response_data, "scale_max", None)
 
         # FAIL FAST: Missing Scale (Part 18.2 No Default Values)
         if scale_min is None or scale_max is None:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
-                 original_error=ValueError("Judge output missing mandatory 'scale_min' or 'scale_max'. Cannot validate."),
-                 agent_name="JudgeAgent"
-             )
+            raise AgentExecutionError(
+                detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
+                original_error=ValueError(
+                    "Judge output missing mandatory 'scale_min' or 'scale_max'. Cannot validate."
+                ),
+                agent_name="JudgeAgent",
+            )
 
         # Validate Iterator
         for dim in dimensions:
             score = 0.0
             if isinstance(dim, dict):
-                score = dim.get("score")
-                if score is None:
-                     raise AgentExecutionError(
-                         detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
-                         original_error=ValueError(f"Dimension {dim.get('dimension_id')} missing 'score'."),
-                         agent_name="JudgeAgent"
-                     )
+                score = float(dim.get("score") or 0.0)
+                if score == 0.0 and dim.get("score") is None:
+                    raise AgentExecutionError(
+                        detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
+                        original_error=ValueError(f"Dimension {dim.get('dimension_id')} missing 'score'."),
+                        agent_name="JudgeAgent",
+                    )
             else:
                 score = dim.score
-            
+
             # STRICT BOUNDS CHECK
             # Part 14.1/14.2: If value is out of bounds, CRASH.
             if score < scale_min or score > scale_max:
                 raise AgentExecutionError(
                     detail=ErrorCodes.VALIDATION_FAILED,
                     original_error=ValueError(f"Dimension score {score} is out of bounds [{scale_min}, {scale_max}]."),
-                    agent_name="JudgeAgent"
+                    agent_name="JudgeAgent",
                 )
-                
+
             total_sum += score
             count += 1
-            
+
         # 4. Calculate Average
         calculated_average = total_sum / count if count > 0 else 0.0
-        
+
         # 5. Overwrite (Healing)
         # We trust Python math over LLM hallucination.
-        logger.info(f"[JudgeAgent] Recalculating Score: LLM says {getattr(score_card, "total_score", "N/A")} -> Python says {calculated_average}")
-        
+        logger.info(
+            f"[JudgeAgent] Recalculating Score: LLM says {getattr(score_card, 'total_score', 'N/A')} -> Python says {calculated_average}"
+        )
+
         if isinstance(score_card, dict):
             score_card["total_score"] = calculated_average
             return response_data

@@ -6,7 +6,6 @@ profile management, and organization administration.
 
 import logging
 
-from typing import List, Annotated
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
@@ -152,7 +151,7 @@ async def impersonate_user(request: ImpersonationRequest, current_user: CurrentU
     return ImpersonationResponse(access_token=token)
 
 
-@router.get("/roles", response_model=List[str])
+@router.get("/roles", response_model=list[str])
 async def list_available_roles():
     """List all valid User Roles.
 
@@ -250,7 +249,7 @@ async def create_organization(org_data: OrganizationCreate, current_user: Curren
         raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
 
 
-@router.get("/users", response_model=List[User])
+@router.get("/users", response_model=list[User])
 async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep):
     """List users visible to the current user (scoped by Organization).
 

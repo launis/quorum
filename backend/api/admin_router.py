@@ -31,7 +31,6 @@ from backend.dependencies import (
     LLMProviderDeep,
     LLMProviderFast,
     RepositoryDep,
-    get_async_repository,
     get_knowledge_base_service_dep,
 )
 from backend.exceptions import (
@@ -39,12 +38,12 @@ from backend.exceptions import (
     ResourceNotFoundError,
 )
 from backend.models.auth import UserAdminView, UserCreate, UserRole, UserUpdate
-from backend.services.knowledge_base_service import KnowledgeBaseService
 from backend.schemas.admin import AsyncJobResponse, QueueStats
 
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import to avoid circular dependencies.
 from backend.schemas.error import APIError
+from backend.services.knowledge_base_service import KnowledgeBaseService
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +201,7 @@ def _start_admin_task(
             logger.error(f"{error_code}: Admin Task '{method_name}' [Job: {job_id}] CRASHED: {e}", exc_info=True)
 
             # Use SSOT APIError schema for status response
-            error_model = APIError(error_code=error_code, message=str(e), details={"task": method_name})
+            error_model = APIError(type=f"urn:error:{error_code.lower()}", title="Task Failed", status=500, detail=str(e), extensions={"task": method_name})
             admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     background_tasks.add_task(_run_task)
@@ -340,7 +339,7 @@ async def delete_user(
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise ConflictError(message=str(e), details={"error_code": error_code}) from e
-        
+
         # Unknown Runtime Error -> Fail Fast with RFC 7807
         from backend.exceptions import AppException
 
@@ -478,6 +477,7 @@ def get_ingestion_status(job_id: Annotated[str, Path(description="UUID of the ba
 async def trigger_ingest(
     request: IngestRequest,
     kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service_dep)],
+    background_tasks: BackgroundTasks,
 ):
     """Triggers ingestion from a local file path."""
     if not os.path.exists(request.file_path):
@@ -498,12 +498,12 @@ async def trigger_ingest(
 
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
             await kb_service.ingest_from_bytes(
-                content, 
-                filename, 
-                tracker=tracker, 
-                job_id=job_id, 
+                content,
+                filename,
+                tracker=tracker,
+                job_id=job_id,
                 reset_db=request.reset_db,
-                model_strategy=request.model_strategy
+                model_strategy=request.model_strategy,
             )
 
             # Ensure status is marked completed if service doesn't implicitly do it
@@ -514,13 +514,13 @@ async def trigger_ingest(
             # Background Task: Must Log
             error_code = "INGESTION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            error_model = APIError(error_code=error_code, message=str(e))
+            error_model = APIError(type=f"urn:error:{error_code.lower()}", title="Ingestion Failed", status=500, detail=str(e))
             admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     background_tasks.add_task(_run_ingest)
     return AsyncJobResponse(
         job_id=job_id,
-        task="ingest_from_file",
+        status="starting",
         message=f"Ingesting {request.file_path}",
     )
 
@@ -536,7 +536,9 @@ async def upload_knowledge_base(
     kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service_dep)],
     background_tasks: BackgroundTasks,
     reset_db: Annotated[bool, Query(description="Clear KB first.")] = False,
-    model_strategy: Annotated[str | None, Query(description="LLM Strategy (fast, deep). Default: None (Basic Parsing).")] = None,
+    model_strategy: Annotated[
+        str | None, Query(description="LLM Strategy (fast, deep). Default: None (Basic Parsing).")
+    ] = None,
 ):
     """Uploads and ingests a file into the knowledge base."""
     job_id = str(uuid.uuid4())
@@ -560,19 +562,14 @@ async def upload_knowledge_base(
         try:
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
             await kb_service.ingest_from_bytes(
-                content, 
-                filename, 
-                tracker=tracker, 
-                job_id=job_id, 
-                reset_db=reset_db,
-                model_strategy=model_strategy 
+                content, filename, tracker=tracker, job_id=job_id, reset_db=reset_db, model_strategy=model_strategy
             )
             if admin_task_status[job_id].get("status") != "failed":
                 admin_task_status[job_id]["status"] = "completed"
         except Exception as e:
             error_code = "INGESTION_FAILED"
             logger.error(f"{error_code}: Upload ingestion failed: {e}", exc_info=True)
-            error_model = APIError(error_code=error_code, message=str(e))
+            error_model = APIError(type=f"urn:error:{error_code.lower()}", title="Ingestion Failed", status=500, detail=str(e))
             admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     background_tasks.add_task(_run_ingest)
@@ -744,7 +741,7 @@ async def update_user_role(
             error_code = "PERMISSION_DENIED"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
-        
+
         # Unknown Runtime Error -> Fail Fast with RFC 7807
         from backend.exceptions import AppException
 

@@ -1,0 +1,682 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\src\quorum
+configfile: pytest.ini
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 218 items
+
+backend/tests/api/routes/config/test_knowledge.py::test_ingest_knowledge_base_success PASSED [  0%]
+backend/tests/api/routes/config/test_knowledge.py::test_get_ingestion_status_found PASSED [  0%]
+backend/tests/api/routes/config/test_knowledge.py::test_get_ingestion_status_not_found PASSED [  1%]
+backend/tests/api/routes/config/test_model_safety.py::test_delete_default_strategy PASSED [  1%]
+backend/tests/api/routes/config/test_model_safety.py::test_delete_nested_default_strategy PASSED [  2%]
+backend/tests/api/routes/config/test_model_safety.py::test_delete_used_strategy PASSED [  2%]
+backend/tests/api/routes/config/test_model_safety.py::test_delete_unused_strategy PASSED [  3%]
+backend/tests/api/routes/config/test_model_safety.py::test_delete_non_existent PASSED [  3%]
+backend/tests/api/routes/config/test_model_safety.py::test_delete_nested_strategy PASSED [  4%]
+backend/tests/api/test_admin_router.py::test_require_root_permission_denied PASSED [  4%]
+backend/tests/api/test_admin_router.py::test_require_admin_or_root_permission_denied PASSED [  5%]
+backend/tests/api/test_admin_router.py::test_create_user_fail_fast_permission PASSED [  5%]
+backend/tests/api/test_admin_router.py::test_create_user_fail_fast_value_error PASSED [  5%]
+backend/tests/api/test_admin_router.py::test_add_banned_phrase_validation PASSED [  6%]
+backend/tests/api/test_agents_router.py::test_run_agent_not_found PASSED [  6%]
+backend/tests/api/test_agents_router.py::test_run_agent_success PASSED   [  7%]
+backend/tests/api/test_agents_router.py::test_run_agent_validation_error PASSED [  7%]
+backend/tests/api/test_agents_router.py::test_run_agent_runtime_error PASSED [  8%]
+backend/tests/api/test_agents_router.py::test_run_agent_missing_model PASSED [  8%]
+backend/tests/api/test_agents_router.py::test_run_agent_invalid_strategy PASSED [  9%]
+backend/tests/api/test_audit_router.py::test_audit_root_access PASSED    [  9%]
+backend/tests/api/test_audit_router.py::test_audit_admin_access_own_org PASSED [ 10%]
+backend/tests/api/test_audit_router.py::test_audit_admin_access_other_org_denied PASSED [ 10%]
+backend/tests/api/test_audit_router.py::test_audit_member_denied PASSED  [ 11%]
+backend/tests/api/test_audit_router.py::test_audit_service_failure PASSED [ 11%]
+backend/tests/api/test_auth_router.py::test_verify_user_token_success PASSED [ 11%]
+backend/tests/api/test_auth_router.py::test_impersonate_user_success PASSED [ 12%]
+backend/tests/api/test_auth_router.py::test_impersonate_user_denied_non_root PASSED [ 12%]
+backend/tests/api/test_auth_router.py::test_list_users_scoping PASSED    [ 13%]
+backend/tests/api/test_builder_api.py::test_get_workflow_schema PASSED   [ 13%]
+backend/tests/api/test_builder_api.py::test_get_workflow_schema_fi PASSED [ 14%]
+backend/tests/api/test_builder_api.py::test_invalid_component_schema PASSED [ 14%]
+backend/tests/api/test_builder_preview.py::test_preview_step_flow FAILED [ 15%]
+backend/tests/api/test_builder_preview.py::test_preview_chain_flow FAILED [ 15%]
+backend/tests/api/test_builder_preview.py::test_preview_not_found PASSED [ 16%]
+backend/tests/api/test_llm_router.py::test_update_model_config_success PASSED [ 16%]
+backend/tests/api/test_llm_router.py::test_generate_completion_invalid_strategy PASSED [ 16%]
+backend/tests/api/test_llm_router.py::test_batch_completion_partial_failure PASSED [ 17%]
+backend/tests/api/test_llm_router.py::test_list_providers PASSED         [ 17%]
+backend/tests/api/test_localization_expansion.py::test_get_generic_schema_fi PASSED [ 18%]
+backend/tests/api/test_localization_expansion.py::test_get_evaluation_matrix_schema_fi PASSED [ 18%]
+backend/tests/api/test_localization_expansion.py::test_get_agents_list_fi PASSED [ 19%]
+backend/tests/api/test_localization_expansion.py::test_get_schemas_list_fi PASSED [ 19%]
+backend/tests/api/test_localization_expansion.py::test_get_execution_view_fi PASSED [ 20%]
+backend/tests/api/test_organization_router.py::test_create_organization_root_only PASSED [ 20%]
+backend/tests/api/test_organization_router.py::test_get_organization_access_control PASSED [ 21%]
+backend/tests/api/test_organization_router.py::test_get_organization_usage_not_found PASSED [ 21%]
+backend/tests/api/test_organization_router.py::test_delete_organization_conflict PASSED [ 22%]
+backend/tests/api/test_organization_router.py::test_create_organization_user_strict_types PASSED [ 22%]
+backend/tests/api/test_pdf_security.py::test_rbac_root_allow PASSED      [ 22%]
+backend/tests/api/test_pdf_security.py::test_rbac_admin_allow PASSED     [ 23%]
+backend/tests/api/test_pdf_security.py::test_rbac_manager_own_org_allow PASSED [ 23%]
+backend/tests/api/test_pdf_security.py::test_rbac_manager_other_org_deny PASSED [ 24%]
+backend/tests/api/test_pdf_security.py::test_rbac_member_own_exec_allow PASSED [ 24%]
+backend/tests/api/test_pdf_security.py::test_rbac_member_other_exec_deny PASSED [ 25%]
+backend/tests/api/test_pdf_security.py::test_download_endpoint_file_exists PASSED [ 25%]
+backend/tests/api/test_pdf_security.py::test_download_endpoint_queues_job PASSED [ 26%]
+backend/tests/api/test_settings_router.py::test_get_settings_success PASSED [ 26%]
+backend/tests/api/test_settings_router.py::test_get_settings_empty_db PASSED [ 27%]
+backend/tests/api/test_settings_router.py::test_update_settings_success PASSED [ 27%]
+backend/tests/api/test_settings_router.py::test_update_settings_permission_denied PASSED [ 27%]
+backend/tests/api/test_tools_router.py::test_web_scrape_ssrf_blocked PASSED [ 28%]
+backend/tests/api/test_tools_router.py::test_web_scrape_success PASSED   [ 28%]
+backend/tests/api/test_tools_router.py::test_extract_text_no_content PASSED [ 29%]
+backend/tests/api/test_tools_router.py::test_extract_text_success_text PASSED [ 29%]
+backend/tests/api/test_tools_router.py::test_extract_concepts_success PASSED [ 30%]
+backend/tests/api/test_view_models.py::test_assessment_view_model_valid PASSED [ 30%]
+backend/tests/api/test_view_models.py::test_assessment_view_model_invalid_variant PASSED [ 31%]
+backend/tests/api/test_view_models.py::test_assessment_view_model_extra_forbid PASSED [ 31%]
+backend/tests/api/test_workflow_control.py::test_cancel_execution_success PASSED [ 32%]
+backend/tests/api/test_workflow_control.py::test_cancel_execution_already_done PASSED [ 32%]
+backend/tests/api/test_workflow_control.py::test_cancel_execution_permission_denied PASSED [ 33%]
+backend/tests/api/test_workflow_mapping.py::test_create_workflow_missing_mapping PASSED [ 33%]
+backend/tests/api/test_workflow_mapping.py::test_update_workflow_missing_mapping PASSED [ 33%]
+backend/tests/api/transformers/test_assessment.py::test_transform_success_running PASSED [ 34%]
+backend/tests/api/transformers/test_assessment.py::test_transform_success_completed PASSED [ 34%]
+backend/tests/api/transformers/test_assessment.py::test_transform_success_failed PASSED [ 35%]
+backend/tests/api/transformers/test_assessment.py::test_transform_missing_data PASSED [ 35%]
+backend/tests/api/transformers/test_domain_transformers.py::test_logic_transformer_extracts_display_model PASSED [ 36%]
+backend/tests/api/transformers/test_domain_transformers.py::test_logic_transformer_handles_missing_step PASSED [ 36%]
+backend/tests/api/transformers/test_domain_transformers.py::test_stress_transformer_extracts_display_model PASSED [ 37%]
+backend/tests/api/transformers/test_domain_transformers.py::test_causal_transformer_extracts_display_model PASSED [ 37%]
+backend/tests/api/transformers/test_domain_transformers.py::test_profiler_transformer_extracts_display_model PASSED [ 38%]
+backend/tests/api/transformers/test_domain_transformers.py::test_detector_transformer_extracts_display_model PASSED [ 38%]
+backend/tests/api/transformers/test_domain_transformers.py::test_driver_transformer_extracts_display_model PASSED [ 38%]
+backend/tests/api/transformers/test_domain_transformers.py::test_archivist_transformer_extracts_display_model PASSED [ 39%]
+backend/tests/api/transformers/test_report_transformer.py::test_report_transformer_process_all_stages PASSED [ 39%]
+backend/tests/core/test_component.py::test_strict_component_execution PASSED [ 40%]
+backend/tests/core/test_component.py::test_strict_component_failure PASSED [ 40%]
+backend/tests/core/test_component.py::test_base_agent_compatibility PASSED [ 41%]
+backend/tests/core/test_engine_errors.py::test_resolve_inputs_failure PASSED [ 41%]
+backend/tests/core/test_engine_errors.py::test_execute_workflow_task_not_found FAILED [ 42%]
+backend/tests/core/test_engine_errors.py::test_execute_workflow_input_validation_failed FAILED [ 42%]
+backend/tests/core/test_engine_errors.py::test_execute_workflow_chat_parsing_failed PASSED [ 43%]
+backend/tests/core/test_rate_limit.py::test_rate_limit_handler_structure PASSED [ 43%]
+backend/tests/core/test_rate_limit.py::test_rate_limit_handler_unknown_detail PASSED [ 44%]
+backend/tests/core/test_registry.py::test_register_agent_instantiation_failure PASSED [ 44%]
+backend/tests/core/test_registry.py::test_agent_wrapper_configuration_failure PASSED [ 44%]
+backend/tests/core/test_registry.py::test_agent_wrapper_model_override_failure PASSED [ 45%]
+backend/tests/hooks/test_archival.py::test_retrieve_precedent_no_repo PASSED [ 45%]
+backend/tests/hooks/test_archival.py::test_retrieve_precedent_success PASSED [ 46%]
+backend/tests/hooks/test_archival.py::test_retrieve_precedent_empty PASSED [ 46%]
+backend/tests/hooks/test_archival.py::test_retrieve_precedent_repo_error PASSED [ 47%]
+backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_success PASSED [ 47%]
+backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_bad_format PASSED [ 48%]
+backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_sequence_gap PASSED [ 48%]
+backend/tests/hooks/test_integrity.py::test_verify_citation_integrity_success PASSED [ 49%]
+backend/tests/hooks/test_integrity.py::test_verify_citation_integrity_fail_fast PASSED [ 49%]
+backend/tests/hooks/test_linguistics.py::test_detect_patterns_english_default PASSED [ 50%]
+backend/tests/hooks/test_linguistics.py::test_detect_patterns_finnish_context PASSED [ 50%]
+backend/tests/hooks/test_linguistics.py::test_detect_patterns_finnish_inputs_fallback PASSED [ 50%]
+backend/tests/hooks/test_linguistics.py::test_no_patterns_clean_text PASSED [ 51%]
+backend/tests/hooks/test_references.py::test_generate_bibliography_hook_success PASSED [ 51%]
+backend/tests/hooks/test_references.py::test_generate_bibliography_hook_empty_text PASSED [ 52%]
+backend/tests/hooks/test_references.py::test_generate_bibliography_hook_fail_fast_on_error PASSED [ 52%]
+backend/tests/hooks/test_references.py::test_generate_bibliography_hook_fallback_to_repo PASSED [ 53%]
+backend/tests/hooks/test_reporting.py::test_generate_report_success PASSED [ 53%]
+backend/tests/hooks/test_reporting.py::test_generate_report_fail_fast_missing_template_dir PASSED [ 54%]
+backend/tests/hooks/test_scoring.py::test_apply_scoring_missing_judge PASSED [ 54%]
+backend/tests/hooks/test_scoring.py::test_passivity_invalid_dict_rejected PASSED [ 55%]
+backend/tests/hooks/test_scoring.py::test_passivity_legacy_dict_accepted PASSED [ 55%]
+backend/tests/hooks/test_scoring.py::test_apply_scoring_invalid_dict_rejected PASSED [ 55%]
+backend/tests/hooks/test_search.py::test_missing_step_analyst PASSED     [ 56%]
+backend/tests/hooks/test_search.py::test_invalid_step_analyst_schema PASSED [ 56%]
+backend/tests/hooks/test_search.py::test_no_hypotheses PASSED            [ 57%]
+backend/tests/hooks/test_search.py::test_config_error_fail_fast PASSED   [ 57%]
+backend/tests/hooks/test_search.py::test_execution_success PASSED        [ 58%]
+backend/tests/hooks/test_search.py::test_execution_failure_fail_fast PASSED [ 58%]
+backend/tests/hooks/test_search.py::test_language_context PASSED         [ 59%]
+backend/tests/hooks/test_security.py::test_sanitize_text_basic PASSED    [ 59%]
+backend/tests/hooks/test_security.py::test_sanitize_hook_success PASSED  [ 60%]
+backend/tests/hooks/test_security.py::test_sanitize_hook_missing_inputs PASSED [ 60%]
+backend/tests/hooks/test_security.py::test_banned_phrases_check_defaults PASSED [ 61%]
+backend/tests/hooks/test_security.py::test_banned_phrases_db_error PASSED [ 61%]
+backend/tests/hooks/test_security.py::test_banned_phrases_detected PASSED [ 61%]
+backend/tests/hooks/test_security.py::test_banned_phrases_clean PASSED   [ 62%]
+backend/tests/hooks/test_validation.py::test_verify_structure_success PASSED [ 62%]
+backend/tests/hooks/test_validation.py::test_verify_structure_short_input PASSED [ 63%]
+backend/tests/hooks/test_validation.py::test_verify_structure_missing_context PASSED [ 63%]
+backend/tests/hooks/test_validation.py::test_verify_structure_invalid_inputs_type PASSED [ 64%]
+backend/tests/integration/test_config_integrity.py::test_agent_wrapper_propagates_temperature PASSED [ 64%]
+backend/tests/integration/test_config_integrity.py::test_prompt_substitution PASSED [ 65%]
+backend/tests/integration/test_execution_endpoints.py::test_get_execution_view_endpoint PASSED [ 65%]
+backend/tests/integration/test_execution_endpoints.py::test_get_flat_report_endpoint PASSED [ 66%]
+backend/tests/integration/test_execution_endpoints.py::test_get_pdf_endpoint PASSED [ 66%]
+backend/tests/integration/test_pdf_worker.py::test_generate_pdf_job_success PASSED [ 66%]
+backend/tests/integration/test_pdf_worker.py::test_generate_pdf_job_failure PASSED [ 67%]
+backend/tests/manual/test_agents_strict_dto.py::test_agent_schemas PASSED [ 67%]
+backend/tests/manual/test_agents_strict_dto.py::test_agent_execution_mock PASSED [ 68%]
+backend/tests/manual/test_delete_model.py::test_delete_api SKIPPED (...) [ 68%]
+backend/tests/manual/test_delete_safety.py::test_safety SKIPPED (Man...) [ 69%]
+backend/tests/manual/test_ingest_dynamic_strategy.py::test_dynamic_strategy PASSED [ 69%]
+backend/tests/manual/test_kb_service_injection.py::test_kb_service_init PASSED [ 70%]
+backend/tests/manual/test_output_pipeline_strict.py::test_strict_accessors PASSED [ 70%]
+backend/tests/manual/test_xai_flat_generation.py::TestXAIFlatGeneration::test_flat_report_generation PASSED [ 71%]
+backend/tests/services/parsers/test_bibliography_parser.py::TestBibliographyParser::test_detect_bibliography_header PASSED [ 71%]
+backend/tests/services/parsers/test_bibliography_parser.py::TestBibliographyParser::test_detect_bibliography_finnish PASSED [ 72%]
+backend/tests/services/parsers/test_bibliography_parser.py::TestBibliographyParser::test_parse_references_simple PASSED [ 72%]
+backend/tests/services/parsers/test_bibliography_parser.py::TestBibliographyParser::test_parse_references_multiline PASSED [ 72%]
+backend/tests/services/parsers/test_bibliography_parser.py::TestBibliographyParser::test_no_bibliography PASSED [ 73%]
+backend/tests/test_domain_enums.py::test_security_check_enum_input PASSED [ 73%]
+backend/tests/test_domain_enums.py::test_security_check_string_input PASSED [ 74%]
+backend/tests/test_domain_enums.py::test_security_check_invalid_input PASSED [ 74%]
+backend/tests/test_domain_enums.py::test_cognitive_level_calculation PASSED [ 75%]
+backend/tests/test_domain_enums.py::test_cognitive_level_string_casting PASSED [ 75%]
+backend/tests/test_domain_enums.py::test_reasoning_fidelity PASSED       [ 76%]
+backend/tests/test_domain_enums.py::test_counterfactual_test PASSED      [ 76%]
+backend/tests/test_domain_enums.py::test_causal_analysis PASSED          [ 77%]
+backend/tests/test_domain_enums.py::test_performativity_analysis PASSED  [ 77%]
+backend/tests/test_domain_enums.py::test_l10n_keys_exist PASSED          [ 77%]
+backend/tests/test_file_driver.py::TestLocalFileDriver::test_delete PASSED [ 78%]
+backend/tests/test_file_driver.py::TestLocalFileDriver::test_get_url PASSED [ 78%]
+backend/tests/test_file_driver.py::TestLocalFileDriver::test_nested_dir PASSED [ 79%]
+backend/tests/test_file_driver.py::TestLocalFileDriver::test_save_and_read PASSED [ 79%]
+backend/tests/test_file_driver.py::TestLocalFileDriver::test_save_string PASSED [ 80%]
+backend/tests/test_file_driver.py::TestGCSFileDriver::test_delete PASSED [ 80%]
+backend/tests/test_file_driver.py::TestGCSFileDriver::test_exists PASSED [ 81%]
+backend/tests/test_file_driver.py::TestGCSFileDriver::test_read PASSED   [ 81%]
+backend/tests/test_file_driver.py::TestGCSFileDriver::test_save PASSED   [ 82%]
+backend/tests/test_storage_driver.py::test_tinydb_crud PASSED            [ 82%]
+backend/tests/test_storage_driver.py::test_tinydb_query PASSED           [ 83%]
+backend/tests/test_storage_driver.py::test_firestore_upsert PASSED       [ 83%]
+backend/tests/test_storage_driver.py::test_firestore_get PASSED          [ 83%]
+backend/tests/test_storage_driver.py::test_tinydb_serialization PASSED   [ 84%]
+backend/tests/test_storage_driver.py::test_firestore_serialization PASSED [ 84%]
+backend/tests/test_storage_driver.py::test_repo_delegation PASSED        [ 85%]
+backend/tests/unit/test_chart_service.py::TestChartService::test_generate_radar_chart_valid FAILED [ 85%]
+backend/tests/unit/test_chart_service.py::TestChartService::test_generate_radar_chart_empty PASSED [ 86%]
+backend/tests/unit/test_chart_service.py::TestChartService::test_generate_radar_chart_none PASSED [ 86%]
+backend/tests/unit/test_chart_service.py::TestChartService::test_generate_radar_chart_failure PASSED [ 87%]
+backend/tests/unit/test_chat_log_parser.py::TestChatLogParser::test_parse_explicit_format PASSED [ 87%]
+backend/tests/unit/test_chat_log_parser.py::TestChatLogParser::test_parse_gemini_format PASSED [ 88%]
+backend/tests/unit/test_chat_log_parser.py::TestChatLogParser::test_parse_chatgpt_format PASSED [ 88%]
+backend/tests/unit/test_chat_log_parser.py::TestChatLogParser::test_parse_claude_format PASSED [ 88%]
+backend/tests/unit/test_chat_log_parser.py::TestChatLogParser::test_parse_timestamp_format PASSED [ 89%]
+backend/tests/unit/test_chat_log_parser.py::TestChatLogParser::test_parse_arrow_format_with_embedded_list PASSED [ 89%]
+backend/tests/unit/test_chat_log_parser.py::TestChatLogParser::test_parse_arrow_with_header_response PASSED [ 90%]
+backend/tests/unit/test_chat_log_parser.py::TestChatLogParser::test_empty_input_raises_error PASSED [ 90%]
+backend/tests/unit/test_chat_log_parser.py::TestChatLogParser::test_fallback_unknown_format PASSED [ 91%]
+backend/tests/unit/test_engine_cancellation.py::test_engine_graceful_cancellation PASSED [ 91%]
+backend/tests/unit/test_knowledge_service.py::test_retrieve_context_empty_kb PASSED [ 92%]
+backend/tests/unit/test_knowledge_service.py::test_retrieve_context_no_query_returns_summary PASSED [ 92%]
+backend/tests/unit/test_knowledge_service.py::test_retrieve_context_with_query_filtering PASSED [ 93%]
+backend/tests/unit/test_knowledge_service.py::test_retrieve_context_no_matches PASSED [ 93%]
+backend/tests/unit/test_knowledge_service.py::test_retrieve_context_exception_handling PASSED [ 94%]
+backend/tests/unit/test_llm_config.py::test_llm_provider_config_defaults PASSED [ 94%]
+backend/tests/unit/test_llm_config.py::test_llm_provider_config_values PASSED [ 94%]
+backend/tests/unit/test_llm_config.py::test_llm_provider_config_validation PASSED [ 95%]
+backend/tests/unit/test_llm_config.py::test_ui_labels_presence PASSED    [ 95%]
+backend/tests/unit/test_pdf_generator.py::test_generate_execution_pdf_success PASSED [ 96%]
+backend/tests/unit/test_pdf_generator.py::test_generate_execution_pdf_not_found PASSED [ 96%]
+backend/tests/unit/test_pdf_generator.py::test_generate_execution_pdf_error_handling PASSED [ 97%]
+backend/tests/unit/test_pdf_generator.py::test_generate_pdf_with_logic_and_ethics PASSED [ 97%]
+backend/tests/unit/test_reporting_hook.py::test_generate_report_no_data PASSED [ 98%]
+backend/tests/unit/test_reporting_hook.py::test_generate_report_with_data PASSED [ 98%]
+backend/tests/unit/test_reporting_hook.py::test_generate_report_attributes_fallback PASSED [ 99%]
+backend/tests/unit/test_retrieval_agent.py::test_retrieval_agent_hybrid_execution PASSED [ 99%]
+backend/tests/unit/test_retrieval_agent.py::test_retrieval_agent_kb_failure_resilience PASSED [100%]
+
+================================== FAILURES ===================================
+___________________________ test_preview_step_flow ____________________________
+
+    def test_preview_step_flow():
+        """Test creating a step and then previewing it."""
+        # 1. Create a Step
+        step_payload = {
+            "id": "step_test_preview",
+            "name": "Test Step",
+            "component": "Judge",
+            "execution_config": {"llm_prompts": ["TASK_JUDGE"]},
+            "output_filename": "test.json"
+        }
+        # We might need to use the repository directly or a route.
+        # Current codebase might not have a public create-step route exposed for generic steps easily without auth?
+        # Actually, let's use the create endpoint if available, otherwise direct repo injection is harder in functional tests without setup.
+        # Looking at steps.py, there is `create_custom_step` and `clone_step`, but plain `create_step` might be missing or in another router?
+        # Wait, `backend/api/routes/builder/steps.py` doesn't show a generic `create_step` endpoint!
+        # It only has `list`, `get`, `update`, `clone`, `create_custom`.
+    
+        # So we should use `create_custom_step`.
+        create_payload = {
+            "component_type": "Judge",
+            "name_hint": "Preview Test Judge"
+        }
+        create_res = client.post("/builder/steps/create-custom", json=create_payload)
+        assert create_res.status_code == 200, f"Setup Failed: {create_res.text}"
+        step_data = create_res.json()
+        step_id = step_data["id"]
+    
+        # 2. Preview Step
+        preview_res = client.post(f"/builder/steps/{step_id}/preview", headers={"Accept-Language": "en-US"})
+        assert preview_res.status_code == 200
+        preview_data = preview_res.json()
+    
+        assert "system_instruction" in preview_data
+        assert "user_prompt" in preview_data
+>       assert preview_data["agent_class"] == "Judge"
+E       AssertionError: assert 'UnknownAgent' == 'Judge'
+E         
+E         - Judge
+E         + UnknownAgent
+
+backend\tests\api\test_builder_preview.py:56: AssertionError
+___________________________ test_preview_chain_flow ___________________________
+
+    def test_preview_chain_flow():
+        """Test creating a workflow and previewing the chain."""
+        # 1. Create Steps
+        s1_res = client.post("/builder/steps/create-custom", json={"component_type": "Judge", "name_hint": "S1"})
+        s1_id = s1_res.json()["id"]
+    
+        s2_res = client.post("/builder/steps/create-custom", json={"component_type": "Reporter", "name_hint": "S2"})
+        s2_id = s2_res.json()["id"]
+    
+        # 2. Create Workflow
+        wf_payload = {
+            "name": "Chain Test",
+            "description": "A workflow chain for testing.",
+            "organization_id": "test-org",
+            "steps": [s1_id, s2_id],
+            "default_model_mapping": {s1_id: "test-model", s2_id: "test-model"}
+        }
+        wf_res = client.post("/builder/workflows", json=wf_payload)
+        assert wf_res.status_code == 200, f"Workflow Setup Failed: {wf_res.text}"
+        wf_id = wf_res.json()["id"]
+    
+        # 3. Preview Chain
+        chain_res = client.get(f"/builder/workflows/{wf_id}/chain-preview")
+        assert chain_res.status_code == 200
+        chain_data = chain_res.json()
+    
+        assert "markdown_content" in chain_data
+        content = chain_data["markdown_content"]
+    
+        # Verify Structural integrity
+        assert f"ID: {wf_id}" in content
+        assert "## Step 1:" in content
+        assert "S1" in content
+>       assert "Judge" in content
+E       assert 'Judge' in '# Workflow: Chain Test\nID: wf_bbb9a9e3\n\n## Step 1: S1 (Unknown)\n----------------------------------------\nVAIHE 9: TUOMARI (JUDGE) - GRAND UNIFICATION\n\nSINUN TEHT�V�SI:\nToimit J�rjestelm�n Tuomarina. Teht�v�si EI ole arvioida sy�tetekstin laatua, vaan k�ytt�j�n **Promptauskompetenssia** (Driver vs. Passenger).\n\nK�YT� SEURAAVAA LOGIIKKAA (DRIVER\'S LICENSE):\n\n1. **AJOKORTTIMALLI (MANDATE 4)**:\n   - J�rjestelm� on kuin auto. K�ytt�j� on joko **Kuljettaja** (Driver) tai **Matkustaja** (Passenger).\n   - Kuljettaja ottaa vastuun, ohjaa, antaa kontekstin ja m��rittelee tavoitteet.\n   - Matkustaja on passiivinen, heitt�� ep�m��r�isen sy�tteen ("tee t�st� jotain") ja odottaa auton ajavan itsest��n.\n\n2. **TOTUUSPROTOKOLLAN PISTEYTYS (HIERARCHICAL SCORING)**:\n   - **KRUUNUNJALOKIVEN RIKKOMUS (Critical Violation)**: Jos Analyytikko liputtaa, ett� k�ytt�j� on rikkonut Tietopankin (Knowledge Base) s��nt�j� -> **AUTOMAATTINEN HYLKY (Max 40/100 tai -50 pistett�)**. T�m� on kuin ajaisi p�in punaisia.\n   - **FAKTAVIRHE (Hallucination)**: Jos Valvoja liputtaa, ett� k�ytt�j� on v��r�ss� Google-haun perusteella -> **V�HENN� 20 PISTETT�**. T�m� on kuin ajaisi ylinopeutta.\n   - **F...N perustelu p��t�kselle (Chain-of-Thought).\n- `score_card`: T�yt� pistekortti (total_score, final_verdict, dimensions).\n\nK�SKE: Tulosta vastauksesi T�SM�LLEEN seuraavan JSON-skeeman mukaisesti (EvaluationResult). Varmista ett� \'reasoning_trace\' on mukana:\n{}\n\n### J�RJESTELM�KONTEKSTI (SYSTEM CONTEXT)\nNYKYHETKI: 21.02.2026.\nKELLONAIKA: 23:18.\nSIJAINTI: Tampere, Finland.\n\nROOLI: Toimit \'Cognitive Quorum\' -auditointij�rjestelm�n moottorina.\n\nAIKA-ANKKURI: Tiedosta, ett� toimit NYT, t�ss� hetkess� (21.02.2026). Koulutusdatasi \'Knowledge Cutoff\' on historiaa. Arvioi kaikkia teknologioita ja v�itteit� t�st� ajankohdasta k�sin.\n\n### AUDITOITAVA MATERIAALI (INPUT DATA)\nAlla on k�ytt�j�n toimittamat tiedostot auditointia varten. Jos kentt� on tyhj�, tiedostoa ei ole toimitettu.\n\n[KESKUSTELUHISTORIA_ALKU]\n{{HISTORY_TEXT}}\n[KESKUSTELUHISTORIA_LOPPU]\n\n[LOPPUTUOTE_ALKU]\n{{PRODUCT_TEXT}}\n[LOPPUTUOTE_LOPPU]\n\n[REFLEKTIODOKUMENTTI_ALKU]\n{{REFLECTION_TEXT}}\n[REFLEKTIODOKUMENTTI_LOPPU]\n\n========================================\n\n## Step 2: S2 (Unknown)\n----------------------------------------\n(No Prompt Configured)\n\n========================================\n'
+
+backend\tests\api\test_builder_preview.py:91: AssertionError
+____________________ test_execute_workflow_task_not_found _____________________
+
+engine = <backend.core.engine.GraphEngine object at 0x00000275F51A8190>
+
+    @pytest.mark.asyncio
+    async def test_execute_workflow_task_not_found(engine):
+        """Verify missing task raises TASK_NOT_FOUND."""
+        workflow = WorkflowDefinition(
+            id="test_wf",
+            description="Test Workflow",
+            organization_id="testorg",
+            steps=["step1"]
+        )
+    
+>       mock_repo.get_step_by_id.return_value = {"id": "step1", "name": "Test Step", "task_key": "test_task"}
+        ^^^^^^^^^
+E       NameError: name 'mock_repo' is not defined
+
+backend\tests\core\test_engine_errors.py:38: NameError
+________________ test_execute_workflow_input_validation_failed ________________
+
+engine = <backend.core.engine.GraphEngine object at 0x00000275F51A8CD0>
+
+    @pytest.mark.asyncio
+    async def test_execute_workflow_input_validation_failed(engine):
+        """Verify input validation failure raises AGENT_SCHEMA_VALIDATION_FAILED."""
+        workflow = WorkflowDefinition(
+            id="test_wf",
+            description="Test Workflow",
+            organization_id="testorg",
+            steps=["step1"]
+        )
+    
+        mock_task = MagicMock()
+        mock_task.input_schema.model_validate.side_effect = ValueError("Invalid Input")
+    
+>       mock_repo.get_step_by_id.return_value = {"id": "step1", "name": "Test Step", "task_key": "test_task"}
+        ^^^^^^^^^
+E       NameError: name 'mock_repo' is not defined
+
+backend\tests\core\test_engine_errors.py:59: NameError
+______________ TestChartService.test_generate_radar_chart_valid _______________
+
+scores = {'Clarity': 2.5, 'Ethics': 4.0, 'Logic': 3.0}, max_val = 4
+
+    @staticmethod
+    def generate_radar_chart(scores: Dict[str, float], max_val: int = 4) -> str:
+        """Generates a radar (spider) chart from the provided scores.
+    
+        Args:
+            scores: A dictionary mapping dimension names to float scores.
+            max_val: The maximum value for the chart scale (outermost ring).
+    
+        Returns:
+            str: A base64 encoded PNG string of the chart.
+    
+        Raises:
+            AppException: If generation fails or input is invalid.
+        """
+        # Fail Fast: Strict Input Validation
+        if not scores:
+            raise AppException(
+                message="Radar chart requires at least one score.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.EMPTY_INPUT}
+            )
+    
+        try:
+            # Data preparation
+            categories: List[str] = list(scores.keys())
+            values: List[float] = list(scores.values())
+    
+            # Close the loop
+            values += values[:1]
+            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+            angles += angles[:1]
+    
+            # Figure setup
+            fig = Figure(figsize=(6, 6), dpi=100)
+>           ax = fig.add_subplot(111, polar=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\services\chart_service.py:52: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Python314\Lib\site-packages\matplotlib\figure.py:768: in add_subplot
+    ax = projection_class(self, *args, **pkw)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python314\Lib\site-packages\matplotlib\projections\polar.py:827: in __init__
+    super().__init__(*args, **kwargs)
+C:\Python314\Lib\site-packages\matplotlib\axes\_base.py:732: in __init__
+    self.clear()
+C:\Python314\Lib\site-packages\matplotlib\projections\polar.py:834: in clear
+    super().clear()
+C:\Python314\Lib\site-packages\matplotlib\axes\_base.py:1452: in clear
+    self.__clear()
+C:\Python314\Lib\site-packages\matplotlib\axes\_base.py:1330: in __clear
+    axis.clear()  # Also resets the scale to linear.
+    ^^^^^^^^^^^^
+C:\Python314\Lib\site-packages\matplotlib\projections\polar.py:438: in clear
+    self.set_ticks_position('none')
+C:\Python314\Lib\site-packages\matplotlib\axis.py:2515: in set_ticks_position
+    self.set_tick_params(which='both', top=False,
+C:\Python314\Lib\site-packages\matplotlib\axis.py:976: in set_tick_params
+    tick._apply_params(**kwtrans)
+C:\Python314\Lib\site-packages\matplotlib\projections\polar.py:357: in _apply_params
+    if not trans.contains_branch(self._text1_translate):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python314\Lib\site-packages\matplotlib\transforms.py:1397: in contains_branch
+    if sub_tree == other:
+       ^^^^^^^^^^^^^^^^^
+C:\Python314\Lib\site-packages\matplotlib\transforms.py:1780: in __eq__
+    return (self.get_matrix() == other.get_matrix()).all()
+            ^^^^^^^^^^^^^^^^^
+C:\Python314\Lib\site-packages\matplotlib\transforms.py:2682: in get_matrix
+    self._mtx[:2, 2] = self._scale_trans.transform(self._t)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python314\Lib\site-packages\matplotlib\transforms.py:1785: in transform
+    return self.transform_affine(values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python314\Lib\site-packages\matplotlib\transforms.py:1854: in transform_affine
+    return affine_transform(values, mtx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock id='2705633451648'>, name = '__version__'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+                raise AttributeError("Mock object has no attribute %r" % name)
+        elif _is_magic(name):
+>           raise AttributeError(name)
+E           AttributeError: __version__
+
+C:\Python314\Lib\unittest\mock.py:698: AttributeError
+
+The above exception was the direct cause of the following exception:
+
+self = <test_chart_service.TestChartService object at 0x00000275F454A710>
+
+    def test_generate_radar_chart_valid(self):
+        """Test valid input returns a base64 encoded png string."""
+        scores = {"Logic": 3.0, "Ethics": 4.0, "Clarity": 2.5}
+>       result = ChartService.generate_radar_chart(scores)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\tests\unit\test_chart_service.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+scores = {'Clarity': 2.5, 'Ethics': 4.0, 'Logic': 3.0}, max_val = 4
+
+    @staticmethod
+    def generate_radar_chart(scores: Dict[str, float], max_val: int = 4) -> str:
+        """Generates a radar (spider) chart from the provided scores.
+    
+        Args:
+            scores: A dictionary mapping dimension names to float scores.
+            max_val: The maximum value for the chart scale (outermost ring).
+    
+        Returns:
+            str: A base64 encoded PNG string of the chart.
+    
+        Raises:
+            AppException: If generation fails or input is invalid.
+        """
+        # Fail Fast: Strict Input Validation
+        if not scores:
+            raise AppException(
+                message="Radar chart requires at least one score.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.EMPTY_INPUT}
+            )
+    
+        try:
+            # Data preparation
+            categories: List[str] = list(scores.keys())
+            values: List[float] = list(scores.values())
+    
+            # Close the loop
+            values += values[:1]
+            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+            angles += angles[:1]
+    
+            # Figure setup
+            fig = Figure(figsize=(6, 6), dpi=100)
+            ax = fig.add_subplot(111, polar=True)
+    
+            # Draw axes
+            ax.set_theta_offset(np.pi / 2)  # type: ignore
+            ax.set_theta_direction(-1)  # type: ignore
+            ax.set_xticks(angles[:-1])
+            ax.set_xticklabels(categories)
+    
+            # --- POLYGON GRID (Spider Web Style) ---
+            ax.yaxis.grid(False)
+    
+            # Dynamic Grid Calculation
+            grid_levels: List[float] = []
+            if max_val <= 5:
+                grid_levels = list(range(1, max_val + 1))
+            elif max_val <= 10:
+                grid_levels = list(range(2, max_val + 1, 2))
+            elif max_val == 50:
+                grid_levels = [10, 20, 30, 40, 50]
+            elif max_val == 100:
+                grid_levels = [20, 40, 60, 80, 100]
+            else:
+                step = max_val / 4
+                levels = [step, step * 2, step * 3, float(max_val)]
+                grid_levels = [int(l) if l.is_integer() else l for l in levels]
+    
+            for level in grid_levels:
+                ax.plot(angles, [level] * len(angles), color='grey', linewidth=0.5, linestyle=':')
+    
+            # Draw labels
+            label_angle = 0.0
+            if len(categories) > 0:
+                label_angle = angles[0] + (angles[1] - angles[0]) / 2
+    
+            ax.set_rlabel_position(np.degrees(label_angle))  # type: ignore
+            ax.set_yticks(grid_levels)
+            ax.set_yticklabels([str(l) for l in grid_levels], color="grey", size=7)
+    
+            # Ensure 0 is center
+            ax.set_ylim(0, max_val)
+    
+            # Plot data
+            ax.plot(angles, values, linewidth=1, linestyle='solid', color='#1A73E8', marker='o', markersize=4)
+            ax.fill(angles, values, color='#1A73E8', alpha=0.25)
+    
+            # Annotate values
+            for angle, val, label in zip(angles[:-1], values[:-1], categories):
+                ax.text(angle, val + 0.3, f"{val:.1f}", ha='center', va='center', size=8, color='#1A73E8', weight='bold')
+    
+            # Output to base64
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', transparent=True, bbox_inches='tight')
+            buf.seek(0)
+            img_str = base64.b64encode(buf.read()).decode('utf-8')
+    
+            return f"data:image/png;base64,{img_str}"
+    
+        except Exception as e:
+            error_code = ErrorCodes.CHART_GENERATION_FAILED
+            error_message = "Failed to generate radar chart."
+    
+            logger.error(f"{error_code}: {error_message}: {e}", exc_info=True)
+>           raise AppException(
+                message=error_message,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": error_code, "original_error": str(e)}
+            ) from e
+E           backend.exceptions.AppException: Failed to generate radar chart.
+
+backend\services\chart_service.py:114: AppException
+------------------------------ Captured log call ------------------------------
+ERROR    backend.services.chart_service:chart_service.py:113 ErrorCodes.CHART_GENERATION_FAILED: Failed to generate radar chart.: __version__
+Traceback (most recent call last):
+  File "C:\src\quorum\backend\services\chart_service.py", line 52, in generate_radar_chart
+    ax = fig.add_subplot(111, polar=True)
+  File "C:\Python314\Lib\site-packages\matplotlib\figure.py", line 768, in add_subplot
+    ax = projection_class(self, *args, **pkw)
+  File "C:\Python314\Lib\site-packages\matplotlib\projections\polar.py", line 827, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\matplotlib\axes\_base.py", line 732, in __init__
+    self.clear()
+    ~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\matplotlib\projections\polar.py", line 834, in clear
+    super().clear()
+    ~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\matplotlib\axes\_base.py", line 1452, in clear
+    self.__clear()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\matplotlib\axes\_base.py", line 1330, in __clear
+    axis.clear()  # Also resets the scale to linear.
+    ~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\matplotlib\projections\polar.py", line 438, in clear
+    self.set_ticks_position('none')
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Python314\Lib\site-packages\matplotlib\axis.py", line 2515, in set_ticks_position
+    self.set_tick_params(which='both', top=False,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+                         bottom=False)
+                         ^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\matplotlib\axis.py", line 976, in set_tick_params
+    tick._apply_params(**kwtrans)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\matplotlib\projections\polar.py", line 357, in _apply_params
+    if not trans.contains_branch(self._text1_translate):
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\matplotlib\transforms.py", line 1397, in contains_branch
+    if sub_tree == other:
+       ^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\matplotlib\transforms.py", line 1780, in __eq__
+    return (self.get_matrix() == other.get_matrix()).all()
+            ~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\matplotlib\transforms.py", line 2682, in get_matrix
+    self._mtx[:2, 2] = self._scale_trans.transform(self._t)
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\matplotlib\transforms.py", line 1785, in transform
+    return self.transform_affine(values)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Python314\Lib\site-packages\matplotlib\transforms.py", line 1854, in transform_affine
+    return affine_transform(values, mtx)
+  File "C:\Python314\Lib\unittest\mock.py", line 698, in __getattr__
+    raise AttributeError(name)
+AttributeError: __version__
+============================== warnings summary ===============================
+..\..\Python314\Lib\site-packages\google\genai\types.py:43
+  C:\Python314\Lib\site-packages\google\genai\types.py:43: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+..\..\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: 15 warnings
+  C:\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+  C:\Python314\Lib\site-packages\slowapi\extension.py:717: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+backend\tests\api\test_auth_router.py:38
+backend\tests\api\test_auth_router.py:38
+  C:\src\quorum\backend\tests\api\test_auth_router.py:38: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(), updated_at=datetime.utcnow()
+
+backend\tests\api\test_auth_router.py:42
+backend\tests\api\test_auth_router.py:42
+  C:\src\quorum\backend\tests\api\test_auth_router.py:42: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(), updated_at=datetime.utcnow()
+
+backend/tests/api/test_auth_router.py::test_list_users_scoping
+backend/tests/api/test_auth_router.py::test_list_users_scoping
+  C:\src\quorum\backend\tests\api\test_auth_router.py:112: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    User(uid="mem-1", email="mem1@example.com", role=UserRole.MEMBER, organization_id="org-A", created_at=datetime.utcnow(), updated_at=datetime.utcnow()),
+
+backend/tests/api/test_auth_router.py::test_list_users_scoping
+backend/tests/api/test_auth_router.py::test_list_users_scoping
+  C:\src\quorum\backend\tests\api\test_auth_router.py:113: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    User(uid="mem-2", email="mem2@example.com", role=UserRole.MEMBER, organization_id="org-B", created_at=datetime.utcnow(), updated_at=datetime.utcnow()),
+
+backend/tests/api/test_organization_router.py::test_create_organization_user_strict_types
+  C:\src\quorum\backend\tests\api\test_organization_router.py:141: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow()
+
+backend/tests/core/test_registry.py::test_agent_wrapper_model_override_failure
+  C:\Python314\Lib\inspect.py:2359: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    for offset, name in enumerate(positional[non_default_count:]):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+backend/tests/manual/test_agents_strict_dto.py::test_agent_execution_mock
+backend/tests/manual/test_agents_strict_dto.py::test_agent_execution_mock
+backend/tests/manual/test_agents_strict_dto.py::test_agent_execution_mock
+backend/tests/manual/test_agents_strict_dto.py::test_agent_execution_mock
+backend/tests/manual/test_agents_strict_dto.py::test_agent_execution_mock
+  C:\src\quorum\backend\agents\base.py:826: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    for name, field_info in data.model_fields.items():
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--------- generated xml file: C:\src\quorum\tests\output\results.xml ----------
+=========================== short test summary info ===========================
+FAILED backend/tests/api/test_builder_preview.py::test_preview_step_flow - As...
+FAILED backend/tests/api/test_builder_preview.py::test_preview_chain_flow - a...
+FAILED backend/tests/core/test_engine_errors.py::test_execute_workflow_task_not_found
+FAILED backend/tests/core/test_engine_errors.py::test_execute_workflow_input_validation_failed
+FAILED backend/tests/unit/test_chart_service.py::TestChartService::test_generate_radar_chart_valid
+=========== 5 failed, 211 passed, 2 skipped, 33 warnings in 21.09s ============

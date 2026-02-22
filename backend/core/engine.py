@@ -5,13 +5,14 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from pydantic import BaseModel
+
 from backend.core.registry import TaskRegistry
 from backend.exceptions import AppException, ErrorCodes, WorkflowExecutionError, status
+from backend.models.domain.inputs import WorkflowInputs
 from backend.models.state import ReasoningTrace, TraceEvent, WorkflowState
 from backend.models.workflow import WorkflowDefinition
-from backend.models.domain.inputs import WorkflowInputs
 from backend.utils.pydantic_utils import inflate
-from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,7 @@ class GraphEngine:
     def __init__(self):
         """Initialize the GraphEngine."""
         from backend.core.registry import TaskRegistry
+
         self.registry = TaskRegistry
 
     async def execute_workflow(
@@ -95,7 +97,7 @@ class GraphEngine:
             "workflow_id": definition.id if definition.id else "unknown_workflow",
             "status": "running",
             "execution_trace": [],
-            "context_variables": context_vars
+            "context_variables": context_vars,
         }
 
         try:
@@ -132,7 +134,7 @@ class GraphEngine:
 
         # Jan 2026 Mandate: Strict Input Inflation & Sanitization
         inputs_data = execution_state.context_variables.get("inputs")
-        
+
         # 1. Inflate to Model (Fail Fast)
         if inputs_data:
             inputs_model = inflate(inputs_data, WorkflowInputs)
@@ -141,12 +143,8 @@ class GraphEngine:
                 error_code = ErrorCodes.INVALID_JSON_PAYLOAD
                 msg = f"Invalid WorkflowInputs data. Failed to inflate {type(inputs_data)}."
                 logger.error(f"[GraphEngine] {error_code}: {msg}")
-                raise AppException(
-                    message=msg,
-                    status_code=400,
-                    details={"error_code": error_code}
-                )
-            
+                raise AppException(message=msg, status_code=400, details={"error_code": error_code})
+
             # 2. Chat Parsing / Sanitization (on Model Fields)
             updates = {}
             for field in ["history_text", "product_text", "reflection_text"]:
@@ -156,7 +154,7 @@ class GraphEngine:
                     try:
                         original_len = len(val)
                         parsed_value = ChatLogParser.parse(val)
-                        
+
                         if parsed_value != val:
                             updates[field] = parsed_value
                             if len(parsed_value) != original_len:
@@ -168,15 +166,19 @@ class GraphEngine:
                         # Fail Fast: Invalid Chat Log is a data integrity error.
                         logger.error(f"[GraphEngine] ChatLogParser failed for '{field}': {e}")
                         raise AppException(
-                             message=f"Chat Log Parsing failed for field '{field}': {e}",
-                             status_code=status.HTTP_400_BAD_REQUEST,
-                             details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "field": field, "original_error": str(e)}
-                         ) from e
-            
+                            message=f"Chat Log Parsing failed for field '{field}': {e}",
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            details={
+                                "error_code": ErrorCodes.INVALID_JSON_PAYLOAD,
+                                "field": field,
+                                "original_error": str(e),
+                            },
+                        ) from e
+
             # 3. Apply Updates & Store Model
             if updates:
                 inputs_model = inputs_model.model_copy(update=updates)
-            
+
             execution_state.context_variables["inputs"] = inputs_model
 
         logger.info(f"Starting workflow '{definition.id}' with {len(definition.steps)} steps.")
@@ -191,7 +193,9 @@ class GraphEngine:
 
         for _, step_id in enumerate(definition.steps):
             if not isinstance(step_id, str):
-                logger.error(f"[GraphEngine] Invalid step type in workflow {definition.id}: Expected str, got {type(step_id)}")
+                logger.error(
+                    f"[GraphEngine] Invalid step type in workflow {definition.id}: Expected str, got {type(step_id)}"
+                )
                 continue
 
             # Idempotency Check
@@ -215,16 +219,18 @@ class GraphEngine:
                         canonical_step = await repository.get_step_by_id(step_id)
                     except Exception as e:
                         logger.warning(f"[GraphEngine] Step fetch failed for '{step_id}': {e}")
-                
+
                 if not canonical_step:
-                     logger.error(f"[GraphEngine] Step '{step_id}' not found in Registry. Rejecting due to Zero-Fallback mandate.")
-                     raise WorkflowExecutionError(
+                    logger.error(
+                        f"[GraphEngine] Step '{step_id}' not found in Registry. Rejecting due to Zero-Fallback mandate."
+                    )
+                    raise WorkflowExecutionError(
                         step_id=step_id,
                         task_key="unknown",
                         original_error=ValueError(f"Step {step_id} completely missing from canonical registry"),
-                        details={"message": "Strict Hydration failed: Missing Canonical Step"}
-                     )
-                
+                        details={"message": "Strict Hydration failed: Missing Canonical Step"},
+                    )
+
                 # We copy canonical to avoid mutating cache/db result
                 merged = canonical_step.copy()
 
@@ -234,15 +240,18 @@ class GraphEngine:
                     merged["id"] = step_id
 
                 from backend.models.workflow import WorkflowStep
+
                 try:
                     step = WorkflowStep.model_validate(merged)
                 except Exception as e:
-                    logger.error(f"[GraphEngine] Failed to properly validate step '{step_id}': {e}. Rejecting due to Zero-Fallback mandate.")
+                    logger.error(
+                        f"[GraphEngine] Failed to properly validate step '{step_id}': {e}. Rejecting due to Zero-Fallback mandate."
+                    )
                     raise WorkflowExecutionError(
                         step_id=step_id,
                         task_key=merged.get("task_key", "unknown"),
                         original_error=e,
-                        details={"message": "Step validation failed against strict SSOT Schema (Zero-Fallback)"}
+                        details={"message": "Step validation failed against strict SSOT Schema (Zero-Fallback)"},
                     ) from e
 
                 # --- 0.5 PRE-HOOKS ---
@@ -256,11 +265,11 @@ class GraphEngine:
                 # 1. Get Task Handler First (to access schema)
                 task_def = TaskRegistry.get(step.task_key)
                 if not task_def:
-                     raise AppException(
-                         message=f"Task '{step.task_key}' not found in registry.",
-                         status_code=status.HTTP_404_NOT_FOUND,
-                         details={"error_code": ErrorCodes.TASK_NOT_FOUND, "task_key": step.task_key}
-                     )
+                    raise AppException(
+                        message=f"Task '{step.task_key}' not found in registry.",
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        details={"error_code": ErrorCodes.TASK_NOT_FOUND, "task_key": step.task_key},
+                    )
 
                 # 2. Resolve Inputs (with Strict Schema Awareness)
                 task_inputs = self._resolve_inputs(step.inputs, execution_state, input_schema=task_def.input_schema)
@@ -271,24 +280,24 @@ class GraphEngine:
                     # For now, just standard validation.
                     validated_input = task_def.input_schema.model_validate(task_inputs)
                 except Exception as e:
-                     raise AppException(
-                         message=f"Input validation failed for key '{step.task_key}': {e}",
-                         status_code=status.HTTP_400_BAD_REQUEST,
-                         details={"error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED, "original_error": str(e)}
-                     ) from e
+                    raise AppException(
+                        message=f"Input validation failed for key '{step.task_key}': {e}",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        details={"error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED, "original_error": str(e)},
+                    ) from e
 
                 # 3.5 Inject Runtime Context (Identity & Governance)
                 # Ensure agents have access to Organization ID even if not explicitly mapped in inputs.
                 runtime_config = step.config.copy() if step.config else {}
-                
+
                 # Extract identity from inputs (SSOT from Lifecycle)
                 current_inputs = execution_state.context_variables.get("inputs", {})
                 if isinstance(current_inputs, dict):
                     if "organization_id" in current_inputs:
                         runtime_config["organization_id"] = current_inputs["organization_id"]
                     if "user_id" in current_inputs:
-                         runtime_config["user_id"] = current_inputs["user_id"]
-                         
+                        runtime_config["user_id"] = current_inputs["user_id"]
+
                 # 4. Execute Task
                 logger.debug(f"Executing step '{step.id}' ({step.task_key})...")
 
@@ -339,33 +348,37 @@ class GraphEngine:
                     )
 
                 content_payload = result_dict
-                
+
                 # Extract Usage via Pydantic Metadata (Domain models)
                 step_usage = {}
                 if hasattr(result, "metadata") and getattr(result, "metadata", None) is not None:
                     if hasattr(result.metadata, "token_usage") and result.metadata.token_usage:
                         step_usage = result.metadata.token_usage
-                
+
                 # Fallbacks for dictionary responses or legacy reasoning objects
                 if not step_usage and "metadata" in result_dict and isinstance(result_dict["metadata"], dict):
                     step_usage = result_dict["metadata"].get("token_usage", {})
                 if not step_usage:
                     step_usage = result_dict.pop("token_usage", {})
-                    
+
                 if not isinstance(step_usage, dict):
                     step_usage = {}
 
                 if reasoning_trace:
                     reasoning_trace = reasoning_trace.model_copy(update={"token_usage": step_usage})
-                
+
                 # Global Usage Accumulation
                 global_usage = execution_state.context_variables.setdefault("usage", {})
                 global_usage["total_tokens"] = global_usage.get("total_tokens", 0) + step_usage.get("total_tokens", 0)
-                global_usage["prompt_tokens"] = global_usage.get("prompt_tokens", 0) + step_usage.get("prompt_tokens", 0)
-                global_usage["completion_tokens"] = global_usage.get("completion_tokens", 0) + step_usage.get("completion_tokens", 0)
-                
+                global_usage["prompt_tokens"] = global_usage.get("prompt_tokens", 0) + step_usage.get(
+                    "prompt_tokens", 0
+                )
+                global_usage["completion_tokens"] = global_usage.get("completion_tokens", 0) + step_usage.get(
+                    "completion_tokens", 0
+                )
+
                 if "cost_usd" in step_usage:
-                     global_usage["cost_usd"] = global_usage.get("cost_usd", 0.0) + step_usage.get("cost_usd", 0.0)
+                    global_usage["cost_usd"] = global_usage.get("cost_usd", 0.0) + step_usage.get("cost_usd", 0.0)
 
                 # 6. Create TraceEvent
                 new_event = TraceEvent(
@@ -422,54 +435,48 @@ class GraphEngine:
                         # Dump state to dict for storage
                         state_dict = execution_state.model_dump()
 
-                        updates = {
+                        step_updates: dict[str, Any] = {
                             "results": state_dict,
                             "current_step": step.id,
                             "execution_trace_count": len(execution_state.execution_trace),
                             "status": "running",
                         }
 
-                        # Dynamic Hoisting (Legacy Support?)
-                        if step.hoist_keys:
-                            for field in step.hoist_keys:
-                                if field in content_payload:
-                                    updates[field] = content_payload[field]
-
-                        await repository.update_execution(execution_id, updates)
+                        await repository.update_execution(execution_id, step_updates)
                     except Exception as e:
                         logger.warning(f"Failed to persist state for {execution_id}: {e}")
 
             except AppException as ae:
-                 # Specific Application Error (Fail Fast)
-                 safe_step_id = step.id if 'step' in locals() else step_id
-                 logger.error(f"{ae.error_code}: Workflow failed at step '{safe_step_id}': {ae.message}", exc_info=True)
-                 
-                 # Create Error Event
-                 error_event = TraceEvent(
-                     step_name=safe_step_id,
-                     event_type="error",
-                     content={"error": ae.message, "code": ae.error_code},
-                     metadata={"timestamp": datetime.now(timezone.utc).isoformat()},
-                 )
-                 try:
-                     execution_state = execution_state.add_event(error_event)
-                 except Exception:
-                     pass # Fallback if adding event fails
-
-                 # Check if we should re-raise or wrap?
-                 # If it's already an AppException, re-raising preserves the code.
-                 raise ae
-
-            except Exception as e:
-                error_code = "WORKFLOW_STEP_FAILED"
-                safe_step_id = step.id if 'step' in locals() else step_id
-                logger.error(f"{error_code}: Workflow failed at step '{safe_step_id}': {e}", exc_info=True)
+                # Specific Application Error (Fail Fast)
+                safe_step_id = step.id if "step" in locals() else step_id
+                logger.error(f"{ae.error_code}: Workflow failed at step '{safe_step_id}': {ae.message}", exc_info=True)
 
                 # Create Error Event
                 error_event = TraceEvent(
                     step_name=safe_step_id,
                     event_type="error",
-                    content={"error": str(e), "code": error_code},
+                    content={"error": ae.message, "code": ae.error_code},
+                    metadata={"timestamp": datetime.now(timezone.utc).isoformat()},
+                )
+                try:
+                    execution_state = execution_state.add_event(error_event)
+                except Exception:
+                    pass  # Fallback if adding event fails
+
+                # Check if we should re-raise or wrap?
+                # If it's already an AppException, re-raising preserves the code.
+                raise ae
+
+            except Exception as e:
+                string_code = "WORKFLOW_STEP_FAILED"
+                safe_step_id = step.id if "step" in locals() else step_id
+                logger.error(f"{string_code}: Workflow failed at step '{safe_step_id}': {e}", exc_info=True)
+
+                # Create Error Event
+                error_event = TraceEvent(
+                    step_name=safe_step_id,
+                    event_type="error",
+                    content={"error": str(e), "code": string_code},
                     metadata={"timestamp": datetime.now(timezone.utc).isoformat()},
                 )
                 try:
@@ -477,13 +484,13 @@ class GraphEngine:
                 except Exception:
                     pass
 
-                failed_state_dump = execution_state.model_dump(mode='json')
-                safe_task_key = step.task_key if 'step' in locals() else "unknown"
+                failed_state_dump = execution_state.model_dump(mode="json")
+                safe_task_key = step.task_key if "step" in locals() else "unknown"
                 raise WorkflowExecutionError(
                     step_id=safe_step_id,
                     task_key=safe_task_key,
                     original_error=e,
-                    details={"execution_state": failed_state_dump, "error_code": error_code},
+                    details={"execution_state": failed_state_dump, "error_code": string_code},
                 ) from e
 
         # Final Status Update
@@ -517,7 +524,7 @@ class GraphEngine:
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED}
+                    details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED},
                 )
 
             hook_func = getattr(module, func_name)
@@ -532,10 +539,10 @@ class GraphEngine:
                 result_state = hook_func(state, **kwargs)
 
             if result_state is None:
-                 raise AppException(
+                raise AppException(
                     message=f"Hook '{hook_name}' returned None. Must return WorkflowState.",
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED}
+                    details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED},
                 )
 
             return result_state
@@ -547,23 +554,20 @@ class GraphEngine:
             raise AppException(
                 message=f"Hook execution failed: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED, "original_error": str(e)}
+                details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED, "original_error": str(e)},
             ) from e
 
     def _resolve_inputs(
-        self, 
-        input_mapping: dict[str, str], 
-        state: WorkflowState,
-        input_schema: type[BaseModel] | None = None
+        self, input_mapping: dict[str, str], state: WorkflowState, input_schema: type[BaseModel] | None = None
     ) -> dict[str, Any]:
         """Resolve inputs from WorkflowState object (using context_variables).
-        
+
         Refactored Feb 2026: Supports 'Strict Typed Retrieval' via state.get_context(Model).
-        If input_schema is provided, we attempt to inflate the context variable 
+        If input_schema is provided, we attempt to inflate the context variable
         into the expected Pydantic model *before* returning it.
         """
         resolved: dict[str, Any] = {}
-        
+
         # Helper to resolve type from schema
         def _get_field_type(field_name: str) -> type[BaseModel] | None:
             if not input_schema:
@@ -571,29 +575,29 @@ class GraphEngine:
             field_info = input_schema.model_fields.get(field_name)
             if not field_info:
                 return None
-                
+
             # Inspect annotation
             annotation = field_info.annotation
             if not annotation:
                 return None
-                
+
             # Handle Optional[model], Union[model, None], etc.
             # Simple heuristic: if it's a subclass of BaseModel, use it.
             # Iterate args if generic.
-            from typing import get_args, get_origin
             import inspect
-            
+            from typing import get_args, get_origin
+
             # Direct match
             if inspect.isclass(annotation) and issubclass(annotation, BaseModel):
                 return annotation
-                
+
             # Optional/Union match
             origin = get_origin(annotation)
             if origin:
                 for arg in get_args(annotation):
                     if inspect.isclass(arg) and issubclass(arg, BaseModel):
                         return arg
-            
+
             return None
 
         for target_field, source_path in input_mapping.items():
@@ -603,13 +607,13 @@ class GraphEngine:
 
                 head = path_parts[0]
                 tail = path_parts[1:]
-                
+
                 # Determine expected type for this root object?
                 # Usually we map root-to-root (e.g. step_analyst -> $analyst_step)
-                # If we map root-to-prop (e.g. text -> $analyst.summary), we can't easily infer the type of $analyst 
-                # unless we know the schema of the SOURCE, which we don't here. 
+                # If we map root-to-prop (e.g. text -> $analyst.summary), we can't easily infer the type of $analyst
+                # unless we know the schema of the SOURCE, which we don't here.
                 # We only know the schema of the TARGET.
-                
+
                 # However, if target_field strictly expects a Model, we should try to get it as such.
                 expected_model = _get_field_type(target_field) if not tail else None
 
@@ -639,11 +643,11 @@ class GraphEngine:
                             value = getattr(value, part)
                     resolved[target_field] = value
                 except Exception as e:
-                     raise AppException(
-                         message=f"Resolution failed for path '{source_path}': {e}",
-                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                         details={"error_code": ErrorCodes.INPUT_RESOLUTION_FAILED, "original_error": str(e)}
-                     )
+                    raise AppException(
+                        message=f"Resolution failed for path '{source_path}': {e}",
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        details={"error_code": ErrorCodes.INPUT_RESOLUTION_FAILED, "original_error": str(e)},
+                    )
             else:
                 # Static value
                 resolved[target_field] = source_path

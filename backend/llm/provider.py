@@ -14,12 +14,12 @@ from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from backend.exceptions import (
+    AgentExecutionError,
     AppException,
     ConfigurationError,
     ErrorCodes,
-    ServiceUnavailableError,
-    AgentExecutionError,
     SecurityViolationError,
+    ServiceUnavailableError,
 )
 from backend.models.llm import LLMProviderConfig, LLMResponse
 from backend.services.usage_service import UsageService
@@ -117,19 +117,19 @@ class LiteLLMProvider(LLMProvider):
         # 1. Determine Limits
         # STRICT CONFIGURATION (Jan 2026): No hardcoded defaults.
         # Limits must be provided via specific configuration (Organization/User/System).
-        
+
         if not limits:
-             msg = "Strict Mode: LLM Rate Limits (TPM/RPM) must be explicitly passed to Provider. No hardcoded defaults allowed."
-             logger.error(f"[LiteLLMProvider] {msg}")
-             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
+            msg = "Strict Mode: LLM Rate Limits (TPM/RPM) must be explicitly passed to Provider. No hardcoded defaults allowed."
+            logger.error(f"[LiteLLMProvider] {msg}")
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         tpm = limits.get("tpm")
         rpm = limits.get("rpm")
-        
+
         if tpm is None or rpm is None:
-             msg = "Strict Mode: Both TPM and RPM must be defined in limits config."
-             logger.error(f"[LiteLLMProvider] {msg}")
-             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
+            msg = "Strict Mode: Both TPM and RPM must be defined in limits config."
+            logger.error(f"[LiteLLMProvider] {msg}")
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         # 2. Build deployment config
         model_config = {
@@ -176,15 +176,14 @@ class LiteLLMProvider(LLMProvider):
 
         # STRICT CONFIGURATION (Jan 2026): Reject defaults.
         if temperature is None:
-             msg = "Strict Mode: 'temperature' must be explicitly provided from configuration (Database/Registry). No default allowed."
-             logger.error(f"[LiteLLMProvider] {msg}")
-             raise ConfigurationError(msg)
+            msg = "Strict Mode: 'temperature' must be explicitly provided from configuration (Database/Registry). No default allowed."
+            logger.error(f"[LiteLLMProvider] {msg}")
+            raise ConfigurationError(msg)
 
         if max_tokens is None:
-             msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration (Database/Registry). No default allowed."
-             logger.error(f"[LiteLLMProvider] {msg}")
-             raise ConfigurationError(msg)
-
+            msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration (Database/Registry). No default allowed."
+            logger.error(f"[LiteLLMProvider] {msg}")
+            raise ConfigurationError(msg)
 
         # Context Continuity (Stateless Reasoning Blob)
         if pass_reasoning_token:
@@ -204,8 +203,8 @@ class LiteLLMProvider(LLMProvider):
             try:
                 schema_name = "dict"
                 if isinstance(response_schema, type):
-                     schema_name = getattr(response_schema, "__name__", "dict")
-                
+                    schema_name = getattr(response_schema, "__name__", "dict")
+
                 logger.info(f"[LiteLLM] Enabling Structured Output for schema: {schema_name}")
                 response_format = response_schema
             except Exception:
@@ -220,8 +219,8 @@ class LiteLLMProvider(LLMProvider):
 
                 # Format for log
                 # User Mandate (Jan 2026): Single-line compact debug log
-                content_preview = text[:50].replace('\n', '\\n')
-                suffix = text[-50:].replace('\n', '\\n') if len(text) > 50 else ""
+                content_preview = text[:50].replace("\n", "\\n")
+                suffix = text[-50:].replace("\n", "\\n") if len(text) > 50 else ""
                 logger.info(f"[LiteLLM] [{label}]: Length={len(text)} chars | Content='{content_preview}...{suffix}'")
 
             if system_instruction:
@@ -347,7 +346,9 @@ class LiteLLMProvider(LLMProvider):
 
                 # Use create_with_completion to get both the Pydantic model and the raw completion
                 # This allows us to extract usage stats that are otherwise lost in the wrapper.
-                structured_response, raw_completion = await self.client.chat.completions.create_with_completion(**call_kwargs)
+                structured_response, raw_completion = await self.client.chat.completions.create_with_completion(
+                    **call_kwargs
+                )
 
                 # Check what we got. If standard usage, it's the Pydantic object.
                 parsed_obj = structured_response
@@ -356,26 +357,26 @@ class LiteLLMProvider(LLMProvider):
                 # Extract Usage from raw_completion if available
                 usage: dict[str, Any] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
                 if hasattr(raw_completion, "usage") and raw_completion.usage:
-                     usage = {
+                    usage = {
                         "prompt_tokens": raw_completion.usage.prompt_tokens,
                         "completion_tokens": raw_completion.usage.completion_tokens,
                         "total_tokens": raw_completion.usage.total_tokens,
-                     }
+                    }
 
                 # Extract reasoning token if possible (from provider_specific_fields or model_extra)
                 # Note: raw_completion is a generic Completion object (or ChatCompletion)
                 reasoning_token = None
-                
+
                 # Try locating thought signature in extras
                 if hasattr(raw_completion, "model_extra") and raw_completion.model_extra:
-                     reasoning_token = raw_completion.model_extra.get("thought_signature")
+                    reasoning_token = raw_completion.model_extra.get("thought_signature")
 
                 # If missing, check message provider specific fields (if accessible)
                 # Usually located in choices[0].message
                 if not reasoning_token and hasattr(raw_completion, "choices") and raw_completion.choices:
-                     msg = raw_completion.choices[0].message
-                     if hasattr(msg, "provider_specific_fields") and msg.provider_specific_fields:
-                          reasoning_token = msg.provider_specific_fields.get("thought_signature")
+                    msg = raw_completion.choices[0].message
+                    if hasattr(msg, "provider_specific_fields") and msg.provider_specific_fields:
+                        reasoning_token = msg.provider_specific_fields.get("thought_signature")
 
                 return LLMResponse(
                     content=final_content,
@@ -386,7 +387,6 @@ class LiteLLMProvider(LLMProvider):
                     tool_calls=[],
                     messages=messages,
                 )
-
 
             # --- STANDARD CALL (Unstructured) ---
             # Fallback to self.router.acompletion directly if no schema
@@ -428,7 +428,7 @@ class LiteLLMProvider(LLMProvider):
             # For simplicity in this unified response, we ensure 'content' is the stringent result.
 
             final_content = raw_content
-            parsed_obj = None # Initialize parsed_obj for unstructured path
+            parsed_obj = None  # Initialize parsed_obj for unstructured path
             # The original `if response_schema:` block for regex parsing is removed
             # as Instructor handles structured output.
             # If response_schema was passed, the `if response_schema:` block above would have handled it.
@@ -458,6 +458,7 @@ class LiteLLMProvider(LLMProvider):
             usage["total_cost"] = cost
 
             from typing import cast
+
             return LLMResponse(
                 content=final_content,
                 parsed_content=parsed_obj if response_schema else None,
@@ -478,7 +479,7 @@ class LiteLLMProvider(LLMProvider):
                 logger.error(f"[LiteLLM] RESOURCE EXHAUSTED (Rate Limit): {error_msg}")
                 raise ServiceUnavailableError(
                     message="Model provider rate limit exceeded.",
-                    details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg}
+                    details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg},
                 ) from e
 
             # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens)
@@ -487,64 +488,72 @@ class LiteLLMProvider(LLMProvider):
                 raise AppException(
                     message="Model output exceeded token limit (likely looping).",
                     status_code=500,
-                    details={"error_code": ErrorCodes.MODEL_OUTPUT_LIMIT_EXCEEDED}
+                    details={"error_code": ErrorCodes.MODEL_OUTPUT_LIMIT_EXCEEDED},
                 ) from e
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif "AuthenticationError" in error_type or "401" in error_msg or "invalid_api_key" in error_msg:
-                 logger.critical(f"[LiteLLM] AUTH FAILED (Check API Keys): {error_msg}")
-                 raise ConfigurationError(
-                     message="LLM Provider authentication failed.",
-                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": "Invalid API Key or Credential"}
-                 ) from e
+                logger.critical(f"[LiteLLM] AUTH FAILED (Check API Keys): {error_msg}")
+                raise ConfigurationError(
+                    message="LLM Provider authentication failed.",
+                    details={
+                        "error_code": ErrorCodes.CONFIGURATION_ERROR,
+                        "original_error": "Invalid API Key or Credential",
+                    },
+                ) from e
 
             # 3. CONTEXT WINDOW (Data/Prompt Engineering)
-            elif "ContextWindowExceededError" in error_type or "context_length_exceeded" in error_msg or "400" in error_msg:
-                 # Often 400 is generic, but combined with length/context keywords matches this.
-                 if "context" in error_msg.lower() or "token" in error_msg.lower():
-                     logger.error(f"[LiteLLM] CONTEXT EXCEEDED (Prompt too long): {error_msg}")
-                     raise AgentExecutionError(
-                         detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                         original_error=e,
-                         agent_name=self.model_name
-                     ) from e
-                 else:
-                     logger.error(f"[LiteLLM] BAD REQUEST (400): {error_msg}")
-                     raise AgentExecutionError(
-                         detail=ErrorCodes.AGENT_RESPONSE_MALFORMED,
-                         original_error=e,
-                         agent_name=self.model_name
-                     ) from e
+            elif (
+                "ContextWindowExceededError" in error_type
+                or "context_length_exceeded" in error_msg
+                or "400" in error_msg
+            ):
+                # Often 400 is generic, but combined with length/context keywords matches this.
+                if "context" in error_msg.lower() or "token" in error_msg.lower():
+                    logger.error(f"[LiteLLM] CONTEXT EXCEEDED (Prompt too long): {error_msg}")
+                    raise AgentExecutionError(
+                        detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
+                    ) from e
+                else:
+                    logger.error(f"[LiteLLM] BAD REQUEST (400): {error_msg}")
+                    raise AgentExecutionError(
+                        detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
+                    ) from e
 
             # 4. SERVICE INSTABILITY (Infra)
-            elif "ServiceUnavailableError" in error_type or "503" in error_msg or "500" in error_msg or "Timeout" in error_type:
-                 logger.error(f"[LiteLLM] SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}")
-                 raise AppException(
-                     message="Upstream LLM service timed out or is unavailable.",
-                     status_code=503,
-                     details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT}
-                 ) from e
+            elif (
+                "ServiceUnavailableError" in error_type
+                or "503" in error_msg
+                or "500" in error_msg
+                or "Timeout" in error_type
+            ):
+                logger.error(f"[LiteLLM] SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}")
+                raise AppException(
+                    message="Upstream LLM service timed out or is unavailable.",
+                    status_code=503,
+                    details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT},
+                ) from e
 
             # 5. CONTENT POLICY (Safety)
             elif "ContentPolicyViolation" in error_type or "blocked" in error_msg.lower():
-                 logger.warning(f"[LiteLLM] SAFETY FILTER TRIGGERED: {error_msg}")
-                 raise SecurityViolationError(
-                     message="Content blocked by safety filters.",
-                     details={"error_code": ErrorCodes.SECURITY_VIOLATION, "original_error": error_msg}
-                 ) from e
+                logger.warning(f"[LiteLLM] SAFETY FILTER TRIGGERED: {error_msg}")
+                raise SecurityViolationError(
+                    message="Content blocked by safety filters.",
+                    details={"error_code": ErrorCodes.SECURITY_VIOLATION, "original_error": error_msg},
+                ) from e
 
             # 6. GENERIC FALLBACK (Fail Fast)
             else:
                 if len(error_msg) > 500:
-                     error_msg = error_msg[:500] + "... [TRUNCATED]"
+                    error_msg = error_msg[:500] + "... [TRUNCATED]"
                 logger.error(f"[LiteLLM] Execution Failed ({error_type}): {error_msg}")
-                
+
                 logger.debug(f"[LiteLLM] Full Error Trace: {e}", exc_info=True)
-                
+
                 # Default to ServiceUnavailable for unknown upstream errors
                 raise ServiceUnavailableError(
                     message=f"Unknown upstream LLM error: {error_type}",
-                    details={"error_code": ErrorCodes.UNKNOWN_ERROR, "original_error": error_msg}
+                    details={"error_code": ErrorCodes.UNKNOWN_ERROR, "original_error": error_msg},
                 ) from e
 
 
@@ -582,14 +591,14 @@ class MockProvider(LLMProvider):
 
         # STRICT CONFIGURATION (Jan 2026): Reject defaults in Mock too.
         if temperature is None:
-             msg = "Strict Mode: 'temperature' must be explicitly provided from configuration. No default allowed."
-             logger.error(f"[MockProvider] {msg}")
-             raise ConfigurationError(msg)
+            msg = "Strict Mode: 'temperature' must be explicitly provided from configuration. No default allowed."
+            logger.error(f"[MockProvider] {msg}")
+            raise ConfigurationError(msg)
 
         if max_tokens is None:
-             msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration. No default allowed."
-             logger.error(f"[MockProvider] {msg}")
-             raise ConfigurationError(msg)
+            msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration. No default allowed."
+            logger.error(f"[MockProvider] {msg}")
+            raise ConfigurationError(msg)
 
         # --- DIAGNOSTIC DUMP ---
         dump_file = os.getenv("DUMP_PROMPTS_FILE")
@@ -670,7 +679,7 @@ class MockProvider(LLMProvider):
             provider_metadata={},
             messages=[
                 {"role": "system", "content": system_instruction} if system_instruction else {},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
         )
 
@@ -716,10 +725,10 @@ class LLMFactory:
             # If Config says "is_active=False", we should have caught this upstream,
             # but we can enforce it here too as a fail-safe.
             if not config.is_active:
-                 raise ServiceUnavailableError(
-                     message=f"Provider '{model_name}' is disabled in configuration.",
-                     details={"error_code": ErrorCodes.SERVICE_DISABLED}
-                 )
+                raise ServiceUnavailableError(
+                    message=f"Provider '{model_name}' is disabled in configuration.",
+                    details={"error_code": ErrorCodes.SERVICE_DISABLED},
+                )
 
             # Resolve Limits from Config
             if not limits:
@@ -728,41 +737,42 @@ class LLMFactory:
                 limits["tpm"] = config.tpm_limit
             if config.rpm_limit > 0:
                 limits["rpm"] = config.rpm_limit
-            
+
             # Resolve API Key
             if config.api_key:
                 api_key = config.api_key
-            
+
             # Check Grounding Capability (Strict Mode: Fail Fast)
             # If caller requests grounding, but config says NO, we RAISE ERROR.
             # We do NOT fallback to non-grounded generation.
             tools = kwargs.get("tools", [])
             enable_grounding = kwargs.get("enable_grounding", False)
-            
+
             # Check for Google Search tool or explicit flag
             has_search_intent = enable_grounding or (tools and any("google_search" in str(t) for t in tools))
-            
+
             if has_search_intent:
                 if not config.supports_grounding:
                     raise ConfigurationError(
                         message=f"Grounding/Search requested for '{model_name}' but provider config 'supports_grounding' is False.",
-                        details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED}
+                        details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED},
                     )
 
             # Strict Limits: If limits are missing in config, we do NOT default to empty.
             # However, logic above extracts them from config if present.
             # If they are 0 in config, that's explicit "unlimited".
             # If config was None (legacy path?), we fall through.
-             
+
         # Placeholder for BYOK (Bring Your Own Key) Logic
-        tenant_api_key = api_key
 
         # STRICT EXECUTION AUTHORITY (Jan 19 Update):
         # GLOBAL SAFETY: If 'settings.use_mock_llm' is True, we FORCE the MockProvider.
         # This guarantees that 'run_mock.bat' implies 100% offline mode, regardless of
         # what provider specific agents request (e.g. 'vertex_ai').
         if settings.use_mock_llm:
-            logger.warning(f"[LLMFactory] Global USE_MOCK_LLM=True. Overriding request for '{provider_type}' -> MockProvider.")
+            logger.warning(
+                f"[LLMFactory] Global USE_MOCK_LLM=True. Overriding request for '{provider_type}' -> MockProvider."
+            )
             return MockProvider(
                 model_name=model_name or "mock",
                 usage_service=usage_service,
@@ -795,13 +805,14 @@ class LLMFactory:
 
         # Determine fallback if still empty and logic required
         if not resolved_api_key:
-             match provider_type.lower():
+            match provider_type.lower():
                 case "gemini" | "vertex_ai":
                     resolved_api_key = settings.google_api_key
                 case "openai":
                     resolved_api_key = settings.openai_api_key
                     if not resolved_api_key:
                         import os
+
                         resolved_api_key = os.getenv("OPENAI_API_KEY")
 
         return LiteLLMProvider(

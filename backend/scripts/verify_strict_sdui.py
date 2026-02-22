@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -8,6 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 # Mock translation filter
 def translate_filter(key):
     return f"[[{key}]]"
+
 
 def render_strict_test():
     # 1. Setup Environment
@@ -21,11 +21,7 @@ def render_strict_test():
         "title": "Strict SDUI Test",
         "view_id": "TEST-STRICT-001",
         "status_theme": "warning",
-        "metrics": {
-            "word_count": 0,
-            "sentence_count": 0,
-            "lexical_diversity": 0.0
-        },
+        "metrics": {"word_count": 0, "sentence_count": 0, "lexical_diversity": 0.0},
         "sections": [
             {
                 "type": "LOGIC_ANALYSIS",
@@ -45,9 +41,9 @@ def render_strict_test():
                         "position_label": None,
                         "bloom_level_raw": None,
                         "strategic_depth_raw": None,
-                        "arguments": []
+                        "arguments": [],
                     }
-                }
+                },
             },
             {
                 "type": "STRESS_TEST",
@@ -61,9 +57,9 @@ def render_strict_test():
                         "counterfactual_actual": None,
                         "counterfactual_simulated": None,
                         "plausibility_score": None,
-                        "plausibility_percent": None
+                        "plausibility_percent": None,
                     }
-                }
+                },
             },
             {
                 "type": "PERFORMATIVITY_CHECK",
@@ -73,19 +69,14 @@ def render_strict_test():
                         "authenticity_score": None,
                         "authenticity_percent": None,
                         "authenticity_assessment": None,
-                        "heuristics": []
+                        "heuristics": [],
                     }
-                }
+                },
             },
             {
                 "type": "FACT_CHECK",
                 "title": "Fact Check",
-                "data": {
-                    "fact_check_display": {
-                        "verified_facts": [],
-                        "ethical_issues": []
-                    }
-                }
+                "data": {"fact_check_display": {"verified_facts": [], "ethical_issues": []}},
             },
             {
                 "type": "SECURITY_CHECK",
@@ -100,7 +91,7 @@ def render_strict_test():
                         "anonymized": False,
                         "anonymized_color": "orange",
                         "anonymized_label": "EI ANONYMISOITU",
-                        "findings": []
+                        "findings": [],
                     },
                     "profiler_display": {
                         "control_ratio_percent": None,
@@ -116,22 +107,18 @@ def render_strict_test():
                         "say_do_gap_label": "NONE",
                         "say_do_gap_color": "black",
                         "psychological_profile": None,
-                        "intent_analysis": None
+                        "intent_analysis": None,
                     },
                     "archivist_display": {
                         "compliance_score": None,
                         "compliance_analysis": None,
                         "compliance_help": "Help",
-                        "recommendations": []
+                        "recommendations": [],
                     },
-                    "driver_display": {
-                        "classification": None,
-                        "input_quality_label": None,
-                        "strategies": []
-                    }
-                }
-            }
-        ]
+                    "driver_display": {"classification": None, "input_quality_label": None, "strategies": []},
+                },
+            },
+        ],
     }
 
     # 3. Render
@@ -149,8 +136,10 @@ def render_strict_test():
     except Exception as e:
         print(f"ERROR: Template failed to render with None values: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(render_strict_test())

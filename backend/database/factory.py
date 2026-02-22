@@ -37,7 +37,7 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
     match backend:
         case StorageBackend.FIRESTORE:
             # Lazy import to avoid hard dependency on google-cloud-firestore if not used everywhere
-            from google.cloud import firestore
+            from google.cloud import firestore  # type: ignore
 
             # Credentials are implicitly handled by GOOGLE_APPLICATION_CREDENTIALS env var
             # set by the .bat files.
@@ -49,23 +49,23 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
         case StorageBackend.MOCK | StorageBackend.LOCAL:
             # Both Mock and Local use TinyDB, just different paths or injected clients
 
-            client: TinyDBClient
+            db_client_local: TinyDBClient
 
             if db_client and isinstance(db_client, TinyDBClient):
-                client = db_client
+                db_client_local = db_client
             else:
                 # Determine path based on mode
                 if backend == StorageBackend.MOCK:
-                     db_path = settings.mock_db_path
-                     logger.info(f"[Factory] Using MOCK configuration. Path: {db_path}")
+                    db_path = settings.mock_db_path
+                    logger.info(f"[Factory] Using MOCK configuration. Path: {db_path}")
                 else:
-                     db_path = settings.prod_db_path
-                     logger.info(f"[Factory] Using LOCAL configuration. Path: {db_path}")
+                    db_path = settings.prod_db_path
+                    logger.info(f"[Factory] Using LOCAL configuration. Path: {db_path}")
 
-                client = TinyDBClient(db_path)
+                db_client_local = TinyDBClient(db_path)
 
-            driver = TinyDBDriver(client)
-            return UnifiedWorkflowRepository(driver)
+            local_driver = TinyDBDriver(db_client_local)
+            return UnifiedWorkflowRepository(local_driver)
 
         case _:
             raise ValueError(f"Unknown storage backend: {backend}")

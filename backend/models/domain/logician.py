@@ -6,24 +6,21 @@ including Toulmin argumentation analysis and Walton schemes.
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.models.domain.analyst import AnalystOutput
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.enums import BloomLevel, StrategicDepth
 from backend.services.localization import LocalizationService
 
 
-from typing import TYPE_CHECKING, Optional
-from backend.models.domain.analyst import AnalystOutput
-
-
-
 class LogicianInput(BaseModel):
     """Strict input schema for LogicianAgent."""
+
     history_text: str = Field(..., description="Chat history to analyze.")
-    step_analyst: Optional[AnalystOutput] = Field(None, description="Analyst hypotheses/timeline.")
-    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
-    
+    step_analyst: AnalystOutput | None = Field(None, description="Analyst hypotheses/timeline.")
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+
     model_config = ConfigDict(frozen=True, extra="ignore")
 
 
@@ -102,20 +99,22 @@ class CognitiveLevel(BaseModel):
         default="bloom_desc",
         description="Localization key for help text.",
     )
-    description: str = Field(default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"})
+    description: str = Field(
+        default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
+    )
 
     @field_validator("bloom_score")
     @classmethod
     def validate_bloom_score(cls, v: float) -> float:
         if not (1.0 <= v <= 6.0):
-             raise ValueError("Bloom score must be between 1.0 and 6.0.")
+            raise ValueError("Bloom score must be between 1.0 and 6.0.")
         return v
 
     @field_validator("strategic_score")
     @classmethod
     def validate_strategic_score(cls, v: float) -> float:
         if not (1.0 <= v <= 4.0):
-             raise ValueError("Strategic score must be between 1.0 and 4.0.")
+            raise ValueError("Strategic score must be between 1.0 and 4.0.")
         return v
 
     @model_validator(mode="before")
@@ -135,10 +134,10 @@ class CognitiveLevel(BaseModel):
                 BloomLevel.APPLYING: 3.0,
                 BloomLevel.ANALYZING: 4.0,
                 BloomLevel.EVALUATING: 5.0,
-                BloomLevel.CREATING: 6.0
+                BloomLevel.CREATING: 6.0,
             }
 
-        # Bloom Conversion (String -> Enum)
+            # Bloom Conversion (String -> Enum)
             # This is critical for strict=True models consuming JSON/DB data.
             bloom_val = data.get("bloom_level")
             if bloom_val and isinstance(bloom_val, str):
@@ -157,10 +156,10 @@ class CognitiveLevel(BaseModel):
             # Score Calculation (Bloom)
             current_bloom_score = data.get("bloom_score")
             if current_bloom_score is None and data.get("bloom_level"):
-                 # Calculate score from the now-resolved Enum
-                 b_enum = data["bloom_level"]
-                 if isinstance(b_enum, BloomLevel) and b_enum in bloom_map:
-                     data["bloom_score"] = bloom_map[b_enum]
+                # Calculate score from the now-resolved Enum
+                b_enum = data["bloom_level"]
+                if isinstance(b_enum, BloomLevel) and b_enum in bloom_map:
+                    data["bloom_score"] = bloom_map[b_enum]
 
             # Strategic Conversion (String -> Enum)
             strat_val = data.get("strategic_depth")
@@ -170,23 +169,23 @@ class CognitiveLevel(BaseModel):
                 except ValueError:
                     val_upper = strat_val.upper()
                     if not val_upper.startswith("STRAT_"):
-                         for strat_member in StrategicDepth:
+                        for strat_member in StrategicDepth:
                             if strat_member.value.replace("STRAT_", "") == val_upper:
-                                 data["strategic_depth"] = strat_member
-                                 break
-                                 
+                                data["strategic_depth"] = strat_member
+                                break
+
             # Score Calculation (Strategic)
             current_strat_score = data.get("strategic_score")
             if current_strat_score is None and data.get("strategic_depth"):
-                 strat_map = {
-                     StrategicDepth.LOW: 1.0,
-                     StrategicDepth.MEDIUM: 2.0,
-                     StrategicDepth.HIGH: 3.0,
-                     StrategicDepth.VISIONARY: 4.0
-                 }
-                 s_enum = data["strategic_depth"]
-                 if isinstance(s_enum, StrategicDepth) and s_enum in strat_map:
-                     data["strategic_score"] = strat_map[s_enum]
+                strat_map = {
+                    StrategicDepth.LOW: 1.0,
+                    StrategicDepth.MEDIUM: 2.0,
+                    StrategicDepth.HIGH: 3.0,
+                    StrategicDepth.VISIONARY: 4.0,
+                }
+                s_enum = data["strategic_depth"]
+                if isinstance(s_enum, StrategicDepth) and s_enum in strat_map:
+                    data["strategic_score"] = strat_map[s_enum]
 
         return data
 
@@ -211,7 +210,7 @@ class WaltonScheme(BaseModel):
     @classmethod
     def validate_scheme(cls, v: str) -> str:
         if not v or not v.strip():
-             raise ValueError("Identified scheme cannot be empty.")
+            raise ValueError("Identified scheme cannot be empty.")
         return v.strip()
 
     @field_validator("critical_questions")
@@ -219,7 +218,7 @@ class WaltonScheme(BaseModel):
     def validate_questions(cls, v: list[str]) -> list[str]:
         for q in v:
             if not q or not q.strip():
-                 raise ValueError("Critical questions cannot be empty strings.")
+                raise ValueError("Critical questions cannot be empty strings.")
         return v
 
     model_config = ConfigDict(frozen=True, strict=True)
@@ -254,7 +253,9 @@ class LogicianData(BaseModel):
         default="toulmin_desc",
         description="Localization key for help text.",
     )
-    description: str = Field(default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"})
+    description: str = Field(
+        default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
+    )
 
     @field_validator("toulmin_analysis")
     @classmethod
@@ -277,6 +278,7 @@ class LogicianData(BaseModel):
 
 class LogicianOutputDTO(ReasoningTraceDTO):
     """Logician Output DTO (Content Only)."""
+
     logician_data: LogicianData = Field(
         ...,
         description="Logic analysis results.",
@@ -287,5 +289,5 @@ class LogicianOutputDTO(ReasoningTraceDTO):
 
 class LogicianOutput(LogicianOutputDTO, ReasoningTrace):
     """Output schema for the Logician Agent (Domain Authority)."""
-    model_config = ConfigDict(frozen=True, strict=True)
 
+    model_config = ConfigDict(frozen=True, strict=True)

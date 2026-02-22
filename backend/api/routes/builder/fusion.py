@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 # --- Models ---
 
+
 class CompileRequest(BaseModel):
     """Payload for compiling a sequence of steps into a fusion step."""
 
@@ -31,10 +32,19 @@ class ValidationRequest(BaseModel):
     source_step: Annotated[str, Field(description="ID of the source step.")]
     target_step: Annotated[str, Field(description="ID of the target step.")]
 
+
 # --- Endpoints ---
 
-@router.post("/validate", summary="Validate Connection", response_description="Validation result.", response_model=ValidationResponse)
-async def validate_connection(request: ValidationRequest, engine: EngineDep, repository: RepositoryDep) -> ValidationResponse:
+
+@router.post(
+    "/validate",
+    summary="Validate Connection",
+    response_description="Validation result.",
+    response_model=ValidationResponse,
+)
+async def validate_connection(
+    request: ValidationRequest, engine: EngineDep, repository: RepositoryDep
+) -> ValidationResponse:
     """Validates connection between two steps based on Agent I/O contracts."""
     try:
         # 1. Resolve Steps
@@ -48,14 +58,9 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep, rep
         src_comp_ref = source_step.get("component")
         tgt_comp_ref = target_step.get("component")
 
-        # Note: get_component needs await
-        source_comp = await repository.get_component_by_id(str(src_comp_ref))
-        if not source_comp:
-            source_comp = await repository.get_component_by_name(str(src_comp_ref))
-
-        target_comp = await repository.get_component_by_id(str(tgt_comp_ref))
-        if not target_comp:
-            target_comp = await repository.get_component_by_name(str(tgt_comp_ref))
+        # Note: get_agent_by_id needs await
+        source_comp = await repository.get_agent_by_id(str(src_comp_ref))
+        target_comp = await repository.get_agent_by_id(str(tgt_comp_ref))
 
         if not source_comp or not target_comp:
             reason = "Component definitions missing. Cannot validate."
@@ -95,14 +100,17 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep, rep
     except Exception as e:
         logger.error(f"Validation failed: {e}", exc_info=True)
         from backend.exceptions import AppException
+
         raise AppException(
             message=f"Validation Execution Failed: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": "VALIDATION_EXECUTION_FAILED"}
+            details={"error_code": "VALIDATION_EXECUTION_FAILED"},
         ) from e
 
 
-@router.post("/compile", summary="Compile Fusion", response_description="Compilation result.", response_model=CompilationResponse)
+@router.post(
+    "/compile", summary="Compile Fusion", response_description="Compilation result.", response_model=CompilationResponse
+)
 async def compile_fusion(req: CompileRequest, repository: RepositoryDep) -> CompilationResponse:
     """V2: Prompt Fusion Compilation.
 
@@ -166,14 +174,11 @@ async def compile_fusion(req: CompileRequest, repository: RepositoryDep) -> Comp
             del mapping[step_id]
 
     from backend.settings import get_settings
+
     settings = get_settings()
     # Use default strategy from settings instead of hardcoded "deep"
     mapping[target_composite_id] = settings.default_model_strategy or "fast"
 
     await repository.update_workflow(req.workflow_id, {"steps": new_steps, "default_model_mapping": mapping})
 
-    return CompilationResponse(
-        status="compiled",
-        composite_step_id=target_composite_id,
-        new_steps=new_steps
-    )
+    return CompilationResponse(status="compiled", composite_step_id=target_composite_id, new_steps=new_steps)

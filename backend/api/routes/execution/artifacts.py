@@ -42,7 +42,7 @@ def _enforce_pdf_access(user: TokenData, execution: dict[str, Any]) -> None:
             raise AppException(
                 message="Managers can only access executions within their organization.",
                 status_code=status.HTTP_403_FORBIDDEN,
-                details={"error_code": "ORG_MISMATCH", "exec_org": exec_org, "user_org": user_org}
+                details={"error_code": "ORG_MISMATCH", "exec_org": exec_org, "user_org": user_org},
             )
         return
 
@@ -51,7 +51,7 @@ def _enforce_pdf_access(user: TokenData, execution: dict[str, Any]) -> None:
         raise AppException(
             message="You do not have permission to access this execution.",
             status_code=status.HTTP_403_FORBIDDEN,
-            details={"error_code": "OWNERSHIP_REQUIRED"}
+            details={"error_code": "OWNERSHIP_REQUIRED"},
         )
 
 
@@ -76,7 +76,8 @@ async def download_execution_pdf(
         if not execution:
             raise ResourceNotFoundError(f"Execution {execution_id} not found")
 
-        exec_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
+        from pydantic import BaseModel
+        exec_data: dict[str, Any] = execution.model_dump() if isinstance(execution, BaseModel) else dict(execution) if isinstance(execution, dict) else {}
         _enforce_pdf_access(current_user, exec_data)
 
         # 2. Check File
@@ -90,11 +91,7 @@ async def download_execution_pdf(
                 if isinstance(storage, LocalFileDriver):
                     local_path = str(storage.base_path / rel_path)
 
-                return PDFDownloadCheckResponse(
-                    status="ready",
-                    exists=True,
-                    local_path=local_path
-                )
+                return PDFDownloadCheckResponse(status="ready", exists=True, local_path=local_path)
 
             if isinstance(storage, LocalFileDriver):
                 full_path = storage.base_path / rel_path
@@ -102,24 +99,21 @@ async def download_execution_pdf(
                     path=full_path,
                     filename=f"report_{execution_id}.pdf",
                     media_type="application/pdf",
-                    content_disposition_type="attachment"
+                    content_disposition_type="attachment",
                 )
             else:
                 content = await storage.read(rel_path)
                 from fastapi.responses import Response
+
                 return Response(
                     content=content,
                     media_type="application/pdf",
-                    headers={"Content-Disposition": f'attachment; filename="report_{execution_id}.pdf"'}
+                    headers={"Content-Disposition": f'attachment; filename="report_{execution_id}.pdf"'},
                 )
 
         # If check_local is true but file missing
         if check_local:
-             return PDFDownloadCheckResponse(
-                status="missing",
-                exists=False,
-                local_path=None
-            )
+            return PDFDownloadCheckResponse(status="missing", exists=False, local_path=None)
 
         # 3. Queue Job if missing
         if arq_pool:
@@ -127,13 +121,15 @@ async def download_execution_pdf(
 
             return JSONResponse(
                 status_code=status.HTTP_202_ACCEPTED,
-                content=PDFQueuedResponse(status="accepted", message="PDF generation queued.").model_dump() # JSONResponse expects dict/list
+                content=PDFQueuedResponse(
+                    status="accepted", message="PDF generation queued."
+                ).model_dump(),  # JSONResponse expects dict/list
             )
         else:
             raise AppException(
                 message="Background worker unavailable.",
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                details={"error_code": "WORKER_UNAVAILABLE"}
+                details={"error_code": "WORKER_UNAVAILABLE"},
             )
 
     except AppException:
@@ -142,9 +138,7 @@ async def download_execution_pdf(
         error_code = ErrorCodes.PDF_DOWNLOAD_FAILED
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         ) from e
 
 
@@ -166,7 +160,8 @@ async def get_pdf_progress(
         if not execution:
             raise ResourceNotFoundError(f"Execution {execution_id} not found")
 
-        exec_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
+        from pydantic import BaseModel
+        exec_data: dict[str, Any] = execution.model_dump() if isinstance(execution, BaseModel) else dict(execution) if isinstance(execution, dict) else {}
         _enforce_pdf_access(current_user, exec_data)
 
         async def event_generator():
@@ -176,8 +171,8 @@ async def get_pdf_progress(
             # Using ارq pool as redis client proxy if available
             # Ideally depends(get_redis_client) but keeping scope small
             if not arq_pool:
-                 yield {"data": json.dumps({"error": "Worker unavailable"})}
-                 return
+                yield {"data": json.dumps({"error": "Worker unavailable"})}
+                return
 
             redis = arq_pool
             key = f"progress:{execution_id}:pdf_gen"
@@ -232,13 +227,14 @@ async def cancel_pdf_generation(
         if not execution:
             raise ResourceNotFoundError(f"Execution {execution_id} not found")
 
-        exec_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
+        from pydantic import BaseModel
+        exec_data: dict[str, Any] = execution.model_dump() if isinstance(execution, BaseModel) else dict(execution) if isinstance(execution, dict) else {}
         _enforce_pdf_access(current_user, exec_data)
 
         # Depends on get_storage_client usually, but here we instantiate fresh if needed or reuse?
         # Actually it's cleaner to depend on get_storage_service_dep like the download endpoint
         # The storage dependency was added to args above.
-        
+
         rel_path = f"executions/{execution_id}/report.pdf"
 
         # Safe delete via driver
@@ -247,5 +243,5 @@ async def cancel_pdf_generation(
         return PDFCancelResponse(status="success", message="PDF cancelled and file removed.")
 
     except Exception as e:
-         log_error(logger, e)
-         raise AppException(str(e), 500) from e
+        log_error(logger, e)
+        raise AppException(str(e), 500) from e

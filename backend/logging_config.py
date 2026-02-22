@@ -58,7 +58,7 @@ def configure_logfire():
         return
 
     try:
-        logfire.configure(send_to_logfire=False) # We attach the handler manually later
+        logfire.configure(send_to_logfire=False)  # We attach the handler manually later
         # Reduce console noise: Pydantic instrumentation is too verbose for local dev
         # logfire.instrument_pydantic()
     except Exception as e:
@@ -94,14 +94,12 @@ def setup_logging(log_level=logging.INFO):
             raise AppException(
                 message=f"FAILED TO CREATE LOG DIRECTORY {log_dir}: {e}",
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             ) from e
 
     # Create formatters
     formatter: logging.Formatter
-    # Create formatters
-    formatter: logging.Formatter
-    # MODIFIED: Only force JSON if explicitly requested. 
+    # MODIFIED: Only force JSON if explicitly requested.
     # This allows 'production' environment (now default) to still use readable logs locally.
     if settings.use_json_logging:
         formatter = JSONFormatter(
@@ -176,7 +174,7 @@ def setup_logging(log_level=logging.INFO):
         import litellm
 
         litellm.set_verbose = False  # Keep DEBUG off
-        litellm.suppress_debug_info = True # Suppress print statements
+        litellm.suppress_debug_info = True  # Suppress print statements
     except Exception:
         pass
 

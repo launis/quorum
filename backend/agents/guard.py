@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes, FatalInterruption
-from backend.models.domain import GuardOutput, GuardInput
+from backend.models.domain import GuardInput, GuardOutput
 
 if TYPE_CHECKING:
     pass
@@ -34,7 +34,7 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
     # Contracts
     REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"]  # Reflection is optional
     PRODUCES_KEYS = ["step_guard"]
-    
+
     INPUT_SCHEMA = GuardInput
     OUTPUT_SCHEMA = GuardOutput
 
@@ -68,7 +68,6 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
         Raises:
             ValueError: If mandatory inputs are missing.
         """
-
         # Store context for hooks
         self.execution_context = execution_context or {}
 
@@ -85,27 +84,21 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
 
         # Pass through to BaseAgent
         result_obj = await super().execute(
-            input_data=input_data,
-            execution_context=execution_context,
-            system_instruction=system_instruction,
-            **kwargs
+            input_data=input_data, execution_context=execution_context, system_instruction=system_instruction, **kwargs
         )
 
         if isinstance(result_obj, GuardOutput):
             return result_obj
         else:
             # Should be unreachable due to BaseAgent strictness
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"GuardAgent returned {type(result_obj)} instead of GuardOutput"),
-                 agent_name="GuardAgent"
-             )
+            raise AgentExecutionError(
+                detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                original_error=TypeError(f"GuardAgent returned {type(result_obj)} instead of GuardOutput"),
+                agent_name="GuardAgent",
+            )
 
     async def prepare_context(
-        self,
-        input_data: GuardInput,
-        execution_context: dict[str, Any] | None,
-        **kwargs: Any
+        self, input_data: GuardInput, execution_context: dict[str, Any] | None, **kwargs: Any
     ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
@@ -128,21 +121,23 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
         # Actually, BaseAgent validates INPUT_SCHEMA globally.
         # But banned phrases require context. BaseAgent might not pass context during initial validation if it constructs model early.
         # Let's re-run validation logic manually or trust the model if it was built with context.
-        
+
         # We can manually enforce it here using the model instance
         try:
-             banned_phrases = []
-             if execution_context and "banned_phrases" in execution_context:
-                 banned_phrases = execution_context["banned_phrases"]
-             
-             # Check explicitly
-             if banned_phrases:
-                 for field, value in input_data.model_dump().items():
-                     if isinstance(value, str):
-                         for phrase in banned_phrases:
-                             if phrase.lower() in value.lower():
-                                  raise ValueError(f"SECURITY_BANNED_PHRASE_DETECTED: Found '{phrase}' in field '{field}'")
-        
+            banned_phrases = []
+            if execution_context and "banned_phrases" in execution_context:
+                banned_phrases = execution_context["banned_phrases"]
+
+            # Check explicitly
+            if banned_phrases:
+                for field, value in input_data.model_dump().items():
+                    if isinstance(value, str):
+                        for phrase in banned_phrases:
+                            if phrase.lower() in value.lower():
+                                raise ValueError(
+                                    f"SECURITY_BANNED_PHRASE_DETECTED: Found '{phrase}' in field '{field}'"
+                                )
+
         except ValueError as e:
             if "SECURITY_BANNED_PHRASE_DETECTED" in str(e):
                 logger.error(f"{ErrorCodes.SECURITY_BANNED_PHRASE_DETECTED}: [GuardAgent] Banned Phrase Detected: {e}")
@@ -196,8 +191,8 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
 
                 # Update security_check
                 # Pydantic Model (Frozen)
-                metrics_update = {"anonymized": True}
-                
+                metrics_update: dict[str, Any] = {"anonymized": True}
+
                 current_findings = security_check.pii_findings or []
                 # Create new list
                 new_findings = list(current_findings) + [t for t in threats if t not in current_findings]
@@ -205,29 +200,31 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
 
                 # Create updated SecurityCheck
                 new_security_check = security_check.model_copy(update=metrics_update)
-                
+
                 # Update Root Object
                 data = data.model_copy(update={"security_check": new_security_check})
-            
+
             # 2. Enhanced Metadata (Context Injection)
             current_meta = data.metadata
             meta_updates = {}
-            
+
             org_id = self.execution_context.get("organization_id")
             workflow_name = self.execution_context.get("workflow_name", "standard_workflow")
-            
-            if org_id: meta_updates["organization_id"] = org_id
-            if workflow_name: meta_updates["workflow"] = workflow_name
-            
+
+            if org_id:
+                meta_updates["organization_id"] = org_id
+            if workflow_name:
+                meta_updates["workflow"] = workflow_name
+
             if current_meta and meta_updates:
-                 new_meta = current_meta.model_copy(update=meta_updates)
-                 data = data.model_copy(update={"metadata": new_meta})
+                new_meta = current_meta.model_copy(update=meta_updates)
+                data = data.model_copy(update={"metadata": new_meta})
 
             return data
-        
+
         elif isinstance(data, dict):
             # Fallback for dict (should be rare in strict mode but possible during partial inflation)
-             return super().ensure_tainted_data(data) if hasattr(super(), "ensure_tainted_data") else data
+            return data
 
         return data
 
@@ -265,13 +262,13 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
             # But BaseAgent holds the reference.
             # However, if we want to actually *use* the sanitized text in the LLM prompt, we need to ensure
             # BaseAgent uses this modified model.
-            
+
             # If GuardInput is a standard BaseModel, it's mutable unless ConfigDict(frozen=True).
             # Checking guard.py: GuardInput class definition doesn't show frozen=True.
-            
+
             if clean_text != value:
-                 setattr(input_data, key, clean_text)
-                 
+                setattr(input_data, key, clean_text)
+
         if all_threats:
             logger.warning(f"[GuardAgent] PII Sanitization: {all_threats}")
             # Store for post_process

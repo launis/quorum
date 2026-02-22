@@ -6,10 +6,12 @@ class RiskLevel(str, Enum):
     MEDIUM = "RISK_MEDIUM"
     HIGH = "RISK_HIGH"
 
+
 class SimulationType(str, Enum):
     PASSIVE = "SIM_PASSIVE"
     ACTIVE = "SIM_ACTIVE"
     MALICIOUS = "SIM_MALICIOUS"
+
 
 class BloomLevel(str, Enum):
     REMEMBERING = "BLOOM_REMEMBERING"
@@ -19,36 +21,44 @@ class BloomLevel(str, Enum):
     EVALUATING = "BLOOM_EVALUATING"
     CREATING = "BLOOM_CREATING"
 
+
 class StrategicDepth(str, Enum):
     LOW = "STRAT_LOW"
     MEDIUM = "STRAT_MEDIUM"
     HIGH = "STRAT_HIGH"
     VISIONARY = "STRAT_VISIONARY"
 
+
 class FidelityLevel(str, Enum):
     WEAK = "FIDELITY_WEAK"
     UNCERTAIN = "FIDELITY_UNCERTAIN"
     HIGH = "FIDELITY_HIGH"
+
 
 class PlausibilityLevel(str, Enum):
     IMPOSSIBLE = "PLAUS_IMPOSSIBLE"
     PLAUSIBLE = "PLAUS_PLAUSIBLE"
     HIGH = "PLAUS_HIGH"
 
+
 class AbductiveConclusion(str, Enum):
     POST_HOC = "ABDUCT_POST_HOC"
     UNCERTAIN = "ABDUCT_UNCERTAIN"
     GENUINE = "ABDUCT_GENUINE"
+
 
 class AuthenticityLevel(str, Enum):
     ORGANIC = "AUTH_ORGANIC"
     PERFORMATIVE = "AUTH_PERFORMATIVE"
     UNKNOWN = "AUTH_UNKNOWN"
 
+
 class ScoringPenalty(str, Enum):
     """Enumerated Penalty Keys for Multilingual Support (Zero-String API)."""
+
     SECURITY_THREAT = "PENALTY_SECURITY_THREAT"
     POST_HOC = "PENALTY_POST_HOC"
+
 
 class HelpTextKey(str, Enum):
     BLOOM = "helpBloom"
@@ -57,13 +67,14 @@ class HelpTextKey(str, Enum):
     FIDELITY = "helpFidelity"
     ABDUCTIVE = "helpAbductive"
     CAUSAL = "helpCausal"
-    PLAUSIBILITY = "plausibility_desc" # Mapped to desc in client
+    PLAUSIBILITY = "plausibility_desc"  # Mapped to desc in client
     AUTHENTICITY = "helpAuthenticity"
     PERFORMATIVITY = "helpPerformativity"
     CONTROL_RATIO = "helpControlRatio"
     WORD_COUNT = "helpWordCount"
     FACT_CHECK = "helpFactCheck"
     ARCHIVIST = "helpArchivist"
+
 
 class TitleKey(str, Enum):
     SECURITY = "TITLE_SECURITY"
@@ -78,8 +89,9 @@ class TitleKey(str, Enum):
     PERFORMATIVITY = "TITLE_PERFORMATIVITY"
     OVERSEER = "TITLE_OVERSEER"
     CONTEXT = "TITLE_CONTEXT"
-    TIMELINE = "Process Timeline" # Key in l10n
-    HYPOTHESES = "Analyst Hypotheses" # Key in l10n
+    TIMELINE = "Process Timeline"  # Key in l10n
+    HYPOTHESES = "Analyst Hypotheses"  # Key in l10n
+
 
 class LabelKey(str, Enum):
     # Agents

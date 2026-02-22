@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 import sys
@@ -6,18 +5,21 @@ import sys
 # Add project root to path
 sys.path.append("c:/src/quorum")
 
-from backend.database.repository import AsyncRepository
+from backend.database.factory import get_repository
+from backend.database.wrapper import get_db_client
 from backend.services.agent_registry import AgentRegistry
+from backend.settings import get_settings
 
 # Mock logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 async def verify_strategies():
     print("--- Verifying Dynamic Strategies ---")
 
     # 1. Initialize Registry
-    repo = AsyncRepository()
+    repo = await get_repository(get_settings(), get_db_client())
     registry = AgentRegistry(repo)
 
     # 2. Test get_all_strategies
@@ -34,9 +36,9 @@ async def verify_strategies():
 
         # Test cases based on seed_data.json knowledge
         test_cases = [
-            "vertex_ai/gemini-2.5-flash", # mapped to strict, fast
-            "vertex_ai/gemini-2.5-pro",   # mapped to deep, precise
-            "vertex_ai/unknown-model"     # no map
+            "vertex_ai/gemini-2.5-flash",  # mapped to strict, fast
+            "vertex_ai/gemini-2.5-pro",  # mapped to deep, precise
+            "vertex_ai/unknown-model",  # no map
         ]
 
         for current_model in test_cases:
@@ -55,9 +57,11 @@ async def verify_strategies():
     except Exception as e:
         print(f"ERROR: {e}")
         import traceback
+
         traceback.print_exc()
 
     print("\n--- Verification Complete ---")
+
 
 if __name__ == "__main__":
     asyncio.run(verify_strategies())

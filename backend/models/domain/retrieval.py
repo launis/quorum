@@ -4,26 +4,23 @@ This module contains the schemas for the Retrieval Agent (RAG),
 including Precedent and ContextData.
 """
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from backend.models.domain.base import ReasoningTrace
 
 
 class RetrievalInput(BaseModel):
     """Strict input schema for RetrievalAgent."""
+
     organization_id: str = Field(
         ...,
         description="The organization ID to retrieve precedents for.",
-        json_schema_extra={"x-ui-label": "Organization ID"}
+        json_schema_extra={"x-ui-label": "Organization ID"},
     )
-    query: Optional[str] = Field(
+    query: str | None = Field(
         default=None,
         description="Optional query to filter knowledge base items.",
-        json_schema_extra={"x-ui-label": "Search Query"}
+        json_schema_extra={"x-ui-label": "Search Query"},
     )
-    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -37,6 +34,7 @@ class RetrievalInput(BaseModel):
 
 class Precedent(BaseModel):
     """A past case/execution retrieved by RetrievalAgent."""
+
     id: str
     date: str
     scores: str
@@ -54,6 +52,7 @@ class Precedent(BaseModel):
 
 class KnowledgeItem(BaseModel):
     """A single item retrieved from the Knowledge Base."""
+
     id: str
     type: str = Field(..., description="concept, reference, or claim")
     term: str
@@ -71,11 +70,18 @@ class KnowledgeItem(BaseModel):
         return v.strip()
 
 
-class ContextData(BaseModel):
+from backend.models.domain.base import ReasoningTrace
+
+class ContextData(ReasoningTrace):
     """Output schema for the Retrieval Agent."""
+
     precedents: str = Field(..., description="Summary text of precedents.")
     precedent_list: list[Precedent] = Field(default_factory=list, description="Structured list of precedents.")
-    knowledge_items: list[KnowledgeItem] = Field(default_factory=list, description="Structured list of knowledge items.", json_schema_extra={"reader_mode": "hidden"})
+    knowledge_items: list[KnowledgeItem] = Field(
+        default_factory=list,
+        description="Structured list of knowledge items.",
+        json_schema_extra={"reader_mode": "hidden"},
+    )
     model_config = ConfigDict(frozen=True, strict=True)
 
     @field_validator("precedents")
@@ -85,6 +91,6 @@ class ContextData(BaseModel):
         # But schema says ... (required).
         # Let's enforce non-empty if it's a required field describing retrieval.
         if not v or not v.strip():
-             # If retrieval found nothing, it should probably say "No precedents found."
-             raise ValueError("Field cannot be empty or whitespace only.")
+            # If retrieval found nothing, it should probably say "No precedents found."
+            raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()

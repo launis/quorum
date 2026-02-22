@@ -14,6 +14,7 @@ from backend.models.domain.judge import DimensionResultItem, JudgeScoreCard
 
 class EvaluationCriterion(BaseModel):
     """A single criterion in an evaluation matrix."""
+
     id: str
     label: str
     description: str | None = None
@@ -40,12 +41,12 @@ class EvaluationCriterion(BaseModel):
 
 class EvaluationMatrixConfig(BaseModel):
     """Configuration for an Evaluation Matrix."""
+
     id: str
     name: str
     description: str | None = None
     criteria: list[EvaluationCriterion] = Field(
-        default_factory=list,
-        json_schema_extra={"x-ui-group": "Evaluation Criteria"}
+        default_factory=list, json_schema_extra={"x-ui-group": "Evaluation Criteria"}
     )
 
     model_config = ConfigDict(frozen=True, strict=True)
@@ -60,6 +61,7 @@ class EvaluationMatrixConfig(BaseModel):
 
 class EvaluationResult(ReasoningTrace):
     """Generic container for evaluation results."""
+
     matrix_id: str
     timestamp: datetime
     total_score: float = Field(..., description="Total score.")
@@ -72,25 +74,22 @@ class EvaluationResult(ReasoningTrace):
 
     # Container for aggregated results (if applicable)
     score_cards: list[JudgeScoreCard] | None = Field(
-        default=None,
-        description="List of score cards if this results aggregates multiple."
+        default=None, description="List of score cards if this results aggregates multiple."
     )
 
     # Citation Support (Restored per User Request)
     citation_snippets: list[str] = Field(
         default_factory=list,
         description="Direct quotes from the source text supporting the verdict.",
-        json_schema_extra={"x-ui-label": "Citations"}
-    )
-    
-    # Penalties (Added for Scoring Hook / Multilingual Support)
-    penalties: list[str] = Field(
-        default_factory=list,
-        description="List of penalty keys applied.",
-        json_schema_extra={"x-ui-label": "Penalties"}
+        json_schema_extra={"x-ui-label": "Citations"},
     )
 
-    @field_validator('timestamp', mode='before')
+    # Penalties (Added for Scoring Hook / Multilingual Support)
+    penalties: list[str] = Field(
+        default_factory=list, description="List of penalty keys applied.", json_schema_extra={"x-ui-label": "Penalties"}
+    )
+
+    @field_validator("timestamp", mode="before")
     @classmethod
     def parse_datetime(cls, v: Any) -> Any:
         if isinstance(v, str):
@@ -117,17 +116,16 @@ class EvaluationResult(ReasoningTrace):
 
 class ValidationResult(BaseModel):
     """Result of the structure verification (Hook)."""
+
     is_valid: bool = Field(..., description="Is the structure valid?", json_schema_extra={"x-ui-label": "Is Valid"})
     errors: list[str] = Field(
-        default_factory=list,
-        description="Validation errors.",
-        json_schema_extra={"x-ui-label": "Errors"}
+        default_factory=list, description="Validation errors.", json_schema_extra={"x-ui-label": "Errors"}
     )
 
     model_config = ConfigDict(frozen=True, strict=True)
 
     @model_validator(mode="after")
-    def validate_logic(self) -> "ValidationResult":
+    def validate_logic(self) -> ValidationResult:
         if not self.is_valid and not self.errors:
             raise ValueError("Invalid result must have errors.")
         return self

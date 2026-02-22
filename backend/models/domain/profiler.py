@@ -4,7 +4,7 @@ This module contains the schemas for the Profiler Agent,
 including intent analysis and text metrics.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -13,24 +13,35 @@ from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 class ProfilerInput(BaseModel):
     """Strict input schema for ProfilerAgent."""
-    history_text: str = Field(..., description="Chat history to profile.")
-    product_text: Optional[str] = Field(None, description="Product context (optional).")
-    profiler_metrics: Optional[dict[str, Any]] = Field(None, description="Injected text metrics.")
-    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
-    
-    model_config = ConfigDict(frozen=True, extra="ignore")
 
+    history_text: str = Field(..., description="Chat history to profile.")
+    product_text: str | None = Field(None, description="Product context (optional).")
+    profiler_metrics: dict[str, Any] | None = Field(None, description="Injected text metrics.")
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
 
 class TextMetrics(BaseModel):
     """Metrics for text analysis."""
+
     word_count: int = Field(..., description="Total word count.", json_schema_extra={"x-ui-label": "Word Count"})
-    sentence_count: int = Field(..., description="Total sentence count.", json_schema_extra={"x-ui-label": "Sentence Count"})
-    avg_sentence_length: float = Field(..., description="Average words per sentence.", json_schema_extra={"x-ui-label": "Avg Sentence Length"})
-    lexical_diversity: float = Field(..., description="Unique words / total words.", json_schema_extra={"x-ui-label": "Lexical Diversity"})
-    capitalization_ratio: float = Field(..., description="Uppercase chars / total chars.", json_schema_extra={"x-ui-label": "Capitalization Ratio"})
+    sentence_count: int = Field(
+        ..., description="Total sentence count.", json_schema_extra={"x-ui-label": "Sentence Count"}
+    )
+    avg_sentence_length: float = Field(
+        ..., description="Average words per sentence.", json_schema_extra={"x-ui-label": "Avg Sentence Length"}
+    )
+    lexical_diversity: float = Field(
+        ..., description="Unique words / total words.", json_schema_extra={"x-ui-label": "Lexical Diversity"}
+    )
+    capitalization_ratio: float = Field(
+        ..., description="Uppercase chars / total chars.", json_schema_extra={"x-ui-label": "Capitalization Ratio"}
+    )
     # Added for Metric Hook consolidation
-    control_ratio: float = Field(default=0.0, description="User/AI token ratio.", json_schema_extra={"x-ui-label": "Control Ratio"})
+    control_ratio: float = Field(
+        default=0.0, description="User/AI token ratio.", json_schema_extra={"x-ui-label": "Control Ratio"}
+    )
 
     model_config = ConfigDict(frozen=True, strict=False)
 
@@ -38,28 +49,38 @@ class TextMetrics(BaseModel):
     @classmethod
     def validate_non_negative_int(cls, v: int) -> int:
         if v < 0:
-             raise ValueError("Count cannot be negative.")
+            raise ValueError("Count cannot be negative.")
         return v
 
     @field_validator("avg_sentence_length", "lexical_diversity", "capitalization_ratio", "control_ratio")
     @classmethod
     def validate_non_negative_float(cls, v: float) -> float:
         if v < 0:
-             raise ValueError("Metric cannot be negative.")
+            raise ValueError("Metric cannot be negative.")
         return v
 
 
 class BehavioralMetrics(BaseModel):
     """Heuristic behavioral metrics."""
-    say_do_gap: float = Field(default=0.0, description="Discrepancy between intent and action.", json_schema_extra={"x-ui-label": "Say-Do Gap"})
-    automation_bias: float = Field(default=0.0, description="Over-reliance on AI.", json_schema_extra={"x-ui-label": "Automation Bias"})
-    illusion_of_competence: float = Field(default=0.0, description="False sense of mastery.", json_schema_extra={"x-ui-label": "Illusion of Competence"})
-    
+
+    say_do_gap: float = Field(
+        default=0.0,
+        description="Discrepancy between intent and action.",
+        json_schema_extra={"x-ui-label": "Say-Do Gap"},
+    )
+    automation_bias: float = Field(
+        default=0.0, description="Over-reliance on AI.", json_schema_extra={"x-ui-label": "Automation Bias"}
+    )
+    illusion_of_competence: float = Field(
+        default=0.0, description="False sense of mastery.", json_schema_extra={"x-ui-label": "Illusion of Competence"}
+    )
+
     model_config = ConfigDict(frozen=True, strict=False)
 
 
 class ProfilerDTO(ReasoningTraceDTO):
     """Profiler DTO (Content Only)."""
+
     author_intent: str = Field(
         ...,
         description="Assessed intent of the author.",
@@ -92,8 +113,10 @@ class ProfilerDTO(ReasoningTraceDTO):
     @field_validator("cognitive_biases")
     @classmethod
     def validate_list_items(cls, v: list[str]) -> list[str]:
-         return [item.strip() for item in v if item and item.strip()]
+        return [item.strip() for item in v if item and item.strip()]
+
 
 class ProfilerOutput(ProfilerDTO, ReasoningTrace):
     """Output schema for the Profiler Agent."""
+
     model_config = ConfigDict(frozen=True, strict=False)

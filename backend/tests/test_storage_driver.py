@@ -12,15 +12,18 @@ from backend.database.wrapper import TinyDBClient
 
 # --- TinyDB Tests ---
 
+
 @pytest.fixture
 def mock_tinydb_client(tmp_path):
     """Fixture for a real temporary TinyDB."""
     db_path = tmp_path / "test_db.json"
     return TinyDBClient(str(db_path))
 
+
 @pytest.fixture
 def tinydb_driver(mock_tinydb_client):
     return TinyDBDriver(mock_tinydb_client)
+
 
 @pytest.mark.asyncio
 async def test_tinydb_crud(tinydb_driver):
@@ -53,6 +56,7 @@ async def test_tinydb_crud(tinydb_driver):
     doc = await tinydb_driver.get(collection, doc_id)
     assert doc is None
 
+
 @pytest.mark.asyncio
 async def test_tinydb_query(tinydb_driver):
     """Test Querying with Filters."""
@@ -80,7 +84,9 @@ async def test_tinydb_query(tinydb_driver):
     assert results[1]["id"] == "2"
     assert results[2]["id"] == "1"
 
+
 # --- Firestore Tests (Mocked) ---
+
 
 @pytest.fixture
 def mock_firestore_client():
@@ -101,6 +107,7 @@ def mock_firestore_client():
 
     return client
 
+
 @pytest.mark.asyncio
 async def test_firestore_upsert(mock_firestore_client):
     driver = FirestoreDriver(mock_firestore_client)
@@ -119,7 +126,8 @@ async def test_firestore_upsert(mock_firestore_client):
     mock_firestore_client.collection.return_value.document.return_value.set.assert_called_once()
     args, _ = mock_firestore_client.collection.return_value.document.return_value.set.call_args
     assert args[0]["name"] == "Firestore Item"
-    assert args[0]["id"] == doc_id # ID injection parity
+    assert args[0]["id"] == doc_id  # ID injection parity
+
 
 @pytest.mark.asyncio
 async def test_firestore_get(mock_firestore_client):
@@ -134,27 +142,27 @@ async def test_firestore_get(mock_firestore_client):
     mock_get.return_value = mock_doc
 
     res = await driver.get("col", "doc1")
+    assert res is not None
     assert res["val"] == "test"
+
 
 # --- Serialization Parity Tests ---
 
+
 def test_tinydb_serialization(tinydb_driver):
-    data = {
-        "date": datetime(2023, 1, 1, 12, 0, 0),
-        "nested": {"date2": datetime(2023, 1, 2)}
-    }
+    data = {"date": datetime(2023, 1, 1, 12, 0, 0), "nested": {"date2": datetime(2023, 1, 2)}}
     serialized = tinydb_driver._serialize(data)
     assert isinstance(serialized["date"], str)
     assert "2023-01-01" in serialized["date"]
 
+
 def test_firestore_serialization(mock_firestore_client):
     driver = FirestoreDriver(mock_firestore_client)
-    data = {
-        "date": datetime(2023, 1, 1, 12, 0, 0)
-    }
+    data = {"date": datetime(2023, 1, 1, 12, 0, 0)}
     # Per implementation, we convert to ISO string for parity
     serialized = driver._serialize(data)
     assert isinstance(serialized["date"], str)
+
 
 # --- Repository Integration (Mocked Driver) ---
 
@@ -171,12 +179,13 @@ async def test_repo_delegation():
     mock_driver.get.return_value = {"id": "ex1", "status": "running"}
     res = await repo.get_execution("ex1")
 
-    assert res.id == "ex1" # STRICT DTO FIX
+    assert res is not None
+    assert res.id == "ex1"  # STRICT DTO FIX
     mock_driver.get.assert_called_with("executions", "ex1")
 
     # Test create_execution
     await repo.create_execution({"user_id": "u1"})
     mock_driver.upsert.assert_called_once()
     call_args = mock_driver.upsert.call_args
-    assert call_args[0][0] == "executions" # collection
-    assert "id" in call_args[0][1] # generated ID
+    assert call_args[0][0] == "executions"  # collection
+    assert "id" in call_args[0][1]  # generated ID

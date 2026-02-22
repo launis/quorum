@@ -1,2 +1,3 @@
 """View Models (BFF) package."""
-from .sdui import *
+
+from .sdui import *  # noqa: F403

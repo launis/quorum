@@ -1,7 +1,7 @@
-
 import json
 
 DB_PATH = "c:/src/quorum/data/db.json"
+
 
 def verify():
     try:
@@ -25,8 +25,8 @@ def verify():
     found_xai = False
     xai_passed = False
 
-    for table_name, table_data in data.items():
-        for key, record in table_data.items():
+    for _table_name, table_data in data.items():
+        for _key, record in table_data.items():
             if record.get("id") == "step_context":
                 found_context = True
                 config = record.get("config", {})
@@ -48,7 +48,7 @@ def verify():
                         xai_passed = True
                         print("PASS: step_xai found with generate_report in post_hooks.")
                     else:
-                         print("FAIL: step_xai has generate_report in BOTH pre and post hooks.")
+                        print("FAIL: step_xai has generate_report in BOTH pre and post hooks.")
                 else:
                     print(f"FAIL: step_xai does not have generate_report in post_hooks. Hooks: {post_hooks}")
 
@@ -61,6 +61,7 @@ def verify():
         print("\nALL CHECKS PASSED.")
     else:
         print("\nSOME CHECKS FAILED.")
+
 
 if __name__ == "__main__":
     verify()

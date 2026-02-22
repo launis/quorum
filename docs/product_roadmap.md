@@ -267,6 +267,11 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] Implemented `DynamicConfigForm` and `DynamicStepForm`.
 - [x] Tested in `WorkflowStudioScreen`.
 
+### Step 5: Prefixed UUID Normalization (Current Focus)
+- [~] Refactor `generate_unique_id` to enforce mandatory system prefixes (e.g., `wf-`, `matrix-`).
+- [~] Introduce `NewType` strictly typed IDs (`WorkflowID`, `ExecutionID`) to all Pydantic schemas, permanently replacing loose `str` matching.
+- [ ] Migrate the `seed_data.json` database constraints to use the new typed IDs exclusively.
+
 ---
 
 ---

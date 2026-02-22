@@ -2,15 +2,17 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend.services.knowledge_base_service import KnowledgeBaseService
 from backend.exceptions import ServiceUnavailableError
+from backend.services.knowledge_base_service import KnowledgeBaseService
 
 
 @pytest.mark.asyncio
 async def test_retrieve_context_empty_kb():
     # Arrange
     mock_repo = AsyncMock()
-    mock_repo.get_knowledge_base_items.return_value = []
+    mock_repo.get_concepts.return_value = []
+    mock_repo.get_references.return_value = []
+    mock_repo.get_claims.return_value = []
     # FIX: Pass mock storage_client to prevent real import
     service = KnowledgeBaseService(repository=mock_repo, storage_client=MagicMock())
 
@@ -19,7 +21,9 @@ async def test_retrieve_context_empty_kb():
 
     # Assert
     assert result == []
-    mock_repo.get_knowledge_base_items.assert_called_once()
+    mock_repo.get_concepts.assert_called_once()
+    mock_repo.get_references.assert_called_once()
+    mock_repo.get_claims.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -28,9 +32,11 @@ async def test_retrieve_context_no_query_returns_summary():
     mock_repo = AsyncMock()
     items = [
         {"id": "1", "type": "concept", "term": "Term1", "definition": "Def1", "source_file": "file1.docx"},
-        {"id": "2", "type": "reference", "term": "Ref1", "definition": "Cit1", "source_file": "file2.md"}
+        {"id": "2", "type": "reference", "term": "Ref1", "definition": "Cit1", "source_file": "file2.md"},
     ]
-    mock_repo.get_knowledge_base_items.return_value = items
+    mock_repo.get_concepts.return_value = [items[0]]
+    mock_repo.get_references.return_value = [items[1]]
+    mock_repo.get_claims.return_value = []
     service = KnowledgeBaseService(repository=mock_repo, storage_client=MagicMock())
 
     # Act
@@ -49,9 +55,17 @@ async def test_retrieve_context_with_query_filtering():
     items = [
         {"id": "1", "type": "concept", "term": "Alpha", "definition": "First letter", "source_file": "doc.md"},
         {"id": "2", "type": "concept", "term": "Beta", "definition": "Second letter", "source_file": "doc.md"},
-        {"id": "3", "type": "claim", "term": "Gamma", "definition": "Contains alpha inside definition", "source_file": "doc.md"}
+        {
+            "id": "3",
+            "type": "claim",
+            "term": "Gamma",
+            "definition": "Contains alpha inside definition",
+            "source_file": "doc.md",
+        },
     ]
-    mock_repo.get_knowledge_base_items.return_value = items
+    mock_repo.get_concepts.return_value = [items[0], items[1]]
+    mock_repo.get_references.return_value = []
+    mock_repo.get_claims.return_value = [items[2]]
     service = KnowledgeBaseService(repository=mock_repo, storage_client=MagicMock())
 
     # Act
@@ -71,7 +85,9 @@ async def test_retrieve_context_no_matches():
     # Arrange
     mock_repo = AsyncMock()
     items = [{"id": "1", "type": "concept", "term": "Foo", "definition": "Bar"}]
-    mock_repo.get_knowledge_base_items.return_value = items
+    mock_repo.get_concepts.return_value = items
+    mock_repo.get_references.return_value = []
+    mock_repo.get_claims.return_value = []
     service = KnowledgeBaseService(repository=mock_repo, storage_client=MagicMock())
 
     # Act
@@ -85,10 +101,9 @@ async def test_retrieve_context_no_matches():
 async def test_retrieve_context_exception_handling():
     # Arrange
     mock_repo = AsyncMock()
-    mock_repo.get_knowledge_base_items.side_effect = Exception("DB Error")
+    mock_repo.get_concepts.side_effect = Exception("DB Error")
     service = KnowledgeBaseService(repository=mock_repo, storage_client=MagicMock())
 
     # Act & Assert
     with pytest.raises(ServiceUnavailableError, match="DB Error"):
         await service.retrieve_context()
-

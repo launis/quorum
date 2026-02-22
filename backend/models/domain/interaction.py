@@ -13,13 +13,12 @@ from backend.models.domain.base import ReasoningTrace
 
 class InteractionInput(BaseModel):
     """Strict input schema for InteractionAnalystAgent."""
+
     history_text: str = Field(
-        ...,
-        description="The full conversation history to analyze.",
-        json_schema_extra={"x-ui-label": "Chat History"}
+        ..., description="The full conversation history to analyze.", json_schema_extra={"x-ui-label": "Chat History"}
     )
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
-    
+
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     @field_validator("history_text")

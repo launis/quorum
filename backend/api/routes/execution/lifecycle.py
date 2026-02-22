@@ -17,15 +17,14 @@ from backend.dependencies import (
     get_async_repository,
     get_engine,
 )
-from backend.exceptions import AppException, ResourceNotFoundError, ErrorCodes
+from backend.exceptions import AppException, ResourceNotFoundError
 from backend.logging_config import log_error
 from backend.models.auth import UserRole
 from backend.models.dtos.execution import (
-    ExecutionRequest,
-    ExecutionResponse,
+    DirectExecutionResponse,
     ExecutionCancelResponse,
     ExecutionDeleteResponse,
-    DirectExecutionResponse,
+    ExecutionResponse,
 )
 from backend.models.workflow import WorkflowDefinition
 from backend.services.auth import AuthService
@@ -101,7 +100,7 @@ async def create_execution(
                     raise AppException(
                         message="Invalid JSON in 'json_payload'",
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": error_code}
+                        details={"error_code": error_code},
                     ) from e
             else:
                 workflow_id = form.get("workflowId")
@@ -109,7 +108,7 @@ async def create_execution(
             # 2. Parse Files & Form Fields
             files_to_process = {}
             from fastapi import UploadFile
-            debug_dump = []
+
             for key, value in form.items():
                 if key in ("json_payload", "workflowId", "organizationId"):
                     continue
@@ -117,11 +116,11 @@ async def create_execution(
                 # Robust check for UploadFile (handles Starlette/FastAPI/Duck-typing)
                 is_file = isinstance(value, UploadFile) or (hasattr(value, "filename") and hasattr(value, "read"))
 
-                if is_file:
+                if is_file and hasattr(value, "read"):
                     # Buffer file in memory for DocumentService (it expects bytes)
                     # Note: Starlette UploadFile.read() is async
-                    content = await value.read()
-                    filename = value.filename or "unknown_file"
+                    content = await value.read()  # type: ignore[union-attr]
+                    filename = getattr(value, "filename", "unknown_file")
                     files_to_process[key] = (filename, content)
                 else:
                     # Non-file form fields
@@ -153,19 +152,20 @@ async def create_execution(
                 for key, text_content in extracted_texts.items():
                     inputs[key] = text_content
             except Exception as e:
-                 logger.error(f"DocumentService failed: {e}")
-                 raise AppException(
-                     details={"error_code": "FILE_PROCESSING_FAILED"}
-                 ) from e
+                logger.error(f"DocumentService failed: {e}")
+                raise AppException(message=f"File processing failed: {e}", status_code=500, details={"error_code": "FILE_PROCESSING_FAILED"}) from e
+
+        if not workflow_id or not isinstance(workflow_id, str):
+            raise AppException(message="Workflow ID missing or invalid", status_code=400)
 
         # 1. Load Definition via Repository (SSOT)
         # (This block was missing in previous refactor)
         definition = await repository.get_workflow(workflow_id)
 
         if not definition:
-             if isinstance(workflow_id, str):
-                 raise ResourceNotFoundError(f"Workflow '{workflow_id}' not found.")
-             raise ResourceNotFoundError("Workflow not found (invalid ID).")
+            if isinstance(workflow_id, str):
+                raise ResourceNotFoundError(f"Workflow '{workflow_id}' not found.")
+            raise ResourceNotFoundError("Workflow not found (invalid ID).")
 
         # 2. Prepare Execution Record (Restored)
         def sanitize_for_json(obj: Any) -> Any:
@@ -196,7 +196,7 @@ async def create_execution(
 
         await repository.create_execution(execution_data)
         logger.info(f"Created pending execution {execution_id} for workflow {workflow_id}")
-        
+
         # 4. Enqueue Async Job
         if arq_pool:
             await arq_pool.enqueue_job(
@@ -211,8 +211,8 @@ async def create_execution(
             logger.warning("Arq pool not available! Running Synchronously.")
             # Inject identity context for synchronous execution
             if current_user:
-                 inputs["user_id"] = current_user.uid
-            
+                inputs["user_id"] = current_user.uid
+
             result = await engine.execute_workflow(definition, inputs, repository=repository, execution_id=execution_id)
             execution_data["results"] = sanitize_for_json(result)
             execution_data["status"] = "completed"
@@ -223,15 +223,15 @@ async def create_execution(
         return ExecutionResponse(
             id=execution_id,
             workflow_id=workflow_id if isinstance(workflow_id, str) else str(workflow_id),
-            status=execution_data.get("status", "pending"),
+            status=str(execution_data.get("status", "pending")),
             started_at=execution_data["started_at"],
             completed_at=execution_data.get("completed_at"),
-            results=execution_data.get("results"),
-            inputs=execution_data["inputs"],
+            results=execution_data.get("results") or {},
+            inputs=execution_data.get("inputs") or {},
             user_id=str(execution_data.get("user_id", "")),
             organization_id=execution_data.get("organization_id"),
             workflow_name=execution_data.get("workflow_name"),
-            start_time=execution_data["started_at"]
+            start_time=execution_data["started_at"],
         )
 
     except AppException:
@@ -239,9 +239,7 @@ async def create_execution(
     except ResourceNotFoundError as e:
         error_code = "WORKFLOW_NOT_FOUND"
         wrapped = AppException(
-            message=str(e),
-            status_code=status.HTTP_404_NOT_FOUND,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": error_code}
         )
         log_error(logger, wrapped)
         raise wrapped from e
@@ -249,25 +247,31 @@ async def create_execution(
         # Pydantic/Engine validation errors (strict schema enforcement)
         error_code = "INVALID_INPUT"
         wrapped = AppException(
-            message=str(e),
-            status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}
         )
         log_error(logger, wrapped)
         raise wrapped from e
     except Exception as e:
         error_code = "EXECUTION_CREATION_FAILED"
         wrapped = AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         )
         log_error(logger, wrapped)
         raise wrapped from e
 
 
-@router.delete("/{execution_id}", summary="Delete Execution", status_code=status.HTTP_200_OK, response_model=ExecutionDeleteResponse)
-@executions_router.delete("/{execution_id}", summary="Delete Execution", status_code=status.HTTP_200_OK, response_model=ExecutionDeleteResponse)
+@router.delete(
+    "/{execution_id}",
+    summary="Delete Execution",
+    status_code=status.HTTP_200_OK,
+    response_model=ExecutionDeleteResponse,
+)
+@executions_router.delete(
+    "/{execution_id}",
+    summary="Delete Execution",
+    status_code=status.HTTP_200_OK,
+    response_model=ExecutionDeleteResponse,
+)
 async def delete_execution(
     execution_id: str,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
@@ -278,7 +282,7 @@ async def delete_execution(
         # Check privileges (skipped for brevity, assuming standard RBAC)
         exists = await repository.get_execution(execution_id)
         if not exists:
-             raise ResourceNotFoundError(f"Execution {execution_id} not found")
+            raise ResourceNotFoundError(f"Execution {execution_id} not found")
 
         await repository.delete_execution(execution_id)
         return ExecutionDeleteResponse(status="deleted", id=execution_id)
@@ -287,9 +291,7 @@ async def delete_execution(
     except Exception as e:
         error_code = "EXECUTION_DELETE_FAILED"
         wrapped = AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         )
         log_error(logger, wrapped)
         raise wrapped from e
@@ -318,6 +320,7 @@ async def execute_workflow_route(
     # Simple direct execution logic (Blocking)
     import json
     import os
+
     definition = None
     file_path = f"data/workflows/{workflow_id}.json"
     if os.path.exists(file_path):
@@ -358,7 +361,7 @@ async def cancel_execution(
         # 2. RBAC Check
         user_role = current_user.role
         user_org = current_user.organization_id
-        
+
         # execution is Pydantic model
         record_org = getattr(execution, "organization_id", None)
         record_user = getattr(execution, "user_id", None)
@@ -381,7 +384,7 @@ async def cancel_execution(
             raise AppException(
                 message="You typically do not have permission to cancel this execution.",
                 status_code=status.HTTP_403_FORBIDDEN,
-                details={"error_code": error_code}
+                details={"error_code": error_code},
             )
 
         # 3. Update Status
@@ -391,20 +394,14 @@ async def cancel_execution(
             # Already done, no-op but return 200 ok with message
             # Already done, no-op but return 200 ok with message
             return ExecutionCancelResponse(
-                id=execution_id,
-                status=str(current_status),
-                message="Execution already finished."
+                id=execution_id, status=str(current_status), message="Execution already finished."
             )
 
         await repository.update_execution(execution_id, {"status": "cancelling"})
 
         logger.info(f"Execution {execution_id} marked as cancelling by user {current_user.uid}")
 
-        return ExecutionCancelResponse(
-            id=execution_id,
-            status="cancelling",
-            message="Cancellation signal sent."
-        )
+        return ExecutionCancelResponse(id=execution_id, status="cancelling", message="Cancellation signal sent.")
 
     except ResourceNotFoundError as e:
         raise AppException(
@@ -415,6 +412,5 @@ async def cancel_execution(
     except Exception as e:
         log_error(logger, e)
         raise AppException(
-            message=f"Failed to cancel execution: {e}",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            message=f"Failed to cancel execution: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         ) from e

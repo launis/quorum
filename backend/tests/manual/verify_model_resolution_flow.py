@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 import sys
@@ -6,8 +5,9 @@ import sys
 # Add project root to path
 sys.path.append("c:/src/quorum")
 
-
-from backend.database.repository import AsyncRepository
+from backend.database.factory import get_repository
+from backend.database.wrapper import get_db_client
+from backend.settings import get_settings
 from backend.logging_config import setup_logging
 from backend.services.agent_registry import AgentRegistry
 
@@ -17,15 +17,15 @@ class MockAgent:
     def __init__(self, model=None):
         self.model = model
 
+
 async def verify_system_flow():
     print("--- [VERIFICATION] Dynamic Model Strategy Flow ---\n")
 
-    # 1. Setup
     try:
-        repo = AsyncRepository()
+        repo = await get_repository(get_settings(), get_db_client())
         registry = AgentRegistry(repo)
         setup_logging()
-        logger = logging.getLogger(__name__)
+        logging.getLogger(__name__)
     except Exception as e:
         print(f"[SETUP FAILED] {e}")
         return
@@ -54,14 +54,15 @@ async def verify_system_flow():
             # Note: The Registry currently resolves logic based on *Strategy Keys*,
             # but Agent Registration often looks up the Agent Name itself to see if it has a specific config.
             # Let's see what resolve_model_config returns for the Agent Name.
-
             config = await registry.resolve_model_config(agent_name)
-            model_name = config.get("model_name", "UNKNOWN")
+            model_name = config.model_name
             print(f"  [PASS] Agent '{agent_name}' -> Model: '{model_name}' (Config resolved)")
         except Exception:
             # This is expected if the Agent Name itself isn't a strategy key in DB.
             # In that case, the system relies on the Agent class's default or the Workflow override.
-            print(f"  [INFO] Agent '{agent_name}' has no direct Global Strategy override in DB. (This is normal if relying on Defaults/Workflow)")
+            print(
+                f"  [INFO] Agent '{agent_name}' has no direct Global Strategy override in DB. (This is normal if relying on Defaults/Workflow)"
+            )
 
     # 4. Test run_agent Logic (Ad-Hoc Override)
     print("\n[STEP 3] Simulating 'run_agent' Ad-Hoc Resolution...")
@@ -121,6 +122,7 @@ async def verify_system_flow():
     print("  [HYPOTHESIS] Passing 'fast' to Agent.execute() might crash if not resolved.")
 
     print("\n--- Verification Complete ---")
+
 
 if __name__ == "__main__":
     asyncio.run(verify_system_flow())

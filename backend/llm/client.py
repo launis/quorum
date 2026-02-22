@@ -118,10 +118,11 @@ class LLMClient:
         # ZERO-FALLBACK ENFORCEMENT
         if not model:
             from backend.exceptions import AppException, ErrorCodes, status
+
             raise AppException(
                 message="Model Configuration Missing: 'model' argument is required for run_chat.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
         # 1. Parse Prompt (Flattening)
@@ -138,7 +139,7 @@ class LLMClient:
                 prompt = (prompt + "\n\n" + content) if prompt else content
 
         if not prompt:
-             prompt = messages[-1]["content"] if messages else ""
+            prompt = messages[-1]["content"] if messages else ""
 
         # 2. Create Provider
         provider = LLMFactory.create_provider(provider_type="litellm", model_name=model)
@@ -150,7 +151,7 @@ class LLMClient:
                 system_instruction=system_instruction,
                 temperature=kwargs.get("temperature"),
                 max_tokens=kwargs.get("max_tokens"),
-                **kwargs
+                **kwargs,
             )
             return response.content
         except Exception as e:

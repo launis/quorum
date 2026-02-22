@@ -6,7 +6,7 @@ This document serves as the technical reference for **Cognitive Quorum V2026**. 
 
 ## 1. Directory Structure (V3.2)
 
-The project follows a **Modular Monolith** architecture with **Strict Pydantic V2** enforcement.
+The project follows a **Modular Monolith** architecture with **Strict Pydantic V2** enforcement and **Prefixed Identifiers** for automated relation mapping.
 
 ```
 quorum/
@@ -23,8 +23,9 @@ quorum/
 │   ├── hooks/              # Deterministic Logic (Security, Reporting)
 │   ├── llm/                # AI Provider Adapters (Vertex, OpenAI)
 │   ├── models/             # Pydantic V2 Schemas (SSOT)
-│   │   ├── domain/         # Domain Models (Authority)
-│   │   ├── dtos/           # Data Transfer Objects (Content)
+│   │   ├── domain/         # Domain Models (System Authority, Rich)
+│   │   ├── dtos/           # Data Transfer Objects (Pure LLM Output)
+│   │   ├── identifiers.py  # Prefixed UUID NewTypes (e.g., WorkflowID)
 │   │   ├── enums.py        # Shared Enumerations
 │   │   └── state.py        # Workflow State Defs
 │   ├── services/           # Business Logic (Auth, Storage, PromptBuilder)

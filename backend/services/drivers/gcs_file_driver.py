@@ -2,16 +2,15 @@
 
 import asyncio
 import logging
-from typing import Optional
 
-# Conditional import or type checking if direct dependency is optional, 
+# Conditional import or type checking if direct dependency is optional,
 # but effectively expected here.
 try:
-    from google.cloud import storage  # type: ignore
     from google.api_core import exceptions as google_exceptions  # type: ignore
+    from google.cloud import storage  # type: ignore
 except ImportError:
-    storage = None
-    google_exceptions = None
+    storage = None  # type: ignore
+    google_exceptions = None  # type: ignore
 
 from backend.exceptions import AppException, ErrorCodes
 from backend.services.file_driver import FileDriver
@@ -21,17 +20,17 @@ logger = logging.getLogger(__name__)
 
 class GCSFileDriver(FileDriver):
     """Google Cloud Storage Driver.
-    
+
     Adapts synchronous google-cloud-storage library to async protocol
     using asyncio.to_thread for non-blocking I/O.
     """
 
     def __init__(self, bucket_name: str):
         """Initialize GCS Driver.
-        
+
         Args:
             bucket_name: Target GCS bucket name.
-            
+
         Raises:
             AppException: If bucket_name is empty or library not installed.
         """
@@ -39,19 +38,19 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message="GCS Bucket name cannot be empty",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_BUCKET_NOT_FOUND}
+                details={"error_code": ErrorCodes.STORAGE_BUCKET_NOT_FOUND},
             )
-            
+
         if storage is None:
-             raise AppException(
+            raise AppException(
                 message="google-cloud-storage library not installed",
                 status_code=500,
-                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING}
+                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING},
             )
 
         self.bucket_name = bucket_name
-        self._client: Optional[storage.Client] = None
-        self._bucket: Optional[storage.Bucket] = None
+        self._client: storage.Client | None = None
+        self._bucket: storage.Bucket | None = None
 
     def _get_bucket(self) -> storage.Bucket:
         """Lazy initialization of GCS client/bucket with error handling."""
@@ -66,7 +65,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Initialization Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED}
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
             ) from e
 
     async def save(self, path: str, data: bytes | str) -> str:
@@ -90,7 +89,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Save Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED}
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
             ) from e
 
     async def read(self, path: str) -> bytes:
@@ -98,18 +97,18 @@ class GCSFileDriver(FileDriver):
             bucket = self._get_bucket()
             blob = bucket.blob(path)
             if not blob.exists():
-                 # Raise specific NotFound so we can catch/wrap it
-                 raise FileNotFoundError(f"GCS Blob {path} not found")
+                # Raise specific NotFound so we can catch/wrap it
+                raise FileNotFoundError(f"GCS Blob {path} not found")
             return blob.download_as_bytes()
 
         try:
             return await asyncio.to_thread(_sync_read)
         except FileNotFoundError as e:
-             # Not strictly an internal error, but standardizing
-             raise AppException(
+            # Not strictly an internal error, but standardizing
+            raise AppException(
                 message=f"File not found in GCS: {path}",
                 status_code=404,
-                details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND} # or similar resource error
+                details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND},  # or similar resource error
             ) from e
         except AppException:
             raise
@@ -118,7 +117,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Read Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED}
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
             ) from e
 
     async def delete(self, path: str) -> bool:
@@ -151,7 +150,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Delete Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED}
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
             ) from e
 
     async def exists(self, path: str) -> bool:
@@ -169,7 +168,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Exists Check Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED}
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
             ) from e
 
     async def get_url(self, path: str) -> str | None:

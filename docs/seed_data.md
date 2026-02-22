@@ -29,6 +29,8 @@ The file defines six core domains:
 5.  **`workflows`**: Execution Blueprints.
     *   Defines the graph structure, steps, and default configuration.
 6.  **`steps`**: The Step Registry. Reusable step definitions that workflows reference.
+7.  **`agents`**: Explicitly separated autonomous agent configurations.
+8.  **`concepts`, `references`, `claims`**: The Decoupled Knowledge Base. Stored as distinct strict DTO collections natively typed.
 
 ---
 
@@ -69,6 +71,32 @@ In V3.2, we moved strictly away from bi-directional syncing.
 1.  **Reviewability**: Configurations (Prompts, Matrices) are code. They should be reviewed in Pull Requests.
 2.  **Predictability**: The database is always a pure derivation of the code.
 3.  **Strict Pydantic Validation**: Seeder enforces strict schemas. You cannot seed invalid data. It fails fast.
+
+### 3.1. Schema-Agnostic Seeder and Universal Registry
+The seeder scripts (`run_seed.py` and `migrate_to_seed.py`) are strictly "Schema-Agnostic", powered by a centralized **Universal Seed Registry** (`backend/seed/seed_registry.py`). This means **you never need to modify the seeder scripts when adding new fields or collections to the database or models.**
+
+*   **`seed_registry.py` (SSOT)**: Defines the mapping between database collections (e.g., `workflows`), their Pydantic Models (e.g., `WorkflowDefinition`), and their primary keys (e.g., `id` vs `uid`).
+*   **Forward Seeding (`run_seed.py`)**: Uses a single programmatic loop over `STANDARD_REGISTRY`. It dynamically invokes Pydantic's `.model_validate()` and `.model_dump(mode='json')`. If a new collection or field is added, the seeder automatically processes it without needing explicit loops.
+*   **Reverse Migration (`migrate_to_seed.py`)**: Iteratively extracts live data from either TinyDB (`local`) or Firestore (`firestore`) and merges it back into `seed_data.json` while meticulously preserving the original key order, again utilizing the Universal Registry to identify the correct ID fields.
+
+### 3.2. "Round-Trip" Testausprotokolla
+Käyttäjän asettama pakollinen testausprotokolla, jolla varmennetaan datan säilyminen bitti bitiltä integraattoria käytettäessä, suoritetaan aina tällä kaavalla:
+1. **Turva:** Otetaan puhdas kopio alkuperäisestä `backend/seed/seed_data.json` (esim. `seed_data_test_roundtrip.json`). Tähän ei kosketa.
+2. **Kantaan (Lataus):** Ajetaan `python backend/seed/run_seed.py local`. Tuhoaa kannan ja kirjoittaa erilliset taulut.
+3. **Takaisin (Purku):** Ajetaan `python backend/seed/migrate_to_seed.py`. Lukee kannasta takaisin `seed_data.json`.
+4. **Varmennus:** 
+   - Verrataan kokonaisrivimäärää (`wc -l`).
+   - Verrataan taulujen määrää (esim. 12 avainta).
+   - Verrataan rivien määrää sisäisissä listoissa (esim. `len(agents) == 15`).
+Jos eroja on `0` ja kaikki tiedostot näyttävät identtisiltä (paitsi puhtaat poistot kuolleelle koodille), rakenne-uudistus merkitään tuotantovalmiiksi.
+
+### 3.3. Legacy Field Strip (Data Extraction) Protocol
+Sometimes the data structure (`seed_data.json`) contains "Dead Code" fields (like `monitored_steps` or generic `metadata`) that are no longer supported by the Strict DTO Pydantic models. To safely amputate a field universally:
+
+1. **Verify Expiration**: Use a grep search over the `backend/` directory. If the key is not defined, retrieved, or populated in ANY Python file, it is safe to erase.
+2. **Back up**: Create a pre-strip backup (`cp seed_data.json seed_data.json.PRE_STRIP.bak`).
+3. **Script the Purge**: Do NOT use regex to delete keys, as it risks corrupting JSON syntax or touching similarly named fields in the wrong context. Write a targeted Python script that traverses the defined components and executes `del item['config']['dead_key']`.
+4. **Validate**: Perform the Data Integrity Roundtrip Protocol (Step 3.2) to ensure the newly "slimmed down" models correctly sync with databases. Run `pytest` and `ruff` to prove full systemic immunity.
 
 ---
 

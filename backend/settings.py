@@ -5,11 +5,13 @@ from enum import Enum
 from functools import lru_cache
 from typing import Annotated, Any
 
-from backend.exceptions import AppException, ErrorCodes
-
 from dotenv import load_dotenv
 from pydantic import BeforeValidator, Field, computed_field
+from pydantic import BeforeValidator, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from backend.exceptions import AppException, ErrorCodes
+from backend.models.settings import ModelSettings
 
 # Explicitly load .env to ensure environment variables are populated
 # independent of Pydantic's internal loader (which seems brittle here)
@@ -42,58 +44,84 @@ class Settings(BaseSettings):
 
     # --- Feature Flags ---
     use_mock_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")] = False
-    use_vertex_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Vertex AI for LLM")] = False
+    use_vertex_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Vertex AI for LLM")] = (
+        False
+    )
     use_mock_db: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")] = (
         False
     )
-    use_firebase_auth: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Firebase Auth (vs Mock)")] = True
+    use_firebase_auth: Annotated[
+        bool, BeforeValidator(strip_whitespace), Field(description="Use Firebase Auth (vs Mock)")
+    ] = True
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
 
     # --- Logging ---
-    use_json_logging: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Force structured JSON logging in any environment")] = False
+    use_json_logging: Annotated[
+        bool, BeforeValidator(strip_whitespace), Field(description="Force structured JSON logging in any environment")
+    ] = False
 
     # --- API Keys ---
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
     openai_api_key: Annotated[str | None, Field(description="OpenAI API Key (Optional)")] = None
     anthropic_api_key: Annotated[str | None, Field(description="Anthropic API Key (Optional)")] = None
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
-    discovery_location: Annotated[str | None, Field(description="Source Region for Model Discovery (e.g. us-west1)")] = None
+    discovery_location: Annotated[
+        str | None, Field(description="Source Region for Model Discovery (e.g. us-west1)")
+    ] = None
 
     # --- Vertex Search Configuration (Fail Fast: Must be in .env) ---
-    vertex_search_model: Annotated[str | None, Field(default=None, description="Model used for Vertex AI Grounding")]
-    enable_vertex_search: Annotated[bool| None, Field(default=False, description="Feature flag to enable/disable actual Vertex AI search calls.")] = False
+    vertex_search_model: Annotated[str | None, Field(description="Model used for Vertex AI Grounding")] = None
+    enable_vertex_search: Annotated[
+        bool | None, Field(default=False, description="Feature flag to enable/disable actual Vertex AI search calls.")
+    ] = False
     # --- LLM Configuration ---
     # initial_model REMOVED per Zero-Fallback Policy
-    default_model_strategy: Annotated[str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")] = None
+    default_model_strategy: Annotated[
+        str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")
+    ] = None
     llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 120.0
     llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 5
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 10.0
-    
+
     # --- Rate Limits (Strict Mode) ---
     llm_default_tpm: Annotated[int | None, Field(description="Default Tokens Per Minute (None = Strict)")] = None
     llm_default_rpm: Annotated[int | None, Field(description="Default Requests Per Minute (None = Strict)")] = None
 
     # --- Integrity Thresholds (Integrity, Scoring, Linguistics) ---
     citation_integrity_threshold: Annotated[float, Field(description="Minimum integrity score (0.0-1.0)")] = 0.0
-    
+
     # Scoring Hooks
     scoring_security_cap: Annotated[float, Field(description="Max score if Security Threat detected")] = 1.0
     scoring_logical_cap: Annotated[float, Field(description="Max score if Logical Fallacy detected")] = 2.0
-    scoring_performative_threshold: Annotated[float, Field(description="Max authenticity score to be considered performative")] = 2.0
-    
+    scoring_performative_threshold: Annotated[
+        float, Field(description="Max authenticity score to be considered performative")
+    ] = 2.0
+
     # --- Scoring Penalties (Zero-Compromise: Configurable) ---
-    scoring_security_penalty: Annotated[float, Field(description="Penalty multiplier for Security Threats (0.0 to 1.0)")] = 0.0 # Log only for now
-    scoring_post_hoc_penalty: Annotated[float, Field(description="Penalty multiplier for Post-Hoc Rationalization (0.0 to 1.0)")] = 0.0 # Log only for now
-    
+    scoring_security_penalty: Annotated[
+        float, Field(description="Penalty multiplier for Security Threats (0.0 to 1.0)")
+    ] = 0.0  # Log only for now
+    scoring_post_hoc_penalty: Annotated[
+        float, Field(description="Penalty multiplier for Post-Hoc Rationalization (0.0 to 1.0)")
+    ] = 0.0  # Log only for now
+
     # Passivity (Penalty Factor: 1.0 = No Penalty, 0.5 = Halve Score)
-    scoring_passivity_multiplier: Annotated[float, Field(description="Penalty multiplier for Passivity/Low Quality")] = 1.0
+    scoring_passivity_multiplier: Annotated[
+        float, Field(description="Penalty multiplier for Passivity/Low Quality")
+    ] = 1.0
 
     # Behavioral Metrics (Heuristics)
     metrics_short_response_word_count: Annotated[int, Field(description="Max words to consider a response 'short'")] = 5
-    metrics_automation_bias_ratio: Annotated[float, Field(description="Ratio of short responses to trigger Automation Bias")] = 0.7
-    metrics_reflection_min_length: Annotated[int, Field(description="Min chars in reflection to enable Say-Do analysis")] = 50
-    metrics_mechanical_ratio: Annotated[float, Field(description="Ratio of mechanical words to trigger Say-Do Gap")] = 0.5
-    
+    metrics_automation_bias_ratio: Annotated[
+        float, Field(description="Ratio of short responses to trigger Automation Bias")
+    ] = 0.7
+    metrics_reflection_min_length: Annotated[
+        int, Field(description="Min chars in reflection to enable Say-Do analysis")
+    ] = 50
+    metrics_mechanical_ratio: Annotated[float, Field(description="Ratio of mechanical words to trigger Say-Do Gap")] = (
+        0.5
+    )
+
     # --- Retrieval / Precedents ---
     max_precedent_scan_depth: Annotated[int, Field(description="Max executions to scan for precedents")] = 5
     max_precedent_return_count: Annotated[int, Field(description="Max precedents to return")] = 3
@@ -129,9 +157,11 @@ class Settings(BaseSettings):
 
     # --- Storage ---
     storage_backend: Annotated[
-        str | None, BeforeValidator(strip_whitespace), Field(default=None, description="LOCAL, NONE, or FIRESTORE")
-    ] # REMOVED DEFAULT = "LOCAL". Must be explicit.
-    environment: Annotated[str, Field(description="development, staging, or production")] = "production" # Default to production for safety? No, make explicit.
+        str | None, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")
+    ] = None  # REMOVED DEFAULT = "LOCAL". Must be explicit.
+    environment: Annotated[str, Field(description="development, staging, or production")] = (
+        "production"  # Default to production for safety? No, make explicit.
+    )
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 
     # URL for generating public links in Local mode
@@ -223,11 +253,11 @@ class Settings(BaseSettings):
 
         # Strict matching
         if not self.storage_backend:
-             # Default if None? Or Error? 
-             # Previously it seemed to default to LOCAL in logic if not explicit.
-             # But let's fail fast if not MOCK and not set? 
-             # Actually line 33 says LOCAL is Legacy/Dev.
-             return StorageBackend.LOCAL
+            # Default if None? Or Error?
+            # Previously it seemed to default to LOCAL in logic if not explicit.
+            # But let's fail fast if not MOCK and not set?
+            # Actually line 33 says LOCAL is Legacy/Dev.
+            return StorageBackend.LOCAL
 
         value = self.storage_backend.upper()
         if value == "FIRESTORE":
@@ -238,9 +268,8 @@ class Settings(BaseSettings):
         raise AppException(
             message=f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True).",
             status_code=500,
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
         )
-
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -249,8 +278,9 @@ class Settings(BaseSettings):
         return self.active_backend == StorageBackend.FIRESTORE
 
     # --- Complex Configs (Computed) ---
-    @computed_field
-    def model_strategies(self) -> dict[str, dict[str, Any]]:
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def model_strategies(self) -> dict[str, ModelSettings]:
         """Returns empty dict by default.
 
         Strategies MUST be loaded from 'system_config' table in database.
@@ -283,7 +313,7 @@ class Settings(BaseSettings):
                     message="CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). "
                     "Cannot proceed in Production Mode. Ensure 'service-account.json' exists in root or set env vars.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
         if self.use_mock_db:
@@ -293,28 +323,32 @@ class Settings(BaseSettings):
         else:
             pass
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def enabled_providers(self) -> list[str]:
         """Returns list of enabled LLM providers based on configuration.
-        
+
         Hardcoded source of truth for UI and Discovery.
         """
         providers = []
         # Google / Vertex
-        if self.google_api_key or (not self.use_mock_llm and (os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))):
-             providers.append("google")
-        
+        if self.google_api_key or (
+            not self.use_mock_llm and (os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+        ):
+            providers.append("google")
+
         # OpenAI
         if self.openai_api_key:
             providers.append("openai")
 
         # Mock override (if enabled, ensuring it appears for dev)
         if self.use_mock_llm and "mock" not in providers:
-             providers.append("mock")
+            providers.append("mock")
 
-        # Fallback/Safety: If empty but not mock, maybe we should warn? 
+        # Fallback/Safety: If empty but not mock, maybe we should warn?
         # But for now, returning what is explicitly configured is strict.
         return providers
+
 
 @lru_cache
 def get_settings() -> Settings:

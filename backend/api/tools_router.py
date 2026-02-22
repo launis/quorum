@@ -8,12 +8,14 @@ import logging
 import os
 import shutil
 import uuid
-from typing import Annotated, Any, Dict, List
+from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, File, Form, UploadFile, status
 
-from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep, get_knowledge_base_service_dep
-from backend.services.knowledge_base_service import KnowledgeBaseService
+from backend.dependencies import (
+    get_document_service_dep,
+    get_knowledge_base_service_dep,
+)
 from backend.models.dtos.tools import (
     CitationLookupResponse,
     ConceptExtractionResponse,
@@ -24,6 +26,7 @@ from backend.models.dtos.tools import (
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
 from backend.services.document_service import DocumentService
+from backend.services.knowledge_base_service import KnowledgeBaseService
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +35,12 @@ router = APIRouter(prefix="/tools", tags=["Tools"])
 # --- Endpoints ---
 
 
-@router.post("/extract-text", summary="Extract Text from File", response_description="Extracted text.", response_model=TextExtractionResponse)
+@router.post(
+    "/extract-text",
+    summary="Extract Text from File",
+    response_description="Extracted text.",
+    response_model=TextExtractionResponse,
+)
 async def extract_text(
     doc_service: Annotated[DocumentService, Depends(get_document_service_dep)],
     text: str | None = Form(None),
@@ -164,7 +172,9 @@ async def extract_concepts_from_file_or_text(
         ) from e
 
 
-@router.post("/web-scrape", summary="Scrape Web Page", response_description="Scraped content.", response_model=WebScrapeResponse)
+@router.post(
+    "/web-scrape", summary="Scrape Web Page", response_description="Scraped content.", response_model=WebScrapeResponse
+)
 async def web_scrape(
     url: Annotated[str, Body(embed=True)],
 ) -> WebScrapeResponse:
@@ -246,10 +256,15 @@ async def web_scrape(
     return WebScrapeResponse(url=url, content="Scraped content placeholder.")
 
 
-@router.post("/citation-lookup", summary="Resolve Citations", response_description="Resolved context.", response_model=CitationLookupResponse)
+@router.post(
+    "/citation-lookup",
+    summary="Resolve Citations",
+    response_description="Resolved context.",
+    response_model=CitationLookupResponse,
+)
 async def citation_lookup(
     kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service_dep)],
-    queries: Annotated[List[str], Body(..., embed=True)],
+    queries: Annotated[list[str], Body(..., embed=True)],
 ) -> CitationLookupResponse:
     """Uses the Knowledge Base Service to find context for citations.
 

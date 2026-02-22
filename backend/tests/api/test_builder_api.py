@@ -1,4 +1,3 @@
-
 from fastapi.testclient import TestClient
 
 from backend.dependencies import get_current_user_from_header
@@ -9,15 +8,18 @@ client = TestClient(app)
 
 import pytest
 
+
 # Mock Auth Dependency
 async def mock_get_current_user():
     return TokenData(uid="test-user", role=UserRole.ADMIN, organization_id="test-org")
+
 
 @pytest.fixture(autouse=True)
 def setup_dependencies():
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
     yield
     app.dependency_overrides.pop(get_current_user_from_header, None)
+
 
 def test_get_workflow_schema():
     """Verify that the WorkflowDefinition schema is returned with SDUI hints (Default English)."""
@@ -32,6 +34,7 @@ def test_get_workflow_schema():
     assert properties["description"]["x-ui-label"] == "Description"
     assert properties["steps"]["x-ui-group"] == "Steps"
 
+
 def test_get_workflow_schema_fi():
     """Verify that the WorkflowDefinition schema respects Accept-Language: fi."""
     headers = {"Accept-Language": "fi-FI"}
@@ -45,6 +48,7 @@ def test_get_workflow_schema_fi():
     assert properties["name"]["x-ui-label"] == "Työnkulun Nimi"
     assert properties["description"]["x-ui-label"] == "Kuvaus"
     assert properties["steps"]["x-ui-group"] == "Vaiheet"
+
 
 def test_invalid_component_schema():
     """Verify 404 for unknown components."""

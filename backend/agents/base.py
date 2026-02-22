@@ -7,7 +7,7 @@ import json
 import logging
 import socket
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, TypeVar, cast
 
 import litellm
 import requests
@@ -15,10 +15,8 @@ import urllib3
 
 # 2. Third Party
 from pydantic import BaseModel, ValidationError
-from typing import Generic, TypeVar
 
 from backend.core.component import BaseComponent
-from backend.models.domain.base import ReasoningTrace
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
@@ -26,7 +24,7 @@ from backend.exceptions import AgentExecutionError, ErrorCodes
 # Use string forward reference to avoid circular import if needed, or if Provider is defined there.
 # But LLMFactory is imported.
 from backend.llm.provider import LLMFactory, LLMProvider
-from backend.models.domain.base import AuditLogEntry, Metadata
+from backend.models.domain.base import AuditLogEntry, Metadata, ReasoningTrace
 from backend.services.localization import LocalizationService
 
 # 4. Logger
@@ -36,7 +34,8 @@ InputT = TypeVar("InputT")
 # Output must implicitly support ReasoningTrace behavior (metadata, checksums)
 OutputT = TypeVar("OutputT", bound=ReasoningTrace)
 
-class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
+
+class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
     """Abstract base class for all Cognitive Quorum agents.
 
     Handles LLM interaction via the Provider Pattern.
@@ -54,11 +53,10 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
 
     # Optional Pydantic Models for Schema Validation
     INPUT_SCHEMA: type[InputT] | None = None
-    OUTPUT_SCHEMA: type[OutputT] | None = None # Domain Model (With Metadata)
-    DTO_SCHEMA: type[BaseModel] | None = None    # LLM Interface (Content Only)
+    OUTPUT_SCHEMA: type[OutputT] | None = None  # Domain Model (With Metadata)
+    DTO_SCHEMA: type[BaseModel] | None = None  # LLM Interface (Content Only)
 
     def __init__(self, model: str | None = None, provider: str | None = None):
-
         """Initializes the agent with an optional specific model strategy.
 
         Args:
@@ -67,7 +65,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
 
         """
         self.model = model
-        self.provider_type = provider # Strict: No default "vertex_ai"
+        self.provider_type = provider  # Strict: No default "vertex_ai"
         self.llm_provider: LLMProvider | None = None
 
         # ZERO-FALLBACK: Agents initialized via Factory might have model=None.
@@ -75,7 +73,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
 
         if model:
             if not self.provider_type:
-                 raise ValueError("Provider type required if model is set.")
+                raise ValueError("Provider type required if model is set.")
             self.llm_provider = LLMFactory.create_provider(self.provider_type, model)
         else:
             self.llm_provider = None
@@ -103,11 +101,11 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
 
         current_provider_type = self.provider_type
         if not current_provider_type:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.AGENT_NOT_CONFIGURED,
-                 original_error=ValueError("Provider type not set and no default allowed."),
-                 agent_name=self.__class__.__name__
-             )
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_NOT_CONFIGURED,
+                original_error=ValueError("Provider type not set and no default allowed."),
+                agent_name=self.__class__.__name__,
+            )
 
         self._create_provider(current_provider_type, model_name, usage_service, organization_id, config)
 
@@ -142,11 +140,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
         except Exception as e:
             error_code = ErrorCodes.AGENT_NOT_CONFIGURED
             logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}", exc_info=True)
-            raise AgentExecutionError(
-                detail=error_code,
-                original_error=e,
-                agent_name=self.__class__.__name__
-            ) from e
+            raise AgentExecutionError(detail=error_code, original_error=e, agent_name=self.__class__.__name__) from e
 
     def _apply_python_authority(self, data: Any, token_usage: dict[str, int] | None = None) -> OutputT:
         """Injects system-authoritative data (Time, Identity, Checksums).
@@ -173,20 +167,20 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 "agentti": agent_name,
                 "suoritus_ymparisto": env_context,
             }
-            
+
             if token_usage:
                 meta_updates["token_usage"] = token_usage
 
             # Default optional fields if missing
             # We check if they exist in current_meta (if it's a model)
             if current_meta:
-                 if not current_meta.vaihe:
-                     meta_updates["vaihe"] = 1
-                 if not current_meta.versio:
-                     meta_updates["versio"] = "2.0"
+                if not current_meta.vaihe:
+                    meta_updates["vaihe"] = 1
+                if not current_meta.versio:
+                    meta_updates["versio"] = "2.0"
             else:
-                 meta_updates["vaihe"] = 1
-                 meta_updates["versio"] = "2.0"
+                meta_updates["vaihe"] = 1
+                meta_updates["versio"] = "2.0"
 
             if current_meta:
                 # Use model_copy(update=...) to create new Metadata instance
@@ -197,15 +191,15 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                     luontiaika=utc_now,
                     agentti=agent_name,
                     suoritus_ymparisto=env_context,
-                    vaihe=int(meta_updates["vaihe"]),
-                    versio=str(meta_updates["versio"])
+                    vaihe=int(str(meta_updates["vaihe"])),
+                    versio=str(meta_updates["versio"]),
                 )
 
             # 2. Calculate Checksum (using new metadata)
             try:
                 content_dict = data.model_dump()
                 # Inject metadata into dict for hashing (ensure reproducibility)
-                content_dict["metadata"] = new_metadata.model_dump(mode='json')
+                content_dict["metadata"] = new_metadata.model_dump(mode="json")
 
                 if "semanttinen_tarkistussumma" in content_dict:
                     del content_dict["semanttinen_tarkistussumma"]
@@ -218,28 +212,20 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 # 3. Promotion or Update
                 # CHECK FOR PROMOTION: If data is DTO and we have an OUTPUT_SCHEMA
                 if (
-                    self.DTO_SCHEMA 
-                    and isinstance(data, self.DTO_SCHEMA) 
-                    and self.OUTPUT_SCHEMA 
+                    self.DTO_SCHEMA
+                    and isinstance(data, self.DTO_SCHEMA)
+                    and self.OUTPUT_SCHEMA
                     and not isinstance(data, self.OUTPUT_SCHEMA)
                 ):
                     # Promote DTO -> Domain
                     promoted_data = self.OUTPUT_SCHEMA(
-                        **data.model_dump(),
-                        metadata=new_metadata,
-                        semanttinen_tarkistussumma=checksum
+                        **data.model_dump(), metadata=new_metadata, semanttinen_tarkistussumma=checksum
                     )
-                    # strict: cast
-                    from typing import cast
                     return cast(OutputT, promoted_data)
-                
+
                 else:
                     # Regular Update (Domain -> Domain)
-                    updates = {
-                        "metadata": new_metadata,
-                        "semanttinen_tarkistussumma": checksum
-                    }
-                    from typing import cast
+                    updates = {"metadata": new_metadata, "semanttinen_tarkistussumma": checksum}
                     return cast(OutputT, data.model_copy(update=updates))
 
             except Exception as e:
@@ -251,7 +237,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
                     original_error=ValueError(error_msg),
-                    agent_name=self.__class__.__name__
+                    agent_name=self.__class__.__name__,
                 ) from e
 
         # --- CASE B: Dictionary ---
@@ -273,7 +259,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 meta["vaihe"] = 1
             if "versio" not in meta:
                 meta["versio"] = "2.0"
-                
+
             if token_usage:
                 meta["token_usage"] = token_usage
 
@@ -296,13 +282,12 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                     try:
                         promoted_data = self.OUTPUT_SCHEMA(**data)
                         logger.debug(f"[{self.__class__.__name__}] Promoted Dict -> {self.OUTPUT_SCHEMA.__name__}")
-                        return promoted_data
+                        return cast(OutputT, promoted_data)
                     except Exception as e:
                         logger.warning(f"[{self.__class__.__name__}] Failed to promote dict to Domain Model: {e}")
-                        from typing import cast
                         return cast(OutputT, data)
 
-                return data
+                return cast(OutputT, data)
 
             except Exception as e:
                 # STRICT MODE: Data integrity is critical.
@@ -314,7 +299,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
                     original_error=ValueError(error_msg),
-                    agent_name=self.__class__.__name__
+                    agent_name=self.__class__.__name__,
                 ) from e
 
         return data
@@ -344,14 +329,14 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
             AgentExecutionError: If execution fails (wraps all internal exceptions).
         """
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
-        
+
         # --- INPUT DIAGNOSTICS (Context Bloat Investigation) ---
         try:
             # Create a safe copy for inspection
-            debug_inputs = input_data
+            debug_inputs: Any = input_data
             if isinstance(debug_inputs, BaseModel):
                 debug_inputs = debug_inputs.model_dump()
-            
+
             if isinstance(debug_inputs, dict):
                 log_msg = []
                 for k, v in debug_inputs.items():
@@ -365,7 +350,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                         log_msg.append(f"{k}: {type(v).__name__}")
                 logger.info(f"[{self.__class__.__name__}] INPUT DIAGNOSTICS: " + " | ".join(log_msg))
             else:
-                 logger.info(f"[{self.__class__.__name__}] INPUT DIAGNOSTICS: Non-dict input: {type(debug_inputs)}")
+                logger.info(f"[{self.__class__.__name__}] INPUT DIAGNOSTICS: Non-dict input: {type(debug_inputs)}")
         except Exception as e:
             logger.warning(f"[{self.__class__.__name__}] Failed to log input sizes: {e}")
         # -------------------------------------------------------
@@ -376,36 +361,34 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
             # Here we enforce that we actually received a Model.
             if self.INPUT_SCHEMA:
                 if not isinstance(input_data, self.INPUT_SCHEMA):
-                     # FAIL FAST: This is a system integrity failure.
-                     # The Engine should have converted it.
-                     msg = f"Agent '{self.__class__.__name__}' expected model '{self.INPUT_SCHEMA.__name__}' but received '{type(input_data)}'."
-                     error_code = ErrorCodes.AGENT_INVALID_INPUT
-                     logger.critical(f"{error_code}: {msg}")
-                     raise AgentExecutionError(
-                         detail=error_code,
-                         original_error=TypeError(msg),
-                         agent_name=self.__class__.__name__
-                     )
+                    # FAIL FAST: This is a system integrity failure.
+                    # The Engine should have converted it.
+                    msg = f"Agent '{self.__class__.__name__}' expected model '{self.INPUT_SCHEMA.__name__}' but received '{type(input_data)}'."
+                    error_code = ErrorCodes.AGENT_INVALID_INPUT
+                    logger.critical(f"{error_code}: {msg}")
+                    raise AgentExecutionError(
+                        detail=error_code, original_error=TypeError(msg), agent_name=self.__class__.__name__
+                    )
 
                 try:
                     # Double-check validation (redundant if strict, but safe)
-                    # strict: cast to type[BaseModel]
-                    from typing import cast
                     if issubclass(self.INPUT_SCHEMA, BaseModel):
-                         cast(type[BaseModel], self.INPUT_SCHEMA).model_validate(input_data)
-                    logger.debug(f"[{self.__class__.__name__}] Input Validation Successful: {self.INPUT_SCHEMA.__name__}")
+                        cast(type[BaseModel], self.INPUT_SCHEMA).model_validate(input_data)
+                    logger.debug(
+                        f"[{self.__class__.__name__}] Input Validation Successful: {self.INPUT_SCHEMA.__name__}"
+                    )
                 except ValidationError as e:
-                     error_code = ErrorCodes.AGENT_INVALID_INPUT
-                     logger.error(f"{error_code}: Input validation failed for {self.__class__.__name__} - {e}", exc_info=True)
-                     raise AgentExecutionError(
-                         detail=error_code,
-                         original_error=e,
-                         agent_name=self.__class__.__name__
-                     ) from e
+                    error_code = ErrorCodes.AGENT_INVALID_INPUT
+                    logger.error(
+                        f"{error_code}: Input validation failed for {self.__class__.__name__} - {e}", exc_info=True
+                    )
+                    raise AgentExecutionError(
+                        detail=error_code, original_error=e, agent_name=self.__class__.__name__
+                    ) from e
             elif isinstance(input_data, dict):
-                 # Legacy Fallback? NO. Zero-Compromise means we MUST have a schema eventually.
-                 # But for incremental migration, we allow dict if INPUT_SCHEMA is None.
-                 pass
+                # Legacy Fallback? NO. Zero-Compromise means we MUST have a schema eventually.
+                # But for incremental migration, we allow dict if INPUT_SCHEMA is None.
+                pass
             # 1. Use Generic User Prompt (The System Instruction carries the context)
             user_prompt = "Proceed with your task according to the system instructions."
 
@@ -441,12 +424,11 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                             f"[{self.__class__.__name__}] Injected JSON Schema into {{SCHEMA_EXAMPLE}} placeholder."
                         )
                     except Exception as e:
-                         logger.warning(f"[{self.__class__.__name__}] Failed to inject schema example: {e}")
+                        logger.warning(f"[{self.__class__.__name__}] Failed to inject schema example: {e}")
                 else:
                     logger.warning(
                         f"[{self.__class__.__name__}] Prompt has {{SCHEMA_EXAMPLE}} but no response_schema defined."
                     )
-
 
             # 3.6 Context Continuity Check (Transient Reasoning Trace)
             # Access trace from input_data or context?
@@ -456,16 +438,16 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
             # However, prompt says "Remove all imports and type hints referring to WorkflowState."
             # So we check input_data or kwargs.
             if kwargs.get("pass_reasoning_token"):
-                 pass # Already in kwargs
+                pass  # Already in kwargs
             else:
-                 # Safe Access for InputT (Dict or Model)
-                 trace = None
-                 if isinstance(input_data, dict):
-                     trace = input_data.get("last_reasoning_trace")
-                 else:
-                     trace = input_data.last_reasoning_trace
-                 
-                 if trace:
+                # Safe Access for InputT (Dict or Model)
+                trace = None
+                if isinstance(input_data, dict):
+                    trace = input_data.get("last_reasoning_trace")
+                else:
+                    trace = getattr(input_data, "last_reasoning_trace", None)
+
+                if trace:
                     logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting previous reasoning trace.")
                     kwargs["pass_reasoning_token"] = trace
 
@@ -550,90 +532,82 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
 
             # 4.6 Capture Audit Logs (Prompts)
             if hasattr(response_obj, "messages") and response_obj.messages:
-                 # DE-DUPLICATION LOGIC (Jan 2026):
-                 # Replace massive input strings (like full history_text) with references <<REFERENCE: key>>
-                 # to keep the audit log readable. The full content exists in execution['inputs'].
-                 sanitized_messages = []
-                 try:
-                     import copy
-                     sanitized_messages: list[dict[str, Any]] = copy.deepcopy(response_obj.messages)
+                # DE-DUPLICATION LOGIC (Jan 2026):
+                # We extract the content from litellm messages to a flat AuditLogEntry.
+                # Convert to AuditLogEntry directly without intermediate dict lists.
+                audit_entries: list[AuditLogEntry] = []
+                timestamp_now = datetime.now(timezone.utc)
+                
+                try:
+                    for _msg in response_obj.messages:
+                        audit_msg: Any = _msg
+                        role = "unknown"
+                        content = ""
+                        
+                        # Handle Pydantic Message object directly
+                        if hasattr(audit_msg, "role"):
+                            role = str(audit_msg.role)
+                        elif isinstance(audit_msg, dict) and "role" in audit_msg:
+                            role = str(audit_msg["role"])
+                            
+                        # Handle Content
+                        content_raw: Any = getattr(audit_msg, "content", None)
+                        if content_raw is None and isinstance(audit_msg, dict):
+                            content_raw = audit_msg.get("content")
+                        
+                        if isinstance(content_raw, dict):
+                            content = json.dumps(content_raw)
+                        elif content_raw is not None:
+                            content = str(content_raw)
 
-                     for msg in sanitized_messages:
-                         if "content" in msg and isinstance(msg["content"], str):
-                             content_str = msg["content"]
+                        # Truncate
+                        if content:
+                            content = content[:5000]
+                            
+                        entry = AuditLogEntry(
+                            timestamp=timestamp_now,
+                            level="INFO",
+                            message=content,
+                            context={"original_role": role},
+                        )
+                        audit_entries.append(entry)
+                except Exception as e:
+                    logger.warning(f"Failed to process messages for AuditLogEntry: {e}")
 
-                             # Handle Pydantic Models or Dicts
-                             start_inputs: Any = input_data
-                             if isinstance(start_inputs, BaseModel):
-                                 start_inputs = start_inputs.model_dump()
-
-                             if isinstance(start_inputs, dict):
-                                 for key, value in start_inputs.items():
-                                     # Only replace if value is a long string (avoid replacing 'id' or '1')
-                                     if isinstance(value, str) and len(value) > 100:
-                                         if value in content_str:
-                                             # Replace with reference
-                                             content_str = content_str.replace(value, f"<<REFERENCE: {key}>>")
-                             msg["content"] = content_str
-                 except Exception as e:
-                     logger.warning(f"Audit log sanitization failed: {e}. Saving raw logs.")
-                     sanitized_messages = response_obj.messages
-
-                     # Convert to AuditLogEntry (Strict Schema)
-                     audit_entries = []
-                     timestamp_now = datetime.now(timezone.utc)
-
-                     for msg in sanitized_messages:
-                         try:
-                             role = msg.get("role", "unknown")
-                             content = msg.get("content", "")
-                             if not isinstance(content, str):
-                                 content = str(content)
-
-                             entry = AuditLogEntry(
-                                 timestamp=timestamp_now,
-                                 level="INFO", # Default for chat logs
-                                 message=content[:5000], # Truncate massive logs
-                                 context={"original_role": role}
-                             )
-                             audit_entries.append(entry)
-                         except Exception as e:
-                             logger.warning(f"Failed to convert message to AuditLogEntry: {e}")
-
-                     if isinstance(response_data, dict):
-                         if "metadata" not in response_data:
-                             response_data["metadata"] = {}
-                         if isinstance(response_data["metadata"], dict):
-                             response_data["metadata"]["audit_logs"] = audit_entries
-                     elif isinstance(response_data, BaseModel):
-                         if hasattr(response_data, "metadata"):
-                             if isinstance(response_data.metadata, dict):
-                                 response_data.metadata["audit_logs"] = audit_entries
-                             elif hasattr(response_data.metadata, "audit_logs"): # Check field existence first
-                                 # We enabled extra="allow" in Metadata but strict validation means type must match
-                                 try:
+                    if isinstance(response_data, dict):
+                        if "metadata" not in response_data:
+                            response_data["metadata"] = {}
+                        if isinstance(response_data["metadata"], dict):
+                            response_data["metadata"]["audit_logs"] = audit_entries
+                    elif isinstance(response_data, BaseModel):
+                        if hasattr(response_data, "metadata"):
+                            if isinstance(response_data.metadata, dict):
+                                response_data.metadata["audit_logs"] = audit_entries
+                            elif hasattr(response_data.metadata, "audit_logs"):  # Check field existence first
+                                # We enabled extra="allow" in Metadata but strict validation means type must match
+                                try:
                                     # If metadata is a model (Metadata), set the field
                                     if hasattr(response_data.metadata, "model_dump"):
-                                         # Pydantic model
-                                         # We can't set directly if it's frozen, but BaseAgent constructs it?
-                                         # Metadata is frozen=False.
-                                         response_data.metadata.audit_logs = audit_entries
+                                        # Pydantic model
+                                        # We can't set directly if it's frozen, but BaseAgent constructs it?
+                                        # Metadata is frozen=False.
+                                        response_data.metadata.audit_logs = audit_entries
                                     else:
-                                         # Unknown type
-                                         pass
-                                 except Exception as e:
+                                        # Unknown type
+                                        pass
+                                except Exception as e:
                                     logger.warning(f"Could not attach audit logs to metadata model: {e}")
 
-             # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
+            # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
             if response_data is not None:
-                response_data = self._apply_python_authority(response_data, token_usage=getattr(response_obj, "token_usage", None))
-
-
+                response_data = self._apply_python_authority(
+                    response_data, token_usage=getattr(response_obj, "token_usage", None)
+                )
 
             # 6. Lifecycle Hook: Post Process (HEALING PATTERN)
             # STRATEGY: "Late Validation"
             # We intentionally keep response_data as a Dict (if possible) during this phase.
-            # This allows the 'post_process' hook to "heal" structural errors (like missing IDs or 
+            # This allows the 'post_process' hook to "heal" structural errors (like missing IDs or
             # malformed keys) that would otherwise cause Pydantic validation to crash immediately.
             # The Agent is responsible for ensuring the data is valid BEFORE the strict check below.
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
@@ -657,7 +631,9 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                     else:
                         # Convert dict to Model (Validation happens here)
                         response_data = response_schema.model_validate(response_data)
-                        logger.info(f"[{self.__class__.__name__}] Late Validation Successful: {response_schema.__name__}")
+                        logger.info(
+                            f"[{self.__class__.__name__}] Late Validation Successful: {response_schema.__name__}"
+                        )
                 except ValidationError as e:
                     # If healing failed to fix it, we crash now.
                     error_code = ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
@@ -668,18 +644,17 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
             # Child agents rely on us to return the correct Pydantic Model.
             # If we somehow reached here with a dict when a schema is required, we must crash.
             if response_schema and not isinstance(response_data, BaseModel):
-                 # This theoretically shouldn't happen due to Late Validation above, 
-                 # but this protects against logic regressions or loose typing.
-                 error_msg = f"CRITICAL: {self.__class__.__name__} violated strict return contract. Expected {response_schema.__name__}, got {type(response_data)}."
-                 logger.critical(error_msg)
-                 raise AgentExecutionError(
-                     detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
-                     original_error=TypeError(error_msg),
-                     agent_name=self.__class__.__name__
-                 )
+                # This theoretically shouldn't happen due to Late Validation above,
+                # but this protects against logic regressions or loose typing.
+                error_msg = f"CRITICAL: {self.__class__.__name__} violated strict return contract. Expected {response_schema.__name__}, got {type(response_data)}."
+                logger.critical(error_msg)
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
+                    original_error=TypeError(error_msg),
+                    agent_name=self.__class__.__name__,
+                )
 
             return response_data
-
 
         except AgentExecutionError:
             # Pass through already wrapped errors
@@ -703,11 +678,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
             logger.error(f"{error_code}: {friendly_msg} - Cause: {e}", exc_info=True)
 
             # Raise with clean message for UI but original error preserved
-            raise AgentExecutionError(
-                detail=error_code,
-                original_error=e,
-                agent_name=self.__class__.__name__
-            ) from e
+            raise AgentExecutionError(detail=error_code, original_error=e, agent_name=self.__class__.__name__) from e
 
         except ValidationError as e:
             # ECHO PROTOCOL: Log First, Then Raise
@@ -720,13 +691,11 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
             # Use standard error code for Frontend, specific details for Backend logs
             error_code = ErrorCodes.AGENT_EXECUTION_CRITICAL
             logger.error(f"{error_code}: Unexpected failure in {self.__class__.__name__} - {e}", exc_info=True)
-            raise AgentExecutionError(
-                detail=error_code,
-                original_error=e,
-                agent_name=self.__class__.__name__
-            ) from e
+            raise AgentExecutionError(detail=error_code, original_error=e, agent_name=self.__class__.__name__) from e
 
-    async def prepare_context(self, input_data: InputT, execution_context: dict[str, Any] | None, **kwargs: Any) -> str | None:
+    async def prepare_context(
+        self, input_data: InputT, execution_context: dict[str, Any] | None, **kwargs: Any
+    ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Override to inject dynamic context.
@@ -771,7 +740,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the Pydantic model that this agent expects as output from LLM.
-        
+
         If DTO_SCHEMA is defined, returns that (Content Only).
         Otherwise falls back to OUTPUT_SCHEMA (Legacy).
         """
@@ -823,7 +792,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 has_changes = False
 
                 # Iterate over fields to check for changes
-                for name, field_info in data.model_fields.items():
+                for name, _field_info in data.model_fields.items():
                     # Strict: Accessing fields by name for recursive scrubbing
                     val = getattr(data, name)
                     # Recursively scrub
@@ -836,13 +805,13 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                         has_changes = True
 
                 if has_changes:
-                     # Check if frozen
-                     if data.model_config.get("frozen"):
-                         return data.model_copy(update=updates)
-                     else:
-                         for k, v in updates.items():
-                             setattr(data, k, v)
-                         return data
+                    # Check if frozen
+                    if data.model_config.get("frozen"):
+                        return data.model_copy(update=updates)
+                    else:
+                        for k, v in updates.items():
+                            setattr(data, k, v)
+                        return data
 
                 return data
             except Exception as e:
