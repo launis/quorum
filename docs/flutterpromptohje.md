@@ -515,7 +515,7 @@ For detailed implementation logic, refer to these Knowledge Items:
 ### **10.4. Pluralization & Grammar**
 
 * **BANNED**: Manual `if/else` checks for plurals in Dart code (e.g., `if (count == 1)`). This will break completely when localizing to languages with complex plural rules (e.g., Arabic, Polish).
-* **REQUIRED**: Use Flutter's native ICU Plural support exclusively inside `.arb` files (e.g., `"{count, plural, =0{Ei tuotteita} =1{1 Tuote} other{{count} Tuotetta}}"`).
+* **REQUIRED**: Use Flutter's native ICU Plural support exclusively inside `.arb` files (e.g., `"{count, plural, =0{Ei tuotteita} =1{1 Tuote} other{ {count} Tuotetta}}"`).
 
 ### **10.5. Semantic Markup (Markdown)**
 
