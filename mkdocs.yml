@@ -1,0 +1,63 @@
+site_name: Cognitive Quorum
+site_description: Documentation for Cognitive Quorum Backend & Cognitive Architecture
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [backend]
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+
+nav:
+  - Overview: index.md
+  - Architecture: architecture.md
+  - API Models: api_models.md
+  - Structured Cognitive Architecture: structured_cognitive_architecture.md
+  - Workflows: workflow_data_architecture.md
+  - Components: components.md
+  - Execution Protocol: execution_protocol.md
+  - Data Management: data_management.md
+  - Reference: reference.md
+  - Strategy: documentation_strategy.md
+  - Roadmap: product_roadmap.md
+  - Initial Prompt Instructions:
+      - Alku V5.0: alku.md
+      - Flutter Prompt Ohje: flutterpromptohje.md
+      - AI Refactor Prompt: ai_refactor_prompt.md
+      - Antigravity Prompting: antigravity_prompting.md
