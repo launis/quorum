@@ -3034,7 +3034,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WorkflowDeleteResponse"
+                  "$ref": "#/components/schemas/ConfigWorkflowDeleteResponse"
                 }
               }
             }
@@ -5466,7 +5466,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/backend__models__dtos__builder__WorkflowDeleteResponse"
+                  "$ref": "#/components/schemas/BuilderWorkflowDeleteResponse"
                 }
               }
             }
@@ -7848,6 +7848,28 @@
         "title": "BuilderWorkflowCreateRequest",
         "description": "Payload for creating a new workflow."
       },
+      "BuilderWorkflowDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Deleted Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_steps"
+        ],
+        "title": "BuilderWorkflowDeleteResponse",
+        "description": "Response for workflow deletion."
+      },
       "ChainPreviewResponse": {
         "properties": {
           "markdown_content": {
@@ -8236,6 +8258,25 @@
         ],
         "title": "ConfigComponentResponse",
         "description": "Strict model for List-based Configs (Output Config, Knowledge Base)."
+      },
+      "ConfigWorkflowDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "id"
+        ],
+        "title": "ConfigWorkflowDeleteResponse",
+        "description": "Response for workflow deletion."
       },
       "CopyWorkflowRequest": {
         "properties": {
@@ -11627,25 +11668,6 @@
         "title": "WorkflowConfigUpdate",
         "description": "Payload for updating a workflow."
       },
-      "WorkflowDeleteResponse": {
-        "properties": {
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "id": {
-            "type": "string",
-            "title": "Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status",
-          "id"
-        ],
-        "title": "WorkflowDeleteResponse",
-        "description": "Response for workflow deletion."
-      },
       "WorkflowResponse": {
         "properties": {
           "id": {
@@ -12039,28 +12061,6 @@
         ],
         "title": "XAIFlatReportDTO",
         "description": "A flattened, machine-readable report summary optimized for BI tools and external integration.\nContains no Markdown, no nested structures (except the scores dict), and strictly typed fields."
-      },
-      "backend__models__dtos__builder__WorkflowDeleteResponse": {
-        "properties": {
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "deleted_steps": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Deleted Steps"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status",
-          "deleted_steps"
-        ],
-        "title": "WorkflowDeleteResponse",
-        "description": "Response for workflow deletion."
       }
     }
   }

@@ -314,7 +314,7 @@ class WorkflowConfigUpdate(BaseModel):
     )
 
 
-class WorkflowDeleteResponse(BaseModel):
+class ConfigWorkflowDeleteResponse(BaseModel):
     """Response for workflow deletion."""
 
     status: str

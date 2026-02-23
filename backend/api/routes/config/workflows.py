@@ -15,7 +15,7 @@ from backend.models.dtos.config import (
     WorkflowConfigCreate,
     WorkflowConfigDefinition,
     WorkflowConfigUpdate,
-    WorkflowDeleteResponse,
+    ConfigWorkflowDeleteResponse,
 )
 from backend.services.localization import localize_schema
 from backend.services.validation_service import WorkflowValidator
@@ -316,9 +316,9 @@ def create_workflow(workflow: WorkflowConfigCreate, db: DatabaseDep) -> Workflow
 
 
 @router.delete(
-    "/{wf_id}", summary="Delete Workflow", response_description="Delete status.", response_model=WorkflowDeleteResponse
+    "/{wf_id}", summary="Delete Workflow", response_description="Delete status.", response_model=ConfigWorkflowDeleteResponse
 )
-def delete_workflow(wf_id: str, db: DatabaseDep) -> WorkflowDeleteResponse:
+def delete_workflow(wf_id: str, db: DatabaseDep) -> ConfigWorkflowDeleteResponse:
     """Delete a workflow."""
     try:
         Workflow = Query()
@@ -326,7 +326,7 @@ def delete_workflow(wf_id: str, db: DatabaseDep) -> WorkflowDeleteResponse:
         if not table.search(Workflow.id == wf_id):
             raise ResourceNotFoundError("Workflow", wf_id, details={"error_code": "WORKFLOW_NOT_FOUND"})
         table.remove(Workflow.id == wf_id)
-        return WorkflowDeleteResponse(status="deleted", id=wf_id)
+        return ConfigWorkflowDeleteResponse(status="deleted", id=wf_id)
     except Exception as e:
         if isinstance(e, ResourceNotFoundError):
             raise e

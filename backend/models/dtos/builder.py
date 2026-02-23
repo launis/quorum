@@ -185,7 +185,7 @@ class WorkflowResponse(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class WorkflowDeleteResponse(BaseModel):
+class BuilderWorkflowDeleteResponse(BaseModel):
     """Response for workflow deletion."""
 
     status: str

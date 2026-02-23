@@ -19,7 +19,7 @@ from backend.models.dtos.builder import (
     BuilderWorkflowCreateRequest,
     ChainPreviewResponse,
     CopyWorkflowRequest,
-    WorkflowDeleteResponse,
+    BuilderWorkflowDeleteResponse,
     WorkflowResponse,
     WorkflowUpdateRequest,
 )
@@ -370,11 +370,11 @@ async def update_workflow(
     "/workflows/{workflow_id}",
     summary="Delete Workflow",
     response_description="Deletion status and cleaned up orphans.",
-    response_model=WorkflowDeleteResponse,
+    response_model=BuilderWorkflowDeleteResponse,
 )
 async def delete_workflow(
     workflow_id: str, repository: RepositoryDep, current_user: CurrentUserDep
-) -> WorkflowDeleteResponse:
+) -> BuilderWorkflowDeleteResponse:
     """Delete a workflow AND its orphan steps (Garbage Collection)."""
     wf = await repository.get_workflow_by_id(workflow_id)
     if not wf:
@@ -451,7 +451,7 @@ async def delete_workflow(
 
         logger.info(f"Deleted workflow {workflow_id} and orphan steps: {deleted_steps}")
 
-        return WorkflowDeleteResponse(status="deleted", deleted_steps=deleted_steps)
+        return BuilderWorkflowDeleteResponse(status="deleted", deleted_steps=deleted_steps)
 
     except Exception as e:
         from backend.exceptions import AppException
