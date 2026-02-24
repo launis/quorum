@@ -150,20 +150,20 @@ class UserRepository:
             return user
 
         # Update in DB
-        self.table.update(update_data, lambda x: x.get("uid") == uid)
+        self.table.update(update_data, lambda x: x.get("id") == id)
 
         # Return updated
-        return self.get_by_uid(uid)
+        return self.get_by_id(id)
 
     def list_all(self) -> list[User]:
         """List all users."""
         raw_users = self.table.all()
         return [User(**u) for u in raw_users]
 
-    def delete(self, uid: str) -> bool:
+    def delete(self, id: str) -> bool:
         """Hard delete user from DB."""
         # TinyDB remove
-        ids = self.table.remove(Query().uid == uid)
+        ids = self.table.remove(Query().id == id)
         return len(ids) > 0
 
     def get_by_organization(self, org_id: str) -> list[User]:
@@ -200,18 +200,18 @@ class AuthService:
             logger.warning("[AuthService] Firebase SDK not installed. Falling back to Mock mode.")
             self.use_firebase = False
 
-    def create_impersonation_token(self, target_uid: str, duration_seconds: int = 3600) -> str:
+    def create_impersonation_token(self, target_id: str, duration_seconds: int = 3600) -> str:
         """Generates a signed JWT for impersonating a user.
 
         Args:
-            target_uid (str): The UID of the user to impersonate.
+            target_id (str): The UID of the user to impersonate.
             duration_seconds (int): Token validity duration.
 
         Returns:
             str: Signed JWT string.
         """
         payload = {
-            "sub": target_uid,
+            "sub": target_id,
             "exp": time.time() + duration_seconds,
             "iat": time.time(),
             "type": "impersonation",
@@ -223,7 +223,7 @@ class AuthService:
         """Verifies a Bearer token.
 
         Returns:
-            TokenData: (uid, role, organization_id).
+            TokenData: (id, role, organization_id).
 
         Raises:
             AuthenticationError: If token is invalid or expired.
@@ -302,18 +302,18 @@ class AuthService:
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise AuthenticationError(message="Invalid credentials", details={"error_code": error_code}) from e
 
-    async def create_organization(self, creator_uid: str, org_create: OrganizationCreate) -> Organization:
+    async def create_organization(self, creator_id: str, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.
 
         Strictly Async.
         """
-        creator = self.repo.get_by_uid(creator_uid)
+        creator = self.repo.get_by_id(creator_id)
         if not creator or creator.role != UserRole.ROOT:
             raise PermissionDeniedError("Only ROOT can create organizations.")
 
         # 1. Create Organization (Sync DB call in thread? Or just sync for now)
         # We'll run it sync as TinyDB is fast, but logically the method is async.
-        org_id = uuid.uuid4().hex[:8]
+        org_id = str(uuid.uuid4())
         new_org = Organization(id=org_id, name=org_create.name, created_at=datetime.now(timezone.utc), is_active=True)
         self.org_repo.create(new_org)
 
@@ -327,28 +327,28 @@ class AuthService:
         )
 
         # Bypass hierarchy check since we are ROOT acting explicitly
-        await self._create_user_internal(creator.uid, admin_payload, force_org_id=org_id)
+        await self._create_user_internal(creator.id, admin_payload, force_org_id=org_id)
 
         # Audit
         if self.audit_service:
             await self.audit_service.log_event(
-                actor_uid=creator_uid,
+                actor_id=creator_id,
                 action="ORG_CREATED",
                 organization_id=org_id,
-                target_uid=org_id,
+                target_id=org_id,
                 details={"name": new_org.name, "tier": new_org.tier},
             )
 
         return new_org
 
-    async def create_user(self, creator_uid: str, user_data: UserCreate) -> User:
+    async def create_user(self, creator_id: str, user_data: UserCreate) -> User:
         """Creates a new user, enforcing hierarchy and tenancy."""
-        return await self._create_user_internal(creator_uid, user_data)
+        return await self._create_user_internal(creator_id, user_data)
 
     async def _create_user_internal(
-        self, creator_uid: str, user_data: UserCreate, force_org_id: str | None = None
+        self, creator_id: str, user_data: UserCreate, force_org_id: str | None = None
     ) -> User:
-        creator = self.repo.get_by_uid(creator_uid)
+        creator = self.repo.get_by_id(creator_id)
         if not creator:
             raise AppException(message="Creator not found", status_code=404)
 
@@ -385,7 +385,7 @@ class AuthService:
         # Enforce Role Hierarchy
         self._enforce_hierarchy(creator, user_data.role)
 
-        new_uid = ""
+        new_id = ""
 
         # 1. Create in Firebase (if enabled)
         if self.use_firebase and user_data.password:
@@ -393,13 +393,13 @@ class AuthService:
                 fb_user = self.firebase_auth.create_user(
                     email=user_data.email, password=user_data.password, display_name=user_data.display_name
                 )
-                new_uid = fb_user.uid
+                new_id = fb_user.id
             except Exception as e:
                 # Check for existing
                 try:
                     # Logic to reuse existing...
                     existing = self.firebase_auth.get_user_by_email(user_data.email)
-                    new_uid = existing.uid
+                    new_id = existing.id
                     logger.info(f"User {user_data.email} already in Firebase. Using existing UID.")
                 except Exception:
                     raise AppException(
@@ -409,17 +409,17 @@ class AuthService:
                     ) from e
         else:
             # Generate a mock UID
-            new_uid = f"local_{uuid.uuid4().hex[:8]}"
+            new_id = f"local_{uuid.uuid4().hex[:8]}"
 
         # 2. Create in Local DB
         new_user = User(
-            uid=new_uid,
+            id=new_id,
             email=user_data.email,
             display_name=user_data.display_name,
             role=user_data.role,
             organization_id=target_org_id,
             created_at=datetime.now(timezone.utc),
-            created_by=creator.uid,
+            created_by=creator.id,
         )
 
         saved_user = self.repo.create(new_user)
@@ -427,10 +427,10 @@ class AuthService:
         # Audit
         if self.audit_service:
             await self.audit_service.log_event(
-                actor_uid=creator_uid,
+                actor_id=creator_id,
                 action="USER_CREATED",
                 organization_id=target_org_id,
-                target_uid=new_uid,
+                target_id=new_id,
                 details={"email": new_user.email, "role": new_user.role.value},
             )
 
@@ -460,13 +460,13 @@ class AuthService:
         """Async retrieval of all users for a given organization."""
         return await asyncio.to_thread(self.repo.get_by_organization, organization_id)
 
-    async def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
+    async def delete_user(self, initiator_id: str, target_id: str) -> bool:
         """Delete a user, with Last Admin Protection. (Non-blocking)."""
-        logger.info(f"[AuthService] delete_user called. Initiator: {initiator_uid}, Target: {target_uid}")
+        logger.info(f"[AuthService] delete_user called. Initiator: {initiator_id}, Target: {target_id}")
 
         # Run Read operations in thread
-        initiator = await asyncio.to_thread(self.repo.get_by_uid, initiator_uid)
-        target = await asyncio.to_thread(self.repo.get_by_uid, target_uid)
+        initiator = await asyncio.to_thread(self.repo.get_by_id, initiator_id)
+        target = await asyncio.to_thread(self.repo.get_by_id, target_id)
 
         if not initiator or not target:
             raise AppException(message="User not found", status_code=404)
@@ -480,7 +480,7 @@ class AuthService:
                 raise PermissionDeniedError("Insufficient permissions to delete users")
 
         # ROOT PROTECTION
-        if target_uid == "root_master":
+        if target_id == "root_master":
             raise PermissionDeniedError("The primary Root account cannot be deleted.")
 
         # LAST ADMIN PROTECTION
@@ -498,28 +498,28 @@ class AuthService:
         # 1. Firebase (if enabled)
         if self.use_firebase:
             try:
-                logger.info(f"[AuthService] Deleting Firebase user {target.uid}...")
-                await asyncio.to_thread(self.firebase_auth.delete_user, target.uid)
+                logger.info(f"[AuthService] Deleting Firebase user {target.id}...")
+                await asyncio.to_thread(self.firebase_auth.delete_user, target.id)
             except Exception as e:
                 logger.warning(f"Firebase delete failed (might be local user): {e}")
 
         # 2. Local DB
-        logger.info(f"[AuthService] Deleting Local DB user {target_uid}...")
-        await asyncio.to_thread(self.repo.delete, target_uid)
+        logger.info(f"[AuthService] Deleting Local DB user {target_id}...")
+        await asyncio.to_thread(self.repo.delete, target_id)
 
         # Audit
         if self.audit_service:
             await self.audit_service.log_event(
-                actor_uid=initiator_uid,
+                actor_id=initiator_id,
                 action="USER_DELETED",
                 organization_id=target.organization_id,
-                target_uid=target_uid,
+                target_id=target_id,
                 details={"email": target.email},
             )
 
         return True
 
-    async def delete_organization(self, initiator_uid: str, target_org_id: str, force: bool = False) -> None:
+    async def delete_organization(self, initiator_id: str, target_org_id: str, force: bool = False) -> None:
         """Deletes an Organization.
 
         Safety Rules:
@@ -528,11 +528,11 @@ class AuthService:
         - force=True cascades delete to all users.
         """
         logger.info(
-            f"[AuthService] delete_organization called. Initiator: {initiator_uid}, "
+            f"[AuthService] delete_organization called. Initiator: {initiator_id}, "
             f"Target: {target_org_id}, Force: {force}"
         )
 
-        initiator = await asyncio.to_thread(self.repo.get_by_uid, initiator_uid)
+        initiator = await asyncio.to_thread(self.repo.get_by_id, initiator_id)
 
         if not initiator or initiator.role != UserRole.ROOT:
             raise PermissionDeniedError("Only ROOT can delete organizations.")
@@ -577,20 +577,20 @@ class AuthService:
         # Audit
         if self.audit_service:
             await self.audit_service.log_event(
-                actor_uid=initiator_uid,
+                actor_id=initiator_id,
                 action="ORG_DELETED",
                 organization_id=target_org_id,
-                target_uid=target_org_id,
+                target_id=target_org_id,
                 details={"users_deleted": user_count, "force_used": force},
             )
 
-    async def update_user(self, initiator_uid: str, target_uid: str, updates: UserUpdate) -> User:
+    async def update_user(self, initiator_id: str, target_id: str, updates: UserUpdate) -> User:
         """General update method.
 
         If 'role' is being changed, we must enforce Last Admin Protection.
         """
-        initiator = self.repo.get_by_id(initiator_uid)
-        target = self.repo.get_by_id(target_uid)
+        initiator = self.repo.get_by_id(initiator_id)
+        target = self.repo.get_by_id(target_id)
 
         if not initiator or not target:
             raise AppException(message="User not found", status_code=404)
@@ -598,7 +598,7 @@ class AuthService:
         # Permission Check
         if initiator.role != UserRole.ROOT:
             # Self-Update Rule (Language/Theme)
-            if initiator_uid == target_uid:
+            if initiator_id == target_id:
                 # Allowed to update self, but check for Restricted fields (Role)
                 if updates.role is not None and updates.role != initiator.role:
                     raise PermissionDeniedError("Users cannot change their own role.")
@@ -626,7 +626,7 @@ class AuthService:
                             details={"error_code": "LAST_ADMIN_PROTECTION"},
                         )
 
-        updated_user = self.repo.update(target_uid, updates)
+        updated_user = self.repo.update(target_id, updates)
 
         if not updated_user:
             raise AppException("User update failed (not found despite check).", status_code=500)
@@ -636,16 +636,16 @@ class AuthService:
             # Determine what changed for details
             changed_fields = updates.model_dump(exclude_unset=True)
             await self.audit_service.log_event(
-                actor_uid=initiator_uid,
+                actor_id=initiator_id,
                 action="USER_UPDATED",
                 organization_id=target.organization_id,  # Log under target's org
-                target_uid=target_uid,
+                target_id=target_id,
                 details=changed_fields,
             )
 
         return updated_user
 
-    async def update_user_role(self, initiator_uid: str, target_uid: str, new_role: UserRole) -> User:
+    async def update_user_role(self, initiator_id: str, target_id: str, new_role: UserRole) -> User:
         """Updates a user's role with strict Last Admin Protection.
 
         Raises:
@@ -653,8 +653,8 @@ class AuthService:
             AppException: If user not found.
             ConflictError: If Last Admin Protection is triggered.
         """
-        initiator = self.repo.get_by_uid(initiator_uid)
-        target = self.repo.get_by_uid(target_uid)
+        initiator = self.repo.get_by_id(initiator_id)
+        target = self.repo.get_by_id(target_id)
 
         if not initiator or not target:
             raise AppException(message="User not found", status_code=404)
@@ -699,17 +699,17 @@ class AuthService:
                     )
 
         # 3. Apply Update
-        updated = self.repo.update(target_uid, UserUpdate(role=new_role))
+        updated = self.repo.update(target_id, UserUpdate(role=new_role))
         if not updated:
             raise AppException("User update failed (user reference lost).", status_code=500)
 
         # 4. Audit
         if self.audit_service:
             await self.audit_service.log_event(
-                actor_uid=initiator_uid,
+                actor_id=initiator_id,
                 action="USER_ROLE_UPDATED",
                 organization_id=target.organization_id,
-                target_uid=target_uid,
+                target_id=target_id,
                 details={"old_role": target.role.value, "new_role": new_role.value},
             )
 

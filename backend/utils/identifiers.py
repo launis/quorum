@@ -12,16 +12,16 @@ def generate_unique_id(base_name: str | None = None) -> str:
 
     If no base_name is provided, returns a full UUID.
     """
-    suffix = str(uuid.uuid4())[:8]
+    suffix = str(uuid.uuid4())
 
     if not base_name:
-        return str(uuid.uuid4())
+        return suffix
 
     # Slugify: lowercase, replace non-alphanumeric with hyphen
     slug = re.sub(r"[^a-z0-9]+", "-", base_name.lower()).strip("-")
 
     if not slug:
-        return str(uuid.uuid4())
+        return suffix
 
     return f"{slug}-{suffix}"
 

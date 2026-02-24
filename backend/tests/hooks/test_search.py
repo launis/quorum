@@ -23,7 +23,7 @@ def test_missing_step_analyst(mock_state):
 
 def test_invalid_step_analyst_schema(mock_state):
     """Fail Fast: Should raise AppException if step_analyst data is invalid."""
-    mock_state = mock_state.model_copy(update={"context_variables": {"step_analyst": {"invalid": "data"}}})
+    mock_state = mock_state.model_copy(update={"context_variables": {"683eb4b9-147c-4f5d-89a7-7b18d75c4202": {"invalid": "data"}}})
 
     with pytest.raises(AppException) as exc:
         execute_google_search(mock_state)
@@ -40,7 +40,7 @@ def test_no_hypotheses(mock_state):
         conclusion="Conclusion",
         confidence_score=0.9,
     )
-    mock_state = mock_state.model_copy(update={"context_variables": {"step_analyst": analyst_output}})
+    mock_state = mock_state.model_copy(update={"context_variables": {"683eb4b9-147c-4f5d-89a7-7b18d75c4202": analyst_output}})
 
     new_state = execute_google_search(mock_state)
     assert new_state.context_variables.get("search_result") is None
@@ -55,7 +55,7 @@ def test_config_error_fail_fast(mock_state):
         conclusion="Conclusion",
         confidence_score=0.9,
     )
-    mock_state = mock_state.model_copy(update={"context_variables": {"step_analyst": analyst_output}})
+    mock_state = mock_state.model_copy(update={"context_variables": {"683eb4b9-147c-4f5d-89a7-7b18d75c4202": analyst_output}})
 
     # Patch VertexAISearchTool to raise ConfigurationError
     with patch("backend.hooks.search.VertexAISearchTool", side_effect=ConfigurationError("Missing keys")):
@@ -72,7 +72,7 @@ def test_execution_success(mock_state):
         conclusion="Conclusion",
         confidence_score=0.9,
     )
-    mock_state = mock_state.model_copy(update={"context_variables": {"step_analyst": analyst_output}})
+    mock_state = mock_state.model_copy(update={"context_variables": {"683eb4b9-147c-4f5d-89a7-7b18d75c4202": analyst_output}})
 
     mock_tool_instance = MagicMock()
     # Mock search return
@@ -99,7 +99,7 @@ def test_execution_failure_fail_fast(mock_state):
         conclusion="Conclusion",
         confidence_score=0.9,
     )
-    mock_state = mock_state.model_copy(update={"context_variables": {"step_analyst": analyst_output}})
+    mock_state = mock_state.model_copy(update={"context_variables": {"683eb4b9-147c-4f5d-89a7-7b18d75c4202": analyst_output}})
 
     mock_tool_instance = MagicMock()
     mock_tool_instance.search.side_effect = Exception("API Down")
@@ -123,7 +123,7 @@ def test_language_context(mock_state):
     mock_state = mock_state.model_copy(
         update={
             "context_variables": {
-                "step_analyst": analyst_output,
+                "683eb4b9-147c-4f5d-89a7-7b18d75c4202": analyst_output,
                 "inputs": {
                     "history_text": "History",
                     "product_text": "Product",

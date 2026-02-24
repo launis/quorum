@@ -26,9 +26,16 @@ class PanelAgent(BaseAgent[PanelInput, PanelOutput]):
     Acts as a composite agent that performs fan-out of results to individual state fields.
     """
 
-    state_field = "step_panel"
-    REQUIRES_KEYS = ["step_analyst", "step_profiler"]
-    PRODUCES_KEYS = ["step_panel", "step_logician", "step_falsifier", "step_causal", "step_detector", "step_overseer"]
+    state_field = "dbcaf18a-4ea3-4469-baa5-1abe63c64700"
+    REQUIRES_KEYS = ["683eb4b9-147c-4f5d-89a7-7b18d75c4202", "46f13eed-f411-4aac-ac41-d8e11f98a648"]
+    PRODUCES_KEYS = [
+        "dbcaf18a-4ea3-4469-baa5-1abe63c64700",
+        "faaf85a4-6781-478e-8ab5-437c670baf6f",
+        "2a82920d-86ff-4b30-b357-5718a37b03d6",
+        "fc347c2f-3df6-4551-9279-429af3114ef3",
+        "7440dcea-282b-4b08-b469-bb33f334ab54",
+        "2e24724a-29c9-44ab-8eb9-0ac8862b8fe1"
+    ]
     DTO_SCHEMA = PanelOutputDTO
     INPUT_SCHEMA = PanelInput
     OUTPUT_SCHEMA = PanelOutput
@@ -129,20 +136,20 @@ class PanelAgent(BaseAgent[PanelInput, PanelOutput]):
                 linguistics_section = f"\nKIELIOPILLINEN ANALYYSI (PERFORMATIIVISUUS):\nHavaittu seuraavat performatiiviset ilmaisut:\n{pattern_list}\n---"
 
         # Template
-        template_str = execution_context.get("PANEL_PROMPT_TEMPLATE") if execution_context else None
+        template_str = execution_context.get("50ecc617-a1f9-4a3d-b691-fef610425d21") if execution_context else None
         if not template_str:
             # Search in llm_prompts
             config_prompts = execution_context.get("llm_prompts", []) if execution_context else []
             if isinstance(config_prompts, list):
                 for p in config_prompts:
-                    if p == "PANEL_PROMPT_TEMPLATE":
+                    if p == "50ecc617-a1f9-4a3d-b691-fef610425d21":
                         template_str = execution_context.get(p) if execution_context else None
                         break
 
         if not template_str:
             raise AgentExecutionError(
                 detail=ErrorCodes.AGENT_NOT_CONFIGURED,
-                original_error=ValueError("PANEL_PROMPT_TEMPLATE not found."),
+                original_error=ValueError("PANEL_PROMPT_TEMPLATE (50ecc617-a1f9-4a3d-b691-fef610425d21) not found."),
                 agent_name="PanelAgent",
             )
 
@@ -151,7 +158,7 @@ class PanelAgent(BaseAgent[PanelInput, PanelOutput]):
         config_prompts = execution_context.get("llm_prompts", []) if execution_context else []
         if isinstance(config_prompts, list):
             for p in config_prompts:
-                if p != "PANEL_PROMPT_TEMPLATE":
+                if p != "50ecc617-a1f9-4a3d-b691-fef610425d21":
                     content = execution_context.get(p) if execution_context else None
                     if content:
                         task_prompts.append(content)

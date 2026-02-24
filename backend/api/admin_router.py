@@ -37,7 +37,7 @@ from backend.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
-from backend.models.auth import UserAdminView, UserCreate, UserRole, UserUpdate
+from backend.models.auth import Organization, OrganizationCreate, UserAdminView, UserCreate, UserRole, UserUpdate
 from backend.schemas.admin import AsyncJobResponse, QueueStats
 
 # --- Local Imports ---
@@ -692,6 +692,44 @@ async def generate_banned_phrases(request: GeneratePhrasesRequest, repo: Reposit
         error_code = "PHRASE_GENERATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise ServiceUnavailableError(message=str(e), details={"error_code": error_code}) from e
+
+@router.post(
+    "/organizations",
+    summary="Create Organization",
+    response_model=Organization,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_root)],
+)
+async def create_organization(
+    request: OrganizationCreate,
+    user: CurrentUserDep,
+    auth_service: AuthServiceDep,
+):
+    """Creates a new Tenant Organization.
+
+    Args:
+        request (OrganizationCreate): Payload for the new organization.
+        user (CurrentUserDep): The requesting user (must be ROOT).
+        auth_service (AuthServiceDep): Authentication service dependency.
+
+    Returns:
+        Organization: The created organization.
+
+    Raises:
+        HTTPException: If user is not ROOT (403) or creation fails.
+    """
+    try:
+        return await auth_service.create_organization(creator_id=user.id, org_create=request)
+    except PermissionError as e:
+        error_code = "PERMISSION_DENIED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
+    except Exception as e:
+        from backend.exceptions import AppException
+
+        error_code = "ORGANIZATION_CREATION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}) from e
 
 
 @router.get(

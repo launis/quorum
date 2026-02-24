@@ -149,7 +149,7 @@ class WorkflowState(BaseModel):
         """Type-Safe Accessor for Analyst Output."""
         from backend.models.domain.analyst import AnalystOutput
 
-        return self.get_context("step_analyst", AnalystOutput)
+        return self.get_context("683eb4b9-147c-4f5d-89a7-7b18d75c4202", AnalystOutput)
 
     @property
     def step_panel(self) -> Any | None:

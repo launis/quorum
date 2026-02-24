@@ -113,13 +113,12 @@ async def create_organization(
     Raises:
         HTTPException: If ID conflict (409).
     """
-    import backend.utils.identifiers as id_gen
+    import uuid
 
     # Generate ID if missing
     # Note: We do this BEFORE .dict() to ensure it's in the item.
     if not org.id:
-        # Use name as base
-        org.id = id_gen.generate_unique_id(base_name=org.name)
+        org.id = str(uuid.uuid4())
 
     # Check existence
     existing = await repo.get_organization(org.id)

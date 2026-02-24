@@ -1,8 +1,0 @@
-﻿backend\scripts\generate_preview_report.py:87: error: Signature of "get_audit_logs" incompatible with supertype "backend.database.repository.AbstractWorkflowRepository"  [override]
-backend\scripts\generate_preview_report.py:87: note:      Superclass:
-backend\scripts\generate_preview_report.py:87: note:          def get_audit_logs(self, organization_id: str | None = ..., actor_id: str | None = ..., action: str | None = ..., limit: int = ...) -> Coroutine[Any, Any, list[dict[str, Any]]]
-backend\scripts\generate_preview_report.py:87: note:      Subclass:
-backend\scripts\generate_preview_report.py:87: note:          def get_audit_logs(self, organization_id: Any = ..., actor_uid: Any = ..., action: Any = ..., limit: Any = ..., **kwargs: Any) -> Any
-backend\scripts\generate_preview_report.py:419: error: Cannot instantiate abstract class "MockWorkflowRepository" with abstract attributes "create_agent", "create_dimension", ... and "update_output_config" (17 methods suppressed)  [abstract]
-backend\tests\manual\test_agents_strict_dto.py:111: error: Argument "step_analyst" to "FalsifierInput" has incompatible type "dict[str, object]"; expected "AnalystOutput | None"  [arg-type]
-Found 3 errors in 2 files (checked 294 source files)

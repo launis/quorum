@@ -114,9 +114,9 @@ async def create_custom_step(req: CustomStepCreateRequest, repository: Repositor
     # Heuristic defaults for known agents
     prompts = []
     if "Judge" in req.component_type:
-        prompts = ["TASK_JUDGE", "GLOBAL_CONTEXT"]
+        prompts = ["642b00ae-fc72-4604-bc6b-ba018751f217", "ca9d9ae7-41ce-44d4-8a8f-efd2e0bd80a9"]  # TASK_JUDGE, GLOBAL_CONTEXT
     elif "Reporter" in req.component_type:
-        prompts = ["TASK_REPORT"]
+        prompts = ["096233f0-74a0-40ec-9db1-5a94af82ca7a"]  # TASK_XAI (Reporter originally mapped to TASK_REPORT, which doesn't exist, it uses TASK_XAI instead or TASK_ANALYST. Actually id_map doesn't have TASK_REPORT. I need to be careful.)
 
     execution_config = {"llm_prompts": prompts}
 

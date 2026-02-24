@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from backend.core.rate_limit import limiter
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
-from backend.models.auth import Organization, OrganizationCreate, User, UserCreate, UserRole, UserUpdate
+from backend.models.auth import User, UserCreate, UserRole, UserUpdate
 from backend.models.dtos.auth import UserDeleteResponse
 
 # --- Local Imports ---
@@ -216,38 +216,6 @@ async def create_user(
         ) from e
 
 
-@router.post("/organizations", response_model=Organization)
-async def create_organization(org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
-    """Create a new Tenant Organization.
-
-    Args:
-        org_data (OrganizationCreate): Payload for the new organization.
-        current_user (CurrentUserDep): The requesting user (must be ROOT).
-        auth_service (AuthServiceDep): Authentication service dependency.
-
-    Returns:
-        Organization: The created organization.
-
-    Raises:
-        HTTPException: If user is not ROOT (403).
-    """
-    creator = auth_service.repo.get_by_id(current_user.id)
-    if not creator or creator.role != UserRole.ROOT:
-        from backend.exceptions import PermissionDeniedError
-
-        error_code = "PERMISSION_DENIED_ROOT_ONLY"
-        logger.warning(f"{error_code}: User {current_user.id} attempted to create org")
-        raise PermissionDeniedError(message="Access denied", details={"error_code": error_code})
-
-    try:
-        return await auth_service.create_organization(creator.id, org_data)
-    except Exception as e:
-        from backend.exceptions import AppException
-
-        error_code = "ORGANIZATION_CREATION_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
-
 
 @router.get("/users", response_model=list[User])
 async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep):
@@ -310,8 +278,7 @@ async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthS
         HTTPException: Permission denied (403) or business logic error (400).
     """
     try:
-        import asyncio
-        target = await asyncio.to_thread(repo.get_by_id, id)
+        target = auth_service.repo.get_by_id(id)
         if not target:
             from backend.exceptions import ResourceNotFoundError
             raise ResourceNotFoundError("User", id)

@@ -144,7 +144,7 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
     total_count = 0
 
     # 2. Check Analyst Hypotheses
-    analyst_model = state.get_context("step_analyst", AnalystOutput)
+    analyst_model = state.get_context("683eb4b9-147c-4f5d-89a7-7b18d75c4202", AnalystOutput)
 
     if analyst_model:
         for hyp in analyst_model.hypotheses:
@@ -288,7 +288,7 @@ def enforce_hypothesis_linking(state: WorkflowState) -> WorkflowState:
     Raises:
         AppException: If hypothesis IDs are malformed or non-sequential.
     """
-    step_analyst = state.context_variables.get("step_analyst")
+    step_analyst = state.context_variables.get("683eb4b9-147c-4f5d-89a7-7b18d75c4202")
     if not step_analyst:
         return state
 

@@ -33,7 +33,14 @@ class ComponentRegistry:
         if comp:
             return comp
 
-        # Fallback: Try by name as some IDs might be names in older configs
+        # Fallback: Try by slug since IDs were migrated to UUIDs but text names were moved to slug
+        comp = await repository.get_component_by_slug(component_id)
+        if comp:
+            # Optionally add a log warning about deprecated access
+            logger.warning(f"Component '{component_id}' accessed via SLUG instead of ID. Please update references to UUID.")
+            return comp
+
+        # Legacy Fallback: Try by name as some IDs might be names in older configs
         comp = await repository.get_component_by_name(component_id)
         if comp:
             return comp

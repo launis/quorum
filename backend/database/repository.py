@@ -127,6 +127,10 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_component_by_slug(self, slug: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
         pass
 
@@ -510,6 +514,10 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def get_component_by_name(self, name: str) -> dict[str, Any] | None:
         res = await self.driver.query("components", [Filter("name", "==", name)], limit=1)
+        return res[0] if res else None
+
+    async def get_component_by_slug(self, slug: str) -> dict[str, Any] | None:
+        res = await self.driver.query("components", [Filter("slug", "==", slug)], limit=1)
         return res[0] if res else None
 
     async def get_matrix_by_id(self, matrix_id: str) -> dict[str, Any] | None:

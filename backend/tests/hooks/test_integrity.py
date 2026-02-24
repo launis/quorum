@@ -32,7 +32,7 @@ def create_mock_analyst(hypotheses):
 
 def test_enforce_hypothesis_linking_success():
     state = WorkflowState(workflow_id="wf-1")
-    state.context_variables["step_analyst"] = create_mock_analyst(
+    state.context_variables["683eb4b9-147c-4f5d-89a7-7b18d75c4202"] = create_mock_analyst(
         [create_mock_hypothesis("HYP-1"), create_mock_hypothesis("HYP-2"), create_mock_hypothesis("HYP-3")]
     )
 
@@ -42,7 +42,7 @@ def test_enforce_hypothesis_linking_success():
 
 def test_enforce_hypothesis_linking_bad_format():
     state = WorkflowState(workflow_id="wf-1")
-    state.context_variables["step_analyst"] = create_mock_analyst(
+    state.context_variables["683eb4b9-147c-4f5d-89a7-7b18d75c4202"] = create_mock_analyst(
         [create_mock_hypothesis("HYP-1"), create_mock_hypothesis("INVALID-2")]
     )
 
@@ -54,7 +54,7 @@ def test_enforce_hypothesis_linking_bad_format():
 
 def test_enforce_hypothesis_linking_sequence_gap():
     state = WorkflowState(workflow_id="wf-1")
-    state.context_variables["step_analyst"] = create_mock_analyst(
+    state.context_variables["683eb4b9-147c-4f5d-89a7-7b18d75c4202"] = create_mock_analyst(
         [
             create_mock_hypothesis("HYP-1"),
             create_mock_hypothesis("HYP-3"),  # Skipped 2
@@ -74,7 +74,7 @@ def test_verify_citation_integrity_success():
         "product_text": "none",
         "reflection_text": "none",
     }
-    state.context_variables["step_analyst"] = create_mock_analyst(
+    state.context_variables["683eb4b9-147c-4f5d-89a7-7b18d75c4202"] = create_mock_analyst(
         [create_mock_hypothesis("HYP-1", quotes=["quick brown fox", "lazy dog"])]
     )
 
@@ -92,7 +92,7 @@ def test_verify_citation_integrity_fail_fast():
         "reflection_text": "none",
     }
     # 2 invalid vs 1 valid -> 0.33 score -> Fail
-    state.context_variables["step_analyst"] = create_mock_analyst(
+    state.context_variables["683eb4b9-147c-4f5d-89a7-7b18d75c4202"] = create_mock_analyst(
         [create_mock_hypothesis("HYP-1", quotes=["quick brown fox", "unicorn", "leprechaun"])]
     )
 
