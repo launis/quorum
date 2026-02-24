@@ -11,8 +11,8 @@
             "temperature": 0.5,
             "top_p": null,
             "supports_grounding": true,
-            "tpm_limit": 500000,
-            "rpm_limit": 3000,
+            "tpm_limit": 100000,
+            "rpm_limit": 15,
             "is_active": true
           },
           "fast": {
@@ -22,7 +22,7 @@
             "top_p": null,
             "supports_grounding": false,
             "tpm_limit": 500000,
-            "rpm_limit": 3000,
+            "rpm_limit": 60,
             "is_active": true
           },
           "precise": {
@@ -31,8 +31,8 @@
             "temperature": 0.2,
             "top_p": null,
             "supports_grounding": true,
-            "tpm_limit": 500000,
-            "rpm_limit": 3000,
+            "tpm_limit": 100000,
+            "rpm_limit": 15,
             "is_active": true
           },
           "strict": {
@@ -41,8 +41,8 @@
             "temperature": 0.0,
             "top_p": null,
             "supports_grounding": false,
-            "tpm_limit": 500000,
-            "rpm_limit": 3000,
+            "tpm_limit": 100000,
+            "rpm_limit": 15,
             "is_active": true
           },
           "GuardAgent": "fast",

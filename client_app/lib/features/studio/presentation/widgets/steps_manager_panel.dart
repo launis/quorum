@@ -363,7 +363,7 @@ class _StepEditor extends HookConsumerWidget {
                                                     final c = filtered[index];
                                                     final isSelected = llmPrompts.value.contains(c.id);
                                                     return ListTile(
-                                                        title: Text(c.slug ?? c.name ?? 'Unknown Component (${c.id.substring(0, 8)})'),
+                                                        title: Text(c.slug ?? c.name ?? 'Unknown Component (${c.id})'),
                                                         subtitle: Text(c.type, style: const TextStyle(fontSize: 12)),
                                                         trailing: isSelected ? const Icon(Icons.check, color: Colors.green) : null,
                                                         onTap: () {
@@ -530,7 +530,7 @@ class _StepEditor extends HookConsumerWidget {
                      
                      if (comp == null) {
                          return InputChip(
-                             label: Text('Unknown or Missing ID: ${pid.substring(0, 8)}', style: const TextStyle(color: Colors.white)),
+                             label: Text('Unknown or Missing ID: ${pid}', style: const TextStyle(color: Colors.white)),
                              backgroundColor: Colors.red.shade900,
                              deleteIconColor: Colors.white,
                              tooltip: pid,
@@ -541,7 +541,7 @@ class _StepEditor extends HookConsumerWidget {
                      }
                      
                      return InputChip(
-                         label: Text(comp.slug ?? comp.name ?? 'Unknown (${comp.id.substring(0, 8)})'),
+                         label: Text(comp.slug ?? comp.name ?? 'Unknown (${comp.id})'),
                          tooltip: comp.id,
                          onDeleted: () {
                              llmPrompts.value = llmPrompts.value.where((id) => id != pid).toList();

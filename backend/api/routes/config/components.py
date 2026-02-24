@@ -32,14 +32,14 @@ router = APIRouter(tags=["Configuration"])
     response_model=list[ComponentResponse],
 )
 async def get_components(
-    repo: RepositoryDep, type: str | None = None, exclude_type: Annotated[list[str] | None, APIQuery()] = None
+    repo: RepositoryDep, type: str | None = None, exclude_type: Annotated[list[str] | None, APIQuery()] = ["agent", "processor"]
 ) -> list[ComponentResponse]:
     """Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).
 
     Args:
         repo (RepositoryDep): Repository dependency.
         type (str | None): Optional filter by component type.
-        exclude_type (list[str] | None): Optional types to exclude.
+        exclude_type (list[str] | None): Optional types to exclude (defaults to agents/processors).
 
     Returns:
         list[ComponentResponse]: List of configuration components.
@@ -97,11 +97,15 @@ async def get_component(
 )
 async def list_registry_items(repo: RepositoryDep) -> list[RegistryComponentItem]:
     """Retrieves all system components directly from the Repository."""
-    # Refactored Feb 2026: Use Repository instead of in-memory singleton
     raw_components = await repo.get_all_components()
+    raw_agents = await repo.get_all_agents()
+    
+    # Combine sources for the UI registry
+    combined = raw_components + raw_agents
+    
     items = []
 
-    for comp_data in raw_components:
+    for comp_data in combined:
         c_id = comp_data.get("id")
         if not c_id:
             continue

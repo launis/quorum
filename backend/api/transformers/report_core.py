@@ -41,12 +41,15 @@ class ReportTransformer(
     RetrievalDomainTransformer,
     BaseTransformer,
 ):
-    def transform(self, raw_data: ExecutionRecord, valid_range: tuple[float, float] | None = None) -> ReportView:
+    def transform(
+        self, raw_data: ExecutionRecord, valid_range: tuple[float, float] | None = None, step_names: dict[str, str] | None = None
+    ) -> ReportView:
         """Transforms execution data (Pydantic Model) into a clean ReportView model.
 
         Args:
             raw_data: The execution results (ExecutionRecord or WorkflowState).
             valid_range: (min, max) tuple for strict score validation. Defaults to Standard Matrix (1-4).
+            step_names: Optional dictionary mapping step IDs to their UI display names.
         """
         # 1. Normalize Input to Dict (Internal Processing) OR handle Object attributes directly?
         # Mandate says: "Pass Pydantic Models". So we should use attribute access.
@@ -106,11 +109,17 @@ class ReportTransformer(
                     if key == "step_judge"
                     else self._get_label(LabelKey.COGNITIVE_ASSESSMENT)
                 )
-                base_agent_name = (
-                    self._get_label(LabelKey.AGENT_JUDGE)
-                    if key == "step_judge"
-                    else self._get_label(LabelKey.AGENT_COGNITIVE_JUDGE)
-                )
+                
+                # Use step name if provided, else fallback to hardcoded
+                base_agent_name = ""
+                if step_names and key in step_names:
+                     base_agent_name = step_names[key]
+                else:
+                    base_agent_name = (
+                        self._get_label(LabelKey.AGENT_JUDGE)
+                        if key == "step_judge"
+                        else self._get_label(LabelKey.AGENT_COGNITIVE_JUDGE)
+                    )
 
                 # Extract all cards (Legacy or V3 Array)
                 cards = []
@@ -235,7 +244,7 @@ class ReportTransformer(
             sections.append(archivist_section)
 
         # --- C. Timeline ---
-        timeline_events = self._build_timeline(steps)
+        timeline_events = self._build_timeline(steps, step_names)
 
         sections.append(
             UiSection(
@@ -407,7 +416,7 @@ class ReportTransformer(
             data={"content": content},
         )
 
-    def _build_timeline(self, steps: dict) -> list[dict]:
+    def _build_timeline(self, steps: dict, step_names: dict[str, str] | None = None) -> list[dict]:
         events = []
         agent_names = {
             "step_guard": f"🛡️ {self._get_label(LabelKey.AGENT_GUARD)}",
@@ -431,7 +440,14 @@ class ReportTransformer(
 
             meta = step_data.get("metadata", {})
             timestamp = meta.get("luontiaika")
-            agent_label = agent_names.get(step_key, step_key)
+            
+            # Determine agent label from hardcoded defaults or dynamic step_names
+            if step_key in agent_names:
+                agent_label = agent_names[step_key]
+            elif step_names and step_key in step_names:
+                agent_label = step_names[step_key]
+            else:
+                agent_label = step_key
 
             # 1. Reasoning Trace (The thinking process)
             rt = step_data.get("reasoning_trace")

@@ -240,24 +240,32 @@ class AgentRegistry:
                 agent_type = meta.get("type", "agent")
 
                 try:
-                    # 1. Register in DB
-                    if not await self.repository.get_component_by_name(task_key):
-                        await self.repository.register_component(
+                    # 1. Register in DB (Agents collection)
+                    existing_agent = await self.repository.get_agent_by_id(task_key)
+                    if not existing_agent:
+                        await self.repository.create_agent(
                             {
                                 "id": task_key,
                                 "name": task_key,
                                 "type": agent_type,
                                 "class_name": agent_class_name,
+                                "module": module_name,
+                                "component_class": agent_class_name, # Stored primarily for registry dynamic loading
                                 "registered_at": datetime.now(timezone.utc).isoformat(),
                             }
                         )
+                    else:
+                        # 2. Update Metadata if it already exists
+                        await self.repository.update_agent(
+                            task_key, 
+                            {
+                                "module": module_name, 
+                                "component_class": agent_class_name,
+                                "class_name": agent_class_name
+                            }
+                        )
 
-                    # 2. Update Metadata
-                    await self._update_component_metadata(
-                        task_key, module=module_name, component_class=agent_class_name
-                    )
-
-                    logger.debug(f"[AgentRegistry] Registered {task_key} ({agent_class_name})")
+                    logger.debug(f"[AgentRegistry] Registered {task_key} ({agent_class_name}) into agents table")
                     count += 1
 
                 except Exception as e:

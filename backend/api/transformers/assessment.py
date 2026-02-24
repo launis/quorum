@@ -11,20 +11,24 @@ logger = logging.getLogger(__name__)
 
 class AssessmentTransformer(BaseTransformer):
     def _get_workflow_steps(
-        self, workflow_id: str, current_data: dict, workflow_definition: Any | None = None
+        self, workflow_id: str, current_data: dict, workflow_definition: Any | None = None, step_names: dict[str, str] | None = None
     ) -> list[StepProgressItem]:
         """Determines the steps for the workflow and their status dynamically."""
         chain = []
         step_id_to_name = {}
+        step_names_map = step_names or {}
 
         if workflow_definition:
             # Extract steps from definition
             steps = getattr(workflow_definition, "steps", [])
+            if not steps and isinstance(workflow_definition, dict):
+                steps = workflow_definition.get("steps", [])
+                
             if isinstance(steps, list):
                 for s in steps:
                     if isinstance(s, str):
                         sid = s
-                        step_id_to_name[sid] = sid
+                        step_id_to_name[sid] = step_names_map.get(sid, sid)
                     else:
                         # Handle fallback Pydantic model or dict
                         sid = getattr(s, "id", None) or s.get("id")
@@ -53,7 +57,12 @@ class AssessmentTransformer(BaseTransformer):
                  raise ValueError(f"Execution step_id '{step_id}' has no corresponding WorkflowDefinition mapping.")
 
             display_name = step_id_to_name[step_id]
-            label = self._t(f"STEP_{step_id.upper()}", display_name)
+            # Use the provided display name (from mapping) directly if it differs from the step_id.
+            # Only try to translate if we still only have the raw ID.
+            if display_name != step_id:
+                label = display_name
+            else:
+                label = self._t(f"STEP_{step_id.upper()}", display_name)
             
             progress_items.append(StepProgressItem(id=step_id, label=label, status=step_status))
 
@@ -64,6 +73,7 @@ class AssessmentTransformer(BaseTransformer):
         raw_data: dict[str, Any],
         workflow_definition: Any | None = None,
         valid_range: tuple[float, float] | None = None,
+        step_names: dict[str, str] | None = None,
     ) -> AssessmentView:
         """Transforms raw execution state into a live Monitoring View (AssessmentView)."""
         try:
@@ -100,7 +110,7 @@ class AssessmentTransformer(BaseTransformer):
                 steps_data = self._reconstruct_state_from_trace(raw_data["results"]["execution_trace"])
 
             # GENERATE STEPS LIST
-            steps_list = self._get_workflow_steps(str(workflow_id), steps_data, workflow_definition)
+            steps_list = self._get_workflow_steps(str(workflow_id), steps_data, workflow_definition, step_names)
 
             # Filter out pending steps if the execution is completed or failed
             if status in ("completed", "finished", "failed", "rejected"):
@@ -125,13 +135,23 @@ class AssessmentTransformer(BaseTransformer):
                     status_message = error_details if error_details else self._t("Unknown error", "Tuntematon virhe")
             elif status == "running":
                 status_message = self._t("Processing...", "Käsitellään...")
+                
+                # Make sure step_names is a dict
+                s_map = step_names or {}
+                
                 if steps_data:
                     count = len(steps_data)
                     # Fail safe for empty dict
                     if steps_data:
                         # Safe last step extraction
                         last_key = list(steps_data.keys())[-1]
-                        last_step = last_key.replace("step_", "").capitalize()
+                        
+                        # Use mapped name if available
+                        if last_key in s_map:
+                             last_step = s_map[last_key]
+                        else:
+                             last_step = last_key.replace("step_", "").capitalize()
+                        
                         # FIX: Last step is COMPLETED, so label it 'Valmis'
                         status_message = f"{self._t('status.completed', 'Valmis')}: {last_step} ({count})"
 
@@ -140,8 +160,8 @@ class AssessmentTransformer(BaseTransformer):
                         if item.id not in completed_ids:
                             # Create new instance as model is frozen
                             steps_list[i] = StepProgressItem(id=item.id, label=item.label, status="running")
-                            # UPDATE: If we know the next step, show THAT as processing
-                            running_step = item.id.replace("step_", "").capitalize()
+                            # UPDATE: Use item.label directly since we fixed it earlier!
+                            running_step = item.label 
                             status_message = f"{self._t('status.running', 'Käsitellään')}: {running_step}"
                             break
 

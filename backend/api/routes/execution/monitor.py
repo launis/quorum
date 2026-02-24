@@ -1,9 +1,9 @@
 """API Router for Execution Monitoring (GET and SSE)."""
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Header, status
 from sse_starlette.sse import EventSourceResponse
 
 from backend.api.bff_transformer import AssessmentTransformer
@@ -95,6 +95,7 @@ async def monitor_execution(
     execution_id: str,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
     view: str = "assessment",  # 'assessment' or 'raw'
+    accept_language: Annotated[str | None, Header()] = "en",
 ):
     """Server-Sent Events alias for monitoring."""
     try:
@@ -117,6 +118,32 @@ async def monitor_execution(
         workflow_definition = None
         if workflow_id:
             workflow_definition = await repository.get_workflow_definition(workflow_id)
+
+        # Map step names out-of-band to prevent UI UUIDs
+        step_names_map: dict[str, str] = {}
+        if workflow_definition:
+            steps_list = getattr(workflow_definition, "steps", [])
+            if not steps_list and isinstance(workflow_definition, dict):
+                steps_list = workflow_definition.get("steps", [])
+            logger.info(f"[Monitor] workflow_definition steps: {steps_list}")
+            
+            for sid in steps_list:
+                if isinstance(sid, str):
+                    try:
+                        step_doc = await repository.get_step_by_id(sid)
+                        if not step_doc:
+                            # Fallback: Is the step directly referring to a Component ID?
+                            step_doc = await repository.get_component_by_id(sid)
+                            
+                        if step_doc:
+                            # step_doc is generic dict. Extract 'name' (human readable)
+                            # or 'slug' (fallback, e.g. 'step_analyst')
+                            name = step_doc.get("name") or step_doc.get("slug")
+                            if name:
+                                step_names_map[sid] = name
+                    except Exception as e:
+                        logger.warning(f"[Monitor] Failed to fetch step {sid} for mapping: {e}")
+            logger.info(f"[Monitor] Resolved step_names_map: {step_names_map}")
 
         import asyncio
 
@@ -151,8 +178,10 @@ async def monitor_execution(
                     else:
                         # Default: AssessmentTransformer for BFF (Frontend Compatibility)
                         try:
-                            transformer = AssessmentTransformer(language="fi")  # Default to Finnish for Monitoring
-                            assessment_view = transformer.transform(exec_dict, workflow_definition)
+                            transformer = AssessmentTransformer(language=accept_language or "en")
+                            assessment_view = transformer.transform(
+                                exec_dict, workflow_definition, step_names=step_names_map
+                            )
                             payload = assessment_view.model_dump_json()
                         except Exception as trans_err:
                             logger.error(f"[Monitor] Transformation Failed: {trans_err}")
