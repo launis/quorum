@@ -36,11 +36,13 @@ def simple_workflow_def():
         steps=[
             WorkflowStep(
                 id="step_1",
+                name="Step 1",
                 task_key="mock_task_1",
                 inputs={"data": "$inputs.history_text"}
             ),
             WorkflowStep(
                 id="step_2",
+                name="Step 2",
                 task_key="mock_task_2",
                 inputs={"prev_result": "$step_1.result"}
             )
@@ -86,11 +88,12 @@ class TestWorkflowEngine:
 
             def_copy = simple_workflow_def.model_copy(update={
                 "steps": [
-                    WorkflowStep(
-                        id="step_1", 
-                        task_key="mock_task_1", 
-                        inputs={"field_a": "A", "field_b": "1"}
-                    )
+                        WorkflowStep(
+                            id="step_1",
+                            name="Step 1",
+                            task_key="mock_task_1",
+                            inputs={"field_a": "A", "field_b": "1"}
+                        )
                 ]
             })
 
@@ -200,7 +203,8 @@ class TestWorkflowEngine:
             bad_def = simple_workflow_def.model_copy(update={
                 "steps": [
                      WorkflowStep(
-                        id="step_1", 
+                        id="step_1",
+                        name="Step 1",
                         task_key="mock_task_1", 
                         inputs={"idx": "NOT_AN_INT"}
                     )
@@ -235,12 +239,14 @@ class TestWorkflowEngine:
             def_halt = simple_workflow_def.model_copy(update={
                  "steps": [
                     WorkflowStep(
-                        id="step_1", 
+                        id="step_1",
+                        name="Step 1",
                         task_key="mock_task_1", 
                         inputs={"field_a": "x", "field_b": "1"}
                     ),
                     WorkflowStep(
-                        id="step_2", 
+                        id="step_2",
+                        name="Step 2",
                         task_key="mock_task_2",
                         inputs={}
                     )
@@ -264,6 +270,7 @@ class TestWorkflowEngine:
             steps=[
                 WorkflowStep(
                     id="step_h",
+                    name="Step H",
                     task_key="mock_task",
                     config={"pre_hooks": ["mock_hook"]}
                 )

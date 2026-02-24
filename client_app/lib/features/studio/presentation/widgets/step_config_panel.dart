@@ -239,7 +239,7 @@ class _ComponentPicker extends StatelessWidget {
        menuChildren: availableComponents.map((c) {
          return MenuItemButton(
            onPressed: () => onSelected(c.id),
-           child: Text('${c.name} (${c.type})'),
+           child: Text('${c.name ?? c.slug ?? c.id} (${c.type})'),
          );
        }).toList(),
     );
@@ -276,7 +276,7 @@ class _ComponentConfigSection extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(component.name, style: Theme.of(context).textTheme.titleSmall),
+                Text(component.name ?? component.slug ?? component.id, style: Theme.of(context).textTheme.titleSmall),
                 IconButton(
                   icon: const Icon(Icons.delete_outline, size: 20),
                   onPressed: onRemove,
@@ -425,7 +425,7 @@ class _RulesTable extends StatelessWidget {
                    hint: const Text("Select..."),
                    isDense: true,
                    underline: const SizedBox.shrink(),
-                   items: availableComponents.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))).toList(),
+                   items: availableComponents.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name ?? c.slug ?? c.id, overflow: TextOverflow.ellipsis))).toList(),
                    onChanged: (v) {
                      if (v != null) _updateRule(idx, rule.copyWith(componentId: v));
                    },

@@ -43,7 +43,7 @@ async def update_settings(
         from backend.exceptions import PermissionDeniedError
 
         error_code = "PERMISSION_DENIED_ROOT_ONLY"
-        logger.error(f"{error_code}: User {current_user.uid} denied.", exc_info=True)
+        logger.error(f"{error_code}: User {current_user.id} denied.", exc_info=True)
         raise PermissionDeniedError(message="ROOT access required", details={"error_code": error_code})
 
     try:
@@ -54,10 +54,10 @@ async def update_settings(
         # Audit
         # AuditServiceDep is strict, so no None check needed.
         await audit_service.log_event(
-            actor_uid=current_user.uid,
+            actor_id=current_user.id,
             action="SETTINGS_UPDATED",
             organization_id="system",
-            target_uid="global_settings",
+            target_id="global_settings",
             details=data,
         )
 

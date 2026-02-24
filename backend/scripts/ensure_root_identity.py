@@ -24,17 +24,17 @@ def ensure_root_identity():
     User = Query()
 
     # 2. Check for Correct Root (root_master)
-    root_master = users_table.get(User.uid == "root_master")
+    root_master = users_table.get(User.slug == "root_master")
     if root_master:
         print("[Identity] ✅ Root user 'root_master' exists. No action needed.")
         return
 
     # 3. Check for Legacy Root (uid="1")
-    legacy_root = users_table.get(User.uid == "1")
+    legacy_root = users_table.get(User.id == "1")
     if legacy_root:
-        print("[Identity] ⚠️ Found Legacy Root (UID 1). Migrating to 'root_master'...")
-        # Update UID
-        users_table.update({"uid": "root_master"}, User.uid == "1")
+        print("[Identity] ⚠️ Found Legacy Root (ID 1). Migrating to 'root_master'...")
+        # Update Slug
+        users_table.update({"slug": "root_master"}, User.id == "1")
         print("[Identity] ✅ Migration complete.")
         return
 
@@ -43,11 +43,12 @@ def ensure_root_identity():
 
     # Minimal Root User (matches seed_data.json structure)
     surgical_root = {
-        "uid": "root_master",
+        "id": "10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b", # Match the uuid in seed_data.json
+        "slug": "root_master",
         "email": "root@example.com",
         "display_name": "System Root",
         "role": "ROOT",
-        "organization_id": "system",
+        "organization_id": "436d84de-c526-43b7-93ef-634912be0d2f", # Match seed_data.json org
         "is_active": True,
         "language": "fi",
         "theme_mode": "system",

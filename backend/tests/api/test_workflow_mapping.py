@@ -12,7 +12,7 @@ client = TestClient(app)
 
 # Mock User
 async def mock_get_current_user():
-    return TokenData(uid="test-root", role=UserRole.ROOT, organization_id="system")
+    return TokenData(id="test-root", role=UserRole.ROOT, organization_id="system")
 
 
 # Mock Repository

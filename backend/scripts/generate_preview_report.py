@@ -84,7 +84,7 @@ class MockWorkflowRepository(AbstractWorkflowRepository):
     async def log_audit_event(self, event_data):
         pass
 
-    async def get_audit_logs(self, organization_id=None, actor_uid=None, action=None, limit=100, **kwargs):
+    async def get_audit_logs(self, organization_id=None, actor_id=None, action=None, limit=100, **kwargs):
         from typing import Any
         return []
 
@@ -416,7 +416,7 @@ async def main():
 
     # 3. Generate Report
     # Pass the state to the repository so it can be fetched by ID
-    repo = MockWorkflowRepository(state)
+    repo = MockWorkflowRepository(state)  # type: ignore
     service = PdfReportService(repository=repo)
 
     try:

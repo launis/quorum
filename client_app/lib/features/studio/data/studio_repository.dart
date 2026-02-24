@@ -136,21 +136,18 @@ class StudioRepository {
         // Sanitize Data
         final data = Map<String, dynamic>.from(item);
 
-        // 1. Polyfill Name
-        if (data['name'] == null) {
-          data['name'] = data['id'] ?? 'Unnamed';
-        }
+        // 1. Polyfill Name (REMOVED - Backend ensures name or schema validation catches it)
 
         try {
           parsed.add(StudioComponentDef.fromJson(data));
         } catch (e) {
           _logger.error(
             'REPO',
-            'Error parsing component ${data['id']}: $e',
+            'Error parsing component ${data["id"]}: $e. RAW: $data',
             e as Exception,
           );
           // Skip invalid items to prevent total failure
-          print('Skipping invalid component ${data['id']}: $e');
+          print('Skipping invalid component ${data["id"]}: $e. RAW: $data');
         }
       }
       _logger.info('REPO', 'Parsed text components count: ${parsed.length}');

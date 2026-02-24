@@ -98,7 +98,7 @@ class GenericActionResponse(BaseModel):
     """Response model for generic admin actions."""
 
     status: str
-    uid: str | None = None
+    id: str | None = None
 
 
 class GeneratedPhrasesResponse(BaseModel):
@@ -240,7 +240,7 @@ async def create_user(
 ):
     """Creates a new user under the active organization constraints."""
     try:
-        return await auth_service.create_user(creator_uid=user.uid, user_data=request)
+        return await auth_service.create_user(creator_id=user.id, user_data=request)
     except PermissionError as e:
         # Transform Logic Error -> Domain Exception (403)
         error_code = "PERMISSION_DENIED"
@@ -272,7 +272,7 @@ async def update_user(
 ):
     """Updates an existing user profile."""
     try:
-        return await auth_service.update_user(initiator_uid=user.uid, target_uid=user_id, updates=request)
+        return await auth_service.update_user(initiator_id=user.id, target_id=user_id, updates=request)
     except PermissionError as e:
         error_code = "PERMISSION_DENIED"
         logger.error(f"{error_code}: {e}", exc_info=True)
@@ -312,34 +312,42 @@ async def delete_user(
     user_id: Annotated[str, Path(description="Target User UID")],
     user: CurrentUserDep,
     auth_service: AuthServiceDep,
+    repo: RepositoryDep,
 ):
     """Deletes a user (Enforces Last Admin Protection)."""
     try:
-        await auth_service.delete_user(initiator_uid=user.uid, target_uid=user_id)
-        return GenericActionResponse(status="deleted", uid=user_id)
+        target = await asyncio.to_thread(repo.get_by_id, user_id)
+        if not target:
+            raise ResourceNotFoundError("User", user_id)
+
+        # 1. ROOT PROTECTION - By Name
+        if target.display_name == "System Root":
+            raise PermissionDeniedError("The primary Root account cannot be deleted.")
+
+        # 2. LAST ADMIN PROTECTION
+        if target.role == UserRole.ADMIN and target.organization_id:
+            admin_count = await asyncio.to_thread(auth_service._count_org_admins, target.organization_id)
+            if admin_count <= 1:
+                from backend.exceptions import ConflictError
+
+                error_code = "LAST_ADMIN_PROTECTION"
+                logger.error(f"{error_code}: Cannot delete the last Administrator", exc_info=True)
+                raise ConflictError(
+                    message="Cannot delete the last Administrator of an Organization.",
+                    details={"error_code": error_code},
+                )
+
+        await auth_service.delete_user(initiator_id=user.id, target_id=user_id)
+        return GenericActionResponse(status="deleted", id=user_id)
     except PermissionError as e:
         error_code = "PERMISSION_DENIED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
     except ValueError as e:
-        if "Last Admin" in str(e):
-            from backend.exceptions import ConflictError
-
-            error_code = "LAST_ADMIN_PROTECTION"
-            logger.error(f"{error_code}: {e}", exc_info=True)
-            raise ConflictError(message=str(e), details={"error_code": error_code}) from e
-
         error_code = "USER_NOT_FOUND"
         logger.error(f"{error_code}: User {user_id} not found: {e}", exc_info=True)
         raise ResourceNotFoundError("User", user_id) from e
     except RuntimeError as e:
-        if "LAST_ADMIN_PROTECTION" in str(e):
-            from backend.exceptions import ConflictError
-
-            error_code = "LAST_ADMIN_PROTECTION"
-            logger.error(f"{error_code}: {e}", exc_info=True)
-            raise ConflictError(message=str(e), details={"error_code": error_code}) from e
-
         # Unknown Runtime Error -> Fail Fast with RFC 7807
         from backend.exceptions import AppException
 
@@ -700,10 +708,10 @@ async def list_organization_users(
     if user.role != UserRole.ROOT:
         error_code = "AUTH_PERMISSION_DENIED"
         if user.role == UserRole.ADMIN and user.organization_id != organization_id:
-            logger.warning(f"{error_code}: Admin {user.uid} attempted to access org {organization_id}")
+            logger.warning(f"{error_code}: Admin {user.id} attempted to access org {organization_id}")
             raise PermissionDeniedError(message="Organization access denied", details={"error_code": error_code})
         if user.role not in [UserRole.ROOT, UserRole.ADMIN]:
-            logger.warning(f"{error_code}: User {user.uid} with role {user.role} attempted admin access")
+            logger.warning(f"{error_code}: User {user.id} with role {user.role} attempted admin access")
             raise PermissionDeniedError(message="Admin access required", details={"error_code": error_code})
 
     return await auth_service.get_users_by_organization(organization_id)
@@ -722,7 +730,7 @@ async def update_user_role(
 ):
     """Updates a user's role (Enforces hierarchy)."""
     try:
-        return await auth_service.update_user_role(initiator_uid=user.uid, target_uid=user_id, new_role=request.role)
+        return await auth_service.update_user_role(initiator_id=user.id, target_id=user_id, new_role=request.role)
     except (PermissionError, ValueError, RuntimeError) as e:
         msg = str(e)
         if "LAST_ADMIN_PROTECTION" in msg:

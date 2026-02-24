@@ -594,7 +594,7 @@ as String,
 /// @nodoc
 mixin _$KnowledgeModelStrategy {
 
- String get id;@JsonKey(name: 'model_name') String get modelName; String? get provider;
+ String get id; String? get slug;@JsonKey(name: 'model_name') String get modelName; String? get provider;
 /// Create a copy of KnowledgeModelStrategy
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -607,16 +607,16 @@ $KnowledgeModelStrategyCopyWith<KnowledgeModelStrategy> get copyWith => _$Knowle
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is KnowledgeModelStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.provider, provider) || other.provider == provider));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is KnowledgeModelStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.provider, provider) || other.provider == provider));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,modelName,provider);
+int get hashCode => Object.hash(runtimeType,id,slug,modelName,provider);
 
 @override
 String toString() {
-  return 'KnowledgeModelStrategy(id: $id, modelName: $modelName, provider: $provider)';
+  return 'KnowledgeModelStrategy(id: $id, slug: $slug, modelName: $modelName, provider: $provider)';
 }
 
 
@@ -627,7 +627,7 @@ abstract mixin class $KnowledgeModelStrategyCopyWith<$Res>  {
   factory $KnowledgeModelStrategyCopyWith(KnowledgeModelStrategy value, $Res Function(KnowledgeModelStrategy) _then) = _$KnowledgeModelStrategyCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'model_name') String modelName, String? provider
+ String id, String? slug,@JsonKey(name: 'model_name') String modelName, String? provider
 });
 
 
@@ -644,10 +644,11 @@ class _$KnowledgeModelStrategyCopyWithImpl<$Res>
 
 /// Create a copy of KnowledgeModelStrategy
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? modelName = null,Object? provider = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? modelName = null,Object? provider = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,modelName: null == modelName ? _self.modelName : modelName // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,modelName: null == modelName ? _self.modelName : modelName // ignore: cast_nullable_to_non_nullable
 as String,provider: freezed == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -734,10 +735,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'model_name')  String modelName,  String? provider)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? slug, @JsonKey(name: 'model_name')  String modelName,  String? provider)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _KnowledgeModelStrategy() when $default != null:
-return $default(_that.id,_that.modelName,_that.provider);case _:
+return $default(_that.id,_that.slug,_that.modelName,_that.provider);case _:
   return orElse();
 
 }
@@ -755,10 +756,10 @@ return $default(_that.id,_that.modelName,_that.provider);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'model_name')  String modelName,  String? provider)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? slug, @JsonKey(name: 'model_name')  String modelName,  String? provider)  $default,) {final _that = this;
 switch (_that) {
 case _KnowledgeModelStrategy():
-return $default(_that.id,_that.modelName,_that.provider);case _:
+return $default(_that.id,_that.slug,_that.modelName,_that.provider);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -775,10 +776,10 @@ return $default(_that.id,_that.modelName,_that.provider);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'model_name')  String modelName,  String? provider)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? slug, @JsonKey(name: 'model_name')  String modelName,  String? provider)?  $default,) {final _that = this;
 switch (_that) {
 case _KnowledgeModelStrategy() when $default != null:
-return $default(_that.id,_that.modelName,_that.provider);case _:
+return $default(_that.id,_that.slug,_that.modelName,_that.provider);case _:
   return null;
 
 }
@@ -790,10 +791,11 @@ return $default(_that.id,_that.modelName,_that.provider);case _:
 @JsonSerializable()
 
 class _KnowledgeModelStrategy implements KnowledgeModelStrategy {
-  const _KnowledgeModelStrategy({required this.id, @JsonKey(name: 'model_name') required this.modelName, this.provider});
+  const _KnowledgeModelStrategy({required this.id, this.slug, @JsonKey(name: 'model_name') required this.modelName, this.provider});
   factory _KnowledgeModelStrategy.fromJson(Map<String, dynamic> json) => _$KnowledgeModelStrategyFromJson(json);
 
 @override final  String id;
+@override final  String? slug;
 @override@JsonKey(name: 'model_name') final  String modelName;
 @override final  String? provider;
 
@@ -810,16 +812,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _KnowledgeModelStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.provider, provider) || other.provider == provider));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _KnowledgeModelStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.provider, provider) || other.provider == provider));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,modelName,provider);
+int get hashCode => Object.hash(runtimeType,id,slug,modelName,provider);
 
 @override
 String toString() {
-  return 'KnowledgeModelStrategy(id: $id, modelName: $modelName, provider: $provider)';
+  return 'KnowledgeModelStrategy(id: $id, slug: $slug, modelName: $modelName, provider: $provider)';
 }
 
 
@@ -830,7 +832,7 @@ abstract mixin class _$KnowledgeModelStrategyCopyWith<$Res> implements $Knowledg
   factory _$KnowledgeModelStrategyCopyWith(_KnowledgeModelStrategy value, $Res Function(_KnowledgeModelStrategy) _then) = __$KnowledgeModelStrategyCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'model_name') String modelName, String? provider
+ String id, String? slug,@JsonKey(name: 'model_name') String modelName, String? provider
 });
 
 
@@ -847,10 +849,11 @@ class __$KnowledgeModelStrategyCopyWithImpl<$Res>
 
 /// Create a copy of KnowledgeModelStrategy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? modelName = null,Object? provider = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? modelName = null,Object? provider = freezed,}) {
   return _then(_KnowledgeModelStrategy(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,modelName: null == modelName ? _self.modelName : modelName // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,modelName: null == modelName ? _self.modelName : modelName // ignore: cast_nullable_to_non_nullable
 as String,provider: freezed == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
 as String?,
   ));

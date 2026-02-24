@@ -24,7 +24,7 @@ def create_mock_repo():
 
 # Mock User for Auth
 async def mock_get_current_user() -> TokenData:
-    return TokenData(uid="test_user", role=UserRole.ADMIN, email="test@example.com", organization_id="test_org")
+    return TokenData(id="test_user", role=UserRole.ADMIN, email="test@example.com", organization_id="test_org")
 
 
 @pytest.mark.asyncio

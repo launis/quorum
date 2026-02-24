@@ -1,7 +1,7 @@
 """Registry service for managing Agent components and strategies."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from backend.core.registry import TaskRegistry
@@ -200,7 +200,7 @@ class AgentRegistry:
                     "name": name,
                     "type": type,
                     "class_name": class_name,
-                    "registered_at": datetime.now(),
+                    "registered_at": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -248,7 +248,7 @@ class AgentRegistry:
                                 "name": task_key,
                                 "type": agent_type,
                                 "class_name": agent_class_name,
-                                "registered_at": datetime.now(),
+                                "registered_at": datetime.now(timezone.utc).isoformat(),
                             }
                         )
 

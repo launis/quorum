@@ -108,7 +108,7 @@ async def test_agent_execution_mock():
     falsifier = LogicalFalsifierAgent()
     falsifier_input = FalsifierInput(
         history_text="Foo",
-        step_analyst={"thought_process": "tp", "conclusion": "c", "confidence_score": 0.9, "hypotheses": ["Test hypothesis 1"]}
+        step_analyst=AnalystOutput(**{"thought_process": "tp", "conclusion": "c", "confidence_score": 0.9, "hypotheses": [{"id": "h1", "claim_text": "Test claim", "evidence_found": False, "search_query": "test query", "quotes": []}]})  # type: ignore
     )
     await run_agent_test(falsifier, falsifier_input, falsifier_dto_mock)
 

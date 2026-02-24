@@ -10,7 +10,6 @@ import 'package:client_app/features/orchestration/presentation/screens/analysis_
 import 'package:client_app/features/orchestration/presentation/screens/execution_monitor_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_result_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_details_screen.dart';
-// Duplicate removed inside router.dart
 import 'package:client_app/features/studio/presentation/screens/workflow_studio_screen.dart'; // Added for direct routing
 import 'package:client_app/router/routes/admin_routes.dart'; // Manual Shell Route
 import 'package:client_app/features/knowledge_base/view/ingestion_view.dart';
@@ -24,6 +23,11 @@ part 'router.g.dart';
 
 // Private keys for navigator state
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+bool _isUuid(String input) {
+  final regex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+  return regex.hasMatch(input);
+}
 
 /// **Router Provider**
 ///
@@ -134,6 +138,9 @@ GoRouter router(Ref ref) {
                         path: 'monitor',
                         builder: (context, state) {
                           final id = state.pathParameters['id']!;
+                          if (!_isUuid(id)) {
+                            debugPrint('🔴 UI GRACEFUL DEGRADATION: Route parsed non-UUID for ExecutionMonitorScreen (using slug/fallback): $id');
+                          }
                           return ExecutionMonitorScreen(executionId: id);
                         },
                       ),
@@ -141,6 +148,9 @@ GoRouter router(Ref ref) {
                         path: 'report',
                         builder: (context, state) {
                           final id = state.pathParameters['id']!;
+                          if (!_isUuid(id)) {
+                            debugPrint('🔴 UI GRACEFUL DEGRADATION: Route parsed non-UUID for ExecutionResultScreen (using slug/fallback): $id');
+                          }
                           return ExecutionResultScreen(executionId: id);
                         },
                       ),
@@ -148,6 +158,9 @@ GoRouter router(Ref ref) {
                         path: 'details',
                         builder: (context, state) {
                           final id = state.pathParameters['id']!;
+                          if (!_isUuid(id)) {
+                            debugPrint('🔴 UI GRACEFUL DEGRADATION: Route parsed non-UUID for ExecutionDetailsScreen (using slug/fallback): $id');
+                          }
                           return ExecutionDetailsScreen(executionId: id);
                         },
                       ),

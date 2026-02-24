@@ -8,6 +8,7 @@ part of 'organization.dart';
 
 Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
   id: json['id'] as String,
+  slug: json['slug'] as String?,
   name: json['name'] as String,
   createdAt: json['created_at'] as String?,
   updatedAt: json['updated_at'] as String?,
@@ -28,6 +29,7 @@ Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
 Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'slug': instance.slug,
       'name': instance.name,
       'created_at': instance.createdAt,
       'updated_at': instance.updatedAt,

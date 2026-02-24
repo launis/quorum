@@ -7,6 +7,7 @@ organization management, and cryptographic token structures.
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Literal
+import uuid
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
@@ -58,7 +59,8 @@ class Organization(BaseModel):
         quota_limit (int): Monthly API call quota.
     """
 
-    id: Annotated[str, Field(description="Unique Organization ID (e.g. 'nokia-v1')")]
+    id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()), description="Unique Organization ID (e.g. 'nokia-v1')")]
+    slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     name: Annotated[str, Field(description="Display Name")]
     created_at: Annotated[datetime | None, Field(description="ISO Timestamp")] = None
     is_active: Annotated[bool, Field(description="Subscription status")] = True
@@ -148,18 +150,20 @@ class User(UserBase):
     """Full User model representing a persisted user record.
 
     Attributes:
-        uid (str): Unique ID (matches Firebase UID if used).
+        id (str): Unique ID (matches Firebase UID if used).
+        slug (Optional[str]): Legacy human-readable identifier.
         created_at (str): ISO 8601 Timestamp.
         created_by (Optional[str]): UID of the creator.
     """
 
-    uid: Annotated[str, Field(description="Unique ID (matches Firebase UID if used)")]
+    id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID (matches Firebase UID if used)")]
+    slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     created_at: Annotated[datetime, Field(description="ISO 8601 Timestamp")]
     created_by: Annotated[str | None, Field(description="UID of the creator")] = None
 
     model_config = ConfigDict(frozen=True, strict=True)
 
-    @field_validator("uid")
+    @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
@@ -198,14 +202,16 @@ class UserAdminView(UserBase):
     """Extended User model for admin views with statistics and raw datetime objects.
 
     Attributes:
-        uid (str): Unique ID.
+        id (str): Unique ID.
+        slug (Optional[str]): Legacy human-readable identifier.
         created_at (datetime): Timestamp as datetime object.
         created_by (Optional[str]): UID of the creator.
         last_login_at (Optional[datetime]): Timestamp of last login.
         execution_count (int): Total number of executions/audits run.
     """
 
-    uid: str
+    id: str
+    slug: str | None = None
     created_at: datetime
     created_by: str | None = None
     last_login_at: datetime | None = None
@@ -282,20 +288,20 @@ class TokenData(BaseModel):
     """Structure for JWT token payload data.
 
     Attributes:
-        uid (str): User ID.
+        id (str): User ID.
         role (UserRole): User Role.
         organization_id (Optional[str]): Organization ID.
         email (Optional[str]): User email.
     """
 
-    uid: str
+    id: str
     role: UserRole
     organization_id: str | None = None
     email: str | None = None
 
     model_config = ConfigDict(frozen=True, strict=True)
 
-    @field_validator("uid")
+    @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():

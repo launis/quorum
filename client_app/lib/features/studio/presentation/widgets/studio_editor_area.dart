@@ -15,8 +15,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class StudioEditorArea extends ConsumerStatefulWidget {
   final String? selectedStepId;
+  final ValueChanged<String?>? onStepSelected;
 
-  const StudioEditorArea({super.key, required this.selectedStepId});
+  const StudioEditorArea({super.key, required this.selectedStepId, this.onStepSelected});
 
   @override
   ConsumerState<StudioEditorArea> createState() => _StudioEditorAreaState();
@@ -117,9 +118,20 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
               // Header
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Configuration: ${selectedStep.name}',
-                  style: Theme.of(context).textTheme.titleLarge,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => widget.onStepSelected?.call(null),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Configuration: ${selectedStep.name}',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const Divider(height: 1),
@@ -196,8 +208,9 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
                   margin: const EdgeInsets.symmetric(vertical: 4.0),
                   child: ListTile(
                     leading: const Icon(Icons.drag_handle),
-                    title: Text(step.name.isNotEmpty ? step.name : step.id),
+                    title: Text(step.name.isNotEmpty ? step.name : (step.slug ?? 'Unnamed Step')),
                     subtitle: Text('Task: ${step.taskKey}'),
+                    onTap: () => widget.onStepSelected?.call(step.id),
                     trailing: IconButton(
                        icon: const Icon(Icons.delete, color: Colors.red),
                        onPressed: () => _deleteStep(ref, workflow, step.id),
@@ -421,7 +434,7 @@ class _RulesTable extends ConsumerWidget {
                   items: availableComponents.map((c) {
                     return DropdownMenuItem(
                       value: c.id,
-                      child: Text(c.name),
+                      child: Text(c.name ?? c.slug ?? c.id),
                     );
                   }).toList(),
                   onChanged: (val) {

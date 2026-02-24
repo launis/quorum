@@ -10,7 +10,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from backend.core.rate_limit import limiter
-from backend.dependencies import AuthServiceDep, CurrentUserDep
+from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, OrganizationCreate, User, UserCreate, UserRole, UserUpdate
 from backend.models.dtos.auth import UserDeleteResponse
 
@@ -49,7 +49,7 @@ class LoginResponse(BaseModel):
 class ImpersonationRequest(BaseModel):
     """Request payload for impersonation."""
 
-    target_uid: str
+    target_id: str
 
 
 class ImpersonationResponse(BaseModel):
@@ -82,7 +82,7 @@ async def verify_user_token(request: Request, payload: TokenPayload, auth_servic
     try:
         token_data = auth_service.verify_token(payload.token)
         # Fetch full profile
-        user = auth_service.repo.get_by_uid(token_data.uid)
+        user = auth_service.repo.get_by_id(token_data.id)
 
         if not user:
             # Should match logic in verify_token, handled there usually,
@@ -121,7 +121,7 @@ async def impersonate_user(request: ImpersonationRequest, current_user: CurrentU
     """Generates an impersonation token for the target user. Requires ROOT.
 
     Args:
-        request (ImpersonationRequest): Payload containing target_uid.
+        request (ImpersonationRequest): Payload containing target_id.
         current_user (CurrentUserDep): The requesting user (must be ROOT).
         auth_service (AuthServiceDep): Auth service.
 
@@ -131,23 +131,23 @@ async def impersonate_user(request: ImpersonationRequest, current_user: CurrentU
     Raises:
         HTTPException: If permission denied (403) or target not found (404).
     """
-    requester = auth_service.repo.get_by_uid(current_user.uid)
+    requester = auth_service.repo.get_by_id(current_user.id)
     if not requester or requester.role != UserRole.ROOT:
         from backend.exceptions import PermissionDeniedError
 
         error_code = "PERMISSION_DENIED_IMPERSONATION"
-        logger.warning(f"{error_code}: User {current_user.uid} attempted to impersonate without Root")
+        logger.warning(f"{error_code}: User {current_user.id} attempted to impersonate without Root")
         raise PermissionDeniedError(message="Impersonation Denied", details={"error_code": error_code})
 
-    target = auth_service.repo.get_by_uid(request.target_uid)
+    target = auth_service.repo.get_by_id(request.target_id)
     if not target:
         from backend.exceptions import ResourceNotFoundError
 
         error_code = "USER_NOT_FOUND"
-        logger.warning(f"{error_code}: Impersonation target {request.target_uid} not found")
-        raise ResourceNotFoundError("User", request.target_uid)
+        logger.warning(f"{error_code}: Impersonation target {request.target_id} not found")
+        raise ResourceNotFoundError("User", request.target_id)
 
-    token = auth_service.create_impersonation_token(target.uid)
+    token = auth_service.create_impersonation_token(target.id)
     return ImpersonationResponse(access_token=token)
 
 
@@ -181,16 +181,16 @@ async def create_user(
     """
     # Authorization checks are handled inside auth_service._enforce_hierarchy,
     # but we need to fetch the full Creator User object first.
-    creator_full = auth_service.repo.get_by_uid(current_user.uid)
+    creator_full = auth_service.repo.get_by_id(current_user.id)
     if not creator_full:
         from backend.exceptions import AuthenticationError
 
         error_code = "AUTH_USER_NOT_FOUND"
-        logger.warning(f"{error_code}: Creator {current_user.uid} not found")
+        logger.warning(f"{error_code}: Creator {current_user.id} not found")
         raise AuthenticationError(message="User not found", details={"error_code": error_code})
 
     try:
-        new_user = await auth_service.create_user(creator_full.uid, user_data)
+        new_user = await auth_service.create_user(creator_full.id, user_data)
         return new_user
     except PermissionError as e:
         from backend.exceptions import PermissionDeniedError
@@ -231,16 +231,16 @@ async def create_organization(org_data: OrganizationCreate, current_user: Curren
     Raises:
         HTTPException: If user is not ROOT (403).
     """
-    creator = auth_service.repo.get_by_uid(current_user.uid)
+    creator = auth_service.repo.get_by_id(current_user.id)
     if not creator or creator.role != UserRole.ROOT:
         from backend.exceptions import PermissionDeniedError
 
         error_code = "PERMISSION_DENIED_ROOT_ONLY"
-        logger.warning(f"{error_code}: User {current_user.uid} attempted to create org")
+        logger.warning(f"{error_code}: User {current_user.id} attempted to create org")
         raise PermissionDeniedError(message="Access denied", details={"error_code": error_code})
 
     try:
-        return await auth_service.create_organization(creator.uid, org_data)
+        return await auth_service.create_organization(creator.id, org_data)
     except Exception as e:
         from backend.exceptions import AppException
 
@@ -260,12 +260,12 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
     Returns:
         list[User]: A list of accessible user profiles.
     """
-    requester = auth_service.repo.get_by_uid(current_user.uid)
+    requester = auth_service.repo.get_by_id(current_user.id)
     if not requester:
         from backend.exceptions import AuthenticationError
 
         error_code = "AUTH_USER_NOT_FOUND"
-        logger.warning(f"{error_code}: User {current_user.uid} not found")
+        logger.warning(f"{error_code}: User {current_user.id} not found")
         raise AuthenticationError(message="User not found", details={"error_code": error_code})
 
     all_users = auth_service.repo.list_all()
@@ -291,16 +291,17 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
     return [requester]
 
 
-@router.delete("/users/{uid}", response_model=UserDeleteResponse)
-async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: AuthServiceDep):
+@router.delete("/users/{id}", response_model=UserDeleteResponse)
+async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep, repo: RepositoryDep):
     """Delete a user.
 
     Enforces Last Admin Protection.
 
     Args:
-        uid (str): The UID of the user to delete.
+        id (str): The UID of the user to delete.
         current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).
         auth_service (AuthServiceDep): Authorization service.
+        repo (RepositoryDep): Repository dependency.
 
     Returns:
         UserDeleteResponse: Status confirmation.
@@ -309,8 +310,30 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
         HTTPException: Permission denied (403) or business logic error (400).
     """
     try:
-        await auth_service.delete_user(current_user.uid, uid)
-        return UserDeleteResponse(status="deleted", uid=uid)
+        import asyncio
+        target = await asyncio.to_thread(repo.get_by_id, id)
+        if not target:
+            from backend.exceptions import ResourceNotFoundError
+            raise ResourceNotFoundError("User", id)
+
+        if target.display_name == "System Root":
+            from backend.exceptions import PermissionDeniedError
+            raise PermissionDeniedError("The primary Root account cannot be deleted.")
+
+        if target.role == UserRole.ADMIN and target.organization_id:
+            admin_count = await asyncio.to_thread(auth_service._count_org_admins, target.organization_id)
+            if admin_count <= 1:
+                from backend.exceptions import ConflictError
+
+                error_code = "LAST_ADMIN_PROTECTION"
+                logger.error(f"{error_code}: Cannot delete the last Administrator", exc_info=True)
+                raise ConflictError(
+                    message="Cannot delete the last Administrator of an Organization.",
+                    details={"error_code": error_code},
+                )
+
+        await auth_service.delete_user(current_user.id, id)
+        return UserDeleteResponse(status="deleted", id=id)
     except PermissionError as e:
         from backend.exceptions import PermissionDeniedError
 
@@ -341,12 +364,12 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
         ) from e
 
 
-@router.patch("/users/{uid}", response_model=User)
-async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
+@router.patch("/users/{id}", response_model=User)
+async def update_user(id: str, user_update: UserUpdate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
     """Update a user (Role, Display Name, etc).
 
     Args:
-        uid (str): The UID of the user to update.
+        id (str): The UID of the user to update.
         user_update (UserUpdate): Fields to update.
         current_user (CurrentUserDep): Requesting user.
         auth_service (AuthServiceDep): Authorization service.
@@ -355,7 +378,7 @@ async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUs
         User: The updated user profile.
     """
     try:
-        updated_user = await auth_service.update_user(current_user.uid, uid, user_update)
+        updated_user = await auth_service.update_user(current_user.id, id, user_update)
         return updated_user
     except PermissionError as e:
         from backend.exceptions import PermissionDeniedError
@@ -369,7 +392,7 @@ async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUs
 
         error_code = "USER_NOT_FOUND"
         logger.warning(f"{error_code}: {e}")
-        raise ResourceNotFoundError("User", uid) from e
+        raise ResourceNotFoundError("User", id) from e
     except Exception as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
             from backend.exceptions import ConflictError
@@ -398,11 +421,11 @@ async def get_my_profile(current_user: CurrentUserDep, auth_service: AuthService
     Returns:
         User: The full user profile.
     """
-    user = auth_service.repo.get_by_uid(current_user.uid)
+    user = auth_service.repo.get_by_id(current_user.id)
     if not user:
         from backend.exceptions import AuthenticationError
 
         error_code = "AUTH_USER_NOT_FOUND"
-        logger.warning(f"{error_code}: Profile for {current_user.uid} not found")
+        logger.warning(f"{error_code}: Profile for {current_user.id} not found")
         raise AuthenticationError(message="User not found", details={"error_code": error_code})
     return user

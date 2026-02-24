@@ -1,0 +1,15 @@
+| Table                | seed_data.json | copy.json | db.json |
+|----------------------|----------------|-----------|---------|
+| agents               | 15             | 15        | 0       | DIFF
+| claims               | 193            | 193       | 193     | OK
+| components           | 59             | 59        | 4       | DIFF
+| concepts             | 76             | 76        | 76      | OK
+| dimensions           | 3              | 3         | 3       | OK
+| matrices             | 2              | 2         | 0       | DIFF
+| organizations        | 2              | 2         | 2       | OK
+| output_configs       | 2              | 2         | 0       | DIFF
+| references           | 197            | 197       | 197     | OK
+| steps                | 16             | 16        | 3       | DIFF
+| system_config        | 2              | 2         | 0       | DIFF
+| users                | 5              | 5         | 1       | DIFF
+| workflows            | 6              | 6         | 7       | DIFF

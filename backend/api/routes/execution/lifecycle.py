@@ -189,7 +189,7 @@ async def create_execution(
             "completed_at": None,
             "results": {},
             "inputs": sanitized_inputs,
-            "user_id": current_user.uid if current_user else "system",
+            "user_id": current_user.id if current_user else "system",
             "organization_id": organization_id,
             "workflow_name": definition.name if definition else None,
         }
@@ -205,13 +205,13 @@ async def create_execution(
                 inputs=inputs,
                 execution_id=execution_id,
                 organization_id=organization_id,
-                user_id=current_user.uid if current_user else "system",
+                user_id=current_user.id if current_user else "system",
             )
         else:
             logger.warning("Arq pool not available! Running Synchronously.")
             # Inject identity context for synchronous execution
             if current_user:
-                inputs["user_id"] = current_user.uid
+                inputs["user_id"] = current_user.id
 
             result = await engine.execute_workflow(definition, inputs, repository=repository, execution_id=execution_id)
             execution_data["results"] = sanitize_for_json(result)
@@ -376,7 +376,7 @@ async def cancel_execution(
                 has_access = True
         elif user_role == UserRole.MEMBER:
             # Can cancel own executions
-            if str(current_user.uid) == str(record_user):
+            if str(current_user.id) == str(record_user):
                 has_access = True
 
         if not has_access:
@@ -399,7 +399,7 @@ async def cancel_execution(
 
         await repository.update_execution(execution_id, {"status": "cancelling"})
 
-        logger.info(f"Execution {execution_id} marked as cancelling by user {current_user.uid}")
+        logger.info(f"Execution {execution_id} marked as cancelling by user {current_user.id}")
 
         return ExecutionCancelResponse(id=execution_id, status="cancelling", message="Cancellation signal sent.")
 

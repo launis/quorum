@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep
-from backend.exceptions import AppException, ConflictError, ResourceNotFoundError
+from backend.exceptions import AppException, ConflictError, ResourceNotFoundError, ErrorCodes, format_validation_error
 from backend.models.dtos.config import StepDefinition, StepDeleteResponse
 
 logger = logging.getLogger(__name__)
@@ -24,9 +24,9 @@ def get_steps(db: DatabaseDep) -> list[StepDefinition]:
         steps = db.table("steps").all()
         return [StepDefinition(**s) for s in steps]
     except Exception as e:
-        error_code = "STEP_LIST_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.STEP_LIST_FAILED
+        logger.error(f"[StepsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.get("/{step_id}", summary="Get Step", response_model=StepDefinition)
@@ -42,9 +42,9 @@ def get_step(step_id: str, db: DatabaseDep) -> StepDefinition:
         if isinstance(e, ResourceNotFoundError):
             raise e
 
-        error_code = "STEP_FETCH_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.STEP_FETCH_FAILED
+        logger.error(f"[StepsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.post("", summary="Create Step", response_description="Status and ID.", response_model=StepDefinition)
@@ -68,9 +68,9 @@ def create_step(step: StepDefinition, db: DatabaseDep) -> StepDefinition:
         if isinstance(e, ConflictError):
             raise e
 
-        error_code = "STEP_CREATE_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.STEP_CREATE_FAILED
+        logger.error(f"[StepsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.put("/{step_id}", summary="Update Step", response_model=StepDefinition)
@@ -103,9 +103,9 @@ def update_step(step_id: str, step: StepDefinition, db: DatabaseDep) -> StepDefi
         if isinstance(e, (ResourceNotFoundError, ConflictError)):
             raise e
 
-        error_code = "STEP_UPDATE_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.STEP_UPDATE_FAILED
+        logger.error(f"[StepsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.delete("/{step_id}", summary="Delete Step", response_model=StepDeleteResponse)
@@ -124,6 +124,6 @@ def delete_step(step_id: str, db: DatabaseDep) -> StepDeleteResponse:
         if isinstance(e, ResourceNotFoundError):
             raise e
 
-        error_code = "STEP_DELETE_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.STEP_DELETE_FAILED
+        logger.error(f"[StepsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e

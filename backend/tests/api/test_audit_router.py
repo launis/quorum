@@ -13,9 +13,9 @@ client = TestClient(app)
 # Mock Data
 mock_audit_service = AsyncMock()
 
-root_user = TokenData(uid="root-1", role=UserRole.ROOT, organization_id="system")
-admin_user = TokenData(uid="admin-1", role=UserRole.ADMIN, organization_id="org-A")
-member_user = TokenData(uid="member-1", role=UserRole.MEMBER, organization_id="org-A")
+root_user = TokenData(id="root-1", role=UserRole.ROOT, organization_id="system")
+admin_user = TokenData(id="admin-1", role=UserRole.ADMIN, organization_id="org-A")
+member_user = TokenData(id="member-1", role=UserRole.MEMBER, organization_id="org-A")
 
 
 @pytest.fixture(autouse=True)
@@ -52,7 +52,7 @@ async def test_audit_admin_access_own_org():
     # No param -> Scoped to user.org
     response = client.get("/audit/logs")
     assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-    mock_audit_service.get_logs.assert_called_with(organization_id="org-A", actor_uid=None, action=None, limit=100)
+    mock_audit_service.get_logs.assert_called_with(organization_id="org-A", actor_id=None, action=None, limit=100)
 
 
 @pytest.mark.asyncio

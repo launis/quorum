@@ -159,24 +159,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.purple,
                       ),
-                      onPressed:
-                          _isLoading ? null : () => _mockLogin('root_master'),
+                      onPressed: _isLoading
+                          ? null
+                          : () => _mockLogin(
+                              '10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b'),
                       child: const Text('Mock Login (Root Master)'),
                     ),
                     TextButton(
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.orange,
                       ),
-                      onPressed:
-                          _isLoading ? null : () => _mockLogin('admin_1'),
+                      onPressed: _isLoading
+                          ? null
+                          : () => _mockLogin(
+                              '5aa54e11-e804-4100-8c61-0f45b9393f1f'),
                       child: const Text('Mock Login (Admin)'),
                     ),
                     TextButton(
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.green,
                       ),
-                      onPressed:
-                          _isLoading ? null : () => _mockLogin('manager_1'),
+                      onPressed: _isLoading
+                          ? null
+                          : () => _mockLogin(
+                              '3d081723-e062-4eeb-968e-070a100846b3'),
                       child: const Text('Mock Login (Manager)'),
                     ),
                   ],
@@ -189,10 +195,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Future<void> _mockLogin(String uid) async {
+  Future<void> _mockLogin(String id) async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(authControllerProvider.notifier).debugMockLogin(uid);
+      await ref.read(authControllerProvider.notifier).debugMockLogin(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

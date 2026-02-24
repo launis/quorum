@@ -29,7 +29,7 @@ class JudgeInput(BaseModel):
     reflection_text: str | None = Field(None, description="Reflection content.")
 
     # Preceding Agents (Critics) - Strictly Typed via Forward Refs
-    step_analyst: AnalystOutput | None = Field(None, description="Analyst Output.")
+    step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     step_profiler: ProfilerOutput | None = Field(None, description="Profiler Output.")
     step_archivist: ArchivistOutput | None = Field(None, description="Archivist Output.")
     step_logician: LogicianOutput | None = Field(None, description="Logician Output.")

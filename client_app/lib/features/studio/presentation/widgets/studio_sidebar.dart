@@ -102,7 +102,6 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
 
             return ListTile(
               title: Text(wf.name),
-              subtitle: Text(wf.id, style: const TextStyle(fontSize: 10)),
               selected: isSelected,
               selectedTileColor: colorScheme.primaryContainer,
               selectedColor: colorScheme.onPrimaryContainer,

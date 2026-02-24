@@ -11,6 +11,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.models.domain.analyst import AnalystOutput
+from backend.models.domain.logician import LogicianOutput
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
@@ -18,7 +19,7 @@ class OverseerInput(BaseModel):
     """Strict input schema for FactualOverseerAgent."""
 
     history_text: str = Field(..., description="Chat history to analyze.")
-    step_analyst: AnalystOutput | None = Field(None, description="Analyst hypotheses/timeline.")
+    step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
     model_config = ConfigDict(frozen=True, extra="ignore")

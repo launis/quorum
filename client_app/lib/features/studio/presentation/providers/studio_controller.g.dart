@@ -41,7 +41,7 @@ final class StudioControllerProvider
   }
 }
 
-String _$studioControllerHash() => r'2148fb8ce62d1f95899a987df514ae2e8d28cbe2';
+String _$studioControllerHash() => r'1e07b392ae92497d6cba571b412265f463028b1d';
 
 abstract class _$StudioController extends $Notifier<StudioState> {
   StudioState build();

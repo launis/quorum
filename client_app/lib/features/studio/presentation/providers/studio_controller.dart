@@ -119,6 +119,7 @@ class StudioController extends _$StudioController {
     // We don't necessarily clear activeWorkflow here as we might want to keep the last one,
     // or we might want to allow selection.
     loadWorkflows();
+    loadComponents(); // Added to hydrate prompt list
   }
 
   /// **Save Component**
@@ -219,7 +220,7 @@ class StudioController extends _$StudioController {
     if (current == null) return;
 
     final updatedWf = current.copyWith(
-      name: name ?? current.name,
+      name: name ?? current.name ?? 'Copy',
       description: description ?? current.description,
     );
 

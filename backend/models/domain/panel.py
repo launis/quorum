@@ -14,7 +14,7 @@ from backend.models.domain.analyst import AnalystOutput
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.domain.causal import CausalAnalysis
 from backend.models.domain.falsifier import FalsifierData
-from backend.models.domain.logician import LogicianData
+from backend.models.domain.logician import LogicianData, LogicianOutput
 from backend.models.domain.overseer import OverseerData
 from backend.models.domain.performativity import PerformativityAnalysis
 from backend.models.domain.profiler import ProfilerOutput
@@ -33,7 +33,7 @@ class PanelInput(BaseModel):
 
     # Dependencies (Mandatory in Agent Logic, Optional in Schema for flexibility?)
     # No, strict typing means we should define what we expect.
-    step_analyst: AnalystOutput | None = Field(None, description="Analyst Evidence Map.")
+    step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     step_profiler: ProfilerOutput | None = Field(None, description="Profiler Analysis.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 

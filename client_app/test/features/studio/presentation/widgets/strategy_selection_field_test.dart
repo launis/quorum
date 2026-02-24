@@ -1,11 +1,10 @@
-
-import '../../../../lib/features/admin/domain/models/model_registry.dart';
-import '../../../../lib/features/admin/presentation/providers/model_registry_controller.dart';
-import '../../../../lib/features/studio/presentation/widgets/strategy_selection_field.dart';
+import 'package:client_app/features/admin/domain/models/model_registry.dart';
+import 'package:client_app/features/admin/presentation/providers/model_registry_controller.dart';
+import 'package:client_app/features/studio/presentation/widgets/strategy_selection_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../../../../lib/l10n/gen/app_localizations.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 // Mock State Helper
 ModelRegistryState createMockState(List<String> strategyIds) {
@@ -21,7 +20,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          modelRegistryControllerProvider.overrideWith((ref) => MockModelRegistryController())
+          modelRegistryControllerProvider.overrideWith(() => MockModelRegistryController())
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -48,7 +47,7 @@ void main() {
 
     // Verify items
     expect(find.text('fast'), findsOneWidget);
-    expect(find.text('deep'), findsWidge);
+    expect(find.text('deep'), findsOneWidget);
     expect(find.text('custom_1'), findsOneWidget);
 
     // Select 'deep'
@@ -70,6 +69,9 @@ class MockModelRegistryController extends AsyncNotifier<ModelRegistryState> impl
   
   @override
   Future<void> saveConfig(String id, LLMProviderConfig config) async {}
+  
+  @override
+  Future<void> deleteConfig(String id) async {}
   
   @override
   Future<void> runTest(AdHocTestRequest request) async {}

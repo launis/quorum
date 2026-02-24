@@ -9,11 +9,11 @@ from backend.models.auth import UserCreate, UserRole
 # Mock Dependencies
 current_user_mock = MagicMock()
 current_user_mock.role = UserRole.MEMBER
-current_user_mock.uid = "test-uid"
+current_user_mock.id = "test-id"
 
 root_user_mock = MagicMock()
 root_user_mock.role = UserRole.ROOT
-root_user_mock.uid = "root-uid"
+root_user_mock.id = "root-id"
 
 auth_service_mock = AsyncMock()
 

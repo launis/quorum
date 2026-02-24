@@ -104,12 +104,12 @@ class AuthRepository {
 
   /// **Debug Only**: Bypasses Firebase and authenticates directly with Backend Mock Token.
   /// **Debug Only**: Bypasses Firebase and authenticates directly with Backend Mock Token.
-  Future<Either<AppError, User>> debugSignInWithMockToken(String uid) async {
+  Future<Either<AppError, User>> debugSignInWithMockToken(String id) async {
     try {
       // 1. Verify with Backend (using special mock-token prefix logic)
       final response = await _client.post<Map<String, dynamic>>(
         '/auth/verify',
-        data: {'token': 'mock-token:$uid'},
+        data: {'token': 'mock-token:$id'},
       );
 
       if (response.data == null || response.data!['user'] == null) {

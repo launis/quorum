@@ -145,7 +145,7 @@ async def create_organization(
     # AUDIT LOG (Phase 3)
     try:
         await audit_service.log_event(
-            actor_uid=user.uid,
+            actor_id=user.id,
             action="ORG_CREATED",
             organization_id=item["id"],
             details={"name": item["name"], "tier": item["tier"]},
@@ -183,7 +183,7 @@ async def get_my_organization(
         from backend.exceptions import ResourceNotFoundError
 
         error_code = "AUTH_USER_NO_ORG"
-        logger.warning(f"{error_code}: User {user.uid} has no org.")  # Changed from Error to Warning for expected flow
+        logger.warning(f"{error_code}: User {user.id} has no org.")  # Changed from Error to Warning for expected flow
         raise ResourceNotFoundError("Organization", "CURRENT_USER")
 
     org = await repo.get_organization(user.organization_id)
@@ -238,7 +238,7 @@ async def get_organization(
             from backend.exceptions import PermissionDeniedError
 
             error_code = "PERMISSION_DENIED"
-            logger.error(f"{error_code}: User {user.uid} denied access to {org_id}", exc_info=True)
+            logger.error(f"{error_code}: User {user.id} denied access to {org_id}", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. Fetch
@@ -278,7 +278,7 @@ async def get_organization_usage(
             from backend.exceptions import PermissionDeniedError
 
             error_code = "PERMISSION_DENIED"
-            logger.error(f"{error_code}: User {user.uid} denied usage view.", exc_info=True)
+            logger.error(f"{error_code}: User {user.id} denied usage view.", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     try:
@@ -349,13 +349,13 @@ async def update_organization(
             from backend.exceptions import PermissionDeniedError
 
             error_code = "PERMISSION_DENIED"
-            logger.error(f"{error_code}: User {user.uid} denied update.", exc_info=True)
+            logger.error(f"{error_code}: User {user.id} denied update.", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
         if user.role != UserRole.ADMIN:
             from backend.exceptions import PermissionDeniedError
 
             error_code = "PERMISSION_DENIED_ORG_ADMIN"
-            logger.error(f"{error_code}: User {user.uid} not admin.", exc_info=True)
+            logger.error(f"{error_code}: User {user.id} not admin.", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. Update
@@ -411,7 +411,7 @@ async def delete_organization(
         from backend.exceptions import PermissionDeniedError
 
         error_code = "PERMISSION_DENIED_ROOT_ONLY"
-        logger.error(f"{error_code}: User {user.uid} denied.", exc_info=True)
+        logger.error(f"{error_code}: User {user.id} denied.", exc_info=True)
         raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. System Protection
@@ -443,7 +443,7 @@ async def delete_organization(
         # AUDIT LOG (Phase 3)
         try:
             await audit_service.log_event(
-                actor_uid=user.uid,
+                actor_id=user.id,
                 action="ORG_DELETED",
                 organization_id=org_id,
                 details={"force": force},
@@ -481,13 +481,13 @@ async def create_organization_user(
             from backend.exceptions import PermissionDeniedError
 
             error_code = "PERMISSION_DENIED"
-            logger.error(f"{error_code}: User {user.uid} denied.", exc_info=True)
+            logger.error(f"{error_code}: User {user.id} denied.", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
         if user.role != UserRole.ADMIN:
             from backend.exceptions import PermissionDeniedError
 
             error_code = "PERMISSION_DENIED_ORG_ADMIN"
-            logger.error(f"{error_code}: User {user.uid} not admin.", exc_info=True)
+            logger.error(f"{error_code}: User {user.id} not admin.", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. Logic Delegate to AuthService (for consisten creation logic)
@@ -504,15 +504,15 @@ async def create_organization_user(
         # AuthService handles the heavy lifting (hashing, hierarchy check)
         # Note: AuthService is sync, but running in FastApi threadpool is acceptable pattern for now
         # given the complexity of refactoring it fully.
-        new_user = await auth_service.create_user(creator_uid=user.uid, user_data=internal_payload)
+        new_user = await auth_service.create_user(creator_id=user.id, user_data=internal_payload)
 
         # AUDIT LOG (Phase 3)
         try:
             await audit_service.log_event(
-                actor_uid=user.uid,
+                actor_id=user.id,
                 action="USER_CREATED",
                 organization_id=org_id,
-                target_uid=new_user.uid,
+                target_id=new_user.id,
                 details={"email": new_user.email, "role": new_user.role},
             )
         except Exception as e:
@@ -533,10 +533,10 @@ async def create_organization_user(
         raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
 
 
-@router.delete("/{org_id}/users/{target_uid}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{org_id}/users/{target_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_organization_user(
     org_id: str,
-    target_uid: str,
+    target_id: str,
     user: CurrentUserDep,
     repo: RepositoryDep,
     auth_service: AuthServiceDep,
@@ -549,13 +549,13 @@ async def delete_organization_user(
             from backend.exceptions import PermissionDeniedError
 
             error_code = "PERMISSION_DENIED"
-            logger.error(f"{error_code}: User {user.uid} denied.", exc_info=True)
+            logger.error(f"{error_code}: User {user.id} denied.", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
         if user.role != UserRole.ADMIN:
             from backend.exceptions import PermissionDeniedError
 
             error_code = "PERMISSION_DENIED_ORG_ADMIN"
-            logger.error(f"{error_code}: User {user.uid} not admin.", exc_info=True)
+            logger.error(f"{error_code}: User {user.id} not admin.", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. Integrity Check: Active Ownership
@@ -563,24 +563,49 @@ async def delete_organization_user(
     # Note: Workflows are Org-owned, so no check needed there.
     user_execs = await repo.get_all_executions(organization_id=org_id)
     active_user_execs = [
-        e for e in user_execs if getattr(e, "user_id", None) == target_uid and getattr(e, "status", None) in ["running", "pending", "queued"]
+        e for e in user_execs if getattr(e, "user_id", None) == target_id and getattr(e, "status", None) in ["running", "pending", "queued"]
     ]
 
     if active_user_execs:
         from backend.exceptions import ConflictError
 
         error_code = "USER_HAS_ACTIVE_EXECUTIONS"
-        logger.error(f"{error_code}: User {target_uid} has active execs.", exc_info=True)
+        logger.error(f"{error_code}: User {target_id} has active execs.", exc_info=True)
         raise ConflictError(message="Resource conflict", details={"error_code": error_code})
 
-    # 3. Delete via AuthService
+    # 3. ROOT PROTECTION - By Name
+    # Run in thread since repository is sync in TinyDB
+    import asyncio
+    target = await asyncio.to_thread(repo.get_by_id, target_id)
+    if not target:
+        raise ResourceNotFoundError("User", target_id)
+
+    if target.display_name == "System Root":
+        from backend.exceptions import PermissionDeniedError
+        raise PermissionDeniedError("The primary Root account cannot be deleted.")
+
+    # 4. LAST ADMIN PROTECTION
+    from backend.models.auth import UserRole
+    if target.role == UserRole.ADMIN and target.organization_id:
+        admin_count = await asyncio.to_thread(auth_service._count_org_admins, target.organization_id)
+        if admin_count <= 1:
+            from backend.exceptions import ConflictError
+
+            error_code = "LAST_ADMIN_PROTECTION"
+            logger.error(f"{error_code}: Cannot delete the last Administrator", exc_info=True)
+            raise ConflictError(
+                message="Cannot delete the last Administrator of an Organization.",
+                details={"error_code": error_code},
+            )
+
+    # 5. Delete via AuthService
     try:
-        await auth_service.delete_user(initiator_uid=user.uid, target_uid=target_uid)
+        await auth_service.delete_user(initiator_id=user.id, target_id=target_id)
 
         # AUDIT LOG (Phase 3)
         try:
             await audit_service.log_event(
-                actor_uid=user.uid, action="USER_DELETED", organization_id=org_id, target_uid=target_uid, details={}
+                actor_id=user.id, action="USER_DELETED", organization_id=org_id, target_id=target_id, details={}
             )
         except Exception as audit_err:
             logger.warning(f"Failed to log audit event 'USER_DELETED': {audit_err}")

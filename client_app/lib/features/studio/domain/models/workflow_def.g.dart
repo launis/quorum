@@ -8,6 +8,7 @@ part of 'workflow_def.dart';
 
 _WorkflowDef _$WorkflowDefFromJson(Map<String, dynamic> json) => _WorkflowDef(
   id: json['id'] as String,
+  slug: json['slug'] as String?,
   name: json['name'] as String,
   description: json['description'] as String,
   steps:
@@ -26,6 +27,7 @@ _WorkflowDef _$WorkflowDefFromJson(Map<String, dynamic> json) => _WorkflowDef(
 Map<String, dynamic> _$WorkflowDefToJson(_WorkflowDef instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'slug': instance.slug,
       'name': instance.name,
       'description': instance.description,
       'steps': instance.steps,
@@ -36,6 +38,7 @@ Map<String, dynamic> _$WorkflowDefToJson(_WorkflowDef instance) =>
 _WorkflowStepDef _$WorkflowStepDefFromJson(Map<String, dynamic> json) =>
     _WorkflowStepDef(
       id: json['id'] as String,
+      slug: json['slug'] as String?,
       name: json['name'] as String? ?? '',
       taskKey: json['task_key'] as String,
       config: json['config'] as Map<String, dynamic>? ?? const {},
@@ -44,6 +47,7 @@ _WorkflowStepDef _$WorkflowStepDefFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$WorkflowStepDefToJson(_WorkflowStepDef instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'slug': instance.slug,
       'name': instance.name,
       'task_key': instance.taskKey,
       'config': instance.config,
@@ -83,6 +87,7 @@ Map<String, dynamic> _$ScoringLogicToJson(_ScoringLogic instance) =>
 _ComponentDef _$ComponentDefFromJson(Map<String, dynamic> json) =>
     _ComponentDef(
       id: json['id'] as String,
+      slug: json['slug'] as String?,
       name: json['name'] as String,
       type: json['type'] as String,
       description: json['description'] as String?,
@@ -93,6 +98,7 @@ _ComponentDef _$ComponentDefFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ComponentDefToJson(_ComponentDef instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'slug': instance.slug,
       'name': instance.name,
       'type': instance.type,
       'description': instance.description,

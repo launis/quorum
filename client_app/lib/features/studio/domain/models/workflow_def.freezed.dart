@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WorkflowDef implements DiagnosticableTreeMixin {
 
- String get id; String get name; String get description; List<WorkflowStepDef> get steps;@JsonKey(name: 'scoring_logic') List<ScoringLogic> get scoringLogic;@JsonKey(name: 'ui_schema') Map<String, dynamic> get uiSchema;
+ String get id; String? get slug; String get name; String get description; List<WorkflowStepDef> get steps;@JsonKey(name: 'scoring_logic') List<ScoringLogic> get scoringLogic;@JsonKey(name: 'ui_schema') Map<String, dynamic> get uiSchema;
 /// Create a copy of WorkflowDef
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,21 +29,21 @@ $WorkflowDefCopyWith<WorkflowDef> get copyWith => _$WorkflowDefCopyWithImpl<Work
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'WorkflowDef'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('steps', steps))..add(DiagnosticsProperty('scoringLogic', scoringLogic))..add(DiagnosticsProperty('uiSchema', uiSchema));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('slug', slug))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('steps', steps))..add(DiagnosticsProperty('scoringLogic', scoringLogic))..add(DiagnosticsProperty('uiSchema', uiSchema));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowDef&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.steps, steps)&&const DeepCollectionEquality().equals(other.scoringLogic, scoringLogic)&&const DeepCollectionEquality().equals(other.uiSchema, uiSchema));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowDef&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.steps, steps)&&const DeepCollectionEquality().equals(other.scoringLogic, scoringLogic)&&const DeepCollectionEquality().equals(other.uiSchema, uiSchema));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,const DeepCollectionEquality().hash(steps),const DeepCollectionEquality().hash(scoringLogic),const DeepCollectionEquality().hash(uiSchema));
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,const DeepCollectionEquality().hash(steps),const DeepCollectionEquality().hash(scoringLogic),const DeepCollectionEquality().hash(uiSchema));
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'WorkflowDef(id: $id, name: $name, description: $description, steps: $steps, scoringLogic: $scoringLogic, uiSchema: $uiSchema)';
+  return 'WorkflowDef(id: $id, slug: $slug, name: $name, description: $description, steps: $steps, scoringLogic: $scoringLogic, uiSchema: $uiSchema)';
 }
 
 
@@ -54,7 +54,7 @@ abstract mixin class $WorkflowDefCopyWith<$Res>  {
   factory $WorkflowDefCopyWith(WorkflowDef value, $Res Function(WorkflowDef) _then) = _$WorkflowDefCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String description, List<WorkflowStepDef> steps,@JsonKey(name: 'scoring_logic') List<ScoringLogic> scoringLogic,@JsonKey(name: 'ui_schema') Map<String, dynamic> uiSchema
+ String id, String? slug, String name, String description, List<WorkflowStepDef> steps,@JsonKey(name: 'scoring_logic') List<ScoringLogic> scoringLogic,@JsonKey(name: 'ui_schema') Map<String, dynamic> uiSchema
 });
 
 
@@ -71,10 +71,11 @@ class _$WorkflowDefCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowDef
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = null,Object? steps = null,Object? scoringLogic = null,Object? uiSchema = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? name = null,Object? description = null,Object? steps = null,Object? scoringLogic = null,Object? uiSchema = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
 as List<WorkflowStepDef>,scoringLogic: null == scoringLogic ? _self.scoringLogic : scoringLogic // ignore: cast_nullable_to_non_nullable
@@ -164,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<WorkflowStepDef> steps, @JsonKey(name: 'scoring_logic')  List<ScoringLogic> scoringLogic, @JsonKey(name: 'ui_schema')  Map<String, dynamic> uiSchema)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? slug,  String name,  String description,  List<WorkflowStepDef> steps, @JsonKey(name: 'scoring_logic')  List<ScoringLogic> scoringLogic, @JsonKey(name: 'ui_schema')  Map<String, dynamic> uiSchema)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkflowDef() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.steps,_that.scoringLogic,_that.uiSchema);case _:
+return $default(_that.id,_that.slug,_that.name,_that.description,_that.steps,_that.scoringLogic,_that.uiSchema);case _:
   return orElse();
 
 }
@@ -185,10 +186,10 @@ return $default(_that.id,_that.name,_that.description,_that.steps,_that.scoringL
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<WorkflowStepDef> steps, @JsonKey(name: 'scoring_logic')  List<ScoringLogic> scoringLogic, @JsonKey(name: 'ui_schema')  Map<String, dynamic> uiSchema)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? slug,  String name,  String description,  List<WorkflowStepDef> steps, @JsonKey(name: 'scoring_logic')  List<ScoringLogic> scoringLogic, @JsonKey(name: 'ui_schema')  Map<String, dynamic> uiSchema)  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowDef():
-return $default(_that.id,_that.name,_that.description,_that.steps,_that.scoringLogic,_that.uiSchema);case _:
+return $default(_that.id,_that.slug,_that.name,_that.description,_that.steps,_that.scoringLogic,_that.uiSchema);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +206,10 @@ return $default(_that.id,_that.name,_that.description,_that.steps,_that.scoringL
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String description,  List<WorkflowStepDef> steps, @JsonKey(name: 'scoring_logic')  List<ScoringLogic> scoringLogic, @JsonKey(name: 'ui_schema')  Map<String, dynamic> uiSchema)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? slug,  String name,  String description,  List<WorkflowStepDef> steps, @JsonKey(name: 'scoring_logic')  List<ScoringLogic> scoringLogic, @JsonKey(name: 'ui_schema')  Map<String, dynamic> uiSchema)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowDef() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.steps,_that.scoringLogic,_that.uiSchema);case _:
+return $default(_that.id,_that.slug,_that.name,_that.description,_that.steps,_that.scoringLogic,_that.uiSchema);case _:
   return null;
 
 }
@@ -220,10 +221,11 @@ return $default(_that.id,_that.name,_that.description,_that.steps,_that.scoringL
 @JsonSerializable()
 
 class _WorkflowDef with DiagnosticableTreeMixin implements WorkflowDef {
-  const _WorkflowDef({required this.id, required this.name, required this.description, final  List<WorkflowStepDef> steps = const [], @JsonKey(name: 'scoring_logic') final  List<ScoringLogic> scoringLogic = const [], @JsonKey(name: 'ui_schema') final  Map<String, dynamic> uiSchema = const {}}): _steps = steps,_scoringLogic = scoringLogic,_uiSchema = uiSchema;
+  const _WorkflowDef({required this.id, this.slug, required this.name, required this.description, final  List<WorkflowStepDef> steps = const [], @JsonKey(name: 'scoring_logic') final  List<ScoringLogic> scoringLogic = const [], @JsonKey(name: 'ui_schema') final  Map<String, dynamic> uiSchema = const {}}): _steps = steps,_scoringLogic = scoringLogic,_uiSchema = uiSchema;
   factory _WorkflowDef.fromJson(Map<String, dynamic> json) => _$WorkflowDefFromJson(json);
 
 @override final  String id;
+@override final  String? slug;
 @override final  String name;
 @override final  String description;
  final  List<WorkflowStepDef> _steps;
@@ -262,21 +264,21 @@ Map<String, dynamic> toJson() {
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'WorkflowDef'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('steps', steps))..add(DiagnosticsProperty('scoringLogic', scoringLogic))..add(DiagnosticsProperty('uiSchema', uiSchema));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('slug', slug))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('steps', steps))..add(DiagnosticsProperty('scoringLogic', scoringLogic))..add(DiagnosticsProperty('uiSchema', uiSchema));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowDef&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._steps, _steps)&&const DeepCollectionEquality().equals(other._scoringLogic, _scoringLogic)&&const DeepCollectionEquality().equals(other._uiSchema, _uiSchema));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowDef&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._steps, _steps)&&const DeepCollectionEquality().equals(other._scoringLogic, _scoringLogic)&&const DeepCollectionEquality().equals(other._uiSchema, _uiSchema));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,const DeepCollectionEquality().hash(_steps),const DeepCollectionEquality().hash(_scoringLogic),const DeepCollectionEquality().hash(_uiSchema));
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,const DeepCollectionEquality().hash(_steps),const DeepCollectionEquality().hash(_scoringLogic),const DeepCollectionEquality().hash(_uiSchema));
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'WorkflowDef(id: $id, name: $name, description: $description, steps: $steps, scoringLogic: $scoringLogic, uiSchema: $uiSchema)';
+  return 'WorkflowDef(id: $id, slug: $slug, name: $name, description: $description, steps: $steps, scoringLogic: $scoringLogic, uiSchema: $uiSchema)';
 }
 
 
@@ -287,7 +289,7 @@ abstract mixin class _$WorkflowDefCopyWith<$Res> implements $WorkflowDefCopyWith
   factory _$WorkflowDefCopyWith(_WorkflowDef value, $Res Function(_WorkflowDef) _then) = __$WorkflowDefCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String description, List<WorkflowStepDef> steps,@JsonKey(name: 'scoring_logic') List<ScoringLogic> scoringLogic,@JsonKey(name: 'ui_schema') Map<String, dynamic> uiSchema
+ String id, String? slug, String name, String description, List<WorkflowStepDef> steps,@JsonKey(name: 'scoring_logic') List<ScoringLogic> scoringLogic,@JsonKey(name: 'ui_schema') Map<String, dynamic> uiSchema
 });
 
 
@@ -304,10 +306,11 @@ class __$WorkflowDefCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowDef
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = null,Object? steps = null,Object? scoringLogic = null,Object? uiSchema = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? name = null,Object? description = null,Object? steps = null,Object? scoringLogic = null,Object? uiSchema = null,}) {
   return _then(_WorkflowDef(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,steps: null == steps ? _self._steps : steps // ignore: cast_nullable_to_non_nullable
 as List<WorkflowStepDef>,scoringLogic: null == scoringLogic ? _self._scoringLogic : scoringLogic // ignore: cast_nullable_to_non_nullable
@@ -323,7 +326,7 @@ as Map<String, dynamic>,
 /// @nodoc
 mixin _$WorkflowStepDef implements DiagnosticableTreeMixin {
 
- String get id; String get name;@JsonKey(name: 'task_key') String get taskKey; Map<String, dynamic> get config;
+ String get id; String? get slug; String get name;@JsonKey(name: 'task_key') String get taskKey; Map<String, dynamic> get config;
 /// Create a copy of WorkflowStepDef
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -337,21 +340,21 @@ $WorkflowStepDefCopyWith<WorkflowStepDef> get copyWith => _$WorkflowStepDefCopyW
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'WorkflowStepDef'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('taskKey', taskKey))..add(DiagnosticsProperty('config', config));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('slug', slug))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('taskKey', taskKey))..add(DiagnosticsProperty('config', config));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowStepDef&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other.config, config));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowStepDef&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other.config, config));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,taskKey,const DeepCollectionEquality().hash(config));
+int get hashCode => Object.hash(runtimeType,id,slug,name,taskKey,const DeepCollectionEquality().hash(config));
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'WorkflowStepDef(id: $id, name: $name, taskKey: $taskKey, config: $config)';
+  return 'WorkflowStepDef(id: $id, slug: $slug, name: $name, taskKey: $taskKey, config: $config)';
 }
 
 
@@ -362,7 +365,7 @@ abstract mixin class $WorkflowStepDefCopyWith<$Res>  {
   factory $WorkflowStepDefCopyWith(WorkflowStepDef value, $Res Function(WorkflowStepDef) _then) = _$WorkflowStepDefCopyWithImpl;
 @useResult
 $Res call({
- String id, String name,@JsonKey(name: 'task_key') String taskKey, Map<String, dynamic> config
+ String id, String? slug, String name,@JsonKey(name: 'task_key') String taskKey, Map<String, dynamic> config
 });
 
 
@@ -379,10 +382,11 @@ class _$WorkflowStepDefCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowStepDef
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? taskKey = null,Object? config = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? name = null,Object? taskKey = null,Object? config = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,taskKey: null == taskKey ? _self.taskKey : taskKey // ignore: cast_nullable_to_non_nullable
 as String,config: null == config ? _self.config : config // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
@@ -470,10 +474,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name, @JsonKey(name: 'task_key')  String taskKey,  Map<String, dynamic> config)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? slug,  String name, @JsonKey(name: 'task_key')  String taskKey,  Map<String, dynamic> config)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkflowStepDef() when $default != null:
-return $default(_that.id,_that.name,_that.taskKey,_that.config);case _:
+return $default(_that.id,_that.slug,_that.name,_that.taskKey,_that.config);case _:
   return orElse();
 
 }
@@ -491,10 +495,10 @@ return $default(_that.id,_that.name,_that.taskKey,_that.config);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name, @JsonKey(name: 'task_key')  String taskKey,  Map<String, dynamic> config)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? slug,  String name, @JsonKey(name: 'task_key')  String taskKey,  Map<String, dynamic> config)  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowStepDef():
-return $default(_that.id,_that.name,_that.taskKey,_that.config);case _:
+return $default(_that.id,_that.slug,_that.name,_that.taskKey,_that.config);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -511,10 +515,10 @@ return $default(_that.id,_that.name,_that.taskKey,_that.config);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name, @JsonKey(name: 'task_key')  String taskKey,  Map<String, dynamic> config)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? slug,  String name, @JsonKey(name: 'task_key')  String taskKey,  Map<String, dynamic> config)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowStepDef() when $default != null:
-return $default(_that.id,_that.name,_that.taskKey,_that.config);case _:
+return $default(_that.id,_that.slug,_that.name,_that.taskKey,_that.config);case _:
   return null;
 
 }
@@ -526,10 +530,11 @@ return $default(_that.id,_that.name,_that.taskKey,_that.config);case _:
 @JsonSerializable()
 
 class _WorkflowStepDef with DiagnosticableTreeMixin implements WorkflowStepDef {
-  const _WorkflowStepDef({required this.id, this.name = '', @JsonKey(name: 'task_key') required this.taskKey, final  Map<String, dynamic> config = const {}}): _config = config;
+  const _WorkflowStepDef({required this.id, this.slug, this.name = '', @JsonKey(name: 'task_key') required this.taskKey, final  Map<String, dynamic> config = const {}}): _config = config;
   factory _WorkflowStepDef.fromJson(Map<String, dynamic> json) => _$WorkflowStepDefFromJson(json);
 
 @override final  String id;
+@override final  String? slug;
 @override@JsonKey() final  String name;
 @override@JsonKey(name: 'task_key') final  String taskKey;
  final  Map<String, dynamic> _config;
@@ -554,21 +559,21 @@ Map<String, dynamic> toJson() {
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'WorkflowStepDef'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('taskKey', taskKey))..add(DiagnosticsProperty('config', config));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('slug', slug))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('taskKey', taskKey))..add(DiagnosticsProperty('config', config));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowStepDef&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other._config, _config));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowStepDef&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other._config, _config));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,taskKey,const DeepCollectionEquality().hash(_config));
+int get hashCode => Object.hash(runtimeType,id,slug,name,taskKey,const DeepCollectionEquality().hash(_config));
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'WorkflowStepDef(id: $id, name: $name, taskKey: $taskKey, config: $config)';
+  return 'WorkflowStepDef(id: $id, slug: $slug, name: $name, taskKey: $taskKey, config: $config)';
 }
 
 
@@ -579,7 +584,7 @@ abstract mixin class _$WorkflowStepDefCopyWith<$Res> implements $WorkflowStepDef
   factory _$WorkflowStepDefCopyWith(_WorkflowStepDef value, $Res Function(_WorkflowStepDef) _then) = __$WorkflowStepDefCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name,@JsonKey(name: 'task_key') String taskKey, Map<String, dynamic> config
+ String id, String? slug, String name,@JsonKey(name: 'task_key') String taskKey, Map<String, dynamic> config
 });
 
 
@@ -596,10 +601,11 @@ class __$WorkflowStepDefCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowStepDef
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? taskKey = null,Object? config = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? name = null,Object? taskKey = null,Object? config = null,}) {
   return _then(_WorkflowStepDef(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,taskKey: null == taskKey ? _self.taskKey : taskKey // ignore: cast_nullable_to_non_nullable
 as String,config: null == config ? _self._config : config // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
@@ -1178,7 +1184,7 @@ as List<ComponentScoringRule>,
 /// @nodoc
 mixin _$ComponentDef implements DiagnosticableTreeMixin {
 
- String get id; String get name; String get type; String? get description; dynamic get content; String? get citation;
+ String get id; String? get slug; String get name; String get type; String? get description; dynamic get content; String? get citation;
 /// Create a copy of ComponentDef
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1192,21 +1198,21 @@ $ComponentDefCopyWith<ComponentDef> get copyWith => _$ComponentDefCopyWithImpl<C
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'ComponentDef'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('type', type))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('content', content))..add(DiagnosticsProperty('citation', citation));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('slug', slug))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('type', type))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('content', content))..add(DiagnosticsProperty('citation', citation));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComponentDef&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.content, content)&&(identical(other.citation, citation) || other.citation == citation));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComponentDef&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.content, content)&&(identical(other.citation, citation) || other.citation == citation));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,description,const DeepCollectionEquality().hash(content),citation);
+int get hashCode => Object.hash(runtimeType,id,slug,name,type,description,const DeepCollectionEquality().hash(content),citation);
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'ComponentDef(id: $id, name: $name, type: $type, description: $description, content: $content, citation: $citation)';
+  return 'ComponentDef(id: $id, slug: $slug, name: $name, type: $type, description: $description, content: $content, citation: $citation)';
 }
 
 
@@ -1217,7 +1223,7 @@ abstract mixin class $ComponentDefCopyWith<$Res>  {
   factory $ComponentDefCopyWith(ComponentDef value, $Res Function(ComponentDef) _then) = _$ComponentDefCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String type, String? description, dynamic content, String? citation
+ String id, String? slug, String name, String type, String? description, dynamic content, String? citation
 });
 
 
@@ -1234,10 +1240,11 @@ class _$ComponentDefCopyWithImpl<$Res>
 
 /// Create a copy of ComponentDef
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? description = freezed,Object? content = freezed,Object? citation = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? name = null,Object? type = null,Object? description = freezed,Object? content = freezed,Object? citation = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,content: freezed == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
@@ -1327,10 +1334,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String type,  String? description,  dynamic content,  String? citation)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? slug,  String name,  String type,  String? description,  dynamic content,  String? citation)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ComponentDef() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.description,_that.content,_that.citation);case _:
+return $default(_that.id,_that.slug,_that.name,_that.type,_that.description,_that.content,_that.citation);case _:
   return orElse();
 
 }
@@ -1348,10 +1355,10 @@ return $default(_that.id,_that.name,_that.type,_that.description,_that.content,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String type,  String? description,  dynamic content,  String? citation)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? slug,  String name,  String type,  String? description,  dynamic content,  String? citation)  $default,) {final _that = this;
 switch (_that) {
 case _ComponentDef():
-return $default(_that.id,_that.name,_that.type,_that.description,_that.content,_that.citation);case _:
+return $default(_that.id,_that.slug,_that.name,_that.type,_that.description,_that.content,_that.citation);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1368,10 +1375,10 @@ return $default(_that.id,_that.name,_that.type,_that.description,_that.content,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String type,  String? description,  dynamic content,  String? citation)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? slug,  String name,  String type,  String? description,  dynamic content,  String? citation)?  $default,) {final _that = this;
 switch (_that) {
 case _ComponentDef() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.description,_that.content,_that.citation);case _:
+return $default(_that.id,_that.slug,_that.name,_that.type,_that.description,_that.content,_that.citation);case _:
   return null;
 
 }
@@ -1383,10 +1390,11 @@ return $default(_that.id,_that.name,_that.type,_that.description,_that.content,_
 @JsonSerializable()
 
 class _ComponentDef with DiagnosticableTreeMixin implements ComponentDef {
-  const _ComponentDef({required this.id, required this.name, required this.type, this.description, this.content, this.citation});
+  const _ComponentDef({required this.id, this.slug, required this.name, required this.type, this.description, this.content, this.citation});
   factory _ComponentDef.fromJson(Map<String, dynamic> json) => _$ComponentDefFromJson(json);
 
 @override final  String id;
+@override final  String? slug;
 @override final  String name;
 @override final  String type;
 @override final  String? description;
@@ -1407,21 +1415,21 @@ Map<String, dynamic> toJson() {
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'ComponentDef'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('type', type))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('content', content))..add(DiagnosticsProperty('citation', citation));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('slug', slug))..add(DiagnosticsProperty('name', name))..add(DiagnosticsProperty('type', type))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('content', content))..add(DiagnosticsProperty('citation', citation));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComponentDef&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.content, content)&&(identical(other.citation, citation) || other.citation == citation));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComponentDef&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.content, content)&&(identical(other.citation, citation) || other.citation == citation));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,description,const DeepCollectionEquality().hash(content),citation);
+int get hashCode => Object.hash(runtimeType,id,slug,name,type,description,const DeepCollectionEquality().hash(content),citation);
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'ComponentDef(id: $id, name: $name, type: $type, description: $description, content: $content, citation: $citation)';
+  return 'ComponentDef(id: $id, slug: $slug, name: $name, type: $type, description: $description, content: $content, citation: $citation)';
 }
 
 
@@ -1432,7 +1440,7 @@ abstract mixin class _$ComponentDefCopyWith<$Res> implements $ComponentDefCopyWi
   factory _$ComponentDefCopyWith(_ComponentDef value, $Res Function(_ComponentDef) _then) = __$ComponentDefCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String type, String? description, dynamic content, String? citation
+ String id, String? slug, String name, String type, String? description, dynamic content, String? citation
 });
 
 
@@ -1449,10 +1457,11 @@ class __$ComponentDefCopyWithImpl<$Res>
 
 /// Create a copy of ComponentDef
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? description = freezed,Object? content = freezed,Object? citation = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? name = null,Object? type = null,Object? description = freezed,Object? content = freezed,Object? citation = freezed,}) {
   return _then(_ComponentDef(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,content: freezed == content ? _self.content : content // ignore: cast_nullable_to_non_nullable

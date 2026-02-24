@@ -105,7 +105,7 @@ async def execute_workflow_job(
             # Final Status Update (Completed)
             if execution_id:
                 await repository.update_execution(
-                    execution_id, {"status": "completed", "results": result, "completed_at": datetime.now(UTC)}
+                    execution_id, {"status": "completed", "results": result, "completed_at": datetime.now(UTC).isoformat()}
                 )
 
             # --- TEMPORARY DEBUG DUMP (User Request) ---
@@ -141,7 +141,7 @@ async def execute_workflow_job(
             if execution_id:
                 try:
                     await repository.update_execution(
-                        execution_id, {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC)}
+                        execution_id, {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()}
                     )
                 except Exception as update_err:
                     logger.error(f"Failed to update execution failure status: {update_err}")
@@ -155,7 +155,7 @@ async def execute_workflow_job(
                         {
                             "status": "failed",
                             "error": "Task execution was cancelled or timed out.",
-                            "completed_at": datetime.now(UTC),
+                            "completed_at": datetime.now(UTC).isoformat(),
                         },
                     )
                 except Exception as update_err:

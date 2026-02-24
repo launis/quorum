@@ -11,10 +11,10 @@ Architecture:
 Schema:
     - id: str (UUID)
     - timestamp: float (UTC)
-    - actor_uid: str (Who did it)
+    - actor_id: str (Who did it)
     - organization_id: str (Context, if any)
     - action: str (Enum-like string: USER_CREATED, ORG_DELETED)
-    - target_uid: str (Optional, who was affected)
+    - target_id: str (Optional, who was affected)
     - details: dict (Metadata, diffs)
 """
 
@@ -43,19 +43,19 @@ class AuditService:
 
     async def log_event(
         self,
-        actor_uid: str,
+        actor_id: str,
         action: str,
         organization_id: str | None = None,
-        target_uid: str | None = None,
+        target_id: str | None = None,
         details: dict[str, Any] | None = None,
     ) -> None:
         """Records an audit event.
 
         Args:
-            actor_uid: ID of the user performing the action.
+            actor_id: ID of the user performing the action.
             action: Action identifier (e.g. 'USER_CREATED').
             organization_id: Optional context ID.
-            target_uid: Optional target ID.
+            target_id: Optional target ID.
             details: Optional metadata.
 
         Raises:
@@ -63,23 +63,23 @@ class AuditService:
         """
         try:
             # Fail Fast: Ensure core data is present
-            if not actor_uid or not action:
-                raise ValueError("Audit log requires 'actor_uid' and 'action'.")
+            if not actor_id or not action:
+                raise ValueError("Audit log requires 'actor_id' and 'action'.")
 
             event = AuditEvent(
                 id=uuid.uuid4().hex,
                 timestamp=datetime.now(UTC),
-                actor_uid=actor_uid,
+                actor_id=actor_id,
                 organization_id=organization_id,
                 action=action.upper(),
-                target_uid=target_uid,
+                target_id=target_id,
                 details=details or {},
             )
 
             entry = event.model_dump()
 
             await self.repo.log_audit_event(entry)
-            logger.info(f"[AUDIT] {action} by {actor_uid} in {organization_id}")
+            logger.info(f"[AUDIT] {action} by {actor_id} in {organization_id}")
 
         except Exception as e:
             logger.error(f"[AUDIT_FAIL] Failed to persist log: {e}", exc_info=True)
@@ -94,7 +94,7 @@ class AuditService:
     async def get_logs(
         self,
         organization_id: str | None = None,
-        actor_uid: str | None = None,
+        actor_id: str | None = None,
         action: str | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
@@ -102,7 +102,7 @@ class AuditService:
 
         Args:
             organization_id: Filter by Org ID.
-            actor_uid: Filter by User ID.
+            actor_id: Filter by User ID.
             action: Filter by Action.
             limit: Max records to return.
 
@@ -111,7 +111,7 @@ class AuditService:
         """
         try:
             return await self.repo.get_audit_logs(
-                organization_id=organization_id, actor_uid=actor_uid, action=action, limit=limit
+                organization_id=organization_id, actor_id=actor_id, action=action, limit=limit
             )
         except Exception as e:
             logger.error(f"Failed to retrieve audit logs: {e}", exc_info=True)

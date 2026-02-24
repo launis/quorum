@@ -15,6 +15,7 @@ enum OrganizationStatus {
 @JsonSerializable()
 class Organization {
   final String id;
+  final String? slug;
   final String name;
 
   @JsonKey(name: 'created_at')
@@ -45,6 +46,7 @@ class Organization {
 
   const Organization({
     required this.id,
+    this.slug,
     required this.name,
     this.createdAt,
     this.updatedAt,

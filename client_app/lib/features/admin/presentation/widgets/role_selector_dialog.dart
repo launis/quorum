@@ -47,7 +47,7 @@ class _RoleSelectorDialogState extends ConsumerState<RoleSelectorDialog> {
         .read(userRoleControllerProvider.notifier)
         .updateRole(
           orgId: widget.orgId,
-          userId: widget.user.uid,
+          userId: widget.user.id,
           newRole: _selectedRole,
         );
 

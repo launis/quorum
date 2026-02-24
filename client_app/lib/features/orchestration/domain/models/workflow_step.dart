@@ -13,6 +13,12 @@ abstract class WorkflowStep with _$WorkflowStep {
     /// Unique step identifier, e.g., 'safety_check'
     required String id,
 
+    /// Legacy human-readable identifier
+    String? slug,
+
+    /// Human-readable name of the step
+    @JsonKey(defaultValue: 'Unnamed Step') @Default('Unnamed Step') String name,
+
     /// Registry Task Name (matches @register_task name)
     @JsonKey(name: 'task_key') required String taskKey,
 

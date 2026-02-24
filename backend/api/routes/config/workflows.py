@@ -7,7 +7,7 @@ from fastapi import APIRouter, status
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep
-from backend.exceptions import AppException, ConflictError, ResourceNotFoundError
+from backend.exceptions import AppException, ConflictError, ResourceNotFoundError, ErrorCodes, format_validation_error
 from backend.models.dtos.config import (
     StepDefinition,
     StepDeleteResponse,
@@ -34,9 +34,9 @@ def get_steps(db: DatabaseDep) -> list[StepDefinition]:
         steps = db.table("steps").all()
         return [StepDefinition(**s) for s in steps]
     except Exception as e:
-        error_code = "STEP_LIST_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.STEP_LIST_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.post("/steps", summary="Create Step", response_description="Created ID.", response_model=StepDefinition)
@@ -54,9 +54,9 @@ def create_step(step: StepDefinition, db: DatabaseDep) -> StepDefinition:
         if isinstance(e, ConflictError):
             raise e
 
-        error_code = "STEP_CREATE_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.STEP_CREATE_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.put(
@@ -86,9 +86,9 @@ def update_step(step_id: str, step: StepDefinition, db: DatabaseDep) -> StepDefi
         if isinstance(e, (ResourceNotFoundError, ConflictError)):
             raise e
 
-        error_code = "STEP_UPDATE_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.STEP_UPDATE_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.delete(
@@ -122,9 +122,9 @@ def delete_step(step_id: str, db: DatabaseDep) -> StepDeleteResponse:
         if isinstance(e, (ResourceNotFoundError, ConflictError)):
             raise e
 
-        error_code = "STEP_DELETE_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.STEP_DELETE_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 # --- WORKFLOW ENDPOINTS ---
@@ -190,9 +190,9 @@ async def get_workflows(repository: RepositoryDep) -> list[WorkflowConfigDefinit
             results.append(WorkflowConfigDefinition(**hydrated))
         return results
     except Exception as e:
-        error_code = "WORKFLOW_LIST_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.WORKFLOW_LIST_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.get(
@@ -219,9 +219,9 @@ async def get_workflow(wf_id: str, repository: RepositoryDep) -> WorkflowConfigD
         if isinstance(e, ResourceNotFoundError):
             raise e
 
-        error_code = "WORKFLOW_FETCH_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.WORKFLOW_FETCH_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.put(
@@ -278,9 +278,9 @@ def update_workflow(wf_id: str, update: WorkflowConfigUpdate, db: DatabaseDep) -
         if isinstance(e, (ResourceNotFoundError, AppException)):
             raise e
 
-        error_code = "WORKFLOW_UPDATE_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.WORKFLOW_UPDATE_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.post("", summary="Create Workflow", response_description="Created ID.", response_model=WorkflowConfigDefinition)
@@ -310,9 +310,9 @@ def create_workflow(workflow: WorkflowConfigCreate, db: DatabaseDep) -> Workflow
         if isinstance(e, (ConflictError, AppException)):
             raise e
 
-        error_code = "WORKFLOW_CREATE_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.WORKFLOW_CREATE_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.delete(
@@ -331,9 +331,9 @@ def delete_workflow(wf_id: str, db: DatabaseDep) -> ConfigWorkflowDeleteResponse
         if isinstance(e, ResourceNotFoundError):
             raise e
 
-        error_code = "WORKFLOW_DELETE_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.WORKFLOW_DELETE_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.post(
@@ -357,6 +357,6 @@ async def validate_flow(
         )
         return report
     except Exception as e:
-        error_code = "WORKFLOW_VALIDATION_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+        error_code = ErrorCodes.VALIDATION_FAILED
+        logger.error(f"[WorkflowsRoute] {error_code}: {e}", exc_info=True)
+        raise AppException(message=format_validation_error(e), status_code=500, details={"error_code": error_code}) from e

@@ -68,7 +68,7 @@ final class ThemeModeNotifierProvider
   }
 }
 
-String _$themeModeNotifierHash() => r'e8733de667450a900542b20af4010567954b9302';
+String _$themeModeNotifierHash() => r'c5af43c3c94fd234bf0ea93964349fb1f6bdcfd6';
 
 /// **Theme Mode Provider**
 ///

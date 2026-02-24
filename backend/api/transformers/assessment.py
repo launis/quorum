@@ -15,23 +15,27 @@ class AssessmentTransformer(BaseTransformer):
     ) -> list[StepProgressItem]:
         """Determines the steps for the workflow and their status dynamically."""
         chain = []
+        step_id_to_name = {}
+
         if workflow_definition:
             # Extract steps from definition
-            # Assuming workflow_definition is a dict or Pydantic model with 'steps'
             steps = getattr(workflow_definition, "steps", [])
             if isinstance(steps, list):
                 for s in steps:
                     if isinstance(s, str):
                         sid = s
+                        step_id_to_name[sid] = sid
                     else:
                         # Handle fallback Pydantic model or dict
                         sid = getattr(s, "id", None) or s.get("id")
+                        if sid:
+                            name = getattr(s, "name", None) or s.get("name")
+                            slug = getattr(s, "slug", None) or s.get("slug")
+                            if not name and not slug:
+                                raise ValueError(f"Step {sid} missing required 'name' or 'slug' for UI rendering.")
+                            step_id_to_name[sid] = name or slug
                     if sid:
                         chain.append(sid)
-
-        if not chain:
-            # Fallback for legacy/missing definition
-            pass
 
         # 3. Determine Status for each step
         progress_items = []
@@ -45,7 +49,12 @@ class AssessmentTransformer(BaseTransformer):
                 if step_res.get("status") == "failed":
                     step_status = "failed"
 
-            label = self._t(f"STEP_{step_id.upper()}", step_id)
+            if step_id not in step_id_to_name:
+                 raise ValueError(f"Execution step_id '{step_id}' has no corresponding WorkflowDefinition mapping.")
+
+            display_name = step_id_to_name[step_id]
+            label = self._t(f"STEP_{step_id.upper()}", display_name)
+            
             progress_items.append(StepProgressItem(id=step_id, label=label, status=step_status))
 
         return progress_items

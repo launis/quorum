@@ -3,7 +3,7 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from backend.database.repository import AbstractWorkflowRepository
@@ -88,7 +88,7 @@ class DatabaseProgressTracker(ProgressTracker):
     async def start(self, details: dict[str, Any] | None = None):
         """Sets status to 'started'."""
         try:
-            payload = {"status": STATUS_STARTED, "start_time": datetime.now()}
+            payload = {"status": STATUS_STARTED, "start_time": datetime.now(timezone.utc).isoformat()}
             if details:
                 payload.update(details)
             await self.repository.update_execution(self.execution_id, payload)
@@ -107,7 +107,7 @@ class DatabaseProgressTracker(ProgressTracker):
                 "current_step": stage,
                 "current_step_name": stage,
                 "progress": percent,
-                "last_updated": datetime.now(),
+                "last_updated": datetime.now(timezone.utc).isoformat(),
             }
             if details:
                 payload.update(details)
@@ -125,7 +125,7 @@ class DatabaseProgressTracker(ProgressTracker):
     async def complete(self, result: dict[str, Any] | None = None):
         """Sets status to 'completed' and saves final result."""
         try:
-            payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now()}
+            payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now(timezone.utc).isoformat()}
             if result:
                 payload["result"] = result
             await self.repository.update_execution(self.execution_id, payload)
@@ -139,7 +139,7 @@ class DatabaseProgressTracker(ProgressTracker):
     async def fail(self, error: str, details: dict[str, Any] | None = None):
         """Sets status to 'failed' and saves error message."""
         try:
-            payload: dict[str, Any] = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now()}
+            payload: dict[str, Any] = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now(timezone.utc).isoformat()}
             if details:
                 payload["result"] = details
             await self.repository.update_execution(self.execution_id, payload)
@@ -176,7 +176,7 @@ class InMemoryProgressTracker(ProgressTracker):
             status (str): Current status code.
             payload (dict): Data payload.
         """
-        base = {"status": status, "timestamp": datetime.now().isoformat()}
+        base = {"status": status, "timestamp": datetime.now(timezone.utc).isoformat()}
         base.update(payload)
         self.current_state = base
         # Pass the simplified view expected by API consumers
@@ -235,7 +235,7 @@ class ProgressService:
             "task_key": task_key,
             "message": message,
             "progress": progress,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         try:

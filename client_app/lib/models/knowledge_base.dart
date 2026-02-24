@@ -36,6 +36,7 @@ abstract class IngestionSummary with _$IngestionSummary {
 abstract class KnowledgeModelStrategy with _$KnowledgeModelStrategy {
   const factory KnowledgeModelStrategy({
     required String id,
+    String? slug,
     @JsonKey(name: 'model_name') required String modelName,
     String? provider,
   }) = _KnowledgeModelStrategy;

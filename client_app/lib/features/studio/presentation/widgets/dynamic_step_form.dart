@@ -143,11 +143,13 @@ class _BuildField extends HookConsumerWidget {
   void _submit(String text, bool isNumber) {
      if (isNumber) {
        final numVal = num.tryParse(text);
-       if (numVal != null) {
+       if (numVal != null && numVal != value) {
           onChanged(keyName, numVal);
        }
      } else {
-        onChanged(keyName, text);
+        if (text != (value?.toString() ?? '')) {
+          onChanged(keyName, text);
+        }
      }
   }
   

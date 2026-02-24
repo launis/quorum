@@ -23,8 +23,9 @@ class ComponentsManagerPanel extends HookConsumerWidget {
       
       if (query.isEmpty) return list;
       return list.where((c) =>
-        c.name.toLowerCase().contains(query) ||
         c.id.toLowerCase().contains(query) ||
+        (c.name ?? c.slug ?? '').toLowerCase().contains(query) ||
+        (c.slug?.toLowerCase().contains(query) ?? false) ||
         c.type.toLowerCase().contains(query)
       ).toList();
     }, [componentsState.value, searchController.text]);
@@ -91,8 +92,8 @@ class ComponentsManagerPanel extends HookConsumerWidget {
                           final comp = filteredComponents[index];
                           final isSelected = comp.id == selectedId.value;
                           return ListTile(
-                            title: Text(comp.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: Text("${comp.type} • ${comp.id}", style: const TextStyle(fontSize: 12)),
+                            title: Text(comp.name ?? comp.slug ?? comp.id, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text(comp.type, style: const TextStyle(fontSize: 12)),
                             selected: isSelected,
                             selectedTileColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
                             onTap: () => selectedId.value = comp.id,

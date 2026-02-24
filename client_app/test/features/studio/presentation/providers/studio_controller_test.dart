@@ -1,5 +1,6 @@
 import 'package:client_app/features/studio/data/studio_repository.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
+import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,8 +48,8 @@ void main() {
     ],
   );
 
-  const testComponents = [
-    ComponentDef(id: 'c1', name: 'Comp 1', type: 'prompt'),
+  const List<StudioComponentDef> testComponents = [
+    StudioComponentDef(id: 'c1', name: 'Comp 1', type: 'prompt', content: {}),
   ];
 
   test('loadWorkflow loads data into activeWorkflow', () async {
@@ -68,8 +69,12 @@ void main() {
 
   test('loadComponents loads data into components', () async {
     // Arrange
-    when(() => mockRepository.getAvailableComponents())
+    when(() => mockRepository.getComponents())
         .thenAnswer((_) async => testComponents);
+    when(() => mockRepository.getAgents())
+        .thenAnswer((_) async => <StudioComponentDef>[]);
+    when(() => mockRepository.getOutputConfigs())
+        .thenAnswer((_) async => <StudioComponentDef>[]);
 
     // Act
     await container.read(studioControllerProvider.notifier).loadComponents();

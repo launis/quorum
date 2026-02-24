@@ -12,26 +12,26 @@ from backend.models.auth import TokenData, UserRole
 
 
 def test_rbac_root_allow():
-    user = TokenData(uid="root", role=UserRole.ROOT, organization_id="system")
+    user = TokenData(id="root", role=UserRole.ROOT, organization_id="system")
     execution = {"user_id": "other", "organization_id": "other_org"}
     # Should not raise
     _enforce_pdf_access(user, execution)
 
 
 def test_rbac_admin_allow():
-    user = TokenData(uid="admin", role=UserRole.ADMIN, organization_id="org1")
+    user = TokenData(id="admin", role=UserRole.ADMIN, organization_id="org1")
     execution = {"user_id": "u1", "organization_id": "org1"}
     _enforce_pdf_access(user, execution)
 
 
 def test_rbac_manager_own_org_allow():
-    user = TokenData(uid="mgr", role=UserRole.MANAGER, organization_id="org1")
+    user = TokenData(id="mgr", role=UserRole.MANAGER, organization_id="org1")
     execution = {"user_id": "u1", "organization_id": "org1"}
     _enforce_pdf_access(user, execution)
 
 
 def test_rbac_manager_other_org_deny():
-    user = TokenData(uid="mgr", role=UserRole.MANAGER, organization_id="org1")
+    user = TokenData(id="mgr", role=UserRole.MANAGER, organization_id="org1")
     execution = {"user_id": "u2", "organization_id": "org2"}
     with pytest.raises(AppException) as exc:
         _enforce_pdf_access(user, execution)
@@ -40,13 +40,13 @@ def test_rbac_manager_other_org_deny():
 
 
 def test_rbac_member_own_exec_allow():
-    user = TokenData(uid="u1", role=UserRole.MEMBER, organization_id="org1")
+    user = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org1")
     execution = {"user_id": "u1", "organization_id": "org1"}
     _enforce_pdf_access(user, execution)
 
 
 def test_rbac_member_other_exec_deny():
-    user = TokenData(uid="u1", role=UserRole.MEMBER, organization_id="org1")
+    user = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org1")
     execution = {"user_id": "u2", "organization_id": "org1"}
     with pytest.raises(AppException) as exc:
         _enforce_pdf_access(user, execution)
@@ -65,7 +65,7 @@ async def test_download_endpoint_file_exists():
     mock_repo = AsyncMock()
     mock_repo.get_execution.return_value = {"id": "ex1", "user_id": "u1", "organization_id": "org1"}
 
-    mock_user = TokenData(uid="u1", role=UserRole.MEMBER, organization_id="org1")
+    mock_user = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org1")
 
     # Mock Storage
     mock_storage = MagicMock()
@@ -96,7 +96,7 @@ async def test_download_endpoint_queues_job():
     mock_repo.get_execution.return_value = {"id": "ex1", "user_id": "u1", "organization_id": "org1"}
     mock_pool = AsyncMock()
 
-    mock_user = TokenData(uid="u1", role=UserRole.MEMBER, organization_id="org1")
+    mock_user = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org1")
 
     # Mock Storage
     mock_storage = MagicMock()

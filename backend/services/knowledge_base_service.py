@@ -5,7 +5,7 @@ import json
 import logging
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi.concurrency import run_in_threadpool
@@ -441,7 +441,7 @@ class KnowledgeBaseService:
                 "term": c.term,
                 "definition": c.definition,
                 "source_file": source_name,
-                "ingested_at": datetime.now(),
+                "ingested_at": datetime.now(timezone.utc).isoformat(),
                 "metadata": {"language": language},
             }
             await self.repository.add_concept(item)
@@ -463,7 +463,7 @@ class KnowledgeBaseService:
                 "definition": r.citation,  # Full citation as definition
                 "doi_link": r.doi_link,
                 "source_file": source_name,
-                "ingested_at": datetime.now(),
+                "ingested_at": datetime.now(timezone.utc).isoformat(),
                 "metadata": {"short_citation": r.short_citation, "language": language},
             }
             await self.repository.add_reference(item)
@@ -483,7 +483,7 @@ class KnowledgeBaseService:
                 "term": (cl.citation_text[:50] + "...") if cl.citation_text else "Claim",
                 "definition": cl.claim_text,  # The claim itself is the "definition" or content
                 "source_file": source_name,
-                "ingested_at": datetime.now(),
+                "ingested_at": datetime.now(timezone.utc).isoformat(),
                 "metadata": {
                     "citation_keys": cl.citation_keys,
                     "citation_text": cl.citation_text,

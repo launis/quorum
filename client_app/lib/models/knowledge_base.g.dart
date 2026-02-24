@@ -53,6 +53,7 @@ _KnowledgeModelStrategy _$KnowledgeModelStrategyFromJson(
   Map<String, dynamic> json,
 ) => _KnowledgeModelStrategy(
   id: json['id'] as String,
+  slug: json['slug'] as String?,
   modelName: json['model_name'] as String,
   provider: json['provider'] as String?,
 );
@@ -61,6 +62,7 @@ Map<String, dynamic> _$KnowledgeModelStrategyToJson(
   _KnowledgeModelStrategy instance,
 ) => <String, dynamic>{
   'id': instance.id,
+  'slug': instance.slug,
   'model_name': instance.modelName,
   'provider': instance.provider,
 };

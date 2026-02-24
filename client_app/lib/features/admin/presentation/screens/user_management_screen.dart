@@ -59,7 +59,7 @@ class UserManagementScreen extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       await ref
           .read(userCrudControllerProvider.notifier)
-          .deleteUser(user.uid, orgId);
+          .deleteUser(user.id, orgId);
     }
   }
 

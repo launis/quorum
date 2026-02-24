@@ -126,9 +126,9 @@ class OrganizationListScreen extends ConsumerWidget {
                     return ListTile(
                       title: Text(org.name),
                       subtitle: Text(
-                        'ID: ${org.id} • Status: ${org.status.name}',
-                      ),
-                      trailing: PopupMenuButton<String>(
+                      'ID: ${org.slug ?? org.name.toLowerCase()} • Status: ${org.status.name}',
+                      style: const TextStyle(color: Colors.white70),
+                    ),  trailing: PopupMenuButton<String>(
                         onSelected: (value) {
                           if (value == 'edit') {
                             _showForm(context, org);

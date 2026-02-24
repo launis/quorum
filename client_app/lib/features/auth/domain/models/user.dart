@@ -30,11 +30,14 @@ enum UserRole {
 /// The [User] object is critical for:
 /// 1.  **Access Control**: The [role] property determines access to Admin vs. Dashboard routes.
 /// 2.  **Multi-tenancy**: The [organizationId] scopes all data access.
-/// 3.  **Audit**: The [uid] is logged with every sensitive action.
+/// 3.  **Audit**: The [id] is logged with every sensitive action.
 @JsonSerializable()
 class User {
-  /// The Firebase UID, acting as the primary key.
-  final String uid;
+  /// The UUID, acting as the primary key.
+  final String id;
+
+  /// The legacy string identifier (optional).
+  final String? slug;
 
   /// The user's primary email address.
   final String email;
@@ -74,7 +77,8 @@ class User {
   final int executionCount;
 
   const User({
-    required this.uid,
+    required this.id,
+    this.slug,
     required this.email,
     required this.role,
     this.organizationId,

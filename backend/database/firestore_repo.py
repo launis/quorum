@@ -127,7 +127,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
     async def get_audit_logs(
         self,
         organization_id: str | None = None,
-        actor_uid: str | None = None,
+        actor_id: str | None = None,
         action: str | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
@@ -135,8 +135,8 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
         if organization_id:
             query = query.where("organization_id", "==", organization_id)
-        if actor_uid:
-            query = query.where("actor_uid", "==", actor_uid)
+        if actor_id:
+            query = query.where("actor_id", "==", actor_id)
         if action:
             query = query.where("action", "==", action)
 
@@ -460,15 +460,22 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             if doc.exists:
                 return doc.to_dict()
         except Exception as e:
-            logger.error(f"Firestore model registry lookup failed: {e}")
-        return {}
+            logger.error(f"Firestore model registry check failed: {e}")
+            from backend.exceptions import AppException, ErrorCodes, status
+            raise AppException(message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": ErrorCodes.DATABASE_ERROR}) from e
+            
+        logger.error("[FirestoreRepository] SYSTEM_CONFIG_NOT_FOUND: 'model_registry' document is missing from database.")
+        from backend.exceptions import ResourceNotFoundError
+        raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
 
     async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
         """Update the model registry configuration."""
         safe_data = self._serialize_for_firestore(registry_data)
         try:
-            # Document must be 'model_registry'
-            await self.db.collection("system_config").document("model_registry").set(safe_data)
+            doc_id = safe_data.get("id", "model_registry")
+            if doc_id != "model_registry" and "slug" not in safe_data:
+                safe_data["slug"] = "model_registry"
+            await self.db.collection("system_config").document(doc_id).set(safe_data)
             return True
         except Exception as e:
             logger.error(f"Firestore model registry update failed: {e}")

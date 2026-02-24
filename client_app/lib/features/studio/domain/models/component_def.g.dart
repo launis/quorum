@@ -70,7 +70,8 @@ Map<String, dynamic> _$MatrixDefToJson(_MatrixDef instance) =>
 _StudioComponentDef _$StudioComponentDefFromJson(Map<String, dynamic> json) =>
     _StudioComponentDef(
       id: json['id'] as String,
-      name: json['name'] as String,
+      slug: json['slug'] as String?,
+      name: json['name'] as String?,
       type: json['type'] as String,
       description: json['description'] as String?,
       citation: json['citation'] as String?,
@@ -80,6 +81,7 @@ _StudioComponentDef _$StudioComponentDefFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$StudioComponentDefToJson(_StudioComponentDef instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'slug': instance.slug,
       'name': instance.name,
       'type': instance.type,
       'description': instance.description,

@@ -27,7 +27,7 @@ async def test_cancel_execution_success():
     repository.get_execution.return_value = execution_record
     repository.update_execution.return_value = True
 
-    user = TokenData(uid="user-1", role=UserRole.MEMBER, organization_id="org-A", email="test@test.com")
+    user = TokenData(id="user-1", role=UserRole.MEMBER, organization_id="org-A", email="test@test.com")
 
     # 3. Call Endpoint logic
     result = await cancel_execution(execution_id, repository=repository, current_user=user)
@@ -51,7 +51,7 @@ async def test_cancel_execution_already_done():
     repository = AsyncMock()
     repository.get_execution.return_value = execution_record
 
-    user = TokenData(uid="user-1", role=UserRole.MEMBER, organization_id="org-A")
+    user = TokenData(id="user-1", role=UserRole.MEMBER, organization_id="org-A")
 
     result = await cancel_execution(execution_id, repository=repository, current_user=user)
 
@@ -74,7 +74,7 @@ async def test_cancel_execution_permission_denied():
     repository = AsyncMock()
     repository.get_execution.return_value = execution_record
 
-    user = TokenData(uid="user-1", role=UserRole.MEMBER, organization_id="org-A")
+    user = TokenData(id="user-1", role=UserRole.MEMBER, organization_id="org-A")
 
     # 2. Pydantic 2.0 / FastAPI logic throws exceptions
     # We expect AppException or HTTPException

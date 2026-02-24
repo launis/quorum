@@ -52,7 +52,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
       try {
         final api = ref.read(apiClientProvider);
         await api.patch<Map<String, dynamic>>(
-          '/auth/users/${user.uid}',
+          '/auth/users/${user.id}',
           data: {
             'theme_mode':
                 mode.toString().split('.').last, // "system", "light", "dark"

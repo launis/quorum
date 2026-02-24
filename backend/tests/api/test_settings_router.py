@@ -31,10 +31,10 @@ def setup_dependencies():
     app.dependency_overrides = {}
 
 
-def get_token_header(role: UserRole = UserRole.ROOT, uid: str = "test_user"):
+def get_token_header(role: UserRole = UserRole.ROOT, id: str = "test_user"):
     # Mock verify_token to return this user
     token = f"Bearer {role.value}_token"
-    mock_auth_service.verify_token.return_value = TokenData(uid=uid, role=role, organization_id="system")
+    mock_auth_service.verify_token.return_value = TokenData(id=id, role=role, organization_id="system")
     return {"Authorization": token}
 
 
@@ -72,7 +72,7 @@ async def test_get_settings_empty_db():
 @pytest.mark.asyncio
 async def test_update_settings_success():
     # Setup
-    mock_auth_service.verify_token.return_value = TokenData(uid="root", role=UserRole.ROOT, organization_id="system")
+    mock_auth_service.verify_token.return_value = TokenData(id="root", role=UserRole.ROOT, organization_id="system")
     update_payload = {"global_banner": "New Banner", "maintenance_mode": True}
 
     # Execute
@@ -95,7 +95,7 @@ async def test_update_settings_success():
 @pytest.mark.asyncio
 async def test_update_settings_permission_denied():
     # Setup: ADMIN (not ROOT)
-    mock_auth_service.verify_token.return_value = TokenData(uid="admin", role=UserRole.ADMIN, organization_id="org1")
+    mock_auth_service.verify_token.return_value = TokenData(id="admin", role=UserRole.ADMIN, organization_id="org1")
 
     # Execute
     response = client.patch("/settings", json={}, headers={"Authorization": "Bearer admin_token"})

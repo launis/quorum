@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:collection/collection.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 class StepsManagerPanel extends HookConsumerWidget {
   const StepsManagerPanel({super.key});
@@ -19,6 +21,7 @@ class StepsManagerPanel extends HookConsumerWidget {
     final stepsState = ref.watch(stepsControllerProvider);
     final selectedId = useState<String?>(null);
     final searchController = useTextEditingController();
+    final logger = ref.watch(loggerServiceProvider);
 
 final l10n = AppLocalizations.of(context)!;
 
@@ -39,6 +42,12 @@ final l10n = AppLocalizations.of(context)!;
 
     // Force refresh filtering when text changes
     useListenable(searchController);
+
+    // Ensure components are loaded for Step editing
+    useEffect(() {
+      Future.microtask(() => ref.read(studioControllerProvider.notifier).loadComponents());
+      return null;
+    }, []);
 
     // 2. Loading / Error States
     if (stepsState.isLoading && !stepsState.hasValue) {
@@ -119,13 +128,6 @@ final l10n = AppLocalizations.of(context)!;
                           step.name,
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
-                        subtitle: Text(
-                          step.id,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.secondary,
-                          ),
-                        ),
                         selected: isSelected,
                         selectedTileColor:
                             Theme.of(context).colorScheme.primaryContainer
@@ -198,6 +200,7 @@ class _StepEditor extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final isNew = stepId == 'new';
     final repo = ref.watch(studioRepositoryProvider);
+    final logger = ref.watch(loggerServiceProvider);
 
     // Form Controls
     final idController = useTextEditingController(text: initialStep?.id ?? '');
@@ -333,7 +336,8 @@ class _StepEditor extends HookConsumerWidget {
                     builder: (context, setState) {
                         final filtered = validComponents.where((c) => 
                             c.id.toLowerCase().contains(search.toLowerCase()) || 
-                            c.name.toLowerCase().contains(search.toLowerCase())
+                            (c.name ?? c.slug ?? '').toLowerCase().contains(search.toLowerCase()) ||
+                            (c.slug?.toLowerCase().contains(search.toLowerCase()) ?? false)
                         ).toList();
 
                         return AlertDialog(
@@ -359,8 +363,8 @@ class _StepEditor extends HookConsumerWidget {
                                                     final c = filtered[index];
                                                     final isSelected = llmPrompts.value.contains(c.id);
                                                     return ListTile(
-                                                        title: Text(c.name),
-                                                        subtitle: Text("${c.type} • ${c.id}", style: const TextStyle(fontSize: 12)),
+                                                        title: Text(c.slug ?? c.name ?? 'Unknown Component (${c.id.substring(0, 8)})'),
+                                                        subtitle: Text(c.type, style: const TextStyle(fontSize: 12)),
                                                         trailing: isSelected ? const Icon(Icons.check, color: Colors.green) : null,
                                                         onTap: () {
                                                             if (!isSelected) {
@@ -515,21 +519,37 @@ class _StepEditor extends HookConsumerWidget {
             const SizedBox(height: 8),
 
             // Prompt Chips
-            studioState.components.hasValue 
-            ? Wrap(
+            studioState.components.when(
+              loading: () => const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Center(child: CircularProgressIndicator())),
+              error: (err, stack) => Text('Error loading components', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              data: (components) => Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: llmPrompts.value.map((pid) {
-                     final comp = (studioState.components.value ?? []).firstWhere((c) => c.id == pid, orElse: () => StudioComponentDef(id: pid, name: pid, type: '?', content: const {}));
+                     final comp = components.firstWhereOrNull((c) => c.id == pid);
+                     
+                     if (comp == null) {
+                         return InputChip(
+                             label: Text('Unknown or Missing ID: ${pid.substring(0, 8)}', style: const TextStyle(color: Colors.white)),
+                             backgroundColor: Colors.red.shade900,
+                             deleteIconColor: Colors.white,
+                             tooltip: pid,
+                             onDeleted: () {
+                                 llmPrompts.value = llmPrompts.value.where((id) => id != pid).toList();
+                             },
+                         );
+                     }
+                     
                      return InputChip(
-                         label: Text(comp.name),
+                         label: Text(comp.slug ?? comp.name ?? 'Unknown (${comp.id.substring(0, 8)})'),
                          tooltip: comp.id,
                          onDeleted: () {
                              llmPrompts.value = llmPrompts.value.where((id) => id != pid).toList();
                          },
                      );
                 }).toList(),
-            ) : const LinearProgressIndicator(),
+              ),
+            ),
 
             const SizedBox(height: 40),
         ],

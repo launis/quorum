@@ -28,19 +28,19 @@ mock_auth_repo = MagicMock()
 mock_auth_service.repo = mock_auth_repo
 
 # Users
-root_user = TokenData(uid="root-1", role=UserRole.ROOT, organization_id="system")
-admin_user = TokenData(uid="admin-1", role=UserRole.ADMIN, organization_id="org-A")
-member_user = TokenData(uid="member-1", role=UserRole.MEMBER, organization_id="org-A")
+root_user = TokenData(id="root-1", role=UserRole.ROOT, organization_id="system")
+admin_user = TokenData(id="admin-1", role=UserRole.ADMIN, organization_id="org-A")
+member_user = TokenData(id="member-1", role=UserRole.MEMBER, organization_id="org-A")
 
 full_user_root = User(
-    uid="root-1",
+    id="root-1",
     email="root@example.com",
     role=UserRole.ROOT,
     organization_id="system",
     created_at=datetime.utcnow(),
 )
 full_user_admin = User(
-    uid="admin-1",
+    id="admin-1",
     email="admin@example.com",
     role=UserRole.ADMIN,
     organization_id="org-A",
@@ -63,8 +63,8 @@ async def test_verify_user_token_success():
 
     # Mock verify_token returning TokenData
     mock_auth_service.verify_token.return_value = root_user
-    # Mock repo.get_by_uid returning User
-    mock_auth_repo.get_by_uid.return_value = full_user_root
+    # Mock repo.get_by_id returning User
+    mock_auth_repo.get_by_id.return_value = full_user_root
     mock_auth_service.use_firebase = False
 
     response = client.post("/auth/verify", json=payload)
@@ -72,7 +72,7 @@ async def test_verify_user_token_success():
     assert response.status_code == 200
     data = response.json()
     assert data["token_valid"] is True
-    assert data["user"]["uid"] == "root-1"
+    assert data["user"]["id"] == "root-1"
 
 
 @pytest.mark.asyncio
@@ -80,17 +80,17 @@ async def test_impersonate_user_success():
     """ROOT can impersonate."""
     app.dependency_overrides[get_current_user_from_header] = lambda: root_user
 
-    def get_by_uid_side_effect(uid):
-        if uid == "root-1":
+    def get_by_id_side_effect(id):
+        if id == "root-1":
             return full_user_root
-        if uid == "admin-1":
+        if id == "admin-1":
             return full_user_admin
         return None
 
-    mock_auth_repo.get_by_uid.side_effect = get_by_uid_side_effect
+    mock_auth_repo.get_by_id.side_effect = get_by_id_side_effect
     mock_auth_service.create_impersonation_token.return_value = "impersonation-token"
 
-    payload = {"target_uid": "admin-1"}
+    payload = {"target_id": "admin-1"}
     response = client.post("/auth/impersonate", json=payload)
 
     assert response.status_code == 200
@@ -102,9 +102,9 @@ async def test_impersonate_user_denied_non_root():
     """Non-ROOT cannot impersonate."""
     # Requester is ADMIN (not ROOT)
     app.dependency_overrides[get_current_user_from_header] = lambda: admin_user
-    mock_auth_repo.get_by_uid.return_value = full_user_admin
+    mock_auth_repo.get_by_id.return_value = full_user_admin
 
-    payload = {"target_uid": "member-1"}
+    payload = {"target_id": "member-1"}
     response = client.post("/auth/impersonate", json=payload)
 
     assert response.status_code == 403
@@ -119,14 +119,14 @@ async def test_list_users_scoping():
         full_user_root,
         full_user_admin,
         User(
-            uid="mem-1",
+            id="mem-1",
             email="mem1@example.com",
             role=UserRole.MEMBER,
             organization_id="org-A",
             created_at=datetime.utcnow(),
         ),
         User(
-            uid="mem-2",
+            id="mem-2",
             email="mem2@example.com",
             role=UserRole.MEMBER,
             organization_id="org-B",
@@ -137,7 +137,7 @@ async def test_list_users_scoping():
 
     # 1. ROOT sees all
     app.dependency_overrides[get_current_user_from_header] = lambda: root_user
-    mock_auth_repo.get_by_uid.return_value = full_user_root
+    mock_auth_repo.get_by_id.return_value = full_user_root
 
     response = client.get("/auth/users")
     assert response.status_code == 200
@@ -147,12 +147,12 @@ async def test_list_users_scoping():
     # Logic in router: org_users = [u for u in all_users if u.organization_id == requester.organization_id]
     # Org-A has: admin-1, mem-1.
     app.dependency_overrides[get_current_user_from_header] = lambda: admin_user
-    mock_auth_repo.get_by_uid.return_value = full_user_admin
+    mock_auth_repo.get_by_id.return_value = full_user_admin
 
     response = client.get("/auth/users")
     assert response.status_code == 200
     # Should see admin-1 and mem-1
-    uids = [u["uid"] for u in response.json()]
+    uids = [u["id"] for u in response.json()]
     assert "admin-1" in uids
     assert "mem-1" in uids
     assert "mem-2" not in uids  # Org-B

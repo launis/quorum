@@ -64,7 +64,7 @@ class AbstractWorkflowRepository(ABC):
     async def get_audit_logs(
         self,
         organization_id: str | None = None,
-        actor_uid: str | None = None,
+        actor_id: str | None = None,
         action: str | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
@@ -417,15 +417,15 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def get_audit_logs(
         self,
         organization_id: str | None = None,
-        actor_uid: str | None = None,
+        actor_id: str | None = None,
         action: str | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         filters = []
         if organization_id:
             filters.append(Filter("organization_id", "==", organization_id))
-        if actor_uid:
-            filters.append(Filter("actor_uid", "==", actor_uid))
+        if actor_id:
+            filters.append(Filter("actor_id", "==", actor_id))
         if action:
             filters.append(Filter("action", "==", action))
 
@@ -690,20 +690,33 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         await self.driver.clear("claims")
 
     async def get_model_registry(self) -> dict[str, Any]:
-        # Config stored in system_config/model_registry
-        return await self.driver.get("system_config", "model_registry") or {}
+        res = await self.driver.get("system_config", "model_registry")
+        if not res:
+            logger.error("[MockRepository] SYSTEM_CONFIG_NOT_FOUND: 'model_registry' document is missing from database.")
+            from backend.exceptions import ResourceNotFoundError
+            raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
+        return res
 
     async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
-        registry_data["id"] = "model_registry"
-        await self.driver.upsert("system_config", registry_data, "model_registry")
+        doc_id = registry_data.get("id", "model_registry")
+        if doc_id != "model_registry" and "slug" not in registry_data:
+            registry_data["slug"] = "model_registry"
+        await self.driver.upsert("system_config", registry_data, doc_id)
         return True
 
     async def get_system_settings(self) -> dict[str, Any] | None:
-        return await self.driver.get("system_config", "global_settings")
+        res = await self.driver.get("system_config", "global_settings")
+        if not res:
+            logger.error("[MockRepository] SYSTEM_CONFIG_NOT_FOUND: 'global_settings' document is missing from database.")
+            from backend.exceptions import ResourceNotFoundError
+            raise ResourceNotFoundError(resource_type="system_config", resource_id="global_settings")
+        return res
 
     async def update_system_settings(self, updates: dict[str, Any]) -> bool:
-        updates["id"] = "global_settings"
-        await self.driver.upsert("system_config", updates, "global_settings")
+        doc_id = updates.get("id", "global_settings")
+        if doc_id != "global_settings" and "slug" not in updates:
+            updates["slug"] = "global_settings"
+        await self.driver.upsert("system_config", updates, doc_id)
         return True
 
     async def count_executions_by_matrix(self, matrix_id: str) -> int:

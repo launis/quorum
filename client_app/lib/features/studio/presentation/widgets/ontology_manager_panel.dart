@@ -184,7 +184,7 @@ class OntologyManagerPanel extends HookConsumerWidget {
                         context,
                       ).colorScheme.primaryContainer.withOpacity(0.2),
                       title: Text(item.name),
-                      subtitle: Text(item.id),
+                      subtitle: item.description.isNotEmpty ? Text(item.description, maxLines: 2, overflow: TextOverflow.ellipsis) : null,
                       onTap: () => onEdit(item),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, size: 20),

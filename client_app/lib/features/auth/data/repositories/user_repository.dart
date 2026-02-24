@@ -76,18 +76,18 @@ class UserRepository {
   /// Allows the user to update their own profile (e.g. display name).
   ///
   /// **Args**:
-  /// - [uid]: The user's UID (must match current auth, though backend validates this).
+  /// - [userId]: The user's ID (must match current auth, though backend validates this).
   /// - [updates]: The fields to update.
   Future<Either<AppError, User>> updateCurrentUser(
-    String uid,
+    String userId,
     Map<String, dynamic> updates,
   ) async {
     try {
       // Use the generic admin endpoint rule or the specific self-update one?
-      // Backend: PUT /admin/users/{uid} allows self-update if initiator==target.
+      // Backend: PUT /admin/users/{id} allows self-update if initiator==target.
       // So we can hit that.
       final response = await _client.put<Map<String, dynamic>>(
-        '/admin/users/$uid',
+        '/admin/users/$userId',
         data: updates,
       );
 

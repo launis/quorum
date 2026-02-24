@@ -858,7 +858,7 @@ as List<MatrixCriterion>,
 /// @nodoc
 mixin _$StudioComponentDef {
 
- String get id; String get name; String get type; String? get description; String? get citation;// Added citation
+ String get id; String? get slug; String? get name; String get type; String? get description; String? get citation;// Added citation
  dynamic get content;
 /// Create a copy of StudioComponentDef
 /// with the given fields replaced by the non-null parameter values.
@@ -872,16 +872,16 @@ $StudioComponentDefCopyWith<StudioComponentDef> get copyWith => _$StudioComponen
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StudioComponentDef&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&(identical(other.citation, citation) || other.citation == citation)&&const DeepCollectionEquality().equals(other.content, content));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is StudioComponentDef&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&(identical(other.citation, citation) || other.citation == citation)&&const DeepCollectionEquality().equals(other.content, content));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,description,citation,const DeepCollectionEquality().hash(content));
+int get hashCode => Object.hash(runtimeType,id,slug,name,type,description,citation,const DeepCollectionEquality().hash(content));
 
 @override
 String toString() {
-  return 'StudioComponentDef(id: $id, name: $name, type: $type, description: $description, citation: $citation, content: $content)';
+  return 'StudioComponentDef(id: $id, slug: $slug, name: $name, type: $type, description: $description, citation: $citation, content: $content)';
 }
 
 
@@ -892,7 +892,7 @@ abstract mixin class $StudioComponentDefCopyWith<$Res>  {
   factory $StudioComponentDefCopyWith(StudioComponentDef value, $Res Function(StudioComponentDef) _then) = _$StudioComponentDefCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String type, String? description, String? citation, dynamic content
+ String id, String? slug, String? name, String type, String? description, String? citation, dynamic content
 });
 
 
@@ -909,11 +909,12 @@ class _$StudioComponentDefCopyWithImpl<$Res>
 
 /// Create a copy of StudioComponentDef
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? description = freezed,Object? citation = freezed,Object? content = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? name = freezed,Object? type = null,Object? description = freezed,Object? citation = freezed,Object? content = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,citation: freezed == citation ? _self.citation : citation // ignore: cast_nullable_to_non_nullable
 as String?,content: freezed == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
@@ -1002,10 +1003,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String type,  String? description,  String? citation,  dynamic content)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? slug,  String? name,  String type,  String? description,  String? citation,  dynamic content)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StudioComponentDef() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.description,_that.citation,_that.content);case _:
+return $default(_that.id,_that.slug,_that.name,_that.type,_that.description,_that.citation,_that.content);case _:
   return orElse();
 
 }
@@ -1023,10 +1024,10 @@ return $default(_that.id,_that.name,_that.type,_that.description,_that.citation,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String type,  String? description,  String? citation,  dynamic content)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? slug,  String? name,  String type,  String? description,  String? citation,  dynamic content)  $default,) {final _that = this;
 switch (_that) {
 case _StudioComponentDef():
-return $default(_that.id,_that.name,_that.type,_that.description,_that.citation,_that.content);case _:
+return $default(_that.id,_that.slug,_that.name,_that.type,_that.description,_that.citation,_that.content);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1043,10 +1044,10 @@ return $default(_that.id,_that.name,_that.type,_that.description,_that.citation,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String type,  String? description,  String? citation,  dynamic content)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? slug,  String? name,  String type,  String? description,  String? citation,  dynamic content)?  $default,) {final _that = this;
 switch (_that) {
 case _StudioComponentDef() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.description,_that.citation,_that.content);case _:
+return $default(_that.id,_that.slug,_that.name,_that.type,_that.description,_that.citation,_that.content);case _:
   return null;
 
 }
@@ -1058,11 +1059,12 @@ return $default(_that.id,_that.name,_that.type,_that.description,_that.citation,
 @JsonSerializable()
 
 class _StudioComponentDef extends StudioComponentDef {
-  const _StudioComponentDef({required this.id, required this.name, required this.type, this.description, this.citation, required this.content}): super._();
+  const _StudioComponentDef({required this.id, this.slug, this.name, required this.type, this.description, this.citation, required this.content}): super._();
   factory _StudioComponentDef.fromJson(Map<String, dynamic> json) => _$StudioComponentDefFromJson(json);
 
 @override final  String id;
-@override final  String name;
+@override final  String? slug;
+@override final  String? name;
 @override final  String type;
 @override final  String? description;
 @override final  String? citation;
@@ -1082,16 +1084,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StudioComponentDef&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&(identical(other.citation, citation) || other.citation == citation)&&const DeepCollectionEquality().equals(other.content, content));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StudioComponentDef&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&(identical(other.citation, citation) || other.citation == citation)&&const DeepCollectionEquality().equals(other.content, content));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,description,citation,const DeepCollectionEquality().hash(content));
+int get hashCode => Object.hash(runtimeType,id,slug,name,type,description,citation,const DeepCollectionEquality().hash(content));
 
 @override
 String toString() {
-  return 'StudioComponentDef(id: $id, name: $name, type: $type, description: $description, citation: $citation, content: $content)';
+  return 'StudioComponentDef(id: $id, slug: $slug, name: $name, type: $type, description: $description, citation: $citation, content: $content)';
 }
 
 
@@ -1102,7 +1104,7 @@ abstract mixin class _$StudioComponentDefCopyWith<$Res> implements $StudioCompon
   factory _$StudioComponentDefCopyWith(_StudioComponentDef value, $Res Function(_StudioComponentDef) _then) = __$StudioComponentDefCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String type, String? description, String? citation, dynamic content
+ String id, String? slug, String? name, String type, String? description, String? citation, dynamic content
 });
 
 
@@ -1119,11 +1121,12 @@ class __$StudioComponentDefCopyWithImpl<$Res>
 
 /// Create a copy of StudioComponentDef
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? description = freezed,Object? citation = freezed,Object? content = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? name = freezed,Object? type = null,Object? description = freezed,Object? citation = freezed,Object? content = freezed,}) {
   return _then(_StudioComponentDef(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,citation: freezed == citation ? _self.citation : citation // ignore: cast_nullable_to_non_nullable
 as String?,content: freezed == content ? _self.content : content // ignore: cast_nullable_to_non_nullable

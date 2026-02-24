@@ -176,8 +176,8 @@ def get_auth_service(
         logger.info(f"[Dependencies] Initializing AuthService (Firebase={use_firebase})...")
         _auth_service_instance = AuthService(db_client, use_firebase=use_firebase, audit_service=audit_service)
 
-        if settings.use_mock_db or settings.active_backend == "LOCAL":
-            _auth_service_instance.ensure_root_user()
+        # Mock login is handled exclusively by passing the ID from the UI.
+        # Startup validation logic (ensure_root_user) is disabled per user request.
 
     return _auth_service_instance
 

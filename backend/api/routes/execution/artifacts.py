@@ -47,7 +47,7 @@ def _enforce_pdf_access(user: TokenData, execution: dict[str, Any]) -> None:
         return
 
     exec_user = execution.get("user_id")
-    if str(exec_user) != str(user.uid):
+    if str(exec_user) != str(user.id):
         raise AppException(
             message="You do not have permission to access this execution.",
             status_code=status.HTTP_403_FORBIDDEN,

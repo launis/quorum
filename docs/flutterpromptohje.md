@@ -145,6 +145,12 @@ JSON
 * **Dependency Injection (Annotated)**: Strict mandate to use `Annotated[DependencyType, Depends()]`. This ensures Pydantic V2 schemas generate flawlessly and Type Checkers (`mypy`) can explicitly trace injection dependencies.
 * **Concurrency**: I/O routes reading asynchronous sources MUST be `async def`. However, routes accessing purely synchronous blocking drivers (like `TinyDBDriver`) MUST be defined as basic `def`, forcing FastAPI to safely execute them in a background threadpool to prevent Event Loop freezing!
 
+### **2.1.1 API-Tier Authorization & Constraint Enforcement**
+
+* **API First Protection**: All authorization, business constraints, and cross-domain lookups (e.g., verifying `LAST_ADMIN`, ensuring `System Root` cannot be modified, checking organization membership) **MUST** be enforced strictly at the API Routing Layer (`routers/*.py`).
+* **Service Pure CRUD**: Core backend services (`AuthService`, `OrganizationService`) must remain lightweight and agnostic of routing/HTTP contexts. They should execute pure operations based on the inputs provided.
+* **Fail Fast at Boundary**: Reject forbidden or invalid operations at the earliest entry point using the explicit domain exceptions (`PermissionDeniedError`, `ConflictError`). Never pass invalid states down into the Domain layer just to be caught later.
+
 ### **2.2. Date Handling (Temporal Standard)**
 
 * **Storage**: Store as datetime. Repository handles DB-specifics.  

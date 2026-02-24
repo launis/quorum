@@ -64,13 +64,13 @@ class AuthController extends _$AuthController {
   }
 
   /// **Debug Only**: Log in with a mock token.
-  Future<void> debugMockLogin(String uid) async {
+  Future<void> debugMockLogin(String id) async {
     state = const AsyncLoading();
 
     // 1. Validate with Backend
     final result = await ref
         .read(authRepositoryProvider)
-        .debugSignInWithMockToken(uid);
+        .debugSignInWithMockToken(id);
 
     result.fold(
       (error) {
@@ -82,7 +82,7 @@ class AuthController extends _$AuthController {
         ref.read(mockUserProvider.notifier).setUser(user);
 
         // 3. Set Token for Interceptor
-        final token = 'mock-token:$uid';
+        final token = 'mock-token:$id';
         ref.read(mockTokenProvider.notifier).setToken(token);
 
         // 4. Force State Update (Ensure Router sees it immediately)

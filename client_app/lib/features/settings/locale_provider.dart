@@ -33,7 +33,7 @@ class LocaleNotifier extends _$LocaleNotifier {
       try {
         final api = ref.read(apiClientProvider);
         await api.patch<Map<String, dynamic>>(
-          '/auth/users/${user.uid}',
+          '/auth/users/${user.id}',
           data: {'language': locale.languageCode},
         );
       } catch (e) {

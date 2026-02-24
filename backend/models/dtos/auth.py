@@ -5,4 +5,4 @@ class UserDeleteResponse(BaseModel):
     """Response after deleting a user."""
 
     status: str
-    uid: str
+    id: str

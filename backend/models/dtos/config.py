@@ -1,4 +1,5 @@
 from typing import Annotated, Any, Literal
+import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -34,7 +35,8 @@ class ComponentUpdate(BaseModel):
 class ComponentCreate(BaseModel):
     """Payload for creating a new component."""
 
-    id: Annotated[str, Field(description="Unique Identifier for the component.")]
+    id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()), description="Unique Identifier for the component.")]
+    slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     name: Annotated[str, Field(description="Human readable name.")]
     type: Annotated[str, Field(description="Component Type (header, prompt, evaluation_matrix, etc).")]
     content: Annotated[str | dict[str, Any] | list[Any], Field(description="The content (text or JSON object).")]
@@ -66,8 +68,9 @@ class RegistryComponentItem(BaseModel):
 
     id: Annotated[
         str,
-        Field(description="Component ID", json_schema_extra={"x-ui-label": "ID"}),
+        Field(default_factory=lambda: str(uuid.uuid4()), description="Component ID", json_schema_extra={"x-ui-label": "ID"}),
     ]
+    slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     name: Annotated[
         str,
         Field(description="Meaningful Label", json_schema_extra={"x-ui-label": "Label"}),
@@ -99,7 +102,8 @@ class RegistryComponentItem(BaseModel):
 class AgentBaseResponse(BaseModel):
     """Base fields for all components."""
 
-    id: str
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    slug: str | None = None
     name: str | None = None
     description: str | None = None
     citation: str | None = None
@@ -217,7 +221,8 @@ class ModelOptionsResponse(BaseModel):
 class DimensionDefinition(BaseModel):
     """Model definition for an evaluation dimension."""
 
-    id: Annotated[str, Field(description="Unique dimension ID (e.g. 'analyysi').")]
+    id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()), description="Unique dimension ID (e.g. 'analyysi').")]
+    slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     label: Annotated[str, Field(description="Human readable default label.")]
     description: Annotated[str | None, Field(description="Explanation of what this measures.")] = None
     is_system: Annotated[bool, Field(description="If true, is a core system dimension.")] = False
@@ -253,7 +258,8 @@ class SchemaResponse(BaseModel):
 class StepDefinition(BaseModel):
     """Step configuration definition."""
 
-    id: Annotated[str, Field(description="Unique step identifier", json_schema_extra={"x-ui-label": "Step ID"})]
+    id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()), description="Unique step identifier", json_schema_extra={"x-ui-label": "Step ID"})]
+    slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     name: Annotated[str, Field(description="Human-readable name", json_schema_extra={"x-ui-label": "Nimi"})]
     description: Annotated[str | None, Field(description="Description", json_schema_extra={"x-ui-label": "Kuvaus"})] = (
         None
@@ -267,6 +273,7 @@ class StepDefinition(BaseModel):
     inputs: Annotated[
         dict[str, str], Field(description="Default Input Mapping", json_schema_extra={"x-ui-label": "Oletussyötteet"})
     ] = {}
+    is_missing_registry: Annotated[bool, Field(description="Missing registry marker")] = False
 
     model_config = ConfigDict(extra="forbid")
 
@@ -281,7 +288,8 @@ class StepDeleteResponse(BaseModel):
 class WorkflowConfigDefinition(BaseModel):
     """Workflow configuration definition."""
 
-    id: Annotated[str, Field(description="Workflow UUID/Slug")]
+    id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()), description="Workflow UUID")]
+    slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     name: Annotated[str, Field(description="Workflow Name")]
     description: Annotated[str | None, Field(description="Description")] = None
     sequence: Annotated[list[str], Field(description="Ordered list of Step IDs")] = []
@@ -296,7 +304,8 @@ class WorkflowConfigDefinition(BaseModel):
 class WorkflowConfigCreate(BaseModel):
     """Payload for creating a workflow."""
 
-    id: Annotated[str, Field(description="New Workflow UUID/Slug")]
+    id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()), description="New Workflow UUID")]
+    slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     name: Annotated[str, Field(description="Workflow Name")]
     sequence: Annotated[list[str], Field(description="List of Step IDs")] = []
     description: Annotated[str | None, Field(description="Description")] = None

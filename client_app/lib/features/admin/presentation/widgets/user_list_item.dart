@@ -28,9 +28,9 @@ class UserListItem extends ConsumerWidget {
 
     // Safety: Retrieve current user to prevent self-edit lockout
     final authState = ref.watch(authControllerProvider);
-    final String? currentUserId = authState.value?.uid;
+    final String? currentUserId = authState.value?.id;
 
-    final bool isSelf = currentUserId == user.uid;
+    final bool isSelf = currentUserId == user.id;
     // Allow edit/delete only if not self and callbacks provided
     final bool canModify = !isSelf && (onEdit != null || onDelete != null);
 

@@ -16,7 +16,9 @@ T _$identity<T>(T value) => value;
 mixin _$WorkflowStep {
 
 /// Unique step identifier, e.g., 'safety_check'
- String get id;/// Registry Task Name (matches @register_task name)
+ String get id;/// Legacy human-readable identifier
+ String? get slug;/// Human-readable name of the step
+@JsonKey(defaultValue: 'Unnamed Step') String get name;/// Registry Task Name (matches @register_task name)
 @JsonKey(name: 'task_key') String get taskKey;/// Maps task inputs to state values. Example: {'text': '$inputs.history_text'}
  Map<String, String> get inputs;/// Optional static config for the task
  Map<String, dynamic> get config;
@@ -32,16 +34,16 @@ $WorkflowStepCopyWith<WorkflowStep> get copyWith => _$WorkflowStepCopyWithImpl<W
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowStep&&(identical(other.id, id) || other.id == id)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other.inputs, inputs)&&const DeepCollectionEquality().equals(other.config, config));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowStep&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other.inputs, inputs)&&const DeepCollectionEquality().equals(other.config, config));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,taskKey,const DeepCollectionEquality().hash(inputs),const DeepCollectionEquality().hash(config));
+int get hashCode => Object.hash(runtimeType,id,slug,name,taskKey,const DeepCollectionEquality().hash(inputs),const DeepCollectionEquality().hash(config));
 
 @override
 String toString() {
-  return 'WorkflowStep(id: $id, taskKey: $taskKey, inputs: $inputs, config: $config)';
+  return 'WorkflowStep(id: $id, slug: $slug, name: $name, taskKey: $taskKey, inputs: $inputs, config: $config)';
 }
 
 
@@ -52,7 +54,7 @@ abstract mixin class $WorkflowStepCopyWith<$Res>  {
   factory $WorkflowStepCopyWith(WorkflowStep value, $Res Function(WorkflowStep) _then) = _$WorkflowStepCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'task_key') String taskKey, Map<String, String> inputs, Map<String, dynamic> config
+ String id, String? slug,@JsonKey(defaultValue: 'Unnamed Step') String name,@JsonKey(name: 'task_key') String taskKey, Map<String, String> inputs, Map<String, dynamic> config
 });
 
 
@@ -69,9 +71,11 @@ class _$WorkflowStepCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowStep
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? taskKey = null,Object? inputs = null,Object? config = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? name = null,Object? taskKey = null,Object? inputs = null,Object? config = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,taskKey: null == taskKey ? _self.taskKey : taskKey // ignore: cast_nullable_to_non_nullable
 as String,inputs: null == inputs ? _self.inputs : inputs // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,config: null == config ? _self.config : config // ignore: cast_nullable_to_non_nullable
@@ -160,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'task_key')  String taskKey,  Map<String, String> inputs,  Map<String, dynamic> config)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? slug, @JsonKey(defaultValue: 'Unnamed Step')  String name, @JsonKey(name: 'task_key')  String taskKey,  Map<String, String> inputs,  Map<String, dynamic> config)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkflowStep() when $default != null:
-return $default(_that.id,_that.taskKey,_that.inputs,_that.config);case _:
+return $default(_that.id,_that.slug,_that.name,_that.taskKey,_that.inputs,_that.config);case _:
   return orElse();
 
 }
@@ -181,10 +185,10 @@ return $default(_that.id,_that.taskKey,_that.inputs,_that.config);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'task_key')  String taskKey,  Map<String, String> inputs,  Map<String, dynamic> config)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? slug, @JsonKey(defaultValue: 'Unnamed Step')  String name, @JsonKey(name: 'task_key')  String taskKey,  Map<String, String> inputs,  Map<String, dynamic> config)  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowStep():
-return $default(_that.id,_that.taskKey,_that.inputs,_that.config);case _:
+return $default(_that.id,_that.slug,_that.name,_that.taskKey,_that.inputs,_that.config);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +205,10 @@ return $default(_that.id,_that.taskKey,_that.inputs,_that.config);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'task_key')  String taskKey,  Map<String, String> inputs,  Map<String, dynamic> config)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? slug, @JsonKey(defaultValue: 'Unnamed Step')  String name, @JsonKey(name: 'task_key')  String taskKey,  Map<String, String> inputs,  Map<String, dynamic> config)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowStep() when $default != null:
-return $default(_that.id,_that.taskKey,_that.inputs,_that.config);case _:
+return $default(_that.id,_that.slug,_that.name,_that.taskKey,_that.inputs,_that.config);case _:
   return null;
 
 }
@@ -216,11 +220,15 @@ return $default(_that.id,_that.taskKey,_that.inputs,_that.config);case _:
 @JsonSerializable()
 
 class _WorkflowStep implements WorkflowStep {
-  const _WorkflowStep({required this.id, @JsonKey(name: 'task_key') required this.taskKey, final  Map<String, String> inputs = const {}, final  Map<String, dynamic> config = const {}}): _inputs = inputs,_config = config;
+  const _WorkflowStep({required this.id, this.slug, @JsonKey(defaultValue: 'Unnamed Step') this.name = 'Unnamed Step', @JsonKey(name: 'task_key') required this.taskKey, final  Map<String, String> inputs = const {}, final  Map<String, dynamic> config = const {}}): _inputs = inputs,_config = config;
   factory _WorkflowStep.fromJson(Map<String, dynamic> json) => _$WorkflowStepFromJson(json);
 
 /// Unique step identifier, e.g., 'safety_check'
 @override final  String id;
+/// Legacy human-readable identifier
+@override final  String? slug;
+/// Human-readable name of the step
+@override@JsonKey(defaultValue: 'Unnamed Step') final  String name;
 /// Registry Task Name (matches @register_task name)
 @override@JsonKey(name: 'task_key') final  String taskKey;
 /// Maps task inputs to state values. Example: {'text': '$inputs.history_text'}
@@ -255,16 +263,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowStep&&(identical(other.id, id) || other.id == id)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other._inputs, _inputs)&&const DeepCollectionEquality().equals(other._config, _config));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowStep&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other._inputs, _inputs)&&const DeepCollectionEquality().equals(other._config, _config));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,taskKey,const DeepCollectionEquality().hash(_inputs),const DeepCollectionEquality().hash(_config));
+int get hashCode => Object.hash(runtimeType,id,slug,name,taskKey,const DeepCollectionEquality().hash(_inputs),const DeepCollectionEquality().hash(_config));
 
 @override
 String toString() {
-  return 'WorkflowStep(id: $id, taskKey: $taskKey, inputs: $inputs, config: $config)';
+  return 'WorkflowStep(id: $id, slug: $slug, name: $name, taskKey: $taskKey, inputs: $inputs, config: $config)';
 }
 
 
@@ -275,7 +283,7 @@ abstract mixin class _$WorkflowStepCopyWith<$Res> implements $WorkflowStepCopyWi
   factory _$WorkflowStepCopyWith(_WorkflowStep value, $Res Function(_WorkflowStep) _then) = __$WorkflowStepCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'task_key') String taskKey, Map<String, String> inputs, Map<String, dynamic> config
+ String id, String? slug,@JsonKey(defaultValue: 'Unnamed Step') String name,@JsonKey(name: 'task_key') String taskKey, Map<String, String> inputs, Map<String, dynamic> config
 });
 
 
@@ -292,9 +300,11 @@ class __$WorkflowStepCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowStep
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? taskKey = null,Object? inputs = null,Object? config = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? name = null,Object? taskKey = null,Object? inputs = null,Object? config = null,}) {
   return _then(_WorkflowStep(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,taskKey: null == taskKey ? _self.taskKey : taskKey // ignore: cast_nullable_to_non_nullable
 as String,inputs: null == inputs ? _self._inputs : inputs // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,config: null == config ? _self._config : config // ignore: cast_nullable_to_non_nullable

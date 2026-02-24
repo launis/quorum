@@ -29,7 +29,7 @@ async def get_recent_executions(
 ):
     """Get a list of recent executions."""
     try:
-        user_id = current_user.uid if current_user else None
+        user_id = current_user.id if current_user else None
         executions = await repository.get_all_executions(user_id=user_id)
 
         def get_time(e: ExecutionRecord):

@@ -82,7 +82,7 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
         );
         await ref
             .read(userCrudControllerProvider.notifier)
-            .updateUser(widget.user!.uid, dto, widget.orgId);
+            .updateUser(widget.user!.id, dto, widget.orgId);
       }
     }
   }
@@ -94,7 +94,7 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
 
     final currentUser = ref.watch(authControllerProvider).value;
     final isRoot = currentUser?.role == UserRole.root;
-    final isSelf = widget.user?.uid == currentUser?.uid;
+    final isSelf = widget.user?.id == currentUser?.id;
 
     return AlertDialog(
       title: Text(isEditing ? l10n.editUser : l10n.createUser),

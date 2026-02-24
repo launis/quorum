@@ -30,11 +30,11 @@ class StrategySelectionField extends HookConsumerWidget {
 
         return DropdownButtonFormField<String>(
           value: strategies.contains(currentStrategy) ? currentStrategy : null,
-          decoration: InputDecoration(
-            labelText: l10n.modelStrategyLabel ?? 'Model Strategy', // Fallback if key missing
-            border: const OutlineInputBorder(),
+          decoration: const InputDecoration(
+            labelText: 'Model Strategy', // Fallback if key missing
+            border: OutlineInputBorder(),
             isDense: true,
-            helperText: l10n.modelStrategyHelper ?? 'Select the AI model strategy for this step.',
+            helperText: 'Select the AI model strategy for this step.',
           ),
           items: [
              const DropdownMenuItem(value: null, child: Text('Default (Inherit)')),

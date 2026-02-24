@@ -6,6 +6,7 @@ It includes Metadata, ReasoningTrace, and UsageRecord.
 
 from datetime import datetime
 from typing import Any
+import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -130,7 +131,7 @@ class ReasoningTrace(ReasoningTraceDTO):
 class UsageRecord(BaseModel):
     """Immutable record of LLM token usage and cost."""
 
-    id: str = Field(..., description="Unique ID for the usage event.", json_schema_extra={"x-ui-label": "ID"})
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID for the usage event.", json_schema_extra={"x-ui-label": "ID"})
     org_id: str = Field(..., description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"})
     user_id: str = Field(..., description="User ID.", json_schema_extra={"x-ui-label": "User ID"})
     model: str = Field(..., description="Model name.", json_schema_extra={"x-ui-label": "Model"})

@@ -69,7 +69,7 @@ class OrganizationRepository:
         Returns:
             Organization: The saved object.
         """
-        self.table.insert(org.model_dump())
+        self.table.insert(org.model_dump(mode="json"))
         return org
 
     def list_all(self) -> list[Organization]:
@@ -95,11 +95,11 @@ class UserRepository:
         """Initialize UserRepository."""
         self.table: AbstractTable = db_client.table("users")
 
-    def get_by_uid(self, uid: str) -> User | None:
-        """Retrieves user by UID.
+    def get_by_id(self, id: str) -> User | None:
+        """Retrieves user by ID.
 
         Args:
-            uid (str): User ID.
+            id (str): User ID.
 
         Returns:
             Optional[User]: The user object.
@@ -107,7 +107,7 @@ class UserRepository:
         # TinyDB / Memory filter approach
         # FIX: Use explicit Query object for robustness
         UserQuery = Query()
-        result = self.table.get(UserQuery.uid == uid)
+        result = self.table.get(UserQuery.id == id)
         if result:
             return User(**result)
         return None
@@ -122,14 +122,26 @@ class UserRepository:
         return None
 
     def create(self, user: User) -> User:
-        """Create a new user."""
-        data = user.model_dump()
-        self.table.insert(data)
+        """Create new user sync in DB.
+
+        Raises:
+            AppException: If collision.
+        """
+        # Enforce unique email/slug/uid if necessary here, but usually repo layer just writes.
+        # Minimal collision check on ID:
+        if self.get_by_id(user.id):
+            raise AppException(f"User with ID {user.id} already exists.", 409)
+
+        # TinyDB expects str/dict
+        self.table.insert(user.model_dump(mode="json"))
         return user
 
-    def update(self, uid: str, updates: UserUpdate) -> User | None:
-        """Update a user."""
-        user = self.get_by_uid(uid)
+    def update(self, id: str, updates: UserUpdate) -> User | None:
+        """Updates user in DB. Only applying fields that are set.
+
+        Returns None if not found.
+        """
+        user = self.get_by_id(id)
         if not user:
             return None
 
@@ -220,15 +232,15 @@ class AuthService:
         try:
             # We enforce the secret check here.
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            uid = payload.get("sub")
-            if uid:
-                user = self.repo.get_by_uid(uid)
+            id = payload.get("sub")
+            if id:
+                user = self.repo.get_by_id(id)
                 if not user:
                     raise AuthenticationError(
-                        message=f"Impersonated User not found: {uid}",
+                        message=f"Impersonated User not found: {id}",
                         details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED},  # Reusing token code or general
                     )
-                return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
+                return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
         except jwt.ExpiredSignatureError:
             raise AuthenticationError(
                 message="Token expired", details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED}
@@ -238,37 +250,42 @@ class AuthService:
 
         # 2. Mock/Dev Mode check
         if not self.use_firebase or token.startswith("mock-token:"):
-            # Expect format "mock-token:<uid>"
+            # Expect format "mock-token:<id>"
             if token.startswith("mock-token:"):
-                uid = token.split(":")[1]
+                id = token.split(":")[1]
             else:
-                uid = token
+                id = token
+
+            print(f"[DEBUG] verify_token: Mock Login Mode -> Extracted ID: {id}")
 
             # Check if user exists in our DB
-            user = self.repo.get_by_uid(uid)
+            user = self.repo.get_by_id(id)
             if not user:
+                print(f"[DEBUG] verify_token: User {id} NOT FOUND in database!")
                 raise AuthenticationError(
-                    message=f"Mock User not found for UID: {uid}",
+                    message=f"Mock User not found for ID: {id}",
                     details={"error_code": ErrorCodes.PERMISSION_DENIED},  # Or similar
                 )
 
-            return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
+            print(f"[DEBUG] verify_token: User {id} SUCCESS -> Role: {user.role}, Org: {user.organization_id}")
+            return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
 
         # 2. Firebase Mode
         try:
             # Verify ID token
             decoded_token = self.firebase_auth.verify_id_token(token)
-            uid = decoded_token["uid"]
+            id = decoded_token["uid"]
             email = decoded_token.get("email")
 
             # Sync/Get User from our DB
-            user = self.repo.get_by_uid(uid)
+            user = self.repo.get_by_id(id)
 
             if not user:
                 # Auto-registration for missing users found in Firebase
-                logger.info(f"User {uid} not found in local DB. Auto-registering as MEMBER (No Org).")
+                logger.info(f"User {id} not found in local DB. Auto-registering as MEMBER (No Org).")
+                print(f"[DEBUG] verify_token: Firebase User {id} NOT FOUND in local DB. Auto-registering.")
                 new_user = User(
-                    uid=uid,
+                    id=id,
                     email=email if email else "unknown@example.com",
                     role=UserRole.MEMBER,
                     organization_id=None,  # Orphan user
@@ -276,9 +293,9 @@ class AuthService:
                     # Created by System/Self
                 )
                 self.repo.create(new_user)
-                return TokenData(uid=uid, role=UserRole.MEMBER, email=email, organization_id=None)
+                return TokenData(id=id, role=UserRole.MEMBER, email=email, organization_id=None)
 
-            return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
+            return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
 
         except Exception as e:
             error_code = "AUTH_TOKEN_VERIFICATION_FAILED"
@@ -543,11 +560,11 @@ class AuthService:
             for user in org_users:
                 if self.use_firebase:
                     try:
-                        await asyncio.to_thread(self.firebase_auth.delete_user, user.uid)
+                        await asyncio.to_thread(self.firebase_auth.delete_user, user.id)
                     except Exception:
                         pass
 
-                await asyncio.to_thread(self.repo.delete, user.uid)
+                await asyncio.to_thread(self.repo.delete, user.id)
 
         # 4. Delete Org Entity
         logger.info(f"[AuthService] Removing Organization {target_org_id} from DB...")
@@ -572,8 +589,8 @@ class AuthService:
 
         If 'role' is being changed, we must enforce Last Admin Protection.
         """
-        initiator = self.repo.get_by_uid(initiator_uid)
-        target = self.repo.get_by_uid(target_uid)
+        initiator = self.repo.get_by_id(initiator_uid)
+        target = self.repo.get_by_id(target_uid)
 
         if not initiator or not target:
             raise AppException(message="User not found", status_code=404)
@@ -701,16 +718,17 @@ class AuthService:
     def ensure_root_user(self, email: str = "root@example.com") -> User:
         """Bootstraps a root user and Development Scenario (Demo Corp) if needed."""
         # 0. Ensure SYSTEM Org exists (Container for Root)
-        if not self.org_repo.get_by_id("system"):
+        # Note: Must use model_dump(mode="json") to avoid datetime serialization errors
+        if not self.org_repo.get_by_id("436d84de-c526-43b7-93ef-634912be0d2f"):
             logger.info("[AuthService] Creating 'system' Organization.")
             self.org_repo.create(
                 Organization(
-                    id="system", name="System Administration", created_at=datetime.now(timezone.utc), tier="enterprise"
+                    id="436d84de-c526-43b7-93ef-634912be0d2f", name="System Administration", created_at=datetime.now(timezone.utc), tier="enterprise"
                 )
             )
 
         # 1. ROOT
-        root = self.repo.get_by_uid("root_master")
+        root = self.repo.get_by_id("10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b")
         if not root:
             # STRICT DB AUTHORITY: No fallback creation.
             # User must run 'backend.seed.run_seed' to populate db.json.
@@ -724,11 +742,11 @@ class AuthService:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
-        if root.organization_id != "system":
+        if root.organization_id != "system" and root.organization_id != "436d84de-c526-43b7-93ef-634912be0d2f":
             # Fix casing or drift if it was "SYSTEM" or None
-            logger.info(f"Fixing root_master organization_id from '{root.organization_id}' to 'system'")
-            self.repo.update("root_master", UserUpdate(organization_id="system"))
-            root = self.repo.get_by_uid("root_master")  # Refresh
+            logger.info(f"Fixing root_master organization_id from '{root.organization_id}' to '436d84de-c526-43b7-93ef-634912be0d2f'")
+            self.repo.update(root.id, UserUpdate(organization_id="436d84de-c526-43b7-93ef-634912be0d2f"))
+            root = self.repo.get_by_id(root.id)  # Refresh
 
         if not root:
             raise AppException(

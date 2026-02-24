@@ -53,7 +53,8 @@ abstract class MatrixDef with _$MatrixDef {
 abstract class StudioComponentDef with _$StudioComponentDef {
   const factory StudioComponentDef({
     required String id,
-    required String name,
+    String? slug,
+    String? name,
     required String type,
     String? description,
     String? citation, // Added citation

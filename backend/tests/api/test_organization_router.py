@@ -20,9 +20,9 @@ mock_auth_service.delete_user = AsyncMock()
 mock_auth_service.repo = MagicMock()  # Needs internal repo access for some utilities? usage mostly does not.
 
 # Users
-root_user = TokenData(uid="root-1", role=UserRole.ROOT, organization_id="system")
-admin_user = TokenData(uid="admin-1", role=UserRole.ADMIN, organization_id="org-1")
-member_user = TokenData(uid="member-1", role=UserRole.MEMBER, organization_id="org-1")
+root_user = TokenData(id="root-1", role=UserRole.ROOT, organization_id="system")
+admin_user = TokenData(id="admin-1", role=UserRole.ADMIN, organization_id="org-1")
+member_user = TokenData(id="member-1", role=UserRole.MEMBER, organization_id="org-1")
 
 # Orgs
 org_1 = {
@@ -119,7 +119,7 @@ async def test_delete_organization_conflict():
     """Cannot delete non-empty org without force."""
     app.dependency_overrides[get_current_user_from_header] = lambda: root_user
     # Mock list_users returning non-empty
-    mock_repo.list_users.return_value = [{"uid": "u1"}]
+    mock_repo.list_users.return_value = [{"id": "u1"}]
 
     response = client.delete("/organizations/org-1")
     assert response.status_code == 409
@@ -140,7 +140,7 @@ async def test_create_organization_user_strict_types():
     from backend.models.auth import User, UserRole
 
     new_user_mock = User(
-        uid="u-new",
+        id="u-new",
         email="new@example.com",
         role=UserRole.MEMBER,
         organization_id="org-1",
@@ -150,4 +150,4 @@ async def test_create_organization_user_strict_types():
 
     response = client.post("/organizations/org-1/users", json=payload)
     assert response.status_code == 201
-    assert response.json()["uid"] == "u-new"
+    assert response.json()["id"] == "u-new"

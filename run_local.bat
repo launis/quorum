@@ -12,11 +12,7 @@ echo [Logs Cleared]
 
 echo [1/3] Starting Infrastructure (Redis)...
 
-:: SURGICAL FIX (Smart Root Repair)
-echo [0] Verifying Root Identity...
-python backend/scripts/ensure_root_identity.py
-echo [Fix] Root identity verified.
-
+:: Check if Docker is running
 call scripts\get_docker_path.bat
 
 :: Check if Docker is running

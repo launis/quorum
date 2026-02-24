@@ -46,8 +46,16 @@ async def get_components(
     """
     try:
         raw_components = await repo.get_all_components(type=type, exclude_types=exclude_type)
+        logger.warning(f"DEBUG: get_all_components fetched {len(raw_components)} items.")
         # Use Adapter for Union
-        return [_component_adapter.validate_python(c) for c in raw_components]
+        validated = []
+        for c in raw_components:
+            try:
+                validated.append(_component_adapter.validate_python(c))
+            except Exception as valid_err:
+                logger.error(f"DEBUG: Validation dropped item {c.get('id')}: {valid_err}")
+        logger.warning(f"DEBUG: Returning {len(validated)} validated items.")
+        return validated
     except Exception as e:
         from backend.exceptions import AppException
 

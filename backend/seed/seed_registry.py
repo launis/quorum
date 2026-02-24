@@ -26,7 +26,7 @@ STANDARD_REGISTRY = {
     "references": {"table": "references", "model": TypeAdapter(KBReference), "id_field": "id"},
     "dimensions": {"table": "dimensions", "model": TypeAdapter(DimensionDefinition), "id_field": "id"},
     "organizations": {"table": "organizations", "model": TypeAdapter(Organization), "id_field": "id"},
-    "users": {"table": "users", "model": TypeAdapter(User), "id_field": "uid"},
+    "users": {"table": "users", "model": TypeAdapter(User), "id_field": "id"},
     "steps": {"table": "steps", "model": TypeAdapter(StepDefinition), "id_field": "id"},
     "agents": {"table": "agents", "model": TypeAdapter(AgentComponentResponse), "id_field": "id"},
     "components": {"table": "components", "model": TypeAdapter(ComponentResponse), "id_field": "id"},

@@ -9,6 +9,8 @@ part of 'workflow_step.dart';
 _WorkflowStep _$WorkflowStepFromJson(Map<String, dynamic> json) =>
     _WorkflowStep(
       id: json['id'] as String,
+      slug: json['slug'] as String?,
+      name: json['name'] as String? ?? 'Unnamed Step',
       taskKey: json['task_key'] as String,
       inputs:
           (json['inputs'] as Map<String, dynamic>?)?.map(
@@ -21,6 +23,8 @@ _WorkflowStep _$WorkflowStepFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$WorkflowStepToJson(_WorkflowStep instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'slug': instance.slug,
+      'name': instance.name,
       'task_key': instance.taskKey,
       'inputs': instance.inputs,
       'config': instance.config,

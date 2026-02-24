@@ -1,0 +1,158 @@
+import asyncio
+import io
+from datetime import datetime
+from unittest.mock import AsyncMock, patch
+from uuid import uuid4
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from backend.dependencies import get_async_repository, get_current_user_from_header, get_arq_pool
+from backend.main import app
+from backend.models.auth import TokenData, UserRole
+from backend.models.domain.execution import ExecutionRecord
+from backend.models.workflow import WorkflowDefinition, WorkflowStep
+from backend.models.view.sdui import ReportView
+
+# Import application tasks so the TaskRegistry gets populated during the test
+import backend.tasks.analysis
+
+async def mock_get_current_user() -> TokenData:
+    return TokenData(id=str(uuid4()), role=UserRole.ADMIN, email="admin@example.com", organization_id="test_org")
+
+@pytest.mark.asyncio
+async def test_full_pipeline_ingestion_to_bff():
+    """
+    End-to-end test simulating exactly what the Flutter client does:
+    1. Uploads files and metadata to /v1/execute using multipart/form-data.
+    2. Wait for execution to complete (mocking the LLM paths).
+    3. Fetches the execution output through the BFF layer /executions/{id}/view.
+    """
+    transport = ASGITransport(app=app)
+    
+    app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
+    app.dependency_overrides[get_arq_pool] = lambda: None
+    
+    # Extract the repository safely from the normal dependency chain
+    repository = await get_async_repository()
+    
+    # 1. Setup a dummy workflow in the database so the engine has something to run
+    wf_id = str(uuid4())
+    step_id = str(uuid4())
+    dummy_wf = WorkflowDefinition(
+        id=wf_id,
+        name="E2E Pipeline Test Workflow",
+        description="Testing the entire chain",
+        organization_id="test_org",
+        steps=[step_id]
+    )
+    
+    # Register the step in the mocked repository so GraphEngine finds it
+    step_model = WorkflowStep(
+        id=step_id, 
+        name="step_analyzer", 
+        task_key="analyst", 
+        inputs={
+            "history_text": "This is a sufficiently long and heavily padded history text string designed strictly to bypass the Pydantic field validation requirements of the AnalystAgent, ensuring it does not crash.",
+            "product_text": "This is a sufficiently long and heavily padded product text string designed strictly to bypass the Pydantic field validation requirements of the AnalystAgent, ensuring it does not crash."
+        },
+        config={"model_strategy": "fast", "llm_prompts": ["mock_prompt_1"]}
+    )
+    
+    # 1. Provide Real Database Seed Mock via API
+    await repository.create_workflow(dummy_wf.model_dump(mode="json"))
+    await repository.driver.upsert("steps", step_model.model_dump(mode="json"), step_id)
+    
+    # 1.2 Inject Mock Prompt for Strict Mode
+    await repository.driver.upsert("components", {"id": "mock_prompt_1", "type": "prompt", "content": "You are a test analyst.", "name": "Mock Prompt"}, "mock_prompt_1")
+    
+    # 1.5 Inject Model Registry to satisfy Zero-Fallback mandate
+    model_registry_data = {
+        "id": "model_registry",
+        "models": {
+            "test_provider": {
+                "fast": {
+                    "model_name": "openai/gpt-4o-mini",
+                    "tpm_limit": 100000,
+                    "rpm_limit": 1000
+                },
+                "AnalystAgent": {"model_name": "fast"}
+            }
+        }
+    }
+    await repository.driver.upsert("system_config", model_registry_data, "model_registry")
+    
+    from backend.models.llm import LLMResponse
+    with patch("backend.llm.provider.LiteLLMProvider.generate", new_callable=AsyncMock) as mock_agent:
+        # Provide a valid mock response representing an Agent's parsed output
+        mock_agent.return_value = LLMResponse(
+            content='{"thought_process": "Mocked", "conclusion": "Mocked conclusion", "confidence_score": 0.9, "hypotheses": [{"id": "HYP-001", "claim_text": "The system is robust.", "evidence_found": true, "quotes": ["Testing passed explicitly."], "search_query": "robustness testing"}]}',
+            parsed_content={
+                "thought_process": "This is a mocked RAG analysis.",
+                "conclusion": "The product strategy is sound.",
+                "confidence_score": 0.95,
+                "hypotheses": [
+                    {
+                        "id": "HYP-001",
+                        "claim_text": "The system is robust.",
+                        "evidence_found": True,
+                        "quotes": ["Testing passed explicitly."],
+                        "search_query": "robustness testing"
+                    }
+                ]
+            },
+            reasoning_token="none",
+            token_usage={"total_tokens": 10}
+        )
+        
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                # 3. Simulate file ingestion via Multipart Post
+                # In standard API, we send json_payload and file(s)
+                import json
+                meta_json = json.dumps({
+                    "workflowId": wf_id,
+                    "organizationId": "test_org",
+                    "settings": {
+                        # Add any extra inputs the UI might send
+                        "target_audience": "stakeholders"
+                    }
+                })
+
+                files = [
+                    ("file_1", ("document.txt", b"Mock plain text content.", "text/plain")),
+                ]
+                data = {
+                    "json_payload": meta_json
+                }
+
+                response = await ac.post("/v1/execute/", data=data, files=files)
+                assert response.status_code == 201, f"Execution creation failed: {response.text}"
+                exec_data = response.json()
+                execution_id = exec_data["id"]
+
+                # 4. Wait for the engine to mark the execution as completed
+                # The execute_workflow_route triggers arq, but in tests arq might run sync or we poll repo.
+                # If arq isn't running, we might need to directly trigger the job or wait.
+                # Actually, in testing environment `get_arq_pool` is usually mocked to None, forcing sync execution!
+                # Let's verify status.
+                exec_record_dict = await repository.get_execution(execution_id)
+                assert exec_record_dict is not None
+                assert exec_record_dict.status == "completed", f"Status was {exec_record_dict.status}. Trace: {exec_record_dict.results}"
+
+                # 5. Hit the BFF View Endpoint (ReportView DTO)
+                view_response = await ac.get(f"/executions/{execution_id}/view")
+                assert view_response.status_code == 200, f"BFF view failed: {view_response.text}"
+                
+                sdui_payload = view_response.json()
+                assert "title" in sdui_payload
+                assert "sections" in sdui_payload
+                
+                # Check that SDUI generated sections for us
+                assert len(sdui_payload["sections"]) > 0, "BFF did not produce any UI sections"
+                assert sdui_payload["sections"][0]["type"] in ["markdown_block", "score_card", "data_grid", "USAGE_STATS"]
+
+    # Cleanup
+    app.dependency_overrides.clear()
+    await repository.delete_workflow(wf_id)
+    await repository.delete_execution(execution_id)
+

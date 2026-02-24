@@ -63,7 +63,7 @@ class _SystemInspectorScreenState extends ConsumerState<SystemInspectorScreen> {
                     final isSelected = _selectedWorkflow?.id == workflow.id;
                     return ListTile(
                       title: Text(workflow.name),
-                      subtitle: Text(workflow.id),
+                      subtitle: Text(workflow.id.length > 8 ? workflow.id.substring(0, 8) : workflow.id),
                       selected: isSelected,
                       selectedTileColor:
                           Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -162,8 +162,8 @@ class _StepsTab extends StatelessWidget {
       itemBuilder: (context, index) {
         final step = workflow.steps[index];
         return ListTile(
-          title: Text(step.id),
-          subtitle: Text(step.taskKey),
+          title: Text(step.name),
+          subtitle: Text('Task: ${step.taskKey}'),
           leading: CircleAvatar(child: Text('${index + 1}')),
         );
       },
@@ -222,7 +222,7 @@ class _PreviewTabState extends ConsumerState<_PreviewTab> {
                 steps.map((step) {
                   return DropdownMenuItem(
                     value: step.id,
-                    child: Text('${step.id} (${step.taskKey})'),
+                    child: Text('${step.name} (${step.taskKey})'),
                   );
                 }).toList(),
             onChanged: (value) {

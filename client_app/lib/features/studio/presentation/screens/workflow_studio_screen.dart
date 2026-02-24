@@ -62,18 +62,6 @@ class WorkflowStudioScreen extends HookConsumerWidget {
           ),
         );
       }
-
-      // Success Feedback (Saved)
-      if (previous?.activeWorkflow.isLoading == true &&
-          !next.activeWorkflow.isLoading &&
-          !next.activeWorkflow.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.studioChangesSaved),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     });
 
     return Scaffold(
@@ -114,8 +102,13 @@ class WorkflowStudioScreen extends HookConsumerWidget {
                     : FilledButton.icon(
                       icon: const Icon(Icons.save),
                       label: Text(l10n.save),
-                      onPressed: () {
-                        ref.read(studioControllerProvider.notifier).save();
+                      onPressed: () async {
+                        await ref.read(studioControllerProvider.notifier).save();
+                        if (context.mounted) {
+                           ScaffoldMessenger.of(context).showSnackBar(
+                             SnackBar(content: Text(l10n.studioChangesSaved), duration: const Duration(seconds: 2))
+                           );
+                        }
                       },
                     ),
           ),
@@ -155,7 +148,10 @@ class WorkflowStudioScreen extends HookConsumerWidget {
                         Expanded(flex: 3, child: OntologyManagerPanel()),
                       ],
                     )
-                    : StudioEditorArea(selectedStepId: selectedStepId.value),
+                    : StudioEditorArea(
+                        selectedStepId: selectedStepId.value,
+                        onStepSelected: (id) => selectedStepId.value = id,
+                      ),
           ),
         ],
       ),

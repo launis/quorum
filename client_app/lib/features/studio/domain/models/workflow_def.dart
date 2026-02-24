@@ -9,6 +9,7 @@ part 'workflow_def.g.dart';
 abstract class WorkflowDef with _$WorkflowDef {
   const factory WorkflowDef({
     required String id,
+    String? slug,
     required String name,
     required String description,
     @Default([]) List<WorkflowStepDef> steps,
@@ -23,6 +24,7 @@ abstract class WorkflowDef with _$WorkflowDef {
 abstract class WorkflowStepDef with _$WorkflowStepDef {
   const factory WorkflowStepDef({
     required String id,
+    String? slug,
     @Default('') String name,
     @JsonKey(name: 'task_key') required String taskKey,
     @Default({}) Map<String, dynamic> config,
@@ -56,6 +58,7 @@ abstract class ScoringLogic with _$ScoringLogic {
 abstract class ComponentDef with _$ComponentDef {
   const factory ComponentDef({
     required String id,
+    String? slug,
     required String name,
     required String type,
     String? description,

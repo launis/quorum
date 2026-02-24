@@ -114,7 +114,7 @@ class ModelMappingGrid extends StatelessWidget {
                   ...steps.map((s) => DataColumn(
                     label: Tooltip(
                       message: s.taskKey,
-                      child: Text(s.name.isNotEmpty ? s.name : s.id),
+                      child: Text(s.name.isNotEmpty ? s.name : (s.slug ?? 'Unnamed Step')),
                     ),
                   )),
                 ],

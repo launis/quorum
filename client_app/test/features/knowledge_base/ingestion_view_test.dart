@@ -1,17 +1,15 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/knowledge_base/controller/ingestion_controller.dart';
 import 'package:client_app/features/knowledge_base/view/ingestion_view.dart';
 import 'package:client_app/models/knowledge_base.dart';
 
-// Mock Provider for Controller
-final mockIngestionControllerProvider =
-    StateNotifierProvider<IngestionController, AsyncValue<IngestionStatus?>>(
-        (ref) => throw UnimplementedError());
+// Mocks and fakes
 
 void main() {
   Widget createWidgetUnderTest(AsyncValue<IngestionStatus?> state) {
@@ -56,8 +54,6 @@ void main() {
 
     testWidgets('Renders completed state correctly', (tester) async {
       final summary = IngestionSummary(
-        jobId: '123',
-        status: 'completed',
         conceptsCount: 10,
         referencesCount: 5,
         claimsCount: 2,
@@ -84,7 +80,7 @@ void main() {
 
 class MockIngestionController extends IngestionController {
   final AsyncValue<IngestionStatus?> _initialState;
-  
+
   MockIngestionController(this._initialState);
 
   @override

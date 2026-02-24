@@ -21,7 +21,7 @@ async def get_audit_logs(
     user: CurrentUserDep,
     audit_service: AuditServiceDep,
     organization_id: str | None = Query(None, description="Filter by Organization ID"),
-    actor_uid: str | None = Query(None, description="Filter by Actor UID"),
+    actor_id: str | None = Query(None, description="Filter by Actor UID"),
     action: str | None = Query(None, description="Filter by Action type"),
     limit: int = Query(100, ge=1, le=1000),
 ):
@@ -45,7 +45,7 @@ async def get_audit_logs(
                 from backend.exceptions import PermissionDeniedError
 
                 error_code = "ACCESS_DENIED_ORGANIZATION_MISMATCH"
-                logger.warning(f"{error_code}: Admin {user.uid} tried to access org {organization_id}")
+                logger.warning(f"{error_code}: Admin {user.id} tried to access org {organization_id}")
                 raise PermissionDeniedError(message="Organization mismatch", details={"error_code": error_code})
 
             # Auto-scope if not provided or provided correctly
@@ -55,12 +55,12 @@ async def get_audit_logs(
             from backend.exceptions import PermissionDeniedError
 
             error_code = "PERMISSION_DENIED_AUDIT_VIEW"
-            logger.warning(f"{error_code}: User {user.uid} ({user.role}) denied audit access")
+            logger.warning(f"{error_code}: User {user.id} ({user.role}) denied audit access")
             raise PermissionDeniedError(message="Audit access denied", details={"error_code": error_code})
 
         # 2. Fetch Logs
         # Call service with strictly resolved target_org
-        logs = await audit_service.get_logs(organization_id=target_org, actor_uid=actor_uid, action=action, limit=limit)
+        logs = await audit_service.get_logs(organization_id=target_org, actor_id=actor_id, action=action, limit=limit)
         return logs
 
     except Exception as e:

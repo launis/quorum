@@ -19,7 +19,7 @@ mock_handler = MagicMock()
 
 
 async def mock_get_current_user():
-    return TokenData(uid="test-user", email="test@example.com", organization_id="org-123", role=UserRole.ADMIN)
+    return TokenData(id="test-user", email="test@example.com", organization_id="org-123", role=UserRole.ADMIN)
 
 
 @pytest.fixture(autouse=True)

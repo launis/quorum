@@ -1,11 +1,13 @@
 from datetime import datetime
 from typing import Literal, Union
+import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class KBConcept(BaseModel):
-    id: str = Field(..., description="Unique concept ID")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique concept ID")
+    slug: str | None = Field(default=None, description="Legacy human-readable identifier")
     type: Literal["concept"] = Field("concept", description="Discriminator type")
     term: str = Field(..., description="The concept term")
     definition: str = Field(..., description="The concept definition")
@@ -23,7 +25,8 @@ class KBConcept(BaseModel):
 
 
 class KBClaim(BaseModel):
-    id: str = Field(..., description="Unique claim ID")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique claim ID")
+    slug: str | None = Field(default=None, description="Legacy human-readable identifier")
     type: Literal["claim"] = Field("claim", description="Discriminator type")
     term: str = Field(..., description="Associated term or short key")
     definition: str = Field(..., description="The claim statement text")
@@ -41,7 +44,8 @@ class KBClaim(BaseModel):
 
 
 class KBReference(BaseModel):
-    id: str = Field(..., description="Unique reference ID")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique reference ID")
+    slug: str | None = Field(default=None, description="Legacy human-readable identifier")
     type: Literal["reference"] = Field("reference", description="Discriminator type")
     definition: str = Field(..., description="Full bibliographic reference")
     short_citation: str | None = Field(None, description="Short citation (e.g., Author 2023)")

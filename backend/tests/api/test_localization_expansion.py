@@ -11,7 +11,7 @@ import pytest
 
 # Mock Auth Dependency
 async def mock_get_current_user():
-    return TokenData(uid="test-user", role=UserRole.ADMIN, organization_id="test-org")
+    return TokenData(id="test-user", role=UserRole.ADMIN, organization_id="test-org")
 
 
 @pytest.fixture(autouse=True)

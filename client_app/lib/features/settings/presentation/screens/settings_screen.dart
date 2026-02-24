@@ -98,7 +98,9 @@ class SettingsScreen extends ConsumerWidget {
               if (user != null)
                 ListTile(
                   title: Text('Debug: ${user.role}'),
-                  subtitle: Text('UID: ${user.uid}'),
+                  subtitle: Text(
+                    user.slug != null ? 'Ref: ${user.slug}' : 'Role: ${user.role.name.toUpperCase()}',
+                  ),
                   tileColor: Colors.amber.withValues(alpha: 0.2),
                 ),
               if (user != null) ...[
@@ -214,7 +216,7 @@ class SettingsScreen extends ConsumerWidget {
                     // Call Repo
                     final result = await ref
                         .read(userRepositoryProvider)
-                        .updateCurrentUser(user.uid, {'display_name': newName});
+                        .updateCurrentUser(user.id, {'display_name': newName});
 
                     result.fold(
                       (err) => ScaffoldMessenger.of(context).showSnackBar(

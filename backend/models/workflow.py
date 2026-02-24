@@ -1,4 +1,5 @@
 from typing import Any
+import uuid
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
@@ -11,9 +12,14 @@ class WorkflowStep(BaseModel):
     """
 
     id: str = Field(
-        ...,
+        default_factory=lambda: str(uuid.uuid4()),
         description="Unique step identifier, e.g., 'safety_check'",
         json_schema_extra={"x-ui-label": "ID"},
+    )
+    slug: str | None = Field(
+        default=None,
+        description="Legacy human-readable identifier",
+        json_schema_extra={"x-ui-label": "Slug"},
     )
     name: str = Field(
         ...,
@@ -116,7 +122,12 @@ class WorkflowDefinition(BaseModel):
     transformation through registered tasks.
     """
 
-    id: str = Field(..., description="Unique Workflow ID, e.g., 'comprehensive_audit_v1'")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique Workflow ID, e.g., 'comprehensive_audit_v1'")
+    slug: str | None = Field(
+        default=None,
+        description="Legacy human-readable identifier",
+        json_schema_extra={"x-ui-label": "Slug"},
+    )
     name: str = Field(
         "Untitled Workflow",
         min_length=3,
