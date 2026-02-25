@@ -76,6 +76,13 @@ class AgentRegistry:
 
         logger.info(f"[AgentRegistry] Resolving config for identifier: '{model_identifier}'")
 
+        # 1.5. Resolve Agent Mappings (Task_key -> Strategy)
+        if reg_entry and "agent_mappings" in reg_entry:
+            if model_identifier in reg_entry["agent_mappings"]:
+                mapped_strategy = reg_entry["agent_mappings"][model_identifier]
+                logger.info(f"[AgentRegistry] Agent '{model_identifier}' is mapped to strategy '{mapped_strategy}'")
+                model_identifier = mapped_strategy
+
         dynamic_strategies_map = {}
         if reg_entry and "models" in reg_entry:
             dynamic_strategies_map = reg_entry["models"]

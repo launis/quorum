@@ -290,13 +290,29 @@ class GraphEngine:
                 # Ensure agents have access to Organization ID even if not explicitly mapped in inputs.
                 runtime_config = step.config.copy() if step.config else {}
 
-                # Extract identity from inputs (SSOT from Lifecycle)
-                current_inputs = execution_state.context_variables.get("inputs", {})
-                if isinstance(current_inputs, dict):
-                    if "organization_id" in current_inputs:
+                # 1. Try from explicit inputs
+                current_inputs = execution_state.context_variables.get("inputs")
+                if current_inputs:
+                    if hasattr(current_inputs, "organization_id") and current_inputs.organization_id:
+                        runtime_config["organization_id"] = current_inputs.organization_id
+                    elif isinstance(current_inputs, dict) and "organization_id" in current_inputs:
                         runtime_config["organization_id"] = current_inputs["organization_id"]
-                    if "user_id" in current_inputs:
+
+                    if hasattr(current_inputs, "user_id") and current_inputs.user_id:
+                        runtime_config["user_id"] = current_inputs.user_id
+                    elif isinstance(current_inputs, dict) and "user_id" in current_inputs:
                         runtime_config["user_id"] = current_inputs["user_id"]
+
+                # 2. Try from root workflow state (properties reading context_variables)
+                if "organization_id" not in runtime_config and execution_state.organization_id:
+                    runtime_config["organization_id"] = execution_state.organization_id
+                
+                if "user_id" not in runtime_config and execution_state.user_id:
+                    runtime_config["user_id"] = execution_state.user_id
+
+                runtime_config["workflow"] = execution_state.workflow_id
+                runtime_config["execution_id"] = execution_id
+                runtime_config["step_id"] = step.id
 
                 # 4. Execute Task
                 logger.debug(f"Executing step '{step.id}' ({step.task_key})...")

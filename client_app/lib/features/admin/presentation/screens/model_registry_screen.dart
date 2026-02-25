@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import '../../../../core/ui/error_view.dart';
 import '../../domain/models/model_registry.dart';
 import '../providers/model_registry_controller.dart';
+import '../providers/agent_mappings_controller.dart';
 import '../widgets/provider_config_form.dart';
 import '../widgets/adhoc_test_panel.dart';
 
@@ -63,15 +65,28 @@ class ModelRegistryScreen extends HookConsumerWidget {
       },
     );
 
-    return Scaffold(
-      body: asyncState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => Center(child: SelectableText('Error: $err')),
-        data: (state) => Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Left Pane: List
-          Expanded(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.modelRegistryTitle),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: "Provider Configurations"),
+              Tab(text: "Workflow Mappings"),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            asyncState.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, st) => ErrorView(error: err),
+              data: (state) => Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left Pane: List
+                Expanded(
             flex: 1,
             child: Card(
               margin: const EdgeInsets.all(8.0),
@@ -155,7 +170,13 @@ class ModelRegistryScreen extends HookConsumerWidget {
           ),
         ],
       ),
-    ));
+            ),
+            // Tab 2: Workflow Mappings
+            const _AgentMappingsTab(),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -391,3 +412,82 @@ Future<void> _showAddStrategyDialog(BuildContext context, WidgetRef ref, ModelRe
     ),
   );
 }
+
+class _AgentMappingsTab extends HookConsumerWidget {
+  const _AgentMappingsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Strict Riverpod 3.0 Mandate: Separate AsyncNotifier for relations (Matrix Approach)
+    final mappingState = ref.watch(agentMappingsControllerProvider);
+    final modelRegistryState = ref.watch(modelRegistryControllerProvider);
+
+    return mappingState.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, st) => ErrorView(error: err),
+      data: (mappings) {
+        // Build list of all available strategy IDs
+        final List<String> availableStrategies = [];
+        modelRegistryState.whenData((state) {
+          for (var p in state.providers) {
+            availableStrategies.add(p.id);
+          }
+        });
+
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Assign Model Strategies to Agents",
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              const Text("These mappings dictate which LLM strategy is used by each functional agent during workflow execution. If an agent is not mapped here, it will fall back to the system default."),
+              const SizedBox(height: 24),
+              Expanded(
+                child: Card(
+                  child: ListView.separated(
+                    itemCount: mappings.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final agentId = mappings.keys.elementAt(index);
+                      final strategyId = mappings.values.elementAt(index).strategyId;
+                      final agentName = mappings.values.elementAt(index).name;
+
+                      return ListTile(
+                        title: Text(
+                          agentName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          "Agent Key: $agentId",
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                        ),
+                        trailing: DropdownButton<String>(
+                          value: (strategyId != null && availableStrategies.contains(strategyId)) ? strategyId : null,
+                          hint: Text(strategyId ?? 'System Default'), // Show it even if it was deleted
+                          onChanged: (newValue) {
+                            if (newValue != null) {
+                              // We only update the strategy, but keep the name. The provider has logic to preserve it.
+                              ref.read(agentMappingsControllerProvider.notifier).updateMapping(agentId, newValue);
+                            }
+                          },
+                          items: availableStrategies.map((s) {
+                            return DropdownMenuItem(value: s, child: Text(s));
+                          }).toList(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+

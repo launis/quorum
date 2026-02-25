@@ -13,7 +13,7 @@ Seuraava tehtävämme on päivittää projektin `docs/`-hakemiston dokumentaatio
 - **DRY (Don't Repeat Yourself):** Samaa asiaa ei selitetä monessa eri tiedostossa. Määrittele konseptit yhdessä päädokumentissa ja käytä Markdownin ristiinlinkitystä muissa tiedostoissa.
 - **Yhtenäinen ja selkeä rakenne:** Käytä loogista Markdown-hierarkiaa (H1, H2, H3). Vältä pitkiä sekavia tekstimassoja, suosi listoja, koodiesimerkkejä ja tiivistelmiä.
 - **Ajantasaisuus:** Kaikkien koodiesimerkkien, arkkitehtuurikuvausten ja termien on heijastettava UUTTA refaktoroitua tilaa (esim. reitittimissä ei logiikkaa, I18N on ICU-muotoiltu frontendissä, data on tiukasti tyypitetty). Poista säälimättä kaikki vanhentunut (legacy) tieto ja väärät oletukset.
-- **Kieli:** Vaikka itse dokumentaatio olisikin osin suomeksi, kaikkien kooditermien, tiedostonimien, funktioiden ja arkkitehtuurikonseptien on vastattava tarkalleen englanninkielistä koodipohjaa.
+- **Kieli:** Kkaikkien kooditermien, tiedostonimien, funktioiden ja arkkitehtuurikonseptien on vastattava tarkalleen englanninkielistä koodipohjaa.
 
 ### 2. Erikoistehtävä: "docs/alku.md" -yhteenveto ens
 - Tiedosto `docs/alku.md` on toiminut projektin alussa, kontekstin ensimmäisenä promptina, tärkeän tiedon ja sääntöjen keräilyaltaana. Se sisältää linkit kaikkiin tärkeisiin tiedostoihin ja konsepteihin ja siihen koostetaan napakasti ja yhteenveromaisesti ne asiat jotka ovat tärkeitä kehittämmisen kannalta mutta kuitenkin hallittavissa ja ymmärrettävissä ilman että tarvitsee lukea kaikkia muita dokumentteja.

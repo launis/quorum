@@ -26,8 +26,8 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
     """
 
     state_field = "step_coach"
-    REQUIRES_KEYS = ["step_judge"]
-
+    REQUIRES_KEYS = []  # Logic handles either step_judge or step_judge_cognitive.
+    
     INPUT_SCHEMA = CoachInput
     OUTPUT_SCHEMA = CoachingPlan
     DTO_SCHEMA = CoachingPlanDTO
@@ -158,10 +158,10 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
             judge_inputs.append(("kwargs_verdict", kwargs.get("verdict")))
 
         if not judge_inputs:
-            # STRICT FAIL FAST: Coach requires a Verdict (step_judge) to function.
+            # STRICT FAIL FAST: Coach requires a Verdict (step_judge or step_judge_cognitive) to function.
             error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
             error_msg = (
-                "[CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). "
+                "[CoachAgent] Missing mandatory input 'step_judge' or 'step_judge_cognitive' (Judge Verdict). "
                 "Cannot generate coaching plan without legal basis."
             )
             logger.error(f"{error_code}: {error_msg}")

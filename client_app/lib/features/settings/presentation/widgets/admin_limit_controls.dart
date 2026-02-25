@@ -59,7 +59,7 @@ class _AdminLimitControlsState extends ConsumerState<AdminLimitControls> {
             const SnackBar(content: Text('Limits updated successfully')),
           );
           // Refresh stats
-          return ref.refresh(usageStatsProvider);
+          return ref.refresh(usageStatsProvider(scope: 'org'));
         },
       );
     } finally {
@@ -69,7 +69,7 @@ class _AdminLimitControlsState extends ConsumerState<AdminLimitControls> {
 
   @override
   Widget build(BuildContext context) {
-    final statsAsync = ref.watch(usageStatsProvider);
+    final statsAsync = ref.watch(usageStatsProvider(scope: 'org'));
     final userAsync = ref.watch(authControllerProvider);
     final user = userAsync.asData?.value;
 

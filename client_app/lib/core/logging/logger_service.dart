@@ -20,7 +20,7 @@ class LoggerService {
     
     _logger = Logger(
       printer: useJson ? JsonPrinter() : CustomPrinter(),
-      output: ConsoleOutput(),
+      output: FileOutput(File('/dev/null')), // Temporary sink until init() is called
       filter: ProductionFilter(),
     );
   }
@@ -45,9 +45,7 @@ class LoggerService {
       _logger = Logger(
         filter: ProductionFilter(),
         printer: useJson ? JsonPrinter() : CustomPrinter(),
-        output: MultiOutput([
-          FileOutput(file),
-        ]),
+        output: FileOutput(file), // ONLY file output, no console
       );
       
       info('SYSTEM', 'Logging initialized. Writing to: ${file.absolute.path}');

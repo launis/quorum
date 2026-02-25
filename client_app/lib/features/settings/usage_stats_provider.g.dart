@@ -10,7 +10,7 @@ part of 'usage_stats_provider.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(usageStats)
-final usageStatsProvider = UsageStatsProvider._();
+final usageStatsProvider = UsageStatsFamily._();
 
 final class UsageStatsProvider
     extends
@@ -20,19 +20,26 @@ final class UsageStatsProvider
           FutureOr<UsageStats>
         >
     with $FutureModifier<UsageStats>, $FutureProvider<UsageStats> {
-  UsageStatsProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'usageStatsProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+  UsageStatsProvider._({
+    required UsageStatsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'usageStatsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
   @override
   String debugGetCreateSourceHash() => _$usageStatsHash();
+
+  @override
+  String toString() {
+    return r'usageStatsProvider'
+        ''
+        '($argument)';
+  }
 
   @$internal
   @override
@@ -41,8 +48,37 @@ final class UsageStatsProvider
 
   @override
   FutureOr<UsageStats> create(Ref ref) {
-    return usageStats(ref);
+    final argument = this.argument as String;
+    return usageStats(ref, scope: argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is UsageStatsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
   }
 }
 
-String _$usageStatsHash() => r'2e7517f7c2c1312d5857bfd4dbbf6ee9c1c47856';
+String _$usageStatsHash() => r'7fc10412682a35f46c15aee0c6ca8d4730b543cc';
+
+final class UsageStatsFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<UsageStats>, String> {
+  UsageStatsFamily._()
+    : super(
+        retry: null,
+        name: r'usageStatsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  UsageStatsProvider call({String scope = 'org'}) =>
+      UsageStatsProvider._(argument: scope, from: this);
+
+  @override
+  String toString() => r'usageStatsProvider';
+}

@@ -42,13 +42,31 @@ class Metadata(BaseModel):
     organization_id: str | None = Field(
         default=None, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"}
     )
+    user_id: str | None = Field(
+        default=None, description="User ID.", json_schema_extra={"x-ui-label": "User ID"}
+    )
+    execution_id: str | None = Field(
+        default=None, description="Execution ID.", json_schema_extra={"x-ui-label": "Execution ID"}
+    )
+    step_id: str | None = Field(
+        default=None, description="Step ID.", json_schema_extra={"x-ui-label": "Step ID"}
+    )
+    model: str | None = Field(
+        default=None, description="Model used.", json_schema_extra={"x-ui-label": "Model"}
+    )
+    provider: str | None = Field(
+        default=None, description="Model provider.", json_schema_extra={"x-ui-label": "Provider"}
+    )
+    duration_ms: int | None = Field(
+        default=None, description="Execution duration in milliseconds.", json_schema_extra={"x-ui-label": "Duration (ms)"}
+    )
     workflow: str | None = Field(
         default=None, description="Workflow name.", json_schema_extra={"x-ui-label": "Workflow"}
     )
     audit_logs: list[AuditLogEntry] | None = Field(
         default=None, description="Audit logs.", json_schema_extra={"x-ui-label": "Audit Logs"}
     )
-    token_usage: dict[str, int] | None = Field(default=None, description="Token usage statistics from language model.")
+    token_usage: dict[str, float | int] | None = Field(default=None, description="Token usage statistics from language model.")
 
     @field_validator("agentti", "suoritus_ymparisto")
     @classmethod

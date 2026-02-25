@@ -85,13 +85,19 @@ class ReportTransformer(
 
         # --- Event Sourcing Adaptation ---
 
-        # Standard: ExecutionResponse.results often contains the snapshot "step_results" dict
-        # We prioritize the explicit 'results' dict if populated (snapshot).
+        # Modern Standard (V3): Step results are stored in context_variables
         steps = {}
-        if isinstance(results, dict) and "step_results" in results:
+        if context and isinstance(context, dict):
+            for k, v in context.items():
+                # Some steps may not be dicts, but most agent outputs are.
+                if k.startswith("step_") and isinstance(v, dict):
+                    steps[k] = v
+
+        # Legacy Fallbacks
+        if not steps and isinstance(results, dict) and "step_results" in results:
             steps = results["step_results"]
 
-        # Fallback: Reconstruct from strict Event Trace (Source of Truth)
+        # Deep Fallback: Reconstruct from strict Event Trace (Source of Truth)
         if not steps and trace:
             steps = self._reconstruct_state_from_trace(trace)
 

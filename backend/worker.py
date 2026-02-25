@@ -97,6 +97,8 @@ async def execute_workflow_job(
             if not workflow_def:
                 raise ValueError(f"Workflow '{workflow_id}' not found.")
 
+            start_time = datetime.now(UTC)
+
             # Execute with Persistence Hook
             result = await engine.execute_workflow(
                 definition=workflow_def, initial_input=inputs, repository=repository, execution_id=execution_id
@@ -104,8 +106,40 @@ async def execute_workflow_job(
 
             # Final Status Update (Completed)
             if execution_id:
+                # Extract cost estimate
+                cost_estimate = 0.0
+                models_used: dict[str, int] = {}
+                duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
+                
+                if isinstance(result, dict):
+                    trace = result.get("execution_trace", [])
+                    if isinstance(trace, list):
+                        for event in trace:
+                            if isinstance(event, dict) and event.get("event_type") == "output":
+                                content = event.get("content", {})
+                                if isinstance(content, dict):
+                                    meta = content.get("metadata", {})
+                                    if isinstance(meta, dict):
+                                        # Extract Model usage
+                                        m = meta.get("model")
+                                        if m:
+                                            models_used[m] = models_used.get(m, 0) + 1
+                                        
+                                        # Extract Cost per step
+                                        tu = meta.get("token_usage", {})
+                                        if isinstance(tu, dict):
+                                            cost_estimate += tu.get("total_cost", 0.0)
+
                 await repository.update_execution(
-                    execution_id, {"status": "completed", "results": result, "completed_at": datetime.now(UTC).isoformat()}
+                    execution_id, 
+                    {
+                        "status": "completed", 
+                        "results": result, 
+                        "completed_at": datetime.now(UTC).isoformat(),
+                        "cost_estimate": cost_estimate,
+                        "duration_ms": duration_ms,
+                        "models_used": models_used
+                    }
                 )
 
             # --- TEMPORARY DEBUG DUMP (User Request) ---

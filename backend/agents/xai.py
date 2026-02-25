@@ -209,7 +209,7 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
                         )
 
                     # Standard Extraction from ScoreCard
-                    total_score = float(score_card_data.get("total_score", 0))
+                    total_score = float(score_card_data.get("total_score", 0.0))
                     max_val_raw = score_card_data.get("scale_max") or score_card_data.get("max_score")
 
                     if max_val_raw is None:
@@ -220,9 +220,29 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
                     max_score = int(max_val_raw) if max_val_raw is not None else 5
 
                     verdict = score_card_data.get("verdict")
+                    if not verdict:
+                        verdict = "Verdict missing" # STRICT DTO: verdict is required and cannot be empty
+
                     dimensions = score_card_data.get("dimensions", [])
                     scale_min = float(score_card_data.get("scale_min", 0.0))
                     scale_max = float(score_card_data.get("scale_max", max_score))
+
+                    # Strict type forcing for dimensions array just in case LLM gave us dicts that don't pass
+                    from backend.models.domain.judge import DimensionResultItem
+                    cleaned_dimensions = []
+                    for d in dimensions:
+                        if isinstance(d, dict):
+                            # Default missing fields for strictly required dimension keys
+                            cleaned_dimensions.append(
+                                DimensionResultItem(
+                                    dimension_id=d.get("dimension_id", "unknown"),
+                                    dimension_label=d.get("dimension_label", d.get("dimension_id", "Unknown")),
+                                    score=float(d.get("score", 0.0)),
+                                    reasoning=d.get("reasoning", "No reasoning provided.")
+                                )
+                            )
+                        elif isinstance(d, DimensionResultItem):
+                            cleaned_dimensions.append(d)
 
                     score_cards.append(
                         JudgeScoreCard(
@@ -230,7 +250,7 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
                             total_score=total_score,
                             max_score=max_score,
                             verdict=verdict,
-                            dimensions=dimensions,
+                            dimensions=cleaned_dimensions,
                             scale_min=scale_min,
                             scale_max=scale_max,
                         )

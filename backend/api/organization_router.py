@@ -252,7 +252,8 @@ async def get_organization(
     return OrganizationResponse(**Organization(**org).model_dump())
 
 
-from backend.models.dtos.organization import OrganizationUsageResponse
+from backend.models.dtos.organization import OrganizationUsageResponse, DetailedUsageResponse
+from typing import Literal
 
 
 @router.get("/{org_id}/usage", response_model=OrganizationUsageResponse)
@@ -322,6 +323,65 @@ async def get_organization_usage(
         error_code = "USAGE_STATS_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
+
+
+@router.get("/{org_id}/usage/detailed", response_model=DetailedUsageResponse)
+async def get_detailed_organization_usage(
+    org_id: str,
+    user: CurrentUserDep,
+    repo: RepositoryDep,
+    scope: Literal["user", "org", "system"] = "org",
+):
+    """Get detailed usage metrics based on role and requested scope."""
+    from backend.exceptions import PermissionDeniedError, ResourceNotFoundError, AppException
+    
+    # 1. Access Control
+    if user.role != UserRole.ROOT:
+        if user.organization_id != org_id:
+            raise PermissionDeniedError(message="Permission denied", details={"error_code": "PERMISSION_DENIED"})
+            
+        if scope == "system":
+            raise PermissionDeniedError(message="System scope requires ROOT role.", details={"error_code": "PERMISSION_DENIED"})
+            
+        if scope == "org" and user.role in [UserRole.MEMBER, UserRole.VIEWER]:
+            raise PermissionDeniedError(message="Organization scope requires ADMIN or MANAGER role.", details={"error_code": "PERMISSION_DENIED"})
+
+    try:
+        org = await repo.get_organization(org_id)
+        if not org:
+            raise ResourceNotFoundError("Organization", org_id)
+
+        org_model = Organization(**org)
+
+        now = datetime.now(UTC)
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+        target_id = user.id if scope == "user" else org_id
+        
+        detailed_data = await repo.get_detailed_usage(scope, target_id=target_id, since=start_of_month)
+
+        percentage = 0.0
+        if org_model.quota_limit > 0:
+            percentage = (detailed_data["total_cost_usd"] / org_model.quota_limit) * 100
+
+        return DetailedUsageResponse(
+            total_cost_usd=round(detailed_data["total_cost_usd"], 4),
+            quota_limit_usd=org_model.quota_limit,
+            tpm_limit=org_model.tpm_limit,
+            rpm_limit=org_model.rpm_limit,
+            percentage_used=round(percentage, 2),
+            period=f"{now.year}-{now.month:02d}",
+            total_runs=detailed_data["total_runs"],
+            total_processing_time_ms=detailed_data["total_processing_time_ms"],
+            models_used=detailed_data["models_used"],
+            workflows_used=detailed_data["workflows_used"]
+        )
+
+    except Exception as e:
+        if isinstance(e, AppException):
+            raise
+        logger.error(f"DETAILED_USAGE_FAILED: {e}", exc_info=True)
+        raise AppException(message=str(e), status_code=500, details={"error_code": "DETAILED_USAGE_FAILED"}) from e
 
 
 @router.put("/{org_id}", response_model=OrganizationResponse)

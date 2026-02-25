@@ -9,7 +9,7 @@ including coaching plans and bibliography.
 # But let's check if we can import JudgeOutput from backend.models.domain.judge
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
@@ -23,8 +23,11 @@ class CoachInput(BaseModel):
     history_text: str = Field(..., description="Chat history.")
     product_text: str | None = Field(default=None, description="Product context.")
     reflection_text: str | None = Field(default=None, description="User reflection.")
-    step_judge: dict[str, Any] | Any = Field(
-        ..., description="The Verdict from Judge Agent (Required).", json_schema_extra={"x-ui-label": "Judge Verdict"}
+    step_judge: dict[str, Any] | Any | None = Field(
+        default=None, description="The Verdict from Judge Agent.", json_schema_extra={"x-ui-label": "Judge Verdict"}
+    )
+    step_judge_cognitive: dict[str, Any] | Any | None = Field(
+        default=None, description="The Verdict from Cognitive Judge Agent.", json_schema_extra={"x-ui-label": "Cognitive Verdict"}
     )
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -38,6 +41,12 @@ class CoachInput(BaseModel):
         if not v or not v.strip():
             raise ValueError("History text cannot be empty.")
         return v.strip()
+
+    @model_validator(mode="after")
+    def validate_judge_presence(self) -> 'CoachInput':
+        if not self.step_judge and not self.step_judge_cognitive:
+            raise ValueError("CoachAgent requires at least one judge input (step_judge or step_judge_cognitive).")
+        return self
 
 
 class BibliographyItem(BaseModel):

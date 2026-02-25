@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use
 import 'package:client_app/features/studio/presentation/providers/matrix_controller.dart';
-import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/active_workflow_controller.dart';
 import 'package:client_app/features/studio/presentation/widgets/matrix_editor_panel.dart';
 import 'package:client_app/features/studio/presentation/widgets/ontology_manager_panel.dart';
 import 'package:client_app/features/studio/presentation/widgets/studio_editor_area.dart';
@@ -28,36 +28,26 @@ class WorkflowStudioScreen extends HookConsumerWidget {
     // 1. Local State
     final selectedStepId = useState<String?>(null);
     final l10n = AppLocalizations.of(context)!;
-    final studioState = ref.watch(studioControllerProvider);
+    final activeWorkflowState = ref.watch(activeWorkflowControllerProvider);
 
     // 2. Initial Data Loading
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final notifier = ref.read(studioControllerProvider.notifier);
-
-        if (initialTabIndex == 1) {
-          // Matrices Mode
-          notifier.enterMatrixMode();
-        } else {
-          // Workflows Mode
-          notifier.enterWorkflowMode();
-        }
-
         // Deep link specific workflow if provided
-        if (workflowId != null) {
-          notifier.loadWorkflow(workflowId!);
+        if (workflowId != null && initialTabIndex == 0) {
+          ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflowId!);
         }
       });
       return null;
     }, [workflowId, initialTabIndex]);
 
     // 3. Feedback Listener
-    ref.listen(studioControllerProvider, (previous, next) {
+    ref.listen(activeWorkflowControllerProvider, (previous, next) {
       // Error Feedback
-      if (next.activeWorkflow.hasError && !next.activeWorkflow.isLoading) {
+      if (next.hasError && !next.isLoading) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.activeWorkflow.error}'),
+            content: Text('Error: ${next.error}'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -87,7 +77,7 @@ class WorkflowStudioScreen extends HookConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(right: 16.0, left: 8.0),
             child:
-                studioState.activeWorkflow.isLoading
+                activeWorkflowState.isLoading
                     ? const Row(
                       children: [
                         SizedBox(
@@ -103,7 +93,7 @@ class WorkflowStudioScreen extends HookConsumerWidget {
                       icon: const Icon(Icons.save),
                       label: Text(l10n.save),
                       onPressed: () async {
-                        await ref.read(studioControllerProvider.notifier).save();
+                        await ref.read(activeWorkflowControllerProvider.notifier).save();
                         if (context.mounted) {
                            ScaffoldMessenger.of(context).showSnackBar(
                              SnackBar(content: Text(l10n.studioChangesSaved), duration: const Duration(seconds: 2))

@@ -52,12 +52,7 @@ async def lifespan(app: FastAPI):
     logger.info("   COGNITIVE QUORUM BACKEND (V2.9) - STARTING UP")
     logger.info("======================================================================")
 
-    # 2. PRINT TO CONSOLE (Minimal)
-    print("===================================================")
-    print("  CQ BACKEND (V2.9) STARTED")
-    print("  -> Log: backend_debug.log (CHECK FOR DETAILS)")
-    print("  -> Doc: http://localhost:8000/docs")
-    print("===================================================")
+    # Output is handled by loggers to backend_debug.log
 
     try:
         # A. Initialize Task Registry (Trigger Decorators)
@@ -305,4 +300,3 @@ app.include_router(tools_router.router)
 app.include_router(audit_router.router)
 
 
-print("Updated backend/main.py with Lifespan and V2 Router.")

@@ -194,7 +194,7 @@ GoRouter router(Ref ref) {
       // Studio Route (Typed - Independent Shell)
       GoRoute(
         path: '/studio',
-        builder: (context, state) => const StudioRoute().build(context, state),
+        builder: (context, state) => const StudioDashboardRoute().build(context, state),
         routes: [
           GoRoute(
             path: 'workflows',

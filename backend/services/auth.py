@@ -256,18 +256,14 @@ class AuthService:
             else:
                 id = token
 
-            print(f"[DEBUG] verify_token: Mock Login Mode -> Extracted ID: {id}")
-
             # Check if user exists in our DB
             user = self.repo.get_by_id(id)
             if not user:
-                print(f"[DEBUG] verify_token: User {id} NOT FOUND in database!")
                 raise AuthenticationError(
                     message=f"Mock User not found for ID: {id}",
                     details={"error_code": ErrorCodes.PERMISSION_DENIED},  # Or similar
                 )
 
-            print(f"[DEBUG] verify_token: User {id} SUCCESS -> Role: {user.role}, Org: {user.organization_id}")
             return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
 
         # 2. Firebase Mode
@@ -283,7 +279,6 @@ class AuthService:
             if not user:
                 # Auto-registration for missing users found in Firebase
                 logger.info(f"User {id} not found in local DB. Auto-registering as MEMBER (No Org).")
-                print(f"[DEBUG] verify_token: Firebase User {id} NOT FOUND in local DB. Auto-registering.")
                 new_user = User(
                     id=id,
                     email=email if email else "unknown@example.com",

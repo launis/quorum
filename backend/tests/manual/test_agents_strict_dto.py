@@ -89,6 +89,7 @@ async def test_agent_execution_mock():
         dto_instance = agent.DTO_SCHEMA(**mock_response_dict)
         mock_response = MagicMock()
         mock_response.parsed_content = dto_instance
+        mock_response.token_usage = {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15, "total_cost": 0.002}
         mock_llm.generate.return_value = mock_response
 
         # Inject mock llm

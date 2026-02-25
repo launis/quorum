@@ -58,8 +58,14 @@ def configure_logfire():
         return
 
     try:
-        logfire.configure(send_to_logfire=False)  # We attach the handler manually later
-        # Reduce console noise: Pydantic instrumentation is too verbose for local dev
+        # Force Logfire to use the EU endpoint since the token is an EU token
+        # but automatic detection occasionally fails.
+        os.environ.setdefault("LOGFIRE_BASE_URL", "https://api-eu.pydantic.dev/")
+        os.environ.setdefault("LOGFIRE_SEND_TO_LOGFIRE", "true")
+        
+        # send_to_logfire=True explicitly enables the cloud exporter.
+        # console=False suppresses the noisy local console logs from Logfire.
+        logfire.configure(send_to_logfire=True, console=False)
         # logfire.instrument_pydantic()
     except Exception as e:
         logging.getLogger(__name__).warning(
@@ -120,13 +126,10 @@ def setup_logging(log_level=logging.INFO):
     file_handler.addFilter(context_filter)  # Add Filter
     file_handler.setLevel(log_level)
 
-    # 2. Console Handler (Silent Mode: WARNING+)
-    # We want minimal console output, so we mute INFO logs here.
-    # Users should check backend_debug.log for INFO/DEBUG details.
+    # 2. Console Handler is created but NOT added to root logger
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
-    console_handler.addFilter(context_filter)  # Add Filter
-    console_handler.setLevel(logging.WARNING)
+    console_handler.addFilter(context_filter)
 
     # Configure Root Logger
     root_logger = logging.getLogger()
@@ -137,7 +140,7 @@ def setup_logging(log_level=logging.INFO):
         root_logger.handlers = []
 
     root_logger.addHandler(file_handler)
-    root_logger.addHandler(console_handler)
+    # Console handler removed to ensure absolute silence in console as requested
 
     if logfire and _LOGFIRE_CONFIGURED:
         try:

@@ -287,6 +287,12 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_usage_records(
+        self, scope: str, entity_id: str | None = None, since: str | None = None
+    ) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
     async def list_organizations(self) -> list[dict[str, Any]]:
         pass
 
@@ -762,6 +768,20 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         data["id"] = doc_id
         await self.driver.upsert("usage", data, doc_id)
 
+    async def get_usage_records(
+        self, scope: str, entity_id: str | None = None, since: str | None = None
+    ) -> list[dict[str, Any]]:
+        filters = []
+        if scope == "organization" and entity_id:
+            filters.append(Filter("org_id", "==", entity_id))
+        elif scope == "user" and entity_id:
+            filters.append(Filter("user_id", "==", entity_id))
+            
+        if since:
+            filters.append(Filter("timestamp", ">=", since))
+            
+        return await self.driver.query("usage", filters)
+
     # --- Organizations ---
 
     async def list_organizations(self) -> list[dict[str, Any]]:
@@ -814,3 +834,47 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         # Fetch all matched executions
         execs = await self.driver.query("executions", filters)
         return sum(e.get("cost_estimate", 0.0) for e in execs)
+
+    async def get_detailed_usage(self, scope: str, target_id: str | None = None, since: str | None = None) -> dict[str, Any]:
+        filters = []
+        if since:
+            filters.append(Filter("created_at", ">=", since))
+            
+        if scope == "user" and target_id:
+            filters.append(Filter("user_id", "==", target_id))
+        elif scope == "org" and target_id:
+            filters.append(Filter("organization_id", "==", target_id))
+        # if scope == "system", no id filter
+        
+        execs = await self.driver.query("executions", filters)
+        
+        total_cost = 0.0
+        total_runs = len(execs)
+        total_time = 0
+        models_used: dict[str, int] = {}
+        workflows_used: dict[str, int] = {}
+        
+        for e in execs:
+            total_cost += e.get("cost_estimate", 0.0)
+            
+            # Duration (if available)
+            total_time += e.get("duration_ms", 0)
+            
+            # Workflows
+            wid = e.get("workflow_id")
+            if wid:
+                workflows_used[wid] = workflows_used.get(wid, 0) + 1
+                
+            # Models
+            mu = e.get("models_used", {})
+            if isinstance(mu, dict):
+                for m, count in mu.items():
+                    models_used[m] = models_used.get(m, 0) + count
+                    
+        return {
+            "total_cost_usd": total_cost,
+            "total_runs": total_runs,
+            "total_processing_time_ms": total_time,
+            "models_used": models_used,
+            "workflows_used": workflows_used
+        }

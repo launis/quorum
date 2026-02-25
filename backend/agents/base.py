@@ -142,7 +142,20 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
             logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}", exc_info=True)
             raise AgentExecutionError(detail=error_code, original_error=e, agent_name=self.__class__.__name__) from e
 
-    def _apply_python_authority(self, data: Any, token_usage: dict[str, int] | None = None) -> OutputT:
+    def _apply_python_authority(
+        self, 
+        data: Any, 
+        token_usage: dict[str, float | int] | None = None,
+        organization_id: str | None = None,
+        workflow: str | None = None,
+        audit_logs: list[AuditLogEntry] | None = None,
+        user_id: str | None = None,
+        execution_id: str | None = None,
+        step_id: str | None = None,
+        model: str | None = None,
+        provider: str | None = None,
+        duration_ms: int | None = None
+    ) -> OutputT:
         """Injects system-authoritative data (Time, Identity, Checksums).
 
         Promotes DTOs to Domain Models if DTO_SCHEMA is defined.
@@ -170,6 +183,31 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
 
             if token_usage:
                 meta_updates["token_usage"] = token_usage
+            if organization_id:
+                meta_updates["organization_id"] = organization_id
+            if workflow:
+                meta_updates["workflow"] = workflow
+                
+            if current_meta and current_meta.audit_logs:
+                if audit_logs:
+                    meta_updates["audit_logs"] = current_meta.audit_logs + audit_logs
+                else:
+                    meta_updates["audit_logs"] = current_meta.audit_logs
+            elif audit_logs:
+                meta_updates["audit_logs"] = audit_logs
+
+            if user_id:
+                meta_updates["user_id"] = user_id
+            if execution_id:
+                meta_updates["execution_id"] = execution_id
+            if step_id:
+                meta_updates["step_id"] = step_id
+            if model:
+                meta_updates["model"] = model
+            if provider:
+                meta_updates["provider"] = provider
+            if duration_ms is not None:
+                meta_updates["duration_ms"] = duration_ms
 
             # Default optional fields if missing
             # We check if they exist in current_meta (if it's a model)
@@ -193,6 +231,16 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                     suoritus_ymparisto=env_context,
                     vaihe=int(str(meta_updates["vaihe"])),
                     versio=str(meta_updates["versio"]),
+                    organization_id=organization_id,
+                    workflow=workflow,
+                    audit_logs=meta_updates.get("audit_logs"),
+                    token_usage=token_usage,
+                    user_id=meta_updates.get("user_id"),
+                    execution_id=meta_updates.get("execution_id"),
+                    step_id=meta_updates.get("step_id"),
+                    model=meta_updates.get("model"),
+                    provider=meta_updates.get("provider"),
+                    duration_ms=meta_updates.get("duration_ms"),
                 )
 
             # 2. Calculate Checksum (using new metadata)
@@ -262,6 +310,29 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
 
             if token_usage:
                 meta["token_usage"] = token_usage
+            if organization_id:
+                meta["organization_id"] = organization_id
+            if workflow:
+                meta["workflow"] = workflow
+                
+            if "audit_logs" in meta and meta["audit_logs"]:
+                if audit_logs:
+                    meta["audit_logs"] = meta["audit_logs"] + audit_logs
+            elif audit_logs:
+                meta["audit_logs"] = audit_logs
+
+            if user_id:
+                meta["user_id"] = user_id
+            if execution_id:
+                meta["execution_id"] = execution_id
+            if step_id:
+                meta["step_id"] = step_id
+            if model:
+                meta["model"] = model
+            if provider:
+                meta["provider"] = provider
+            if duration_ms is not None:
+                meta["duration_ms"] = duration_ms
 
             # 2. CHECKSUM AUTHORITY
             try:
@@ -490,12 +561,18 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
             # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
             kwargs["mock_identity"] = self.__class__.__name__
 
+            import time
+            start_time = time.perf_counter()
+
             response_obj = await self.llm_provider.generate(
                 prompt=user_prompt,
                 system_instruction=system_instruction,
                 response_schema=response_schema,
                 **kwargs,
             )
+
+            end_time = time.perf_counter()
+            kesto_ms = int((end_time - start_time) * 1000)
 
             # Handle Response Content
             if response_schema:
@@ -600,8 +677,26 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
 
             # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
             if response_data is not None:
+                # Read from execution_context (which TaskRegistry maps execution_config to) or kwargs directly
+                context_dict = execution_context or {}
+                org_id = context_dict.get("organization_id") or kwargs.get("organization_id")
+                workflow_id = context_dict.get("workflow") or kwargs.get("workflow")
+                user_id = context_dict.get("user_id") or kwargs.get("user_id")
+                execution_id = context_dict.get("execution_id") or kwargs.get("execution_id")
+                step_id = context_dict.get("step_id") or kwargs.get("step_id")
+
                 response_data = self._apply_python_authority(
-                    response_data, token_usage=getattr(response_obj, "token_usage", None)
+                    response_data, 
+                    token_usage=getattr(response_obj, "token_usage", None),
+                    organization_id=org_id,
+                    workflow=workflow_id,
+                    audit_logs=audit_entries if 'audit_entries' in locals() else None,
+                    user_id=user_id,
+                    execution_id=execution_id,
+                    step_id=step_id,
+                    model=self.model,
+                    provider=self.provider_type,
+                    duration_ms=kesto_ms if 'kesto_ms' in locals() else None
                 )
 
             # 6. Lifecycle Hook: Post Process (HEALING PATTERN)

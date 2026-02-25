@@ -11,6 +11,12 @@ class UsageStats {
   final int rpmLimit;
   final double percentage;
   final String period;
+  
+  // New telemetry
+  final int totalRuns;
+  final int totalProcessingTimeMs;
+  final Map<String, int> modelsUsed;
+  final Map<String, int> workflowsUsed;
 
   const UsageStats({
     required this.usedCost,
@@ -19,11 +25,16 @@ class UsageStats {
     required this.rpmLimit,
     required this.percentage,
     required this.period,
+    this.totalRuns = 0,
+    this.totalProcessingTimeMs = 0,
+    this.modelsUsed = const {},
+    this.workflowsUsed = const {},
   });
 }
 
+// Allow passing scope (e.g. "user", "org", "system") to the provider
 @riverpod
-Future<UsageStats> usageStats(Ref ref) async {
+Future<UsageStats> usageStats(Ref ref, {String scope = "org"}) async {
   final userAsync = ref.watch(authControllerProvider);
   final user = userAsync.asData?.value;
 
@@ -40,7 +51,7 @@ Future<UsageStats> usageStats(Ref ref) async {
   }
 
   final repo = ref.watch(organizationRepositoryProvider);
-  final result = await repo.getUsage(user.organizationId!);
+  final result = await repo.getDetailedUsage(user.organizationId!, scope: scope);
 
   return result.fold(
     (error) => throw error, // Let UI handle error state
@@ -49,10 +60,12 @@ Future<UsageStats> usageStats(Ref ref) async {
       costLimit: (data['quota_limit_usd'] as num).toDouble(),
       tpmLimit: (data['tpm_limit'] as num).toInt(),
       rpmLimit: (data['rpm_limit'] as num).toInt(),
-      percentage:
-          (data['percentage_used'] as num).toDouble() /
-          100.0, // Backend returns 0-100
+      percentage: (data['percentage_used'] as num).toDouble() / 100.0,
       period: data['period'] as String,
+      totalRuns: (data['total_runs'] as num?)?.toInt() ?? 0,
+      totalProcessingTimeMs: (data['total_processing_time_ms'] as num?)?.toInt() ?? 0,
+      modelsUsed: (data['models_used'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, (v as num).toInt())) ?? {},
+      workflowsUsed: (data['workflows_used'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, (v as num).toInt())) ?? {},
     ),
   );
 }

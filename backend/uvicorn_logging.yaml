@@ -28,17 +28,17 @@ handlers:
 
 loggers:
   uvicorn:
-    level: INFO
+    level: WARNING
     handlers:
       - default
     propagate: false
   uvicorn.error:
-    level: INFO
+    level: WARNING
     handlers:
       - default
     propagate: false
   uvicorn.access:
-    level: INFO
+    level: WARNING
     handlers:
       - access
     propagate: false

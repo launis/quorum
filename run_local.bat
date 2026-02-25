@@ -48,7 +48,7 @@ start "CQ Worker (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& se
 
 echo [3/3] Launching Client (Flutter)...
 if "%USE_JSON_LOGGING%"=="" set USE_JSON_LOGGING=false
-start "CQ Client (LOCAL)" cmd /k "cd client_app && flutter run -d windows --dart-define=USE_JSON_LOGGING=%USE_JSON_LOGGING%"
+start "CQ Client (LOCAL)" cmd /k "cd client_app && echo [Flutter] Resolving packages silently... && flutter pub get >nul 2>&1 && flutter run -d windows --no-pub --dart-define=USE_JSON_LOGGING=%USE_JSON_LOGGING%"
 
 echo.
 echo ---------------------------------------------------

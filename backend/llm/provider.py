@@ -441,11 +441,15 @@ class LiteLLMProvider(LLMProvider):
                     # Calculate cost using LiteLLM
                     cost = litellm.completion_cost(completion_response=response)
 
+                    # Resolve IDs from kwargs (execution config) or provider instance
+                    target_org = kwargs.get("organization_id") or self.organization_id
+                    target_user = kwargs.get("user_id") or "system_agent"
+
                     # Track usage asynchronously (fire and forget for now, or await)
                     # For strict async correctness, we await it.
                     await self.usage_service.track_usage(
-                        org_id=self.organization_id,
-                        user_id=kwargs.get("user_id", "system_agent"),
+                        org_id=target_org,
+                        user_id=target_user,
                         model=self.model_name,
                         input_tokens=int(usage.get("prompt_tokens", 0)),
                         output_tokens=int(usage.get("completion_tokens", 0)),
@@ -482,13 +486,13 @@ class LiteLLMProvider(LLMProvider):
                     details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg},
                 ) from e
 
-            # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens)
-            elif "InstructorRetryException" in error_type and ("max_tokens" in error_msg or "length" in error_msg):
-                logger.error(f"[LiteLLM] MAX TOKENS EXCEEDED (Model Loop): {error_msg}")
+            # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens/Empty Response)
+            elif "InstructorRetryException" in error_type:
+                logger.error(f"[LiteLLM] INSTRUCTOR / MODEL FAILURE (Empty choices or schema mismatch): {error_msg}")
                 raise AppException(
-                    message="Model output exceeded token limit (likely looping).",
+                    message="Model failed to generate structured output (empty response or looping).",
                     status_code=500,
-                    details={"error_code": ErrorCodes.MODEL_OUTPUT_LIMIT_EXCEEDED},
+                    details={"error_code": ErrorCodes.MODEL_OUTPUT_LIMIT_EXCEEDED, "original_error": error_msg},
                 ) from e
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
@@ -659,9 +663,12 @@ class MockProvider(LLMProvider):
         # --- COST TRACKING (Mock) ---
         if self.usage_service:
             try:
+                target_org = kwargs.get("organization_id") or self.organization_id
+                target_user = kwargs.get("user_id") or "system_agent"
+                
                 await self.usage_service.track_usage(
-                    org_id=self.organization_id,
-                    user_id=kwargs.get("user_id", "system_agent"),
+                    org_id=target_org,
+                    user_id=target_user,
                     model=self.model_name,
                     input_tokens=int(usage_data["prompt_tokens"]),
                     output_tokens=int(usage_data["completion_tokens"]),

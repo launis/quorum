@@ -3,7 +3,6 @@ import 'package:client_app/features/studio/data/studio_repository.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/step_config.dart';
 import 'package:client_app/features/studio/presentation/providers/steps_controller.dart';
-import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
 import 'package:client_app/features/studio/presentation/providers/available_matrices_controller.dart';
 import 'package:client_app/features/studio/presentation/providers/available_components_controller.dart';
 import 'package:flutter/material.dart';

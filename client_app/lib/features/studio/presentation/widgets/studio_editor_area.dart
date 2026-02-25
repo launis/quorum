@@ -6,7 +6,8 @@ import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_table.dart';
 import 'package:client_app/features/studio/presentation/widgets/sdui/reorderable_array_builder.dart';
-import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/active_workflow_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/available_components_controller.dart';
 import 'package:client_app/features/studio/presentation/widgets/dynamic_config_form.dart';
 import 'package:client_app/features/studio/presentation/providers/available_matrices_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -25,33 +26,11 @@ class StudioEditorArea extends ConsumerStatefulWidget {
 
 class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
   @override
-  void initState() {
-    super.initState();
-    // Ensure components are loaded
-    Future.microtask(() {
-      ref.read(studioControllerProvider.notifier).loadComponents();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final state = ref.watch(studioControllerProvider);
+    final activeWorkflowState = ref.watch(activeWorkflowControllerProvider);
     final l10n = AppLocalizations.of(context)!;
 
-    // Check for Matrix Selection first
-    if (state.selectedMatrixId != null) {
-      final matricesState = ref.watch(availableMatricesControllerProvider);
-      return matricesState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => Center(child: Text('Error: $err')),
-        data: (matrices) {
-          // Using the MatrixController state now, so no need to pass matrix
-          return const SingleChildScrollView(child: MatrixEditorPanel());
-        },
-      );
-    }
-
-    return state.activeWorkflow.when(
+    return activeWorkflowState.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, st) => Center(child: Text('Error loading editor: $err')),
       data: (workflow) {
@@ -147,7 +126,7 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
                     newConfig[key] = value;
 
                     ref
-                        .read(studioControllerProvider.notifier)
+                        .read(activeWorkflowControllerProvider.notifier)
                         .updateStep(selectedStep.id, newConfig);
                   },
                 ),
@@ -190,7 +169,7 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
                 _updateSteps(ref, workflow, newSteps);
               },
               onReorder: (oldIndex, newIndex) {
-                 ref.read(studioControllerProvider.notifier).reorderSteps(oldIndex, newIndex);
+                 ref.read(activeWorkflowControllerProvider.notifier).reorderSteps(oldIndex, newIndex);
               },
               itemFactory: () {
                  // Create a valid default step to prevent cast errors
@@ -229,7 +208,7 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
     final newWf = workflow.copyWith(steps: newSteps);
     try {
       await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
-      await ref.read(studioControllerProvider.notifier).loadWorkflow(workflow.id);
+      await ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflow.id);
     } catch (e) {
       _showError(context, e);
     }
@@ -241,7 +220,7 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
 
     try {
       await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
-      await ref.read(studioControllerProvider.notifier).loadWorkflow(workflow.id);
+      await ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflow.id);
     } catch (e) {
        _showError(context, e);
     }
@@ -255,7 +234,7 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
     
     try {
        await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
-       await ref.read(studioControllerProvider.notifier).loadWorkflow(workflow.id);
+       await ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflow.id);
     } catch (e) {
        _showError(context, e);
     }
@@ -300,7 +279,7 @@ class ScoringConfigSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // We access components to populate dropdowns
-    final componentsAsync = ref.watch(studioControllerProvider).components;
+    final componentsAsync = ref.watch(availableComponentsControllerProvider);
 
     return Card(
       margin: const EdgeInsets.all(16.0),
@@ -366,7 +345,7 @@ class ScoringConfigSection extends ConsumerWidget {
     try {
       await ref.read(studioRepositoryProvider).saveWorkflow(updatedWf);
       // Reload to refresh UI (Repo Save is single source of truth here)
-      await ref.read(studioControllerProvider.notifier).loadWorkflow(updatedWf.id);
+      await ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(updatedWf.id);
     } catch (e) {
       debugPrint("Failed to save: $e");
       if (context.mounted) {

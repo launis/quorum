@@ -63,6 +63,15 @@ class ComponentCreate(BaseModel):
     }
 
 
+class AgentMappingUpdate(BaseModel):
+    """Payload for updating an agent's model strategy mapping."""
+
+    agent_id: str = Field(description="The ID of the agent (task_key).")
+    strategy_id: str = Field(description="The ID of the strategy (e.g., vertex_ai/gemini-2.5-flash).")
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class RegistryComponentItem(BaseModel):
     """Schema for a component item in the registry list."""
 
@@ -337,3 +346,17 @@ class ValidationReportResponse(BaseModel):
     errors: list[str]
     trace: list[str]
     final_state_keys: list[str]
+
+class AgentMappingResponse(BaseModel):
+    """Payload for listing agent mappings in the UI."""
+
+    agent_id: str
+    name: str | None = None
+    type: str | None = None
+    strategy_id: str | None = None
+
+class AgentMappingUpdate(BaseModel):
+    """Payload for updating an agent mapping."""
+
+    agent_id: str
+    strategy_id: str

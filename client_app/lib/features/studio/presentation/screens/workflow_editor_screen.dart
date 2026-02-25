@@ -1,4 +1,4 @@
-import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/active_workflow_controller.dart';
 import 'package:client_app/features/studio/presentation/widgets/step_config_panel.dart';
 import 'package:client_app/features/studio/presentation/widgets/studio_sidebar_list.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -23,12 +23,12 @@ class WorkflowEditorScreen extends HookConsumerWidget {
       // Riverpod Notifier calls are safe in build? generally NO.
       // Use microtask.
       Future.microtask(() {
-        ref.read(studioControllerProvider.notifier).loadWorkflow(workflowId);
+        ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflowId);
       });
       return null;
     }, [workflowId]);
 
-    final state = ref.watch(studioControllerProvider);
+    final state = ref.watch(activeWorkflowControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -38,7 +38,7 @@ class WorkflowEditorScreen extends HookConsumerWidget {
             icon: const Icon(Icons.save),
             tooltip: l10n.studioSaveButton,
             onPressed: () {
-              ref.read(studioControllerProvider.notifier).save();
+              ref.read(activeWorkflowControllerProvider.notifier).save();
             },
           ),
         ],

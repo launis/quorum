@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain import UsageRecord
+from backend.models.domain.usage import TokenUsage, UsageReport
 
 logger = logging.getLogger(__name__)
 
@@ -121,3 +122,46 @@ class UsageService:
             raise AppException(
                 message=f"Quota check failed: {e}", status_code=500, details={"error_code": error_code}
             ) from e
+
+    async def get_usage_report(
+        self, scope: str, entity_id: str | None = None, since: str | None = None
+    ) -> UsageReport:
+        records_data = []
+        if hasattr(self.repo, "get_usage_records"):
+            records_data = await self.repo.get_usage_records(scope=scope, entity_id=entity_id, since=since)
+        
+        prompt_tokens = 0
+        completion_tokens = 0
+        total_tokens = 0
+        cost_usd = 0.0
+        
+        for r in records_data:
+            prompt_tokens += r.get("input_tokens", 0)
+            completion_tokens += r.get("output_tokens", 0)
+            total_tokens += r.get("total_tokens", r.get("input_tokens", 0) + r.get("output_tokens", 0))
+            cost_usd += float(r.get("cost_usd", 0.0))
+            
+        token_usage = TokenUsage(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            cost_usd=cost_usd
+        )
+        
+        quota_limit = None
+        percentage_used = None
+        if scope == "organization" and entity_id:
+            org = await self.repo.get_organization(entity_id)
+            if org:
+                quota_limit = float(org.get("quota_limit", 10.0))
+                if quota_limit > 0:
+                    percentage_used = min(100.0, (cost_usd / quota_limit) * 100.0)
+                    
+        return UsageReport(
+            scope=scope,
+            entity_id=entity_id,
+            period="Custom" if since else "All-time",
+            usage=token_usage,
+            quota_limit_usd=quota_limit,
+            percentage_used=percentage_used
+        )

@@ -20,7 +20,7 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
-    debugPrint('Error loading .env: $e');
+    // Ignore early failures or we could use standard platform print before override
   }
 
   // 3. Initialize Firebase
@@ -29,20 +29,19 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    debugPrint('Error initializing Firebase: $e');
+    // Ignore or log later
   }
 
   // 4. Initialize Logger & Startup Audit
   final logger = LoggerService(); 
   await logger.init(); 
   
-  // CONSOLE: Minimal
-  if (!kIsWeb) {
-    print("===================================================");
-    print("  CQ CLIENT STARTED");
-    print("  -> Log: client_debug.log (CHECK FOR DETAILS)");
-    print("===================================================");
-  }
+  // Redirect all debugPrints so the console remains clean
+  debugPrint = (String? message, {int? wrapWidth}) {
+    if (message != null && !message.contains('Error loading .env') && !message.contains('Error initializing Firebase')) {
+      logger.debug('FLUTTER_DEBUG', message);
+    }
+  };
 
   // LOG: Detailed
   logger.info('SYSTEM', 'Startup Audit:');
@@ -54,7 +53,6 @@ Future<void> main() async {
   
   // A. Flutter Framework Errors (Widget Build)
   FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details); // Dump to console too
     logger.error('FLUTTER', 'Framework Error', details.exception, details.stack);
   };
 

@@ -1,4 +1,4 @@
-import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/active_workflow_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +16,7 @@ class StudioSidebarList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(studioControllerProvider);
+    final state = ref.watch(activeWorkflowControllerProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return state.when(
@@ -52,7 +52,7 @@ class StudioSidebarList extends ConsumerWidget {
                         taskKey: 'unknown',
                       );
                       ref
-                          .read(studioControllerProvider.notifier)
+                          .read(activeWorkflowControllerProvider.notifier)
                           .addStep(newStep);
                     },
                     tooltip: l10n.studioAddStepButton,
@@ -66,7 +66,7 @@ class StudioSidebarList extends ConsumerWidget {
                 itemCount: steps.length,
                 onReorder: (oldIndex, newIndex) {
                   ref
-                      .read(studioControllerProvider.notifier)
+                      .read(activeWorkflowControllerProvider.notifier)
                       .reorderSteps(oldIndex, newIndex);
                 },
                 itemBuilder: (context, index) {

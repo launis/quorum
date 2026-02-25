@@ -14,7 +14,7 @@ from backend.dependencies import (
 )
 from backend.exceptions import AppException, ErrorCodes, status
 from backend.llm.provider import LLMFactory
-from backend.models.dtos.config import ModelOptionsResponse
+from backend.models.dtos.config import ModelOptionsResponse, AgentMappingUpdate, AgentMappingResponse
 from backend.models.llm import AdHocTestRequest, AdHocTestResponse, LLMProviderConfig
 from backend.settings import get_settings
 
@@ -311,6 +311,156 @@ async def delete_model_config(
         raise AppException(
             message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
         ) from e
+
+
+@router.get("/mappings", response_model=list[AgentMappingResponse])
+async def get_agent_mappings(
+    repository: RepositoryDep,
+):
+    """Fetch the global registry mappings between Agent IDs (task_key) and Model Strategies.
+    
+    Returns:
+        list[AgentMappingResponse]: A list of objects containing agent_id, name, type, and strategy_id.
+    """
+    try:
+        registry = await repository.get_model_registry()
+        models_block = registry.get("models", {})
+        
+        mappings = {}
+        for provider_id, provider_data in models_block.items():
+            if not isinstance(provider_data, dict):
+                continue
+            for key, value in provider_data.items():
+                if isinstance(value, str):
+                    # It's an agent mapping alias
+                    if "/" not in value:
+                        mappings[key] = f"{provider_id}/{value}"
+                    else:
+                        mappings[key] = value
+
+        all_agents = await repository.get_all_agents()
+        
+        results: list[AgentMappingResponse] = []
+        for agent in all_agents:
+            a_id = agent.get("id")
+            if not a_id:
+                continue
+                
+            # Filter out non-system agents (e.g. dynamic matrices that leaked in via UI builder)
+            # Typically system agents have type='agent' or a recognizable TaskKey like 'step_'
+            # The UI only needs to assign strategies to deterministic/known steps that participate
+            # in the regular `BaseAgent` execution pipeline.
+            # Real agents always have a `class_name` that is not a literal matrix string.
+            a_type = agent.get("type", "agent")
+            if a_type not in ["agent", "evaluator", "generator", "processor"]:
+                if a_type != "step": # 'step' occasionally used for generic tasks
+                    pass # We will allow it for now, but watch out for `matrix_` IDs
+                
+            # Skip evaluation matrices to keep the UI clean
+            if a_id.startswith("matrix_"):
+                continue
+
+            a_name = agent.get("name")
+            a_class = agent.get("class_name")
+            a_comp = agent.get("component_class")
+            
+            # Resolve strategy by checking UUID, then name, then class_name
+            # The database seed file uses Class Names (e.g. GuardAgent) instead of UUIDs
+            strategy = mappings.get(a_id)
+            if not strategy and a_name:
+                strategy = mappings.get(a_name)
+            if not strategy and a_class:
+                strategy = mappings.get(a_class)
+            if not strategy and a_comp:
+                strategy = mappings.get(a_comp)
+
+            results.append(
+                AgentMappingResponse(
+                    agent_id=a_id,
+                    name=a_name or a_id,
+                    type=a_type,
+                    strategy_id=strategy
+                )
+            )
+        
+        return results
+    except Exception as e:
+        if isinstance(e, AppException):
+            raise e
+        error_code = ErrorCodes.INTERNAL_SERVER_ERROR
+        logger.error(f"[Config] Failed to fetch agent mappings: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
+        ) from e
+
+
+@router.put("/mappings", response_model=dict[str, str])
+async def update_agent_mapping(
+    update_data: AgentMappingUpdate,
+    repository: RepositoryDep,
+):
+    """Update a specific global agent-to-strategy mapping.
+    
+    Args:
+        update_data (AgentMappingUpdate): The agent ID and new strategy ID.
+    """
+    try:
+        registry = await repository.get_model_registry()
+        models_block = registry.get("models", {})
+        
+        # Fetch actual agent to get its class_name for engine resolution parity
+        agent = await repository.get_agent_by_id(update_data.agent_id)
+        if not agent:
+            raise AppException(
+                message=f"Agent ID {update_data.agent_id} not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+                details={"error_code": "AGENT_NOT_FOUND"},
+            )
+            
+        target_key = agent.get("class_name") or agent.get("component_class") or agent.get("name") or update_data.agent_id
+        
+        # Parse the provider and strategy from the incoming ID (e.g. 'google/fast')
+        provider_id = "google"
+        strategy_name = update_data.strategy_id
+
+        if "/" in update_data.strategy_id:
+            parts = update_data.strategy_id.split("/", 1)
+            provider_id = parts[0]
+            strategy_name = parts[1]
+
+        # Ensure provider block exists
+        if provider_id not in models_block:
+            models_block[provider_id] = {}
+            
+        # Write the alias into the new provider block
+        models_block[provider_id][target_key] = strategy_name
+        
+        # Clean up the alias from other providers to avoid shadowing
+        for p_id, p_data in models_block.items():
+            if p_id != provider_id and isinstance(p_data, dict):
+                if target_key in p_data:
+                    del p_data[target_key]
+                    
+        registry["models"] = models_block
+        
+        success = await repository.update_model_registry(registry)
+        if not success:
+            raise AppException(
+                message="Failed to save Agent Mapping configuration.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": "REGISTRY_SAVE_FAILED"},
+            )
+            
+        return update_data.model_dump()
+    except Exception as e:
+        if isinstance(e, AppException):
+            raise e
+        error_code = ErrorCodes.INTERNAL_SERVER_ERROR
+        logger.error(f"[Config] Failed to update agent mapping: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
+        ) from e
+
 
 
 @router.post("/test", response_model=AdHocTestResponse)

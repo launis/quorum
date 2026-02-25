@@ -101,11 +101,12 @@ async def test_coach_fail_fast_missing_dependency(mock_llm_factory):
     
     # Let's test missing repository instead, easier to trigger.
     
-    with pytest.raises(AgentExecutionError) as exc:
-        await agent.execute(
-            input_data,
-            execution_context={}, # Missing repository
-            system_instruction="Run"
+    with pytest.raises(ValueError) as exc:
+        CoachInput(
+            history_text="History",
+            step_judge={}, # Falsy Empty
+            step_judge_cognitive={}, # Falsy Empty
+            last_reasoning_trace=None
         )
     
-    assert "Repository not injected" in str(exc.value)
+    assert "CoachAgent requires at least one judge input" in str(exc.value)

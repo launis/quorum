@@ -213,10 +213,40 @@ async def create_execution(
             if current_user:
                 inputs["user_id"] = current_user.id
 
+            start_time_sync = datetime.now(UTC)
             result = await engine.execute_workflow(definition, inputs, repository=repository, execution_id=execution_id)
             execution_data["results"] = sanitize_for_json(result)
             execution_data["status"] = "completed"
-            execution_data["completed_at"] = datetime.now(UTC)
+            execution_data["completed_at"] = datetime.now(UTC).isoformat()
+
+            # Extract cost_estimate and telemetry
+            cost_estimate = 0.0
+            models_used: dict[str, int] = {}
+            duration_ms = int((datetime.now(UTC) - start_time_sync).total_seconds() * 1000)
+            
+            if isinstance(result, dict):
+                trace = result.get("execution_trace", [])
+                if isinstance(trace, list):
+                    for event in trace:
+                        if isinstance(event, dict) and event.get("event_type") == "output":
+                            content = event.get("content", {})
+                            if isinstance(content, dict):
+                                meta = content.get("metadata", {})
+                                if isinstance(meta, dict):
+                                    # Extract Model usage
+                                    m = meta.get("model")
+                                    if m:
+                                        models_used[m] = models_used.get(m, 0) + 1
+                                        
+                                    # Extract Cost per step
+                                    tu = meta.get("token_usage", {})
+                                    if isinstance(tu, dict):
+                                        cost_estimate += tu.get("total_cost", 0.0)
+                                    
+            execution_data["cost_estimate"] = cost_estimate
+            execution_data["duration_ms"] = duration_ms
+            execution_data["models_used"] = models_used
+
             await repository.update_execution(execution_id, execution_data)
 
         # Mapping for Response DTO

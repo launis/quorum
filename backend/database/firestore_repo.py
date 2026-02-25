@@ -559,6 +559,49 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             total += data.get("cost_estimate", 0.0)
         return total
 
+    async def get_detailed_usage(self, scope: str, target_id: str | None = None, since: str | None = None) -> dict[str, Any]:
+        """Aggregate detailed usage metrics filtered by role scope."""
+        query = self.db.collection("executions")
+        
+        if since:
+            query = query.where("created_at", ">=", since)
+            
+        if scope == "user" and target_id:
+            query = query.where("user_id", "==", target_id)
+        elif scope == "org" and target_id:
+            query = query.where("organization_id", "==", target_id)
+            
+        docs = await query.stream()
+        
+        total_cost = 0.0
+        total_runs = 0
+        total_time = 0
+        models_used: dict[str, int] = {}
+        workflows_used: dict[str, int] = {}
+        
+        async for doc in docs:
+            data = doc.to_dict()
+            total_runs += 1
+            total_cost += data.get("cost_estimate", 0.0)
+            total_time += data.get("duration_ms", 0)
+            
+            wid = data.get("workflow_id")
+            if wid:
+                workflows_used[wid] = workflows_used.get(wid, 0) + 1
+                
+            mu = data.get("models_used", {})
+            if isinstance(mu, dict):
+                for m, count in mu.items():
+                    models_used[m] = models_used.get(m, 0) + count
+                    
+        return {
+            "total_cost_usd": total_cost,
+            "total_runs": total_runs,
+            "total_processing_time_ms": total_time,
+            "models_used": models_used,
+            "workflows_used": workflows_used
+        }
+
     async def count_executions_by_matrix(self, matrix_id: str) -> int:
         """Count executions using a specific matrix ID."""
         # Query: executions where settings.matrix_id == matrix_id

@@ -302,9 +302,15 @@ async def get_execution_raw(
             except Exception:
                 pass
 
-        results = raw_data["results"]
+        results = raw_data["results"] or {}
+        
+        # In V2026 Architecture, Agent outputs are stored in WorkflowState.context_variables
+        # However, older executions might have them in `results` directly.
+        state_dict = raw_data.get("state") or {}
+        context_vars = state_dict.get("context_variables") or {}
+        
         raw_data["agent_outputs"] = {
-            key: results.get(key)
+            key: context_vars.get(key) or results.get(key)
             for key in [
                 "step_guard",
                 "step_analyst",
@@ -319,7 +325,7 @@ async def get_execution_raw(
                 "step_coach",
                 "step_xai",
             ]
-            if results.get(key)
+            if (context_vars.get(key) or results.get(key))
         }
 
         raw_data["hook_outputs"] = results.get("aux_data", {})

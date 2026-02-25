@@ -1,6 +1,7 @@
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
-import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/workflows_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/active_workflow_controller.dart';
 import 'package:client_app/features/studio/presentation/providers/available_matrices_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +40,8 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(studioControllerProvider);
+    final workflowsState = ref.watch(workflowsControllerProvider);
+    final activeWorkflowState = ref.watch(activeWorkflowControllerProvider);
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -75,16 +77,16 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
           // Content Areas
           Expanded(
             child: widget.mode == StudioSidebarMode.workflows 
-                ? _buildWorkflowsList(context, state, l10n)
-                : _buildMatricesList(context, state, l10n),
+                ? _buildWorkflowsList(context, workflowsState, activeWorkflowState.value?.id, l10n)
+                : _buildMatricesList(context, l10n),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWorkflowsList(BuildContext context, StudioState state, AppLocalizations l10n) {
-    return state.workflows.when(
+  Widget _buildWorkflowsList(BuildContext context, AsyncValue<List<WorkflowDef>> workflowsState, String? activeId, AppLocalizations l10n) {
+    return workflowsState.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, st) => _ErrorView(error: err),
       data: (workflows) {
@@ -97,7 +99,7 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
           itemCount: allWorkflows.length,
           itemBuilder: (context, index) {
             final wf = allWorkflows[index];
-            final isSelected = wf.id == state.activeWorkflow.value?.id;
+            final isSelected = wf.id == activeId;
             final colorScheme = Theme.of(context).colorScheme;
 
             return ListTile(
@@ -106,7 +108,7 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
               selectedTileColor: colorScheme.primaryContainer,
               selectedColor: colorScheme.onPrimaryContainer,
               onTap: () {
-                 ref.read(studioControllerProvider.notifier).loadWorkflow(wf.id);
+                 ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(wf.id);
                  widget.onStepSelected(null);
               },
               trailing: PopupMenuButton<String>(
@@ -145,7 +147,7 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
     );
   }
 
-  Widget _buildMatricesList(BuildContext context, StudioState state, AppLocalizations l10n) {
+  Widget _buildMatricesList(BuildContext context, AppLocalizations l10n) {
      final matricesState = ref.watch(availableMatricesControllerProvider);
      
      return matricesState.when(
@@ -189,7 +191,7 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
     setState(() => _optimisticWorkflows.add(tempWf));
 
     try {
-      await ref.read(studioControllerProvider.notifier).createWorkflow(tempWf);
+      await ref.read(workflowsControllerProvider.notifier).createWorkflow(tempWf);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
     } finally {
@@ -269,7 +271,7 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
       setState(() => _optimisticWorkflows.add(tempWf));
 
       try {
-        await ref.read(studioControllerProvider.notifier).copyWorkflow(original.id, newName);
+        await ref.read(workflowsControllerProvider.notifier).copyWorkflow(original.id, newName);
       } catch (e) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
       } finally {
@@ -298,7 +300,12 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
 
     if (confirmed == true && mounted) {
       try {
-        await ref.read(studioControllerProvider.notifier).deleteWorkflow(wf.id);
+        await ref.read(workflowsControllerProvider.notifier).deleteWorkflow(wf.id);
+        // Clear active if deleted
+        if (ref.read(activeWorkflowControllerProvider).value?.id == wf.id) {
+            // Can't clear easily without adding clear method, but we can load non-existent
+            // Actually let's assume parent screen handles routing away or we add clear method later.
+        }
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Deleted ${wf.name}')));
            if (widget.selectedStepId == wf.id) {

@@ -104,6 +104,45 @@ class ModelRegistryRepository {
     }
   }
 
+  Future<Either<AppError, Map<String, ({String? strategyId, String name})>>> getAgentMappings() async {
+    try {
+      final response = await _client.get<List<dynamic>>('/v1/config/models/mappings');
+      final data = response.data;
+      if (data == null) return const Right({});
+      
+      final map = <String, ({String? strategyId, String name})>{};
+      for (final item in data) {
+        if (item is Map<String, dynamic>) {
+           final agentId = item['agent_id'] as String;
+           final strategyId = item['strategy_id']?.toString();
+           final name = item['name']?.toString() ?? agentId;
+           map[agentId] = (strategyId: strategyId, name: name);
+        }
+      }
+      return Right(map);
+    } catch (e, st) {
+      return Left(_handleError(e, st));
+    }
+  }
+
+  Future<Either<AppError, Map<String, ({String? strategyId, String name})>>> updateAgentMapping(String agentId, String strategyId, {String name = ''}) async {
+    try {
+      await _client.put<Map<String, dynamic>>(
+        '/v1/config/models/mappings',
+        data: {
+          'agent_id': agentId,
+          'strategy_id': strategyId,
+        },
+      );
+      
+      // We rely on optimistic update mostly, so we can just return a localized map segment 
+      // or rely on a full refresh if need be. The backend returns `{agent_id, strategy_id}` for this route.
+      return Right({ agentId: (strategyId: strategyId, name: name) });
+    } catch (e, st) {
+      return Left(_handleError(e, st));
+    }
+  }
+
   AppError _handleError(Object e, StackTrace st) {
       if (e is DioException) {
           if (e.error is AppError) {

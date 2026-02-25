@@ -3,7 +3,9 @@ import 'package:client_app/features/studio/data/studio_repository.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/json_schema.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
-import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/active_workflow_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/available_components_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/available_matrices_controller.dart';
 import 'package:client_app/features/studio/presentation/widgets/dynamic_step_form.dart';
 import 'package:client_app/features/studio/presentation/widgets/strategy_selection_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -37,13 +39,13 @@ class StepConfigPanel extends ConsumerWidget {
 
     // Components Logic
     final title = "Configuration";
-    final availableComponents = ref.watch(studioControllerProvider).components.value ?? [];
+    final availableComponents = ref.watch(availableComponentsControllerProvider).value ?? [];
     final linkedComponents = (step!.config['_linked_components'] as List?)?.cast<String>() ?? [];
 
     void updateConfig(String key, dynamic value) {
         final newConfig = Map<String, dynamic>.from(step!.config);
         newConfig[key] = value;
-        ref.read(studioControllerProvider.notifier).updateStep(step!.id, newConfig);
+        ref.read(activeWorkflowControllerProvider.notifier).updateStep(step!.id, newConfig);
     }
 
     return Card(
@@ -103,7 +105,7 @@ class StepConfigPanel extends ConsumerWidget {
                        _MatrixSelectionField(
                          currentMatrixId: step!.config['matrix_id'],
                          onChanged: (val) => updateConfig('matrix_id', val),
-                         availableMatrices: ref.watch(studioControllerProvider).availableMatrices.value ?? [],
+                         availableMatrices: ref.watch(availableMatricesControllerProvider).value ?? [],
                        ),
                        const SizedBox(height: 24),
                     ],
@@ -157,7 +159,7 @@ class StepConfigPanel extends ConsumerWidget {
   void _updateConfigWithRef(WidgetRef ref, String key, dynamic value) {
      final newConfig = Map<String, dynamic>.from(step!.config);
      newConfig[key] = value;
-     ref.read(studioControllerProvider.notifier).updateStep(step!.id, newConfig);
+     ref.read(activeWorkflowControllerProvider.notifier).updateStep(step!.id, newConfig);
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
@@ -310,7 +312,7 @@ class _OutputAndScoringSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Access global workflow logic via controller
-    final workflowDef = ref.watch(studioControllerProvider).activeWorkflow.value;
+    final workflowDef = ref.watch(activeWorkflowControllerProvider).value;
     if (workflowDef == null) return const SizedBox.shrink();
 
     return Column(
@@ -370,7 +372,7 @@ class _OutputAndScoringSection extends ConsumerWidget {
     final newLogic = ScoringLogic(label: "New Bar");
     final newWf = workflow.copyWith(scoringLogic: [...workflow.scoringLogic, newLogic]);
     await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
-    ref.read(studioControllerProvider.notifier).loadWorkflow(workflow.id);
+    ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflow.id);
   }
 
   Future<void> _updateLogic(WidgetRef ref, WorkflowDef workflow, int index, ScoringLogic updatedLogic) async {
@@ -378,7 +380,7 @@ class _OutputAndScoringSection extends ConsumerWidget {
     newLogics[index] = updatedLogic;
     final newWf = workflow.copyWith(scoringLogic: newLogics);
     await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
-    ref.read(studioControllerProvider.notifier).loadWorkflow(workflow.id);
+    ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflow.id);
   }
 
   Future<void> _removeLogic(WidgetRef ref, WorkflowDef workflow, int index) async {
@@ -386,7 +388,7 @@ class _OutputAndScoringSection extends ConsumerWidget {
     newLogics.removeAt(index);
     final newWf = workflow.copyWith(scoringLogic: newLogics);
     await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
-    ref.read(studioControllerProvider.notifier).loadWorkflow(workflow.id);
+    ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflow.id);
   }
 }
 
