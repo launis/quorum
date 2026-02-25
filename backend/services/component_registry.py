@@ -112,8 +112,13 @@ class ComponentRegistry:
                 content = comp["content"]
                 if isinstance(content, str):
                     resolved_map[pid] = content
+                    if "slug" in comp and comp["slug"]:
+                        resolved_map[comp["slug"]] = content
                 elif isinstance(content, list):
-                    resolved_map[pid] = "\n".join(str(x) for x in content)
+                    content_str = "\n".join(str(x) for x in content)
+                    resolved_map[pid] = content_str
+                    if "slug" in comp and comp["slug"]:
+                        resolved_map[comp["slug"]] = content_str
             else:
                 logger.warning(f"[ComponentRegistry] Component '{pid}' has no 'content' field.")
                 resolved_map[pid] = ""

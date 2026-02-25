@@ -135,33 +135,25 @@ class PanelAgent(BaseAgent[PanelInput, PanelOutput]):
                 pattern_list = "\n".join([f'- "{get_phrase(p)}" ({get_category(p)})' for p in patterns])
                 linguistics_section = f"\nKIELIOPILLINEN ANALYYSI (PERFORMATIIVISUUS):\nHavaittu seuraavat performatiiviset ilmaisut:\n{pattern_list}\n---"
 
-        # Template
-        template_str = execution_context.get("50ecc617-a1f9-4a3d-b691-fef610425d21") if execution_context else None
-        if not template_str:
-            # Search in llm_prompts
-            config_prompts = execution_context.get("llm_prompts", []) if execution_context else []
-            if isinstance(config_prompts, list):
-                for p in config_prompts:
-                    if p == "50ecc617-a1f9-4a3d-b691-fef610425d21":
-                        template_str = execution_context.get(p) if execution_context else None
-                        break
-
-        if not template_str:
-            raise AgentExecutionError(
-                detail=ErrorCodes.AGENT_NOT_CONFIGURED,
-                original_error=ValueError("PANEL_PROMPT_TEMPLATE (50ecc617-a1f9-4a3d-b691-fef610425d21) not found."),
-                agent_name="PanelAgent",
-            )
-
-        # Task Instructions
+        # Template (Dynamic Slug Resolution via ComponentRegistry)
+        template_str = execution_context.get("PANEL_PROMPT_TEMPLATE") if execution_context else None
+        
         task_prompts = []
         config_prompts = execution_context.get("llm_prompts", []) if execution_context else []
         if isinstance(config_prompts, list):
             for p in config_prompts:
-                if p != "50ecc617-a1f9-4a3d-b691-fef610425d21":
-                    content = execution_context.get(p) if execution_context else None
-                    if content:
-                        task_prompts.append(content)
+                content = execution_context.get(p) if execution_context else None
+                # Skip the template itself if we encounter its UUID or slug
+                if content and isinstance(content, str) and content != template_str:
+                    task_prompts.append(content)
+
+        if not template_str:
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_NOT_CONFIGURED,
+                original_error=ValueError("PANEL_PROMPT_TEMPLATE slug not injected into execution context. Ensure the core component exists and is referenced."),
+                agent_name="PanelAgent",
+            )
+
         task_section = "\n\n".join(task_prompts)
 
 

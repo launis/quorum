@@ -342,6 +342,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [ ] **Database Identifier Migration**: Update all existing database rows to use strict `backend/utils/identifiers.py` compliance (Fail Fast validation).
 - [ ] **Panel Agent Component Architecture**: Refactor `search_section` and `context_section` to be injected components (Data-Driven) instead of hardcoded f-strings in `panel.py`.
 - [ ] **RetrievalAgent Limits**: Implement stricter limits (top-k=5) or Vector Search (V3) to prevent context overflow from broad queries (e.g. "tekoäly").
+- [ ] **Eliminate Magic Strings (Data-Driven Configuration)**: Refactor `seed_data.json` step configs to define explicit roles (e.g., `core_template`, `dynamic_tasks`) mapping to prompt slugs rather than blindly injecting an array. This enables true strict Pydantic Dependency Injection into Agents, eliminating the need to hardcode `execution_context.get("PANEL_PROMPT_TEMPLATE")` inside Python files.
 
 ---
 

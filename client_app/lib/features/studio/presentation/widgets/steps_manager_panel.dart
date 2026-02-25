@@ -5,6 +5,7 @@ import 'package:client_app/features/studio/domain/models/step_config.dart';
 import 'package:client_app/features/studio/presentation/providers/steps_controller.dart';
 import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
 import 'package:client_app/features/studio/presentation/providers/available_matrices_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/available_components_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -43,11 +44,7 @@ final l10n = AppLocalizations.of(context)!;
     // Force refresh filtering when text changes
     useListenable(searchController);
 
-    // Ensure components are loaded for Step editing
-    useEffect(() {
-      Future.microtask(() => ref.read(studioControllerProvider.notifier).loadComponents());
-      return null;
-    }, []);
+    // Removed monolithic controller preload: Riverpod 3.0 handles this natively on watch.
 
     // 2. Loading / Error States
     if (stepsState.isLoading && !stepsState.hasValue) {
@@ -215,7 +212,7 @@ class _StepEditor extends HookConsumerWidget {
     final selectedAgent = useState<String>('AnalystAgent');
 
     // Fetch Data for Selectors
-    final studioState = ref.watch(studioControllerProvider);
+    final availableComponentsState = ref.watch(availableComponentsControllerProvider);
     final matricesState = ref.watch(availableMatricesControllerProvider);
     
     // Derived: Step Prompts
@@ -509,8 +506,8 @@ class _StepEditor extends HookConsumerWidget {
                     icon: const Icon(Icons.add),
                     label: Text(l10n.stepAddPrompt),
                     onPressed: () {
-                         if (studioState.components.hasValue) {
-                             showAddPromptDialog(studioState.components.value ?? []);
+                         if (availableComponentsState.hasValue) {
+                             showAddPromptDialog(availableComponentsState.value ?? []);
                          }
                     },
                 ),
@@ -519,7 +516,7 @@ class _StepEditor extends HookConsumerWidget {
             const SizedBox(height: 8),
 
             // Prompt Chips
-            studioState.components.when(
+            availableComponentsState.when(
               loading: () => const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Center(child: CircularProgressIndicator())),
               error: (err, stack) => Text('Error loading components', style: TextStyle(color: Theme.of(context).colorScheme.error)),
               data: (components) => Wrap(
