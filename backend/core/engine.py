@@ -378,7 +378,12 @@ class GraphEngine:
                     step_usage = result_dict.pop("token_usage", {})
 
                 if not isinstance(step_usage, dict):
-                    step_usage = {}
+                    if hasattr(step_usage, "model_dump"):
+                        step_usage = step_usage.model_dump()
+                    elif hasattr(step_usage, "dict"):
+                        step_usage = step_usage.dict()
+                    else:
+                        step_usage = {}
 
                 if reasoning_trace:
                     reasoning_trace = reasoning_trace.model_copy(update={"token_usage": step_usage})

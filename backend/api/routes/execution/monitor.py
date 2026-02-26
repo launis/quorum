@@ -152,7 +152,20 @@ async def monitor_execution(
             try:
                 # Poll more frequently for smoother UI updates (1s is fine for local)
                 for _i in range(120):  # Increased to 2 min timeout
-                    exec_data = await repository.get_execution(execution_id)
+                    try:
+                        exec_data = await repository.get_execution(execution_id)
+                    except Exception as e:
+                        # TinyDB Local Storage Workaround (Concurrent Read/Write Corruption)
+                        # JSONDecodeError usually drops here as 'Extra data' when Arq worker writes
+                        if "Extra data" in str(e) or "Expecting value" in str(e):
+                            logger.warning(f"[Monitor] Transient JSON read error in local DB, retrying... ({e})")
+                            await asyncio.sleep(0.5)
+                            continue
+                        else:
+                            logger.error(f"[Monitor] Execution fetch failed: {e}")
+                            yield {"event": "error", "data": "Database error while watching execution."}
+                            break
+
                     if not exec_data:
                         yield {"event": "error", "data": "Execution not found"}
                         break

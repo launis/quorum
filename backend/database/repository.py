@@ -768,6 +768,46 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         data["id"] = doc_id
         await self.driver.upsert("usage", data, doc_id)
 
+    async def get_usage_aggregate(self, scope: str, entity_id: str | None, period: str) -> dict[str, Any] | None:
+        agg_id = f"{scope}_{entity_id or 'system'}_{period}"
+        return await self.driver.get("usage_aggregates", agg_id)
+
+    async def upsert_usage_aggregate(self, scope: str, entity_id: str | None, period: str, update_data: dict[str, Any]) -> None:
+        agg_id = f"{scope}_{entity_id or 'system'}_{period}"
+        update_data["id"] = agg_id
+        update_data["scope"] = scope
+        if entity_id:
+            update_data["entity_id"] = entity_id
+        update_data["period"] = period
+        
+        existing = await self.get_usage_aggregate(scope, entity_id, period)
+        if existing:
+            import copy
+            merged = copy.deepcopy(existing)
+            merged["total_executions"] = existing.get("total_executions", 0) + update_data.get("total_executions", 0)
+            
+            ex_usage = existing.get("usage", {})
+            up_usage = update_data.get("usage", {})
+            merged["usage"] = {
+                "prompt_tokens": ex_usage.get("prompt_tokens", 0) + up_usage.get("prompt_tokens", 0),
+                "completion_tokens": ex_usage.get("completion_tokens", 0) + up_usage.get("completion_tokens", 0),
+                "total_tokens": ex_usage.get("total_tokens", 0) + up_usage.get("total_tokens", 0),
+                "cached_tokens": ex_usage.get("cached_tokens", 0) + up_usage.get("cached_tokens", 0),
+                "reasoning_tokens": ex_usage.get("reasoning_tokens", 0) + up_usage.get("reasoning_tokens", 0),
+                "cost_usd": ex_usage.get("cost_usd", 0.0) + up_usage.get("cost_usd", 0.0)
+            }
+            await self.driver.upsert("usage_aggregates", merged, agg_id)
+        else:
+            if "usage" not in update_data:
+                update_data["usage"] = {}
+            for k in ["prompt_tokens", "completion_tokens", "total_tokens", "cached_tokens", "reasoning_tokens"]:
+                if k not in update_data["usage"]:
+                    update_data["usage"][k] = update_data.get(k, 0)
+            if "cost_usd" not in update_data["usage"]:
+                update_data["usage"]["cost_usd"] = update_data.get("cost_usd", 0.0)
+                
+            await self.driver.upsert("usage_aggregates", update_data, agg_id)
+
     async def get_usage_records(
         self, scope: str, entity_id: str | None = None, since: str | None = None
     ) -> list[dict[str, Any]]:
@@ -829,7 +869,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
         filters = [Filter("organization_id", "==", org_id)]
         if since:
-            filters.append(Filter("created_at", ">=", since))
+            filters.append(Filter("completed_at", ">=", since))
 
         # Fetch all matched executions
         execs = await self.driver.query("executions", filters)
@@ -838,7 +878,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def get_detailed_usage(self, scope: str, target_id: str | None = None, since: str | None = None) -> dict[str, Any]:
         filters = []
         if since:
-            filters.append(Filter("created_at", ">=", since))
+            filters.append(Filter("completed_at", ">=", since))
             
         if scope == "user" and target_id:
             filters.append(Filter("user_id", "==", target_id))
@@ -871,10 +911,56 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 for m, count in mu.items():
                     models_used[m] = models_used.get(m, 0) + count
                     
+        # Map workflow IDs to human-readable names
+        if workflows_used:
+            try:
+                # get_all_workflows is an abstract method implemented by driver wrappers
+                all_workflows = await self.get_all_workflows(organization_id=target_id if scope == "org" else None)
+                wf_names = {w["id"]: w.get("name", w["id"]) for w in all_workflows}
+                
+                named_workflows_used = {}
+                for wid, count in workflows_used.items():
+                    name = wf_names.get(wid, wid)
+                    named_workflows_used[name] = named_workflows_used.get(name, 0) + count
+                workflows_used = named_workflows_used
+            except Exception as ex:
+                logger.warning(f"Could not map workflow names: {ex}")
+
+        # Gather token analytics from UsageAggregates
+        prompt_tokens = 0
+        completion_tokens = 0
+        total_tokens = 0
+        cached_tokens = 0
+        reasoning_tokens = 0
+        
+        # Determine period for aggregate lookup
+        period = "all-time"
+        if since:
+            try:
+                dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
+                period = dt.strftime("%Y-%m")
+            except Exception:
+                pass
+
+        mapped_scope = "organization" if scope == "org" else scope
+        agg = await self.get_usage_aggregate(mapped_scope, target_id, period)
+        if agg:
+            usage_data = agg.get("usage", {})
+            prompt_tokens = usage_data.get("prompt_tokens", 0)
+            completion_tokens = usage_data.get("completion_tokens", 0)
+            total_tokens = usage_data.get("total_tokens", 0)
+            cached_tokens = usage_data.get("cached_tokens", 0)
+            reasoning_tokens = usage_data.get("reasoning_tokens", 0)
+
         return {
             "total_cost_usd": total_cost,
             "total_runs": total_runs,
             "total_processing_time_ms": total_time,
             "models_used": models_used,
-            "workflows_used": workflows_used
+            "workflows_used": workflows_used,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+            "cached_tokens": cached_tokens,
+            "reasoning_tokens": reasoning_tokens
         }

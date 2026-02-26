@@ -7,7 +7,7 @@ import re
 
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain.inputs import WorkflowInputs
-from backend.models.domain.profiler import BehavioralMetrics, TextMetrics
+from backend.models.domain.profiler import BehavioralMetrics, ProfilerMetrics, TextMetrics
 from backend.models.state import WorkflowState
 from backend.settings import get_settings
 
@@ -256,23 +256,28 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
 
         # Update control ratio in the model (create new instance since frozen)
         metrics_model = metrics_model.model_copy(update={"control_ratio": control_res})
-        final_metrics = metrics_model.model_dump()
 
         # 3. Behavioral Metrics
         behavioral_model = calculate_behavioral_metrics(history, reflection)
-        final_metrics.update(behavioral_model.model_dump())
+
+        # 4. Construct Structured Model
+        combined_dict = {
+            **metrics_model.model_dump(),
+            **behavioral_model.model_dump()
+        }
+        profiler_metrics = ProfilerMetrics(**combined_dict)
 
         # IMMUTABILITY FIX: Update context_variables via model_copy
         new_context = state.context_variables.copy()
 
-        # We store the merged dict for backwards compatibility with UI
-        new_context["audit_metrics"] = final_metrics
-        new_context["profiler_metrics"] = final_metrics
+        # We store the Pydantic model directly
+        new_context["audit_metrics"] = profiler_metrics
+        new_context["profiler_metrics"] = profiler_metrics
 
         # Unified: Set standalone control ratio to deprecate separate hook requirement
         new_context["input_control_ratio"] = control_res
 
-        logger.info(f"[MetricsHook] Final Merged Metrics: {final_metrics}")
+        logger.info(f"[MetricsHook] Final Merged Metrics: {profiler_metrics.model_dump()}")
 
         return state.model_copy(update={"context_variables": new_context})
 

@@ -85,7 +85,7 @@ def main():
             print(f"[ERROR] Failed to seed {t}: {e}")
             sys.exit(1)
 
-    print("\n✅ All requested targets completed successfully.")
+    print("\n[SUCCESS] All requested targets completed successfully.")
 
 
 if __name__ == "__main__":

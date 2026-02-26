@@ -129,7 +129,7 @@ class UsageStatsCard extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Used: \$${stats.usedCost.toStringAsFixed(4)}',
+                        'Used: \$${stats.usedCost.toStringAsFixed(6)}',
                         style: theme.textTheme.bodySmall,
                       ),
                       Text(
@@ -155,6 +155,32 @@ class UsageStatsCard extends ConsumerWidget {
                           title: 'Processing Time',
                           value: '${(stats.totalProcessingTimeMs / 1000).toStringAsFixed(1)}s',
                           icon: Icons.timer,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MetricTile(
+                          title: 'Total Tokens',
+                          value: '${stats.totalTokens}',
+                          icon: Icons.data_usage,
+                        ),
+                      ),
+                      Expanded(
+                        child: _MetricTile(
+                          title: 'Reasoning',
+                          value: '${stats.reasoningTokens}',
+                          icon: Icons.psychology,
+                        ),
+                      ),
+                      Expanded(
+                        child: _MetricTile(
+                          title: 'Cached',
+                          value: '${stats.cachedTokens}',
+                          icon: Icons.memory,
                         ),
                       ),
                     ],

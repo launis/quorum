@@ -63,7 +63,7 @@ final class UsageStatsProvider
   }
 }
 
-String _$usageStatsHash() => r'7fc10412682a35f46c15aee0c6ca8d4730b543cc';
+String _$usageStatsHash() => r'04a35643a2d49447458b4d5e70fe764b9528f3c1';
 
 final class UsageStatsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<UsageStats>, String> {

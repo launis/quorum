@@ -374,7 +374,12 @@ async def get_detailed_organization_usage(
             total_runs=detailed_data["total_runs"],
             total_processing_time_ms=detailed_data["total_processing_time_ms"],
             models_used=detailed_data["models_used"],
-            workflows_used=detailed_data["workflows_used"]
+            workflows_used=detailed_data["workflows_used"],
+            prompt_tokens=detailed_data.get("prompt_tokens", 0),
+            completion_tokens=detailed_data.get("completion_tokens", 0),
+            total_tokens=detailed_data.get("total_tokens", 0),
+            cached_tokens=detailed_data.get("cached_tokens", 0),
+            reasoning_tokens=detailed_data.get("reasoning_tokens", 0)
         )
 
     except Exception as e:

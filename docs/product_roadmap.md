@@ -102,7 +102,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Directory Structure Refactor**:
     - `backend/api/routes/execution/`: (`lifecycle.py`, `monitor.py`, `artifacts.py`, `views.py`)
     - `backend/api/routes/config/`: (`components.py`, `workflows.py`, `ontology.py`)
-- [ ] **Service Layer Extraction**:
+- [x] **Service Layer Extraction**:
     - Move heavy logic (e.g., `validate_flow`) to `ValidationService`.
 - [ ] **Schema Registry API**:
     - Implement `GET /api/v1/meta/schema/{model_type}` for Frontend usage.
@@ -136,7 +136,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Authentication State**: `auth_provider` driving Reactive Redirection.
 - [x] **Environment Config**: `flutter_dotenv` for environment management.
 - [x] **Seeding Consolidation**: Unified `backend/seed/run_seed.py`.
-- [ ] **Critical Auth Fix**: Remove temporary auth bypass in `workflow_controller.dart`. (**PENDING**)
+- [x] **Critical Auth Fix**: Remove temporary auth bypass in `workflow_controller.dart`.
 
 ### 2.3 Dashboard & Monitoring
 - [x] **Dashboard UI**: Grid view of System Workflows.
@@ -146,7 +146,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 2.4 Workflow Data Layer (Foundation)
 - [x] **Models**: Dart models match Pydantic schemas.
 - [x] **Repository**: unified `ExecutionRepository`.
-- [ ] **Data Migration**: Establish `StorageDriver` pattern for standardized file system abstractions (Local/Cloud parity).
+- [x] **Data Migration**: Establish `StorageDriver` pattern for standardized file system abstractions (Local/Cloud parity).
 
 ### 2.5 Workflow State Management (Controller)
 - [x] **Controller**: `executionControllerProvider` manages state and polling.
@@ -268,7 +268,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] Tested in `WorkflowStudioScreen`.
 
 ### Step 5: Prefixed UUID Normalization (Current Focus)
-- [~] Refactor `generate_unique_id` to enforce mandatory system prefixes (e.g., `wf-`, `matrix-`).
+- [x] Refactor `generate_unique_id` to enforce mandatory system prefixes (e.g., `wf-`, `matrix-`).
 - [~] Introduce `NewType` strictly typed IDs (`WorkflowID`, `ExecutionID`) to all Pydantic schemas, permanently replacing loose `str` matching.
 - [ ] Migrate the `seed_data.json` database constraints to use the new typed IDs exclusively.
 
@@ -338,10 +338,12 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [ ] **Banned Phrases Seed Restoration**: Re-merge `banned_phrases` into `seed_data.json`.
 - [ ] **Dynamic Hook Orchestration**: Refactor architecture to allow runtime selection of Hook Implementations via UI (e.g., swapping `SearchHook` vs `VertexSearchHook`).
 - [ ] **Rate Limiting**: Implement `slowapi` on key endpoints.
-- [ ] **Data Migration**: Establish `StorageDriver` pattern for standardized file system abstractions (Local/Cloud parity).
+- [x] **Data Migration**: Establish `StorageDriver` pattern for standardized file system abstractions (Local/Cloud parity).
 - [ ] **Database Identifier Migration**: Update all existing database rows to use strict `backend/utils/identifiers.py` compliance (Fail Fast validation).
 - [ ] **Panel Agent Component Architecture**: Refactor `search_section` and `context_section` to be injected components (Data-Driven) instead of hardcoded f-strings in `panel.py`.
 - [ ] **RetrievalAgent Limits**: Implement stricter limits (top-k=5) or Vector Search (V3) to prevent context overflow from broad queries (e.g. "tekoäly").
+- [ ] **Internal Knowledge Base Vectorization**: Upgrade `knowledge_base_service.py` (`retrieve_context`) from in-memory string matching MVP to Vector Semantic Search (Embeddings) for internal document retrieval (e.g. Brand Books).
+- [ ] **Reference Hook Engine Integration**: Modernize `backend/hooks/references.py` to seamlessly integrate with `GraphEngine` dynamic retrieval loops instead of evaluating plain strings, ensuring robust Domain Compliance validation.
 - [ ] **Eliminate Magic Strings (Data-Driven Configuration)**: Refactor `seed_data.json` step configs to define explicit roles (e.g., `core_template`, `dynamic_tasks`) mapping to prompt slugs rather than blindly injecting an array. This enables true strict Pydantic Dependency Injection into Agents, eliminating the need to hardcode `execution_context.get("PANEL_PROMPT_TEMPLATE")` inside Python files.
 
 ---

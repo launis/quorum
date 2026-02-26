@@ -17,6 +17,12 @@ class UsageStats {
   final int totalProcessingTimeMs;
   final Map<String, int> modelsUsed;
   final Map<String, int> workflowsUsed;
+  
+  final int promptTokens;
+  final int completionTokens;
+  final int totalTokens;
+  final int cachedTokens;
+  final int reasoningTokens;
 
   const UsageStats({
     required this.usedCost,
@@ -29,6 +35,11 @@ class UsageStats {
     this.totalProcessingTimeMs = 0,
     this.modelsUsed = const {},
     this.workflowsUsed = const {},
+    this.promptTokens = 0,
+    this.completionTokens = 0,
+    this.totalTokens = 0,
+    this.cachedTokens = 0,
+    this.reasoningTokens = 0,
   });
 }
 
@@ -66,6 +77,11 @@ Future<UsageStats> usageStats(Ref ref, {String scope = "org"}) async {
       totalProcessingTimeMs: (data['total_processing_time_ms'] as num?)?.toInt() ?? 0,
       modelsUsed: (data['models_used'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, (v as num).toInt())) ?? {},
       workflowsUsed: (data['workflows_used'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, (v as num).toInt())) ?? {},
+      promptTokens: (data['prompt_tokens'] as num?)?.toInt() ?? 0,
+      completionTokens: (data['completion_tokens'] as num?)?.toInt() ?? 0,
+      totalTokens: (data['total_tokens'] as num?)?.toInt() ?? 0,
+      cachedTokens: (data['cached_tokens'] as num?)?.toInt() ?? 0,
+      reasoningTokens: (data['reasoning_tokens'] as num?)?.toInt() ?? 0,
     ),
   );
 }

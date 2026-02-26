@@ -99,6 +99,8 @@ class VertexAISearchTool:
             raise ConfigurationError(msg, details={"error_code": error_code})
 
         self.location = location or os.getenv("VERTEX_LOCATION", "europe-north1")
+        # Critical Fix: Respect the model_id passed dynamically from DB search hook
+        # before falling back to the hardcoded env variable (vertex_search_model)
         self.model_id = model_id or settings.vertex_search_model
 
         # Initialize Vertex AI SDK
@@ -153,76 +155,101 @@ class VertexAISearchTool:
         for i, query in enumerate(queries[:limit]):
             logger.debug(f"[VertexAISearchTool] Processing query {i + 1}: {query}")
 
-            try:
-                # Construct Prompt
-                prompt_text = f"Search for the following topic and provide key findings with sources: '{query}'"
-                if language == "fi":
-                    prompt_text = f"Etsi tietoa seuraavasta aiheesta ja listaa lähteet: '{query}'"
+            import asyncio
+            import time
 
-                response = model.generate_content(
-                    prompt_text,
-                    tools=self._tools,
-                    generation_config=GenerationConfig(
-                        temperature=0.0  # Deterministic
-                    ),
-                )
+            max_retries = 3
+            base_delay = 2.0
 
-                # Extract Grounding Metadata
-                if not response.candidates:
-                    logger.warning(f"[VertexAISearchTool] No candidates returned for query: {query}")
-                    continue
+            for attempt in range(max_retries):
+                try:
+                    # Construct Prompt
+                    prompt_text = f"Search for the following topic and provide key findings with sources: '{query}'"
+                    if language == "fi":
+                        prompt_text = f"Etsi tietoa seuraavasta aiheesta ja listaa lähteet: '{query}'"
 
-                candidate = response.candidates[0]
+                    response = model.generate_content(
+                        prompt_text,
+                        tools=self._tools,
+                        generation_config=GenerationConfig(
+                            temperature=0.0  # Deterministic
+                        ),
+                    )
 
-                # Check for blocking (Safety)
-                if candidate.finish_reason != 0 and candidate.finish_reason != 1:  # STOP or MAX_TOKENS
-                    logger.warning(f"[VertexAISearchTool] Query blocked. Finish Reason: {candidate.finish_reason}")
-                    continue
+                    # Extract Grounding Metadata
+                    if not response.candidates:
+                        logger.warning(f"[VertexAISearchTool] No candidates returned for query: {query}")
+                        break
 
-                if not candidate.grounding_metadata:
-                    logger.warning(f"[VertexAISearchTool] No grounding metadata for query: {query}")
-                    continue
+                    candidate = response.candidates[0]
 
-                metadata = candidate.grounding_metadata
+                    # Check for blocking (Safety)
+                    if candidate.finish_reason != 0 and candidate.finish_reason != 1:  # STOP or MAX_TOKENS
+                        logger.warning(f"[VertexAISearchTool] Query blocked. Finish Reason: {candidate.finish_reason}")
+                        break
 
-                # Extract Chunks (Web Sources)
-                if metadata.grounding_chunks:
-                    for chunk in metadata.grounding_chunks:
-                        if chunk.web:
-                            # Normalize
-                            title = chunk.web.title or "Untitled Source"
-                            uri = chunk.web.uri
+                    if not candidate.grounding_metadata:
+                        logger.warning(f"[VertexAISearchTool] No grounding metadata for query: {query}")
+                        break
 
-                            if not uri:
-                                continue
+                    metadata = candidate.grounding_metadata
 
-                            item = SearchResultItem(
-                                title=title,
-                                link=uri,
-                                snippet=f"Source via Vertex AI: {query}...",  # Placeholder as snippets are complex in Grounding
-                                query=query,
-                            )
-                            all_results.append(item)
+                    # Extract Chunks (Web Sources)
+                    if metadata.grounding_chunks:
+                        for chunk in metadata.grounding_chunks:
+                            if getattr(chunk, "web", None):
+                                # Normalize
+                                title = chunk.web.title or "Untitled Source"
+                                uri = getattr(chunk.web, "uri", None)
+                                
+                                # Google Search UI sometimes returns directly in url
+                                if not uri and hasattr(chunk.web, "url"):
+                                    uri = chunk.web.url
 
-            except Exception as e:
-                # Map known errors
-                error_msg = str(e)
-                if "429" in error_msg or "Quota exceeded" in error_msg:
-                    error_code = ErrorCodes.SEARCH_QUOTA_EXCEEDED
-                    raise ServiceUnavailableError(
-                        message="Vertex AI Quota Exceeded",
-                        details={"error_code": error_code, "original_error": error_msg},
+                                if not uri:
+                                    continue
+
+                                item = SearchResultItem(
+                                    title=title,
+                                    link=uri,
+                                    snippet=f"Source via Vertex AI: {query}...",  # Placeholder
+                                    query=query,
+                                )
+                                all_results.append(item)
+                    
+                    # Success
+                    break
+
+                except Exception as e:
+                    error_msg = str(e)
+                    is_quota_error = "429" in error_msg or "Quota exceeded" in error_msg or "RESOURCE_EXHAUSTED" in error_msg
+                    
+                    if is_quota_error and attempt < max_retries - 1:
+                        # Exponential backoff: 2s, 4s, 8s
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(
+                            f"[VertexAISearchTool] Vertex AI Quota Exceeded (429). Retrying query '{query}' in {delay}s (Attempt {attempt + 1}/{max_retries})."
+                        )
+                        time.sleep(delay)  # We are in sync context, but inside async runner it might block. Time.sleep is safe enough for hook wrap.
+                        continue
+                        
+                    # If out of retries or other error
+                    if is_quota_error:
+                        error_code = ErrorCodes.SEARCH_QUOTA_EXCEEDED
+                        raise ServiceUnavailableError(
+                            message="Vertex AI Quota Exceeded after retries",
+                            details={"error_code": error_code, "original_error": error_msg},
+                        ) from e
+
+                    error_code = ErrorCodes.SEARCH_EXECUTION_FAILED
+                    logger.error(f"[VertexAISearchTool] {error_code}: Grounding failed for '{query}': {e}", exc_info=True)
+
+                    # Fail Fast: Raise exception immediately on critical failure
+                    raise AppException(
+                        message=f"Vertex AI Grounding failed: {e}",
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        details={"error_code": error_code, "query": query},
                     ) from e
-
-                error_code = ErrorCodes.SEARCH_EXECUTION_FAILED
-                logger.error(f"[VertexAISearchTool] {error_code}: Grounding failed for '{query}': {e}", exc_info=True)
-
-                # Fail Fast: Raise exception immediately on critical failure
-                raise AppException(
-                    message=f"Vertex AI Grounding failed: {e}",
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    details={"error_code": error_code, "query": query},
-                ) from e
 
         # Deduplication Strategy
         unique_results = []

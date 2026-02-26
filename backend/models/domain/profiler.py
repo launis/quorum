@@ -16,7 +16,7 @@ class ProfilerInput(BaseModel):
 
     history_text: str = Field(..., description="Chat history to profile.")
     product_text: str | None = Field(None, description="Product context (optional).")
-    profiler_metrics: dict[str, Any] | None = Field(None, description="Injected text metrics.")
+    profiler_metrics: ProfilerMetrics | None = Field(None, description="Injected text metrics.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
     model_config = ConfigDict(frozen=True, extra="ignore")
@@ -78,6 +78,10 @@ class BehavioralMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, strict=False)
 
 
+class ProfilerMetrics(TextMetrics, BehavioralMetrics):
+    """Combined quantitative and behavioral metrics for the Profiler."""
+    model_config = ConfigDict(frozen=True, strict=False)
+
 class ProfilerDTO(ReasoningTraceDTO):
     """Profiler DTO (Content Only)."""
 
@@ -96,9 +100,9 @@ class ProfilerDTO(ReasoningTraceDTO):
         description="Emotional tone analysis.",
         json_schema_extra={"x-ui-label": "Emotional Tone"},
     )
-    metrics: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Quantitative text metrics.",
+    metrics: ProfilerMetrics | None = Field(
+        default=None,
+        description="Quantitative and behavioral text metrics.",
         json_schema_extra={"x-ui-label": "Metrics"},
     )
     model_config = ConfigDict(frozen=True, strict=False)

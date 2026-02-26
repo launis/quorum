@@ -8,14 +8,14 @@ from datetime import UTC
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-import backend.dependencies
-from backend.main import app
-
 # 1. FORCE ENV VARS BEFORE IMPORTS
 os.environ["USE_MOCK_LLM"] = "true"
 os.environ["USE_MOCK_DB"] = "true"  # Ensure we default to safe mock DB
 os.environ["STORAGE_BACKEND"] = "LOCAL"
 os.environ["TESTING"] = "true"
+
+import backend.dependencies
+from backend.main import app
 
 # 2. PATCH ARQ TO PREVENT FAKEREDIS CRASH
 try:

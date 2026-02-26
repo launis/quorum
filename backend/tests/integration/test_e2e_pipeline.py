@@ -28,12 +28,30 @@ async def test_full_pipeline_ingestion_to_bff():
     2. Wait for execution to complete (mocking the LLM paths).
     3. Fetches the execution output through the BFF layer /executions/{id}/view.
     """
-    transport = ASGITransport(app=app)
-    
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
     app.dependency_overrides[get_arq_pool] = lambda: None
     
-    # Extract the repository safely from the normal dependency chain
+    # 0. ISOLATE DATABASE (Prevent overwriting data/db.json)
+    import tempfile
+    import os
+    import backend.dependencies as deps
+    from backend.database.wrapper import TinyDBClient
+    from backend.dependencies import get_db_client_dep, get_async_repository
+    
+    fd, temp_db_path = tempfile.mkstemp(suffix=".json")
+    os.close(fd)
+    test_db = TinyDBClient(temp_db_path)
+    
+    # CRITICAL: Reset the Singleton instances to ensure the test uses the temporary DB
+    # instead of the live DB that may have already been loaded into memory.
+    deps._db_client_instance = test_db
+    deps._repository_instance = None
+    deps._registry_instance = None
+    deps._engine_instance = None
+    
+    app.dependency_overrides[get_db_client_dep] = lambda: test_db
+    
+    # Extract the repository safely mapped to the test_db
     repository = await get_async_repository()
     
     # 1. Setup a dummy workflow in the database so the engine has something to run
@@ -102,57 +120,62 @@ async def test_full_pipeline_ingestion_to_bff():
                 ]
             },
             reasoning_token="none",
-            token_usage={"total_tokens": 10}
+            token_usage={"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10, "cost_usd": 0.05},
+            system_fingerprint="mock_fp_123"
         )
         
+        transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-                # 3. Simulate file ingestion via Multipart Post
-                # In standard API, we send json_payload and file(s)
-                import json
-                meta_json = json.dumps({
-                    "workflowId": wf_id,
-                    "organizationId": "test_org",
-                    "settings": {
-                        # Add any extra inputs the UI might send
-                        "target_audience": "stakeholders"
-                    }
-                })
-
-                files = [
-                    ("file_1", ("document.txt", b"Mock plain text content.", "text/plain")),
-                ]
-                data = {
-                    "json_payload": meta_json
+            # 3. Simulate file ingestion via Multipart Post
+            # In standard API, we send json_payload and file(s)
+            import json
+            meta_json = json.dumps({
+                "workflowId": wf_id,
+                "organizationId": "test_org",
+                "settings": {
+                    # Add any extra inputs the UI might send
+                    "target_audience": "stakeholders"
                 }
+            })
 
-                response = await ac.post("/v1/execute/", data=data, files=files)
-                assert response.status_code == 201, f"Execution creation failed: {response.text}"
-                exec_data = response.json()
-                execution_id = exec_data["id"]
+            files = [
+                ("file_1", ("document.txt", b"Mock plain text content.", "text/plain")),
+            ]
+            data = {
+                "json_payload": meta_json
+            }
 
-                # 4. Wait for the engine to mark the execution as completed
-                # The execute_workflow_route triggers arq, but in tests arq might run sync or we poll repo.
-                # If arq isn't running, we might need to directly trigger the job or wait.
-                # Actually, in testing environment `get_arq_pool` is usually mocked to None, forcing sync execution!
-                # Let's verify status.
-                exec_record_dict = await repository.get_execution(execution_id)
-                assert exec_record_dict is not None
-                assert exec_record_dict.status == "completed", f"Status was {exec_record_dict.status}. Trace: {exec_record_dict.results}"
+            response = await ac.post("/v1/execute/", data=data, files=files)
+            assert response.status_code == 201, f"Execution creation failed: {response.text}"
+            exec_data = response.json()
+            execution_id = exec_data["id"]
 
-                # 5. Hit the BFF View Endpoint (ReportView DTO)
-                view_response = await ac.get(f"/executions/{execution_id}/view")
-                assert view_response.status_code == 200, f"BFF view failed: {view_response.text}"
-                
-                sdui_payload = view_response.json()
-                assert "title" in sdui_payload
-                assert "sections" in sdui_payload
-                
-                # Check that SDUI generated sections for us
-                assert len(sdui_payload["sections"]) > 0, "BFF did not produce any UI sections"
-                assert sdui_payload["sections"][0]["type"] in ["markdown_block", "score_card", "data_grid", "USAGE_STATS"]
+            # 4. Wait for the engine to mark the execution as completed
+            # The execute_workflow_route triggers arq, but in tests arq might run sync or we poll repo.
+            # If arq isn't running, we might need to directly trigger the job or wait.
+            # Actually, in testing environment `get_arq_pool` is usually mocked to None, forcing sync execution!
+            # Let's verify status.
+            exec_record_dict = await repository.get_execution(execution_id)
+            assert exec_record_dict is not None
+            assert exec_record_dict.status == "completed", f"Status was {exec_record_dict.status}. Trace: {exec_record_dict.results}"
+
+            # 5. Hit the BFF View Endpoint (ReportView DTO)
+            view_response = await ac.get(f"/executions/{execution_id}/view")
+            assert view_response.status_code == 200, f"BFF view failed: {view_response.text}"
+            
+            sdui_payload = view_response.json()
+            assert "title" in sdui_payload
+            assert "sections" in sdui_payload
+            
+            # Check that SDUI generated sections for us
+            assert len(sdui_payload["sections"]) > 0, "BFF did not produce any UI sections"
+            assert sdui_payload["sections"][0]["type"] in ["markdown_block", "score_card", "data_grid", "USAGE_STATS"]
 
     # Cleanup
     app.dependency_overrides.clear()
-    await repository.delete_workflow(wf_id)
-    await repository.delete_execution(execution_id)
+    
+    try:
+        os.remove(temp_db_path)
+    except Exception:
+        pass
 

@@ -25,6 +25,7 @@ from backend.exceptions import AgentExecutionError, ErrorCodes
 # But LLMFactory is imported.
 from backend.llm.provider import LLMFactory, LLMProvider
 from backend.models.domain.base import AuditLogEntry, Metadata, ReasoningTrace
+from backend.models.domain.usage import TokenUsage
 from backend.services.localization import LocalizationService
 
 # 4. Logger
@@ -145,7 +146,7 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
     def _apply_python_authority(
         self, 
         data: Any, 
-        token_usage: dict[str, float | int] | None = None,
+        token_usage: dict[str, Any] | TokenUsage | None = None,
         organization_id: str | None = None,
         workflow: str | None = None,
         audit_logs: list[AuditLogEntry] | None = None,
@@ -154,7 +155,9 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
         step_id: str | None = None,
         model: str | None = None,
         provider: str | None = None,
-        duration_ms: int | None = None
+        duration_ms: int | None = None,
+        system_fingerprint: str | None = None,
+        provider_metadata: dict[str, Any] | None = None
     ) -> OutputT:
         """Injects system-authoritative data (Time, Identity, Checksums).
 
@@ -182,7 +185,10 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
             }
 
             if token_usage:
-                meta_updates["token_usage"] = token_usage
+                if isinstance(token_usage, dict):
+                    meta_updates["token_usage"] = TokenUsage(**token_usage)
+                else:
+                    meta_updates["token_usage"] = token_usage
             if organization_id:
                 meta_updates["organization_id"] = organization_id
             if workflow:
@@ -208,6 +214,10 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                 meta_updates["provider"] = provider
             if duration_ms is not None:
                 meta_updates["duration_ms"] = duration_ms
+            if system_fingerprint:
+                meta_updates["system_fingerprint"] = system_fingerprint
+            if provider_metadata:
+                meta_updates["provider_metadata"] = provider_metadata
 
             # Default optional fields if missing
             # We check if they exist in current_meta (if it's a model)
@@ -241,9 +251,24 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                     model=meta_updates.get("model"),
                     provider=meta_updates.get("provider"),
                     duration_ms=meta_updates.get("duration_ms"),
+                    system_fingerprint=meta_updates.get("system_fingerprint"),
+                    provider_metadata=meta_updates.get("provider_metadata")
                 )
+            
+            # 2. Attach new metadata to the original object
+            try:
+                # Check if the field exists before trying to assign
+                if "metadata" in data.model_fields:
+                    data = data.model_copy(update={"metadata": new_metadata})
+                elif hasattr(data, "metadata"):
+                    # Fallback for dynamic models without exact field but property setter
+                    if data.model_config.get("frozen"):
+                        data = data.model_copy(update={"metadata": new_metadata})
+                    else:
+                        data.metadata = new_metadata
+            except Exception as e:
+                logger.warning(f"Failed to inject Metadata to {data.__class__.__name__}: {e}")
 
-            # 2. Calculate Checksum (using new metadata)
             try:
                 content_dict = data.model_dump()
                 # Inject metadata into dict for hashing (ensure reproducibility)
@@ -309,7 +334,10 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                 meta["versio"] = "2.0"
 
             if token_usage:
-                meta["token_usage"] = token_usage
+                if isinstance(token_usage, dict):
+                    meta["token_usage"] = TokenUsage(**token_usage)
+                else:
+                    meta["token_usage"] = token_usage
             if organization_id:
                 meta["organization_id"] = organization_id
             if workflow:
@@ -333,6 +361,8 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                 meta["provider"] = provider
             if duration_ms is not None:
                 meta["duration_ms"] = duration_ms
+            if system_fingerprint:
+                meta["system_fingerprint"] = system_fingerprint
 
             # 2. CHECKSUM AUTHORITY
             try:
@@ -598,6 +628,12 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
             else:
                 response_data = response_obj.content
 
+            # Inject the reasoning_token to the dictionary so that Pydantic validation 
+            # (which expects ReasoningTraceDTO to have reasoning_token) captures it.
+            if response_schema and isinstance(response_data, dict):
+                if response_obj.reasoning_token is not None:
+                    response_data["reasoning_token"] = response_obj.reasoning_token
+
             # 4.5 Capture Usage/Cost (Return in metadata or separate logging?)
             # Since we return a dict, we can't update state directly.
             # Should we attach usage to the response?
@@ -696,7 +732,9 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                     step_id=step_id,
                     model=self.model,
                     provider=self.provider_type,
-                    duration_ms=kesto_ms if 'kesto_ms' in locals() else None
+                    duration_ms=kesto_ms if 'kesto_ms' in locals() else None,
+                    system_fingerprint=getattr(response_obj, "system_fingerprint", None),
+                    provider_metadata=getattr(response_obj, "provider_metadata", None)
                 )
 
             # 6. Lifecycle Hook: Post Process (HEALING PATTERN)

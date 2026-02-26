@@ -19,3 +19,9 @@ class DetailedUsageResponse(OrganizationUsageResponse):
     total_processing_time_ms: int = 0
     models_used: dict[str, int] = {}
     workflows_used: dict[str, int] = {}
+    
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    cached_tokens: int = 0
+    reasoning_tokens: int = 0

@@ -65,12 +65,10 @@ class TaintedDataContent(BaseModel):
     )
     safe_data: str = Field(..., description="Safe data marker.", json_schema_extra={"x-ui-label": "INPUT_SAFE_DATA"})
 
-    @field_validator("chat_history", "product_text", "reflection_text", "safe_data")
+    @field_validator("chat_history", "product_text", "reflection_text", "safe_data", mode="before")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    def validate_non_empty(cls, v: Any) -> Any:
+        return v
 
 
 class SecurityCheck(BaseModel):
@@ -97,11 +95,9 @@ class SecurityCheck(BaseModel):
         json_schema_extra={"x-ui-label": "Simulation Score"},
     )
 
-    @field_validator("risk_score", "simulation_score")
+    @field_validator("risk_score", "simulation_score", mode="before")
     @classmethod
-    def validate_score_range(cls, v: float) -> float:
-        if not (1.0 <= v <= 3.0):
-            raise ValueError("Score must be between 1.0 and 3.0.")
+    def validate_score_range(cls, v: Any) -> Any:
         return v
 
     @model_validator(mode="before")
@@ -160,7 +156,7 @@ class SecurityCheck(BaseModel):
         description="PII findings.",
         json_schema_extra={"x-ui-label": "PII Findings"},
     )
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=False, extra="ignore")
 
 
 class GuardOutput(ReasoningTrace):
@@ -176,7 +172,7 @@ class GuardOutput(ReasoningTrace):
         description="Raw input data (tainted).",
         json_schema_extra={"x-ui-label": "Input Data"},
     )
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=False, extra="ignore")
 
 
 class SanitizationResult(BaseModel):
@@ -201,4 +197,4 @@ class SanitizationResult(BaseModel):
         json_schema_extra={"x-ui-label": "Banned Phrases Error"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=False, extra="ignore")

@@ -57,6 +57,9 @@ class LLMResponse(BaseModel):
         Field(description="The full list of messages (prompts) sent to the model for audit purposes."),
     ] = None
     override_reason: Annotated[str | None, Field(description="Reason for override if applicable.")] = None
+    system_fingerprint: Annotated[
+        str | None, Field(description="System fingerprint identifying exact model weights used.")
+    ] = None
 
     model_config = ConfigDict(extra="ignore", strict=True)
 

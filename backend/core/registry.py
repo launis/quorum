@@ -116,13 +116,20 @@ class TaskRegistry:
             try:
                 from backend.dependencies import get_async_repository
                 from backend.services.agent_registry import AgentRegistry
+                from backend.services.usage_service import UsageService
 
                 repo = await get_async_repository()
                 registry = AgentRegistry(repo)
+                usage_service = UsageService(repo)
                 model_config = await registry.resolve_model_config(agent_cls.__name__)
 
                 if hasattr(agent, "set_model"):
-                    agent.set_model(model_config.model_name, provider=model_config.provider, config=model_config)
+                    agent.set_model(
+                        model_name=model_config.model_name, 
+                        provider=model_config.provider, 
+                        usage_service=usage_service,
+                        config=model_config
+                    )
             except Exception as e:
                 logger.error(f"Failed to configure agent {agent_cls.__name__}: {e}")
                 from backend.exceptions import AppException, ErrorCodes, status

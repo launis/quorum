@@ -46,12 +46,10 @@ class WaltonStressTest(BaseModel):
     )
     model_config = ConfigDict(frozen=True, strict=False)
 
-    @field_validator("question", "observation")
+    @field_validator("question", "observation", mode="before")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    def validate_non_empty(cls, v: Any) -> Any:
+        return v
 
 
 class ReasoningFidelity(BaseModel):
@@ -79,19 +77,15 @@ class ReasoningFidelity(BaseModel):
         description="Legacy flag for post-hoc rationalization (Validation Mirror).",
     )
 
-    @field_validator("justification")
+    @field_validator("justification", mode="before")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    def validate_non_empty(cls, v: Any) -> Any:
+        return v
 
-    @field_validator("quote")
+    @field_validator("quote", mode="before")
     @classmethod
-    def validate_quote(cls, v: str | None) -> str | None:
-        if v is not None and not v.strip():
-            raise ValueError("Quote cannot be empty if provided.")
-        return v.strip() if v else None
+    def validate_quote(cls, v: Any) -> Any:
+        return v
 
     @model_validator(mode="before")
     @classmethod
@@ -145,11 +139,9 @@ class FalsifierData(BaseModel):
     )
     model_config = ConfigDict(frozen=True, strict=False)
 
-    @field_validator("stress_test_findings")
+    @field_validator("stress_test_findings", mode="before")
     @classmethod
-    def validate_list_not_empty(cls, v: list[WaltonStressTest]) -> list[WaltonStressTest]:
-        if not v:
-            raise ValueError("Stress test findings cannot be empty.")
+    def validate_list_not_empty(cls, v: Any) -> Any:
         return v
 
 

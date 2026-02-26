@@ -125,6 +125,10 @@ class AssessmentTransformer(BaseTransformer):
                         status_message = self._t(
                             "error.llm_retry", "Kielimallin vastaus epäonnistui (Yhteys- tai muotoiluvirhe)."
                         )
+                    elif "rate limit exceeded" in error_details.lower() or "resource exhausted" in error_details.lower():
+                        status_message = self._t(
+                            "error.rate_limit", "Tekstityökalun kapasiteettiraja (Rate Limit) ylittyi. Yritä hetken kuluttua uudelleen."
+                        )
                     else:
                         status_message = self._t(
                             "error.agent_critical", "Agentin suoritus keskeytyi kriittiseen virheeseen."

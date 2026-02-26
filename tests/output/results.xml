@@ -1,1 +1,1237 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="87" time="16.786" timestamp="2026-02-26T03:23:23.273380+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.api.routes.config.test_knowledge" name="test_ingest_knowledge_base_success" time="0.005" /><testcase classname="backend.tests.api.routes.config.test_knowledge" name="test_get_ingestion_status_found" time="0.002" /><testcase classname="backend.tests.api.routes.config.test_knowledge" name="test_get_ingestion_status_not_found" time="0.002" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_default_strategy" time="0.025" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_nested_default_strategy" time="0.001" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_used_strategy" time="0.006" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_unused_strategy" time="0.006" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_non_existent" time="0.006" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_nested_strategy" time="0.006" /><testcase classname="backend.tests.api.test_admin_router" name="test_require_root_permission_denied" time="0.002" /><testcase classname="backend.tests.api.test_admin_router" name="test_require_admin_or_root_permission_denied" time="0.002" /><testcase classname="backend.tests.api.test_admin_router" name="test_create_user_fail_fast_permission" time="0.037" /><testcase classname="backend.tests.api.test_admin_router" name="test_create_user_fail_fast_value_error" time="0.003" /><testcase classname="backend.tests.api.test_admin_router" name="test_add_banned_phrase_validation" time="0.002" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_not_found" time="0.034" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_success" time="0.006" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_validation_error" time="0.006" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_runtime_error" time="0.007" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_missing_model" time="0.004" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_invalid_strategy" time="0.006" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_root_access" time="0.020" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_admin_access_own_org" time="0.006" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_admin_access_other_org_denied" time="0.007" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_member_denied" time="0.006" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_service_failure" time="0.008" /><testcase classname="backend.tests.api.test_auth_router" name="test_verify_user_token_success" time="0.021" /><testcase classname="backend.tests.api.test_auth_router" name="test_impersonate_user_success" time="0.006" /><testcase classname="backend.tests.api.test_auth_router" name="test_impersonate_user_denied_non_root" time="0.006" /><testcase classname="backend.tests.api.test_auth_router" name="test_list_users_scoping" time="0.011" /><testcase classname="backend.tests.api.test_builder_api" name="test_get_workflow_schema" time="0.043" /><testcase classname="backend.tests.api.test_builder_api" name="test_get_workflow_schema_fi" time="0.005" /><testcase classname="backend.tests.api.test_builder_api" name="test_invalid_component_schema" time="0.004" /><testcase classname="backend.tests.api.test_builder_preview" name="test_preview_step_flow" time="0.111" /><testcase classname="backend.tests.api.test_builder_preview" name="test_preview_chain_flow" time="0.314" /><testcase classname="backend.tests.api.test_builder_preview" name="test_preview_not_found" time="0.028" /><testcase classname="backend.tests.api.test_llm_router" name="test_update_model_config_success" time="0.023" /><testcase classname="backend.tests.api.test_llm_router" name="test_generate_completion_invalid_strategy" time="0.008" /><testcase classname="backend.tests.api.test_llm_router" name="test_batch_completion_partial_failure" time="0.008" /><testcase classname="backend.tests.api.test_llm_router" name="test_list_providers" time="0.005" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_generic_schema_fi" time="0.019" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_evaluation_matrix_schema_fi" time="0.005" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_agents_list_fi" time="0.763" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_schemas_list_fi" time="0.159" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_execution_view_fi" time="0.022" /><testcase classname="backend.tests.api.test_organization_router" name="test_create_organization_root_only" time="0.028" /><testcase classname="backend.tests.api.test_organization_router" name="test_get_organization_access_control" time="0.013" /><testcase classname="backend.tests.api.test_organization_router" name="test_get_organization_usage_not_found" time="0.006" /><testcase classname="backend.tests.api.test_organization_router" name="test_delete_organization_conflict" time="0.006" /><testcase classname="backend.tests.api.test_organization_router" name="test_create_organization_user_strict_types" time="0.008" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_root_allow" time="0.001" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_admin_allow" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_manager_own_org_allow" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_manager_other_org_deny" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_member_own_exec_allow" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_member_other_exec_deny" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_download_endpoint_file_exists" time="0.003" /><testcase classname="backend.tests.api.test_pdf_security" name="test_download_endpoint_queues_job" time="0.002" /><testcase classname="backend.tests.api.test_settings_router" name="test_get_settings_success" time="0.020" /><testcase classname="backend.tests.api.test_settings_router" name="test_get_settings_empty_db" time="0.005" /><testcase classname="backend.tests.api.test_settings_router" name="test_update_settings_success" time="0.008" /><testcase classname="backend.tests.api.test_settings_router" name="test_update_settings_permission_denied" time="0.007" /><testcase classname="backend.tests.api.test_tools_router" name="test_web_scrape_ssrf_blocked" time="0.025" /><testcase classname="backend.tests.api.test_tools_router" name="test_web_scrape_success" time="0.013" /><testcase classname="backend.tests.api.test_tools_router" name="test_extract_text_no_content" time="0.006" /><testcase classname="backend.tests.api.test_tools_router" name="test_extract_text_success_text" time="0.006" /><testcase classname="backend.tests.api.test_tools_router" name="test_extract_concepts_success" time="0.006" /><testcase classname="backend.tests.api.test_view_models" name="test_assessment_view_model_valid" time="0.001" /><testcase classname="backend.tests.api.test_view_models" name="test_assessment_view_model_invalid_variant" time="0.000" /><testcase classname="backend.tests.api.test_view_models" name="test_assessment_view_model_extra_forbid" time="0.000" /><testcase classname="backend.tests.api.test_workflow_control" name="test_cancel_execution_success" time="0.002" /><testcase classname="backend.tests.api.test_workflow_control" name="test_cancel_execution_already_done" time="0.002" /><testcase classname="backend.tests.api.test_workflow_control" name="test_cancel_execution_permission_denied" time="0.002" /><testcase classname="backend.tests.api.test_workflow_mapping" name="test_create_workflow_missing_mapping" time="0.005" /><testcase classname="backend.tests.api.test_workflow_mapping" name="test_update_workflow_missing_mapping" time="0.006" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_success_running" time="0.001" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_success_completed" time="0.000" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_success_failed" time="0.000" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_missing_data" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_logic_transformer_extracts_display_model" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_logic_transformer_handles_missing_step" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_stress_transformer_extracts_display_model" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_causal_transformer_extracts_display_model" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_profiler_transformer_extracts_display_model" time="0.001" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_detector_transformer_extracts_display_model" time="0.001" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_driver_transformer_extracts_display_model" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_archivist_transformer_extracts_display_model" time="0.000" /><testcase classname="backend.tests.api.transformers.test_report_transformer" name="test_report_transformer_process_all_stages" time="0.001" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="2" tests="219" time="29.006" timestamp="2026-02-26T19:23:17.671780+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.api.routes.config.test_knowledge" name="test_ingest_knowledge_base_success" time="0.006" /><testcase classname="backend.tests.api.routes.config.test_knowledge" name="test_get_ingestion_status_found" time="0.002" /><testcase classname="backend.tests.api.routes.config.test_knowledge" name="test_get_ingestion_status_not_found" time="0.002" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_default_strategy" time="0.008" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_nested_default_strategy" time="0.001" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_used_strategy" time="0.006" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_unused_strategy" time="0.006" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_non_existent" time="0.004" /><testcase classname="backend.tests.api.routes.config.test_model_safety" name="test_delete_nested_strategy" time="0.005" /><testcase classname="backend.tests.api.test_admin_router" name="test_require_root_permission_denied" time="0.002" /><testcase classname="backend.tests.api.test_admin_router" name="test_require_admin_or_root_permission_denied" time="0.001" /><testcase classname="backend.tests.api.test_admin_router" name="test_create_user_fail_fast_permission" time="0.031" /><testcase classname="backend.tests.api.test_admin_router" name="test_create_user_fail_fast_value_error" time="0.003" /><testcase classname="backend.tests.api.test_admin_router" name="test_add_banned_phrase_validation" time="0.002" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_not_found" time="0.008" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_success" time="0.005" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_validation_error" time="0.006" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_runtime_error" time="0.007" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_missing_model" time="0.114" /><testcase classname="backend.tests.api.test_agents_router" name="test_run_agent_invalid_strategy" time="0.006" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_root_access" time="0.007" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_admin_access_own_org" time="0.006" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_admin_access_other_org_denied" time="0.006" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_member_denied" time="0.006" /><testcase classname="backend.tests.api.test_audit_router" name="test_audit_service_failure" time="0.035" /><testcase classname="backend.tests.api.test_auth_router" name="test_verify_user_token_success" time="0.037" /><testcase classname="backend.tests.api.test_auth_router" name="test_impersonate_user_success" time="0.008" /><testcase classname="backend.tests.api.test_auth_router" name="test_impersonate_user_denied_non_root" time="0.007" /><testcase classname="backend.tests.api.test_auth_router" name="test_list_users_scoping" time="0.010" /><testcase classname="backend.tests.api.test_builder_api" name="test_get_workflow_schema" time="0.010" /><testcase classname="backend.tests.api.test_builder_api" name="test_get_workflow_schema_fi" time="0.006" /><testcase classname="backend.tests.api.test_builder_api" name="test_invalid_component_schema" time="0.005" /><testcase classname="backend.tests.api.test_builder_preview" name="test_preview_step_flow" time="0.105" /><testcase classname="backend.tests.api.test_builder_preview" name="test_preview_chain_flow" time="0.222" /><testcase classname="backend.tests.api.test_builder_preview" name="test_preview_not_found" time="0.014" /><testcase classname="backend.tests.api.test_llm_router" name="test_update_model_config_success" time="0.008" /><testcase classname="backend.tests.api.test_llm_router" name="test_generate_completion_invalid_strategy" time="0.009" /><testcase classname="backend.tests.api.test_llm_router" name="test_batch_completion_partial_failure" time="0.008" /><testcase classname="backend.tests.api.test_llm_router" name="test_list_providers" time="0.006" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_generic_schema_fi" time="0.033" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_evaluation_matrix_schema_fi" time="0.006" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_agents_list_fi" time="0.181" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_schemas_list_fi" time="0.240" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_execution_view_fi" time="0.007" /><testcase classname="backend.tests.api.test_organization_router" name="test_create_organization_root_only" time="0.016" /><testcase classname="backend.tests.api.test_organization_router" name="test_get_organization_access_control" time="0.016" /><testcase classname="backend.tests.api.test_organization_router" name="test_get_organization_usage_not_found" time="0.008" /><testcase classname="backend.tests.api.test_organization_router" name="test_delete_organization_conflict" time="0.007" /><testcase classname="backend.tests.api.test_organization_router" name="test_create_organization_user_strict_types" time="0.010" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_root_allow" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_admin_allow" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_manager_own_org_allow" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_manager_other_org_deny" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_member_own_exec_allow" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_rbac_member_other_exec_deny" time="0.000" /><testcase classname="backend.tests.api.test_pdf_security" name="test_download_endpoint_file_exists" time="0.004" /><testcase classname="backend.tests.api.test_pdf_security" name="test_download_endpoint_queues_job" time="0.003" /><testcase classname="backend.tests.api.test_settings_router" name="test_get_settings_success" time="0.009" /><testcase classname="backend.tests.api.test_settings_router" name="test_get_settings_empty_db" time="0.006" /><testcase classname="backend.tests.api.test_settings_router" name="test_update_settings_success" time="0.009" /><testcase classname="backend.tests.api.test_settings_router" name="test_update_settings_permission_denied" time="0.008" /><testcase classname="backend.tests.api.test_tools_router" name="test_web_scrape_ssrf_blocked" time="0.025" /><testcase classname="backend.tests.api.test_tools_router" name="test_web_scrape_success" time="0.035" /><testcase classname="backend.tests.api.test_tools_router" name="test_extract_text_no_content" time="0.006" /><testcase classname="backend.tests.api.test_tools_router" name="test_extract_text_success_text" time="0.008" /><testcase classname="backend.tests.api.test_tools_router" name="test_extract_concepts_success" time="0.007" /><testcase classname="backend.tests.api.test_view_models" name="test_assessment_view_model_valid" time="0.001" /><testcase classname="backend.tests.api.test_view_models" name="test_assessment_view_model_invalid_variant" time="0.045" /><testcase classname="backend.tests.api.test_view_models" name="test_assessment_view_model_extra_forbid" time="0.001" /><testcase classname="backend.tests.api.test_workflow_control" name="test_cancel_execution_success" time="0.003" /><testcase classname="backend.tests.api.test_workflow_control" name="test_cancel_execution_already_done" time="0.002" /><testcase classname="backend.tests.api.test_workflow_control" name="test_cancel_execution_permission_denied" time="0.002" /><testcase classname="backend.tests.api.test_workflow_mapping" name="test_create_workflow_missing_mapping" time="0.019" /><testcase classname="backend.tests.api.test_workflow_mapping" name="test_update_workflow_missing_mapping" time="0.021" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_success_running" time="0.001" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_success_completed" time="0.001" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_success_failed" time="0.001" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_missing_data" time="0.001" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_logic_transformer_extracts_display_model" time="0.001" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_logic_transformer_handles_missing_step" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_stress_transformer_extracts_display_model" time="0.001" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_causal_transformer_extracts_display_model" time="0.002" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_profiler_transformer_extracts_display_model" time="0.089"><failure message="backend.exceptions.AppException: Profiler validation failed: 1 validation error for ProfilerOutput&#10;metrics.sentence_count&#10;  Field required [type=missing, input_value={'control_ratio': 0.6, 'w... 0.1, 'say_do_gap': 0.9}, input_type=dict]&#10;    For further information visit https://errors.pydantic.dev/2.12/v/missing">self = &lt;backend.api.transformers.domain.profiling.ProfilingDomainTransformer object at 0x000001CD8AA28440&gt;
+steps = {'step_profiler': {'profiler_data': {'author_intent': 'Info', 'cognitive_biases': ['Bias1'], 'conclusion': 'Conclusion', 'confidence_score': 0.9, ...}}}
+
+    def _extract_profiler_section(self, steps: dict) -&gt; UiSection | None:
+        step = steps.get("step_profiler")
+        if not step:
+            return None
+    
+        # STRICT VALIDATION
+        try:
+            # If step has "profiler_data" key, use that.
+            if "profiler_data" in step:
+&gt;               model = ProfilerOutput(**self._adapt_legacy_trace(step["profiler_data"]))  # If wrapped
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               pydantic_core._pydantic_core.ValidationError: 1 validation error for ProfilerOutput
+E               metrics.sentence_count
+E                 Field required [type=missing, input_value={'control_ratio': 0.6, 'w... 0.1, 'say_do_gap': 0.9}, input_type=dict]
+E                   For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+backend\api\transformers\domain\profiling.py:42: ValidationError
+
+The above exception was the direct cause of the following exception:
+
+    def test_profiler_transformer_extracts_display_model():
+        transformer = ProfilingDomainTransformer()
+        mock_step = {
+            "step_profiler": {
+                "profiler_data": {
+                    "metrics": {
+                        "control_ratio": 0.6,
+                        "word_count": 100,
+                        "avg_sentence_length": 10.0,
+                        "lexical_diversity": 0.5,
+                        "capitalization_ratio": 0.1,
+                        "automation_bias": 0.1,
+                        "say_do_gap": 0.9,
+                    },
+                    "author_intent": "Info",
+                    "emotional_tone": "Neutral",
+                    "cognitive_biases": ["Bias1"],
+                    "thought_process": "Thinking...",
+                    "conclusion": "Conclusion",
+                    "confidence_score": 0.9,
+                }
+            }
+        }
+    
+&gt;       section = transformer._extract_profiler_section(mock_step)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\tests\api\transformers\test_domain_transformers.py:149: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend.api.transformers.domain.profiling.ProfilingDomainTransformer object at 0x000001CD8AA28440&gt;
+steps = {'step_profiler': {'profiler_data': {'author_intent': 'Info', 'cognitive_biases': ['Bias1'], 'conclusion': 'Conclusion', 'confidence_score': 0.9, ...}}}
+
+    def _extract_profiler_section(self, steps: dict) -&gt; UiSection | None:
+        step = steps.get("step_profiler")
+        if not step:
+            return None
+    
+        # STRICT VALIDATION
+        try:
+            # If step has "profiler_data" key, use that.
+            if "profiler_data" in step:
+                model = ProfilerOutput(**self._adapt_legacy_trace(step["profiler_data"]))  # If wrapped
+            else:
+                model = ProfilerOutput(**self._adapt_legacy_trace(step))  # If flat
+        except ValidationError as e:
+            from backend.exceptions import AppException, ErrorCodes, status
+    
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Profiler validation failed: {e}", exc_info=True)
+&gt;           raise AppException(
+                message=f"Profiler validation failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": error_code.value, "original_error": str(e)},
+            ) from e
+E           backend.exceptions.AppException: Profiler validation failed: 1 validation error for ProfilerOutput
+E           metrics.sentence_count
+E             Field required [type=missing, input_value={'control_ratio': 0.6, 'w... 0.1, 'say_do_gap': 0.9}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+backend\api\transformers\domain\profiling.py:50: AppException</failure></testcase><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_detector_transformer_extracts_display_model" time="0.013" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_driver_transformer_extracts_display_model" time="0.001" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_archivist_transformer_extracts_display_model" time="0.001" /><testcase classname="backend.tests.api.transformers.test_report_transformer" name="test_report_transformer_process_all_stages" time="0.002"><failure message="backend.exceptions.AppException: Profiler validation failed: 1 validation error for ProfilerOutput&#10;metrics.sentence_count&#10;  Field required [type=missing, input_value={'control_ratio': 0.6, 'w... 0.1, 'say_do_gap': 0.9}, input_type=dict]&#10;    For further information visit https://errors.pydantic.dev/2.12/v/missing">self = &lt;backend.api.transformers.report_core.ReportTransformer object at 0x000001CD8A9EA990&gt;
+steps = {'step_archivist': {'archivist_data': {'compliance_analysis': 'Aligned', 'compliance_score': 9.5, 'conclusion': 'Concl...: 'Conclusion', 'confidence_score': 0.9, 'improvement_suggestions': ['Direct'], 'input_quality_score': 0.9, ...}}, ...}
+
+    def _extract_profiler_section(self, steps: dict) -&gt; UiSection | None:
+        step = steps.get("step_profiler")
+        if not step:
+            return None
+    
+        # STRICT VALIDATION
+        try:
+            # If step has "profiler_data" key, use that.
+            if "profiler_data" in step:
+&gt;               model = ProfilerOutput(**self._adapt_legacy_trace(step["profiler_data"]))  # If wrapped
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               pydantic_core._pydantic_core.ValidationError: 1 validation error for ProfilerOutput
+E               metrics.sentence_count
+E                 Field required [type=missing, input_value={'control_ratio': 0.6, 'w... 0.1, 'say_do_gap': 0.9}, input_type=dict]
+E                   For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+backend\api\transformers\domain\profiling.py:42: ValidationError
+
+The above exception was the direct cause of the following exception:
+
+    def test_report_transformer_process_all_stages():
+        """Verify ReportTransformer handles a full workflow execution correctly."""
+        # Extensive mock data mirroring debug_report_uvm.py structure
+        mock_execution = {
+            "id": "test-integration-001",
+            "status": "completed",
+            "results": {
+                "step_results": {
+                    # Context
+                    "step_context": {
+                        "context_data": {
+                            "thought_process": "Thinking...",
+                            "conclusion": "Conclusion",
+                            "confidence_score": 0.9,
+                            "precedents": "Prec",
+                            "knowledge_items": [],
+                        }
+                    },
+                    # Logic
+                    "step_logician": {
+                        "logician_data": {
+                            "cognitive_level": {
+                                "strategic_depth": "STRAT_HIGH",
+                                "strategic_score": 3.5,
+                                "bloom_level": "BLOOM_EVALUATING",
+                                "bloom_score": 5.8,
+                            },
+                            "toulmin_score": 5.0,
+                            "toulmin_analysis": [{"id": "T1", "claim": "C1", "data": "D1", "warrant": "W1"}],
+                            "walton_scheme": {"identified_scheme": "Expert Opinion", "critical_questions": ["Q1"]},
+                        },
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                    },
+                    # Stress
+                    "step_falsifier": {
+                        "falsifier_data": {
+                            "fidelity_audit": {
+                                "fidelity_score": "FIDELITY_HIGH",
+                                "fidelity_numeric": 3.0,
+                                "justification": "Solid",
+                                "post_hoc_rationalization": False,
+                            },
+                            "stress_test_findings": [{"question": "Q1", "evidence_held": True, "observation": "Obs1"}],
+                        },
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                    },
+                    # Causal
+                    "step_causal": {
+                        "causal_analysis": {
+                            "abductive_reasoning": {"verdict": "OK", "confidence_score": 0.9, "conclusion": "Conc1"},
+                            "abductive_conclusion": "ABDUCT_GENUINE",
+                            "abductive_score": 3.0,
+                            "counterfactual_test": {
+                                "plausibility": "PLAUSIBLE",
+                                "confidence_score": 0.8,
+                                "actual_scenario": "A1",
+                                "simulated_scenario": "S1",
+                                "plausibility_score": "PLAUS_PLAUSIBLE",
+                                "plausibility_numeric": 2.0,
+                                "simulation_result": "SimResult",
+                            },
+                            "plausibility_check": {"score": 2.5},
+                            "observation": "Obs1",
+                            "hypothesis": "Hyp1",
+                        },
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                    },
+                    # Profiler
+                    "step_profiler": {
+                        "profiler_data": {
+                            "metrics": {
+                                "control_ratio": 0.6,
+                                "word_count": 100,
+                                "avg_sentence_length": 10.0,
+                                "lexical_diversity": 0.5,
+                                "capitalization_ratio": 0.1,
+                                "automation_bias": 0.1,
+                                "say_do_gap": 0.9,
+                            },
+                            "author_intent": "Info",
+                            "emotional_tone": "Neutral",
+                            "cognitive_biases": ["Bias1"],
+                            "thought_process": "Thinking...",
+                            "conclusion": "Conclusion",
+                            "confidence_score": 0.9,
+                        }
+                    },
+                    # Driver
+                    "step_driver": {
+                        "interaction_analysis": {
+                            "role_classification": "Driver",
+                            "input_quality_score": 0.9,
+                            "improvement_suggestions": ["Direct"],
+                            "thought_process": "Thinking...",
+                            "conclusion": "Conclusion",
+                            "confidence_score": 0.9,
+                        }
+                    },
+                    # Archivist
+                    "step_archivist": {
+                        "archivist_data": {
+                            "compliance_score": 9.5,
+                            "compliance_analysis": "Aligned",
+                            "description": "Good",
+                            "relevant_cases": [],
+                            "stare_decisis_adherence": True,
+                            "thought_process": "Thinking...",
+                            "conclusion": "Conclusion",
+                            "confidence_score": 0.9,
+                            "consistency_analysis": "Consistent",
+                        }
+                    },
+                }
+            },
+        }
+    
+        record = ExecutionRecord.model_validate(mock_execution)
+        transformer = ReportTransformer()
+&gt;       report = transformer.transform(record)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\tests\api\transformers\test_report_transformer.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+backend\api\transformers\report_core.py:204: in transform
+    profiler_section = self._extract_profiler_section(steps)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend.api.transformers.report_core.ReportTransformer object at 0x000001CD8A9EA990&gt;
+steps = {'step_archivist': {'archivist_data': {'compliance_analysis': 'Aligned', 'compliance_score': 9.5, 'conclusion': 'Concl...: 'Conclusion', 'confidence_score': 0.9, 'improvement_suggestions': ['Direct'], 'input_quality_score': 0.9, ...}}, ...}
+
+    def _extract_profiler_section(self, steps: dict) -&gt; UiSection | None:
+        step = steps.get("step_profiler")
+        if not step:
+            return None
+    
+        # STRICT VALIDATION
+        try:
+            # If step has "profiler_data" key, use that.
+            if "profiler_data" in step:
+                model = ProfilerOutput(**self._adapt_legacy_trace(step["profiler_data"]))  # If wrapped
+            else:
+                model = ProfilerOutput(**self._adapt_legacy_trace(step))  # If flat
+        except ValidationError as e:
+            from backend.exceptions import AppException, ErrorCodes, status
+    
+            error_code = ErrorCodes.VALIDATION_FAILED
+            logger.error(f"[ReportTransformer] {error_code.name}: Profiler validation failed: {e}", exc_info=True)
+&gt;           raise AppException(
+                message=f"Profiler validation failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": error_code.value, "original_error": str(e)},
+            ) from e
+E           backend.exceptions.AppException: Profiler validation failed: 1 validation error for ProfilerOutput
+E           metrics.sentence_count
+E             Field required [type=missing, input_value={'control_ratio': 0.6, 'w... 0.1, 'say_do_gap': 0.9}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+backend\api\transformers\domain\profiling.py:50: AppException</failure></testcase><testcase classname="backend.tests.core.test_component" name="test_strict_component_execution" time="0.002" /><testcase classname="backend.tests.core.test_component" name="test_strict_component_failure" time="0.002" /><testcase classname="backend.tests.core.test_component" name="test_base_agent_compatibility" time="0.000" /><testcase classname="backend.tests.core.test_engine_errors" name="test_resolve_inputs_failure" time="0.001" /><testcase classname="backend.tests.core.test_engine_errors" name="test_execute_workflow_task_not_found" time="0.030" /><testcase classname="backend.tests.core.test_engine_errors" name="test_execute_workflow_input_validation_failed" time="0.005" /><testcase classname="backend.tests.core.test_engine_errors" name="test_execute_workflow_chat_parsing_failed" time="0.002" /><testcase classname="backend.tests.core.test_rate_limit" name="test_rate_limit_handler_structure" time="0.001" /><testcase classname="backend.tests.core.test_rate_limit" name="test_rate_limit_handler_unknown_detail" time="0.001" /><testcase classname="backend.tests.core.test_registry" name="test_register_agent_instantiation_failure" time="0.001" /><testcase classname="backend.tests.core.test_registry" name="test_agent_wrapper_configuration_failure" time="0.003" /><testcase classname="backend.tests.core.test_registry" name="test_agent_wrapper_model_override_failure" time="0.002" /><testcase classname="backend.tests.hooks.test_archival" name="test_retrieve_precedent_no_repo" time="0.001" /><testcase classname="backend.tests.hooks.test_archival" name="test_retrieve_precedent_success" time="0.002" /><testcase classname="backend.tests.hooks.test_archival" name="test_retrieve_precedent_empty" time="0.002" /><testcase classname="backend.tests.hooks.test_archival" name="test_retrieve_precedent_repo_error" time="0.003" /><testcase classname="backend.tests.hooks.test_integrity" name="test_enforce_hypothesis_linking_success" time="0.001" /><testcase classname="backend.tests.hooks.test_integrity" name="test_enforce_hypothesis_linking_bad_format" time="0.000" /><testcase classname="backend.tests.hooks.test_integrity" name="test_enforce_hypothesis_linking_sequence_gap" time="0.001" /><testcase classname="backend.tests.hooks.test_integrity" name="test_verify_citation_integrity_success" time="0.001" /><testcase classname="backend.tests.hooks.test_integrity" name="test_verify_citation_integrity_fail_fast" time="0.001" /><testcase classname="backend.tests.hooks.test_linguistics" name="test_detect_patterns_english_default" time="0.000" /><testcase classname="backend.tests.hooks.test_linguistics" name="test_detect_patterns_finnish_context" time="0.000" /><testcase classname="backend.tests.hooks.test_linguistics" name="test_detect_patterns_finnish_inputs_fallback" time="0.001" /><testcase classname="backend.tests.hooks.test_linguistics" name="test_no_patterns_clean_text" time="0.000" /><testcase classname="backend.tests.hooks.test_references" name="test_generate_bibliography_hook_success" time="0.003" /><testcase classname="backend.tests.hooks.test_references" name="test_generate_bibliography_hook_empty_text" time="0.002" /><testcase classname="backend.tests.hooks.test_references" name="test_generate_bibliography_hook_fail_fast_on_error" time="0.002" /><testcase classname="backend.tests.hooks.test_references" name="test_generate_bibliography_hook_fallback_to_repo" time="0.002" /><testcase classname="backend.tests.hooks.test_reporting" name="test_generate_report_success" time="0.001" /><testcase classname="backend.tests.hooks.test_reporting" name="test_generate_report_fail_fast_missing_template_dir" time="0.001" /><testcase classname="backend.tests.hooks.test_scoring" name="test_apply_scoring_missing_judge" time="0.001" /><testcase classname="backend.tests.hooks.test_scoring" name="test_passivity_invalid_dict_rejected" time="0.001" /><testcase classname="backend.tests.hooks.test_scoring" name="test_passivity_legacy_dict_accepted" time="0.001" /><testcase classname="backend.tests.hooks.test_scoring" name="test_apply_scoring_invalid_dict_rejected" time="0.000" /><testcase classname="backend.tests.hooks.test_search" name="test_missing_step_analyst" time="0.003" /><testcase classname="backend.tests.hooks.test_search" name="test_invalid_step_analyst_schema" time="0.002" /><testcase classname="backend.tests.hooks.test_search" name="test_no_hypotheses" time="0.002" /><testcase classname="backend.tests.hooks.test_search" name="test_config_error_fail_fast" time="0.002" /><testcase classname="backend.tests.hooks.test_search" name="test_execution_success" time="0.002" /><testcase classname="backend.tests.hooks.test_search" name="test_execution_failure_fail_fast" time="0.003" /><testcase classname="backend.tests.hooks.test_search" name="test_language_context" time="0.002" /><testcase classname="backend.tests.hooks.test_security" name="test_sanitize_text_basic" time="0.001" /><testcase classname="backend.tests.hooks.test_security" name="test_sanitize_hook_success" time="0.001" /><testcase classname="backend.tests.hooks.test_security" name="test_sanitize_hook_missing_inputs" time="0.001" /><testcase classname="backend.tests.hooks.test_security" name="test_banned_phrases_check_defaults" time="0.002" /><testcase classname="backend.tests.hooks.test_security" name="test_banned_phrases_db_error" time="0.003" /><testcase classname="backend.tests.hooks.test_security" name="test_banned_phrases_detected" time="0.002" /><testcase classname="backend.tests.hooks.test_security" name="test_banned_phrases_clean" time="0.002" /><testcase classname="backend.tests.hooks.test_validation" name="test_verify_structure_success" time="0.001" /><testcase classname="backend.tests.hooks.test_validation" name="test_verify_structure_short_input" time="0.001" /><testcase classname="backend.tests.hooks.test_validation" name="test_verify_structure_missing_context" time="0.001" /><testcase classname="backend.tests.hooks.test_validation" name="test_verify_structure_invalid_inputs_type" time="0.001" /><testcase classname="backend.tests.integration.test_config_integrity" name="test_agent_wrapper_propagates_temperature" time="0.035" /><testcase classname="backend.tests.integration.test_config_integrity" name="test_prompt_substitution" time="0.005" /><testcase classname="backend.tests.integration.test_e2e_pipeline" name="test_full_pipeline_ingestion_to_bff" time="0.137" /><testcase classname="backend.tests.integration.test_execution_endpoints" name="test_get_execution_view_endpoint" time="0.006" /><testcase classname="backend.tests.integration.test_execution_endpoints" name="test_get_flat_report_endpoint" time="0.006" /><testcase classname="backend.tests.integration.test_execution_endpoints" name="test_get_pdf_endpoint" time="0.006" /><testcase classname="backend.tests.integration.test_pdf_worker" name="test_generate_pdf_job_success" time="0.003" /><testcase classname="backend.tests.integration.test_pdf_worker" name="test_generate_pdf_job_failure" time="0.004" /><testcase classname="backend.tests.manual.test_agents_strict_dto" name="test_agent_schemas" time="0.001" /><testcase classname="backend.tests.manual.test_agents_strict_dto" name="test_agent_execution_mock" time="0.008"><failure message="backend.exceptions.AgentExecutionError: ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED - Cause: Metadata validation failed. provider_metadata: Input should be a valid dictionary">self = &lt;backend.agents.critics.LogicalFalsifierAgent object at 0x000001CD8ABDC050&gt;
+input_data = FalsifierInput(history_text='Foo', step_analyst=AnalystOutput(thought_process='tp', conclusion='c', confidence_score=0...d=False, search_query='test query', quotes=[])], rag_evidence=[], critical_violation=False), last_reasoning_trace=None)
+execution_context = None
+system_instruction = '\n\n### TODISTUSKARTTA (EVIDENCE MAP):\n{\n  "thought_process": "tp",\n  "conclusion": "c",\n  "confidence_score": 0....search_query": "test query",\n      "quotes": []\n    }\n  ],\n  "rag_evidence": [],\n  "critical_violation": false\n}'
+kwargs = {'mock_identity': 'LogicalFalsifierAgent'}
+debug_inputs = {'history_text': 'Foo', 'last_reasoning_trace': None, 'step_analyst': {'conclusion': 'c', 'confidence_score': 0.9, 'cr...on': False, 'hypotheses': [{'claim_text': 'Test claim', 'evidence_found': False, 'id': 'h1', 'quotes': [], ...}], ...}}
+log_msg = ["history_text: 3 chars ('Foo...')", 'step_analyst: 9 items', 'last_reasoning_trace: NoneType']
+k = 'last_reasoning_trace', v = None, preview = 'Foo'
+
+    async def execute(
+        self,
+        input_data: InputT,
+        execution_context: dict[str, Any] | None = None,
+        system_instruction: str | None = None,
+        **kwargs: Any,
+    ) -&gt; OutputT:
+        """Standard execution entry point.
+    
+        Takes typed input model, processes it via the LLM Provider, and returns the typed result.
+        Enforces RFC 7807 Error Handling and Pydantic Schema Validation.
+    
+        Args:
+            input_data (InputT): The resolved input model (or dict) from the Workflow Engine.
+            execution_context (dict[str, Any] | None): Access to repository, config, or global state.
+            system_instruction (str | None): Optional prompt override (rarely used).
+            **kwargs: Additional parameters for LLM (temperature, max_tokens, etc).
+    
+        Returns:
+            OutputT: The execution result (response domain model).
+    
+        Raises:
+            AgentExecutionError: If execution fails (wraps all internal exceptions).
+        """
+        logger.info(f"[{self.__class__.__name__}] Starting execution...")
+    
+        # --- INPUT DIAGNOSTICS (Context Bloat Investigation) ---
+        try:
+            # Create a safe copy for inspection
+            debug_inputs: Any = input_data
+            if isinstance(debug_inputs, BaseModel):
+                debug_inputs = debug_inputs.model_dump()
+    
+            if isinstance(debug_inputs, dict):
+                log_msg = []
+                for k, v in debug_inputs.items():
+                    if isinstance(v, str):
+                        # Log length and preview start/end to catch duplication
+                        preview = v[:50].replace("\n", "\\n")
+                        log_msg.append(f"{k}: {len(v)} chars ('{preview}...')")
+                    elif isinstance(v, (list, dict, tuple)):
+                        log_msg.append(f"{k}: {len(v)} items")
+                    else:
+                        log_msg.append(f"{k}: {type(v).__name__}")
+                logger.info(f"[{self.__class__.__name__}] INPUT DIAGNOSTICS: " + " | ".join(log_msg))
+            else:
+                logger.info(f"[{self.__class__.__name__}] INPUT DIAGNOSTICS: Non-dict input: {type(debug_inputs)}")
+        except Exception as e:
+            logger.warning(f"[{self.__class__.__name__}] Failed to log input sizes: {e}")
+        # -------------------------------------------------------
+    
+        try:
+            # 0. STRICT INPUT VALIDATION (Phase 8: Type Safety)
+            # The Engine is responsible for inflating dict -&gt; Model.
+            # Here we enforce that we actually received a Model.
+            if self.INPUT_SCHEMA:
+                if not isinstance(input_data, self.INPUT_SCHEMA):
+                    # FAIL FAST: This is a system integrity failure.
+                    # The Engine should have converted it.
+                    msg = f"Agent '{self.__class__.__name__}' expected model '{self.INPUT_SCHEMA.__name__}' but received '{type(input_data)}'."
+                    error_code = ErrorCodes.AGENT_INVALID_INPUT
+                    logger.critical(f"{error_code}: {msg}")
+                    raise AgentExecutionError(
+                        detail=error_code, original_error=TypeError(msg), agent_name=self.__class__.__name__
+                    )
+    
+                try:
+                    # Double-check validation (redundant if strict, but safe)
+                    if issubclass(self.INPUT_SCHEMA, BaseModel):
+                        cast(type[BaseModel], self.INPUT_SCHEMA).model_validate(input_data)
+                    logger.debug(
+                        f"[{self.__class__.__name__}] Input Validation Successful: {self.INPUT_SCHEMA.__name__}"
+                    )
+                except ValidationError as e:
+                    error_code = ErrorCodes.AGENT_INVALID_INPUT
+                    logger.error(
+                        f"{error_code}: Input validation failed for {self.__class__.__name__} - {e}", exc_info=True
+                    )
+                    raise AgentExecutionError(
+                        detail=error_code, original_error=e, agent_name=self.__class__.__name__
+                    ) from e
+            elif isinstance(input_data, dict):
+                # Legacy Fallback? NO. Zero-Compromise means we MUST have a schema eventually.
+                # But for incremental migration, we allow dict if INPUT_SCHEMA is None.
+                pass
+            # 1. Use Generic User Prompt (The System Instruction carries the context)
+            user_prompt = "Proceed with your task according to the system instructions."
+    
+            # 3. Determine Output Schema (Subclasses must define this!)
+            response_schema = self.get_response_schema()
+    
+            # 3.5 Lifecycle Hook: Prepare Context
+            logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: prepare_context")
+            additional_context = await self.prepare_context(input_data, execution_context, **kwargs)
+            if additional_context:
+                system_instruction = (system_instruction or "") + "\n\n" + additional_context
+                logger.debug(f"[{self.__class__.__name__}] Appended dynamic context.")
+    
+            # 2. Get System Instruction (Check AFTER dynamic context injection)
+            if not system_instruction:
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_MISSING_INSTRUCTION,
+                    original_error=ValueError(
+                        f"Agent {self.__class__.__name__} executed without system_instruction. "
+                        "Strict mode requires DB-sourced prompts."
+                    ),
+                )
+    
+            # 3.5.5 Schema Injection (Modern Polish)
+            if system_instruction and "{{SCHEMA_EXAMPLE}}" in system_instruction:
+                if response_schema:
+                    try:
+                        # Pydantic v2: model_json_schema()
+                        schema_dict = response_schema.model_json_schema()
+                        schema_text = json.dumps(schema_dict, indent=2, ensure_ascii=False)
+                        system_instruction = system_instruction.replace("{{SCHEMA_EXAMPLE}}", schema_text)
+                        logger.info(
+                            f"[{self.__class__.__name__}] Injected JSON Schema into {{SCHEMA_EXAMPLE}} placeholder."
+                        )
+                    except Exception as e:
+                        logger.warning(f"[{self.__class__.__name__}] Failed to inject schema example: {e}")
+                else:
+                    logger.warning(
+                        f"[{self.__class__.__name__}] Prompt has {{SCHEMA_EXAMPLE}} but no response_schema defined."
+                    )
+    
+            # 3.6 Context Continuity Check (Transient Reasoning Trace)
+            # Access trace from input_data or context?
+            # Assuming input_data might contain 'last_reasoning_trace' if mapped?
+            # Or execution_context?
+            # For now, if we are strictly stateless, we depend on inputs.
+            # However, prompt says "Remove all imports and type hints referring to WorkflowState."
+            # So we check input_data or kwargs.
+            if kwargs.get("pass_reasoning_token"):
+                pass  # Already in kwargs
+            else:
+                # Safe Access for InputT (Dict or Model)
+                trace = None
+                if isinstance(input_data, dict):
+                    trace = input_data.get("last_reasoning_trace")
+                else:
+                    trace = getattr(input_data, "last_reasoning_trace", None)
+    
+                if trace:
+                    logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting previous reasoning trace.")
+                    kwargs["pass_reasoning_token"] = trace
+    
+            # --- LOGGING EXECUTION CONFIG ---
+            conf_model = self.model
+            conf_temp = kwargs.get("temperature", "Default")
+            conf_tokens = kwargs.get("max_tokens", "Default")
+    
+            logger.info(f"[{self.__class__.__name__}] &gt;&gt;&gt; EXECUTION START &lt;&lt;&lt;")
+    
+            # Identify extras
+            # Identify extras
+            std_keys = {
+                "temperature",
+                "max_tokens",
+                "pass_reasoning_token",
+                "mock_identity",
+                "system_instruction",
+                "repository",
+                "output_key",
+                "usage_key",
+                "execution_config",
+                "step_id",
+            }
+            extras = {k: v for k, v in kwargs.items() if k not in std_keys}
+    
+            logger.info(
+                f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | "
+                f"TOKENS: {conf_tokens} | EXTRAS: {extras}"
+            )
+            # --------------------------------
+    
+            if not self.llm_provider:
+                error_msg = (
+                    f"[{self.__class__.__name__}] LLM Provider not configured. Call set_model() before execute()."
+                )
+                logger.error(error_msg)
+                raise AgentExecutionError(detail=ErrorCodes.AGENT_NOT_CONFIGURED, original_error=ValueError(error_msg))
+    
+            # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
+            kwargs["mock_identity"] = self.__class__.__name__
+    
+            import time
+            start_time = time.perf_counter()
+    
+            response_obj = await self.llm_provider.generate(
+                prompt=user_prompt,
+                system_instruction=system_instruction,
+                response_schema=response_schema,
+                **kwargs,
+            )
+    
+            end_time = time.perf_counter()
+            kesto_ms = int((end_time - start_time) * 1000)
+    
+            # Handle Response Content
+            if response_schema:
+                # OPTIMIZATION: Use pre-parsed content if available (Instructor Pattern)
+                if response_obj.parsed_content is not None:
+                    logger.debug(f"[{self.__class__.__name__}] Structured Output used directly (No re-parsing).")
+                    response_data = response_obj.parsed_content
+                else:
+                    # Provider ensures content is valid JSON string if schema was used
+    
+                    try:
+                        response_data = json.loads(response_obj.content)
+                    except json.JSONDecodeError as e:
+                        # STRICT MODE: If json keys are malformed after provider, we fail.
+                        error_code = ErrorCodes.AGENT_RESPONSE_MALFORMED
+                        logger.error(f"{error_code}: Failed to parse JSON content from provider - {e}", exc_info=True)
+                        raise AgentExecutionError(detail=error_code, original_error=e) from e
+                    except Exception as e:
+                        # General fallback for other errors during parsing
+                        error_code = ErrorCodes.AGENT_RESPONSE_PARSING_FAILED
+                        logger.error(f"{error_code}: Unexpected error during JSON parsing - {e}", exc_info=True)
+                        raise AgentExecutionError(detail=error_code, original_error=e) from e
+            else:
+                response_data = response_obj.content
+    
+            # Inject the reasoning_token to the dictionary so that Pydantic validation
+            # (which expects ReasoningTraceDTO to have reasoning_token) captures it.
+            if response_schema and isinstance(response_data, dict):
+                if response_obj.reasoning_token is not None:
+                    response_data["reasoning_token"] = response_obj.reasoning_token
+    
+            # 4.5 Capture Usage/Cost (Return in metadata or separate logging?)
+            # Since we return a dict, we can't update state directly.
+            # Should we attach usage to the response?
+            # For now, we just log it as the prompt requested "return its result".
+            # If the engine handles usage, it needs parsing.
+            # But the prompt said: "The agent should no longer modify state objects; it should purely return its result as a dictionary (or Pydantic model)."
+            # We assume usage tracking is handled by the caller or logging for now.
+            logger.info(f"BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
+    
+            # 4.6 Capture Audit Logs (Prompts)
+            if hasattr(response_obj, "messages") and response_obj.messages:
+                # DE-DUPLICATION LOGIC (Jan 2026):
+                # We extract the content from litellm messages to a flat AuditLogEntry.
+                # Convert to AuditLogEntry directly without intermediate dict lists.
+                audit_entries: list[AuditLogEntry] = []
+                timestamp_now = datetime.now(timezone.utc)
+    
+                try:
+                    for _msg in response_obj.messages:
+                        audit_msg: Any = _msg
+                        role = "unknown"
+                        content = ""
+    
+                        # Handle Pydantic Message object directly
+                        if hasattr(audit_msg, "role"):
+                            role = str(audit_msg.role)
+                        elif isinstance(audit_msg, dict) and "role" in audit_msg:
+                            role = str(audit_msg["role"])
+    
+                        # Handle Content
+                        content_raw: Any = getattr(audit_msg, "content", None)
+                        if content_raw is None and isinstance(audit_msg, dict):
+                            content_raw = audit_msg.get("content")
+    
+                        if isinstance(content_raw, dict):
+                            content = json.dumps(content_raw)
+                        elif content_raw is not None:
+                            content = str(content_raw)
+    
+                        # Truncate
+                        if content:
+                            content = content[:5000]
+    
+                        entry = AuditLogEntry(
+                            timestamp=timestamp_now,
+                            level="INFO",
+                            message=content,
+                            context={"original_role": role},
+                        )
+                        audit_entries.append(entry)
+                except Exception as e:
+                    logger.warning(f"Failed to process messages for AuditLogEntry: {e}")
+    
+                    if isinstance(response_data, dict):
+                        if "metadata" not in response_data:
+                            response_data["metadata"] = {}
+                        if isinstance(response_data["metadata"], dict):
+                            response_data["metadata"]["audit_logs"] = audit_entries
+                    elif isinstance(response_data, BaseModel):
+                        if hasattr(response_data, "metadata"):
+                            if isinstance(response_data.metadata, dict):
+                                response_data.metadata["audit_logs"] = audit_entries
+                            elif hasattr(response_data.metadata, "audit_logs"):  # Check field existence first
+                                # We enabled extra="allow" in Metadata but strict validation means type must match
+                                try:
+                                    # If metadata is a model (Metadata), set the field
+                                    if hasattr(response_data.metadata, "model_dump"):
+                                        # Pydantic model
+                                        # We can't set directly if it's frozen, but BaseAgent constructs it?
+                                        # Metadata is frozen=False.
+                                        response_data.metadata.audit_logs = audit_entries
+                                    else:
+                                        # Unknown type
+                                        pass
+                                except Exception as e:
+                                    logger.warning(f"Could not attach audit logs to metadata model: {e}")
+    
+            # FORCE SYSTEM AUTHORITY (Metadata &amp; Checksums)
+            if response_data is not None:
+                # Read from execution_context (which TaskRegistry maps execution_config to) or kwargs directly
+                context_dict = execution_context or {}
+                org_id = context_dict.get("organization_id") or kwargs.get("organization_id")
+                workflow_id = context_dict.get("workflow") or kwargs.get("workflow")
+                user_id = context_dict.get("user_id") or kwargs.get("user_id")
+                execution_id = context_dict.get("execution_id") or kwargs.get("execution_id")
+                step_id = context_dict.get("step_id") or kwargs.get("step_id")
+    
+&gt;               response_data = self._apply_python_authority(
+                    response_data,
+                    token_usage=getattr(response_obj, "token_usage", None),
+                    organization_id=org_id,
+                    workflow=workflow_id,
+                    audit_logs=audit_entries if 'audit_entries' in locals() else None,
+                    user_id=user_id,
+                    execution_id=execution_id,
+                    step_id=step_id,
+                    model=self.model,
+                    provider=self.provider_type,
+                    duration_ms=kesto_ms if 'kesto_ms' in locals() else None,
+                    system_fingerprint=getattr(response_obj, "system_fingerprint", None),
+                    provider_metadata=getattr(response_obj, "provider_metadata", None)
+                )
+
+backend\agents\base.py:724: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend.agents.critics.LogicalFalsifierAgent object at 0x000001CD8ABDC050&gt;
+data = FalsifierDTO(thought_process='Thinking...', conclusion='Conclusion.', confidence_score=0.9, reasoning_token=None, fals...lity_numeric=3.0, justification='Mock fidelity audit', quote=None, post_hoc_rationalization=False, is_post_hoc=False)))
+token_usage = {'completion_tokens': 5, 'prompt_tokens': 10, 'total_cost': 0.002, 'total_tokens': 15}
+organization_id = None, workflow = None, audit_logs = [], user_id = None
+execution_id = None, step_id = None, model = None, provider = None
+duration_ms = 0, system_fingerprint = 'mock_fingerprint_123'
+provider_metadata = &lt;MagicMock name='mock.generate().provider_metadata' id='1982307618496'&gt;
+
+    def _apply_python_authority(
+        self,
+        data: Any,
+        token_usage: dict[str, Any] | TokenUsage | None = None,
+        organization_id: str | None = None,
+        workflow: str | None = None,
+        audit_logs: list[AuditLogEntry] | None = None,
+        user_id: str | None = None,
+        execution_id: str | None = None,
+        step_id: str | None = None,
+        model: str | None = None,
+        provider: str | None = None,
+        duration_ms: int | None = None,
+        system_fingerprint: str | None = None,
+        provider_metadata: dict[str, Any] | None = None
+    ) -&gt; OutputT:
+        """Injects system-authoritative data (Time, Identity, Checksums).
+    
+        Promotes DTOs to Domain Models if DTO_SCHEMA is defined.
+        Overrides any LLM-hallucinated values for metadata fields.
+        Handles both raw dicts and immutable Pydantic models.
+        Returns the modified (or new) object.
+        """
+        # 1. TIME &amp; IDENTITY AUTHORITY
+        utc_now = datetime.now(timezone.utc)
+        agent_name = self.__class__.__name__
+        env_context = "Internal"
+    
+        # --- CASE A: Pydantic Model (DTO or Domain) ---
+        if isinstance(data, BaseModel):
+            # 1. Construct Updated Metadata (Immutable)
+            # Use getattr to support DTOs that lack 'metadata' field (e.g. PanelOutputDTO)
+            current_meta = getattr(data, "metadata", None)
+    
+            # Prepare metadata fields
+            meta_updates = {
+                "luontiaika": utc_now,
+                "agentti": agent_name,
+                "suoritus_ymparisto": env_context,
+            }
+    
+            if token_usage:
+                if isinstance(token_usage, dict):
+                    meta_updates["token_usage"] = TokenUsage(**token_usage)
+                else:
+                    meta_updates["token_usage"] = token_usage
+            if organization_id:
+                meta_updates["organization_id"] = organization_id
+            if workflow:
+                meta_updates["workflow"] = workflow
+    
+            if current_meta and current_meta.audit_logs:
+                if audit_logs:
+                    meta_updates["audit_logs"] = current_meta.audit_logs + audit_logs
+                else:
+                    meta_updates["audit_logs"] = current_meta.audit_logs
+            elif audit_logs:
+                meta_updates["audit_logs"] = audit_logs
+    
+            if user_id:
+                meta_updates["user_id"] = user_id
+            if execution_id:
+                meta_updates["execution_id"] = execution_id
+            if step_id:
+                meta_updates["step_id"] = step_id
+            if model:
+                meta_updates["model"] = model
+            if provider:
+                meta_updates["provider"] = provider
+            if duration_ms is not None:
+                meta_updates["duration_ms"] = duration_ms
+            if system_fingerprint:
+                meta_updates["system_fingerprint"] = system_fingerprint
+            if provider_metadata:
+                meta_updates["provider_metadata"] = provider_metadata
+    
+            # Default optional fields if missing
+            # We check if they exist in current_meta (if it's a model)
+            if current_meta:
+                if not current_meta.vaihe:
+                    meta_updates["vaihe"] = 1
+                if not current_meta.versio:
+                    meta_updates["versio"] = "2.0"
+            else:
+                meta_updates["vaihe"] = 1
+                meta_updates["versio"] = "2.0"
+    
+            if current_meta:
+                # Use model_copy(update=...) to create new Metadata instance
+                new_metadata = current_meta.model_copy(update=meta_updates)
+            else:
+                # Create fresh Metadata
+&gt;               new_metadata = Metadata(
+                    luontiaika=utc_now,
+                    agentti=agent_name,
+                    suoritus_ymparisto=env_context,
+                    vaihe=int(str(meta_updates["vaihe"])),
+                    versio=str(meta_updates["versio"]),
+                    organization_id=organization_id,
+                    workflow=workflow,
+                    audit_logs=meta_updates.get("audit_logs"),
+                    token_usage=token_usage,
+                    user_id=meta_updates.get("user_id"),
+                    execution_id=meta_updates.get("execution_id"),
+                    step_id=meta_updates.get("step_id"),
+                    model=meta_updates.get("model"),
+                    provider=meta_updates.get("provider"),
+                    duration_ms=meta_updates.get("duration_ms"),
+                    system_fingerprint=meta_updates.get("system_fingerprint"),
+                    provider_metadata=meta_updates.get("provider_metadata")
+                )
+E               pydantic_core._pydantic_core.ValidationError: 1 validation error for Metadata
+E               provider_metadata
+E                 Input should be a valid dictionary [type=dict_type, input_value=&lt;MagicMock name='mock.gen...ata' id='1982307618496'&gt;, input_type=MagicMock]
+E                   For further information visit https://errors.pydantic.dev/2.12/v/dict_type
+
+backend\agents\base.py:238: ValidationError
+
+The above exception was the direct cause of the following exception:
+
+    async def test_agent_execution_mock():
+        print("\n--- Testing Agent Execution (Mock) ---")
+    
+        # MOCK DATA
+        falsifier_dto_mock = {
+            "thought_process": "Thinking...",
+            "conclusion": "Conclusion.",
+            "confidence_score": 0.9,
+            "falsifier_data": {
+                "is_falsifiable": True,
+                "falsification_attempts": [],
+                "stress_test_findings": [{"question": "Q", "evidence_held": False, "observation": "O"}],
+                "fidelity_audit": {"fidelity_score": "High", "justification": "Mock fidelity audit"},
+                "stress_test": {"resilience_score": 0.5, "weak_points": []},
+                "fidelity": {"score": 0.8, "assessment": "Good"},
+            },
+        }
+    
+        # Helper to test an agent
+        async def run_agent_test(agent, input_data, mock_response_dict):
+            print(f"Testing execution of {agent.__class__.__name__}...")
+    
+            # Mock the LLM Client within the agent
+            # We need to patch the generate method or similar.
+            # BaseAgent.execute calls self.llm.generate(...)
+    
+            mock_llm = AsyncMock()
+            # The agent expects the LLM to return a Pydantic model (DTO) if strict mode is on?
+            # Actually BaseAgent.execute logic:
+            # result = await self.llm.generate(..., response_model=self.DTO_SCHEMA)
+            # So we mock generate to return the DTO instance.
+    
+            dto_instance = agent.DTO_SCHEMA(**mock_response_dict)
+            mock_response = MagicMock()
+            mock_response.parsed_content = dto_instance
+            mock_response.token_usage = {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15, "total_cost": 0.002}
+            mock_response.system_fingerprint = "mock_fingerprint_123"
+            mock_llm.generate.return_value = mock_response
+    
+            # Inject mock llm
+            agent.llm_provider = mock_llm
+    
+            # ACT
+            result = await agent.execute(input_data)
+    
+            # ASSERT
+            assert isinstance(result, agent.OUTPUT_SCHEMA)
+            assert isinstance(result, agent.DTO_SCHEMA)  # Should inherit
+            assert result.metadata is not None  # System injected
+            assert result.thought_process == mock_response_dict["thought_process"]
+            print(f"✅ {agent.__class__.__name__} execution successful. Output type: {type(result)}")
+    
+        # 1. LogicalFalsifierAgent
+        falsifier = LogicalFalsifierAgent()
+        falsifier_input = FalsifierInput(
+            history_text="Foo",
+            step_analyst=AnalystOutput(**{"thought_process": "tp", "conclusion": "c", "confidence_score": 0.9, "hypotheses": [{"id": "h1", "claim_text": "Test claim", "evidence_found": False, "search_query": "test query", "quotes": []}]})  # type: ignore
+        )
+&gt;       await run_agent_test(falsifier, falsifier_input, falsifier_dto_mock)
+
+backend\tests\manual\test_agents_strict_dto.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+backend\tests\manual\test_agents_strict_dto.py:100: in run_agent_test
+    result = await agent.execute(input_data)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\critics.py:116: in execute
+    result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend.agents.critics.LogicalFalsifierAgent object at 0x000001CD8ABDC050&gt;
+input_data = FalsifierInput(history_text='Foo', step_analyst=AnalystOutput(thought_process='tp', conclusion='c', confidence_score=0...d=False, search_query='test query', quotes=[])], rag_evidence=[], critical_violation=False), last_reasoning_trace=None)
+execution_context = None
+system_instruction = '\n\n### TODISTUSKARTTA (EVIDENCE MAP):\n{\n  "thought_process": "tp",\n  "conclusion": "c",\n  "confidence_score": 0....search_query": "test query",\n      "quotes": []\n    }\n  ],\n  "rag_evidence": [],\n  "critical_violation": false\n}'
+kwargs = {'mock_identity': 'LogicalFalsifierAgent'}
+debug_inputs = {'history_text': 'Foo', 'last_reasoning_trace': None, 'step_analyst': {'conclusion': 'c', 'confidence_score': 0.9, 'cr...on': False, 'hypotheses': [{'claim_text': 'Test claim', 'evidence_found': False, 'id': 'h1', 'quotes': [], ...}], ...}}
+log_msg = ["history_text: 3 chars ('Foo...')", 'step_analyst: 9 items', 'last_reasoning_trace: NoneType']
+k = 'last_reasoning_trace', v = None, preview = 'Foo'
+
+    async def execute(
+        self,
+        input_data: InputT,
+        execution_context: dict[str, Any] | None = None,
+        system_instruction: str | None = None,
+        **kwargs: Any,
+    ) -&gt; OutputT:
+        """Standard execution entry point.
+    
+        Takes typed input model, processes it via the LLM Provider, and returns the typed result.
+        Enforces RFC 7807 Error Handling and Pydantic Schema Validation.
+    
+        Args:
+            input_data (InputT): The resolved input model (or dict) from the Workflow Engine.
+            execution_context (dict[str, Any] | None): Access to repository, config, or global state.
+            system_instruction (str | None): Optional prompt override (rarely used).
+            **kwargs: Additional parameters for LLM (temperature, max_tokens, etc).
+    
+        Returns:
+            OutputT: The execution result (response domain model).
+    
+        Raises:
+            AgentExecutionError: If execution fails (wraps all internal exceptions).
+        """
+        logger.info(f"[{self.__class__.__name__}] Starting execution...")
+    
+        # --- INPUT DIAGNOSTICS (Context Bloat Investigation) ---
+        try:
+            # Create a safe copy for inspection
+            debug_inputs: Any = input_data
+            if isinstance(debug_inputs, BaseModel):
+                debug_inputs = debug_inputs.model_dump()
+    
+            if isinstance(debug_inputs, dict):
+                log_msg = []
+                for k, v in debug_inputs.items():
+                    if isinstance(v, str):
+                        # Log length and preview start/end to catch duplication
+                        preview = v[:50].replace("\n", "\\n")
+                        log_msg.append(f"{k}: {len(v)} chars ('{preview}...')")
+                    elif isinstance(v, (list, dict, tuple)):
+                        log_msg.append(f"{k}: {len(v)} items")
+                    else:
+                        log_msg.append(f"{k}: {type(v).__name__}")
+                logger.info(f"[{self.__class__.__name__}] INPUT DIAGNOSTICS: " + " | ".join(log_msg))
+            else:
+                logger.info(f"[{self.__class__.__name__}] INPUT DIAGNOSTICS: Non-dict input: {type(debug_inputs)}")
+        except Exception as e:
+            logger.warning(f"[{self.__class__.__name__}] Failed to log input sizes: {e}")
+        # -------------------------------------------------------
+    
+        try:
+            # 0. STRICT INPUT VALIDATION (Phase 8: Type Safety)
+            # The Engine is responsible for inflating dict -&gt; Model.
+            # Here we enforce that we actually received a Model.
+            if self.INPUT_SCHEMA:
+                if not isinstance(input_data, self.INPUT_SCHEMA):
+                    # FAIL FAST: This is a system integrity failure.
+                    # The Engine should have converted it.
+                    msg = f"Agent '{self.__class__.__name__}' expected model '{self.INPUT_SCHEMA.__name__}' but received '{type(input_data)}'."
+                    error_code = ErrorCodes.AGENT_INVALID_INPUT
+                    logger.critical(f"{error_code}: {msg}")
+                    raise AgentExecutionError(
+                        detail=error_code, original_error=TypeError(msg), agent_name=self.__class__.__name__
+                    )
+    
+                try:
+                    # Double-check validation (redundant if strict, but safe)
+                    if issubclass(self.INPUT_SCHEMA, BaseModel):
+                        cast(type[BaseModel], self.INPUT_SCHEMA).model_validate(input_data)
+                    logger.debug(
+                        f"[{self.__class__.__name__}] Input Validation Successful: {self.INPUT_SCHEMA.__name__}"
+                    )
+                except ValidationError as e:
+                    error_code = ErrorCodes.AGENT_INVALID_INPUT
+                    logger.error(
+                        f"{error_code}: Input validation failed for {self.__class__.__name__} - {e}", exc_info=True
+                    )
+                    raise AgentExecutionError(
+                        detail=error_code, original_error=e, agent_name=self.__class__.__name__
+                    ) from e
+            elif isinstance(input_data, dict):
+                # Legacy Fallback? NO. Zero-Compromise means we MUST have a schema eventually.
+                # But for incremental migration, we allow dict if INPUT_SCHEMA is None.
+                pass
+            # 1. Use Generic User Prompt (The System Instruction carries the context)
+            user_prompt = "Proceed with your task according to the system instructions."
+    
+            # 3. Determine Output Schema (Subclasses must define this!)
+            response_schema = self.get_response_schema()
+    
+            # 3.5 Lifecycle Hook: Prepare Context
+            logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: prepare_context")
+            additional_context = await self.prepare_context(input_data, execution_context, **kwargs)
+            if additional_context:
+                system_instruction = (system_instruction or "") + "\n\n" + additional_context
+                logger.debug(f"[{self.__class__.__name__}] Appended dynamic context.")
+    
+            # 2. Get System Instruction (Check AFTER dynamic context injection)
+            if not system_instruction:
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_MISSING_INSTRUCTION,
+                    original_error=ValueError(
+                        f"Agent {self.__class__.__name__} executed without system_instruction. "
+                        "Strict mode requires DB-sourced prompts."
+                    ),
+                )
+    
+            # 3.5.5 Schema Injection (Modern Polish)
+            if system_instruction and "{{SCHEMA_EXAMPLE}}" in system_instruction:
+                if response_schema:
+                    try:
+                        # Pydantic v2: model_json_schema()
+                        schema_dict = response_schema.model_json_schema()
+                        schema_text = json.dumps(schema_dict, indent=2, ensure_ascii=False)
+                        system_instruction = system_instruction.replace("{{SCHEMA_EXAMPLE}}", schema_text)
+                        logger.info(
+                            f"[{self.__class__.__name__}] Injected JSON Schema into {{SCHEMA_EXAMPLE}} placeholder."
+                        )
+                    except Exception as e:
+                        logger.warning(f"[{self.__class__.__name__}] Failed to inject schema example: {e}")
+                else:
+                    logger.warning(
+                        f"[{self.__class__.__name__}] Prompt has {{SCHEMA_EXAMPLE}} but no response_schema defined."
+                    )
+    
+            # 3.6 Context Continuity Check (Transient Reasoning Trace)
+            # Access trace from input_data or context?
+            # Assuming input_data might contain 'last_reasoning_trace' if mapped?
+            # Or execution_context?
+            # For now, if we are strictly stateless, we depend on inputs.
+            # However, prompt says "Remove all imports and type hints referring to WorkflowState."
+            # So we check input_data or kwargs.
+            if kwargs.get("pass_reasoning_token"):
+                pass  # Already in kwargs
+            else:
+                # Safe Access for InputT (Dict or Model)
+                trace = None
+                if isinstance(input_data, dict):
+                    trace = input_data.get("last_reasoning_trace")
+                else:
+                    trace = getattr(input_data, "last_reasoning_trace", None)
+    
+                if trace:
+                    logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting previous reasoning trace.")
+                    kwargs["pass_reasoning_token"] = trace
+    
+            # --- LOGGING EXECUTION CONFIG ---
+            conf_model = self.model
+            conf_temp = kwargs.get("temperature", "Default")
+            conf_tokens = kwargs.get("max_tokens", "Default")
+    
+            logger.info(f"[{self.__class__.__name__}] &gt;&gt;&gt; EXECUTION START &lt;&lt;&lt;")
+    
+            # Identify extras
+            # Identify extras
+            std_keys = {
+                "temperature",
+                "max_tokens",
+                "pass_reasoning_token",
+                "mock_identity",
+                "system_instruction",
+                "repository",
+                "output_key",
+                "usage_key",
+                "execution_config",
+                "step_id",
+            }
+            extras = {k: v for k, v in kwargs.items() if k not in std_keys}
+    
+            logger.info(
+                f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | "
+                f"TOKENS: {conf_tokens} | EXTRAS: {extras}"
+            )
+            # --------------------------------
+    
+            if not self.llm_provider:
+                error_msg = (
+                    f"[{self.__class__.__name__}] LLM Provider not configured. Call set_model() before execute()."
+                )
+                logger.error(error_msg)
+                raise AgentExecutionError(detail=ErrorCodes.AGENT_NOT_CONFIGURED, original_error=ValueError(error_msg))
+    
+            # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
+            kwargs["mock_identity"] = self.__class__.__name__
+    
+            import time
+            start_time = time.perf_counter()
+    
+            response_obj = await self.llm_provider.generate(
+                prompt=user_prompt,
+                system_instruction=system_instruction,
+                response_schema=response_schema,
+                **kwargs,
+            )
+    
+            end_time = time.perf_counter()
+            kesto_ms = int((end_time - start_time) * 1000)
+    
+            # Handle Response Content
+            if response_schema:
+                # OPTIMIZATION: Use pre-parsed content if available (Instructor Pattern)
+                if response_obj.parsed_content is not None:
+                    logger.debug(f"[{self.__class__.__name__}] Structured Output used directly (No re-parsing).")
+                    response_data = response_obj.parsed_content
+                else:
+                    # Provider ensures content is valid JSON string if schema was used
+    
+                    try:
+                        response_data = json.loads(response_obj.content)
+                    except json.JSONDecodeError as e:
+                        # STRICT MODE: If json keys are malformed after provider, we fail.
+                        error_code = ErrorCodes.AGENT_RESPONSE_MALFORMED
+                        logger.error(f"{error_code}: Failed to parse JSON content from provider - {e}", exc_info=True)
+                        raise AgentExecutionError(detail=error_code, original_error=e) from e
+                    except Exception as e:
+                        # General fallback for other errors during parsing
+                        error_code = ErrorCodes.AGENT_RESPONSE_PARSING_FAILED
+                        logger.error(f"{error_code}: Unexpected error during JSON parsing - {e}", exc_info=True)
+                        raise AgentExecutionError(detail=error_code, original_error=e) from e
+            else:
+                response_data = response_obj.content
+    
+            # Inject the reasoning_token to the dictionary so that Pydantic validation
+            # (which expects ReasoningTraceDTO to have reasoning_token) captures it.
+            if response_schema and isinstance(response_data, dict):
+                if response_obj.reasoning_token is not None:
+                    response_data["reasoning_token"] = response_obj.reasoning_token
+    
+            # 4.5 Capture Usage/Cost (Return in metadata or separate logging?)
+            # Since we return a dict, we can't update state directly.
+            # Should we attach usage to the response?
+            # For now, we just log it as the prompt requested "return its result".
+            # If the engine handles usage, it needs parsing.
+            # But the prompt said: "The agent should no longer modify state objects; it should purely return its result as a dictionary (or Pydantic model)."
+            # We assume usage tracking is handled by the caller or logging for now.
+            logger.info(f"BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
+    
+            # 4.6 Capture Audit Logs (Prompts)
+            if hasattr(response_obj, "messages") and response_obj.messages:
+                # DE-DUPLICATION LOGIC (Jan 2026):
+                # We extract the content from litellm messages to a flat AuditLogEntry.
+                # Convert to AuditLogEntry directly without intermediate dict lists.
+                audit_entries: list[AuditLogEntry] = []
+                timestamp_now = datetime.now(timezone.utc)
+    
+                try:
+                    for _msg in response_obj.messages:
+                        audit_msg: Any = _msg
+                        role = "unknown"
+                        content = ""
+    
+                        # Handle Pydantic Message object directly
+                        if hasattr(audit_msg, "role"):
+                            role = str(audit_msg.role)
+                        elif isinstance(audit_msg, dict) and "role" in audit_msg:
+                            role = str(audit_msg["role"])
+    
+                        # Handle Content
+                        content_raw: Any = getattr(audit_msg, "content", None)
+                        if content_raw is None and isinstance(audit_msg, dict):
+                            content_raw = audit_msg.get("content")
+    
+                        if isinstance(content_raw, dict):
+                            content = json.dumps(content_raw)
+                        elif content_raw is not None:
+                            content = str(content_raw)
+    
+                        # Truncate
+                        if content:
+                            content = content[:5000]
+    
+                        entry = AuditLogEntry(
+                            timestamp=timestamp_now,
+                            level="INFO",
+                            message=content,
+                            context={"original_role": role},
+                        )
+                        audit_entries.append(entry)
+                except Exception as e:
+                    logger.warning(f"Failed to process messages for AuditLogEntry: {e}")
+    
+                    if isinstance(response_data, dict):
+                        if "metadata" not in response_data:
+                            response_data["metadata"] = {}
+                        if isinstance(response_data["metadata"], dict):
+                            response_data["metadata"]["audit_logs"] = audit_entries
+                    elif isinstance(response_data, BaseModel):
+                        if hasattr(response_data, "metadata"):
+                            if isinstance(response_data.metadata, dict):
+                                response_data.metadata["audit_logs"] = audit_entries
+                            elif hasattr(response_data.metadata, "audit_logs"):  # Check field existence first
+                                # We enabled extra="allow" in Metadata but strict validation means type must match
+                                try:
+                                    # If metadata is a model (Metadata), set the field
+                                    if hasattr(response_data.metadata, "model_dump"):
+                                        # Pydantic model
+                                        # We can't set directly if it's frozen, but BaseAgent constructs it?
+                                        # Metadata is frozen=False.
+                                        response_data.metadata.audit_logs = audit_entries
+                                    else:
+                                        # Unknown type
+                                        pass
+                                except Exception as e:
+                                    logger.warning(f"Could not attach audit logs to metadata model: {e}")
+    
+            # FORCE SYSTEM AUTHORITY (Metadata &amp; Checksums)
+            if response_data is not None:
+                # Read from execution_context (which TaskRegistry maps execution_config to) or kwargs directly
+                context_dict = execution_context or {}
+                org_id = context_dict.get("organization_id") or kwargs.get("organization_id")
+                workflow_id = context_dict.get("workflow") or kwargs.get("workflow")
+                user_id = context_dict.get("user_id") or kwargs.get("user_id")
+                execution_id = context_dict.get("execution_id") or kwargs.get("execution_id")
+                step_id = context_dict.get("step_id") or kwargs.get("step_id")
+    
+                response_data = self._apply_python_authority(
+                    response_data,
+                    token_usage=getattr(response_obj, "token_usage", None),
+                    organization_id=org_id,
+                    workflow=workflow_id,
+                    audit_logs=audit_entries if 'audit_entries' in locals() else None,
+                    user_id=user_id,
+                    execution_id=execution_id,
+                    step_id=step_id,
+                    model=self.model,
+                    provider=self.provider_type,
+                    duration_ms=kesto_ms if 'kesto_ms' in locals() else None,
+                    system_fingerprint=getattr(response_obj, "system_fingerprint", None),
+                    provider_metadata=getattr(response_obj, "provider_metadata", None)
+                )
+    
+            # 6. Lifecycle Hook: Post Process (HEALING PATTERN)
+            # STRATEGY: "Late Validation"
+            # We intentionally keep response_data as a Dict (if possible) during this phase.
+            # This allows the 'post_process' hook to "heal" structural errors (like missing IDs or
+            # malformed keys) that would otherwise cause Pydantic validation to crash immediately.
+            # The Agent is responsible for ensuring the data is valid BEFORE the strict check below.
+            logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
+    
+            # SCRUBBER (Jan 2026): Remove 'instructor' library prompt leakage
+            if response_data is not None:
+                response_data = self._scrub_prompt_leakage(response_data)
+    
+            # HEALING STEP: Fix structure before validation
+            response_data = self.post_process(response_data)
+    
+            # 7. LATE VALIDATION (Schema Enforcement)
+            # Since Provider no longer enforces schema (to allow healing), we must do it here.
+            # This is the "Fail Fast" gate: If data is still invalid after healing, we crash.
+            # FIX (Jan 2026): Use explicit None check to catch empty dicts {} which are Falsy.
+            if response_schema and response_data is not None:
+                try:
+                    # If it's already a model, we are good (provider might have done it distinctively)
+                    if isinstance(response_data, BaseModel):
+                        pass
+                    else:
+                        # Convert dict to Model (Validation happens here)
+                        response_data = response_schema.model_validate(response_data)
+                        logger.info(
+                            f"[{self.__class__.__name__}] Late Validation Successful: {response_schema.__name__}"
+                        )
+                except ValidationError as e:
+                    # If healing failed to fix it, we crash now.
+                    error_code = ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
+                    logger.error(f"{error_code}: Post-Healing Validation Failed - {e}", exc_info=True)
+                    raise AgentExecutionError(detail=error_code, original_error=e) from e
+    
+            # 8. STRICT TYPE SAFEGUARD (Zero-Compromise)
+            # Child agents rely on us to return the correct Pydantic Model.
+            # If we somehow reached here with a dict when a schema is required, we must crash.
+            if response_schema and not isinstance(response_data, BaseModel):
+                # This theoretically shouldn't happen due to Late Validation above,
+                # but this protects against logic regressions or loose typing.
+                error_msg = f"CRITICAL: {self.__class__.__name__} violated strict return contract. Expected {response_schema.__name__}, got {type(response_data)}."
+                logger.critical(error_msg)
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
+                    original_error=TypeError(error_msg),
+                    agent_name=self.__class__.__name__,
+                )
+    
+            return response_data
+    
+        except AgentExecutionError:
+            # Pass through already wrapped errors
+            raise
+    
+        except (
+            socket.gaierror,
+            urllib3.exceptions.NameResolutionError,
+            requests.exceptions.ConnectionError,
+            litellm.APIConnectionError,
+        ) as e:
+            # Network / Offline Handling
+            error_code = ErrorCodes.NETWORK_UNAVAILABLE
+    
+            # Use LocalizationService to build bilingual error
+            msg_fi = LocalizationService.get("network_error_msg", "fi")
+            msg_en = LocalizationService.get("network_error_msg", "en")
+            friendly_msg = f"{msg_en} / {msg_fi}"
+    
+            # Log full stack trace for debugging
+            logger.error(f"{error_code}: {friendly_msg} - Cause: {e}", exc_info=True)
+    
+            # Raise with clean message for UI but original error preserved
+            raise AgentExecutionError(detail=error_code, original_error=e, agent_name=self.__class__.__name__) from e
+    
+        except ValidationError as e:
+            # ECHO PROTOCOL: Log First, Then Raise
+            error_code = ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
+            logger.error(f"{error_code}: Output validation failed - {e}", exc_info=True)
+&gt;           raise AgentExecutionError(detail=error_code, original_error=e) from e
+E           backend.exceptions.AgentExecutionError: ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED - Cause: Metadata validation failed. provider_metadata: Input should be a valid dictionary
+
+backend\agents\base.py:820: AgentExecutionError</failure></testcase><testcase classname="backend.tests.manual.test_delete_model" name="test_delete_api" time="0.000"><skipped type="pytest.skip" message="Manual API test requiring live server">C:\src\quorum\backend\tests\manual\test_delete_model.py:11: Manual API test requiring live server</skipped></testcase><testcase classname="backend.tests.manual.test_delete_safety" name="test_safety" time="0.000"><skipped type="pytest.skip" message="Manual API test requiring live server">C:\src\quorum\backend\tests\manual\test_delete_safety.py:13: Manual API test requiring live server</skipped></testcase><testcase classname="backend.tests.manual.test_ingest_dynamic_strategy" name="test_dynamic_strategy" time="0.228" /><testcase classname="backend.tests.manual.test_kb_service_injection" name="test_kb_service_init" time="0.204" /><testcase classname="backend.tests.manual.test_output_pipeline_strict" name="test_strict_accessors" time="0.001" /><testcase classname="backend.tests.manual.test_xai_flat_generation.TestXAIFlatGeneration" name="test_flat_report_generation" time="0.003" /><testcase classname="backend.tests.services.parsers.test_bibliography_parser.TestBibliographyParser" name="test_detect_bibliography_header" time="0.001" /><testcase classname="backend.tests.services.parsers.test_bibliography_parser.TestBibliographyParser" name="test_detect_bibliography_finnish" time="0.000" /><testcase classname="backend.tests.services.parsers.test_bibliography_parser.TestBibliographyParser" name="test_parse_references_simple" time="0.000" /><testcase classname="backend.tests.services.parsers.test_bibliography_parser.TestBibliographyParser" name="test_parse_references_multiline" time="0.000" /><testcase classname="backend.tests.services.parsers.test_bibliography_parser.TestBibliographyParser" name="test_no_bibliography" time="0.001" /><testcase classname="backend.tests.test_domain_enums" name="test_security_check_enum_input" time="0.000" /><testcase classname="backend.tests.test_domain_enums" name="test_security_check_string_input" time="0.000" /><testcase classname="backend.tests.test_domain_enums" name="test_security_check_invalid_input" time="0.000" /><testcase classname="backend.tests.test_domain_enums" name="test_cognitive_level_calculation" time="0.001" /><testcase classname="backend.tests.test_domain_enums" name="test_cognitive_level_string_casting" time="0.000" /><testcase classname="backend.tests.test_domain_enums" name="test_reasoning_fidelity" time="0.000" /><testcase classname="backend.tests.test_domain_enums" name="test_counterfactual_test" time="0.000" /><testcase classname="backend.tests.test_domain_enums" name="test_causal_analysis" time="0.000" /><testcase classname="backend.tests.test_domain_enums" name="test_performativity_analysis" time="0.000" /><testcase classname="backend.tests.test_domain_enums" name="test_l10n_keys_exist" time="0.001" /><testcase classname="backend.tests.test_file_driver.TestLocalFileDriver" name="test_delete" time="0.008" /><testcase classname="backend.tests.test_file_driver.TestLocalFileDriver" name="test_get_url" time="0.004" /><testcase classname="backend.tests.test_file_driver.TestLocalFileDriver" name="test_nested_dir" time="0.007" /><testcase classname="backend.tests.test_file_driver.TestLocalFileDriver" name="test_save_and_read" time="0.013" /><testcase classname="backend.tests.test_file_driver.TestLocalFileDriver" name="test_save_string" time="0.014" /><testcase classname="backend.tests.test_file_driver.TestGCSFileDriver" name="test_delete" time="0.003" /><testcase classname="backend.tests.test_file_driver.TestGCSFileDriver" name="test_exists" time="0.003" /><testcase classname="backend.tests.test_file_driver.TestGCSFileDriver" name="test_read" time="0.004" /><testcase classname="backend.tests.test_file_driver.TestGCSFileDriver" name="test_save" time="0.004" /><testcase classname="backend.tests.test_storage_driver" name="test_tinydb_crud" time="0.079" /><testcase classname="backend.tests.test_storage_driver" name="test_tinydb_query" time="0.038" /><testcase classname="backend.tests.test_storage_driver" name="test_firestore_upsert" time="0.003" /><testcase classname="backend.tests.test_storage_driver" name="test_firestore_get" time="0.003" /><testcase classname="backend.tests.test_storage_driver" name="test_tinydb_serialization" time="0.003" /><testcase classname="backend.tests.test_storage_driver" name="test_firestore_serialization" time="0.001" /><testcase classname="backend.tests.test_storage_driver" name="test_repo_delegation" time="0.003" /><testcase classname="backend.tests.unit.test_chart_service.TestChartService" name="test_generate_radar_chart_valid" time="0.003" /><testcase classname="backend.tests.unit.test_chart_service.TestChartService" name="test_generate_radar_chart_empty" time="0.000" /><testcase classname="backend.tests.unit.test_chart_service.TestChartService" name="test_generate_radar_chart_none" time="0.000" /><testcase classname="backend.tests.unit.test_chart_service.TestChartService" name="test_generate_radar_chart_failure" time="0.002" /><testcase classname="backend.tests.unit.test_chat_log_parser.TestChatLogParser" name="test_parse_explicit_format" time="0.000" /><testcase classname="backend.tests.unit.test_chat_log_parser.TestChatLogParser" name="test_parse_gemini_format" time="0.000" /><testcase classname="backend.tests.unit.test_chat_log_parser.TestChatLogParser" name="test_parse_chatgpt_format" time="0.001" /><testcase classname="backend.tests.unit.test_chat_log_parser.TestChatLogParser" name="test_parse_claude_format" time="0.000" /><testcase classname="backend.tests.unit.test_chat_log_parser.TestChatLogParser" name="test_parse_timestamp_format" time="0.001" /><testcase classname="backend.tests.unit.test_chat_log_parser.TestChatLogParser" name="test_parse_arrow_format_with_embedded_list" time="0.001" /><testcase classname="backend.tests.unit.test_chat_log_parser.TestChatLogParser" name="test_parse_arrow_with_header_response" time="0.000" /><testcase classname="backend.tests.unit.test_chat_log_parser.TestChatLogParser" name="test_empty_input_raises_error" time="0.000" /><testcase classname="backend.tests.unit.test_chat_log_parser.TestChatLogParser" name="test_fallback_unknown_format" time="0.000" /><testcase classname="backend.tests.unit.test_engine_cancellation" name="test_engine_graceful_cancellation" time="0.003" /><testcase classname="backend.tests.unit.test_knowledge_service" name="test_retrieve_context_empty_kb" time="0.002" /><testcase classname="backend.tests.unit.test_knowledge_service" name="test_retrieve_context_no_query_returns_summary" time="0.003" /><testcase classname="backend.tests.unit.test_knowledge_service" name="test_retrieve_context_with_query_filtering" time="0.002" /><testcase classname="backend.tests.unit.test_knowledge_service" name="test_retrieve_context_no_matches" time="0.002" /><testcase classname="backend.tests.unit.test_knowledge_service" name="test_retrieve_context_exception_handling" time="0.003" /><testcase classname="backend.tests.unit.test_llm_config" name="test_llm_provider_config_defaults" time="0.000" /><testcase classname="backend.tests.unit.test_llm_config" name="test_llm_provider_config_values" time="0.000" /><testcase classname="backend.tests.unit.test_llm_config" name="test_llm_provider_config_validation" time="0.001" /><testcase classname="backend.tests.unit.test_llm_config" name="test_ui_labels_presence" time="0.001" /><testcase classname="backend.tests.unit.test_pdf_generator" name="test_generate_execution_pdf_success" time="0.046" /><testcase classname="backend.tests.unit.test_pdf_generator" name="test_generate_execution_pdf_not_found" time="0.003" /><testcase classname="backend.tests.unit.test_pdf_generator" name="test_generate_execution_pdf_error_handling" time="0.004" /><testcase classname="backend.tests.unit.test_pdf_generator" name="test_generate_pdf_with_logic_and_ethics" time="0.045" /><testcase classname="backend.tests.unit.test_reporting_hook" name="test_generate_report_no_data" time="0.001" /><testcase classname="backend.tests.unit.test_reporting_hook" name="test_generate_report_with_data" time="0.001" /><testcase classname="backend.tests.unit.test_reporting_hook" name="test_generate_report_attributes_fallback" time="0.000" /><testcase classname="backend.tests.unit.test_retrieval_agent" name="test_retrieval_agent_hybrid_execution" time="0.004" /><testcase classname="backend.tests.unit.test_retrieval_agent" name="test_retrieval_agent_kb_failure_resilience" time="0.007" /></testsuite></testsuites>

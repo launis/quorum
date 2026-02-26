@@ -39,23 +39,29 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
 
     # 1. Security Penalty Check (Guard)
     security_threat = False
-    guard_model = state.get_context("step_guard", GuardOutput)
-    if guard_model:
-        # Use English keys from model
-        if guard_model.security_check.threat_detected:
-            security_threat = True
+    if "step_guard" in context:
+        guard_model = state.get_context("step_guard", GuardOutput)
+        if guard_model:
+            # Use English keys from model
+            if guard_model.security_check.threat_detected:
+                security_threat = True
+        else:
+            logger.warning("[ScoringHook] step_guard present but failed validation via inflate.")
     else:
-        logger.warning("[ScoringHook] step_guard present but failed validation via inflate.")
+        logger.debug("[ScoringHook] step_guard missing from context, skipping Security Penalty.")
 
     # 2. Falsifier Penalty Check
     is_post_hoc = False
-    falsifier_model = state.get_context("step_falsifier", FalsifierOutput)
-    if falsifier_model:
-        # FalsifierData -> ReasoningFidelity -> post_hoc_rationalization
-        if falsifier_model.falsifier_data.fidelity_audit.post_hoc_rationalization:
-            is_post_hoc = True
+    if "step_falsifier" in context:
+        falsifier_model = state.get_context("step_falsifier", FalsifierOutput)
+        if falsifier_model:
+            # FalsifierData -> ReasoningFidelity -> post_hoc_rationalization
+            if falsifier_model.falsifier_data.fidelity_audit.post_hoc_rationalization:
+                is_post_hoc = True
+        else:
+            logger.warning("[ScoringHook] step_falsifier present but failed validation via inflate.")
     else:
-        logger.warning("[ScoringHook] step_falsifier present but failed validation via inflate.")
+        logger.debug("[ScoringHook] step_falsifier missing from context, skipping Falsifier Penalty.")
 
     # 3. Aggregate Scores from Audit Results
     total_score_accum = 0.0

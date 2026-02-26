@@ -12,7 +12,7 @@
                         "top_p": null,
                         "supports_grounding": true,
                         "tpm_limit": 100000,
-                        "rpm_limit": 15,
+                        "rpm_limit": 10,
                         "is_active": true
                     },
                     "fast": {
@@ -21,8 +21,18 @@
                         "temperature": 0.1,
                         "top_p": null,
                         "supports_grounding": false,
-                        "tpm_limit": 500000,
-                        "rpm_limit": 60,
+                        "tpm_limit": 100000,
+                        "rpm_limit": 15,
+                        "is_active": true
+                    },
+                    "search": {
+                        "max_tokens": 65536,
+                        "model_name": "vertex_ai/gemini-2.5-flash",
+                        "temperature": 0.0,
+                        "top_p": null,
+                        "supports_grounding": true,
+                        "tpm_limit": 100000,
+                        "rpm_limit": 15,
                         "is_active": true
                     },
                     "precise": {
@@ -30,9 +40,9 @@
                         "model_name": "vertex_ai/gemini-2.5-pro",
                         "temperature": 0.2,
                         "top_p": null,
-                        "supports_grounding": true,
+                        "supports_grounding": false,
                         "tpm_limit": 100000,
-                        "rpm_limit": 15,
+                        "rpm_limit": 10,
                         "is_active": true
                     },
                     "strict": {
@@ -42,7 +52,7 @@
                         "top_p": null,
                         "supports_grounding": false,
                         "tpm_limit": 100000,
-                        "rpm_limit": 15,
+                        "rpm_limit": 10,
                         "is_active": true
                     },
                     "GuardAgent": "fast",
@@ -57,14 +67,14 @@
                     "FactualOverseerAgent": "strict",
                     "CausalAnalystAgent": "deep",
                     "PerformativityDetectorAgent": "precise",
-                    "ArchivistAgent": "precise",
+                    "ArchivistAgent": "fast",
                     "RetrievalAgent": "fast",
                     "PanelAgent": "deep",
-                    "SearchHook": "fast"
+                    "SearchHook": "search"
                 }
             }
         },
-        {
+            {
             "id": "f9821d96-6030-43c3-a53e-e06081e7719e",
             "slug": "knowledge_base",
             "name": null,

@@ -78,21 +78,27 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerOutput]):
         # 1. VALIDATION (Fail Fast)
         hook_metrics = None
         if input_data.profiler_metrics:
+            hook_metrics_dict = input_data.profiler_metrics.model_dump() if hasattr(input_data.profiler_metrics, "model_dump") else input_data.profiler_metrics
             hook_metrics = input_data.profiler_metrics
             logger.info("[ProfilerAgent] Metrics found in input model.")
 
             # FAIL FAST: Output Control relies on 'control_ratio'
-            if "control_ratio" not in hook_metrics:
+            if "control_ratio" not in hook_metrics_dict:
                 logger.warning(
                     "[ProfilerAgent] 'control_ratio' missing in hook_metrics. Output Control may default to unsafe."
                 )
 
             # Force clamp logic for dict
-            if "control_ratio" in hook_metrics:
-                val = hook_metrics["control_ratio"]
+            if "control_ratio" in hook_metrics_dict:
+                val = hook_metrics_dict["control_ratio"]
                 if isinstance(val, (int, float)) and val > 1.0:
                     logger.warning(f"[ProfilerAgent] Anomaly detected: control_ratio {val} > 1.0. Clamping to 1.0.")
-                    hook_metrics["control_ratio"] = 1.0
+                    
+                # Update the pydantic model via model_copy
+                if hasattr(hook_metrics, "model_copy"):
+                    hook_metrics = hook_metrics.model_copy(update={"control_ratio": min(val, 1.0)})
+                else:
+                    hook_metrics["control_ratio"] = min(val, 1.0)
 
         # 2. EXECUTION (LLM)
         try:
@@ -119,9 +125,11 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerOutput]):
             # MERGE HOOK METRICS (Linguistic) with LLM METRICS (Psychometric)
             if hook_metrics:
                 # Handle Pydantic Model (Frozen or not)
-                # We use model_copy to safely update even if frozen
-                current_metrics = result.metrics or {}
-                merged_metrics = {**current_metrics, **hook_metrics}
+                # LLM output metrics (if any) and hook_metrics are now Pydantic models
+                current_dict = result.metrics.model_dump() if result.metrics else {}
+                hook_dict = hook_metrics.model_dump() if hasattr(hook_metrics, "model_dump") else hook_metrics
+                
+                merged_metrics = {**current_dict, **hook_dict}
                 result = result.model_copy(update={"metrics": merged_metrics})
 
             return result

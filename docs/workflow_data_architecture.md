@@ -28,13 +28,15 @@ graph TD
         
         Logic[Logician Logic]
         False[Falsifier Logic]
-        Prof[Profiler Logic]
+        Causal[Causal Logic]
+        Perform[Performativity Logic]
         Over[Overseer Logic]
         
         Panel --> note1
         note1 -.-> Logic
         note1 -.-> False
-        note1 -.-> Prof
+        note1 -.-> Causal
+        note1 -.-> Perform
         note1 -.-> Over
     end
     
@@ -43,7 +45,9 @@ graph TD
     note1 --> FanOut
     FanOut -->|step_logician| StateLogician[Logician State]
     FanOut -->|step_falsifier| StateFalsifier[Falsifier State]
-    FanOut -->|step_profiler| StateProfiler[Profiler State]
+    FanOut -->|step_causal| StateCausal[Causal State]
+    FanOut -->|step_detector| StateDetector[Performativity State]
+    FanOut -->|step_overseer| StateOverseer[Overseer State]
     
     JudgeStandard["Step 5: Judge (Standard Matrix)"]
     Coach[Step 6: Coach Agent]
@@ -60,7 +64,9 @@ graph TD
         XAI -->|Raw Context| Transformer
         StateLogician -.->|Specialist Data| Transformer
         StateFalsifier -.->|Specialist Data| Transformer
-        StateProfiler -.->|Specialist Data| Transformer
+        StateCausal -.->|Specialist Data| Transformer
+        StateDetector -.->|Specialist Data| Transformer
+        StateOverseer -.->|Specialist Data| Transformer
         Transformer -->|SDUI JSON| UI_API
         Transformer -->|SDUI JSON + Charts| PDF_API
     end
@@ -79,7 +85,9 @@ graph TD
     
     StateLogician --> JudgeStandard
     StateFalsifier --> JudgeStandard
-    StateProfiler --> JudgeStandard
+    StateCausal --> JudgeStandard
+    StateDetector --> JudgeStandard
+    StateOverseer --> JudgeStandard
     
     JudgeStandard -->|Verdict| Coach
     Coach -->|CoachingPlan| XAI
@@ -118,9 +126,11 @@ All steps operate on the **Hybrid State Architecture**:
 - **Strategy:** "Deep" (Gemini Pro).
 - **Process**:
     1.  **LLM**: Generates `PanelOutputDTO` containing:
-        - `logician_analysis`: Toulmin mapping.
-        - `falsifier_analysis`: Popperian stress-testing.
-        - `profiler_analysis`: Bias detection.
+        - `logician_data`: Toulmin mapping.
+        - `falsifier_data`: Popperian stress-testing.
+        - `causal_analysis`: Cause and effect mapping.
+        - `performativity_analysis`: Bias detection (was profiler).
+        - `overseer_data`: Ethics Audit.
     2.  **Engine**: Promotes to `PanelOutput` (Domain Model).
     3.  **Fan-Out**: The Engine splits this object and writes to individual keys (`step_logician`, `step_falsifier`, etc.) to simulate independent agents for downstream consumers.
 
@@ -138,6 +148,29 @@ All steps operate on the **Hybrid State Architecture**:
 - **Process:** The Reporter creates the narrative and a flattened data structure (`XAIFlatReportDTO`).
 - **Output Branches:**
     1.  **Flat Data (`/flat`)**: Serves the lightweight `XAIFlatReportDTO` directly for external BI tools (Excel, Tableau). Hierarchy is stripped out.
-    2.  **Unified SDUI Pipeline (`/report-view` & `/pdf`)**: The complex execution state (including all Specialist data like Logician, Falsifier, Profiler) is passed through a single, unified `ReportCoreTransformer`. 
+    2.  **Unified SDUI Pipeline (`/report-view` & `/pdf`)**: The complex execution state (including all Specialist data like Logician, Falsifier, Causal) is passed through a single, unified `ReportCoreTransformer`. 
         *   This transformer emits a strict Server-Driven UI (SDUI) schema (`ReportView`).
         *   Both the **Flutter Frontend** and the in-memory **PDF Generator** consume this identical SDUI output to render rich, consistent visual components (Radar charts, scorecards, logic bubbles) without duplicating presentation logic.
+
+---
+
+## 3. Core Data Services & Integrity Paradigms (V3.2 Additions)
+
+### 3.1 Strict Identifiers & Storage
+To mitigate data collisions and standardize file-system abstractions:
+- **Prefixed UUIDs:** The system strictly enforces semantic prefixes for all Primary Keys via `backend/utils/identifiers.py` (e.g., `wf-1234abcd`, `matrix-9876`). Loose string matching is deprecated.
+- **StorageDriver Pattern:** All blob and document operations (like PDF generation or Knowledge Base chunking) utilize the `get_storage_driver()` abstraction, guaranteeing seamless Local/Cloud filesystem parity.
+
+### 3.2 The 3-Tier Search & Grounding Architecture
+Information retrieval is strictly segregated into three non-overlapping paradigms to prevent context collapse:
+
+1. **Analyst Hypothesis Search (`backend/hooks/search.py`)**: *Generative Evidence Gathering*. Pre-execution hook that independently searches the web to expand the Analyst's awareness *before* claims are formulated.
+2. **Dynamic Vertex Grounding (`backend/llm/provider.py`)**: *In-line Fact-Checking*. Activated dynamically via the Database Model Registry (`supports_grounding=True`). It cross-references the AI's *own* generated tokens with Google Search in real-time, injecting citation URLs directly into the metadata.
+3. **Internal Knowledge Base (`backend/hooks/references.py` & Service)**: *Post-Execution Compliance*. This "Reference Search" is performed **Asynchronously** at the very end of the workflow via the `generate_bibliography_hook`.
+    - **Mechanics:** The hook aggregates the complete text output (from `step_coach` and `inputs`) into a massive `text_dump` and cross-references it against local repository concepts (`repository.get_references()`).
+    - **Performance Profile:** Since it executes purely in Python strictly *after* all heavy sequential LLM generations are completed, **it is NOT a latency bottleneck** for the primary generative path. It ensures Domain Policy (Brand Book) adherence just prior to final PDF generation.
+
+### 3.3 LLM Extraction Resiliency (Metadata & Instructor)
+To prevent `Empty Choices` failures on massive conversational inputs (e.g., passing 100k+ tokens to the `Interaction Analyst` via Gemini Flash), the `LiteLLMProvider` employs a hybrid extraction strategy:
+- **Standard (`.create()`)**: The default, rock-solid method for handling massive contexts without crashing the JSON structured output parser.
+- **Grounding (`.create_with_completion()`)**: Engaged *only* when `supports_grounding` is True, as it sacrifices large-context stability to extract the raw HTTP headers containing Google Search grounding citations.

@@ -9,7 +9,7 @@ from typing import Any
 import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
+from backend.models.domain.usage import TokenUsage
 
 class AuditLogEntry(BaseModel):
     """Strict model for a single audit log entry."""
@@ -66,8 +66,13 @@ class Metadata(BaseModel):
     audit_logs: list[AuditLogEntry] | None = Field(
         default=None, description="Audit logs.", json_schema_extra={"x-ui-label": "Audit Logs"}
     )
-    token_usage: dict[str, float | int] | None = Field(default=None, description="Token usage statistics from language model.")
-
+    token_usage: TokenUsage | None = Field(default=None, description="Token usage statistics from language model.")
+    system_fingerprint: str | None = Field(
+        default=None, description="System fingerprint identifying exact model weights used.", json_schema_extra={"x-ui-label": "System Fingerprint"}
+    )
+    provider_metadata: dict[str, Any] | None = Field(
+        default=None, description="Raw provider specific metadata (e.g. rate limits, safety ratings, citations).", json_schema_extra={"x-ui-label": "Provider Metadata"}
+    )
     @field_validator("agentti", "suoritus_ymparisto")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
@@ -106,6 +111,11 @@ class ReasoningTraceDTO(BaseModel):
         ...,
         description="Self-assessed confidence score (0.0 - 1.0).",
         json_schema_extra={"x-ui-label": "Confidence Score"},
+    )
+    reasoning_token: str | None = Field(
+        default=None,
+        description="Encrypted Reasoning Blob / Thought signature from the LLM.",
+        json_schema_extra={"x-ui-hidden": True},
     )
 
     model_config = ConfigDict(frozen=True)
@@ -157,6 +167,11 @@ class UsageRecord(BaseModel):
     output_tokens: int = Field(
         ..., description="Output token count.", json_schema_extra={"x-ui-label": "Output Tokens"}
     )
+    cached_tokens: int = Field(default=0, description="Cached tokens.", json_schema_extra={"x-ui-label": "Cached Tokens"})
+    reasoning_tokens: int = Field(default=0, description="Reasoning tokens.", json_schema_extra={"x-ui-label": "Reasoning Tokens"})
+    latency_ms: int | None = Field(default=None, description="Request latency in ms.", json_schema_extra={"x-ui-label": "Latency (ms)"})
+    finish_reason: str | None = Field(default=None, description="Finish reason.", json_schema_extra={"x-ui-label": "Finish Reason"})
+    system_fingerprint: str | None = Field(default=None, description="System fingerprint.", json_schema_extra={"x-ui-label": "System Fingerprint"})
     cost_usd: float = Field(..., description="Cost in USD.", json_schema_extra={"x-ui-label": "Cost (USD)"})
     timestamp: datetime = Field(..., description="Timestamp of usage.", json_schema_extra={"x-ui-label": "Timestamp"})
 

@@ -58,9 +58,8 @@
                     "CausalAnalystAgent": "deep",
                     "PerformativityDetectorAgent": "precise",
                     "ArchivistAgent": "precise",
-                    "RetrievalAgent": "fast",
-                    "PanelAgent": "deep",
-                    "SearchHook": "fast"
+                    "RetrievalAgent": "deep",
+                    "PanelAgent": "deep"
                 }
             }
         },

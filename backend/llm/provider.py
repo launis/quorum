@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -90,6 +91,7 @@ class LiteLLMProvider(LLMProvider):
         usage_service: UsageService | None = None,
         organization_id: str | None = None,
         limits: dict[str, int] | None = None,
+        supports_grounding: bool = False,
     ):
         """Initializes the LiteLLM provider.
 
@@ -100,12 +102,14 @@ class LiteLLMProvider(LLMProvider):
             usage_service (Optional[UsageService]): Service for cost tracking.
             organization_id (Optional[str]): Context organization ID.
             limits (Optional[dict]): Override TPM/RPM limits (e.g. from Organization).
+            supports_grounding (bool): Whether this model strategy requires Vertex Grounding.
         """
         self.model_name = model_name
         self.api_key = api_key
         self.settings = settings
         self.usage_service = usage_service
         self.organization_id = organization_id or "UNKNOWN_ORG"
+        self.supports_grounding = supports_grounding
 
         # litellm general config
         litellm.drop_params = True
@@ -282,6 +286,22 @@ class LiteLLMProvider(LLMProvider):
             logger.info(f"[LiteLLMProvider] Using Vertex Location: {v_loc}")
             call_kwargs["vertex_location"] = v_loc
 
+            # --- DYNAMIC GROUNDING (Google Search) ---
+            # Driven by the settings (UI Model Registry config)
+            if getattr(self, "supports_grounding", False):
+                # Ensure it's a Vertex AI compatible model
+                if self.model_name.startswith("vertex_ai/"):
+                    logger.info(f"[LiteLLMProvider] Google Search Grounding ENABLED for {self.model_name}")
+                    
+                    # Check if tools are already passed to kwargs
+                    existing_tools = call_kwargs.get("tools", [])
+                    # Append Google Search Tool schema required by Vertex AI
+                    search_tool = {"googleSearch": {}}
+                    
+                    if search_tool not in existing_tools:
+                        existing_tools.append(search_tool)
+                        call_kwargs["tools"] = existing_tools
+
             # --- DIAGNOSTIC DUMP ---
             dump_file = os.getenv("DUMP_PROMPTS_FILE")
             if dump_file:
@@ -291,6 +311,8 @@ class LiteLLMProvider(LLMProvider):
                         f.write(json.dumps(messages, indent=2, ensure_ascii=False))
                 except Exception as e:
                     logger.warning(f"Failed to dump prompt: {e}")
+
+            start_time = time.perf_counter()
 
             # --- INSTRUCTOR CALL (Structured) ---
             if response_schema:
@@ -344,24 +366,41 @@ class LiteLLMProvider(LLMProvider):
 
                 logger.info(f"[Instructor] Calling {self.model_name} with schema {schema_name}")
 
-                # Use create_with_completion to get both the Pydantic model and the raw completion
-                # This allows us to extract usage stats that are otherwise lost in the wrapper.
-                structured_response, raw_completion = await self.client.chat.completions.create_with_completion(
-                    **call_kwargs
-                )
+                # HYBRID APPROACH (Feb 2026): 
+                # `create_with_completion` extracts Grounding Citations but crashes on Gemini-Flash with 100k+ tokens.
+                # Standard `.create()` is rock solid for big context but swallows the raw headers.
+                # We only use the fragile `create_with_completion` if Grounding is explicitly required.
 
-                # Check what we got. If standard usage, it's the Pydantic object.
-                parsed_obj = structured_response
+                if self.settings and getattr(self.settings, "supports_grounding", False):
+                    logger.info(f"[Instructor] Grounding enabled. Using create_with_completion.")
+                    structured_response, raw_completion = await self.client.chat.completions.create_with_completion(**call_kwargs)
+                    parsed_obj = structured_response
+                else:
+                    logger.info(f"[Instructor] Standard extraction. Using .create().")
+                    parsed_obj = await self.client.chat.completions.create(**call_kwargs)
+                    # For metrics, attempt to extract the underlying object if available
+                    raw_completion = getattr(parsed_obj, "_raw_response", None)
+
                 final_content = parsed_obj.model_dump_json()
 
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
+                
                 # Extract Usage from raw_completion if available
-                usage: dict[str, Any] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                usage: dict[str, Any] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cached_tokens": 0, "reasoning_tokens": 0}
                 if hasattr(raw_completion, "usage") and raw_completion.usage:
-                    usage = {
-                        "prompt_tokens": raw_completion.usage.prompt_tokens,
-                        "completion_tokens": raw_completion.usage.completion_tokens,
-                        "total_tokens": raw_completion.usage.total_tokens,
-                    }
+                    usage["prompt_tokens"] = getattr(raw_completion.usage, "prompt_tokens", 0) or 0
+                    usage["completion_tokens"] = getattr(raw_completion.usage, "completion_tokens", 0) or 0
+                    usage["total_tokens"] = getattr(raw_completion.usage, "total_tokens", 0) or 0
+                    
+                    if hasattr(raw_completion.usage, "prompt_tokens_details") and raw_completion.usage.prompt_tokens_details:
+                        usage["cached_tokens"] = getattr(raw_completion.usage.prompt_tokens_details, "cached_tokens", 0) or 0
+                    
+                    if hasattr(raw_completion.usage, "completion_tokens_details") and raw_completion.usage.completion_tokens_details:
+                        usage["reasoning_tokens"] = getattr(raw_completion.usage.completion_tokens_details, "reasoning_tokens", 0) or 0
+
+                finish_reason = None
+                if hasattr(raw_completion, "choices") and raw_completion.choices:
+                    finish_reason = getattr(raw_completion.choices[0], "finish_reason", None)
 
                 # Extract reasoning token if possible (from provider_specific_fields or model_extra)
                 # Note: raw_completion is a generic Completion object (or ChatCompletion)
@@ -378,12 +417,43 @@ class LiteLLMProvider(LLMProvider):
                     if hasattr(msg, "provider_specific_fields") and msg.provider_specific_fields:
                         reasoning_token = msg.provider_specific_fields.get("thought_signature")
 
+                # --- ADVANCED TELEMETRY & METADATA ---
+                system_fingerprint = getattr(raw_completion, "system_fingerprint", None)
+                if finish_reason in ["stop", "eos"]:
+                    finish_reason = None
+                
+                provider_meta = raw_completion.model_dump() if hasattr(raw_completion, "model_dump") else {}
+                
+                # Rate limits
+                if hasattr(raw_completion, "_hidden_params") and isinstance(raw_completion._hidden_params, dict):
+                    headers = raw_completion._hidden_params.get("headers", {})
+                    if hasattr(headers, "get"):
+                        rem_reqs = headers.get("x-ratelimit-remaining-requests")
+                        if rem_reqs:
+                            provider_meta["rate_limit_remaining"] = rem_reqs
+                            if str(rem_reqs).isdigit() and int(rem_reqs) < 10:
+                                logger.warning(f"[LiteLLMProvider] QUOTA WARNING: Only {rem_reqs} requests remaining.")
+
+                # Vertex AI Safety & Grounding
+                if hasattr(raw_completion, "model_extra") and isinstance(raw_completion.model_extra, dict):
+                    if "safety_ratings" in raw_completion.model_extra:
+                        provider_meta["safety_ratings"] = raw_completion.model_extra["safety_ratings"]
+                    gm = raw_completion.model_extra.get("grounding_metadata", {})
+                    if isinstance(gm, dict) and "grounding_chunks" in gm:
+                        urls = [
+                            chunk["web"]["uri"] for chunk in gm["grounding_chunks"]
+                            if isinstance(chunk, dict) and "web" in chunk and "uri" in chunk["web"]
+                        ]
+                        if urls:
+                            provider_meta["grounding_urls"] = urls
+
                 # --- COST TRACKING ---
                 cost = 0.0
                 if self.usage_service:
                     try:
-                        # Calculate cost using LiteLLM raw_completion
-                        cost = litellm.completion_cost(completion_response=raw_completion)
+                        # Calculate cost using LiteLLM raw_completion, explicitly passing model name without provider prefix
+                        base_model_name = self.model_name.split("/")[-1] if "/" in self.model_name else self.model_name
+                        cost = litellm.completion_cost(completion_response=raw_completion, model=base_model_name)
 
                         # Resolve IDs from kwargs (execution config) or provider instance
                         target_org = kwargs.get("organization_id") or self.organization_id
@@ -395,20 +465,26 @@ class LiteLLMProvider(LLMProvider):
                             model=self.model_name,
                             input_tokens=int(usage.get("prompt_tokens", 0)),
                             output_tokens=int(usage.get("completion_tokens", 0)),
+                            cached_tokens=int(usage.get("cached_tokens", 0)),
+                            reasoning_tokens=int(usage.get("reasoning_tokens", 0)),
+                            latency_ms=latency_ms,
+                            finish_reason=str(finish_reason) if finish_reason else None,
+                            system_fingerprint=system_fingerprint,
                             cost_usd=cost,
                         )
                     except Exception as e:
                         logger.warning(f"[LiteLLMProvider] Usage Tracking Failed: {e}")
 
                 # Inject cost into usage dict so BaseAgent can pick it up
-                usage["total_cost"] = cost
+                usage["cost_usd"] = cost
 
                 return LLMResponse(
                     content=final_content,
                     parsed_content=parsed_obj.model_dump(),
                     reasoning_token=reasoning_token,
                     token_usage=usage,
-                    provider_metadata=raw_completion.model_dump() if hasattr(raw_completion, "model_dump") else {},
+                    provider_metadata=provider_meta,
+                    system_fingerprint=system_fingerprint,
                     tool_calls=[],
                     messages=messages,
                 )
@@ -419,11 +495,13 @@ class LiteLLMProvider(LLMProvider):
             call_kwargs["model"] = self.model_name
 
             response = await self.router.acompletion(**call_kwargs)  # type: ignore[call-overload]
+            latency_ms = int((time.perf_counter() - start_time) * 1000)
 
             # Extract basic content
             choice = response.choices[0]
             message = choice.message
             raw_content = message.content or ""
+            finish_reason = getattr(choice, "finish_reason", None)
 
             # Extract Reasoning Token (Gemini 3 / GPT-5.1)
             reasoning_token = None
@@ -439,13 +517,17 @@ class LiteLLMProvider(LLMProvider):
                 reasoning_token = response.model_extra.get("thought_signature")
 
             # Extract Usage
-            usage = {}
-            if hasattr(response, "usage"):
-                usage = {
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens,
-                }
+            usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cached_tokens": 0, "reasoning_tokens": 0}
+            if hasattr(response, "usage") and response.usage:
+                usage["prompt_tokens"] = getattr(response.usage, "prompt_tokens", 0) or 0
+                usage["completion_tokens"] = getattr(response.usage, "completion_tokens", 0) or 0
+                usage["total_tokens"] = getattr(response.usage, "total_tokens", 0) or 0
+                
+                if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details:
+                    usage["cached_tokens"] = getattr(response.usage.prompt_tokens_details, "cached_tokens", 0) or 0
+                
+                if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
+                    usage["reasoning_tokens"] = getattr(response.usage.completion_tokens_details, "reasoning_tokens", 0) or 0
 
             # Handle Schema Parsing (Validation) - This block is now only for non-Instructor structured output
             # If schema was requested, we return the JSON string in 'content'
@@ -459,32 +541,70 @@ class LiteLLMProvider(LLMProvider):
             # If response_schema was passed, the `if response_schema:` block above would have handled it.
             # This means if we reach here, response_schema was None, and we just return raw_content.
 
+            # --- ADVANCED TELEMETRY & METADATA ---
+            system_fingerprint = getattr(response, "system_fingerprint", None)
+            if finish_reason in ["stop", "eos"]:
+                finish_reason = None
+            
+            provider_meta = response.model_dump() if hasattr(response, "model_dump") else {}
+            
+            # Rate limits
+            if hasattr(response, "_hidden_params") and isinstance(response._hidden_params, dict):
+                headers = response._hidden_params.get("headers", {})
+                if hasattr(headers, "get"):
+                    rem_reqs = headers.get("x-ratelimit-remaining-requests")
+                    if rem_reqs:
+                        provider_meta["rate_limit_remaining"] = rem_reqs
+                        if str(rem_reqs).isdigit() and int(rem_reqs) < 10:
+                            logger.warning(f"[LiteLLMProvider] QUOTA WARNING: Only {rem_reqs} requests remaining.")
+
+            # Vertex AI Safety & Grounding Citations
+            if hasattr(response, "model_extra") and isinstance(response.model_extra, dict):
+                if "safety_ratings" in response.model_extra:
+                    provider_meta["safety_ratings"] = response.model_extra["safety_ratings"]
+                gm = response.model_extra.get("grounding_metadata", {})
+                if isinstance(gm, dict) and "grounding_chunks" in gm:
+                    urls = [
+                        chunk["web"]["uri"] for chunk in gm["grounding_chunks"]
+                        if isinstance(chunk, dict) and "web" in chunk and "uri" in chunk["web"]
+                    ]
+                    if urls:
+                        provider_meta["grounding_urls"] = urls
+                        # Inject Grounding Citations directly into the markdown response!
+                        final_content += "\n\n**Lähteet (Google Search Grounding):**\n"
+                        final_content += "\n".join([f"- [{url}]({url})" for url in urls])
+
             # --- COST TRACKING ---
             cost = 0.0
             if self.usage_service:
                 try:
-                    # Calculate cost using LiteLLM
-                    cost = litellm.completion_cost(completion_response=response)
+                    # Calculate cost using LiteLLM, explicitly passing model name without provider prefix
+                    base_model_name = self.model_name.split("/")[-1] if "/" in self.model_name else self.model_name
+                    cost = litellm.completion_cost(completion_response=response, model=base_model_name)
 
                     # Resolve IDs from kwargs (execution config) or provider instance
                     target_org = kwargs.get("organization_id") or self.organization_id
                     target_user = kwargs.get("user_id") or "system_agent"
 
                     # Track usage asynchronously (fire and forget for now, or await)
-                    # For strict async correctness, we await it.
                     await self.usage_service.track_usage(
                         org_id=target_org,
                         user_id=target_user,
                         model=self.model_name,
                         input_tokens=int(usage.get("prompt_tokens", 0)),
                         output_tokens=int(usage.get("completion_tokens", 0)),
+                        cached_tokens=int(usage.get("cached_tokens", 0)),
+                        reasoning_tokens=int(usage.get("reasoning_tokens", 0)),
+                        latency_ms=latency_ms,
+                        finish_reason=str(finish_reason) if finish_reason else None,
+                        system_fingerprint=system_fingerprint,
                         cost_usd=cost,
                     )
                 except Exception as e:
                     logger.warning(f"[LiteLLMProvider] Usage Tracking Failed: {e}")
 
             # Inject cost into usage dict so BaseAgent can pick it up
-            usage["total_cost"] = cost
+            usage["cost_usd"] = cost
 
             from typing import cast
 
@@ -493,7 +613,8 @@ class LiteLLMProvider(LLMProvider):
                 parsed_content=parsed_obj if response_schema else None,
                 reasoning_token=reasoning_token,
                 token_usage=cast(dict[str, float | int], usage),
-                provider_metadata=response.model_dump() if hasattr(response, "model_dump") else {},
+                provider_metadata=provider_meta,
+                system_fingerprint=system_fingerprint,
                 tool_calls=[],
                 messages=messages,
             )
@@ -854,4 +975,5 @@ class LLMFactory:
             usage_service=usage_service,
             organization_id=organization_id,
             limits=limits,
+            supports_grounding=config.supports_grounding if config else False,
         )

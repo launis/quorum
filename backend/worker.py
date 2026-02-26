@@ -128,7 +128,7 @@ async def execute_workflow_job(
                                         # Extract Cost per step
                                         tu = meta.get("token_usage", {})
                                         if isinstance(tu, dict):
-                                            cost_estimate += tu.get("total_cost", 0.0)
+                                            cost_estimate += tu.get("cost_usd", 0.0)
 
                 await repository.update_execution(
                     execution_id, 

@@ -35,6 +35,11 @@ class UsageService:
         input_tokens: int,
         output_tokens: int,
         cost_usd: float,
+        cached_tokens: int = 0,
+        reasoning_tokens: int = 0,
+        latency_ms: int | None = None,
+        finish_reason: str | None = None,
+        system_fingerprint: str | None = None,
     ) -> UsageRecord:
         """Track and persist a usage record.
 
@@ -63,11 +68,45 @@ class UsageService:
                 model=model,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
+                cached_tokens=cached_tokens,
+                reasoning_tokens=reasoning_tokens,
+                latency_ms=latency_ms,
+                finish_reason=finish_reason,
+                system_fingerprint=system_fingerprint,
                 cost_usd=cost_usd,
                 timestamp=datetime.now(UTC),
             )
 
             await self.repo.log_usage(record)
+
+            # --- CUMULATIVE AGGREGATION ---
+            if hasattr(self.repo, "upsert_usage_aggregate"):
+                period = datetime.now(UTC).strftime("%Y-%m")
+                total_t = input_tokens + output_tokens
+                update_data = {
+                    "total_executions": 1,
+                    "usage": {
+                        "prompt_tokens": input_tokens,
+                        "completion_tokens": output_tokens,
+                        "total_tokens": total_t,
+                        "cached_tokens": cached_tokens,
+                        "reasoning_tokens": reasoning_tokens,
+                        "cost_usd": cost_usd
+                    }
+                }
+                
+                # System Level (All traffic)
+                await self.repo.upsert_usage_aggregate("system", None, period, update_data)
+                await self.repo.upsert_usage_aggregate("system", None, "all-time", update_data)
+                
+                # Organization Level
+                if org_id:
+                    await self.repo.upsert_usage_aggregate("organization", org_id, period, update_data)
+                    await self.repo.upsert_usage_aggregate("organization", org_id, "all-time", update_data)
+                if user_id:
+                    await self.repo.upsert_usage_aggregate("user", user_id, period, update_data)
+                    await self.repo.upsert_usage_aggregate("user", user_id, "all-time", update_data)
+
             return record
 
         except Exception as e:
@@ -126,36 +165,61 @@ class UsageService:
     async def get_usage_report(
         self, scope: str, entity_id: str | None = None, since: str | None = None
     ) -> UsageReport:
-        records_data = []
-        if hasattr(self.repo, "get_usage_records"):
-            records_data = await self.repo.get_usage_records(scope=scope, entity_id=entity_id, since=since)
+        # Determine period
+        period = "all-time"
+        if since:
+            now = datetime.now(UTC)
+            start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+            if since >= start_of_month:
+                period = now.strftime("%Y-%m")
         
-        prompt_tokens = 0
-        completion_tokens = 0
-        total_tokens = 0
-        cost_usd = 0.0
+        agg = None
+        if hasattr(self.repo, "get_usage_aggregate"):
+            # Map frontend scope 'org' to 'organization' exactly as aggregated
+            mapped_scope = "organization" if scope == "org" else scope
+            agg = await self.repo.get_usage_aggregate(mapped_scope, entity_id, period)
         
-        for r in records_data:
-            prompt_tokens += r.get("input_tokens", 0)
-            completion_tokens += r.get("output_tokens", 0)
-            total_tokens += r.get("total_tokens", r.get("input_tokens", 0) + r.get("output_tokens", 0))
-            cost_usd += float(r.get("cost_usd", 0.0))
+        if agg:
+            usage_data = agg.get("usage", {})
+            token_usage = TokenUsage(
+                prompt_tokens=usage_data.get("prompt_tokens", 0),
+                completion_tokens=usage_data.get("completion_tokens", 0),
+                total_tokens=usage_data.get("total_tokens", 0),
+                cached_tokens=usage_data.get("cached_tokens", 0),
+                reasoning_tokens=usage_data.get("reasoning_tokens", 0),
+                cost_usd=usage_data.get("cost_usd", 0.0)
+            )
+        else:
+            records_data = []
+            if hasattr(self.repo, "get_usage_records"):
+                mapped_scope = "organization" if scope == "org" else scope
+                records_data = await self.repo.get_usage_records(scope=mapped_scope, entity_id=entity_id, since=since)
             
-        token_usage = TokenUsage(
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
-            cost_usd=cost_usd
-        )
+            prompt_tokens = sum(r.get("input_tokens", 0) for r in records_data)
+            completion_tokens = sum(r.get("output_tokens", 0) for r in records_data)
+            total_tokens = sum(r.get("total_tokens", r.get("input_tokens", 0) + r.get("output_tokens", 0)) for r in records_data)
+            cached_tokens = sum(r.get("cached_tokens", 0) for r in records_data)
+            reasoning_tokens = sum(r.get("reasoning_tokens", 0) for r in records_data)
+            cost_usd = sum(float(r.get("cost_usd", 0.0)) for r in records_data)
+                
+            token_usage = TokenUsage(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+                cached_tokens=cached_tokens,
+                reasoning_tokens=reasoning_tokens,
+                cost_usd=cost_usd
+            )
         
         quota_limit = None
         percentage_used = None
-        if scope == "organization" and entity_id:
+        mapped_scope = "organization" if scope == "org" else scope
+        if mapped_scope == "organization" and entity_id:
             org = await self.repo.get_organization(entity_id)
             if org:
                 quota_limit = float(org.get("quota_limit", 10.0))
                 if quota_limit > 0:
-                    percentage_used = min(100.0, (cost_usd / quota_limit) * 100.0)
+                    percentage_used = min(100.0, (token_usage.cost_usd / quota_limit) * 100.0)
                     
         return UsageReport(
             scope=scope,
