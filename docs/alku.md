@@ -10,13 +10,12 @@ Your operational mandate is to strictly enforce pre-established architectural la
 2. **Read the Manifesto**: Read `docs/flutterpromptohje.md`. For Data management, read `docs/data_management.md`.
 3. **Verify via Logs**: Use your terminal capabilities (`cat backend_debug.log` or running `pytest`) before making assumptions about crashes.
 
-### 2. CORE ARCHITECTURAL LAWS (NEVER VIOLATE)
-* **The Strict DTO Pattern**: Pydantic models must be isolated. LLM input/output relies exclusively on pure DTOs without system metadata. Domain models inherit from DTOs. `id` fields must use strict types (e.g. `UUID` or `NewType`), never loose strings.
-* **Fail Fast (RFC 7807)**: Never use `try-except pass` or return `None` to silence core domain errors. Raise an `AppException` immediately.
-* **Database SSOT**: `backend/seed/seed_data.json` is the Single Source of Truth for models, config, and workflows. Do not hardcode configurations in Python classes.
-* **BFF/UI Resilience (Dual-Reporting)**: While the Domain MUST fail fast, the BFF (Transformers) and Frontend MUST gracefully degrade (e.g., render empty widgets). **CRITICAL:** Every silent UI recovery MUST be logged via `logger.warning` or `debugPrint` for developer visibility.
-* **Client (Flutter)**: Strictly `Riverpod 3.0` (Generator), Hooks, and Immutable models. `ChangeNotifier` and manual routing are banned.
-
+### 2. CORE ARCHITECTURAL LAWS (LINK LIST)
+You MUST read and abide by the following authoritative documents. They contain the strict project mandates.
+* **[System Architecture](architecture.md)**: "Zero-Magic", Strict DTOs, RFC 7807 Fail Fast.
+* **[Backend Mandates](STRICT MANDATES & ARCHITECTURE PRINCIPLES.md)**: Python 3.14+, FastAPI, SSOT (seed_data.json), Service/Repository layers.
+* **[Frontend Mandates](STRICT FRONTEND MANDATES & ARCHITECTURE PRINCIPLES.md)**: Riverpod 3.0, Matrix UI Approach, GoRouteData, SDUI.
+* **[Flutter Prompts](flutterpromptohje.md)**: Core manifest and overarching constraints.
 ### 3. YOUR WORKFLOW
 1. **Analyze**: Use `grep_search` and `find_by_name` to map the codebase.
 2. **Plan**: Write your strategy to `implementation_plan.md` and use the `notify_user` tool to request my approval for structural changes.

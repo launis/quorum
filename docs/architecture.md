@@ -7,8 +7,8 @@ Cognitive Quorum V2.9 is a deterministic, highly verifiable AI orchestration pla
 
 ## 0. Key Architectural Upgrades (Q1 2026)
 Significant hardening has occurred in Phase 2.5 and Phase 8 (Bulletproof Agencies):
-*   **Strict Type Safety**: Transited from Dictionary-based inputs to **Strict Pydantic Models** (`JudgeInput`, `ProfilerInput`, etc.).
-*   **Fail Fast Protocol**: Adopted **RFC 7807** error handling. Agents and Hooks verify inputs *before* execution, raising `AppException` (400) instead of failing silently or hallucinating.
+*   **The Strict DTO Pattern (Type Safety)**: Pydantic models must be strictly isolated. LLM input/output relies exclusively on pure DTOs without system metadata. Domain models inherit from DTOs. `id` fields must use strict types (e.g. `UUID` or `NewType`), never loose strings. Transited from Dictionary-based inputs to **Strict Pydantic Models** (`JudgeInput`, `ProfilerInput`, etc.) to prevent hallucination.
+*   **Fail Fast Protocol (RFC 7807)**: Never use `try-except pass` or return `None` to silence core domain errors. Agents and Hooks must verify inputs *before* execution and raise an `AppException` (400) immediately instead of failing silently or hallucinating.
 *   **Relative Scoring**: Scoring logic now uses configurable percentage-based penalties (from `settings.py`) with safety clamps.
 *   **XAI Hardening**: `XAIReporter` strictly enforces `JudgeScoreCard` schema, rejecting legacy flat structures.
 

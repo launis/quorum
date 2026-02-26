@@ -14,8 +14,10 @@ Tässä poistetaan kaikki vanhentunut tilanhallinta (Legacy Providers, `ChangeNo
 Koko suunnitelman ja kaiken tulevan koodauksen on noudatettava täydellisesti projektin ohjeistoa (`docs/flutterpromptohje.md`). Erityisesti seuraavat mandaatit ovat nyt keskiössä:
 
 ### 1. PART 4.1.1: State Management, Optimistic Updates & Declarative UI
-- **Riverpod 3.0 & .when():** Kaikki vanhat `ChangeNotifier`, `StateProvider` ja manuaaliset providerit OVAT KIELLETTYJÄ. Tilanhallinta on päivitettävä käyttämään yksinomaan `@riverpod`-generaattoria ja Notifier-arkkitehtuuria. UI:ssa on PAKKO käyttää `AsyncValue.when()` -metodia lataus- ja virhetilojen deklaratiiviseen esittämiseen. Manuaaliset `if (isLoading)` tai `if (hasError)` -tarkistukset build-metodeissa on poistettava.
+- **Client Framework (Flutter):** Strictly `Riverpod 3.0` (Generator), Hooks, and Immutable models. `ChangeNotifier` and manual routing ovat EHDOTTOMASTI KIELLETTYJÄ.
+- **Riverpod 3.0 & .when():** Tilanhallinta on päivitettävä käyttämään yksinomaan `@riverpod`-generaattoria ja Notifier-arkkitehtuuria. UI:ssa on PAKKO käyttää `AsyncValue.when()` -metodia lataus- ja virhetilojen deklaratiiviseen esittämiseen. Manuaaliset `if (isLoading)` tai `if (hasError)` -tarkistukset build-metodeissa on poistettava.
 - **Mutaatiot (Optimistic Updates):** Kaikkiin datan muutoksiin (tallennus/päivitys/poisto verkon yli) on pakko toteuttaa "Optimistic Update + Silent Sync + Rollback" -malli. Käyttöliittymän pitää reagoida heti muuttamalla lokaalia tilaa, mutta virhetilanteessa tilan on palauduttava automaattisesti edelliseen ja nostettava virhe ylös.
+- **BFF/UI Resilience (Dual-Reporting):** Vaikka Domainin on kaaduttava virhetilanteessa (Fail-Fast), Frontendin (ja BFF-kerroksen) on hoidettava virheet tyylikkäästi (Graceful Degradation), esim. renderöimällä tyhjiä widgettejä valkoisen ruudun sijaan. **KRIITTISTÄ:** Jokainen tällainen näkymätön UI-pelastusoperaatio on LOGATTAVA kehittäjille (`debugPrint` tai `logger.warning`).
 
 ### 2. PART 4.1.2: Relaatiodatan hallinta (The Simple "Matrix" Approach)
 Relaatioita sisältävien näyttöjen käsittely on EHDOTTOMASTI tehtävä best-practice -tyylillä, yksinkertaista Riverpod-arkkitehtuuria hyödyntäen.

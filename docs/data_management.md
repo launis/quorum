@@ -57,6 +57,12 @@ The Cognitive Quorum backend is uniquely designed **without any traditional Obje
 
 Because NoSQL document stores (TinyDB / Firestore) are used, the system avoids "Object-Relational Impedance Mismatch." Adding a new field to a Pydantic model instantly propagates it throughout the entire slice of the application—from the database to the REST API—without requiring explicitly coded database migrations.
 
+### Optimistic Locking (Collision Prevention)
+To ensure data integrity in our Async Monolith, all core Domain models (e.g. `WorkflowState`) implement **Optimistic Locking** via a `version` integer field.
+*   **Read**: When fetching a record, the current `version` is read.
+*   **Write**: When updating, the repository requires the `expected_version`. If the `version` in the database does not match the expected version (meaning another process updated it in the background), the transaction is rejected, raising a `VersionConflictError`.
+*   **Result**: This natively prevents race conditions between the Fast API controllers and the parallel Arq Worker processes.
+
 ### Unified Workflow Repository & Storage Drivers
 The system abstracts data access via the **Storage Driver Pattern**, enabling a single repository implementation to support multiple backends with identical business logic.
 

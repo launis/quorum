@@ -19,7 +19,7 @@ Koko suunnitelman ja kaiken tulevan koodauksen on noudatettava täydellisesti pr
 
 ### 2. PART 17: DOCUMENTATION & HYGIENE (Strict Mandate)
 - **ENGLISH ONLY -SÄÄNTÖ:** Kaikki koodi, muuttujien nimet, funktioiden nimet, luokat ja lähdekoodin sisäiset kommentit/docstringit ON KIRJOITETTAVA YKSINOMAAN ENGLANNIKSI. Suomenkieliset termit koodissa on siivottava käännöksellä. (Poikkeuksena vain lokalisaatiotiedostot `app_fi.arb` ja `fi.json`).
-- **Hygienia:** Kaikki kuollut koodi, turhat printit ja orvot `TODO`:t (ilman vastuuhenkilöä/päivämäärää) on poistettava refaktoroinnin yhteydessä.
+- **Hygienia:** Kaikki kuollut koodi, turhat printit ja orvot `TODO`:t (ilman vastuuhenkilöä/päivämäärää) on poistettava refaktoroinnin yhteydessä. Jokainen poisto pitää erikseen perustella ja minulta vahvistaa.
 - **Tyyppivihjeet:** Täydellinen `mypy --strict` -tason tyypitys Pythonissa ja tiukka tyypitys Dartissa. Ei `Any` tai `dynamic` -tyyppejä.
 - **Docstringit (Imperative Mood):** Kaikilla julkisilla funktioilla, luokilla ja moduuleilla on oltava selkeät docstringit (Google-style Pythonissa, kolmoisslash `///` Dartissa), jotka on kirjoitettu imperatiivissa (esim. "Calculate risk score", ei "Calculates...").
 - **Koodikommentit (The "Why" Mandate):** Sisäiset kommentit saavat kertoa vain "miksi" (liiketoimintalogiikka, erikoistapaukset) jotain tehdään, ei "mitä" tehdään.
@@ -33,6 +33,7 @@ Koko suunnitelman ja kaiken tulevan koodauksen on noudatettava täydellisesti pr
   - Vahva relaatiosuoja: **Komponentteja**, jotka ovat käytössä Stepeissä, EI saa poistaa. **Steppejä**, jotka ovat käytössä Workfloweissa, EI saa poistaa. Service-kerroksen on validoitava nämä riippuvuudet ennen poistoa ja nostettava esim. `ConflictError`.
 
 ### 4. PART 2: PYTHON BACKEND MANDATES & SISÄINEN CRUD API (SSOT)
+- **Database SSOT & Seed Data:** `backend/seed/seed_data.json` is the Single Source of Truth for models, config, and workflows. Do not hardcode configurations in Python classes.
 - **Repository on SSOT:** Järjestelmän ytimeen rakennetaan vahva Service- ja Repository-kerros. Tämä on ohjelmiston "Sisäinen CRUD API" ja AINOA paikka, josta otetaan yhteys tietokanta-ajureihin (Firestore/TinyDB).
 - **Yksi yhteinen rajapinta kaikille:** Ulkoinen HTTP API (FastAPI-reitittimet), asynkroniset Workerit (`worker.py`, `engine.py`), Agenttien Hookit (`hooks/`) ja siemennysskriptit (`seed/run_seed.py`) **EIVÄT SAA** tehdä suoria tietokanta-ajurikutsuja. Ne kaikki käyttävät täsmälleen samaa Sisäistä CRUD APIa.
 - **Puuttuvien rajapintojen sääntö:** Jos jokin sisäinen prosessi tarvitsee kantaoperaatiota, jota ei vielä ole, sitä ei koskaan kovakoodata lokaaliksi erikoiskyselyksi. Puuttuva ominaisuus toteutetaan ensin standardina CRUD-metodina Repository/Service-kerrokseen.
@@ -63,7 +64,7 @@ Koko suunnitelman ja kaiken tulevan koodauksen on noudatettava täydellisesti pr
 
 # EXECUTION PLAN REQUIREMENTS (Suunnitelman rakenne)
 
-Analysoi ohjelmisto ja laadi koko refaktoroinnista erittäin yksityiskohtainen ja hienojakoinen Master Plan. Jaa koko ohjelmiston läpikäynti todella pieniin, **yksittäisinä ajoina (single run) suoritettaviin askeliin** (esim. Step 1.1, Step 1.2, Step 2.1...).
+Analysoi ohjelmisto ja laadi koko refaktoroinnista erittäin yksityiskohtainen ja hienojakoinen Master Plan. Jaa koko ohjelmiston läpikäynti todella pieniin, **yksittäisinä ajoina (single run) suoritettaviin askeliin** (esim. Step 1.1, Step 1.2, Step 2.1...). Käsittele ne kohdat, missä suunnitellaan koodin poistoa huolellisesti ja pyydä minulta erikseen lupa ennen kuin poistat mitään.
 
 Etene arkkitehtuurin pohjalta kohti käyttöliittymää seuraavan tiekartan mukaisesti:
 

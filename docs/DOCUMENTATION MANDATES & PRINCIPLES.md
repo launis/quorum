@@ -28,7 +28,7 @@ Seuraava tehtävämme on päivittää projektin `docs/`-hakemiston dokumentaatio
 
 Lue ja analysoi `docs/`-hakemiston nykyinen sisältö, erityisesti `docs/alku.md`.
 
-Laadi minulle suunnitelma, jossa koko `docs/`-hakemiston päivitys on jaettu erittäin pieniin askeliin (Step 1, Step 2, Step 3...). Dokumentin sisältö perustuu puhtaasti nykyiseen koodipohjaan ja sen arkkitehtuuriin. Järjestä askeleet loogisesti (esim. ensin ydinarkkitehtuuri, sitten spesifimmät oppaat, lopuksi indeksien päivitys ja `alku.md`:n viimeistely).
+Laadi minulle suunnitelma, jossa koko `docs/`-hakemiston päivitys on jaettu erittäin pieniin askeliin (Step 1, Step 2, Step 3...). Dokumentin sisältö perustuu puhtaasti nykyiseen koodipohjaan, tietokantaan ja sen arkkitehtuuriin. Järjestä askeleet loogisesti (esim. ensin ydinarkkitehtuuri, sitten spesifimmät oppaat, lopuksi indeksien päivitys ja `alku.md`:n viimeistely).
 
 **Jokaisesta askeleesta on ilmettävä selkeästi:**
 1. **Askeleen tunniste ja nimi:** (esim. "Step 2: Päivitetään docs/architecture.md")

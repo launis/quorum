@@ -30,6 +30,7 @@ from backend.api import (
     organization_router,
     settings_router,
     tools_router,
+    usage_router,
 )
 from backend.context import set_request_context
 from backend.core.registry import TaskRegistry
@@ -296,7 +297,7 @@ app.include_router(settings_router.router)
 app.include_router(llm_router.router)
 app.include_router(organization_router.router)
 app.include_router(tools_router.router)
-app.include_router(tools_router.router)
 app.include_router(audit_router.router)
+app.include_router(usage_router.router)
 
 

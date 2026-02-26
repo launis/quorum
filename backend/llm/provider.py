@@ -378,6 +378,31 @@ class LiteLLMProvider(LLMProvider):
                     if hasattr(msg, "provider_specific_fields") and msg.provider_specific_fields:
                         reasoning_token = msg.provider_specific_fields.get("thought_signature")
 
+                # --- COST TRACKING ---
+                cost = 0.0
+                if self.usage_service:
+                    try:
+                        # Calculate cost using LiteLLM raw_completion
+                        cost = litellm.completion_cost(completion_response=raw_completion)
+
+                        # Resolve IDs from kwargs (execution config) or provider instance
+                        target_org = kwargs.get("organization_id") or self.organization_id
+                        target_user = kwargs.get("user_id") or "system_agent"
+
+                        await self.usage_service.track_usage(
+                            org_id=target_org,
+                            user_id=target_user,
+                            model=self.model_name,
+                            input_tokens=int(usage.get("prompt_tokens", 0)),
+                            output_tokens=int(usage.get("completion_tokens", 0)),
+                            cost_usd=cost,
+                        )
+                    except Exception as e:
+                        logger.warning(f"[LiteLLMProvider] Usage Tracking Failed: {e}")
+
+                # Inject cost into usage dict so BaseAgent can pick it up
+                usage["total_cost"] = cost
+
                 return LLMResponse(
                     content=final_content,
                     parsed_content=parsed_obj.model_dump(),
