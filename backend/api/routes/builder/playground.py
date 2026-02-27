@@ -48,8 +48,20 @@ async def run_prompt(request: PlaygroundRequest) -> PlaygroundResponse:
             details={"error_code": error_code},
         ) from e
 
-    # 2. Initialize Client
-    client = LLMClient()
+    # 2. Initialize Client via DB Strategy
+    try:
+        from backend.database.repository import UnifiedWorkflowRepository
+        repo = UnifiedWorkflowRepository()
+        
+        client = await LLMClient.from_strategy(request.strategy, repository=repo)
+    except Exception as e:
+        error_code = "STRATEGY_RESOLUTION_FAILED"
+        logger.error(f"Playground Client Setup Error: {e}")
+        raise AppException(
+            message=f"Failed to load LLM strategy '{request.strategy}': {e}",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code},
+        ) from e
 
     # 3. Construct Messages
     messages = [
@@ -57,9 +69,9 @@ async def run_prompt(request: PlaygroundRequest) -> PlaygroundResponse:
         {"role": "user", "content": request.user_message},
     ]
 
-    # 4. Execute
+    # 4. Execute (Parameters inherently bound to Client by Strategy)
     try:
-        response_text = await client.run_chat(messages=messages, **request.model_params)
+        response_text = await client.run_chat(messages=messages)
         # TODO: LLMClient needs update to return usage stats. For now, empty usage.
         return PlaygroundResponse(content=response_text, usage=None)
 

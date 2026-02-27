@@ -56,38 +56,11 @@ async def test_generate_bibliography_hook_empty_text():
 async def test_generate_bibliography_hook_fail_fast_on_error():
     state = WorkflowState(workflow_id="wf-1")
     state.context_variables["inputs"] = {"history_text": "Some text"}
-    # Missing KB and No Repo -> Should Fail
-
+    # Missing KB -> Should Fail Fast
     with pytest.raises(AppException) as exc:
-        await generate_bibliography_hook(state, repository=None)
+        await generate_bibliography_hook(state)
 
     assert "SERVICE_DEPENDENCY_MISSING" in str(exc.value.details)
 
 
-@pytest.mark.asyncio
-async def test_generate_bibliography_hook_fallback_to_repo():
-    state = WorkflowState(workflow_id="wf-1")
-    state.context_variables["inputs"] = {"history_text": "Some text"}
-    # Missing KB in context
 
-    # Mock Repository
-    mock_repo = AsyncMock()
-    mock_repo.get_references.return_value = [
-        {"type": "reference", "citation": "Smith (2020)...", "short_citation": "Smith 2020"}
-    ]
-    mock_repo.get_concepts.return_value = [{"type": "concept", "term": "AI", "definition": "Artificial Intelligence"}]
-
-    with patch("backend.hooks.references.ReferenceManager") as MockRM:
-        instance = MockRM.return_value
-        mock_report = MagicMock()
-        mock_report.relevance_map = {}
-        instance.advanced_scan.return_value = mock_report
-
-        new_state = await generate_bibliography_hook(state, repository=mock_repo)
-
-        # Should succeed (no exception)
-        # And KB should be (optionally) injected back or at least used?
-        # The hook implementation injects it back if missing.
-        assert "knowledge_base" in new_state.context_variables
-        assert len(new_state.context_variables["knowledge_base"]["references"]) == 1
-        assert len(new_state.context_variables["knowledge_base"]["concepts"]) == 1

@@ -77,44 +77,35 @@ async def execute_google_search(state: WorkflowState, repository: Any = None) ->
         logger.debug("[SearchHook] No valid queries generated. Skipping search.")
         return state
 
-    # 4. Fetch model_id from repository
-    model_id = None
-    if repository and hasattr(repository, "driver"):
-        try:
-            registry = await repository.driver.get("system_config", "model_registry")
-            if registry and "models" in registry:
-                for provider_name, provider_models in registry["models"].items():
-                    # 1. Primary: Check for explicit SearchHook mapping
-                    strategy_key = provider_models.get("SearchHook")
-                    if strategy_key and strategy_key in provider_models:
-                        m_config = provider_models[strategy_key]
-                        raw_name = m_config.get("model_name", "")
-                        if raw_name.startswith("vertex_ai/"):
-                            model_id = raw_name.split("/")[-1]
-                            break
-
-                    # 2. Fallback: First model that supports grounding
-                    for m_key, m_config in provider_models.items():
-                        if isinstance(m_config, dict) and m_config.get("supports_grounding"):
-                            raw_name = m_config.get("model_name", "")
-                            if raw_name.startswith("vertex_ai/"):
-                                model_id = raw_name.split("/")[-1]
-                                break
-                    if model_id:
-                        break
-        except Exception as e:
-            logger.warning(f"[SearchHook] Failed to fetch grounding model from registry: {e}")
+    # 4. Initialize Tool via SSOT Factory
+    from backend.llm.client import LLMClient
+    from backend.exceptions import ConfigurationError
+    import asyncio
+    
+    # Hooks executing within an async workflow loop should safely execute this.
+    # Note: If executed synchronously, this would require `asyncio.run()`, 
+    # but the framework is expected to handle async properly in `execute_google_search` 
+    # because the hook signature itself is `async def`.
+    try:
+        search_client = await LLMClient.from_strategy("SearchHook", repository=repository)
+        model_id_full = search_client._config.model_name if search_client._config else None
+        
+        # Vertex tools expect the raw model id without provider prefix 'vertex_ai/'
+        if model_id_full and model_id_full.startswith("vertex_ai/"):
+            model_id = model_id_full.split("/")[-1]
+        else:
+            model_id = model_id_full
             
-    if not model_id:
-        # Fallback to older settings behavior, or raise an explicit config error
+        if not search_client._config or not search_client._config.supports_grounding:
+            # We strictly enforce that the allocated strategy must support grounding.
+            raise ConfigurationError("The assigned 'SearchHook' strategy does not have supports_grounding=True.")
+
+        tool = VertexAISearchTool(model_id=model_id)
+    except ConfigurationError as e:
         error_code = ErrorCodes.SEARCH_CONFIG_ERROR
-        msg = "No Vertex AI model with 'supports_grounding=True' found in Model Registry."
+        msg = f"Search configuration failed: {e.message}"
         logger.error(f"[SearchHook] {error_code.name}: {msg}")
         raise ConfigurationError(msg, details={"error_code": error_code})
-
-    # 5. Initialize Tool (Fails Fast on Config Error - Let it Bubble Up)
-    # VertexAISearchTool raises ConfigurationError if setup is wrong.
-    tool = VertexAISearchTool(model_id=model_id)
 
     # 5. Extract Language (Strict Inputs)
     input_data = state.context_variables.get("inputs")

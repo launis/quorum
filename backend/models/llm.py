@@ -246,14 +246,31 @@ class AgentSystemConfig(BaseModel):
     # Allow 'type' discriminator if needed in future, but distinct structure is enough here.
 
 
+class LLMStrategy(BaseModel):
+    """Pydantic Enforced Strategy Configuration for an LLM execution."""
+    
+    model_config = ConfigDict(extra="ignore", strict=True)
+    
+    model_name: Annotated[str, Field(..., description="Model identifier (e.g. 'gemini-2.5-pro').")]
+    temperature: Annotated[float, Field(default=0.7, ge=0.0, le=2.0)]
+    tpm_limit: Annotated[int, Field(default=0, ge=0, description="Tokens per minute limit.")]
+    rpm_limit: Annotated[int, Field(default=0, ge=0, description="Requests per minute limit.")]
+    max_tokens: Annotated[int | None, Field(default=None, description="Max output tokens.")]
+    allowed_tools: Annotated[list[str], Field(default_factory=list, description="Allowed function tools.")]
+    supports_grounding: Annotated[bool, Field(default=False, description="Does this strategy require Vertex Grounding.")]
+    api_key: Annotated[str | None, Field(default=None, description="Resolver specific API key override.")]
+
+
 class ModelRegistryConfig(BaseModel):
-    """Configuration for the Model Registry."""
+    """Configuration for the Model Registry SSOT."""
 
     model_config = ConfigDict(extra="ignore", strict=True)
 
     id: Literal["model_registry"] = Field(default="model_registry", description="Fixed ID.")
     type: Literal["model_registry"] = Field(default="model_registry", description="Fixed Type.")
+    # Map of Provider (e.g. google, openai) -> Map of Strategy Name (e.g. fast, SearchHook) -> Strategy
     models: Annotated[
-        dict[str, dict[str, Any]],
+        dict[str, dict[str, LLMStrategy]],
         Field(..., description="Map of Provider -> Strategy Map."),
     ]
+

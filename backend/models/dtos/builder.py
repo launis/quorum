@@ -68,7 +68,7 @@ class PlaygroundRequest(BaseModel):
     system_instruction: str = Field(description="System prompt template.")
     user_message: str = Field(description="User message.")
     variables: dict[str, str] = Field(default_factory=dict, description="Variables to inject into system prompt.")
-    model_params: dict[str, Any] = Field(default_factory=dict, description="Optional LLM parameters.")
+    strategy: str = Field(default="playground_test", description="The SSOT execution strategy to use (e.g. 'playground_test').")
 
 
 class PlaygroundResponse(BaseModel):

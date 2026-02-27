@@ -17,9 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> list[BibliographyItem]:
-    """HOOK: generate_bibliography.
+    """Scan the provided text dump for references using the ReferenceManager.
 
-    Scans the provided text dump for references using the ReferenceManager.
     Supports "advanced scan" which detects both explicit citations (e.g. "Author 2020")
     and implicit conceptual links.
 
@@ -31,7 +30,13 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> lis
         List[BibliographyItem]: A list of unique reference domain objects found in the text.
     """
     if not knowledge_base:
-        return []
+        error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
+        logger.error(f"[ReferenceHook] {error_code.name}: generate_bibliography called with an empty knowledge_base.", exc_info=True)
+        raise AppException(
+            message="generate_bibliography called with an empty knowledge_base payload.",
+            status_code=500,
+            details={"error_code": error_code}
+        )
 
     try:
         # Initialize ReferenceManager with the provided KB
@@ -72,14 +77,10 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> lis
 
 
 async def generate_bibliography_hook(state, repository: Any = None) -> "WorkflowState":
-    """WorkflowState wrapper for generate_bibliography.
-
-    Now Async to support repository loading if KB is missing.
-    """
+    """Wrap generate_bibliography and inject its results into WorkflowState."""
     logger.debug("[ReferenceHook] Running generate_bibliography_hook...")
 
     try:
-        # 1. Extract Text
         text_dump = ""
         input_data = state.context_variables.get("inputs")
         inputs = inflate(input_data, WorkflowInputs)
@@ -89,7 +90,6 @@ async def generate_bibliography_hook(state, repository: Any = None) -> "Workflow
                 text = getattr(inputs, field) or ""
                 text_dump += str(text) + "\n"
 
-        # Strict: Output is in context_variables
         step_coach = state.context_variables.get("step_coach")
         if step_coach and hasattr(step_coach, "model_dump"):
             text_dump += json.dumps(step_coach.model_dump(), ensure_ascii=False)
@@ -98,41 +98,15 @@ async def generate_bibliography_hook(state, repository: Any = None) -> "Workflow
             logger.warning("[ReferenceHook] No text to scan.")
             return state
 
-        # 2. Get Knowledge Base
         knowledge_base = state.context_variables.get("knowledge_base")
-
-        # FALLBACK: If missing, try loading from Repository
-        if knowledge_base is None:
-            if repository:
-                logger.info("[ReferenceHook] Knowledge Base missing in context. Attempting to load from Repository...")
-                try:
-                    # Async load
-                    # Async load specific collections
-                    references = await repository.get_references()
-                    concepts = await repository.get_concepts()
-
-                    knowledge_base = {"references": references, "concepts": concepts}
-                    logger.info(
-                        f"[ReferenceHook] Loaded {len(references)} refs and {len(concepts)} concepts from Repository."
-                    )
-
-                except Exception as e:
-                    logger.error(f"[ReferenceHook] Failed to load KB from repository: {e}")
-                    # Fallthrough to error raise
-            else:
-                logger.warning("[ReferenceHook] No repository provided. Cannot fallback load KB.")
 
         if knowledge_base is None:
             # FAIL FAST: Knowledge Base is a critical dependency for citation generation.
-            # We do not fallback to empty, because that hides upstream logic errors (like CoachAgent failure).
             error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
-
-            # 4. Log with STRUCTURED FORMAT (Per Part 3.3)
             logger.error(
-                f"[ReferenceHook] {error_code.name}: Knowledge Base missing in context and repository load failed.",
+                f"[ReferenceHook] {error_code.name}: Knowledge Base missing in context.",
                 exc_info=True,
             )
-
             raise AppException(
                 message="Knowledge Base missing in ReferenceHook context.",
                 status_code=500,
@@ -151,7 +125,6 @@ async def generate_bibliography_hook(state, repository: Any = None) -> "Workflow
         # 5. Update State
         new_context = state.context_variables.copy()
         new_context["bibliography_result"] = result
-        new_context["bibliography"] = [r.title for r in generated_references]  # Legacy list of strings
 
         # OPTIONAL: Inject KB back into context to save future lookups?
         if "knowledge_base" not in new_context:

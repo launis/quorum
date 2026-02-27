@@ -18,7 +18,18 @@ def mock_repo():
                     "google": {
                         "deep": {
                             "model_name": "vertex_ai/gemini-2.5-pro",
+                            "temperature": 0.7,
+                            "tpm_limit": 500000,
+                            "rpm_limit": 3000,
                             "supports_grounding": True
+                        },
+                        "SearchHook": {
+                            "model_name": "vertex_ai/gemini-2.5-pro",
+                            "temperature": 0.0,
+                            "tpm_limit": 500000,
+                            "rpm_limit": 3000,
+                            "supports_grounding": True,
+                            "allowed_tools": []
                         }
                     }
                 }

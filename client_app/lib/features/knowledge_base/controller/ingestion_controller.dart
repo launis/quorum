@@ -55,6 +55,8 @@ class IngestionController extends _$IngestionController {
       final repo = ref.read(knowledgeRepositoryProvider.notifier);
       await repo.resetKnowledgeBase();
       state = const AsyncValue.data(null);
+      // Ensure UI updates the document count back to 0
+      ref.invalidate(knowledgeStatusProvider);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

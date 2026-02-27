@@ -29,11 +29,14 @@ logger = logging.getLogger(__name__)
 
 
 class KnowledgeBaseService:
-    """Coordinator for ingesting Knowledge Base files into the database.
+    """Coordinate the ingestion of Knowledge Base files into the database.
 
     Integrates Parsing, Storage, and Database Persistence layers.
     Operates asynchronously and reports status via unified ProgressTracker.
     """
+
+    CHUNK_SIZE = 8000
+    OVERLAP = 500
 
     def __init__(
         self,
@@ -66,10 +69,7 @@ class KnowledgeBaseService:
         if storage_client:
             self.storage_client = storage_client
         else:
-            try:
-                self.storage_client = get_storage_driver()
-            except Exception:
-                self.storage_client = None
+            self.storage_client = get_storage_driver()
 
         if document_service:
             self.document_service = document_service
@@ -86,13 +86,7 @@ class KnowledgeBaseService:
         language: str = "auto",
         model_strategy: str | None = None,
     ) -> IngestionSummary:
-        """Ingests content from memory (bytes). Archives to storage, parses structure, and persists to DB.
-
-        Workflow:
-        1. Archive to Storage.
-        2. Parse (DOCX/MD) to extract Concepts, References, Claims.
-        3. (Optional) Enrich with LLM if provider configured.
-        4. Store extracted items in Database.
+        """Ingest content from memory (bytes), archive to storage, parse structure, and persist to DB.
 
         Args:
             file_content (bytes): Raw file data.
@@ -149,7 +143,7 @@ class KnowledgeBaseService:
 
                 tracker.update(stage="AI Analysis (Chunking)", percent=20)
 
-                # 2. Extract Text from the file for LLM
+                # Extract Text from the file for LLM
                 text = ""
                 if filename.lower().endswith(".docx"):
                     # [Atomic Strike 37] Offload CPU-bound parsing
@@ -159,7 +153,6 @@ class KnowledgeBaseService:
                 else:
                     text = file_content.decode("utf-8", errors="ignore")
 
-                # 3. Process with LLM via Dynamic Provider
                 # [Atomic Strike 35] Bibliography Parsing
                 bib_parser = BibliographyParser()
                 # [Atomic Strike 37] Offload CPU-bound regex parsing
@@ -172,27 +165,20 @@ class KnowledgeBaseService:
                     text, tracker, model_strategy, ref_map=ref_map, language=language
                 )
 
-                # 4. Merge
+                # Merge Strict Pydantic Models without mutating frozen arrays
                 existing_terms = {c.term.lower() for c in parsed_data.concepts}
-
                 from backend.models.domain.knowledge import Concept
-
+                
+                new_concepts = list(parsed_data.concepts)
                 for c in llm_concepts:
                     if c["term"].lower() not in existing_terms:
-                        # parsed_data is frozen, but the list *might* be mutable.
-                        # However, to be safe and correct given frozen=True, we shouldn't mutate it.
-                        # But since this is an in-memory object just created, we'll try appending.
-                        # If Pydantic v2 enforces strict immutability on lists, this might fail,
-                        # but standard pattern often allows list mutation.
-                        # Ideally, we would reconstruct the object, but that's heavy.
-                        # Let's verify 'c' keys match Concept fields.
                         term = c.get("term", "").strip()
                         defn = c.get("definition", "").strip()
                         if term and defn:
-                            parsed_data.concepts.append(Concept(term=term, definition=defn))
-                    else:
-                        # Update definition?
-                        pass
+                            new_concepts.append(Concept(term=term, definition=defn))
+
+                # Reconstruct strictly
+                parsed_data = parsed_data.model_copy(update={"concepts": new_concepts})
 
             else:
                 # FAIL FAST: If Strategy requested but Registry missing, raise Error.
@@ -245,7 +231,7 @@ class KnowledgeBaseService:
         ref_map: dict[str, str] | None = None,
         language: str = "auto",
     ) -> list[dict[str, str]]:
-        """Chunks text and uses configured LLM to extract theoretical concepts.
+        """Chunk text and use configured LLM to extract theoretical concepts.
 
         Publicly accessible for ad-hoc extraction.
 
@@ -303,15 +289,12 @@ class KnowledgeBaseService:
                 details={"error_code": error_code, "original_error": str(e)},
             ) from e
 
-        # 1. Chunking
-        chunk_size = 8000
-        overlap = 500
         chunks = []
         start = 0
         while start < len(text):
-            end = start + chunk_size
+            end = start + self.CHUNK_SIZE
             chunks.append(text[start:end])
-            start = end - overlap
+            start = end - self.OVERLAP
 
         total_chunks = len(chunks)
         extracted_concepts = []
@@ -411,7 +394,7 @@ class KnowledgeBaseService:
         language: str = "auto",
         file_size: int = 0,
     ) -> IngestionSummary:
-        """Internal: Converts parsed data structures into Database Records and inserts them.
+        """Convert parsed data structures into Database records and insert them.
 
         Args:
             parsed_data (KnowledgeBaseDocument): Structure from parser.
@@ -515,7 +498,7 @@ class KnowledgeBaseService:
         )
 
     async def retrieve_context(self, query: str | None = None) -> list[KnowledgeItem]:
-        """Retrieves context from the knowledge base.
+        """Retrieve context from the knowledge base.
 
         For MVP/Phase 2, this performs an in-memory filter of all knowledge base items.
         In the future (V3), this should be replaced with a Vector DB search.
