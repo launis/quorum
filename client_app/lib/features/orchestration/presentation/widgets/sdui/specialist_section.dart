@@ -278,17 +278,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
   Widget _buildLogicAnalysis(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     
-    // Keys match LogicianOutput (v2026 Canonical)
-    // "cognitive_level" is the canonical key. "kognitiivinen_taso"/legacy are fallbacks.
-    final cog = (widget.data['cognitive_level'] ??
-            widget.data['kognitiivinen_taso'] ??
-            widget.data['kognitiivinen_analyysi']) as Map<String, dynamic>? ??
-        {};
-    
-    final toulmin = (widget.data['toulmin_analysis'] ??
-            widget.data['toulmin_analyysi'] as List?)
-        ?.cast<Map<String, dynamic>>() ??
-    [];
+    // Strict V3 Flattened Keys
+    final arguments = (widget.data['arguments'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     final methodology = widget.data['methodological_log'] ??
         widget.data['metodologinen_loki'] as String?;
@@ -317,13 +308,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth > 800;
-          
-          final bloomRaw = cog['bloom_level'] ?? cog['bloom_taso'] ?? 'N/A';
-          final stratRaw = cog['strategic_depth'] ?? cog['strateginen_syvyys'] ?? 'N/A';
 
           // Enhanced Bloom Widget (Report Style)
-          final bloomWidget = cog.isNotEmpty
-              ? Card(
+          final bloomWidget = Card(
                   color: Colors.teal[50], // Distinct color for Cognitive
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -339,7 +326,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                             const SizedBox(width: 8),
                             Expanded(
                                 child: Text(
-                                "${l10n.lblCognitiveLevel}: ${cog['bloom_label'] ?? 'Bloom Unknown'} (${cog['bloom_score_display'] ?? cog['bloom_score'] ?? '?'})",
+                                "${l10n.lblCognitiveLevel}: ${widget.data['bloom_level_raw'] ?? 'Bloom Unknown'} (${widget.data['bloom_score'] ?? '?'})",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -361,14 +348,13 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                         ),
                         const SizedBox(height: 4),
                         SelectableText(
-                          cog['strategic_label'] ?? 'Strategic Unknown',
+                          (widget.data['strategic_depth_raw'] ?? 'Strategic Unknown').toString(),
                           style: const TextStyle(fontSize: 14, height: 1.5, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                   ),
-                )
-              : const SizedBox.shrink();
+                );
 
           final List<Widget> toulminChildren = [];
           toulminChildren.add(
@@ -386,7 +372,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           );
           toulminChildren.add(const SizedBox(height: 8));
 
-          toulminChildren.addAll(toulmin.map<Widget>((t) => Card(
+          toulminChildren.addAll(arguments.map<Widget>((t) => Card(
             margin: const EdgeInsets.only(bottom: 8),
             color: Colors.indigo[50],
             child: Padding(
@@ -420,13 +406,13 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
 
           // Strategic Depth Gauge (New)
-          final stratScore = (cog['strategic_score'] as num?)?.toDouble() ?? 2.0; 
-          final stratDisplay = cog['strategic_score_display'] ?? "$stratScore/4.0"; // Use formatted if available
+          final stratScore = (widget.data['strategic_score'] as num?)?.toDouble() ?? 2.0; 
+          final stratDisplay = widget.data['strategic_score_display'] ?? "$stratScore/4.0"; // Use formatted if available
           final stratGauge = UnifiedMetricGauge(
              label: l10n.lblStrategicDepth,
              value: stratScore,
              max: 4.0,
-             description: widget.data['help_strategic_depth'] ?? "Strategic Depth Help",
+             description: widget.data['strategic_help'] ?? "Strategic Depth Help",
              displayValue: stratDisplay,
              color: Colors.teal[700],
              // FULL LABELS as requested
@@ -440,7 +426,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
           // New Visualization Widget (3D Bubble Chart)
           final matrixChart = LogicMatrixChart(
-            bloomScore: (cog['bloom_score'] as num?)?.toDouble() ?? 0.0,
+            bloomScore: (widget.data['bloom_score'] as num?)?.toDouble() ?? 0.0,
             toulminScore: (widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0,
             strategicScore: stratScore,
           );
@@ -449,12 +435,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
           final bloomGauge = UnifiedMetricGauge(
             label: l10n.lblBloomScore,
-            value: (cog['bloom_score'] as num?)?.toDouble() ?? 0.0,
+            value: (widget.data['bloom_score'] as num?)?.toDouble() ?? 0.0,
             max: 6.0,
-            description: cog['bloom_help'] ?? "Bloom Help", // Use key if available
+            description: widget.data['bloom_help'] ?? "Bloom Help", // Use key if available
 
             displayValue:
-                "${((cog['bloom_score'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}/6.0",
+                "${((widget.data['bloom_score'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}/6.0",
             color: Colors.teal,
             // FULL LABELS as requested
             axisLabels: [
@@ -483,21 +469,15 @@ class _SpecialistSectionState extends State<SpecialistSection> {
              crossAxisAlignment: CrossAxisAlignment.start,
              children: [
                 bloomWidget,
-                if (cog.isNotEmpty) ...[
-                     const SizedBox(height: 8),
-                     bloomGauge,
-                     const SizedBox(height: 4),
-                     stratGauge,
-                ],
+                const SizedBox(height: 8),
+                bloomGauge,
+                const SizedBox(height: 4),
+                stratGauge,
                 const SizedBox(height: 16),
-                if (toulmin.isNotEmpty) ...[
+                if (arguments.isNotEmpty) ...[
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: toulminChildren),
                     const SizedBox(height: 8),
                     toulminGauge,
-                ],
-                if (widget.data['walton_skeema'] != null || widget.data['walton_scheme'] != null) ...[
-                     const SizedBox(height: 16),
-                     _buildWaltonSection(widget.data['walton_scheme'] ?? widget.data['walton_skeema']),
                 ],
              ]
           );
@@ -678,20 +658,16 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
   // --- 2. STRESS TEST (Falsifier) ---
   Widget _buildStressTest(BuildContext context) {
-    // English Keys: stress_test_findings, fidelity_audit
-    final findings = (widget.data['stress_test_findings'] ??
-            widget.data['walton_stressitesti_loydokset'] as List?)
-        ?.cast<Map<String, dynamic>>() ??
-    [];
-
-    final fidelity = (widget.data['fidelity_audit'] ??
-            widget.data['paattelyketjun_uskollisuus_auditointi'])
-        as Map<String, dynamic>? ??
-    {};
+    // V3 Flat Keys:
+    final findings = (widget.data['findings'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final fidelity = widget.data['fidelity_audit'] as Map<String, dynamic>? ?? {};
 
     final leftChildren = <Widget>[];
     if (fidelity.isNotEmpty) {
-      double scoreVal = (fidelity['fidelity_numeric'] as num?)?.toDouble() ?? 0.0;
+      double scoreVal = (fidelity['fidelity_score_display'] as String?) != null 
+          ? double.tryParse(fidelity['fidelity_score_display']!.split('/')[0]) ?? 0.0 
+          : 0.0;
+      
       leftChildren.add(Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -705,18 +681,18 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                label: AppLocalizations.of(context)!.lblFidelity,
                value: scoreVal,
                max: 3.0,
-               description: fidelity['fidelity_help'] ?? "Fidelity Help",
-               displayValue: "$scoreVal/3.0",
+               description: widget.data['fidelity_help'] ?? "Fidelity Help",
+               displayValue: fidelity['fidelity_score_display'] ?? "0.0/3.0",
                color: Colors.orange,
                axisLabels: const ['Matala', 'Keski', 'Korkea'],
             ),
             const SizedBox(height: 12),
             Text(
-              (fidelity['is_post_hoc'] ?? fidelity['onko_post_hoc_rationalisointia']) == true
+              fidelity['post_hoc_rationalization_suspected'] == true
                   ? AppLocalizations.of(context)!.lblPostHocWarning
                   : AppLocalizations.of(context)!.lblNoRationalization,
               style: TextStyle(
-                color: (fidelity['is_post_hoc'] ?? fidelity['onko_post_hoc_rationalisointia']) == true
+                color: fidelity['post_hoc_rationalization_suspected'] == true
                     ? Colors.red[800]
                     : Colors.green[800],
                 fontWeight: FontWeight.w600,
@@ -725,12 +701,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             const SizedBox(height: 12),
             _buildLabelValue(
               "Post-Hoc Rationalization",
-              (fidelity['is_post_hoc'] ?? fidelity['onko_post_hoc_rationalisointia']).toString(),
+              fidelity['post_hoc_rationalization_suspected'].toString(),
             ),
             const SizedBox(height: 4),
             _buildLabelValue(
               "Perustelu",
-              fidelity['justification'] ?? fidelity['perustelu'] ?? '-',
+              fidelity['reasoning'] ?? '-',
             ),
           ],
         ),
@@ -739,7 +715,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     final rightChildren = <Widget>[];
     rightChildren.addAll(findings.map<Widget>((f) {
-      final passed = (f['evidence_held'] ?? f['kestiko_todistusaineisto']) == true;
+      final passed = f['is_held'] == true;
       return Card(
         margin: const EdgeInsets.only(bottom: 8),
         color: passed ? Colors.green[50] : Colors.red[50],
@@ -750,17 +726,17 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             children: [
               _buildLabelValue(
                 AppLocalizations.of(context)!.lblQuestion,
-                f['question'] ?? f['kysymys'],
+                f['question'],
               ),
               const SizedBox(height: 4),
               _buildLabelValue(
                 AppLocalizations.of(context)!.lblEvidenceHeld,
-                (f['evidence_held'] ?? f['kestiko_todistusaineisto']).toString(),
+                f['is_held'].toString(),
               ),
               const SizedBox(height: 4),
               _buildLabelValue(
                 AppLocalizations.of(context)!.lblObservation,
-                f['observation'] ?? f['havainto'],
+                f['observation'],
               ),
             ],
           ),
@@ -780,15 +756,18 @@ class _SpecialistSectionState extends State<SpecialistSection> {
   // --- 3. CAUSAL ANALYSIS ---
   Widget _buildCausalAnalysis(BuildContext context) {
     // English Keys: causal_audit, counterfactual_test, abductive_conclusion
-    final audit = (widget.data['causal_audit'] ??
-            widget.data['kausaalinen_auditointi']) as Map<String, dynamic>? ??
-        {};
-    final counter = (widget.data['counterfactual_test'] ??
-            widget.data['kontrafaktuaalinen_testi'])
-        as Map<String, dynamic>? ??
-    {};
-    final abductive = widget.data['abductive_conclusion'] ??
-        widget.data['abduktiivinen_paatelma'] as String?;
+    // V3 Flat Keys:
+    final abductive = widget.data['abductive_conclusion'] as String?;
+    final abductiveScore = (widget.data['abductive_score'] as num?)?.toDouble() ?? 0.0;
+    
+    // Causal Audit Flat
+    final observation = widget.data['observation'] as String?;
+    
+    // Counterfactual Test Flat
+    final actualScenario = widget.data['counterfactual_actual'] as String?;
+    final simulatedScenario = widget.data['counterfactual_simulated'] as String?;
+    final plausibilityScore = widget.data['plausibility_score'] != null ? (widget.data['plausibility_score'] as num?)?.toDouble() ?? 0.0 : null;
+
 
     final leftChildren = <Widget>[];
     if (abductive != null) {
@@ -803,10 +782,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           children: [
               UnifiedMetricGauge(
                 label: AppLocalizations.of(context)!.lblAbductiveReasoning,
-                value: (widget.data['abductive_score'] as num?)?.toDouble() ?? 0.0,
+                value: abductiveScore,
                 max: 3.0,
-                description: widget.data['help_abductive'] ?? "Abductive Help",
-                displayValue: "${(widget.data['abductive_score'] as num?)?.toDouble() ?? '?'}/3.0",
+                description: widget.data['abductive_help'] ?? "Abductive Help",
+                displayValue: widget.data['abductive_score_display'] ?? "${abductiveScore}/3.0",
                 color: Colors.teal,
                 axisLabels: const ['Heikko', 'Kohtalainen', 'Vahva'],
               ),
@@ -818,7 +797,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       leftChildren.add(const SizedBox(height: 16));
     }
 
-    if (audit.isNotEmpty) {
+    if (observation != null) {
       leftChildren.add(Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -838,18 +817,14 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              "Aikajana Validi: ${audit['timeline_valid'] ?? audit['aikajana_validi'] ?? '-'}",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(audit['observation'] ?? audit['havainto'] ?? '-'),
+            Text(observation),
           ],
         ),
       ));
     }
 
     final rightChildren = <Widget>[];
-    if (counter.isNotEmpty) {
+    if (actualScenario != null && simulatedScenario != null) {
       rightChildren.add(Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -864,7 +839,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               Expanded(
                 child: _buildComparisonBlock(
                   AppLocalizations.of(context)!.lblScenarioActual,
-                  counter['scenario_a_actual'] ?? counter['skenaario_A_toteutunut'],
+                  actualScenario,
                   Colors.grey[200]!,
                 ),
               ),
@@ -874,21 +849,21 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               Expanded(
                 child: _buildComparisonBlock(
                   AppLocalizations.of(context)!.lblScenarioSimulation,
-                  counter['scenario_b_simulated'] ?? counter['skenaario_B_simulaatio'],
+                  simulatedScenario,
                   Colors.teal[100]!,
                 ),
               ),
             ],
           ),
-          if (counter['plausibility_score'] != null)
+          if (plausibilityScore != null)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: UnifiedMetricGauge(
                 label: AppLocalizations.of(context)!.lblCredibility,
-                value: (counter['plausibility_numeric'] as num?)?.toDouble() ?? 0.0,
+                value: plausibilityScore,
                 max: 3.0,
-                 description: widget.data['help_plausibility'] ?? "Plausibility Help",
-                 displayValue: "${(counter['plausibility_numeric'] as num?)?.toDouble() ?? 0.0}/3.0",
+                 description: widget.data['plausibility_help'] ?? "Plausibility Help",
+                 displayValue: widget.data['plausibility_score_display'] ?? "${plausibilityScore}/3.0",
                  color: Colors.teal,
                  axisLabels: const ['Epäuskottava', '', 'Uskottava'],
               ),
@@ -909,192 +884,100 @@ class _SpecialistSectionState extends State<SpecialistSection> {
   // --- 4. PROFILER ANALYSIS ---
   Widget _buildProfilerAnalysis(BuildContext context) {
     // English Keys: detected_biases, psychological_profile, author_intent, text_metrics
-    // New Keys: cognitive_biases, emotional_tone, metrics
-    final biasesRaw = (widget.data['cognitive_biases'] ??
-            widget.data['detected_biases'] ??
-            widget.data['tunnistetut_vinoumat'] as List?) ??
-        [];
-
-    final profile = widget.data['psychological_profile'] ??
-        widget.data['psykologinen_profiili'] as String?;
-
-    final intent = widget.data['author_intent'] ??
-        widget.data['intentio_analyysi'] as String?;
-
-    final tone = widget.data['emotional_tone'] as String?;
-
-    // Safe cast to Map<String, dynamic> handling potential nulls
-    final rawMetrics = widget.data['metrics'] ??
-        widget.data['text_metrics'] ??
-        widget.data['teksti_metriikka'];
-    
-    final Map<String, dynamic> metrics = rawMetrics is Map 
-        ? Map<String, dynamic>.from(rawMetrics) 
-        : {};
+    // New V3 Flat Keys:
+    final profile = widget.data['psychological_profile'] as String?;
+    final intent = widget.data['intent_analysis'] as String?;
 
     final leftChildren = <Widget>[];
-    if (metrics.isNotEmpty) {
-      leftChildren.add(Row(
-        children: [
-          Text(
-            "${AppLocalizations.of(context)!.lblTextMetrics}:",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          _buildHelpButton(context, "profiler"),
-        ],
-      ));
-      leftChildren.add(const SizedBox(height: 8));
-      leftChildren.add(_buildTextMetricsGrid(context, metrics));
-    }
+    
+    // Explicitly read flat metrics
+    final wordCount = widget.data['word_count_display'] ?? widget.data['word_count']?.toString() ?? '0';
+    final avgLength = widget.data['avg_sentence_length_display'] ?? widget.data['avg_sentence_length']?.toString() ?? '0.0';
+    final lexicalDiv = widget.data['lexical_diversity_display'] ?? widget.data['lexical_diversity']?.toString() ?? '0.0';
+
+    leftChildren.add(Row(
+      children: [
+        Text(
+          "${AppLocalizations.of(context)!.lblTextMetrics}:",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        _buildHelpButton(context, "profiler"),
+      ],
+    ));
+    leftChildren.add(const SizedBox(height: 8));
+    
+    // Build a simple grid for text metrics using flat properties
+    leftChildren.add(Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      children: [
+        _buildMetricBlock(AppLocalizations.of(context)!.lblWordCount, wordCount),
+        _buildMetricBlock("Lauseen keskipituus", avgLength),
+        _buildMetricBlock("Sanaston kirjavuus", lexicalDiv),
+      ],
+    ));
 
     final rightChildren = <Widget>[];
-    if (biasesRaw.isNotEmpty) {
-      rightChildren.add(Text(
-        "${AppLocalizations.of(context)!.lblBias}:",
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ));
-      rightChildren.add(const SizedBox(height: 8));
-      rightChildren.add(Wrap(
-        spacing: 8,
-        runSpacing: 4,
-        children: biasesRaw.map<Widget>((b) {
-          String label = b is String ? b : (b is Map ? (b['nimi'] ?? b['name'] ?? b.toString()) : b.toString());
-          return Chip(
-            label: Text(label),
-            avatar: const Icon(Icons.warning_amber_rounded, size: 16),
-            backgroundColor: Colors.pink[50],
-            labelStyle: const TextStyle(fontSize: 12),
-          );
-        }).toList(),
-      ));
-      rightChildren.add(const SizedBox(height: 16));
-    }
-
-    if (intent != null) {
-      rightChildren.add(_buildInfoCard(
-        AppLocalizations.of(context)!.lblIntent,
-        intent,
-        Icons.ads_click,
-        color: Colors.blue[50],
-      ));
-      rightChildren.add(const SizedBox(height: 8));
-    }
-
-    if (tone != null) {
-      rightChildren.add(_buildInfoCard(
-        AppLocalizations.of(context)!.lblEmotionalTone,
-        tone,
-        Icons.mood,
-        color: Colors.purple[50],
-      ));
-      rightChildren.add(const SizedBox(height: 8));
-    }
 
     if (profile != null) {
       rightChildren.add(_buildInfoCard(
-        AppLocalizations.of(context)!.lblPsychProfile,
-        profile,
-        Icons.person_outline,
-        helpKey: "profiler",
+          "Psykologinen Profiili",
+          profile,
+          Icons.psychology));
+      rightChildren.add(const SizedBox(height: 8));
+    }
+    if (intent != null) {
+      rightChildren.add(_buildInfoCard(
+          "Tekijän Intentio",
+          intent,
+          Icons.track_changes));
+    }
+
+    // New additions for Automation Bias & Say-Do gap (Flat properties)
+    final autoBiasLabel = widget.data['automation_bias_label'];
+    final autoBiasColor = widget.data['automation_bias_color'] == 'red' ? Colors.red : Colors.green;
+    
+    final sayDoLabel = widget.data['say_do_gap_label'];
+    final sayDoColor = widget.data['say_do_gap_color'] == 'red' ? Colors.red : Colors.green;
+
+    if (autoBiasLabel != null || sayDoLabel != null) {
+      leftChildren.add(const SizedBox(height: 16));
+      leftChildren.add(Text(
+        "Behavioral Indicators:",
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ));
+      leftChildren.add(const SizedBox(height: 8));
+      leftChildren.add(Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          if (autoBiasLabel != null)
+            _buildStatusChip(
+              context,
+              label: "Automation Bias: $autoBiasLabel",
+              color: autoBiasColor,
+              icon: autoBiasColor == Colors.red ? Icons.warning : Icons.check,
+            ),
+          if (sayDoLabel != null)
+             _buildStatusChip(
+              context,
+              label: "Say-Do Gap: $sayDoLabel",
+              color: sayDoColor,
+              icon: sayDoColor == Colors.red ? Icons.warning : Icons.check,
+            ),
+        ],
       ));
     }
 
     return _buildResponsiveLayout(
       context,
-      leftContent: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: leftChildren),
-      rightContent: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rightChildren),
-      leftFlex: 5,
-      rightFlex: 5,
+      leftContent: Column(crossAxisAlignment: CrossAxisAlignment.start, children: leftChildren),
+      rightContent: Column(crossAxisAlignment: CrossAxisAlignment.start, children: rightChildren),
+      leftFlex: 4,
+      rightFlex: 6,
     );
   }
   
-  // NEW Helper for Text Metrics
-  Widget _buildTextMetricsGrid(BuildContext context, Map<String, dynamic> metrics) {
-     final l10n = AppLocalizations.of(context)!;
-     
-     // Robust parsing helper
-     double _safeDouble(dynamic value) {
-       if (value == null) return 0.0;
-       if (value is num) return value.toDouble();
-       if (value is String) {
-         return double.tryParse(value) ?? 0.0;
-       }
-       return 0.0;
-     }
-
-     // 1. Extract known values safely
-     // Use string keys matching domain.py (snake_case)
-     // TextMetrics uses snake_case in JSON.
-     final wordCount = metrics['word_count_display'] ?? metrics['word_count'] ?? 0;
-     final sentCount = metrics['sentence_count'] ?? 0;
-     final avgSent = metrics['avg_sentence_length_display'] ?? _safeDouble(metrics['avg_sentence_length']).toStringAsFixed(1);
-     final lexDiv = metrics['lexical_diversity_display'] ?? _safeDouble(metrics['lexical_diversity']).toStringAsFixed(2);
-     final capRatio = metrics['capitalization_ratio_display'] ?? "${(_safeDouble(metrics['capitalization_ratio']) * 100).toInt()}%";
-     final autoBias = _safeDouble(metrics['automation_bias']);
-     final sayDoGap = _safeDouble(metrics['say_do_gap']);
-     
-     // Control ratio handled separately? Or here? 
-     // The gauge was specific, let's keep specific logic for it if we want the gauge.
-     // But let's check if 'control_ratio' is present.
-     final controlRatioVal = metrics['control_ratio'];
-     Widget? controlGauge;
-     
-     if (controlRatioVal is Map) {
-          controlGauge = UnifiedMetricGauge(
-             label: "Control Ratio",
-             value: (controlRatioVal['driver'] as num? ?? 0.0).toDouble(),
-             max: 1.0, 
-             displayValue: "${metrics['control_ratio_display'] ?? ((controlRatioVal['driver'] as num? ?? 0.0) * 100).toInt()}% ${l10n.lblDriver}",
-             description: metrics['control_help'] ?? "Control Ratio Help",
-             color: Colors.pink,
-             axisLabels: [l10n.lblPassenger, '', l10n.lblDriver],
-           );
-     } else if (controlRatioVal is num) {
-          // Flattened format
-          controlGauge = UnifiedMetricGauge(
-             label: "Control Ratio",
-             value: controlRatioVal.toDouble(),
-             max: 1.0, 
-             displayValue: "${metrics['control_ratio_display'] ?? (controlRatioVal * 100).toInt()}% ${l10n.lblDriver}",
-             description: metrics['control_help'] ?? "Control Ratio Help",
-             color: Colors.pink,
-             axisLabels: [l10n.lblPassenger, '', l10n.lblDriver],
-           );
-     }
-
-     return Column(
-       children: [
-         if (controlGauge != null) 
-            Padding(padding: const EdgeInsets.only(bottom: 12), child: controlGauge),
-
-         GridView.count(
-           shrinkWrap: true,
-           physics: const NeverScrollableScrollPhysics(),
-           crossAxisCount: 2,
-           childAspectRatio: 2.5,
-           crossAxisSpacing: 8,
-           mainAxisSpacing: 8,
-           children: [
-             _buildMetricTile(l10n.lblWordCount, "$wordCount"),
-             _buildMetricTile(l10n.lblAvgSentence, "$avgSent"),
-             _buildMetricTile(l10n.lblLexicalDiversity, "$lexDiv"),
-             _buildMetricTile(l10n.lblCapitalsRatio, "$capRatio"),
-             
-              // Behavioral Flags (Strict Enums)
-              // Use Key for Logic (if available), Label for Display
-              if ((metrics['automation_bias_key'] ?? metrics['automation_bias_label']) != null && 
-                  (metrics['automation_bias_key'] ?? metrics['automation_bias_label']) != 'BIAS_NONE')
-                 _buildMetricTile(l10n.lblAutomationBias, metrics['automation_bias_label'] ?? metrics['automation_bias_key'], isAlarm: true),
-              
-              if ((metrics['say_do_gap_key'] ?? metrics['say_do_gap_label']) != null && 
-                  (metrics['say_do_gap_key'] ?? metrics['say_do_gap_label']) != 'GAP_NONE')
-                 _buildMetricTile(l10n.lblSayDoGap, metrics['say_do_gap_label'] ?? metrics['say_do_gap_key'], isAlarm: true),
-           ],
-         ),
-       ],
-     );
-  }
-
   Widget _buildMetricTile(String label, String value, {bool isAlarm = false}) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1215,14 +1098,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
   // --- 6. PERFORMATIVITY CHECK ---
   Widget _buildPerformativityCheck(BuildContext context) {
-    // English Keys: performativity_heuristics, authenticity_assessment
-    final heuristics = (widget.data['performativity_heuristics'] ??
-            widget.data['performatiivisuus_heuristiikat'] as List?)
-        ?.cast<Map<String, dynamic>>() ??
-    [];
+    // Strict V3 Keys
+    final heuristics = (widget.data['heuristics'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     
-    final overall = widget.data['authenticity_assessment'] ??
-        widget.data['yleisarvio_aitoudesta'] as String?;
+    final overall = widget.data['authenticity_assessment'] as String?;
 
     final leftChildren = <Widget>[];
     if (overall != null) {
@@ -1247,7 +1126,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               value: (widget.data['authenticity_score'] as num?)?.toDouble() ??
                   (overall.contains("AUTH_ORGANIC") ? 3.0 : (overall.contains("AUTH_PERFORMATIVE") ? 2.0 : 1.0)),
               max: 3.0,
-              description: widget.data['help_authenticity'] ?? "Authenticity Help",
+              description: widget.data['authenticity_help'] ?? "Authenticity Help",
               displayValue: "${(widget.data['authenticity_score'] as num?)?.toDouble() ?? '?'}/3.0",
               color: Colors.purple,
               axisLabels: [AppLocalizations.of(context)!.authPerformative, '', AppLocalizations.of(context)!.authOrganic],
@@ -1272,9 +1151,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       spacing: 8,
       runSpacing: 4,
       children: heuristics.map<Widget>((b) {
-        final raised = (b['flag_raised'] ?? b['lippu_nostettu']) == true;
+        final raised = b['flag'] == true;
         return Chip(
-          label: Text(b['heuristic_name'] ?? b['heuristiikka'] ?? ''),
+          label: Text(b['name'] ?? ''),
           avatar: Icon(raised ? Icons.flag : Icons.check, size: 16, color: raised ? Colors.red : Colors.green),
           backgroundColor: raised ? Colors.red[50] : Colors.green[50],
           labelStyle: TextStyle(fontSize: 12, color: raised ? Colors.red[900] : Colors.green[900]),
@@ -1360,85 +1239,6 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           ),
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildWaltonSection(Map<String, dynamic> walton) {
-    final scheme = walton['identified_scheme'] ?? walton['tunnistettu_skeema'] ?? 'N/A';
-    final questions = (walton['critical_questions'] ?? walton['kriittiset_kysymykset'] as List?) ?? [];
-
-    final List<Widget> cardChildren = [];
-    
-    cardChildren.add(Row(
-      children: [
-        const Icon(Icons.balance, color: Colors.purple),
-        const SizedBox(width: 8),
-        Text(
-          AppLocalizations.of(context)!.lblWaltonScheme,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Colors.purple,
-          ),
-        ),
-        if (walton.isNotEmpty) const Spacer(),
-        _buildHelpButton(context, "walton"),
-      ],
-    ));
-    
-    cardChildren.add(const SizedBox(height: 12));
-    cardChildren.add(Text(
-      scheme,
-      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-    ));
-
-    if (questions.isNotEmpty) {
-      cardChildren.add(const SizedBox(height: 12));
-      cardChildren.add(const Divider());
-      cardChildren.add(const SizedBox(height: 8));
-      cardChildren.add(Text(
-        "${AppLocalizations.of(context)!.lblCriticalQuestions}:",
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-          color: Colors.grey,
-        ),
-      ));
-      
-      cardChildren.addAll(questions.map<Widget>((q) {
-        return Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "• ",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple,
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  q.toString(),
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        );
-      }));
-    }
-
-    return Card(
-      color: Colors.purple[50],
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: cardChildren,
-        ),
-      ),
     );
   }
 
@@ -1789,17 +1589,6 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-
-
-
-
-
-
-
-
-
-
-
   // NEW: Compact Text Metrics for Logic Analysis (Teal Theme)
   Widget _buildCompactTextMetrics(BuildContext context, Map<String, dynamic> metrics) {
     final l10n = AppLocalizations.of(context)!;
@@ -1864,6 +1653,17 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           value,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.teal),
         ),
+      ],
+    );
+  }
+
+  Widget _buildMetricBlock(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.indigo)),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }

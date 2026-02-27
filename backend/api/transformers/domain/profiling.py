@@ -191,7 +191,12 @@ class ProfilingDomainTransformer(BaseTransformer):
         iq_label = str(input_quality)
 
         # Construct Strict View Model
-        return DriverProfileDisplay(classification=role_key, input_quality_label=iq_label, strategies=strategies)
+        return DriverProfileDisplay(
+            role_classification=role_key, 
+            input_quality_score=input_quality,
+            input_quality_label=iq_label, 
+            strategies=strategies
+        )
 
     def _extract_detector_section(self, steps: dict) -> UiSection | None:
         step = steps.get("step_detector")

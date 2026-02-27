@@ -498,7 +498,8 @@ class ScoreCardDisplay(BaseModel):
 class DriverProfileDisplay(BaseModel):
     """Server-Driven UI for Driver Profile."""
 
-    classification: str | None
+    role_classification: str | None
+    input_quality_score: float | None
     input_quality_label: str | None
     strategies: list[str]
 

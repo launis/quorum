@@ -98,6 +98,13 @@ class BaseTransformer:
 
                     if not step_name or not isinstance(step_name, str):
                         continue
+                    
+                    # Modern output paths use UUID as step_name and `task_key` in metadata.
+                    # We remap the UUID to the domain key (`step_<task_key>`).
+                    evt_meta = event.metadata if isinstance(event, TraceEvent) else event.get("metadata", {})
+                    task_key = evt_meta.get("task_key")
+                    if task_key:
+                        step_name = f"step_{task_key}"
 
                     # Content handling
                     if isinstance(event, TraceEvent):
@@ -110,7 +117,7 @@ class BaseTransformer:
                         if isinstance(content, dict):
                             content = content.copy()
                         reasoning = event.get("reasoning")
-                        timestamp = event.get("timestamp") or event.get("metadata", {}).get("timestamp")
+                        timestamp = event.get("timestamp") or evt_meta.get("timestamp")
 
                     # Check for reasoning trace availability (optional optimization)
                     if reasoning:

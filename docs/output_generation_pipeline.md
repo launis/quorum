@@ -202,6 +202,17 @@ To support both high-fidelity rendering, raw data integration, and dynamic UI bu
 > **Why are SDUI and Flat Data separate?**
 > The `XAIFlatReportDTO` (Flat Data) strategically strips away hierarchy to provide raw numerical/text values for external tools like Excel or BI dashboards. However, high-fidelity visual reports (like the Flutter UI or the final PDF) require **structural and visual instructions**—such as layout constraints, colors, and specific component labels (e.g., drawing a Radar Chart with green logic nodes). The `ReportView` SDUI format encapsulates both the data *and* these rendering instructions, making it fundamentally different (and necessary) for the presentation layer.
 
+### 6.3.1 Data Reconstruction: Resolving Trace UUIDs
+When generating reports from an `ExecutionRecord`, the `ReportTransformer` must reconstruct the domain state from the `execution_trace`. 
+Crucially, the events in the trace use **UUIDs** for their `step_name` (e.g., `9e027b2a-c471-4e97...`), not logical domain keys (e.g., `step_guard`).
+
+To resolve this, the pipeline enforces a strict translation mapping during reconstruction:
+1.  Read the `event.metadata.task_key` (e.g., `"guard"`, `"analyst"`).
+2.  Prefix it with `step_` to create the canonical domain key (e.g., `step_guard`).
+3.  Inject the event's raw payload into the reconstructed state dictionary under this new `step_*` key.
+
+This ensures that all downstream domain transformers (like `ProfilingDomainTransformer`) receive the exact keys they expect, preserving the zero-compromise separation between the orchestrator's graph execution (UUID routing) and the renderer's static data models (named tasks).
+
 ### 6.4 The UI Hints Localization Pattern (SDUI)
 To fully support the Server-Driven UI without requiring constant frontend redeployments, custom output configurations (like customized reports or dynamic matrices) inject their own visualization and localization metadata natively from the backend using the `ui_hints` dictionary map.
 
