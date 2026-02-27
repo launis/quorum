@@ -11,6 +11,7 @@ from backend.database.factory import get_repository
 from backend.database.wrapper import get_db_client
 from backend.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend.models.domain import ContextData, Precedent, RetrievalInput
+from fastapi import status
 
 # 3. Local Imports
 from backend.settings import get_settings
@@ -157,8 +158,17 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
                                     label = "Standard"
 
                                 judge_outputs[label] = judge_candidate
-                        except:
-                            continue
+                        except Exception as e:
+                            error_code = ErrorCodes.VALIDATION_FAILED
+                            logger.error(f"[RetrievalAgent] {error_code.name}: Output validation failed: {e}", exc_info=True)
+                            raise AppException(
+                                message=f"Event output validation failed: {e}",
+                                status_code=status.HTTP_400_BAD_REQUEST,
+                                details={
+                                    "error_code": error_code.value,
+                                    "original_error": str(e)
+                                },
+                            ) from e
 
                 if judge_outputs:
                     score_parts = []
@@ -181,7 +191,7 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
                         )
                     )
             # Keep last N (most recent)
-            selected_precedents = precedents[:return_count]
+            selected_precedents = precedents[:return_count] if precedents else []
 
             # Format Text (Precedents)
             precedent_text = "=== ENNAKKOTAPAUKSET (PRECEDENTS) ===\n"

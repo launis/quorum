@@ -43,4 +43,4 @@ class ReportContext(BaseDTO):
     overseer_data: OverseerData | None = Field(default=None, description="Overseer analysis.")
     knowledge_items: list[KnowledgeItem] = Field(default_factory=list, description="Knowledge Base items.")
 
-    model_config = ConfigDict(frozen=False, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True)

@@ -131,6 +131,7 @@ def test_profiler_transformer_extracts_display_model():
                     "control_ratio": 0.6,
                     "word_count": 100,
                     "avg_sentence_length": 10.0,
+                    "sentence_count": 10,
                     "lexical_diversity": 0.5,
                     "capitalization_ratio": 0.1,
                     "automation_bias": 0.1,

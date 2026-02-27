@@ -2,6 +2,7 @@ import logging
 
 from pydantic import ValidationError
 
+from backend.exceptions import AppException, ErrorCodes, status
 from backend.models.domain import InteractionAnalysis, PerformativityOutput, ProfilerOutput
 from backend.models.enums import TitleKey
 
@@ -74,14 +75,18 @@ class ProfilingDomainTransformer(BaseTransformer):
                 data=display_model,
             )
         except Exception as e:
-            raise AppException(f"Failed to transform Profiler display: {e}", 500) from e
+            raise AppException(
+                message=f"Failed to transform Profiler display: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED, "original_error": str(e)},
+            ) from e
 
     def _transform_profiler_data(self, model: ProfilerOutput) -> ProfilerDisplay:
         """Flattens ProfilerOutput and calculates SDUI properties (Strict UVM)."""
-        metrics = model.metrics  # dict[str, Any]
+        metrics = model.metrics
 
         # 1. Control Ratio (Special handling as it might be missing in strict schema?)
-        control = metrics.get("control_ratio")
+        control = getattr(metrics, "control_ratio", None)
         cr_percent = None
 
         if control is not None:
@@ -90,8 +95,8 @@ class ProfilingDomainTransformer(BaseTransformer):
                 cr_percent = float(val) * 100.0
 
         # 2. Bias / Gap
-        auto_bias = metrics["automation_bias"]
-        say_do = metrics["say_do_gap"]
+        auto_bias = getattr(metrics, "automation_bias", 0.0)
+        say_do = getattr(metrics, "say_do_gap", 0.0)
 
         ab_detected = auto_bias > 0.5
         sd_detected = say_do > 0.5
@@ -101,10 +106,10 @@ class ProfilingDomainTransformer(BaseTransformer):
         sd_label_str = "Detected" if sd_detected else "None"
 
         # Raw Metrics
-        word_count = int(metrics["word_count"])
-        avg_sent = float(metrics["avg_sentence_length"])
-        lex_div = float(metrics["lexical_diversity"])
-        cap_ratio = float(metrics["capitalization_ratio"])
+        word_count = int(getattr(metrics, "word_count", 0))
+        avg_sent = float(getattr(metrics, "avg_sentence_length", 0.0))
+        lex_div = float(getattr(metrics, "lexical_diversity", 0.0))
+        cap_ratio = float(getattr(metrics, "capitalization_ratio", 0.0))
 
         # Mapping to UVM Strings
         return ProfilerDisplay(

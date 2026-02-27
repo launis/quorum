@@ -91,6 +91,7 @@ async def test_agent_execution_mock():
         mock_response.parsed_content = dto_instance
         mock_response.token_usage = {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15, "total_cost": 0.002}
         mock_response.system_fingerprint = "mock_fingerprint_123"
+        mock_response.provider_metadata = {"test_metric": 1.0}
         mock_llm.generate.return_value = mock_response
 
         # Inject mock llm

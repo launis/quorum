@@ -3,6 +3,8 @@
 import logging
 from datetime import datetime, timezone
 
+from fastapi import status
+
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain.judge import JudgeOutput
@@ -17,8 +19,8 @@ async def retrieve_precedent(
 ) -> WorkflowState:
     """HOOK: retrieve_precedent.
 
-    Retrieves the last N completed executions with a valid Judge score (Case Law).
-    Injects a textual summary of these precedents into 'context_variables["archivist_precedents"]'.
+    Retrieve the last N completed executions with a valid Judge score (Case Law).
+    Inject a textual summary of these precedents into 'context_variables["archivist_precedents"]'.
     Designed to allow agents to learn from past performance.
 
     Args:
@@ -49,41 +51,33 @@ async def retrieve_precedent(
         raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
     try:
-        # 1. Use Repository to get executions
-        all_executions = await repository.get_all_executions()
+        # 1. Use Repository to get recent completed executions
+        recent_executions = await repository.get_recent_completed_executions(limit=5)
 
         # STRICT Enforce: Repository must return List[ExecutionRecord] objects, NOT dicts.
-        if all_executions and isinstance(all_executions[0], dict):
+        if recent_executions and isinstance(recent_executions[0], dict):
             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
             msg = "Repository returned dicts instead of Pydantic Models. Strict Pydantic Enforcement Violation."
             logger.error(f"[ArchivalHook] {error_code.name}: {msg}")
             raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
-        # 2. Query Completed Executions (Memory Filter)
-        # Optimization: In a real DB, this should be a filtered query
-        # Fix: ExecutionRecord is an object, not a dict. Use attribute access.
-        results = [x for x in all_executions if x.status == "completed"]
-
-        # 3. Filter and Format
+        # 2. Filter and Format
         precedents = []
 
-        # FAIL FAST: Strict Sort (All completed executions must have a completed_at timestamp)
-        for res in results:
+        # FAIL FAST: Strict Data Integrity (All completed executions must have a completed_at timestamp)
+        for res in recent_executions:
             if not res.completed_at:
-                # Should we fail execution if archived data is bad?
-                # Maybe logs warning but skip. Mandate says Fail Fast.
-                # But past data shouldn't crash current run unless critical.
-                # Let's skip with warning to preserve robustness against legacy data.
-                logger.warning(f"Execution {res.id} is 'completed' but missing 'completed_at'. Skipping.")
-                continue
+                # Fail Fast Protocol (Part 18): Hard crash on data integrity violation
+                error_code = ErrorCodes.STATE_INTEGRITY_ERROR
+                msg = f"Data Integrity Violation: Execution {res.id} marked complete but missing timestamp."
+                logger.error(f"[ArchivalHook] {error_code.name}: {msg}", exc_info=False)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": error_code.value, "execution_id": res.id}
+                )
 
-        # Sort by completed_at desc (renamed from end_time in V2 domain)
-        # Filter out None completed_at safely (though loop above caught most)
-        results = [r for r in results if r.completed_at]
-        results.sort(key=lambda x: x.completed_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
-        recent_results = results[:5]
-
-        for res in recent_results:
+        for res in recent_executions:
             # Check if it has judge output
             # ExecutionRecord -> results (WorkflowState) -> execution_trace (List[TraceEvent])
 
@@ -124,9 +118,17 @@ async def retrieve_precedent(
                                 label = "Standard"  # Keep simple
 
                             judge_outputs[label] = judge_candidate
-                    except:
-                        # Not a JudgeOutput, ignore
-                        continue
+                    except Exception as e:
+                        error_code = ErrorCodes.VALIDATION_FAILED
+                        logger.error(f"[ArchivalHook] {error_code.name}: Output validation failed: {e}", exc_info=True)
+                        raise AppException(
+                            message=f"Event output validation failed: {e}",
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            details={
+                                "error_code": error_code.value,
+                                "original_error": str(e)
+                            },
+                        ) from e
 
             if judge_outputs:
                 score_parts = []
@@ -167,5 +169,8 @@ async def retrieve_precedent(
         error_code = ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED
         logger.error(f"[ArchivalHook] {error_code.name}: {e}", exc_info=True)
         raise AppException(
-            message=f"Failed to retrieve precedents: {e}", status_code=500, details={"error_code": error_code}
+            message=f"Failed to retrieve precedents: {e}", status_code=500, details={
+                "error_code": error_code.value,
+                "original_error": str(e)
+            }
         ) from e

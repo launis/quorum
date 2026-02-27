@@ -46,13 +46,13 @@ async def execute_google_search(state: WorkflowState, repository: Any = None) ->
         )
 
     # 1. Extract Analyst Output (Strict Type Check)
-    step_analyst_data = state.context_variables.get("683eb4b9-147c-4f5d-89a7-7b18d75c4202")  # Keep for warning check
-    analyst_output = state.get_context("683eb4b9-147c-4f5d-89a7-7b18d75c4202", AnalystOutput)
+    step_analyst_data = state.context_variables.get("step_analyst")  # Keep for warning check
+    analyst_output = state.get_context("step_analyst", AnalystOutput)
 
     if not step_analyst_data:
         # If the step was skipped or not executed, we can't search.
         # This is a valid "no-op" scenario, not a crash.
-        logger.warning("[SearchHook] '683eb4b9-147c-4f5d-89a7-7b18d75c4202' (Analyst) not found in context. Skipping search.")
+        logger.warning("[SearchHook] 'step_analyst' (Analyst) not found in context. Skipping search.")
         return state
 
     # 2. STRICT INFLATION (Fail Fast)
@@ -154,7 +154,7 @@ async def execute_google_search(state: WorkflowState, repository: Any = None) ->
         # 7. Update State (Immutable)
         new_context = state.context_variables.copy()
         new_context["search_result"] = search_result
-        new_context["683eb4b9-147c-4f5d-89a7-7b18d75c4202"] = updated_analyst
+        new_context["step_analyst"] = updated_analyst
 
         logger.info(f"[SearchHook] Search complete. Found {len(domain_items)} results. Added to rag_evidence.")
         return state.model_copy(update={"context_variables": new_context})

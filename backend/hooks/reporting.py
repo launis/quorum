@@ -218,7 +218,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                 context["word_count"] = getattr(metrics, "word_count", 0)
                 context["input_control_ratio"] = getattr(metrics, "control_ratio", 0.0)
 
-    analyst_out = _get_agent_output("683eb4b9-147c-4f5d-89a7-7b18d75c4202", AnalystOutput)
+    analyst_out = _get_agent_output("step_analyst", AnalystOutput)
     if analyst_out:
         # Knowledge Items (Now extracted directly from analyst_out.rag_evidence if we want to show it, or left empty)
         # Search results and knowledge items were moved/removed in the Strict DTO refactor.

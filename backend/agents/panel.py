@@ -27,7 +27,7 @@ class PanelAgent(BaseAgent[PanelInput, PanelOutput]):
     """
 
     state_field = "dbcaf18a-4ea3-4469-baa5-1abe63c64700"
-    REQUIRES_KEYS = ["683eb4b9-147c-4f5d-89a7-7b18d75c4202", "46f13eed-f411-4aac-ac41-d8e11f98a648"]
+    REQUIRES_KEYS = ["step_analyst", "46f13eed-f411-4aac-ac41-d8e11f98a648"]
     PRODUCES_KEYS = [
         "dbcaf18a-4ea3-4469-baa5-1abe63c64700",
         "faaf85a4-6781-478e-8ab5-437c670baf6f",

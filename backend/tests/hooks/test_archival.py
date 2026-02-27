@@ -56,19 +56,14 @@ async def test_retrieve_precedent_success():
     )
 
     # Mock executions returning ExecutionRecord instances
-    mock_repo.get_all_executions.return_value = [
+    mock_repo.get_recent_completed_executions.return_value = [
         ExecutionRecord(
             id="exe-1",
             workflow_id="foo",
             status="completed",
             completed_at=datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
             results=past_state,
-        ),
-        ExecutionRecord(
-            id="exe-2",
-            workflow_id="bar",
-            status="running",  # Should be skipped
-        ),
+        )
     ]
 
     new_state = await retrieve_precedent(state, repository=mock_repo)
@@ -85,7 +80,7 @@ async def test_retrieve_precedent_empty():
     state = WorkflowState(workflow_id="current_workflow")
     state.context_variables["inputs"] = {}
     mock_repo = AsyncMock()
-    mock_repo.get_all_executions.return_value = []
+    mock_repo.get_recent_completed_executions.return_value = []
 
     new_state = await retrieve_precedent(state, repository=mock_repo)
 
@@ -95,11 +90,32 @@ async def test_retrieve_precedent_empty():
 
 
 @pytest.mark.asyncio
+async def test_retrieve_precedent_integrity_error():
+    state = WorkflowState(workflow_id="current_workflow")
+    state.context_variables["inputs"] = {}
+    mock_repo = AsyncMock()
+    mock_repo.get_recent_completed_executions.return_value = [
+        ExecutionRecord(
+            id="exe-corrupt",
+            workflow_id="foo",
+            status="completed",
+            completed_at=None,
+        )
+    ]
+
+    with pytest.raises(AppException) as excinfo:
+        await retrieve_precedent(state, repository=mock_repo)
+
+    assert "STATE_INTEGRITY_ERROR" in str(excinfo.value.details)
+    assert excinfo.value.status_code == 500
+
+
+@pytest.mark.asyncio
 async def test_retrieve_precedent_repo_error():
     state = WorkflowState(workflow_id="current_workflow")
     state.context_variables["inputs"] = {}
     mock_repo = AsyncMock()
-    mock_repo.get_all_executions.side_effect = Exception("DB Down")
+    mock_repo.get_recent_completed_executions.side_effect = Exception("DB Down")
 
     with pytest.raises(AppException) as excinfo:
         await retrieve_precedent(state, repository=mock_repo)

@@ -50,6 +50,10 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
+        pass
+
+    @abstractmethod
     async def get_workflow_definition(self, workflow_id: str) -> WorkflowDefinition | None:
         pass
 
@@ -388,6 +392,17 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             filters.append(Filter("user_id", "==", user_id))
 
         results = await self.driver.query("executions", filters)
+        return [ExecutionRecord(**r) for r in results]
+
+    async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
+        filters = [Filter("status", "==", "completed")]
+        results = await self.driver.query(
+            "executions",
+            filters=filters,
+            limit=limit,
+            order_by="completed_at",
+            descending=True
+        )
         return [ExecutionRecord(**r) for r in results]
 
     # --- Workflows ---

@@ -171,7 +171,7 @@ async def test_prompt_substitution():
             # Default to str representation if not serializable
             try:
                 debug_kwargs = json.dumps(kwargs, default=str)
-            except:
+            except Exception:
                 debug_kwargs = str(kwargs)
             raise AssertionError(
                 f"{{HISTORY_TEXT}} NOT substituted! Got: '{sys_instr}'. Kwargs keys: {list(kwargs.keys())}. Kwargs: {debug_kwargs}"

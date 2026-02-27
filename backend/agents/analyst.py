@@ -190,7 +190,7 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
         changes_made = True  # Force update since we sorted in-place (or need to reflect order)
 
         for idx, hyp in enumerate(hypotheses, 1):
-            new_id = f"HYP-{idx:03d}"  # Zero-padded for clean sorting (HYP-001)
+            new_id = f"HYP-{idx}"  # Match the regex ^HYP-\d+$ and integer exact match
 
             # Access ID
             current_id = None

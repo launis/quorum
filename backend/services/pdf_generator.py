@@ -143,28 +143,28 @@ class PdfReportService:
             except Exception as e:
                 logger.warning(f"Failed to load matrix labels: {e}")
 
+            new_sections = []
             for section in report_view.sections:
                 if not section.data:
+                    new_sections.append(section)
                     continue
 
                 # Ensure section.data is strictly a dictionary so Jinja and .get() work
                 if hasattr(section.data, "model_dump"):
-                    section.data = section.data.model_dump(mode="json")
+                    sec_data = section.data.model_dump(mode="json")
                 elif hasattr(section.data, "dict"):
-                    section.data = section.data.dict()
+                    sec_data = section.data.dict()
                 elif not isinstance(section.data, dict):
-                    section.data = vars(section.data)
+                    sec_data = vars(section.data)
+                else:
+                    sec_data = dict(section.data)
 
                 if section.type == SectionType.SCORE_CARD:
                     # Check if dimensions exist and we can plot
-                    dims = section.data.get("dimensions", [])
+                    dims = sec_data.get("dimensions", [])
                     if dims:
                         scores = {}
                         for d in dims:
-                            # We map ID directly to score.
-                            # If visualization needs prettier labels, it must happen in ChartService or via metadata lookup.
-                            # But here we stick to the raw data ID as the key.
-
                             # 1. New Standard
                             display_label = d.get("dimension_label")
                             tech_id = d.get("dimension_id")
@@ -199,34 +199,25 @@ class PdfReportService:
                                 logger.warning(f"Skipping dimension with missing ID/Label in report {execution_id}")
 
                         # Generate chart
-                        # Retrieve dynamic max_score from section data (populated by ReportTransformer from DB)
-                        # Strict Mode: Fail if max_score is missing (no default=4)
-                        max_score = int(section.data["max_score"])
+                        max_score = int(sec_data["max_score"])
                         chart_b64 = ChartService.generate_radar_chart(scores, max_val=max_score)
-                        # Inject back into data view for template
-                        # Inject back into data view for the template
-                        section.data["chart_image"] = chart_b64
+                        sec_data["chart_image"] = chart_b64
 
                 elif section.type == SectionType.LOGIC_ANALYSIS:
-                    # Logic Matrix Bubble Chart
-                    # Extract scores (Standardized keys from domain model)
-                    bloom = float(getattr(section.data, "bloom_score", 0.0) or 0.0)
-                    strat = float(getattr(section.data, "strategic_score", 0.0) or 0.0)
-
-                    # Toulmin score might be flat in data or calculated
-                    toulmin_score = float(getattr(section.data, "toulmin_score", 0.0) or 0.0)
+                    # Extract scores
+                    bloom = float(sec_data.get("bloom_score", 0.0) or 0.0)
+                    strat = float(sec_data.get("strategic_score", 0.0) or 0.0)
+                    toulmin_score = float(sec_data.get("toulmin_score", 0.0) or 0.0)
 
                     if bloom > 0 and strat > 0:
                         chart_b64 = ChartService.generate_bubble_chart(
                             x_val=bloom, y_val=strat, size_val=toulmin_score, title="Logic Matrix Position"
                         )
-                        section.data["logic_chart_image"] = chart_b64
+                        sec_data["logic_chart_image"] = chart_b64
 
                 elif section.type == SectionType.FACT_CHECK:
-                    # Preprocess for Template (English Standardization)
-
                     # 1. Facts
-                    raw_facts = section.data.get("fact_checks", [])
+                    raw_facts = sec_data.get("fact_checks", [])
                     processed_facts = []
                     for item in raw_facts:
                         processed_facts.append(
@@ -237,10 +228,10 @@ class PdfReportService:
                                 "is_verified": item.get("is_verified"),
                             }
                         )
-                    section.data["processed_facts"] = processed_facts
+                    sec_data["processed_facts"] = processed_facts
 
                     # 2. Ethics
-                    raw_ethics = section.data.get("ethical_issues", [])
+                    raw_ethics = sec_data.get("ethical_issues", [])
                     processed_ethics = []
                     for item in raw_ethics:
                         processed_ethics.append(
@@ -251,7 +242,11 @@ class PdfReportService:
                                 "is_critical": item.get("is_critical"),
                             }
                         )
-                    section.data["processed_ethics"] = processed_ethics
+                    sec_data["processed_ethics"] = processed_ethics
+                    
+                new_sections.append(section.model_copy(update={"data": sec_data}))
+                
+            report_view = report_view.model_copy(update={"sections": new_sections})
 
             # 5. Render Template
             await self.progress.emit_progress(execution_id, task_key, "Preparing report layout...", 0.20)

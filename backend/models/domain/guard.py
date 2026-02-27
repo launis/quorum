@@ -156,7 +156,7 @@ class SecurityCheck(BaseModel):
         description="PII findings.",
         json_schema_extra={"x-ui-label": "PII Findings"},
     )
-    model_config = ConfigDict(frozen=False, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
 
 class GuardOutput(ReasoningTrace):
@@ -172,7 +172,7 @@ class GuardOutput(ReasoningTrace):
         description="Raw input data (tainted).",
         json_schema_extra={"x-ui-label": "Input Data"},
     )
-    model_config = ConfigDict(frozen=False, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
 
 class SanitizationResult(BaseModel):
@@ -197,4 +197,4 @@ class SanitizationResult(BaseModel):
         json_schema_extra={"x-ui-label": "Banned Phrases Error"},
     )
 
-    model_config = ConfigDict(frozen=False, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="ignore")

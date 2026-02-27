@@ -22,36 +22,31 @@ async def test_retrieval_agent_hybrid_execution():
     mock_execution.status = "completed"
     mock_execution.completed_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
+    from backend.models.domain.judge import JudgeOutput, JudgeScoreCard, DimensionResultItem
+
+    judge_out = JudgeOutput(
+        matrix_id="m",
+        scale_min=1.0,
+        scale_max=5.0,
+        confidence_score=1.0,
+        thought_process="tp",
+        conclusion="c",
+        critical_findings=[],
+        score_card=JudgeScoreCard(
+            total_score=8.3,
+            verdict="Good job.",
+            agent_name="x",
+            max_score=10,
+            scale_min=1,
+            scale_max=10,
+            dimensions=[DimensionResultItem(dimension_id="dim1", dimension_label="Dim1", score=8.0, reasoning="a")]
+        ),
+    )
+
     mock_trace_event = TraceEvent(
         event_type="output",
         step_name="step_judge",
-        content={
-            "thought_process": "tp",
-            "conclusion": "c",
-            "confidence_score": 1.0,
-            "matrix_id": "m",
-            "scale_min": 1,
-            "scale_max": 5,
-            "metadata": {
-                "luontiaika": "2026-02-19T10:00:00Z",
-                "agentti": "A",
-                "suoritus_ymparisto": "B",
-                "validoija": "sys",
-            },
-            "semanttinen_tarkistussumma": "hash",
-            "score_card": {
-                "agent_name": "x",
-                "verdict": "Good job.",
-                "total_score": 8.3,
-                "max_score": 10,
-                "scale_min": 1,
-                "scale_max": 10,
-            },
-            "pisteet": {
-                "analyysi": {"arvosana": 8, "perustelu": "a", "scale_min": 1, "scale_max": 10},
-            },
-            "kriittiset_havainnot_yhteenveto": [],
-        },
+        content=judge_out.model_dump(),
     )
 
     mock_state = WorkflowState(workflow_id="w-1", execution_trace=[mock_trace_event])

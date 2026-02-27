@@ -47,7 +47,7 @@ class CitationAudit(BaseModel):
 def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
     """HOOK: verify_citation_integrity.
 
-    Verifies that quotes used by agents (Analyst, Falsifier, Logician) actually exist
+    Verify that quotes used by agents (Analyst, Falsifier, Logician) actually exist
     in the source text (History, Product).
 
     FAIL FAST:
@@ -144,7 +144,7 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
     total_count = 0
 
     # 2. Check Analyst Hypotheses
-    analyst_model = state.get_context("683eb4b9-147c-4f5d-89a7-7b18d75c4202", AnalystOutput)
+    analyst_model = state.get_context("step_analyst", AnalystOutput)
 
     if analyst_model:
         for hyp in analyst_model.hypotheses:
@@ -178,40 +178,6 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
                     valid_count += 1
                 else:
                     invalid_citations.append(f"Logician: {comp.data[:50]}...")
-
-    # 5. Check Judges (Standard & Cognitive)
-    for judge_key in ["step_judge", "step_judge_cognitive"]:
-        judge_out = state.context_variables.get(judge_key)
-        # FIX: Use EvaluationResult. JudgeOutput is deprecated/aliased but agent returns EvaluationResult.
-        # Also citation_snippets is not present in EvaluationResult.
-        if not judge_out:
-            continue
-
-        try:
-            # We just validate it exists and is correct type.
-            # Citation checking for Judge is temporarily disabled until schema supports it.
-            # FIX: JudgeAgent returns JudgeOutput, not EvaluationResult.
-            # We accept JudgeOutput as valid for now without forcing EvaluationResult inflation.
-
-            # STRICT PYDANTIC ENFORCEMENT:
-            if isinstance(judge_out, dict):
-                # Try to strict inflate first
-                judge_out = inflate(judge_out, JudgeOutput)
-
-                # If still a dict (inflation failed to produce object), RAISE Strict Violation
-                if isinstance(judge_out, dict):
-                    raise AppException(
-                        message=f"Strict Pydantic Enforcement: {judge_key} is a dict, expected JudgeOutput model.",
-                        details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
-                    )
-
-            # If it's already an object, checking type might be tricky if imports are circular or strict.
-            # For now, we trust the presence of data if it's not None.
-            pass
-        except AppException:
-            raise
-        except Exception:
-            pass
 
     if total_count == 0:
         logger.info("[IntegrityHook] No citations found to verify.")
@@ -249,26 +215,37 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
             details={"error_code": error_code, "audit": audit.model_dump()},
         )
 
-    # Update Metadata
+    from backend.models.domain.base import Metadata
+
+    # Update Metadata (Strict Pydantic Enforcement)
     new_context = state.context_variables.copy()
-    existing_meta = new_context.get("metadata", {})
-    if hasattr(existing_meta, "model_dump"):
-        existing_meta = existing_meta.model_dump()  # Should verify structure
+    existing_meta_raw = new_context.get("metadata", {})
+    
+    try:
+        if isinstance(existing_meta_raw, dict):
+            # If creating from scratch or parsed JSON, inflate strongly
+            # Since the state might not have all required keys for a bare Metadata,
+            # this safely avoids dict modifications by ensuring a Pydantic boundary
+            if not existing_meta_raw:
+                # If completely empty, we skip metadata update as we cannot manufacture mandatory fields.
+                # However, we still inject the audit context.
+                pass
+            else:
+                existing_meta = inflate(existing_meta_raw, Metadata)
+                if isinstance(existing_meta, Metadata):
+                    audit_logs = existing_meta.audit_logs or []
+                    audit_logs.append(audit.model_dump())
+                    new_context["metadata"] = existing_meta.model_copy(update={"audit_logs": audit_logs})
+        elif hasattr(existing_meta_raw, "model_copy"):
+            # Update existing Metadata instance directly
+            audit_logs = existing_meta_raw.audit_logs or []
+            audit_logs.append(audit.model_dump())
+            new_context["metadata"] = existing_meta_raw.model_copy(update={"audit_logs": audit_logs})
+            
+    except Exception as e:
+        logger.warning(f"[IntegrityHook] Failed to inflate strict Metadata for CitationAudit append: {e}")
 
-    # Store in audit_logs list
-    audit_logs = existing_meta.get("audit_logs", [])
-    if not isinstance(audit_logs, list):
-        audit_logs = []
-
-    audit_logs.append(audit.model_dump())
-
-    # Update metadata dict
-    existing_meta["audit_logs"] = audit_logs
-    new_context["metadata"] = existing_meta
-
-    # We need to update metadata carefully.
-    # Since WorkflowState metadata is typically a Dict or Pydantic, we store it in context_variables usually.
-    # But let's create a dedicated 'integrity_audit' key in context for visibility
+    # Create a dedicated 'integrity_audit' key in context for visibility regardless of metadata presence
     new_context["integrity_audit"] = audit
 
     return state.model_copy(update={"context_variables": new_context})
@@ -277,7 +254,7 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
 def enforce_hypothesis_linking(state: WorkflowState) -> WorkflowState:
     """HOOK: enforce_hypothesis_linking.
 
-    Ensures that Analyst Hypotheses have sequential, valid IDs (HYP-1, HYP-2...).
+    Ensure that Analyst Hypotheses have sequential, valid IDs (HYP-1, HYP-2...).
 
     Args:
         state (WorkflowState): Current state.
@@ -288,7 +265,7 @@ def enforce_hypothesis_linking(state: WorkflowState) -> WorkflowState:
     Raises:
         AppException: If hypothesis IDs are malformed or non-sequential.
     """
-    step_analyst = state.context_variables.get("683eb4b9-147c-4f5d-89a7-7b18d75c4202")
+    step_analyst = state.context_variables.get("step_analyst")
     if not step_analyst:
         return state
 

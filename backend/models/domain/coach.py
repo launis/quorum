@@ -33,7 +33,7 @@ class CoachInput(BaseModel):
 
     # Allow extra fields because Coach might receive step_judge, step_judge_cognitive etc.
     # Logic in agent iterates keys.
-    model_config = ConfigDict(frozen=True, extra="allow")
+    model_config = ConfigDict(frozen=True, strict=True)
 
     @field_validator("history_text")
     @classmethod

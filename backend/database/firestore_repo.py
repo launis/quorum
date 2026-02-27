@@ -119,6 +119,17 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             results.append(ExecutionRecord(**data))
         return results
 
+    async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
+        query = self.db.collection("executions").where("status", "==", "completed")
+        query = query.order_by("completed_at", direction=firestore.Query.DESCENDING).limit(limit)
+        
+        docs = await query.stream()
+        results = []
+        async for doc in docs:
+            data = doc.to_dict()
+            results.append(ExecutionRecord(**data))
+        return results
+
     async def log_audit_event(self, event_data: dict[str, Any]) -> None:
         """Log an audit event to Firestore."""
         safe_data = self._serialize_for_firestore(event_data)
