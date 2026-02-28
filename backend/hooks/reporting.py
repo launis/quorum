@@ -25,6 +25,7 @@ from backend.models.dtos.pdf_context import ReportContext
 from backend.models.state import WorkflowState
 from backend.settings import get_settings
 from backend.utils.pydantic_utils import inflate
+from backend.models.view.sdui import ReferenceItem, ReferenceIntent
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
     overseer_out = _get_agent_output("step_overseer", OverseerOutput)
     logician_out = _get_agent_output("step_logician", LogicianOutput)
     performativity_out = _get_agent_output("step_detector", PerformativityOutput)  # Check key name!
+    analyst_out = _get_agent_output("step_analyst", AnalystOutput)
 
     from backend.models.domain.panel import PanelOutput
     panel_out = _get_agent_output("step_panel", PanelOutput)
@@ -207,6 +209,97 @@ def generate_report(state: WorkflowState) -> WorkflowState:
     else:
         context["bibliography"] = []
 
+    # Contextual Citations & Global Bibliography (Unified References)
+    references: list[ReferenceItem] = []
+    counters = {"SEARCH": 1, "GROUNDING": 1, "INTERNAL_KB": 1}
+
+    # SEARCH
+    search_items = []
+    if analyst_out and hasattr(analyst_out, "rag_evidence") and analyst_out.rag_evidence:
+        search_items.extend(analyst_out.rag_evidence)
+    sr_obj = state.context_variables.get("search_result")
+    if sr_obj:
+         results = getattr(sr_obj, "results", []) if hasattr(sr_obj, "results") else (
+             sr_obj.get("results", []) if isinstance(sr_obj, dict) else sr_obj
+         )
+         if isinstance(results, list):
+             search_items.extend(results)
+
+    for item in search_items:
+        title = "Verkkohaku"
+        snippet = ""
+        url = None
+        if isinstance(item, dict):
+            title = item.get("title", title)
+            snippet = item.get("snippet", str(item))
+            url = item.get("link")
+        elif hasattr(item, "snippet"):
+            title = getattr(item, "title", title)
+            snippet = getattr(item, "snippet", str(item))
+            url = getattr(item, "link", None)
+        else:
+            snippet = str(item)
+            
+        if snippet and snippet.strip():
+            references.append(ReferenceItem(
+                id=f"[H-{counters['SEARCH']}]",
+                intent=ReferenceIntent.SEARCH,
+                title=title,
+                snippet=snippet,
+                url=url,
+            ))
+            counters["SEARCH"] += 1
+
+    # GROUNDING
+    for step_key in [k for k in dir(state) if k.startswith("step_")]:
+         model = getattr(state, step_key, None)
+         if model:
+              p_meta = getattr(model, "metadata", None)
+              p_prov = getattr(p_meta, "provider_metadata", {}) if p_meta else {}
+              g_urls = p_prov.get("grounding_urls", []) if isinstance(p_prov, dict) else []
+              for url in g_urls:
+                   references.append(ReferenceItem(
+                        id=f"[F-{counters['GROUNDING']}]",
+                        intent=ReferenceIntent.GROUNDING,
+                        title="Faktantarkistus (Google)",
+                        snippet=f"Vertex AI Grounding lähde: {url}",
+                        url=url
+                   ))
+                   counters["GROUNDING"] += 1
+
+    # INTERNAL KB
+    if bib_data:
+        items = getattr(bib_data, "items", []) if hasattr(bib_data, "items") else (
+            bib_data.get("items", []) if isinstance(bib_data, dict) else bib_data
+        )
+        if isinstance(items, list):
+            for item in items:
+                title = "Organisaation Linjaus"
+                snippet = ""
+                url = None
+                if isinstance(item, dict):
+                     title = item.get("title", title)
+                     snippet = item.get("snippet", str(item))
+                     url = item.get("url") or item.get("source_id")
+                elif hasattr(item, "snippet"):
+                     title = getattr(item, "title", title)
+                     snippet = getattr(item, "snippet", str(item))
+                     url = getattr(item, "url", getattr(item, "source_id", None))
+                else:
+                     snippet = str(item)
+
+                if snippet and snippet.strip():
+                    references.append(ReferenceItem(
+                        id=f"[O-{counters['INTERNAL_KB']}]",
+                        intent=ReferenceIntent.INTERNAL_KB,
+                        title=title,
+                        snippet=snippet,
+                        url=url,
+                    ))
+                    counters["INTERNAL_KB"] += 1
+    
+    context["references"] = references
+
     # 4. PASS THROUGH SPECIALIST DATA (For Template deep dives)
     context["logician_data"] = logician_data
     context["overseer_data"] = overseer_data
@@ -228,7 +321,6 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                 context["word_count"] = getattr(metrics, "word_count", 0)
                 context["input_control_ratio"] = getattr(metrics, "control_ratio", 0.0)
 
-    analyst_out = _get_agent_output("step_analyst", AnalystOutput)
     if analyst_out:
         # Knowledge Items (Now extracted directly from analyst_out.rag_evidence if we want to show it, or left empty)
         # Search results and knowledge items were moved/removed in the Strict DTO refactor.

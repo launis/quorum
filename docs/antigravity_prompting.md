@@ -17,7 +17,37 @@ Kun pyydät tekoälyä rakentamaan uuden ominaisuuden, älä anna sen aloittaa h
 
 **Miksi toimii:** Tekoäly joutuu tunnistamaan konseptit (esim. The Zero-Compromise Pledge, Strict Pydantic) ennen kuin se muodostaa ratkaisun. Se ei voi oikaista.
 
-## 2. Käytä Manifestia "Kiistojen ratkaisijana" (Tie-breaker)
+## 2. Vaadi täsmällinen Implementation Plan ennen toteutusta (Planning Mode)
+
+Kun vika on monimutkainen tai vaatii koskemista ydinarkkitehtuuriin, älä salli tekoälyn "sooloilla" ja alkaa suoraan koodaamaan tiedostoja sekaisin. Pakota se laatimaan tiukka `implementation_plan.md` ja hyväksyttämään se sinulla ensin.
+
+**✅ Hyvä syöte (Prompt):**
+> "Tavoitteena on implementoida uusi ominaisuus X. Ennen kuin toteutat mitään koodia, lue huolellisesti `docs/`-hakemiston ohjeet, erityisesti `docs/flutterpromptohje.md` sekä `docs/data_management.md`. Laadi tämän jälkeen tiukka `implementation_plan.md` (Käytä Planning modea). Suunnitelman on noudatettava V9 Hardening -arkkitehtuuria ja docs-kansioiden sääntöjä:
+> 1. Pydantic-mallit on oltava Strict (ei dict-käyttöä, extra='ignore').
+> 2. Fail-Fast: Määrittele missä poikkeukset heitetään (`AppException`).
+> 3. Käy jokainen osa `docs/flutterpromptohje.md`, ja kerro kuinka suunnitelmasi noudattaa sitä.
+> 4. Zero-Magic: Ei implicit castauksia.
+> Pyydä minulta lupa (Review), kun suunnitelma on valmis, jotta voin hyväksyä sen ennen koodaustyön aloittamista (Execution).
+"
+
+**Miksi toimii:** Tämä erottaa tekoälyn *suunnitteluvaiheen* ja *suoritusvaiheen*. Saat itse lukea ja torjua huonot arkkitehtuurivalinnat ennakkoon ilman, että joudut perumaan kymmeniä pieleen menneitä koodimuokkauksia.
+
+## 3. Vaadi orjallista toteutusta (Execution Mode)
+
+Kun `implementation_plan.md` on valmis ja olet sen hyväksynyt, anna tekoälylle selkeä ja tiukka käsky toteuttaa se. Älä anna sille lupaa sooloilla suunnitelman ulkopuolelle.
+
+**✅ Hyvä syöte (Prompt):**
+> "Olen lukenut ja hyväksynyt `implementation_plan.md` -dokumentin. Siirry Execution-tilaan ja aloita toteutus. 
+> Säännöt suoritukselle:
+> 1. Noudata suunnitelmaa orjallisesti. Jos törmäät esteeseen, jota suunnitelma ei huomioinut, keskeytä suoritus ja kysy minulta neuvoa (Notify User).
+> 2. Koodin on oltava täysin linjassa `docs/flutterpromptohje.md` -manifestin kanssa (Strict Pydantic, Fail-Fast, Zero-Magic). 
+> 3. Tee uudet testit tai tutki onko vanhoissa jo olemassa valmiita testejä. Varmista, että mikään vanha testi ei hajoa muutosten myötä. Aja testit paikallisesti ennen koodin lukitsemista.
+> 4. Käy jokainen osa `docs/flutterpromptohje.md`, ja kerro kuinka suunnitelmasi noudattaa sitä.
+> 5. Kun valmista, tee `walkthrough.md` -dokumentti todisteeksi muutoksista."
+
+**Miksi toimii:** Tämä asettaa agentin puhtaasti "koodari"-tilaan, viilaa pois tarpeettoman suunnittelun ja asettaa tiukat rajat (Fail-Fast myös tekoälyn työskentelylle).
+
+## 4. Käytä Manifestia "Kiistojen ratkaisijana" (Tie-breaker)
 
 Kun huomaat, että koodissa on virhe tai tekoäly on alkanut laiskistua pitkän istunnon aikana (esim. alkanut ehdottaa `dict`-palautuksia tai `try-except pass` -purkkapurkkavirityksiä), pysäytä se käyttämällä Manifestia absoluuttisena auktoriteettina.
 

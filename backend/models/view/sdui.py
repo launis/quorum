@@ -41,6 +41,31 @@ class VerificationResult(str, Enum):
     UNCERTAIN = "VER_UNCERTAIN"
 
 
+class ReferenceIntent(str, Enum):
+    SEARCH = "SEARCH"
+    GROUNDING = "GROUNDING"
+    INTERNAL_KB = "INTERNAL_KB"
+
+
+class ReferenceItem(BaseModel):
+    """Strict View Model for a single Contextual Citation."""
+
+    id: str = Field(..., description="Citation ID, e.g., H-1, F-1")
+    intent: ReferenceIntent = Field(..., description="Type of the reference source")
+    title: str | None = Field(default=None, description="Title of the source")
+    snippet: str = Field(..., description="Extracted content, relevance, or reasoning")
+    url: str | None = Field(default=None, description="Link to the source if available")
+
+    model_config = ConfigDict(frozen=True, strict=False)
+
+    @field_validator("id", "snippet")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+
 class EvidenceItem(BaseModel):
     """Strict View Model for a single piece of Evidence."""
 
@@ -134,6 +159,7 @@ class ReportView(BaseModel):
     sections: list[UiSection] = Field(default_factory=list, description="Ordered list of UI sections")
     metrics: dict[str, Any] | None = Field(default=None, description="Global audit metrics (Word Count, etc.)")
     system_notification: SystemNotification | None = Field(default=None, description="Global notification/warning")
+    references: list[ReferenceItem] = Field(default_factory=list, description="Global bibliography and references")
 
     model_config = ConfigDict(frozen=True, strict=False)
 

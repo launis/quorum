@@ -9,6 +9,8 @@ from backend.models.view import (
     EvidenceItem,
     EvidenceList,
     ReportView,
+    ReferenceItem,
+    ReferenceIntent,
     ScoreCardDisplay,
     SectionType,
     SystemNotification,
@@ -240,10 +242,13 @@ class ReportTransformer(
             )
         )
 
+        # --- D. Global References ---
+        references_list = self._compile_references(state)
+
         # Extract Metrics from context_variables (if available)
         metrics = state.context_variables.get("audit_metrics") if state else None
 
-        # --- D. Dynamic Theming & Notifications ---
+        # --- E. Dynamic Theming & Notifications ---
         status_theme, notification = self._determine_report_status(metrics, guard_grid)
 
         return ReportView(
@@ -252,7 +257,122 @@ class ReportTransformer(
             sections=sections,
             metrics=metrics,
             system_notification=notification,
+            references=references_list,
         )
+
+    def _compile_references(self, state: 'WorkflowState' | None) -> list[ReferenceItem]:
+        """Kokoaa yhteen kaikki kontekstuaaliset lähdeviitteet."""
+        if not state:
+            return []
+
+        references = []
+        counters = {"SEARCH": 1, "GROUNDING": 1, "INTERNAL_KB": 1}
+
+        # 1. Analyst Search (Web / Snippets) -> [H-X]
+        # Haetaan sekä rag_evidencestä että hakutuloksista, koska arkitehtuuri oli siirtymävaiheessa
+        search_items = []
+        if getattr(state, "step_analyst", None):
+            rag = getattr(state.step_analyst, "rag_evidence", [])
+            if rag:
+                search_items.extend(rag)
+        
+        # Oletetaan SearchHook palauttaa context_variables["search_result"]
+        sr_obj = state.context_variables.get("search_result")
+        if sr_obj:
+            results = getattr(sr_obj, "results", []) if hasattr(sr_obj, "results") else (
+                sr_obj.get("results", []) if isinstance(sr_obj, dict) else sr_obj
+            )
+            if isinstance(results, list):
+                search_items.extend(results)
+
+        for item in search_items:
+            # Map object or dict
+            title = "Verkkohaku"
+            snippet = ""
+            url = None
+            if isinstance(item, dict):
+                title = item.get("title", title)
+                snippet = item.get("snippet", str(item))
+                url = item.get("link")
+            elif hasattr(item, "snippet"):
+                title = getattr(item, "title", title)
+                snippet = getattr(item, "snippet", str(item))
+                url = getattr(item, "link", None)
+            else:
+                snippet = str(item)
+
+            if snippet and snippet.strip():
+                references.append(ReferenceItem(
+                    id=f"[H-{counters['SEARCH']}]",
+                    intent=ReferenceIntent.SEARCH,
+                    title=title,
+                    snippet=snippet,
+                    url=url,
+                ))
+                counters["SEARCH"] += 1
+
+        # 2. Vertex Grounding (Fact-checking/Web URIs) -> [F-X]
+        # Grounding data is usually intercepted into LLMResponse model_extra. 
+        # Safest way without schema coupling is finding grounding metadata across steps' LLM traces if they exist
+        for key, val in state.context_variables.items():
+             if "grounding" in key.lower() and isinstance(val, (list, dict)):
+                 # Very simplified generic mapper, actual integration requires provider-specific schema
+                 pass
+        
+        # Note: If Judge provides critical_findings, we could also map them as [F-X] here in the future.
+        # Until then, we extract from provider metadata directly if we see it.
+        # Fallback to searching step_metadata:
+        for step_key in [k for k in dir(state) if k.startswith("step_")]:
+             model = getattr(state, step_key, None)
+             if model:
+                  p_meta = getattr(model, "metadata", None)
+                  p_prov = getattr(p_meta, "provider_metadata", {}) if p_meta else {}
+                  g_urls = p_prov.get("grounding_urls", []) if isinstance(p_prov, dict) else []
+                  for url in g_urls:
+                       references.append(ReferenceItem(
+                            id=f"[F-{counters['GROUNDING']}]",
+                            intent=ReferenceIntent.GROUNDING,
+                            title="Faktantarkistus (Google)",
+                            snippet=f"Vertex AI Grounding lähde: {url}",
+                            url=url
+                       ))
+                       counters["GROUNDING"] += 1
+
+        # 3. Internal KB (ReferencesHook) -> [O-X]
+        # ReferenceHook tallentaa 'bibliography_result' tilaobjektiin
+        bib_obj = state.context_variables.get("bibliography_result")
+        if bib_obj:
+            if isinstance(bib_obj, dict):
+                items = bib_obj.get("references", bib_obj.get("items", []))
+            else:
+                items = getattr(bib_obj, "references", getattr(bib_obj, "items", []))
+            if isinstance(items, list):
+                for item in items:
+                    title = "Organisaation Linjaus"
+                    snippet = ""
+                    url = None
+                    if isinstance(item, dict):
+                         title = item.get("title", title)
+                         snippet = item.get("snippet", str(item))
+                         url = item.get("url") or item.get("source_id")
+                    elif hasattr(item, "snippet"):
+                         title = getattr(item, "title", title)
+                         snippet = getattr(item, "snippet", str(item))
+                         url = getattr(item, "url", getattr(item, "source_id", None))
+                    else:
+                         snippet = str(item)
+
+                    if snippet and snippet.strip():
+                        references.append(ReferenceItem(
+                            id=f"[O-{counters['INTERNAL_KB']}]",
+                            intent=ReferenceIntent.INTERNAL_KB,
+                            title=title,
+                            snippet=snippet,
+                            url=url,
+                        ))
+                        counters["INTERNAL_KB"] += 1
+
+        return references
 
     def _determine_report_status(
         self, metrics: dict | None, guard_section: UiSection | None

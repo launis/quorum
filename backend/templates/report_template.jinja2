@@ -154,37 +154,45 @@ Ei avoimia kysymyksiä.
 ---
 
 {% endif %}
-{% if report_content.google_search_results %}
-## 9. Faktantarkistuksen Lähteet
+{% if report_content.references %}
+## 9. Kirjallisuus & Globaali Lähdeluettelo
 
-🔍 **Ulkoiset lähteet arviointitueksi:**
+Käytetyt lähteet ryhmiteltynä käyttötarkoituksen mukaan.
 
-{% for result in report_content.google_search_results %}
-{% if result is mapping %}
-- **{{ result.title | default("Lähde") }}**
-  - URL: [{{ result.link | default(result.url | default("Ei linkkiä")) }}]({{ result.link | default(result.url | default("#")) }})
-  - {{ result.snippet | default(result.description | default("")) | truncate(200) }}
-{% else %}
-- {{ result }}
-{% endif %}
+{% set search_refs = [] %}
+{% set ground_refs = [] %}
+{% set kb_refs = [] %}
+{% for ref in report_content.references %}
+  {% if ref.intent == 'SEARCH' %}{% set _ = search_refs.append(ref) %}{% endif %}
+  {% if ref.intent == 'GROUNDING' %}{% set _ = ground_refs.append(ref) %}{% endif %}
+  {% if ref.intent == 'INTERNAL_KB' %}{% set _ = kb_refs.append(ref) %}{% endif %}
 {% endfor %}
 
----
-
-{% endif %}
-
-{% if report_content.bibliography %}
-## 10. Lähdeluettelo
-
-📚 **Järjestelmän tunnistamat lähteet (Authoritative Bibliography):**
-
-{% for ref in report_content.bibliography %}
-- **[{{ ref.source_id }}]** {{ ref.title }}
-  {% if ref.url %} - [Linkki]({{ ref.url }}){% endif %}
-  {% if ref.snippet %}
+{% if search_refs %}
+### 🔍 Analytiikan Haut
+{% for ref in search_refs %}
+- **{{ ref.id }} - {{ ref.title | default("Verkkohaku") }}**
+  {% if ref.url %}[Linkki]({{ ref.url }})  <br>{% endif %}
   > *"{{ ref.snippet | truncate(150) }}"*
-  {% endif %}
 {% endfor %}
+{% endif %}
+
+{% if ground_refs %}
+### 🌐 Faktantarkistus (Vertex AI Grounding)
+{% for ref in ground_refs %}
+- **{{ ref.id }}**
+  {% if ref.url %}[Lähde: {{ ref.url }}]({{ ref.url }})  <br>{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if kb_refs %}
+### 📚 Organisaation Linjaukset & Tietopankki
+{% for ref in kb_refs %}
+- **{{ ref.id }} - {{ ref.title | default("Organisaation Linjaus") }}**
+  {% if ref.url %}[Linkki]({{ ref.url }})  <br>{% endif %}
+  > *"{{ ref.snippet | truncate(150) }}"*
+{% endfor %}
+{% endif %}
 
 ---
 {% endif %}

@@ -96,14 +96,14 @@ def test_causal_transformer_extracts_display_model():
     mock_step_data = {
         "causal_analysis": {
             "abductive_reasoning": {"verdict": "OK", "confidence_score": 0.9, "conclusion": "Conc1"},
-            "abductive_conclusion": "ABDUCT_GENUINE",
+            "abductive_conclusion": "GENUINE",
             "abductive_score": 3.0,
             "counterfactual_test": {
                 "plausibility": "PLAUSIBLE",
                 "confidence_score": 0.8,
                 "actual_scenario": "A1",
                 "simulated_scenario": "S1",
-                "plausibility_score": "PLAUS_PLAUSIBLE",
+                "plausibility_score": "PLAUSIBLE",
                 "plausibility_numeric": 2.0,
                 "simulation_result": "SimResult",
             },

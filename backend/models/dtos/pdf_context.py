@@ -10,6 +10,7 @@ from backend.models.domain.overseer import OverseerData
 from backend.models.domain.performativity import PerformativityAnalysis
 from backend.models.domain.retrieval import KnowledgeItem
 from backend.models.dtos.base import BaseDTO
+from backend.models.view.sdui import ReferenceItem
 
 
 class ReportContext(BaseDTO):
@@ -34,6 +35,7 @@ class ReportContext(BaseDTO):
     archivist_precedents: Any | None = Field(default=None, description="Archivist precedents.")
     google_search_results: list[dict[str, Any]] = Field(default_factory=list, description="Google search results.")
     bibliography: list[BibliographyItem] = Field(default_factory=list, description="Authoritative bibliography.")
+    references: list[ReferenceItem] = Field(default_factory=list, description="Global references list.")
 
     # Specialist Agents (Deep Analysis)
     logician_data: LogicianData | None = Field(default=None, description="Logician analysis.")

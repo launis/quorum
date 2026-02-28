@@ -144,7 +144,75 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
               child: _renderSection(context, section, view),
             );
           }),
+          if (view.references.isNotEmpty) ...[
+            const Divider(height: 48),
+            _buildReferencesSection(context, view.references),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildReferencesSection(BuildContext context, List<ReferenceItem> references) {
+    // Group by intent
+    final searchRefs = references.where((r) => r.intent == ReferenceIntent.search).toList();
+    final groundRefs = references.where((r) => r.intent == ReferenceIntent.grounding).toList();
+    final kbRefs = references.where((r) => r.intent == ReferenceIntent.internalKb).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Lähdeluettelo & Viitteet',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        if (searchRefs.isNotEmpty) _buildRefGroup(context, 'Analytiikan Haut', Icons.search, searchRefs),
+        if (groundRefs.isNotEmpty) _buildRefGroup(context, 'Faktantarkistus (Vertex AI Grounding)', Icons.public, groundRefs),
+        if (kbRefs.isNotEmpty) _buildRefGroup(context, 'Organisaation Linjaukset & Tietopankki', Icons.library_books, kbRefs),
+      ],
+    );
+  }
+
+  Widget _buildRefGroup(BuildContext context, String title, IconData icon, List<ReferenceItem> refs) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Card(
+        elevation: 1,
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          children: refs.map((ref) {
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              title: Text(
+                (ref.title != null && ref.title!.isNotEmpty) 
+                    ? '${ref.id} - ${ref.title}' 
+                    : ref.id, 
+                style: const TextStyle(fontWeight: FontWeight.w600)
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (ref.snippet.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(ref.snippet, maxLines: 3, overflow: TextOverflow.ellipsis),
+                  ],
+                  if (ref.url != null && ref.url!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      ref.url!,
+                      style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
