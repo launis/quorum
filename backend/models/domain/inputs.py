@@ -11,7 +11,7 @@ class WorkflowInputs(BaseModel):
     """
 
     # Primary Content (Raw Material for LLM)
-    history_text: str | None = Field(default=None, description="The raw conversation history to analyze.")
+    history_text: str = Field(..., description="The raw conversation history to analyze.")
     product_text: str | None = Field(default=None, description="Context about the product or service.")
     reflection_text: str | None = Field(default=None, description="User's reflection or self-assessment.")
 

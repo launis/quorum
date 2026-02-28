@@ -149,11 +149,26 @@ async def create_execution(
                 # 3. Parsing Chat Logs (ChatLogParser)
                 extracted_texts = await document_service.process_evidence_files(execution_id, files_to_process)
 
-                for key, text_content in extracted_texts.items():
-                    inputs[key] = text_content
+                for raw_key, text_content in extracted_texts.items():
+                    # Smart Mapping: UI often sends UUIDs or filenames like "keskusteluhistoria SITRA.pdf"
+                    lower_key = raw_key.lower()
+                    target_key = raw_key
+                    
+                    if "historia" in lower_key or "history" in lower_key or "chat" in lower_key:
+                        target_key = "history_text"
+                    elif "lopputuote" in lower_key or "product" in lower_key or "output" in lower_key:
+                        target_key = "product_text"
+                    elif "reflektio" in lower_key or "reflection" in lower_key or "self" in lower_key:
+                        target_key = "reflection_text"
+
+                    inputs[target_key] = text_content
+                    logger.info(f"[Lifecycle] Mapped uploaded file '{raw_key}' to input '{target_key}' ({len(text_content)} chars)")
             except Exception as e:
                 logger.error(f"DocumentService failed: {e}")
                 raise AppException(message=f"File processing failed: {e}", status_code=500, details={"error_code": "FILE_PROCESSING_FAILED"}) from e
+
+        # DIAGNOSTIC LOG (Requested by User to trace what goes in)
+        logger.info(f"[Lifecycle] FINAL Resolved Execution Inputs Keys: {list(inputs.keys())}")
 
         if not workflow_id or not isinstance(workflow_id, str):
             raise AppException(message="Workflow ID missing or invalid", status_code=400)

@@ -1,0 +1,33 @@
+
+
+--- [LiteLLM] gemini-test ---
+[
+  {
+    "role": "user",
+    "content": "Test prompt"
+  }
+]
+
+--- [LiteLLM] gemini-test ---
+[
+  {
+    "role": "user",
+    "content": "Test prompt"
+  }
+]
+
+--- [LiteLLM] gemini-test ---
+[
+  {
+    "role": "user",
+    "content": "Test prompt"
+  }
+]
+
+--- [LiteLLM] gemini-test ---
+[
+  {
+    "role": "user",
+    "content": "Test prompt"
+  }
+]

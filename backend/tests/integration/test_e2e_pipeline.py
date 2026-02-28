@@ -135,7 +135,7 @@ async def test_full_pipeline_ingestion_to_bff():
                 "workflowId": wf_id,
                 "organizationId": "test_org",
                 "settings": {
-                    # Add any extra inputs the UI might send
+                    "history_text": "Simulated chat history content.",
                     "target_audience": "stakeholders"
                 }
             })
