@@ -396,9 +396,9 @@
                 "pre_hooks": []
             },
             "inputs": {
-                "history_text": "$inputs.history_text",
-                "product_text": "$inputs.product_text",
-                "reflection_text": "$inputs.reflection_text"
+                "history_text": "$history_text",
+                "product_text": "$product_text",
+                "reflection_text": "$reflection_text"
             },
             "is_missing_registry": false
         },
@@ -623,9 +623,9 @@
             "inputs": {
                 "step_analyst": "$683eb4b9-147c-4f5d-89a7-7b18d75c4202",
                 "step_profiler": "$46f13eed-f411-4aac-ac41-d8e11f98a648",
-                "history_text": "$inputs.history_text",
-                "product_text": "$inputs.product_text",
-                "reflection_text": "$inputs.reflection_text",
+                "history_text": "$history_text",
+                "product_text": "$product_text",
+                "reflection_text": "$reflection_text",
                 "search_result": "$search_result"
             },
             "is_missing_registry": false
@@ -658,9 +658,9 @@
                 ]
             },
             "inputs": {
-                "history_text": "$inputs.history_text",
-                "product_text": "$inputs.product_text",
-                "reflection_text": "$inputs.reflection_text",
+                "history_text": "$history_text",
+                "product_text": "$product_text",
+                "reflection_text": "$reflection_text",
                 "profiler_metrics": "$profiler_metrics"
             },
             "is_missing_registry": false

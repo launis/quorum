@@ -6,15 +6,13 @@ class ScoreCard extends StatelessWidget {
   final double? value;
   final double? maxValue;
   final String? description;
-  final double? previousValue; // For dual matrix comparison
 
   const ScoreCard({
     super.key,
     required this.label,
     required this.value,
-    this.maxValue = 5.0,
+    this.maxValue,
     this.description,
-    this.previousValue,
   });
 
   @override
@@ -122,46 +120,9 @@ class ScoreCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (previousValue != null) ...[
-              const SizedBox(height: 4),
-              _buildComparison(context, value!, previousValue!),
-            ],
-            if (description != null && description!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                description!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildComparison(BuildContext context, double current, double prev) {
-    final delta = current - prev;
-    if (delta == 0) return const SizedBox.shrink();
-
-    final isPositive = delta > 0;
-    final color = isPositive ? Colors.green : Colors.red;
-    final icon = isPositive ? Icons.arrow_upward : Icons.arrow_downward;
-
-    return Row(
-      children: [
-        Icon(icon, size: 12, color: color),
-        const SizedBox(width: 4),
-        Text(
-          '\${NumberFormat.decimalPatternDigits(locale: Localizations.localeOf(context).toString(), decimalDigits: 1).format(delta.abs())} (vs prev)',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: color, fontSize: 10),
-        ),
-      ],
     );
   }
 

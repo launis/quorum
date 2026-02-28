@@ -117,21 +117,15 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
   }
 
   Widget _buildDynamicDashboard(BuildContext context, ReportView view) {
-    // 1. Analyze signals for HITL or Performativity
-    bool isHitlRequired = view.metrics?['hitl_required'] == true;
-    bool isPerformative = false;
+    // 1. SDUI Protocol: We respect backend signals without string parsing
+    final bool isHitlRequired = view.metrics?['hitl_required'] == true;
+    final bool hasWarning = view.metrics?['has_warning'] == true;
     
-    for (final section in view.sections) {
-      if (section.type == 'SCORE_CARD') {
-        final verdict = section.data['verdict']?.toString().toLowerCase() ?? '';
-        if (verdict.contains('matkustaja') || verdict.contains('performatiivi')) {
-          isPerformative = true;
-        }
-      }
-    }
-
-    final bool showWarning = isHitlRequired || isPerformative;
-    final String? feedback = view.metrics?['coach_feedback']?.toString();
+    final bool showWarning = isHitlRequired || hasWarning;
+    
+    // We only display feedback exactly as given by backend
+    final String? feedback = view.metrics?['coach_feedback']?.toString() 
+                          ?? view.metrics?['warning_message']?.toString();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -141,7 +135,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
           _buildHeader(context, view),
           const SizedBox(height: 16),
           if (showWarning) ...[
-            _buildWarningBanner(context, isHitlRequired, isPerformative, feedback),
+            _buildWarningBanner(context, isHitlRequired, hasWarning, feedback),
             const SizedBox(height: 24),
           ],
           ...view.sections.map((section) {
@@ -155,14 +149,13 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     );
   }
 
-  Widget _buildWarningBanner(BuildContext context, bool hitl, bool performative, String? feedback) {
+  Widget _buildWarningBanner(BuildContext context, bool hitl, bool backendWarning, String? feedback) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
     String title = "Huomioitavaa";
     if (hitl) title = "Ihmisen tarkistus vaaditaan (HITL)";
-    if (performative) title = "Mahdollinen \"Say-Do Gap\" havaittu";
-    if (hitl && performative) title = "Ihmisen tarkistus: Say-Do Gap havaittu";
+    else if (backendWarning) title = "Järjestelmän varoitus";
 
     return Container(
       decoration: BoxDecoration(

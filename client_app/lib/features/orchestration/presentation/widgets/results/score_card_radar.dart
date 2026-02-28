@@ -71,7 +71,7 @@ class ScoreCardRadar extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        (card.totalScore ?? 0.0).toStringAsFixed(1),
+                        card.totalScore != null ? card.totalScore!.toStringAsFixed(1) : "N/A",
                         style: textTheme.titleLarge?.copyWith(
                           color: colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.bold,
