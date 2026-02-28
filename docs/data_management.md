@@ -1,9 +1,9 @@
-# Data Management & Databases (V3.2)
+# Data Management & Databases (V5.1 / Phase 9 Hardening)
 
 The engine is **data-driven**: logic definitions are stored in JSON (the "Mind"), but strict data contracts are enforced via Python/Dart code (the "Body").
 
 > [!IMPORTANT]
-> **V3.2 Standard (Strict Pydantic & Zero-Compromise)**
+> **V5.1 Standard (Strict Pydantic V2 & Zero-Compromise)**
 > All internal state management MUST use **Pydantic V2 Models**. Dictionary passing (`dict[str, Any]`) is strictly forbidden for inter-component communication. If a field is missing, the system **Fail Fasts** with `AppException`.
 
 ---
@@ -190,7 +190,7 @@ The BFF Layer (`bff_transformer.py` / SDUI Domain Transformers) must structurall
 
 ---
 
-## 9. Component & Configuration Architecture (V3.2)
+## 9. Component & Configuration Architecture (V5.1)
 
 ### 9.1. Component Registry & Prompt Resolution
 The system decouples "Instructions" (Prompts) from "Logic" (Agents).
@@ -236,7 +236,7 @@ This ensures resilience (DB doesn't crash on load) and integrity (Logic layer ve
 
 ---
 
-## 10. Model Strategy Architecture (V3.2)
+## 10. Model Strategy Architecture (V5.1)
 
 The system employs a specific architectural pattern to decouple **Semantic Intent** from **Operational Constraints**. This ensures the system's "Deep" reasoning capabilities are defined correctly, even if operational limits (e.g., Google Quotas) require temporary downgrades.
 

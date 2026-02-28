@@ -7,7 +7,6 @@ from typing import Annotated, Any
 
 from dotenv import load_dotenv
 from pydantic import BeforeValidator, Field, computed_field
-from pydantic import BeforeValidator, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend.exceptions import AppException, ErrorCodes

@@ -93,7 +93,7 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerOutput]):
                 val = hook_metrics_dict["control_ratio"]
                 if isinstance(val, (int, float)) and val > 1.0:
                     logger.warning(f"[ProfilerAgent] Anomaly detected: control_ratio {val} > 1.0. Clamping to 1.0.")
-                    
+
                 # Update the pydantic model via model_copy
                 if hasattr(hook_metrics, "model_copy"):
                     hook_metrics = hook_metrics.model_copy(update={"control_ratio": min(val, 1.0)})
@@ -128,7 +128,7 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerOutput]):
                 # LLM output metrics (if any) and hook_metrics are now Pydantic models
                 current_dict = result.metrics.model_dump() if result.metrics else {}
                 hook_dict = hook_metrics.model_dump() if hasattr(hook_metrics, "model_dump") else hook_metrics
-                
+
                 merged_metrics = {**current_dict, **hook_dict}
                 result = result.model_copy(update={"metrics": merged_metrics})
 

@@ -71,7 +71,13 @@ class TestXAIFlatGeneration(unittest.TestCase):
 
         # Input Data (with Judge Scores)
         step_judge_data = {
+            "thought_process": "x",
+            "conclusion": "y",
+            "confidence_score": 0.9,
             "matrix_id": "standard_v1",
+            "scale_min": 0.0,
+            "scale_max": 5.0,
+            "critical_findings": [],
             "score_card": {
                 "agent_name": "Judge",
                 "total_score": 4.5,
@@ -101,9 +107,9 @@ class TestXAIFlatGeneration(unittest.TestCase):
             print(f"Flattened Scores: {result.flat_report.flattened_scores}")
 
             self.assertEqual(result.flat_report.execution_id, exec_id)
-            self.assertEqual(result.flat_report.score_total, 4.5)
-            self.assertEqual(result.flat_report.flattened_scores["clarity"], 5.0)
-            self.assertEqual(result.flat_report.flattened_scores["logic"], 4.0)
+            self.assertEqual(result.flat_report.score_total, 90.0)
+            self.assertEqual(result.flat_report.flattened_scores["clarity"], 100.0)
+            self.assertEqual(result.flat_report.flattened_scores["logic"], 80.0)
             self.assertEqual(result.flat_report.top_strength_id, "clarity")  # 5.0 > 4.0
 
             print("SUCCESS: Flat report generated correctly.")

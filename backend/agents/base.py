@@ -144,8 +144,8 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
             raise AgentExecutionError(detail=error_code, original_error=e, agent_name=self.__class__.__name__) from e
 
     def _apply_python_authority(
-        self, 
-        data: Any, 
+        self,
+        data: Any,
         token_usage: dict[str, Any] | TokenUsage | None = None,
         organization_id: str | None = None,
         workflow: str | None = None,
@@ -193,7 +193,7 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                 meta_updates["organization_id"] = organization_id
             if workflow:
                 meta_updates["workflow"] = workflow
-                
+
             if current_meta and current_meta.audit_logs:
                 if audit_logs:
                     meta_updates["audit_logs"] = current_meta.audit_logs + audit_logs
@@ -254,7 +254,7 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                     system_fingerprint=meta_updates.get("system_fingerprint"),
                     provider_metadata=meta_updates.get("provider_metadata")
                 )
-            
+
             # 2. Attach new metadata to the original object
             try:
                 # Check if the field exists before trying to assign
@@ -342,7 +342,7 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                 meta["organization_id"] = organization_id
             if workflow:
                 meta["workflow"] = workflow
-                
+
             if "audit_logs" in meta and meta["audit_logs"]:
                 if audit_logs:
                     meta["audit_logs"] = meta["audit_logs"] + audit_logs
@@ -628,7 +628,7 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
             else:
                 response_data = response_obj.content
 
-            # Inject the reasoning_token to the dictionary so that Pydantic validation 
+            # Inject the reasoning_token to the dictionary so that Pydantic validation
             # (which expects ReasoningTraceDTO to have reasoning_token) captures it.
             if response_schema and isinstance(response_data, dict):
                 if response_obj.reasoning_token is not None:
@@ -657,7 +657,7 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                 step_id = context_dict.get("step_id") or kwargs.get("step_id")
 
                 response_data = self._apply_python_authority(
-                    response_data, 
+                    response_data,
                     token_usage=getattr(response_obj, "token_usage", None),
                     organization_id=org_id,
                     workflow=workflow_id,

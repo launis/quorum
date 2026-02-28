@@ -95,13 +95,13 @@ async def get_flat_report(
             )
 
         from backend.models.state import WorkflowState
-        
+
         ctx = {}
         if isinstance(execution.results, WorkflowState):
             ctx = execution.results.context_variables
         elif isinstance(execution.results, dict):
             ctx = execution.results.get("context_variables", {})
-            
+
         if not ctx:
             raise AppException(
                 message="Context variables missing in execution.",
@@ -275,7 +275,7 @@ async def get_execution_raw(
             "completed_at": execution_dict.get("completed_at"),
             "duration_seconds": None,
             "inputs": execution_dict.get("inputs", {}),
-            "results": execution_dict.get("results"), 
+            "results": execution_dict.get("results"),
             "state": execution_dict.get("state", {}),
             "user_id": execution_dict.get("user_id"),
         }
@@ -303,12 +303,12 @@ async def get_execution_raw(
                 pass
 
         results = raw_data["results"] or {}
-        
+
         # In V2026 Architecture, Agent outputs are stored in WorkflowState.context_variables
         # However, older executions might have them in `results` directly.
         state_dict = raw_data.get("state") or {}
         context_vars = state_dict.get("context_variables") or {}
-        
+
         raw_data["agent_outputs"] = {
             key: context_vars.get(key) or results.get(key)
             for key in [

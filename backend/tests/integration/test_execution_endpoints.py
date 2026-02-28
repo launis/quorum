@@ -63,6 +63,20 @@ async def test_get_execution_view_endpoint():
     xai_dict = xai_out.model_dump()
     xai_dict["xai_report_formatted"] = "Test Summary"
     state.execution_trace.append(TraceEvent(event_type="output", step_name="step_xai", content=xai_dict))
+    
+    # Store in context variables so ReportTransformer can inflate it
+    state.context_variables["step_xai"] = xai_dict
+    
+    # ReportTransformer expects step_judge to assemble the score card layout
+    step_judge_dict = {
+        "thought_process": "Judge logic",
+        "conclusion": "Judge conclusion",
+        "confidence_score": 0.9,
+        "score_card": xai_out.score_cards[0].model_dump(),
+        "matrix_id": "test_matrix"
+    }
+    state.context_variables["step_judge"] = step_judge_dict
+
 
     mock_repo = create_mock_repo()
     mock_repo.get_execution.return_value = ExecutionRecord(

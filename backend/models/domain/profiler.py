@@ -4,7 +4,6 @@ This module contains the schemas for the Profiler Agent,
 including intent analysis and text metrics.
 """
 
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 

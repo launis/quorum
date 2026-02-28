@@ -11,8 +11,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.models.domain.analyst import AnalystOutput
-from backend.models.domain.logician import LogicianOutput
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+from backend.models.domain.logician import LogicianOutput
 
 
 class OverseerInput(BaseModel):

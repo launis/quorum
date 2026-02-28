@@ -1,10 +1,10 @@
-# Cognitive Quorum V3.2 Documentation
+# Cognitive Quorum V5.1 Documentation
 
 **Structured, Auditable, and Deterministic AI Orchestration.**
 
 ## 📚 Overview
 
-Cognitive Quorum V3.2 (2026) is a **Modular Async Monolith** designed for high-fidelity cognitive labor. It orchestrates a pipeline of specialized agents (Panel, Judge, Analyst) to perform rigorous analysis, enforcing a **"Zero-Magic"** philosophy where every step is strictly typed via **Pydantic V2 DTOs** and auditable.
+Cognitive Quorum V5.1 (2026) is a **Modular Async Monolith** designed for high-fidelity cognitive labor. It orchestrates a pipeline of specialized agents (Panel, Judge, Analyst) to perform rigorous analysis, enforcing a **"Zero-Magic"** philosophy where every step is strictly typed via **Pydantic V2 DTOs** and auditable.
 
 ---
 
@@ -13,7 +13,7 @@ Cognitive Quorum V3.2 (2026) is a **Modular Async Monolith** designed for high-f
 The system is built on a strictly typed, distributed execution model.
 
 *   **[System Architecture](architecture.md)**
-    The authoritative master reference for the V3.2 Modular Async Monolith.
+    The authoritative master reference for the V5.1 Modular Async Monolith.
 *   **[Management Architecture](management_architecture.md)**
     Control Plane for System Config, Tenant Isolation, and RBAC strategies.
 *   **[Data Management](data_management.md)**
@@ -67,7 +67,7 @@ Strategies for ensuring the system works as expected without "Magic".
 ## 🚀 Development Guides
 
 *   **[Product Roadmap](product_roadmap.md)**
-    Current status (V3.2 - Phase 8 Complete), active tasks (Phase 9 Migration), and future milestones.
+    Current status (V5.1 - Phase 9 Complete), active tasks, and future milestones.
 *   **[Flutter Development Guide](flutterpromptohje.md)**
     Standards for the Frontend "Thick Client" (Riverpod, Localization, Widgets).
 

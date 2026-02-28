@@ -143,7 +143,7 @@ def test_performativity_analysis():
 
 def test_l10n_keys_exist():
     """Verify all Enum values exist in en.json."""
-    with open("backend/l10n/en.json", encoding="utf-8") as f:
+    with open("l10n/en.json", encoding="utf-8") as f:
         en_data = json.load(f)
 
     from enum import Enum

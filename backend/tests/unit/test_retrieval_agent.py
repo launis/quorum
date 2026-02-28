@@ -22,7 +22,7 @@ async def test_retrieval_agent_hybrid_execution():
     mock_execution.status = "completed"
     mock_execution.completed_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
-    from backend.models.domain.judge import JudgeOutput, JudgeScoreCard, DimensionResultItem
+    from backend.models.domain.judge import DimensionResultItem, JudgeOutput, JudgeScoreCard
 
     judge_out = JudgeOutput(
         matrix_id="m",

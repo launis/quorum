@@ -24,59 +24,22 @@ class OverseerDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_overseer_section(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_overseer")
+    def _extract_overseer_section(self, state: 'WorkflowState') -> UiSection | None:
+        model = state.step_overseer
 
         # Fallback to Panel
-        if not step:
-            panel = steps.get("step_panel")
-            if panel and isinstance(panel, dict):
-                step = panel.get("overseer_data") or panel.get("valvonta_data")
+        if not model:
+            panel = state.step_panel
+            if panel and getattr(panel, "overseer_data", None):
+                model = OverseerOutput(
+                    overseer_data=panel.overseer_data,
+                    thought_process="[Aggregated Panel Analysis]",
+                    conclusion="N/A",
+                    confidence_score=1.0,
+                )
 
-        if not step:
+        if not model:
             return None
-
-            # STRICT VALIDATION: Schema First
-        try:
-            if isinstance(step, dict):
-                if "overseer_data" in step:
-                    model = OverseerOutput(**self._adapt_legacy_trace(step))
-                # Check if it's the inner data (list of facts) - heuristic
-                elif "fact_checks" in step and "overseer_data" not in step:
-                    inner = OverseerData(**step)
-                    model = OverseerOutput(
-                        overseer_data=inner,
-                        thought_process="[Aggregated Panel Analysis]",
-                        conclusion="N/A",
-                        confidence_score=1.0,
-                    )
-                else:
-                    model = OverseerOutput(**self._adapt_legacy_trace(step))
-            elif hasattr(step, "overseer_data"):
-                model = step if isinstance(step, OverseerOutput) else OverseerOutput.model_validate(step)
-            else:
-                model = OverseerOutput.model_validate(step)
-
-        except ValidationError as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.VALIDATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Overseer validation failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Overseer validation failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
-        except Exception as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.REPORT_GENERATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Overseer transform failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Overseer transform failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
 
         try:
             # UVM: Return strict model directly
@@ -90,6 +53,7 @@ class OverseerDomainTransformer(BaseTransformer):
                 data=display_model,
             )
         except Exception as e:
+            from backend.exceptions import AppException
             raise AppException(f"Failed to transform Overseer display: {e}", 500) from e
 
     def _transform_overseer_data(self, model: OverseerOutput) -> FactCheckDisplay:
@@ -146,4 +110,4 @@ class OverseerDomainTransformer(BaseTransformer):
                 )
             )
 
-        return FactCheckDisplay(verified_facts=facts, ethical_issues=ethical_issues)
+        return FactCheckDisplay(fact_checks=facts, ethical_issues=ethical_issues)

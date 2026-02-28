@@ -21,7 +21,7 @@ async def get_system_usage(
     """Get system-wide usage statistics (Root only)."""
     if user.role != UserRole.ROOT:
         raise PermissionDeniedError("Only ROOT users can view system-wide usage.")
-    
+
     return await service.get_usage_report(scope="system", since=since)
 
 @router.get("/organization/{org_id}", response_model=UsageReport)
@@ -34,7 +34,7 @@ async def get_organization_usage(
     """Get usage statistics for a specific organization."""
     if user.role != UserRole.ROOT and user.organization_id != org_id:
         raise PermissionDeniedError("Cannot view usage for other organizations.")
-        
+
     return await service.get_usage_report(scope="organization", entity_id=org_id, since=since)
 
 @router.get("/user/{user_id}", response_model=UsageReport)
@@ -48,5 +48,5 @@ async def get_user_usage(
     if user.role != UserRole.ROOT and user.id != user_id:
         # Organization admins could potentially view their users' usage here if we extended it.
         raise PermissionDeniedError("Cannot view usage for other users.")
-        
+
     return await service.get_usage_report(scope="user", entity_id=user_id, since=since)

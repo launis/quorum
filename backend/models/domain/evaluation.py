@@ -69,8 +69,8 @@ class EvaluationResult(ReasoningTrace):
     dimensions: list[DimensionResultItem]
 
     # Scale Metadata (Added for XAI/BFF Compatibility)
-    scale_min: float = Field(default=0.0, description="Minimum possible score.")
-    scale_max: float = Field(default=5.0, description="Maximum possible score.")
+    scale_min: float = Field(..., description="Minimum possible score.")
+    scale_max: float = Field(..., description="Maximum possible score.")
 
     # Container for aggregated results (if applicable)
     score_cards: list[JudgeScoreCard] | None = Field(
@@ -106,12 +106,15 @@ class EvaluationResult(ReasoningTrace):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
-    @field_validator("total_score", "scale_min", "scale_max")
-    @classmethod
-    def validate_scores(cls, v: float) -> float:
-        if v < 0:
-            raise ValueError("Score cannot be negative.")
-        return v
+    @model_validator(mode="after")
+    def validate_scores_range(self) -> EvaluationResult:
+        if self.scale_min >= self.scale_max:
+            raise ValueError("scale_min must be strictly less than scale_max.")
+
+        if not (self.scale_min <= self.total_score <= self.scale_max):
+            raise ValueError(f"Score {self.total_score} is out of valid range [{self.scale_min}, {self.scale_max}].")
+
+        return self
 
 
 class ValidationResult(BaseModel):

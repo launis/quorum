@@ -1,8 +1,8 @@
-# Cognitive Quorum V3.2 (2026)
+# Cognitive Quorum V5.1 (2026)
 
 **Structured, Auditable, and Deterministic AI Orchestration.**
 
-> **Status:** Phase 8/9 Hardening (V3.2)
+> **Status:** Phase 9 Hardening (V5.1)
 > **Architecture:** Modular Async Monolith with Panel Fusion
 > **Philosophy:** Zero-Magic, Fail-Fast, Strict DTOs.
 
@@ -10,7 +10,7 @@ Cognitive Quorum is a specialized AI orchestration platform designed for high-st
 
 ---
 
-## 🚀 Key Features (V3.2)
+## 🚀 Key Features (V5.1)
 
 ### 1. The "Zero-Magic" Manifesto
 We reject "black box" agent frameworks. Quorum uses explicit, deterministic Python code:
@@ -73,7 +73,7 @@ For a deep dive, see **[System Architecture](docs/architecture.md)**.
 *   **[Startup Protocol](docs/alku.md)**: Critical context for contributors.
 
 ### Development Standards
-*   **[Product Roadmap](docs/product_roadmap.md)**: Phase 8 (Complete) -> Phase 9 (Strict DTOs).
+*   **[Product Roadmap](docs/product_roadmap.md)**: Phase 9 (Complete) -> SDUI Meta-Programming.
 *   **[Flutter Development Guide](docs/flutterpromptohje.md)**: Frontend standards.
 
 ---

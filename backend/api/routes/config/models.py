@@ -14,7 +14,7 @@ from backend.dependencies import (
 )
 from backend.exceptions import AppException, ErrorCodes, status
 from backend.llm.provider import LLMFactory
-from backend.models.dtos.config import ModelOptionsResponse, AgentMappingUpdate, AgentMappingResponse
+from backend.models.dtos.config import AgentMappingResponse, AgentMappingUpdate, ModelOptionsResponse
 from backend.models.llm import AdHocTestRequest, AdHocTestResponse, LLMProviderConfig
 from backend.settings import get_settings
 
@@ -325,7 +325,7 @@ async def get_agent_mappings(
     try:
         registry = await repository.get_model_registry()
         models_block = registry.get("models", {})
-        
+
         mappings = {}
         for provider_id, provider_data in models_block.items():
             if not isinstance(provider_data, dict):
@@ -339,13 +339,13 @@ async def get_agent_mappings(
                         mappings[key] = value
 
         all_agents = await repository.get_all_agents()
-        
+
         results: list[AgentMappingResponse] = []
         for agent in all_agents:
             a_id = agent.get("id")
             if not a_id:
                 continue
-                
+
             # Filter out non-system agents (e.g. dynamic matrices that leaked in via UI builder)
             # Typically system agents have type='agent' or a recognizable TaskKey like 'step_'
             # The UI only needs to assign strategies to deterministic/known steps that participate
@@ -355,7 +355,7 @@ async def get_agent_mappings(
             if a_type not in ["agent", "evaluator", "generator", "processor"]:
                 if a_type != "step": # 'step' occasionally used for generic tasks
                     pass # We will allow it for now, but watch out for `matrix_` IDs
-                
+
             # Skip evaluation matrices to keep the UI clean
             if a_id.startswith("matrix_"):
                 continue
@@ -363,7 +363,7 @@ async def get_agent_mappings(
             a_name = agent.get("name")
             a_class = agent.get("class_name")
             a_comp = agent.get("component_class")
-            
+
             # Resolve strategy by checking UUID, then name, then class_name
             # The database seed file uses Class Names (e.g. GuardAgent) instead of UUIDs
             strategy = mappings.get(a_id)
@@ -382,7 +382,7 @@ async def get_agent_mappings(
                     strategy_id=strategy
                 )
             )
-        
+
         return results
     except Exception as e:
         if isinstance(e, AppException):
@@ -407,7 +407,7 @@ async def update_agent_mapping(
     try:
         registry = await repository.get_model_registry()
         models_block = registry.get("models", {})
-        
+
         # Fetch actual agent to get its class_name for engine resolution parity
         agent = await repository.get_agent_by_id(update_data.agent_id)
         if not agent:
@@ -416,9 +416,9 @@ async def update_agent_mapping(
                 status_code=status.HTTP_404_NOT_FOUND,
                 details={"error_code": "AGENT_NOT_FOUND"},
             )
-            
+
         target_key = agent.get("class_name") or agent.get("component_class") or agent.get("name") or update_data.agent_id
-        
+
         # Parse the provider and strategy from the incoming ID (e.g. 'google/fast')
         provider_id = "google"
         strategy_name = update_data.strategy_id
@@ -431,18 +431,18 @@ async def update_agent_mapping(
         # Ensure provider block exists
         if provider_id not in models_block:
             models_block[provider_id] = {}
-            
+
         # Write the alias into the new provider block
         models_block[provider_id][target_key] = strategy_name
-        
+
         # Clean up the alias from other providers to avoid shadowing
         for p_id, p_data in models_block.items():
             if p_id != provider_id and isinstance(p_data, dict):
                 if target_key in p_data:
                     del p_data[target_key]
-                    
+
         registry["models"] = models_block
-        
+
         success = await repository.update_model_registry(registry)
         if not success:
             raise AppException(
@@ -450,7 +450,7 @@ async def update_agent_mapping(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 details={"error_code": "REGISTRY_SAVE_FAILED"},
             )
-            
+
         return update_data.model_dump()
     except Exception as e:
         if isinstance(e, AppException):

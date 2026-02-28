@@ -1,4 +1,4 @@
-# Search, Grounding, and Retrieval Architecture
+# Search, Grounding, and Retrieval Architecture (V5.1)
 
 This document defines the three distinct paradigms of information retrieval and fact-checking employed within the Cognitive Quorum system. To prevent "Context Collapse" and ensure strict fidelity in multi-agent orchestration, the system segregates information gathering into three distinct layers: 
 

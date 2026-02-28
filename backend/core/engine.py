@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from backend.core.registry import TaskRegistry
 from backend.exceptions import AppException, ErrorCodes, WorkflowExecutionError, status
 from backend.models.domain.inputs import WorkflowInputs
+from backend.models.domain.usage import TokenUsage
 from backend.models.state import ReasoningTrace, TraceEvent, WorkflowState
 from backend.models.workflow import WorkflowDefinition
 from backend.utils.pydantic_utils import inflate
@@ -147,11 +148,25 @@ class GraphEngine:
 
         # 1. Inflate to Model (Fail Fast)
         if inputs_data:
-            inputs_model = inflate(inputs_data, WorkflowInputs)
-            if not inputs_model:
-                # If raw data exists but fails validation -> CRITICAL INTEGRITY ERROR
+            from pydantic import ValidationError
+            try:
+                inputs_model = WorkflowInputs.model_validate(inputs_data)
+            except ValidationError as ve:
+                # Capture the exact validation error message (e.g., "product_text cannot be identical to history_text")
+                error_msgs = [err.get("msg", "Unknown validation error") for err in ve.errors()]
+                exact_message = " | ".join(error_msgs)
+                
                 error_code = ErrorCodes.INVALID_JSON_PAYLOAD
-                msg = f"Invalid WorkflowInputs data. Failed to inflate {type(inputs_data)}."
+                logger.error(f"[GraphEngine] {error_code}: {exact_message}")
+                raise AppException(
+                    message=exact_message, 
+                    status_code=400, 
+                    details={"error_code": error_code, "original_error": str(ve)}
+                )
+            except Exception as e:
+                # Fallback for non-Pydantic errors
+                error_code = ErrorCodes.INVALID_JSON_PAYLOAD
+                msg = f"Invalid WorkflowInputs data. Failed to parse: {e}"
                 logger.error(f"[GraphEngine] {error_code}: {msg}")
                 raise AppException(message=msg, status_code=400, details={"error_code": error_code})
 
@@ -316,7 +331,7 @@ class GraphEngine:
                 # 2. Try from root workflow state (properties reading context_variables)
                 if "organization_id" not in runtime_config and execution_state.organization_id:
                     runtime_config["organization_id"] = execution_state.organization_id
-                
+
                 if "user_id" not in runtime_config and execution_state.user_id:
                     runtime_config["user_id"] = execution_state.user_id
 
@@ -398,18 +413,14 @@ class GraphEngine:
                 if reasoning_trace:
                     reasoning_trace = reasoning_trace.model_copy(update={"token_usage": step_usage})
 
-                # Global Usage Accumulation
-                global_usage = execution_state.context_variables.setdefault("usage", {})
-                global_usage["total_tokens"] = global_usage.get("total_tokens", 0) + step_usage.get("total_tokens", 0)
-                global_usage["prompt_tokens"] = global_usage.get("prompt_tokens", 0) + step_usage.get(
-                    "prompt_tokens", 0
-                )
-                global_usage["completion_tokens"] = global_usage.get("completion_tokens", 0) + step_usage.get(
-                    "completion_tokens", 0
-                )
-
-                if "cost_usd" in step_usage:
-                    global_usage["cost_usd"] = global_usage.get("cost_usd", 0.0) + step_usage.get("cost_usd", 0.0)
+                # Global Usage Accumulation using STRICT typed TokenUsage
+                global_usage_raw = execution_state.context_variables.get("usage", {})
+                global_usage = global_usage_raw if isinstance(global_usage_raw, TokenUsage) else TokenUsage(**global_usage_raw)
+                
+                step_usage_obj = TokenUsage(**step_usage)
+                new_usage = global_usage + step_usage_obj
+                
+                execution_state.context_variables["usage"] = new_usage.model_dump()
 
                 # 6. Create TraceEvent
                 new_event = TraceEvent(
@@ -424,10 +435,12 @@ class GraphEngine:
                 execution_state = execution_state.add_event(new_event)
 
                 # 8. Update Context Variables (Snapshot for next steps)
-                # We merge the content_payload into context_variables[step.id] and [step.slug]
-                execution_state.context_variables[step.id] = content_payload
+                # STORE STRICTLY TYPED OBJECT (if available) instead of dict
+                typed_payload = result if hasattr(result, "model_dump") else content_payload
+                
+                execution_state.context_variables[step.id] = typed_payload
                 if getattr(step, "slug", None):
-                    execution_state.context_variables[step.slug] = content_payload
+                    execution_state.context_variables[step.slug] = typed_payload
 
                 logger.debug(f"Step '{step.id}' event added to trace.")
 

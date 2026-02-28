@@ -88,25 +88,15 @@ class PanelAgent(BaseAgent[PanelInput, PanelOutput]):
 
         # Context (Knowledge Base)
         context_section = ""
-        if execution_context:
-            context_raw = execution_context.get("step_context")
-            if context_raw:
-                # Try to hydrate or use as is
-                # For template context_section, we need 'precedents' string.
-                if hasattr(context_raw, "precedents"):
-                    context_section = (
-                        f"\nJÄRJESTELMÄN KONTEKSTI (TIETOPANKKI & ENNAKKOTAPAUKSET):\n{context_raw.precedents}\n---"
-                    )
-                elif isinstance(context_raw, dict):
-                    precedents = context_raw.get("precedents", "")
-                    if precedents:
-                        context_section = (
-                            f"\nJÄRJESTELMÄN KONTEKSTI (TIETOPANKKI & ENNAKKOTAPAUKSET):\n{precedents}\n---"
-                        )
-
-                # Also update prompt_input_data for JSON dump
-                # strict: we prefer the object itself if available
-                prompt_input_data["step_context"] = context_raw
+        if input_data.step_context:
+            context_raw = input_data.step_context
+            if hasattr(context_raw, "precedents") and context_raw.precedents:
+                context_section = (
+                    f"\nJÄRJESTELMÄN KONTEKSTI (TIETOPANKKI & ENNAKKOTAPAUKSET):\n{context_raw.precedents}\n---"
+                )
+            
+            # Also update prompt_input_data for JSON dump
+            prompt_input_data["step_context"] = context_raw
 
         # External Search Results
         search_section = ""
@@ -137,7 +127,7 @@ class PanelAgent(BaseAgent[PanelInput, PanelOutput]):
 
         # Template (Dynamic Slug Resolution via ComponentRegistry)
         template_str = execution_context.get("PANEL_PROMPT_TEMPLATE") if execution_context else None
-        
+
         task_prompts = []
         config_prompts = execution_context.get("llm_prompts", []) if execution_context else []
         if isinstance(config_prompts, list):

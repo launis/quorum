@@ -23,63 +23,22 @@ class FalsificationDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_falsifier_section(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_falsifier")
+    def _extract_falsifier_section(self, state: 'WorkflowState') -> UiSection | None:
+        model = state.step_falsifier
 
         # Fallback to Panel
-        if not step:
-            panel = steps.get("step_panel")
-            if panel and isinstance(panel, dict):
-                step = panel.get("falsifier_data") or panel.get("falsifiointi_auditointi")
+        if not model:
+            panel = state.step_panel
+            if panel and getattr(panel, "falsifier_data", None):
+                model = FalsifierOutput(
+                    falsifier_data=panel.falsifier_data,
+                    thought_process="[Aggregated Panel Analysis]",
+                    conclusion="N/A",
+                    confidence_score=1.0,
+                )
 
-        if not step:
+        if not model:
             return None
-
-        # STRICT VALIDATION: FalsifierOutput
-        try:
-            if isinstance(step, dict):
-                if "falsifier_data" in step:
-                    model = FalsifierOutput(**self._adapt_legacy_trace(step))
-                else:
-                    # Wrap inner data
-                    if "stress_test_findings" in step:
-                        # It's FalsifierData (inner)
-                        inner = FalsifierData(**step)
-                        model = FalsifierOutput(
-                            falsifier_data=inner,
-                            thought_process="[Aggregated Panel Analysis]",
-                            conclusion="N/A",
-                            confidence_score=1.0,
-                        )
-                    else:
-                        # It's FalsifierOutput
-                        model = FalsifierOutput(**self._adapt_legacy_trace(step))
-            elif hasattr(step, "falsifier_data"):
-                # Already a model or object
-                model = step if isinstance(step, FalsifierOutput) else FalsifierOutput.model_validate(step)
-            else:
-                model = FalsifierOutput.model_validate(step)
-
-        except ValidationError as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.VALIDATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Falsifier validation failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Falsifier validation failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
-        except Exception as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.REPORT_GENERATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Falsifier transform failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Falsifier transform failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
 
         try:
             display_model = self._transform_falsifier_data(model)

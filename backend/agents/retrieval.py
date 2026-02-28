@@ -3,6 +3,8 @@
 import logging
 from typing import Any
 
+from fastapi import status
+
 # 2. Third Party
 from pydantic import BaseModel
 
@@ -11,7 +13,6 @@ from backend.database.factory import get_repository
 from backend.database.wrapper import get_db_client
 from backend.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend.models.domain import ContextData, Precedent, RetrievalInput
-from fastapi import status
 
 # 3. Local Imports
 from backend.settings import get_settings

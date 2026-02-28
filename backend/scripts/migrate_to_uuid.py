@@ -1,6 +1,6 @@
 import json
-import uuid
 import os
+import uuid
 
 SEED_FILE = os.path.join(os.path.dirname(__file__), "..", "seed", "seed_data.json")
 
@@ -9,12 +9,12 @@ def generate_uuid():
 
 def main():
     print(f"Loading {SEED_FILE}...")
-    with open(SEED_FILE, 'r', encoding='utf-8') as f:
+    with open(SEED_FILE, encoding='utf-8') as f:
         data = json.load(f)
 
     # Pass 1: Mapping
     id_map = {}  # old_id -> new_id
-    
+
     # We want to process these top-level lists
     # Note: 'system_config' items like models don't necessarily need UUIDs if they are fixed singletons,
     # but the plan says "Iterate through all top-level domains".
@@ -26,7 +26,7 @@ def main():
     for domain in domains_to_map:
         if domain not in data:
             continue
-            
+
         print(f"Pass 1: Mapping {domain}...")
         for item in data[domain]:
             # Special case for users: rename uid to id
@@ -80,7 +80,7 @@ def main():
             return val
 
     print("Pass 2: Updating foreign keys...")
-    
+
     for domain in domains_to_map:
         if domain not in data:
             continue

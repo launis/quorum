@@ -19,16 +19,19 @@ Seuraava tehtävämme on päivittää projektin `docs/`-hakemiston dokumentaatio
 - Tiedosto `docs/alku.md` on toiminut projektin alussa, kontekstin ensimmäisenä promptina, tärkeän tiedon ja sääntöjen keräilyaltaana. Se sisältää linkit kaikkiin tärkeisiin tiedostoihin ja konsepteihin ja siihen koostetaan napakasti ja yhteenveromaisesti ne asiat jotka ovat tärkeitä kehittämmisen kannalta mutta kuitenkin hallittavissa ja ymmärrettävissä ilman että tarvitsee lukea kaikkia muita dokumentteja.
  
 ### 3. Yksi tiedosto kerrallaan (Single-File Tasking)
-- Suunnitelman askeleet on jaoteltava niin, että yhdessä askeleessa muokataan / päivitetään vain **YHTÄ kohdedokumenttia kerrallaan** (+ samalla siivotaan siirretty osuus `alku.md`:stä).
+- Suunnitelman askeleet on jaoteltava niin, että yhdessä askeleessa muokataan / päivitetään vain **YHTÄ kohdedokumenttia kerrallaan** 
 - Et saa muokata tai uudelleenkirjoittaa useita eri dokumentteja samassa ajossa. Tämä takaa laadun ja sen, ettei konteksti katoa tai hallusinoidu.
 
 ---
 
 # EXECUTION PLAN REQUIREMENTS (Suunnitelman rakenne)
 
-Lue ja analysoi `docs/`-hakemiston nykyinen sisältö, erityisesti `docs/alku.md`.
+Lue ja analysoi `docs/`-hakemiston jokaisen tiedoston nykyinen sisältö. 
 
-Laadi minulle suunnitelma, jossa koko `docs/`-hakemiston päivitys on jaettu erittäin pieniin askeliin (Step 1, Step 2, Step 3...). Dokumentin sisältö perustuu puhtaasti nykyiseen koodipohjaan, tietokantaan ja sen arkkitehtuuriin. Järjestä askeleet loogisesti (esim. ensin ydinarkkitehtuuri, sitten spesifimmät oppaat, lopuksi indeksien päivitys ja `alku.md`:n viimeistely).
+TÄRKEÄ: Varmista, että luettavan okumentin sisältö perustuu puhtaasti nykyiseen koodipohjaan, tietokantaan ja sen arkkitehtuuriin.
+
+Laadi minulle suunnitelma, jossa koko `docs/`-hakemiston päivitys on jaettu erittäin pieniin askeliin (Step 1, Step 2, Step 3...).
+
 
 **Jokaisesta askeleesta on ilmettävä selkeästi:**
 1. **Askeleen tunniste ja nimi:** (esim. "Step 2: Päivitetään docs/architecture.md")

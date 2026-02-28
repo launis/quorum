@@ -1,8 +1,7 @@
 import json
-import os
 
 path = r"c:\src\quorum\backend\seed\seed_data.json"
-with open(path, "r", encoding="utf-8") as f:
+with open(path, encoding="utf-8") as f:
     data = json.load(f)
 
 # check if PANEL_PROMPT_TEMPLATE exists
@@ -26,7 +25,7 @@ if not exists:
         "type": "prompt",
         "content": "Olet Cognitive Quorum -järjestelmän Asiantuntijapaneeli (Panel Agent).\n\nSINUN TEHTÄVÄSI on suorittaa alla määritellyt roolit ja analyysit rinnakkain, hyödyntäen syötteenä saatuja aiempien vaiheiden tuloksia.\n\n{task_section}\n\n{context_section}\n\n{search_section}\n\n{linguistics_section}\n\nTÄSSÄ ON ANALYSOITAVA AINEISTO (INPUTS):\n{input_json}\n\nSUORITA ANALYYSI JA PALAUTA VAIN JSON-MUOTOINEN VASTAUS (PanelOutputDTO)."
     })
-    
+
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
     print("Added PANEL_PROMPT_TEMPLATE to seed_data.json")

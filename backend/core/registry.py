@@ -125,8 +125,8 @@ class TaskRegistry:
 
                 if hasattr(agent, "set_model"):
                     agent.set_model(
-                        model_name=model_config.model_name, 
-                        provider=model_config.provider, 
+                        model_name=model_config.model_name,
+                        provider=model_config.provider,
                         usage_service=usage_service,
                         config=model_config
                     )
@@ -154,7 +154,7 @@ class TaskRegistry:
                 prompts = execution_config["llm_prompts"]
                 if prompts:
                     prompt_map = await ComponentRegistry.resolve_prompts_map(repo, tuple(prompts))
-                    
+
                     # MANDATE: Strict Unique Concatenation (Feb 2026 Bug Fix)
                     # Do not use prompt_map.values() as aliases/slugs create duplicated dictionary values
                     # resulting in 2x/4x prompt bloat. Iterate in strict array order.
@@ -162,7 +162,7 @@ class TaskRegistry:
                     for pid in prompts:
                         if pid in prompt_map:
                             resolved_parts.append(prompt_map[pid])
-                    
+
                     system_instruction = "\n\n".join(resolved_parts)
 
                     if execution_config is None:
@@ -198,7 +198,7 @@ class TaskRegistry:
 
                             placeholder = f"{{{{{key.upper()}}}}}"
                             placeholder_lower = f"{{{{{key}}}}}"
-                            
+
                             old_len = len(system_instruction)
                             replaced = False
 
@@ -208,7 +208,7 @@ class TaskRegistry:
                             if placeholder_lower in system_instruction:
                                 system_instruction = system_instruction.replace(placeholder_lower, replacement)
                                 replaced = True
-                            
+
                             if replaced:
                                 diff = len(system_instruction) - old_len
                                 logger.info(f"[DEBUG-INJECTION] Replaced {key}: {old_len} -> {len(system_instruction)} chars")

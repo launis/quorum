@@ -7,15 +7,15 @@ from fastapi import APIRouter, status
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep
-from backend.exceptions import AppException, ConflictError, ResourceNotFoundError, ErrorCodes, format_validation_error
+from backend.exceptions import AppException, ConflictError, ErrorCodes, ResourceNotFoundError, format_validation_error
 from backend.models.dtos.config import (
+    ConfigWorkflowDeleteResponse,
     StepDefinition,
     StepDeleteResponse,
     ValidationReportResponse,
     WorkflowConfigCreate,
     WorkflowConfigDefinition,
     WorkflowConfigUpdate,
-    ConfigWorkflowDeleteResponse,
 )
 from backend.services.localization import localize_schema
 from backend.services.validation_service import WorkflowValidator

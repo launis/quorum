@@ -7,9 +7,9 @@ sys.path.append("c:/src/quorum")
 
 from backend.database.factory import get_repository
 from backend.database.wrapper import get_db_client
-from backend.settings import get_settings
 from backend.logging_config import setup_logging
 from backend.services.agent_registry import AgentRegistry
+from backend.settings import get_settings
 
 
 # Mocking Agent Class for testing

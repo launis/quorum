@@ -49,8 +49,8 @@ def test_agent_schemas():
 
     for AgentClass, DTO, Output in agents:
         print(f"Checking {AgentClass.__name__}...")
-        assert getattr(AgentClass, "DTO_SCHEMA") == DTO, f"{AgentClass.__name__} DTO_SCHEMA mismatch"
-        assert getattr(AgentClass, "OUTPUT_SCHEMA") == Output, f"{AgentClass.__name__} OUTPUT_SCHEMA mismatch"
+        assert AgentClass.DTO_SCHEMA == DTO, f"{AgentClass.__name__} DTO_SCHEMA mismatch"
+        assert AgentClass.OUTPUT_SCHEMA == Output, f"{AgentClass.__name__} OUTPUT_SCHEMA mismatch"
         print(f"✅ {AgentClass.__name__} schemas match.")
 
 

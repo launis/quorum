@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+
 import backend.worker  # noqa: F401
 from backend.dependencies import get_current_user_from_header
 from backend.main import app

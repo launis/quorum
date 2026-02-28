@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 from typing import Any
+
+
 async def execute_google_search(state: WorkflowState, repository: Any = None) -> WorkflowState:
     """HOOK: execute_google_search.
 
@@ -78,24 +80,24 @@ async def execute_google_search(state: WorkflowState, repository: Any = None) ->
         return state
 
     # 4. Initialize Tool via SSOT Factory
-    from backend.llm.client import LLMClient
+
     from backend.exceptions import ConfigurationError
-    import asyncio
-    
+    from backend.llm.client import LLMClient
+
     # Hooks executing within an async workflow loop should safely execute this.
-    # Note: If executed synchronously, this would require `asyncio.run()`, 
-    # but the framework is expected to handle async properly in `execute_google_search` 
+    # Note: If executed synchronously, this would require `asyncio.run()`,
+    # but the framework is expected to handle async properly in `execute_google_search`
     # because the hook signature itself is `async def`.
     try:
         search_client = await LLMClient.from_strategy("SearchHook", repository=repository)
         model_id_full = search_client._config.model_name if search_client._config else None
-        
+
         # Vertex tools expect the raw model id without provider prefix 'vertex_ai/'
         if model_id_full and model_id_full.startswith("vertex_ai/"):
             model_id = model_id_full.split("/")[-1]
         else:
             model_id = model_id_full
-            
+
         if not search_client._config or not search_client._config.supports_grounding:
             # We strictly enforce that the allocated strategy must support grounding.
             raise ConfigurationError("The assigned 'SearchHook' strategy does not have supports_grounding=True.")
@@ -134,7 +136,7 @@ async def execute_google_search(state: WorkflowState, repository: Any = None) ->
         search_result = SearchResult(results=domain_items)
 
         # 7. Update State (Immutable)
-        # Data Hygiene: We NO LONGER inject search snippets directly into AnalystOutput.rag_evidence. 
+        # Data Hygiene: We NO LONGER inject search snippets directly into AnalystOutput.rag_evidence.
         # This prevents massive Context Bloat (+60k tokens) for downstream agents.
         # The data is kept cleanly isolated in 'search_result' for targeted use only.
         new_context = state.context_variables.copy()

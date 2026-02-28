@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Sequence
+from typing import Any
 
 from backend.exceptions import AppException
 from backend.models.enums import LabelKey, TitleKey
@@ -98,7 +99,7 @@ class BaseTransformer:
 
                     if not step_name or not isinstance(step_name, str):
                         continue
-                    
+
                     # Modern output paths use UUID as step_name and `task_key` in metadata.
                     # We remap the UUID to the domain key (`step_<task_key>`).
                     evt_meta = event.metadata if isinstance(event, TraceEvent) else event.get("metadata", {})

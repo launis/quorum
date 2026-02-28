@@ -346,6 +346,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [ ] **Reference Hook Engine Integration**: Modernize `backend/hooks/references.py` to seamlessly integrate with `GraphEngine` dynamic retrieval loops instead of evaluating plain strings, ensuring robust Domain Compliance validation.
 - [ ] **Eliminate Magic Strings (Data-Driven Configuration)**: Refactor `seed_data.json` step configs to define explicit roles (e.g., `core_template`, `dynamic_tasks`) mapping to prompt slugs rather than blindly injecting an array. This enables true strict Pydantic Dependency Injection into Agents, eliminating the need to hardcode `execution_context.get("PANEL_PROMPT_TEMPLATE")` inside Python files.
 - [ ] **Dynamic Provider Parsing Modes**: Upgrade `backend/llm/provider.py` and `LLMProviderConfig` to support configuring the structured parsing strategy dynamically from the database (e.g., `GEMINI_JSON` vs `JSON_SCHEMA` vs `MD_JSON`). Currently, Instructor parsing modes are hardcoded heuristics in the client, but the system should natively support a switch/case block inside `provider.py` reading directly from the database's `model_registry` config block (`case "google": mode = GEMINI_JSON`, `case "openai": mode = JSON_SCHEMA`).
+- [ ] **Strict Pydantic Type Validation in Editor (ValidationService)**: Upgrade `backend/services/validation_service.py` (`validate_flow_configuration`) to check strict Pydantic `output_model` and `InputModel` compatibilities between connected agents, rather than just matching legacy string keys (`REQUIRES_KEYS` vs `PRODUCES_KEYS`). This prevents runtime inflation errors by catching type mismatches in the Studio Editor.
 
 ---
 
@@ -358,29 +359,27 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Benefit**: Reduces cost (no wasted API calls) and improves developer experience (IDE Autocomplete).
 
 
-## 🧬 Phase 9: Agent DTO/Domain Separation (The Panel Pattern)
+## 🧬 Phase 9: Agent DTO/Domain Separation (The Panel Pattern) (✅ Completed)
 **Objective:** Eliminate LLM-hallucinated system metadata by strictly separating "LLM Content" from "System Authority".
 **Owner:** @antigravity
-**Status:** [~] In Progress (Panel Agent Paved the Way)
+**Status:** [x] Done. Pydantic V2 strictly separates Domain from Output DTOs, culminating in the BFF Transformer View Models for SDUI rendering.
 
 ### 9.1 Strict DTO Architecture
-- [ ] **DTO Definition**: All Agents MUST define a `*DTO` Pydantic model containing *only* the fields the LLM is responsible for (e.g., `reasoning`, `score`, `analysis`).
-- [ ] **Domain Model Inheritance**: The full Domain Model (e.g., `LogicianOutput`) MUST inherit from the DTO and add system-managed fields (`metadata`, `luontiaika`, `versio`).
-- [ ] **BaseAgent Enforcement**: Update `BaseAgent` to enforce `DTO_SCHEMA` property.
-- [ ] **Authority Injection**: Python code (not LLM) is the sole authority for timestamps, versions, and agent identity.
+- [x] **DTO Definition**: All Agents MUST define a `*DTO` Pydantic model containing *only* the fields the LLM is responsible for.
+- [x] **Domain Model Inheritance**: The full Domain Model MUST inherit from the DTO and add system-managed fields.
+- [x] **BaseAgent Enforcement**: Update `BaseAgent` to enforce `DTO_SCHEMA` property.
+- [x] **Authority Injection**: Python code (not LLM) is the sole authority for timestamps, versions, and agent identity.
 
 ### 9.2 Migration Plan
-- [ ] **Logician**: Split `LogicianOutput` -> `LogicianOutputDTO`.
-- [ ] **Falsifier**: Split `FalsifierData` -> `FalsifierDTO`.
-- [ ] **Causal**: Split `CausalAnalysis` -> `CausalDTO`.
-- [ ] **Profiler**: Split `ProfilerAnalysis` -> `ProfilerDTO`.
-- [ ] **Analyst**: Split `AnalystOutput` -> `AnalystDTO`.
-- [ ] **Judge**: Split `JudgeOutput` -> `JudgeDTO`.
-- [ ] **Critics**: Split `CritiqueResult` -> `CritiqueDTO`.
+- [x] **Logician**: Split `LogicianOutput` -> `LogicianOutputDTO`.
+- [x] **Falsifier**: Split `FalsifierData` -> `FalsifierDTO`.
+- [x] **Causal**: Split `CausalAnalysis` -> `CausalDTO`.
+- [x] **Profiler**: Split `ProfilerAnalysis` -> `ProfilerDTO`.
+- [x] **Analyst**: Split `AnalystOutput` -> `AnalystDTO`.
+- [x] **Judge**: Split `JudgeOutput` -> `JudgeDTO`.
+- [x] **Critics**: Split `CritiqueResult` -> `CritiqueDTO`.
 
 **Benefit:**
 1.  **Zero Hallucination**: LLMs strictly cannot overwrite system timestamps or versions.
-2.  **Schema Evolution**: We can change internal metadata structures without retraining/prompting LLMs.
-3.  **Type Safety**: `BaseAgent` guarantees that `execute()` returns a fully hydrated Domain Object.
-
-
+2.  **Schema Evolution**: We can change internal metadata structures without retraining LLMs.
+3.  **Type Safety**: `BaseAgent` guarantees that `execute()` returns a fully hydrated Domain Object, empowering the BFF Transformers to map them fearlessly to SDUI View Models.

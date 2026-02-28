@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+
 class TokenUsage(BaseModel):
     """Strictly typed token usage statistics."""
     prompt_tokens: int = Field(default=0, description="Tokens used in the prompt.")
@@ -10,8 +11,8 @@ class TokenUsage(BaseModel):
     cost_usd: float = Field(default=0.0, description="Estimated cost in USD.")
 
     model_config = ConfigDict(frozen=True, strict=True)
-    
-    def __add__(self, other: "TokenUsage") -> "TokenUsage":
+
+    def __add__(self, other: TokenUsage) -> TokenUsage:
         """Allows adding two TokenUsage objects together."""
         return TokenUsage(
             prompt_tokens=self.prompt_tokens + other.prompt_tokens,
@@ -27,10 +28,10 @@ class UsageAggregate(BaseModel):
     scope: str = Field(..., description="Scope of the aggregate (system, organization, user).")
     entity_id: str | None = Field(default=None, description="ID of the entity (if not system).")
     period: str = Field(..., description="Reporting period (e.g., '2026-02', 'all-time').")
-    
+
     usage: TokenUsage = Field(default_factory=TokenUsage, description="Cumulative token and cost statistics.")
     total_executions: int = Field(default=0, description="Total number of recorded executions in this period.")
-    
+
     model_config = ConfigDict(frozen=True, strict=True)
 
 class UsageReport(BaseModel):
@@ -38,10 +39,10 @@ class UsageReport(BaseModel):
     scope: str = Field(..., description="Scope of the report (system, organization, user).")
     entity_id: str | None = Field(default=None, description="ID of the entity (if not system).")
     period: str = Field(..., description="Reporting period (e.g., '2026-02', 'all-time').")
-    
+
     usage: TokenUsage = Field(default_factory=TokenUsage, description="Aggregated token and cost statistics.")
-    
+
     quota_limit_usd: float | None = Field(default=None, description="Quota limit in USD, if applicable.")
     percentage_used: float | None = Field(default=None, description="Percentage of quota used, if applicable.")
-    
+
     model_config = ConfigDict(frozen=True, strict=True)

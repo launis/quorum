@@ -117,13 +117,33 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
   }
 
   Widget _buildDynamicDashboard(BuildContext context, ReportView view) {
+    // 1. Analyze signals for HITL or Performativity
+    bool isHitlRequired = view.metrics?['hitl_required'] == true;
+    bool isPerformative = false;
+    
+    for (final section in view.sections) {
+      if (section.type == 'SCORE_CARD') {
+        final verdict = section.data['verdict']?.toString().toLowerCase() ?? '';
+        if (verdict.contains('matkustaja') || verdict.contains('performatiivi')) {
+          isPerformative = true;
+        }
+      }
+    }
+
+    final bool showWarning = isHitlRequired || isPerformative;
+    final String? feedback = view.metrics?['coach_feedback']?.toString();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(context, view),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          if (showWarning) ...[
+            _buildWarningBanner(context, isHitlRequired, isPerformative, feedback),
+            const SizedBox(height: 24),
+          ],
           ...view.sections.map((section) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 24.0),
@@ -134,6 +154,64 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
       ),
     );
   }
+
+  Widget _buildWarningBanner(BuildContext context, bool hitl, bool performative, String? feedback) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
+    String title = "Huomioitavaa";
+    if (hitl) title = "Ihmisen tarkistus vaaditaan (HITL)";
+    if (performative) title = "Mahdollinen \"Say-Do Gap\" havaittu";
+    if (hitl && performative) title = "Ihmisen tarkistus: Say-Do Gap havaittu";
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.error),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, color: colorScheme.error, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onErrorContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (feedback != null && feedback.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    feedback,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onErrorContainer.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    "Järjestelmä suosittelee tulosten manuaalista tarkistamista rakenteellisten tai loogisten poikkeamien vuoksi.",
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onErrorContainer.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildHeader(BuildContext context, ReportView view) {
     Color statusColor = Colors.grey;

@@ -1,6 +1,6 @@
-# System Seeding & Data Lifecycle (V3.2 - Phase 8 Standards)
+# System Seeding & Data Lifecycle (V5.1 - Phase 9 Hardening)
 
-In **Cognitive Quorum V3.2**, the system follows a strict **Unidirectional Data Flow**. The `backend/seed/seed_data.json` file is the **Immutable Source of Truth** (SSOT) for all configuration, logic, and structure.
+In **Cognitive Quorum V5.1**, the system follows a strict **Unidirectional Data Flow**. The `backend/seed/seed_data.json` file is the **Immutable Source of Truth** (SSOT) for all configuration, logic, and structure.
 
 > **Note**: Seeding requires **Python 3.14.2+** to ensure consistent hashing and Pydantic V2 validation behavior.
 
@@ -62,7 +62,7 @@ python backend/seed/run_seed.py firestore
 ## 3. Data Lifecycle Models
 
 ### The "Blueprint Authority" Model
-In V3.2, we moved strictly away from bi-directional syncing.
+In V5.1, we moved strictly away from bi-directional syncing.
 
 *   **OLD Way**: Edit in UI -> Sync to Code -> Commit. (Drift Prone).
 *   **NEW Way**: Edit `seed_data.json` -> Seed to DB -> View in UI. (GitOps).

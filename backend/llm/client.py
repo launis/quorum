@@ -18,21 +18,21 @@ class LLMClient:
     """
 
     _instance = None
-    _config: "LLMProviderConfig | None" = None
+    _config: LLMProviderConfig | None = None
 
-    def __new__(cls, config: "LLMProviderConfig | None" = None) -> "LLMClient":
+    def __new__(cls, config: LLMProviderConfig | None = None) -> LLMClient:
         # We modify Singleton to accept an injected configuration.
         # Note: If called repeatedly with different configs, a true Singleton might clash.
-        # For Strategy Pattern, we often want fresh bound instances or ContextVars, 
+        # For Strategy Pattern, we often want fresh bound instances or ContextVars,
         # but for backward compatibility we return the instance while updating its transient config.
         # Alternatively, we return a configured wrapper.
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialize()
-            
+
         if config:
             cls._instance._config = config
-            
+
         return cls._instance
 
     def _initialize(self) -> None:
@@ -40,7 +40,7 @@ class LLMClient:
         pass
 
     @classmethod
-    async def from_strategy(cls, strategy_name: str, repository: Any = None) -> "LLMClient":
+    async def from_strategy(cls, strategy_name: str, repository: Any = None) -> LLMClient:
         """Factory: Create an LLMClient strictly bound to a database-defined Strategy.
 
         Args:
@@ -84,7 +84,7 @@ class LLMClient:
             if strategy_name in strategies:
                 current_val = strategies[strategy_name]
                 visited = {strategy_name}
-                
+
                 # Resolve aliases (e.g. "SearchHook": "search")
                 while isinstance(current_val, str):
                     if current_val in visited:
@@ -93,7 +93,7 @@ class LLMClient:
                         raise ConfigurationError(f"Alias '{current_val}' for strategy '{strategy_name}' not found in provider '{p_name}'.")
                     visited.add(current_val)
                     current_val = strategies[current_val]
-                
+
                 target_strategy = current_val
                 target_provider = p_name
                 break
@@ -174,7 +174,7 @@ class LLMClient:
             # Use Strategy Config
             target_model_name = self._config.model_name
             target_provider_type = "litellm" # Base Default
-            
+
             # Apply Default Overrides from Strategy
             kwargs.setdefault("temperature", self._config.temperature)
             kwargs.setdefault("max_tokens", self._config.default_max_tokens)
@@ -238,7 +238,7 @@ class LLMClient:
             # Use Strategy Config
             target_model_name = self._config.model_name
             target_provider_type = "litellm"
-            
+
             # Apply Default Overrides from Strategy
             kwargs.setdefault("temperature", self._config.temperature)
             kwargs.setdefault("max_tokens", self._config.default_max_tokens)

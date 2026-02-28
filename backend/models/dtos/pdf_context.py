@@ -15,16 +15,16 @@ from backend.models.dtos.base import BaseDTO
 class ReportContext(BaseDTO):
     """Context for the Jinja2 report template (The 'Fat' Report)."""
 
-    summary: str = Field(..., description="Executive summary.")
-    critical_findings: list[str] = Field(..., description="Critical findings.")
-    pre_mortem_signals: list[str] = Field(..., description="Pre-mortem signals.")
-    hitl_required: bool = Field(..., description="HITL required.")
-    ethical_issues: list[dict[str, Any]] = Field(..., description="Ethical issues.")
-    audit_questions: list[dict[str, Any]] = Field(..., description="Audit questions.")
-    uncertainty: dict[str, Any] = Field(..., description="Uncertainty metrics.")
-    scores: dict[str, dict[str, Any]] = Field(..., description="Scores (arvosana, perustelu).")
-    average_score: float = Field(..., description="Average score.")
-    timestamp: str = Field(..., description="Report timestamp.")
+    summary: str | None = Field(default=None, description="Executive summary.")
+    critical_findings: list[str] = Field(default_factory=list, description="Critical findings.")
+    pre_mortem_signals: list[str] = Field(default_factory=list, description="Pre-mortem signals.")
+    hitl_required: bool | None = Field(default=None, description="HITL required.")
+    ethical_issues: list[dict[str, Any]] = Field(default_factory=list, description="Ethical issues.")
+    audit_questions: list[dict[str, Any]] = Field(default_factory=list, description="Audit questions.")
+    uncertainty: dict[str, Any] = Field(default_factory=dict, description="Uncertainty metrics.")
+    scores: dict[str, dict[str, Any]] = Field(default_factory=dict, description="Scores (arvosana, perustelu).")
+    average_score: float | None = Field(default=None, description="Average score.")
+    timestamp: str | None = Field(default=None, description="Report timestamp.")
     coaching_plan: dict[str, Any] | None = Field(default=None, description="Coaching plan.")
     penalties_applied: list[str] = Field(default_factory=list, description="Penalties applied.")
     score_summary: str | None = Field(default=None, description="Score summary.")
@@ -43,4 +43,5 @@ class ReportContext(BaseDTO):
     overseer_data: OverseerData | None = Field(default=None, description="Overseer analysis.")
     knowledge_items: list[KnowledgeItem] = Field(default_factory=list, description="Knowledge Base items.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    # Allow type coercion (e.g. string "1" to integer 1) for LLM friendliness, but keep fields frozen
+    model_config = ConfigDict(frozen=True, strict=False)

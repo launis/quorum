@@ -4,12 +4,14 @@ This module contains the foundational Pydantic models used by all other domain e
 It includes Metadata, ReasoningTrace, and UsageRecord.
 """
 
+import uuid
 from datetime import datetime
 from typing import Any
-import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from backend.models.domain.usage import TokenUsage
+
 
 class AuditLogEntry(BaseModel):
     """Strict model for a single audit log entry."""

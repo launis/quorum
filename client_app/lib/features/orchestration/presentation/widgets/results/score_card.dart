@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 class ScoreCard extends StatelessWidget {
   final String label;
-  final double value;
+  final double? value;
   final double? maxValue;
   final String? description;
   final double? previousValue; // For dual matrix comparison
@@ -21,8 +21,56 @@ class ScoreCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (value == null) {
+      debugPrint("🔴 UI GRACEFUL DEGRADATION: Rendered ScoreCard '\$label' with null value -> fallback 'Data unavailable'");
+      return Card(
+        elevation: 0,
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              if (description != null && description!.isNotEmpty) ...[
+                Text(
+                  description!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+              ],
+              Text(
+                "Tietoja ei saatavilla (Data unavailable)",
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // Calculate color based on value/max ratio
-    final ratio = value / (maxValue ?? 5.0);
+    final ratio = value! / (maxValue ?? 5.0);
     final scoreColor =
         Color.lerp(Colors.red, Colors.green, ratio) ?? Colors.grey;
 
@@ -65,7 +113,7 @@ class ScoreCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    _formatScore(context, value),
+                    _formatScore(context, value!),
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: scoreColor,
                       fontWeight: FontWeight.bold,
@@ -76,7 +124,7 @@ class ScoreCard extends StatelessWidget {
             ),
             if (previousValue != null) ...[
               const SizedBox(height: 4),
-              _buildComparison(context, value, previousValue!),
+              _buildComparison(context, value!, previousValue!),
             ],
             if (description != null && description!.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -108,7 +156,7 @@ class ScoreCard extends StatelessWidget {
         Icon(icon, size: 12, color: color),
         const SizedBox(width: 4),
         Text(
-          '${NumberFormat.decimalPatternDigits(locale: Localizations.localeOf(context).toString(), decimalDigits: 1).format(delta.abs())} (vs prev)',
+          '\${NumberFormat.decimalPatternDigits(locale: Localizations.localeOf(context).toString(), decimalDigits: 1).format(delta.abs())} (vs prev)',
           style: Theme.of(
             context,
           ).textTheme.bodySmall?.copyWith(color: color, fontSize: 10),
@@ -121,15 +169,10 @@ class ScoreCard extends StatelessWidget {
     final locale = Localizations.localeOf(context).toString();
     final fmt = NumberFormat.decimalPattern(locale);
 
-    // Custom logic: if integer, show integer. If decimal, show 1 decimal place.
-    // decimalPattern usually does sensible things, but let's be explicit if needed.
-    // Actually, simply using flexible pattern is best.
-    // If we want fixed 1 decimal for non-integers:
     if (val % 1 == 0) {
       return fmt.format(val.toInt());
     }
 
-    // For decimals, force 1 digit
     final decimalFmt = NumberFormat.decimalPatternDigits(
       locale: locale,
       decimalDigits: 1,

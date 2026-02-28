@@ -41,7 +41,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           subtitle: Text(
-            _getSubtitleForType(),
+            _getSubtitleForType(context),
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           childrenPadding: const EdgeInsets.all(16),
@@ -61,7 +61,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     size: 16,
                   ),
                   label: Text(
-                    _showRaw ? 'Piilota Raaka-Data' : 'JSON',
+                    _showRaw ? AppLocalizations.of(context)!.btnHideRawData : AppLocalizations.of(context)!.btnShowJson,
                     style: const TextStyle(fontSize: 12),
                   ),
                 ),
@@ -73,13 +73,13 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     ).convert(widget.data);
                     Clipboard.setData(ClipboardData(text: jsonStr));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('JSON kopioitu leikepöydälle'),
-                        duration: Duration(seconds: 1),
+                      SnackBar(
+                        content: Text(AppLocalizations.of(context)!.msgJsonCopied),
+                        duration: const Duration(seconds: 1),
                       ),
                     );
                   },
-                  tooltip: 'Kopioi JSON',
+                  tooltip: AppLocalizations.of(context)!.copyToClipboard,
                 ),
               ],
             ),
@@ -121,22 +121,22 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     }
   }
 
-  String _getSubtitleForType() {
+  String _getSubtitleForType(BuildContext context) {
     switch (widget.type) {
       case 'LOGIC_ANALYSIS':
-        return "Toulmin & Kognitiivinen Taso";
+        return AppLocalizations.of(context)!.subLogicAnalysis;
       case 'STRESS_TEST':
-        return "Walton Falsifiointi";
+        return AppLocalizations.of(context)!.subStressTest;
       case 'CAUSAL_ANALYSIS':
-        return "Kausaalinen & Kontrafaktuaalinen";
+        return AppLocalizations.of(context)!.subCausalAnalysis;
       case 'PERFORMATIVITY_CHECK':
-        return "Aitous & Pre-Mortem";
+        return AppLocalizations.of(context)!.subPerformativityCheck;
       case 'FACT_CHECK':
-        return "Hallusinaatiot & Etiikka";
+        return AppLocalizations.of(context)!.subFactCheck;
       case 'PROFILER_ANALYSIS':
-        return "Vinoumat & Psyko-profiili";
+        return AppLocalizations.of(context)!.subProfilerAnalysis;
       case 'ARCHIVIST_CHECK':
-        return "Compliance & Ennakkotapaukset";
+        return AppLocalizations.of(context)!.subArchivistCheck;
       default:
         return "";
     }
@@ -152,7 +152,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     }
   }
 
-  Widget _buildDataErrorCard(String errorDetails) {
+  Widget _buildDataErrorCard(BuildContext context, String errorDetails) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -171,7 +171,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  "Data Integrity Error (Fail Fast)",
+                  AppLocalizations.of(context)!.errDataIntegrity,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.red.shade900,
@@ -231,9 +231,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           // Fallback to generic map renderer if type is barely supported
           return _buildGenericMap(widget.data);
       }
-    } catch (e, stack) {
-      debugPrint('🔴 UI GRACEFUL DEGRADATION [${widget.type}]: $e\n$stack');
-      return _buildDataErrorCard(e.toString());
+    } on FormatException catch (e) {
+      debugPrint('🔴 UI GRACEFUL DEGRADATION [${widget.type}]: $e');
+      return _buildDataErrorCard(context, e.toString());
     }
   }
 
@@ -482,10 +482,22 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                       const SizedBox(height: 4),
                       const Divider(),
                       const SizedBox(height: 4),
-                      _buildLabelValue("Perustelu (Warrant)", t['warrant']),
+                      if (t['data'] != null) ...[
+                        _buildLabelValue("Perusteet / Fakta (Data)", t['data']),
+                        const SizedBox(height: 4),
+                      ],
+                      _buildLabelValue("Oikeutus (Warrant)", t['warrant']),
                       if (t['backing'] != null) ...[
                         const SizedBox(height: 4),
                         _buildLabelValue("Tuki (Backing)", t['backing']),
+                      ],
+                      if (t['rebuttal'] != null) ...[
+                        const SizedBox(height: 4),
+                        _buildLabelValue("Vasta-argumentti (Rebuttal)", t['rebuttal']),
+                      ],
+                      if (t['qualifier'] != null) ...[
+                        const SizedBox(height: 4),
+                        _buildLabelValue("Tarkennin (Qualifier)", t['qualifier']),
                       ],
                     ],
                   ),
@@ -1126,6 +1138,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     }
 
     // New additions for Automation Bias & Say-Do gap (Flat properties)
+    final l10n = AppLocalizations.of(context)!;
     final autoBiasLabel = widget.data['automation_bias_label'];
     final autoBiasColor =
         widget.data['automation_bias_color'] == 'red'
@@ -1140,7 +1153,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       leftChildren.add(const SizedBox(height: 16));
       leftChildren.add(
         Text(
-          "Behavioral Indicators:",
+          l10n.lblBehavioralIndicators,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       );
@@ -1153,14 +1166,14 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             if (autoBiasLabel != null)
               _buildStatusChip(
                 context,
-                label: "Automation Bias: $autoBiasLabel",
+                label: l10n.lblAutomationBiasValue(_getLocalizedEnum(autoBiasLabel)),
                 color: autoBiasColor,
                 icon: autoBiasColor == Colors.red ? Icons.warning : Icons.check,
               ),
             if (sayDoLabel != null)
               _buildStatusChip(
                 context,
-                label: "Say-Do Gap: $sayDoLabel",
+                label: l10n.lblSayDoGapValue(_getLocalizedEnum(sayDoLabel)),
                 color: sayDoColor,
                 icon: sayDoColor == Colors.red ? Icons.warning : Icons.check,
               ),
@@ -1815,11 +1828,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             const SizedBox(height: 24),
             LayoutBuilder(
               builder: (context, constraints) {
+                final translatedRole = _getLocalizedEnum(role);
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children:
                       roles.map((r) {
-                        final isActive = role.toLowerCase() == r.toLowerCase();
+                        final isActive = translatedRole.toLowerCase() == r.toLowerCase();
                         return Expanded(
                           child: Column(
                             children: [

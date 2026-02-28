@@ -6,7 +6,6 @@ import pytest
 from backend.hooks.reporting import generate_report
 from backend.models.state import TraceEvent, WorkflowState
 
-
 # Mock removed
 
 

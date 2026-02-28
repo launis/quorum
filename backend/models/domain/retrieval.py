@@ -72,6 +72,7 @@ class KnowledgeItem(BaseModel):
 
 from backend.models.domain.base import ReasoningTrace
 
+
 class ContextData(ReasoningTrace):
     """Output schema for the Retrieval Agent."""
 

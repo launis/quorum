@@ -62,7 +62,7 @@ def configure_logfire():
         # but automatic detection occasionally fails.
         os.environ.setdefault("LOGFIRE_BASE_URL", "https://api-eu.pydantic.dev/")
         os.environ.setdefault("LOGFIRE_SEND_TO_LOGFIRE", "true")
-        
+
         # send_to_logfire=True explicitly enables the cloud exporter.
         # console=False suppresses the noisy local console logs from Logfire.
         logfire.configure(send_to_logfire=True, console=False)

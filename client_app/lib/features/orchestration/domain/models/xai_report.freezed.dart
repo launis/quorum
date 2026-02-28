@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ScoreCardItem {
 
-@JsonKey(name: 'agent_name') String get agentName;@JsonKey(name: 'total_score') double get totalScore;@JsonKey(name: 'min_score') int get minScore;@JsonKey(name: 'max_score') int get maxScore; String get verdict; List<DimensionResultItem> get dimensions;
+@JsonKey(name: 'agent_name') String get agentName;@JsonKey(name: 'total_score') double? get totalScore;@JsonKey(name: 'min_score') int? get minScore;@JsonKey(name: 'max_score') int? get maxScore; String? get verdict; List<DimensionResultItem> get dimensions;
 /// Create a copy of ScoreCardItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $ScoreCardItemCopyWith<$Res>  {
   factory $ScoreCardItemCopyWith(ScoreCardItem value, $Res Function(ScoreCardItem) _then) = _$ScoreCardItemCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'agent_name') String agentName,@JsonKey(name: 'total_score') double totalScore,@JsonKey(name: 'min_score') int minScore,@JsonKey(name: 'max_score') int maxScore, String verdict, List<DimensionResultItem> dimensions
+@JsonKey(name: 'agent_name') String agentName,@JsonKey(name: 'total_score') double? totalScore,@JsonKey(name: 'min_score') int? minScore,@JsonKey(name: 'max_score') int? maxScore, String? verdict, List<DimensionResultItem> dimensions
 });
 
 
@@ -65,14 +65,14 @@ class _$ScoreCardItemCopyWithImpl<$Res>
 
 /// Create a copy of ScoreCardItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? agentName = null,Object? totalScore = null,Object? minScore = null,Object? maxScore = null,Object? verdict = null,Object? dimensions = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? agentName = null,Object? totalScore = freezed,Object? minScore = freezed,Object? maxScore = freezed,Object? verdict = freezed,Object? dimensions = null,}) {
   return _then(_self.copyWith(
 agentName: null == agentName ? _self.agentName : agentName // ignore: cast_nullable_to_non_nullable
-as String,totalScore: null == totalScore ? _self.totalScore : totalScore // ignore: cast_nullable_to_non_nullable
-as double,minScore: null == minScore ? _self.minScore : minScore // ignore: cast_nullable_to_non_nullable
-as int,maxScore: null == maxScore ? _self.maxScore : maxScore // ignore: cast_nullable_to_non_nullable
-as int,verdict: null == verdict ? _self.verdict : verdict // ignore: cast_nullable_to_non_nullable
-as String,dimensions: null == dimensions ? _self.dimensions : dimensions // ignore: cast_nullable_to_non_nullable
+as String,totalScore: freezed == totalScore ? _self.totalScore : totalScore // ignore: cast_nullable_to_non_nullable
+as double?,minScore: freezed == minScore ? _self.minScore : minScore // ignore: cast_nullable_to_non_nullable
+as int?,maxScore: freezed == maxScore ? _self.maxScore : maxScore // ignore: cast_nullable_to_non_nullable
+as int?,verdict: freezed == verdict ? _self.verdict : verdict // ignore: cast_nullable_to_non_nullable
+as String?,dimensions: null == dimensions ? _self.dimensions : dimensions // ignore: cast_nullable_to_non_nullable
 as List<DimensionResultItem>,
   ));
 }
@@ -158,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double totalScore, @JsonKey(name: 'min_score')  int minScore, @JsonKey(name: 'max_score')  int maxScore,  String verdict,  List<DimensionResultItem> dimensions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double? totalScore, @JsonKey(name: 'min_score')  int? minScore, @JsonKey(name: 'max_score')  int? maxScore,  String? verdict,  List<DimensionResultItem> dimensions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ScoreCardItem() when $default != null:
 return $default(_that.agentName,_that.totalScore,_that.minScore,_that.maxScore,_that.verdict,_that.dimensions);case _:
@@ -179,7 +179,7 @@ return $default(_that.agentName,_that.totalScore,_that.minScore,_that.maxScore,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double totalScore, @JsonKey(name: 'min_score')  int minScore, @JsonKey(name: 'max_score')  int maxScore,  String verdict,  List<DimensionResultItem> dimensions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double? totalScore, @JsonKey(name: 'min_score')  int? minScore, @JsonKey(name: 'max_score')  int? maxScore,  String? verdict,  List<DimensionResultItem> dimensions)  $default,) {final _that = this;
 switch (_that) {
 case _ScoreCardItem():
 return $default(_that.agentName,_that.totalScore,_that.minScore,_that.maxScore,_that.verdict,_that.dimensions);case _:
@@ -199,7 +199,7 @@ return $default(_that.agentName,_that.totalScore,_that.minScore,_that.maxScore,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double totalScore, @JsonKey(name: 'min_score')  int minScore, @JsonKey(name: 'max_score')  int maxScore,  String verdict,  List<DimensionResultItem> dimensions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double? totalScore, @JsonKey(name: 'min_score')  int? minScore, @JsonKey(name: 'max_score')  int? maxScore,  String? verdict,  List<DimensionResultItem> dimensions)?  $default,) {final _that = this;
 switch (_that) {
 case _ScoreCardItem() when $default != null:
 return $default(_that.agentName,_that.totalScore,_that.minScore,_that.maxScore,_that.verdict,_that.dimensions);case _:
@@ -214,14 +214,14 @@ return $default(_that.agentName,_that.totalScore,_that.minScore,_that.maxScore,_
 @JsonSerializable()
 
 class _ScoreCardItem implements ScoreCardItem {
-  const _ScoreCardItem({@JsonKey(name: 'agent_name') required this.agentName, @JsonKey(name: 'total_score') required this.totalScore, @JsonKey(name: 'min_score') this.minScore = 0, @JsonKey(name: 'max_score') this.maxScore = 5, required this.verdict, final  List<DimensionResultItem> dimensions = const []}): _dimensions = dimensions;
+  const _ScoreCardItem({@JsonKey(name: 'agent_name') required this.agentName, @JsonKey(name: 'total_score') this.totalScore, @JsonKey(name: 'min_score') this.minScore, @JsonKey(name: 'max_score') this.maxScore, this.verdict, final  List<DimensionResultItem> dimensions = const []}): _dimensions = dimensions;
   factory _ScoreCardItem.fromJson(Map<String, dynamic> json) => _$ScoreCardItemFromJson(json);
 
 @override@JsonKey(name: 'agent_name') final  String agentName;
-@override@JsonKey(name: 'total_score') final  double totalScore;
-@override@JsonKey(name: 'min_score') final  int minScore;
-@override@JsonKey(name: 'max_score') final  int maxScore;
-@override final  String verdict;
+@override@JsonKey(name: 'total_score') final  double? totalScore;
+@override@JsonKey(name: 'min_score') final  int? minScore;
+@override@JsonKey(name: 'max_score') final  int? maxScore;
+@override final  String? verdict;
  final  List<DimensionResultItem> _dimensions;
 @override@JsonKey() List<DimensionResultItem> get dimensions {
   if (_dimensions is EqualUnmodifiableListView) return _dimensions;
@@ -263,7 +263,7 @@ abstract mixin class _$ScoreCardItemCopyWith<$Res> implements $ScoreCardItemCopy
   factory _$ScoreCardItemCopyWith(_ScoreCardItem value, $Res Function(_ScoreCardItem) _then) = __$ScoreCardItemCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'agent_name') String agentName,@JsonKey(name: 'total_score') double totalScore,@JsonKey(name: 'min_score') int minScore,@JsonKey(name: 'max_score') int maxScore, String verdict, List<DimensionResultItem> dimensions
+@JsonKey(name: 'agent_name') String agentName,@JsonKey(name: 'total_score') double? totalScore,@JsonKey(name: 'min_score') int? minScore,@JsonKey(name: 'max_score') int? maxScore, String? verdict, List<DimensionResultItem> dimensions
 });
 
 
@@ -280,14 +280,14 @@ class __$ScoreCardItemCopyWithImpl<$Res>
 
 /// Create a copy of ScoreCardItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? agentName = null,Object? totalScore = null,Object? minScore = null,Object? maxScore = null,Object? verdict = null,Object? dimensions = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? agentName = null,Object? totalScore = freezed,Object? minScore = freezed,Object? maxScore = freezed,Object? verdict = freezed,Object? dimensions = null,}) {
   return _then(_ScoreCardItem(
 agentName: null == agentName ? _self.agentName : agentName // ignore: cast_nullable_to_non_nullable
-as String,totalScore: null == totalScore ? _self.totalScore : totalScore // ignore: cast_nullable_to_non_nullable
-as double,minScore: null == minScore ? _self.minScore : minScore // ignore: cast_nullable_to_non_nullable
-as int,maxScore: null == maxScore ? _self.maxScore : maxScore // ignore: cast_nullable_to_non_nullable
-as int,verdict: null == verdict ? _self.verdict : verdict // ignore: cast_nullable_to_non_nullable
-as String,dimensions: null == dimensions ? _self._dimensions : dimensions // ignore: cast_nullable_to_non_nullable
+as String,totalScore: freezed == totalScore ? _self.totalScore : totalScore // ignore: cast_nullable_to_non_nullable
+as double?,minScore: freezed == minScore ? _self.minScore : minScore // ignore: cast_nullable_to_non_nullable
+as int?,maxScore: freezed == maxScore ? _self.maxScore : maxScore // ignore: cast_nullable_to_non_nullable
+as int?,verdict: freezed == verdict ? _self.verdict : verdict // ignore: cast_nullable_to_non_nullable
+as String?,dimensions: null == dimensions ? _self._dimensions : dimensions // ignore: cast_nullable_to_non_nullable
 as List<DimensionResultItem>,
   ));
 }
@@ -300,8 +300,8 @@ as List<DimensionResultItem>,
 mixin _$XAIReport {
 
 // --- BaseJSON Metadata ---
- Map<String, dynamic> get metadata;@JsonKey(name: 'metodologinen_loki') String get metodologinenLoki;@JsonKey(name: 'edellisen_vaiheen_validointi') String get edellisenVaiheenValidointi;@JsonKey(name: 'semanttinen_tarkistussumma') String get semanttinenTarkistussumma;// --- Report Fields ---
-@JsonKey(name: 'executive_summary') String get executiveSummary;@JsonKey(name: 'analysis_strengths') String get analysisStrengths;@JsonKey(name: 'analysis_weaknesses') String get analysisWeaknesses;@JsonKey(name: 'analysis_opportunities') String get analysisOpportunities;@JsonKey(name: 'analysis_recommendations') String get analysisRecommendations;@JsonKey(name: 'final_verdict') String get finalVerdict;@JsonKey(name: 'confidence_score') double get confidenceScore;@JsonKey(name: 'xai_report_formatted') String? get xaiReportFormatted;@JsonKey(name: 'comparison_data') Map<String, dynamic>? get comparisonData;// --- New Aggregated Scores ---
+ Map<String, dynamic> get metadata;@JsonKey(name: 'metodologinen_loki') String? get metodologinenLoki;@JsonKey(name: 'edellisen_vaiheen_validointi') String? get edellisenVaiheenValidointi;@JsonKey(name: 'semanttinen_tarkistussumma') String get semanttinenTarkistussumma;// --- Report Fields ---
+@JsonKey(name: 'executive_summary') String? get executiveSummary;@JsonKey(name: 'analysis_strengths') String? get analysisStrengths;@JsonKey(name: 'analysis_weaknesses') String? get analysisWeaknesses;@JsonKey(name: 'analysis_opportunities') String? get analysisOpportunities;@JsonKey(name: 'analysis_recommendations') String? get analysisRecommendations;@JsonKey(name: 'final_verdict') String? get finalVerdict;@JsonKey(name: 'confidence_score') double? get confidenceScore;@JsonKey(name: 'xai_report_formatted') String? get xaiReportFormatted;@JsonKey(name: 'comparison_data') Map<String, dynamic>? get comparisonData;// --- New Aggregated Scores ---
 @JsonKey(name: 'score_cards') List<ScoreCardItem> get scoreCards;
 /// Create a copy of XAIReport
 /// with the given fields replaced by the non-null parameter values.
@@ -335,7 +335,7 @@ abstract mixin class $XAIReportCopyWith<$Res>  {
   factory $XAIReportCopyWith(XAIReport value, $Res Function(XAIReport) _then) = _$XAIReportCopyWithImpl;
 @useResult
 $Res call({
- Map<String, dynamic> metadata,@JsonKey(name: 'metodologinen_loki') String metodologinenLoki,@JsonKey(name: 'edellisen_vaiheen_validointi') String edellisenVaiheenValidointi,@JsonKey(name: 'semanttinen_tarkistussumma') String semanttinenTarkistussumma,@JsonKey(name: 'executive_summary') String executiveSummary,@JsonKey(name: 'analysis_strengths') String analysisStrengths,@JsonKey(name: 'analysis_weaknesses') String analysisWeaknesses,@JsonKey(name: 'analysis_opportunities') String analysisOpportunities,@JsonKey(name: 'analysis_recommendations') String analysisRecommendations,@JsonKey(name: 'final_verdict') String finalVerdict,@JsonKey(name: 'confidence_score') double confidenceScore,@JsonKey(name: 'xai_report_formatted') String? xaiReportFormatted,@JsonKey(name: 'comparison_data') Map<String, dynamic>? comparisonData,@JsonKey(name: 'score_cards') List<ScoreCardItem> scoreCards
+ Map<String, dynamic> metadata,@JsonKey(name: 'metodologinen_loki') String? metodologinenLoki,@JsonKey(name: 'edellisen_vaiheen_validointi') String? edellisenVaiheenValidointi,@JsonKey(name: 'semanttinen_tarkistussumma') String semanttinenTarkistussumma,@JsonKey(name: 'executive_summary') String? executiveSummary,@JsonKey(name: 'analysis_strengths') String? analysisStrengths,@JsonKey(name: 'analysis_weaknesses') String? analysisWeaknesses,@JsonKey(name: 'analysis_opportunities') String? analysisOpportunities,@JsonKey(name: 'analysis_recommendations') String? analysisRecommendations,@JsonKey(name: 'final_verdict') String? finalVerdict,@JsonKey(name: 'confidence_score') double? confidenceScore,@JsonKey(name: 'xai_report_formatted') String? xaiReportFormatted,@JsonKey(name: 'comparison_data') Map<String, dynamic>? comparisonData,@JsonKey(name: 'score_cards') List<ScoreCardItem> scoreCards
 });
 
 
@@ -352,20 +352,20 @@ class _$XAIReportCopyWithImpl<$Res>
 
 /// Create a copy of XAIReport
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? metadata = null,Object? metodologinenLoki = null,Object? edellisenVaiheenValidointi = null,Object? semanttinenTarkistussumma = null,Object? executiveSummary = null,Object? analysisStrengths = null,Object? analysisWeaknesses = null,Object? analysisOpportunities = null,Object? analysisRecommendations = null,Object? finalVerdict = null,Object? confidenceScore = null,Object? xaiReportFormatted = freezed,Object? comparisonData = freezed,Object? scoreCards = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? metadata = null,Object? metodologinenLoki = freezed,Object? edellisenVaiheenValidointi = freezed,Object? semanttinenTarkistussumma = null,Object? executiveSummary = freezed,Object? analysisStrengths = freezed,Object? analysisWeaknesses = freezed,Object? analysisOpportunities = freezed,Object? analysisRecommendations = freezed,Object? finalVerdict = freezed,Object? confidenceScore = freezed,Object? xaiReportFormatted = freezed,Object? comparisonData = freezed,Object? scoreCards = null,}) {
   return _then(_self.copyWith(
 metadata: null == metadata ? _self.metadata : metadata // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,metodologinenLoki: null == metodologinenLoki ? _self.metodologinenLoki : metodologinenLoki // ignore: cast_nullable_to_non_nullable
-as String,edellisenVaiheenValidointi: null == edellisenVaiheenValidointi ? _self.edellisenVaiheenValidointi : edellisenVaiheenValidointi // ignore: cast_nullable_to_non_nullable
-as String,semanttinenTarkistussumma: null == semanttinenTarkistussumma ? _self.semanttinenTarkistussumma : semanttinenTarkistussumma // ignore: cast_nullable_to_non_nullable
-as String,executiveSummary: null == executiveSummary ? _self.executiveSummary : executiveSummary // ignore: cast_nullable_to_non_nullable
-as String,analysisStrengths: null == analysisStrengths ? _self.analysisStrengths : analysisStrengths // ignore: cast_nullable_to_non_nullable
-as String,analysisWeaknesses: null == analysisWeaknesses ? _self.analysisWeaknesses : analysisWeaknesses // ignore: cast_nullable_to_non_nullable
-as String,analysisOpportunities: null == analysisOpportunities ? _self.analysisOpportunities : analysisOpportunities // ignore: cast_nullable_to_non_nullable
-as String,analysisRecommendations: null == analysisRecommendations ? _self.analysisRecommendations : analysisRecommendations // ignore: cast_nullable_to_non_nullable
-as String,finalVerdict: null == finalVerdict ? _self.finalVerdict : finalVerdict // ignore: cast_nullable_to_non_nullable
-as String,confidenceScore: null == confidenceScore ? _self.confidenceScore : confidenceScore // ignore: cast_nullable_to_non_nullable
-as double,xaiReportFormatted: freezed == xaiReportFormatted ? _self.xaiReportFormatted : xaiReportFormatted // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,metodologinenLoki: freezed == metodologinenLoki ? _self.metodologinenLoki : metodologinenLoki // ignore: cast_nullable_to_non_nullable
+as String?,edellisenVaiheenValidointi: freezed == edellisenVaiheenValidointi ? _self.edellisenVaiheenValidointi : edellisenVaiheenValidointi // ignore: cast_nullable_to_non_nullable
+as String?,semanttinenTarkistussumma: null == semanttinenTarkistussumma ? _self.semanttinenTarkistussumma : semanttinenTarkistussumma // ignore: cast_nullable_to_non_nullable
+as String,executiveSummary: freezed == executiveSummary ? _self.executiveSummary : executiveSummary // ignore: cast_nullable_to_non_nullable
+as String?,analysisStrengths: freezed == analysisStrengths ? _self.analysisStrengths : analysisStrengths // ignore: cast_nullable_to_non_nullable
+as String?,analysisWeaknesses: freezed == analysisWeaknesses ? _self.analysisWeaknesses : analysisWeaknesses // ignore: cast_nullable_to_non_nullable
+as String?,analysisOpportunities: freezed == analysisOpportunities ? _self.analysisOpportunities : analysisOpportunities // ignore: cast_nullable_to_non_nullable
+as String?,analysisRecommendations: freezed == analysisRecommendations ? _self.analysisRecommendations : analysisRecommendations // ignore: cast_nullable_to_non_nullable
+as String?,finalVerdict: freezed == finalVerdict ? _self.finalVerdict : finalVerdict // ignore: cast_nullable_to_non_nullable
+as String?,confidenceScore: freezed == confidenceScore ? _self.confidenceScore : confidenceScore // ignore: cast_nullable_to_non_nullable
+as double?,xaiReportFormatted: freezed == xaiReportFormatted ? _self.xaiReportFormatted : xaiReportFormatted // ignore: cast_nullable_to_non_nullable
 as String?,comparisonData: freezed == comparisonData ? _self.comparisonData : comparisonData // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,scoreCards: null == scoreCards ? _self.scoreCards : scoreCards // ignore: cast_nullable_to_non_nullable
 as List<ScoreCardItem>,
@@ -453,7 +453,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Map<String, dynamic> metadata, @JsonKey(name: 'metodologinen_loki')  String metodologinenLoki, @JsonKey(name: 'edellisen_vaiheen_validointi')  String edellisenVaiheenValidointi, @JsonKey(name: 'semanttinen_tarkistussumma')  String semanttinenTarkistussumma, @JsonKey(name: 'executive_summary')  String executiveSummary, @JsonKey(name: 'analysis_strengths')  String analysisStrengths, @JsonKey(name: 'analysis_weaknesses')  String analysisWeaknesses, @JsonKey(name: 'analysis_opportunities')  String analysisOpportunities, @JsonKey(name: 'analysis_recommendations')  String analysisRecommendations, @JsonKey(name: 'final_verdict')  String finalVerdict, @JsonKey(name: 'confidence_score')  double confidenceScore, @JsonKey(name: 'xai_report_formatted')  String? xaiReportFormatted, @JsonKey(name: 'comparison_data')  Map<String, dynamic>? comparisonData, @JsonKey(name: 'score_cards')  List<ScoreCardItem> scoreCards)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Map<String, dynamic> metadata, @JsonKey(name: 'metodologinen_loki')  String? metodologinenLoki, @JsonKey(name: 'edellisen_vaiheen_validointi')  String? edellisenVaiheenValidointi, @JsonKey(name: 'semanttinen_tarkistussumma')  String semanttinenTarkistussumma, @JsonKey(name: 'executive_summary')  String? executiveSummary, @JsonKey(name: 'analysis_strengths')  String? analysisStrengths, @JsonKey(name: 'analysis_weaknesses')  String? analysisWeaknesses, @JsonKey(name: 'analysis_opportunities')  String? analysisOpportunities, @JsonKey(name: 'analysis_recommendations')  String? analysisRecommendations, @JsonKey(name: 'final_verdict')  String? finalVerdict, @JsonKey(name: 'confidence_score')  double? confidenceScore, @JsonKey(name: 'xai_report_formatted')  String? xaiReportFormatted, @JsonKey(name: 'comparison_data')  Map<String, dynamic>? comparisonData, @JsonKey(name: 'score_cards')  List<ScoreCardItem> scoreCards)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _XAIReport() when $default != null:
 return $default(_that.metadata,_that.metodologinenLoki,_that.edellisenVaiheenValidointi,_that.semanttinenTarkistussumma,_that.executiveSummary,_that.analysisStrengths,_that.analysisWeaknesses,_that.analysisOpportunities,_that.analysisRecommendations,_that.finalVerdict,_that.confidenceScore,_that.xaiReportFormatted,_that.comparisonData,_that.scoreCards);case _:
@@ -474,7 +474,7 @@ return $default(_that.metadata,_that.metodologinenLoki,_that.edellisenVaiheenVal
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Map<String, dynamic> metadata, @JsonKey(name: 'metodologinen_loki')  String metodologinenLoki, @JsonKey(name: 'edellisen_vaiheen_validointi')  String edellisenVaiheenValidointi, @JsonKey(name: 'semanttinen_tarkistussumma')  String semanttinenTarkistussumma, @JsonKey(name: 'executive_summary')  String executiveSummary, @JsonKey(name: 'analysis_strengths')  String analysisStrengths, @JsonKey(name: 'analysis_weaknesses')  String analysisWeaknesses, @JsonKey(name: 'analysis_opportunities')  String analysisOpportunities, @JsonKey(name: 'analysis_recommendations')  String analysisRecommendations, @JsonKey(name: 'final_verdict')  String finalVerdict, @JsonKey(name: 'confidence_score')  double confidenceScore, @JsonKey(name: 'xai_report_formatted')  String? xaiReportFormatted, @JsonKey(name: 'comparison_data')  Map<String, dynamic>? comparisonData, @JsonKey(name: 'score_cards')  List<ScoreCardItem> scoreCards)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Map<String, dynamic> metadata, @JsonKey(name: 'metodologinen_loki')  String? metodologinenLoki, @JsonKey(name: 'edellisen_vaiheen_validointi')  String? edellisenVaiheenValidointi, @JsonKey(name: 'semanttinen_tarkistussumma')  String semanttinenTarkistussumma, @JsonKey(name: 'executive_summary')  String? executiveSummary, @JsonKey(name: 'analysis_strengths')  String? analysisStrengths, @JsonKey(name: 'analysis_weaknesses')  String? analysisWeaknesses, @JsonKey(name: 'analysis_opportunities')  String? analysisOpportunities, @JsonKey(name: 'analysis_recommendations')  String? analysisRecommendations, @JsonKey(name: 'final_verdict')  String? finalVerdict, @JsonKey(name: 'confidence_score')  double? confidenceScore, @JsonKey(name: 'xai_report_formatted')  String? xaiReportFormatted, @JsonKey(name: 'comparison_data')  Map<String, dynamic>? comparisonData, @JsonKey(name: 'score_cards')  List<ScoreCardItem> scoreCards)  $default,) {final _that = this;
 switch (_that) {
 case _XAIReport():
 return $default(_that.metadata,_that.metodologinenLoki,_that.edellisenVaiheenValidointi,_that.semanttinenTarkistussumma,_that.executiveSummary,_that.analysisStrengths,_that.analysisWeaknesses,_that.analysisOpportunities,_that.analysisRecommendations,_that.finalVerdict,_that.confidenceScore,_that.xaiReportFormatted,_that.comparisonData,_that.scoreCards);case _:
@@ -494,7 +494,7 @@ return $default(_that.metadata,_that.metodologinenLoki,_that.edellisenVaiheenVal
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Map<String, dynamic> metadata, @JsonKey(name: 'metodologinen_loki')  String metodologinenLoki, @JsonKey(name: 'edellisen_vaiheen_validointi')  String edellisenVaiheenValidointi, @JsonKey(name: 'semanttinen_tarkistussumma')  String semanttinenTarkistussumma, @JsonKey(name: 'executive_summary')  String executiveSummary, @JsonKey(name: 'analysis_strengths')  String analysisStrengths, @JsonKey(name: 'analysis_weaknesses')  String analysisWeaknesses, @JsonKey(name: 'analysis_opportunities')  String analysisOpportunities, @JsonKey(name: 'analysis_recommendations')  String analysisRecommendations, @JsonKey(name: 'final_verdict')  String finalVerdict, @JsonKey(name: 'confidence_score')  double confidenceScore, @JsonKey(name: 'xai_report_formatted')  String? xaiReportFormatted, @JsonKey(name: 'comparison_data')  Map<String, dynamic>? comparisonData, @JsonKey(name: 'score_cards')  List<ScoreCardItem> scoreCards)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Map<String, dynamic> metadata, @JsonKey(name: 'metodologinen_loki')  String? metodologinenLoki, @JsonKey(name: 'edellisen_vaiheen_validointi')  String? edellisenVaiheenValidointi, @JsonKey(name: 'semanttinen_tarkistussumma')  String semanttinenTarkistussumma, @JsonKey(name: 'executive_summary')  String? executiveSummary, @JsonKey(name: 'analysis_strengths')  String? analysisStrengths, @JsonKey(name: 'analysis_weaknesses')  String? analysisWeaknesses, @JsonKey(name: 'analysis_opportunities')  String? analysisOpportunities, @JsonKey(name: 'analysis_recommendations')  String? analysisRecommendations, @JsonKey(name: 'final_verdict')  String? finalVerdict, @JsonKey(name: 'confidence_score')  double? confidenceScore, @JsonKey(name: 'xai_report_formatted')  String? xaiReportFormatted, @JsonKey(name: 'comparison_data')  Map<String, dynamic>? comparisonData, @JsonKey(name: 'score_cards')  List<ScoreCardItem> scoreCards)?  $default,) {final _that = this;
 switch (_that) {
 case _XAIReport() when $default != null:
 return $default(_that.metadata,_that.metodologinenLoki,_that.edellisenVaiheenValidointi,_that.semanttinenTarkistussumma,_that.executiveSummary,_that.analysisStrengths,_that.analysisWeaknesses,_that.analysisOpportunities,_that.analysisRecommendations,_that.finalVerdict,_that.confidenceScore,_that.xaiReportFormatted,_that.comparisonData,_that.scoreCards);case _:
@@ -509,7 +509,7 @@ return $default(_that.metadata,_that.metodologinenLoki,_that.edellisenVaiheenVal
 @JsonSerializable()
 
 class _XAIReport implements XAIReport {
-  const _XAIReport({required final  Map<String, dynamic> metadata, @JsonKey(name: 'metodologinen_loki') required this.metodologinenLoki, @JsonKey(name: 'edellisen_vaiheen_validointi') required this.edellisenVaiheenValidointi, @JsonKey(name: 'semanttinen_tarkistussumma') required this.semanttinenTarkistussumma, @JsonKey(name: 'executive_summary') required this.executiveSummary, @JsonKey(name: 'analysis_strengths') required this.analysisStrengths, @JsonKey(name: 'analysis_weaknesses') required this.analysisWeaknesses, @JsonKey(name: 'analysis_opportunities') required this.analysisOpportunities, @JsonKey(name: 'analysis_recommendations') required this.analysisRecommendations, @JsonKey(name: 'final_verdict') required this.finalVerdict, @JsonKey(name: 'confidence_score') required this.confidenceScore, @JsonKey(name: 'xai_report_formatted') this.xaiReportFormatted, @JsonKey(name: 'comparison_data') final  Map<String, dynamic>? comparisonData, @JsonKey(name: 'score_cards') final  List<ScoreCardItem> scoreCards = const []}): _metadata = metadata,_comparisonData = comparisonData,_scoreCards = scoreCards;
+  const _XAIReport({required final  Map<String, dynamic> metadata, @JsonKey(name: 'metodologinen_loki') this.metodologinenLoki, @JsonKey(name: 'edellisen_vaiheen_validointi') this.edellisenVaiheenValidointi, @JsonKey(name: 'semanttinen_tarkistussumma') required this.semanttinenTarkistussumma, @JsonKey(name: 'executive_summary') this.executiveSummary, @JsonKey(name: 'analysis_strengths') this.analysisStrengths, @JsonKey(name: 'analysis_weaknesses') this.analysisWeaknesses, @JsonKey(name: 'analysis_opportunities') this.analysisOpportunities, @JsonKey(name: 'analysis_recommendations') this.analysisRecommendations, @JsonKey(name: 'final_verdict') this.finalVerdict, @JsonKey(name: 'confidence_score') this.confidenceScore, @JsonKey(name: 'xai_report_formatted') this.xaiReportFormatted, @JsonKey(name: 'comparison_data') final  Map<String, dynamic>? comparisonData, @JsonKey(name: 'score_cards') final  List<ScoreCardItem> scoreCards = const []}): _metadata = metadata,_comparisonData = comparisonData,_scoreCards = scoreCards;
   factory _XAIReport.fromJson(Map<String, dynamic> json) => _$XAIReportFromJson(json);
 
 // --- BaseJSON Metadata ---
@@ -521,17 +521,17 @@ class _XAIReport implements XAIReport {
   return EqualUnmodifiableMapView(_metadata);
 }
 
-@override@JsonKey(name: 'metodologinen_loki') final  String metodologinenLoki;
-@override@JsonKey(name: 'edellisen_vaiheen_validointi') final  String edellisenVaiheenValidointi;
+@override@JsonKey(name: 'metodologinen_loki') final  String? metodologinenLoki;
+@override@JsonKey(name: 'edellisen_vaiheen_validointi') final  String? edellisenVaiheenValidointi;
 @override@JsonKey(name: 'semanttinen_tarkistussumma') final  String semanttinenTarkistussumma;
 // --- Report Fields ---
-@override@JsonKey(name: 'executive_summary') final  String executiveSummary;
-@override@JsonKey(name: 'analysis_strengths') final  String analysisStrengths;
-@override@JsonKey(name: 'analysis_weaknesses') final  String analysisWeaknesses;
-@override@JsonKey(name: 'analysis_opportunities') final  String analysisOpportunities;
-@override@JsonKey(name: 'analysis_recommendations') final  String analysisRecommendations;
-@override@JsonKey(name: 'final_verdict') final  String finalVerdict;
-@override@JsonKey(name: 'confidence_score') final  double confidenceScore;
+@override@JsonKey(name: 'executive_summary') final  String? executiveSummary;
+@override@JsonKey(name: 'analysis_strengths') final  String? analysisStrengths;
+@override@JsonKey(name: 'analysis_weaknesses') final  String? analysisWeaknesses;
+@override@JsonKey(name: 'analysis_opportunities') final  String? analysisOpportunities;
+@override@JsonKey(name: 'analysis_recommendations') final  String? analysisRecommendations;
+@override@JsonKey(name: 'final_verdict') final  String? finalVerdict;
+@override@JsonKey(name: 'confidence_score') final  double? confidenceScore;
 @override@JsonKey(name: 'xai_report_formatted') final  String? xaiReportFormatted;
  final  Map<String, dynamic>? _comparisonData;
 @override@JsonKey(name: 'comparison_data') Map<String, dynamic>? get comparisonData {
@@ -585,7 +585,7 @@ abstract mixin class _$XAIReportCopyWith<$Res> implements $XAIReportCopyWith<$Re
   factory _$XAIReportCopyWith(_XAIReport value, $Res Function(_XAIReport) _then) = __$XAIReportCopyWithImpl;
 @override @useResult
 $Res call({
- Map<String, dynamic> metadata,@JsonKey(name: 'metodologinen_loki') String metodologinenLoki,@JsonKey(name: 'edellisen_vaiheen_validointi') String edellisenVaiheenValidointi,@JsonKey(name: 'semanttinen_tarkistussumma') String semanttinenTarkistussumma,@JsonKey(name: 'executive_summary') String executiveSummary,@JsonKey(name: 'analysis_strengths') String analysisStrengths,@JsonKey(name: 'analysis_weaknesses') String analysisWeaknesses,@JsonKey(name: 'analysis_opportunities') String analysisOpportunities,@JsonKey(name: 'analysis_recommendations') String analysisRecommendations,@JsonKey(name: 'final_verdict') String finalVerdict,@JsonKey(name: 'confidence_score') double confidenceScore,@JsonKey(name: 'xai_report_formatted') String? xaiReportFormatted,@JsonKey(name: 'comparison_data') Map<String, dynamic>? comparisonData,@JsonKey(name: 'score_cards') List<ScoreCardItem> scoreCards
+ Map<String, dynamic> metadata,@JsonKey(name: 'metodologinen_loki') String? metodologinenLoki,@JsonKey(name: 'edellisen_vaiheen_validointi') String? edellisenVaiheenValidointi,@JsonKey(name: 'semanttinen_tarkistussumma') String semanttinenTarkistussumma,@JsonKey(name: 'executive_summary') String? executiveSummary,@JsonKey(name: 'analysis_strengths') String? analysisStrengths,@JsonKey(name: 'analysis_weaknesses') String? analysisWeaknesses,@JsonKey(name: 'analysis_opportunities') String? analysisOpportunities,@JsonKey(name: 'analysis_recommendations') String? analysisRecommendations,@JsonKey(name: 'final_verdict') String? finalVerdict,@JsonKey(name: 'confidence_score') double? confidenceScore,@JsonKey(name: 'xai_report_formatted') String? xaiReportFormatted,@JsonKey(name: 'comparison_data') Map<String, dynamic>? comparisonData,@JsonKey(name: 'score_cards') List<ScoreCardItem> scoreCards
 });
 
 
@@ -602,20 +602,20 @@ class __$XAIReportCopyWithImpl<$Res>
 
 /// Create a copy of XAIReport
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? metadata = null,Object? metodologinenLoki = null,Object? edellisenVaiheenValidointi = null,Object? semanttinenTarkistussumma = null,Object? executiveSummary = null,Object? analysisStrengths = null,Object? analysisWeaknesses = null,Object? analysisOpportunities = null,Object? analysisRecommendations = null,Object? finalVerdict = null,Object? confidenceScore = null,Object? xaiReportFormatted = freezed,Object? comparisonData = freezed,Object? scoreCards = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? metadata = null,Object? metodologinenLoki = freezed,Object? edellisenVaiheenValidointi = freezed,Object? semanttinenTarkistussumma = null,Object? executiveSummary = freezed,Object? analysisStrengths = freezed,Object? analysisWeaknesses = freezed,Object? analysisOpportunities = freezed,Object? analysisRecommendations = freezed,Object? finalVerdict = freezed,Object? confidenceScore = freezed,Object? xaiReportFormatted = freezed,Object? comparisonData = freezed,Object? scoreCards = null,}) {
   return _then(_XAIReport(
 metadata: null == metadata ? _self._metadata : metadata // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,metodologinenLoki: null == metodologinenLoki ? _self.metodologinenLoki : metodologinenLoki // ignore: cast_nullable_to_non_nullable
-as String,edellisenVaiheenValidointi: null == edellisenVaiheenValidointi ? _self.edellisenVaiheenValidointi : edellisenVaiheenValidointi // ignore: cast_nullable_to_non_nullable
-as String,semanttinenTarkistussumma: null == semanttinenTarkistussumma ? _self.semanttinenTarkistussumma : semanttinenTarkistussumma // ignore: cast_nullable_to_non_nullable
-as String,executiveSummary: null == executiveSummary ? _self.executiveSummary : executiveSummary // ignore: cast_nullable_to_non_nullable
-as String,analysisStrengths: null == analysisStrengths ? _self.analysisStrengths : analysisStrengths // ignore: cast_nullable_to_non_nullable
-as String,analysisWeaknesses: null == analysisWeaknesses ? _self.analysisWeaknesses : analysisWeaknesses // ignore: cast_nullable_to_non_nullable
-as String,analysisOpportunities: null == analysisOpportunities ? _self.analysisOpportunities : analysisOpportunities // ignore: cast_nullable_to_non_nullable
-as String,analysisRecommendations: null == analysisRecommendations ? _self.analysisRecommendations : analysisRecommendations // ignore: cast_nullable_to_non_nullable
-as String,finalVerdict: null == finalVerdict ? _self.finalVerdict : finalVerdict // ignore: cast_nullable_to_non_nullable
-as String,confidenceScore: null == confidenceScore ? _self.confidenceScore : confidenceScore // ignore: cast_nullable_to_non_nullable
-as double,xaiReportFormatted: freezed == xaiReportFormatted ? _self.xaiReportFormatted : xaiReportFormatted // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,metodologinenLoki: freezed == metodologinenLoki ? _self.metodologinenLoki : metodologinenLoki // ignore: cast_nullable_to_non_nullable
+as String?,edellisenVaiheenValidointi: freezed == edellisenVaiheenValidointi ? _self.edellisenVaiheenValidointi : edellisenVaiheenValidointi // ignore: cast_nullable_to_non_nullable
+as String?,semanttinenTarkistussumma: null == semanttinenTarkistussumma ? _self.semanttinenTarkistussumma : semanttinenTarkistussumma // ignore: cast_nullable_to_non_nullable
+as String,executiveSummary: freezed == executiveSummary ? _self.executiveSummary : executiveSummary // ignore: cast_nullable_to_non_nullable
+as String?,analysisStrengths: freezed == analysisStrengths ? _self.analysisStrengths : analysisStrengths // ignore: cast_nullable_to_non_nullable
+as String?,analysisWeaknesses: freezed == analysisWeaknesses ? _self.analysisWeaknesses : analysisWeaknesses // ignore: cast_nullable_to_non_nullable
+as String?,analysisOpportunities: freezed == analysisOpportunities ? _self.analysisOpportunities : analysisOpportunities // ignore: cast_nullable_to_non_nullable
+as String?,analysisRecommendations: freezed == analysisRecommendations ? _self.analysisRecommendations : analysisRecommendations // ignore: cast_nullable_to_non_nullable
+as String?,finalVerdict: freezed == finalVerdict ? _self.finalVerdict : finalVerdict // ignore: cast_nullable_to_non_nullable
+as String?,confidenceScore: freezed == confidenceScore ? _self.confidenceScore : confidenceScore // ignore: cast_nullable_to_non_nullable
+as double?,xaiReportFormatted: freezed == xaiReportFormatted ? _self.xaiReportFormatted : xaiReportFormatted // ignore: cast_nullable_to_non_nullable
 as String?,comparisonData: freezed == comparisonData ? _self._comparisonData : comparisonData // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,scoreCards: null == scoreCards ? _self._scoreCards : scoreCards // ignore: cast_nullable_to_non_nullable
 as List<ScoreCardItem>,

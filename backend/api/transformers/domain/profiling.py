@@ -2,7 +2,6 @@ import logging
 
 from pydantic import ValidationError
 
-from backend.exceptions import AppException, ErrorCodes, status
 from backend.models.domain import InteractionAnalysis, PerformativityOutput, ProfilerOutput
 from backend.models.enums import TitleKey
 
@@ -31,38 +30,10 @@ class ProfilingDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_profiler_section(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_profiler")
-        if not step:
+    def _extract_profiler_section(self, state: 'WorkflowState') -> UiSection | None:
+        model = state.step_profiler
+        if not model:
             return None
-
-        # STRICT VALIDATION
-        try:
-            # If step has "profiler_data" key, use that.
-            if "profiler_data" in step:
-                model = ProfilerOutput(**self._adapt_legacy_trace(step["profiler_data"]))  # If wrapped
-            else:
-                model = ProfilerOutput(**self._adapt_legacy_trace(step))  # If flat
-        except ValidationError as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.VALIDATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Profiler validation failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Profiler validation failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
-        except Exception as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.REPORT_GENERATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Profiler transform failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Profiler transform failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
 
         try:
             # UVM: Return strict model directly
@@ -75,6 +46,7 @@ class ProfilingDomainTransformer(BaseTransformer):
                 data=display_model,
             )
         except Exception as e:
+            from backend.exceptions import AppException, ErrorCodes, status
             raise AppException(
                 message=f"Failed to transform Profiler display: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -101,9 +73,9 @@ class ProfilingDomainTransformer(BaseTransformer):
         ab_detected = auto_bias > 0.5
         sd_detected = say_do > 0.5
 
-        # DISPLAY LABELS (Simulated localization or raw)
-        ab_label_str = "Detected" if ab_detected else "None"
-        sd_label_str = "Detected" if sd_detected else "None"
+        # DISPLAY LABELS (Mapped to UI Enums logic)
+        ab_label_str = "BIAS_DETECTED" if ab_detected else "BIAS_NONE"
+        sd_label_str = "GAP_DETECTED" if sd_detected else "GAP_NONE"
 
         # Raw Metrics
         word_count = int(getattr(metrics, "word_count", 0))
@@ -133,43 +105,20 @@ class ProfilingDomainTransformer(BaseTransformer):
             intent_analysis=str(model.author_intent),
         )
 
-    def _extract_interaction_section(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_interaction") or steps.get("step_driver")
-        if not step:
+    def _extract_interaction_section(self, state: 'WorkflowState') -> UiSection | None:
+        model = state.step_interaction
+        if not model:
+            # Try fallback to step_driver
+            from backend.models.domain.interaction import InteractionAnalysis
+            model = state.get_context("step_driver", InteractionAnalysis)
+            
+        if not model:
             return None
 
         try:
-            # Handle nested vs flat
-            if "interaction_analysis" in step:
-                model = InteractionAnalysis(**self._adapt_legacy_trace(step["interaction_analysis"]))
-            elif "driver_profile" in step:
-                model = InteractionAnalysis(**self._adapt_legacy_trace(step["driver_profile"]))
-            else:
-                model = InteractionAnalysis(**self._adapt_legacy_trace(step))
-        except ValidationError as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.VALIDATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Interaction validation failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Interaction validation failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
-        except Exception as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.REPORT_GENERATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Interaction transform failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Interaction transform failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
-
-        try:
             # UVM: Return strict DriverProfileDisplay
-            display_model = self._transform_interaction_data(model)
+            ratio = state.get_context("input_control_ratio")
+            display_model = self._transform_interaction_data(model, ratio)
             return UiSection(
                 id="interaction-grid",
                 type=SectionType.DRIVER_PROFILE,
@@ -177,9 +126,10 @@ class ProfilingDomainTransformer(BaseTransformer):
                 data=display_model,
             )
         except Exception as e:
+            from backend.exceptions import AppException
             raise AppException(f"Failed to transform Driver display: {e}", 500) from e
 
-    def _transform_interaction_data(self, model: InteractionAnalysis) -> DriverProfileDisplay:
+    def _transform_interaction_data(self, model: InteractionAnalysis, input_control_ratio: float | None = None) -> DriverProfileDisplay:
         """Flattens InteractionOutput to strict DriverProfileDisplay."""
         # STRICT MAPPING
         role_raw = model.role_classification  # Literal
@@ -192,57 +142,29 @@ class ProfilingDomainTransformer(BaseTransformer):
 
         # Construct Strict View Model
         return DriverProfileDisplay(
-            role_classification=role_key, 
+            role_classification=role_key,
             high_dependency=high_dependency,
-            imperative_command_count=cmd_count, 
-            strategy=strategy
+            imperative_command_count=cmd_count,
+            strategy=strategy,
+            input_control_ratio=input_control_ratio
         )
 
-    def _extract_detector_section(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_detector")
+    def _extract_detector_section(self, state: 'WorkflowState') -> UiSection | None:
+        model = state.step_detector
+        
         # Fallback to Panel if not in root steps (though usually root)
-        if not step:
-            panel = steps.get("step_panel", {})
-            step = panel.get("performativity_analysis") or panel.get("performatiivisuus_auditointi")
-
-        if not step:
-            return None
-
-        try:
-            # Strict Validation / Reconstruction for Panel
-            if "performativity_heuristics" in step and "performativity_analysis" not in step:
-                # Inner data only, from Panel aggregation fallback
-                from backend.models.domain.performativity import PerformativityAnalysis
-
-                inner = PerformativityAnalysis(**step)
+        if not model:
+            panel = state.step_panel
+            if panel and getattr(panel, "performativity_analysis", None):
                 model = PerformativityOutput(
-                    performativity_analysis=inner,
+                    performativity_analysis=panel.performativity_analysis,
                     thought_process="[Aggregated Panel Analysis]",
                     conclusion="N/A",
                     confidence_score=1.0,
                 )
-            else:
-                model = PerformativityOutput(**self._adapt_legacy_trace(step))
-        except ValidationError as e:
-            from backend.exceptions import AppException, ErrorCodes, status
 
-            error_code = ErrorCodes.VALIDATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Performativity validation failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Performativity validation failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
-        except Exception as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.REPORT_GENERATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Performativity transform failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Performativity transform failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
+        if not model:
+            return None
 
         try:
             display_model = self._transform_detector_data(model)
@@ -253,6 +175,7 @@ class ProfilingDomainTransformer(BaseTransformer):
                 data=display_model,
             )
         except Exception as e:
+            from backend.exceptions import AppException
             raise AppException(f"Failed to transform Performativity display: {e}", 500) from e
 
     def _transform_detector_data(self, model: PerformativityOutput) -> PerformativityDisplay:

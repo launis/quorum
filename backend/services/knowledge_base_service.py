@@ -168,7 +168,7 @@ class KnowledgeBaseService:
                 # Merge Strict Pydantic Models without mutating frozen arrays
                 existing_terms = {c.term.lower() for c in parsed_data.concepts}
                 from backend.models.domain.knowledge import Concept
-                
+
                 new_concepts = list(parsed_data.concepts)
                 for c in llm_concepts:
                     if c["term"].lower() not in existing_terms:

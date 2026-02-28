@@ -1,7 +1,6 @@
 """Archival hooks for retrieving system precedents."""
 
 import logging
-from datetime import datetime, timezone
 
 from fastapi import status
 

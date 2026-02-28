@@ -223,7 +223,7 @@ async def create_execution(
             cost_estimate = 0.0
             models_used: dict[str, int] = {}
             duration_ms = int((datetime.now(UTC) - start_time_sync).total_seconds() * 1000)
-            
+
             if isinstance(result, dict):
                 trace = result.get("execution_trace", [])
                 if isinstance(trace, list):
@@ -237,12 +237,12 @@ async def create_execution(
                                     m = meta.get("model")
                                     if m:
                                         models_used[m] = models_used.get(m, 0) + 1
-                                        
+
                                     # Extract Cost per step
                                     tu = meta.get("token_usage", {})
                                     if isinstance(tu, dict):
                                         cost_estimate += tu.get("cost_usd", 0.0)
-                                    
+
             execution_data["cost_estimate"] = cost_estimate
             execution_data["duration_ms"] = duration_ms
             execution_data["models_used"] = models_used

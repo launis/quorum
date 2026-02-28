@@ -156,7 +156,7 @@ class LiteLLMProvider(LLMProvider):
         # Initialize Instructor Client checking compatibility with Router
         # Instructor expects a client-like object or a completion function.
         # We wrap the router's acompletion method.
-        
+
         # 4. Determine Parsing Mode
         parse_mode = instructor.Mode.MD_JSON
         if self.settings and getattr(self.settings, "parsing_mode", None):
@@ -301,12 +301,12 @@ class LiteLLMProvider(LLMProvider):
                 # Ensure it's a Vertex AI compatible model
                 if self.model_name.startswith("vertex_ai/"):
                     logger.info(f"[LiteLLMProvider] Google Search Grounding ENABLED for {self.model_name}")
-                    
+
                     # Check if tools are already passed to kwargs
                     existing_tools = call_kwargs.get("tools", [])
                     # Append Google Search Tool schema required by Vertex AI
                     search_tool = {"googleSearch": {}}
-                    
+
                     if search_tool not in existing_tools:
                         existing_tools.append(search_tool)
                         call_kwargs["tools"] = existing_tools
@@ -375,18 +375,18 @@ class LiteLLMProvider(LLMProvider):
 
                 logger.info(f"[Instructor] Calling {self.model_name} with schema {schema_name}")
 
-                # HYBRID APPROACH (Feb 2026): 
+                # HYBRID APPROACH (Feb 2026):
                 # `create_with_completion` extracts Grounding Citations but crashes on Gemini-Flash with 100k+ tokens.
                 # Standard `.create()` is rock solid for big context but swallows the raw headers.
                 # We only use the fragile `create_with_completion` if Grounding is explicitly required.
 
                 try:
                     if self.settings and getattr(self.settings, "supports_grounding", False):
-                        logger.info(f"[Instructor] Grounding enabled. Using create_with_completion.")
+                        logger.info("[Instructor] Grounding enabled. Using create_with_completion.")
                         structured_response, raw_completion = await self.client.chat.completions.create_with_completion(**call_kwargs)
                         parsed_obj = structured_response
                     else:
-                        logger.info(f"[Instructor] Standard extraction. Using .create().")
+                        logger.info("[Instructor] Standard extraction. Using .create().")
                         parsed_obj = await self.client.chat.completions.create(**call_kwargs)
                         # For metrics, attempt to extract the underlying object if available
                         raw_completion = getattr(parsed_obj, "_raw_response", None)
@@ -405,17 +405,17 @@ class LiteLLMProvider(LLMProvider):
                 final_content = parsed_obj.model_dump_json()
 
                 latency_ms = int((time.perf_counter() - start_time) * 1000)
-                
+
                 # Extract Usage from raw_completion if available
                 usage: dict[str, Any] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cached_tokens": 0, "reasoning_tokens": 0}
                 if hasattr(raw_completion, "usage") and raw_completion.usage:
                     usage["prompt_tokens"] = getattr(raw_completion.usage, "prompt_tokens", 0) or 0
                     usage["completion_tokens"] = getattr(raw_completion.usage, "completion_tokens", 0) or 0
                     usage["total_tokens"] = getattr(raw_completion.usage, "total_tokens", 0) or 0
-                    
+
                     if hasattr(raw_completion.usage, "prompt_tokens_details") and raw_completion.usage.prompt_tokens_details:
                         usage["cached_tokens"] = getattr(raw_completion.usage.prompt_tokens_details, "cached_tokens", 0) or 0
-                    
+
                     if hasattr(raw_completion.usage, "completion_tokens_details") and raw_completion.usage.completion_tokens_details:
                         usage["reasoning_tokens"] = getattr(raw_completion.usage.completion_tokens_details, "reasoning_tokens", 0) or 0
 
@@ -442,9 +442,9 @@ class LiteLLMProvider(LLMProvider):
                 system_fingerprint = getattr(raw_completion, "system_fingerprint", None)
                 if finish_reason in ["stop", "eos"]:
                     finish_reason = None
-                
+
                 provider_meta = raw_completion.model_dump() if hasattr(raw_completion, "model_dump") else {}
-                
+
                 # Rate limits
                 if hasattr(raw_completion, "_hidden_params") and isinstance(raw_completion._hidden_params, dict):
                     headers = raw_completion._hidden_params.get("headers", {})
@@ -543,10 +543,10 @@ class LiteLLMProvider(LLMProvider):
                 usage["prompt_tokens"] = getattr(response.usage, "prompt_tokens", 0) or 0
                 usage["completion_tokens"] = getattr(response.usage, "completion_tokens", 0) or 0
                 usage["total_tokens"] = getattr(response.usage, "total_tokens", 0) or 0
-                
+
                 if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details:
                     usage["cached_tokens"] = getattr(response.usage.prompt_tokens_details, "cached_tokens", 0) or 0
-                
+
                 if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
                     usage["reasoning_tokens"] = getattr(response.usage.completion_tokens_details, "reasoning_tokens", 0) or 0
 
@@ -566,9 +566,9 @@ class LiteLLMProvider(LLMProvider):
             system_fingerprint = getattr(response, "system_fingerprint", None)
             if finish_reason in ["stop", "eos"]:
                 finish_reason = None
-            
+
             provider_meta = response.model_dump() if hasattr(response, "model_dump") else {}
-            
+
             # Rate limits
             if hasattr(response, "_hidden_params") and isinstance(response._hidden_params, dict):
                 headers = response._hidden_params.get("headers", {})
@@ -643,7 +643,7 @@ class LiteLLMProvider(LLMProvider):
         except Exception as e:
             if isinstance(e, AppException) or hasattr(e, "status_code"):
                 raise e
-                
+
             # Jan 2026: Reduce Error Verbosity & Improve Classification
             error_msg = str(e)
             error_type = type(e).__name__
@@ -837,7 +837,7 @@ class MockProvider(LLMProvider):
             try:
                 target_org = kwargs.get("organization_id") or self.organization_id
                 target_user = kwargs.get("user_id") or "system_agent"
-                
+
                 await self.usage_service.track_usage(
                     org_id=target_org,
                     user_id=target_user,

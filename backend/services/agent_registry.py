@@ -264,9 +264,9 @@ class AgentRegistry:
                     else:
                         # 2. Update Metadata if it already exists
                         await self.repository.update_agent(
-                            task_key, 
+                            task_key,
                             {
-                                "module": module_name, 
+                                "module": module_name,
                                 "component_class": agent_class_name,
                                 "class_name": agent_class_name
                             }

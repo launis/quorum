@@ -158,7 +158,6 @@ class VertexAISearchTool:
         for i, query in enumerate(queries[:limit]):
             logger.debug(f"[VertexAISearchTool] Processing query {i + 1}: {query}")
 
-            import asyncio
             import time
 
             max_retries = 3
@@ -204,7 +203,7 @@ class VertexAISearchTool:
                                 # Normalize
                                 title = chunk.web.title or "Untitled Source"
                                 uri = getattr(chunk.web, "uri", None)
-                                
+
                                 # Google Search UI sometimes returns directly in url
                                 if not uri and hasattr(chunk.web, "url"):
                                     uri = chunk.web.url
@@ -219,14 +218,14 @@ class VertexAISearchTool:
                                     query=query,
                                 )
                                 all_results.append(item)
-                    
+
                     # Success
                     break
 
                 except Exception as e:
                     error_msg = str(e)
                     is_quota_error = "429" in error_msg or "Quota exceeded" in error_msg or "RESOURCE_EXHAUSTED" in error_msg
-                    
+
                     if is_quota_error and attempt < max_retries - 1:
                         # Exponential backoff: 2s, 4s, 8s
                         delay = base_delay * (2 ** attempt)
@@ -235,7 +234,7 @@ class VertexAISearchTool:
                         )
                         time.sleep(delay)  # We are in sync context, but inside async runner it might block. Time.sleep is safe enough for hook wrap.
                         continue
-                        
+
                     # If out of retries or other error
                     if is_quota_error:
                         error_code = ErrorCodes.SEARCH_QUOTA_EXCEEDED

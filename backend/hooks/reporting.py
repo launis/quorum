@@ -109,10 +109,10 @@ def generate_report(state: WorkflowState) -> WorkflowState:
     overseer_out = _get_agent_output("step_overseer", OverseerOutput)
     logician_out = _get_agent_output("step_logician", LogicianOutput)
     performativity_out = _get_agent_output("step_detector", PerformativityOutput)  # Check key name!
-    
+
     from backend.models.domain.panel import PanelOutput
     panel_out = _get_agent_output("step_panel", PanelOutput)
-    
+
     # Extract inner data correctly regardless of source
     overseer_data = overseer_out.overseer_data if overseer_out else (panel_out.overseer_data if panel_out else None)
     logician_data = logician_out.logician_data if logician_out else (panel_out.logician_data if panel_out else None)
@@ -258,17 +258,20 @@ def generate_report(state: WorkflowState) -> WorkflowState:
     if coach_out:
         context["coaching_plan"] = coach_out.model_dump()
 
-    # 5. RENDER / GENERATE (Strict Validation)
+    # 5. RENDER / GENERATE (Strict Validation without Silent Failures)
+
+    # Validate that the gathered context matches ReportContext schema strictly.
+    # No more silent failures hiding mapping bugs. "Fail-Fast" rule 18.1.
     try:
-        # Validate that the gathered context matches ReportContext schema
         report_model = ReportContext(**context)
-        # We dump it back to dict for the template
-        validated_context = report_model.model_dump()
     except Exception as e:
         error_code = ErrorCodes.REPORT_GENERATION_FAILED
-        msg = f"ReportContext Validation Failed: {e}"
+        msg = f"ReportContext Validation Failed (Data Loss Prevented): {e}"
         logger.error(f"[ReportingHook] {error_code.name}: {msg}")
         raise AppException(message=msg, status_code=500, details={"error_code": error_code}) from e
+
+    # We dump it back to dict for the template
+    validated_context = report_model.model_dump()
 
     # If this hook is just preparing data for separate generation step:
     new_context = state.context_variables.copy()

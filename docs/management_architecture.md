@@ -1,12 +1,12 @@
-# Management Architecture (V3.2 - Phase 8 Standards)
+# Management Architecture (V5.1 - Phase 9 Hardening)
 
-The Management Architecture for **Cognitive Quorum V3.2** is a decoupled system designed for dynamic, real-time configuration of the AI engine. It enables administrators to manage the system's core logic—strategies, prompts, and agent configurations—through a web interface, without deploying new code.
+The Management Architecture for **Cognitive Quorum V5.1** is a decoupled system designed for dynamic, real-time configuration of the AI engine. It enables administrators to manage the system's core logic—strategies, prompts, and agent configurations—through a web interface, without deploying new code.
 
 This architecture separates the system into four execution components: a user-facing **Frontend (Cognitive Studio)**, an Async **API Backend**, a distributed **Worker Service** (Arq), and a data-driven **Generic Engine**.
 
 ---
 
-## System Components (V3.2)
+## System Components (V5.1)
 
 The architecture uses asynchronous processing and a "Modular Core" API to handle long-running cognitive tasks (Deep Research, Causal Analysis) without blocking the management UI.
 

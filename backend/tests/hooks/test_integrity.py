@@ -71,8 +71,8 @@ def test_verify_citation_integrity_success():
     state = WorkflowState(workflow_id="wf-1")
     state.context_variables["inputs"] = {
         "history_text": "The quick brown fox jumps over the lazy dog.",
-        "product_text": "none",
-        "reflection_text": "none",
+        "product_text": "none_product",
+        "reflection_text": "none_reflection",
     }
     state.context_variables["step_analyst"] = create_mock_analyst(
         [create_mock_hypothesis("HYP-1", quotes=["quick brown fox", "lazy dog"])]
@@ -88,8 +88,8 @@ def test_verify_citation_integrity_fail_fast():
     state = WorkflowState(workflow_id="wf-1")
     state.context_variables["inputs"] = {
         "history_text": "The quick brown fox jumps over the lazy dog.",
-        "product_text": "none",
-        "reflection_text": "none",
+        "product_text": "none_product",
+        "reflection_text": "none_reflection",
     }
     # 2 invalid vs 1 valid -> 0.33 score -> Fail
     state.context_variables["step_analyst"] = create_mock_analyst(

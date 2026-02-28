@@ -24,58 +24,22 @@ class CausalDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_causal_section(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_causal")
+    def _extract_causal_section(self, state: 'WorkflowState') -> UiSection | None:
+        model = state.step_causal
 
         # Fallback to Panel
-        if not step:
-            panel = steps.get("step_panel", {})
-            step = panel.get("causal_analysis") or panel.get("kausaalinen_analyysi")
+        if not model:
+            panel = state.step_panel
+            if panel and getattr(panel, "causal_analysis", None):
+                model = CausalOutput(
+                    causal_analysis=panel.causal_analysis,
+                    thought_process="[Aggregated Panel Analysis]",
+                    conclusion="N/A",
+                    confidence_score=1.0,
+                )
 
-        if not step:
+        if not model:
             return None
-
-        # STRICT VALIDATION: CausalOutput
-        try:
-            # Handle wrapped vs flat
-            if "causal_analysis" in step:
-                model = CausalOutput(**self._adapt_legacy_trace(step))
-            elif "abductive_score" in step or "abductive_conclusion" in step:
-                # It's CausalAnalysis (inner), needs wrapping?
-                # No, if it has 'thought_process', it might be Output
-                if "thought_process" in step or "reasoning_trace" in step:
-                    model = CausalOutput(**self._adapt_legacy_trace(step))
-                else:
-                    inner = CausalAnalysis(**step)
-                    model = CausalOutput(
-                        causal_analysis=inner,
-                        thought_process="[Aggregated Panel Analysis]",
-                        conclusion="N/A",
-                        confidence_score=1.0,
-                    )
-            else:
-                model = CausalOutput(**self._adapt_legacy_trace(step))
-
-        except ValidationError as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.VALIDATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Causal validation failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Causal validation failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
-        except Exception as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.REPORT_GENERATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Causal transform failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Causal transform failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
 
         try:
             display_model = self._transform_causal_data(model)

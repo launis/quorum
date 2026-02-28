@@ -1,20 +1,20 @@
 import asyncio
 import json
-import os
 from datetime import datetime
+
 import pandas as pd
 from bs4 import BeautifulSoup
-import re
+from crawlee.browsers import BrowserPool, PlaywrightBrowserController, PlaywrightBrowserPlugin
 
 # Tuodaan Crawlee-kehyksen työkalut (v1.0+)
 from crawlee.crawlers import PlaywrightCrawler, PlaywrightCrawlingContext
-from crawlee.browsers import BrowserPool, PlaywrightBrowserController, PlaywrightBrowserPlugin
 
 # Camoufox on asennettava erikseen: uv pip install camoufox[geoip]
 try:
+    from typing import override
+
     from camoufox import AsyncNewBrowser
-    from typing_extensions import override
-    
+
     class CamoufoxPlugin(PlaywrightBrowserPlugin):
         @override
         async def new_browser(self) -> PlaywrightBrowserController:
@@ -36,13 +36,13 @@ async def main():
     # 1. SYÖTTEET JA RAJAUKSET (KYSYTÄÄN KÄYTTÄJÄLTÄ)
     # ---------------------------------------------------------
     user_url = input("Syötä jaetun keskustelun URL-osoite: ").strip()
-    
+
     if not user_url:
         print("⚠️ Osoite puuttuu. Lopetetaan.")
         return
-        
+
     urls_to_scrape = [user_url]
-    
+
     # Alustan tunnistus
     provider = None
     if "chatgpt.com/share/" in user_url or "chat.openai.com/share/" in user_url:
@@ -74,7 +74,7 @@ async def main():
     crawler_kwargs_base = {
         "max_requests_per_crawl": 10,
     }
-    
+
     # Valitaan ryömijälle sopivat asetukset / ohitukset käytetyn alustan perusteella
     if provider == "gemini" and HAS_CAMOUFOX:
         print("🛡️ Käytetään Camoufoxia Geminin botin estoja vastaan...")
@@ -97,24 +97,24 @@ async def main():
     async def request_handler(context: PlaywrightCrawlingContext) -> None:
         url = context.request.url
         context.log.info(f"Käsitellään URL: {url}")
-        
+
         page = context.page
         conversation = []
-        
+
         try:
             # --- CHATGPT ---
             if provider == "chatgpt":
                 # Odotetaan sivun pääsisällön latautumista (Playwright odottaa selektoria)
                 await page.wait_for_selector('[data-message-author-role]', timeout=15000)
-                
+
                 # Etsitään kaikki viestiblokit asynkronisesti
                 messages = await page.locator('[data-message-author-role]').all()
-                
+
                 for order, msg in enumerate(messages, start=1):
                     # Tunnistetaan rooli attribuutin perusteella (user tai assistant)
                     role_attr = await msg.get_attribute('data-message-author-role')
                     role = "User" if role_attr == "user" else "AI"
-                    
+
                     # Poimitaan pelkkä teksti
                     text = await msg.inner_text()
                     if text.strip():
@@ -138,38 +138,38 @@ async def main():
                         for frame in page.frames:
                             fbtn = frame.locator('button:has-text("Accept all"), button:has-text("Hyväksy kaikki"), button:has-text("Hyväksy")').first
                             if await fbtn.count() > 0:
-                                context.log.info(f"Löydettiin evästekysely iframesta, hyväksytään...")
+                                context.log.info("Löydettiin evästekysely iframesta, hyväksytään...")
                                 await fbtn.click()
                                 break
                     await page.wait_for_timeout(3000)
                 except Exception as e:
                     context.log.debug(f"Evästeiden hyväksyntää ei tarvittu tai se epäonnistui: {e}")
 
-                # Odotetaan itse chatin latautumista. 
+                # Odotetaan itse chatin latautumista.
                 # Käytetään joustavampaa odotusta elementeille
                 try:
                     # Gemini käyttää viesteissä yleensä nimistä pääteltäviä elementtejä tai div-luokkia
                     await page.wait_for_selector('message-content, user-query-container, model-response-container, [class*="message"], [class*="query"]', timeout=30000)
                 except Exception:
                     context.log.warning("Tiettyjä chat-selektoreita ei löytynyt, jatketaan sivun lukemista silti.")
-                
+
                 # Käytetään BeautifulSoup 4:ää monimutkaisemman ja vaihtelevan DOM-puun jäsennelyyn
                 html = await page.content()
                 soup = BeautifulSoup(html, 'html.parser')
                 # Geminin DOM-luokat vaihtelevat usein. ETSITÄÄN joko viralliset container-tagit tai heuristiikka
                 blocks = soup.find_all(['message-content', 'user-query-container', 'model-response-container', 'div'])
-                
+
                 order = 1
                 seen_texts = set() # Estetään saman sisällön toistuminকালীন Geminin sisäkkäisistä elementeistä
-                
+
                 for block in blocks:
                     tag_name = block.name.lower()
                     classes = " ".join(block.get('class', [])).lower()
-                    
+
                     # Tarkistetaan onko tämä chatin lohko iteratiivisesti
                     is_chat_block = False
                     role = None
-                    
+
                     if tag_name == 'user-query-container' or 'user-query' in classes:
                         is_chat_block = True
                         role = "User"
@@ -185,7 +185,7 @@ async def main():
                                 role = "User"
                             elif "model" in classes or "response" in classes or "ai" in classes:
                                 role = "AI"
-                            
+
                     if is_chat_block and role:
                         text = block.get_text(separator='\n', strip=True)
                         if text:
@@ -212,16 +212,16 @@ async def main():
                     "scraped_at": datetime.now().replace(microsecond=0).isoformat(),
                     "conversation": conversation
                 }
-                
+
                 # Pushataan Crawleen sisäiseen Dataset-varastoon (varmuuskopio)
                 await context.push_data(data_item)
-                
+
                 # Lisätään keskusmuistiin JSON/Excel-vientiä varten
                 scraped_data.append(data_item)
                 context.log.info(f"✅ Onnistui: Löydettiin {len(conversation)} viestiä sivulta {url}")
             else:
                 context.log.warning(f"⚠️ Sivulta ei löytynyt viestejä. DOM-rakenne saattaa olla muuttunut: {url}")
-                
+
         except Exception as e:
             # Virheenhallinta: Jos sivusto antaa 404 tai Timeoutin, kaapataan virhe.
             # Nostamalla poikkeuksen (raise) Crawlee asettaa osoitteen takaisin jonoon ja yrittää uudelleen.
@@ -256,7 +256,7 @@ async def main():
                     "Role": msg["role"],
                     "Text": msg["text"]
                 })
-        
+
         try:
             df = pd.DataFrame(flat_data)
             df.to_excel(excel_filename, index=False, engine='openpyxl')

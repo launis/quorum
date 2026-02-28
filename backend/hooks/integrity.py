@@ -9,7 +9,6 @@ from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain.analyst import AnalystOutput
 from backend.models.domain.falsifier import FalsifierOutput
 from backend.models.domain.inputs import WorkflowInputs
-from backend.models.domain.judge import JudgeOutput
 from backend.models.domain.logician import LogicianOutput
 from backend.models.state import WorkflowState
 from backend.utils.pydantic_utils import inflate
@@ -157,11 +156,11 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
 
     # 3. Check Falsifier (Fidelity Audit)
     falsifier_model = state.get_context("step_falsifier", FalsifierOutput)
-    
+
     # Also check Panel fallback for Fused Audit Chain
     from backend.models.domain.panel import PanelOutput
     panel_model = state.get_context("step_panel", PanelOutput)
-    
+
     falsifier_data = None
     if falsifier_model and falsifier_model.falsifier_data:
         falsifier_data = falsifier_model.falsifier_data
@@ -179,7 +178,7 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
 
     # 4. Check Logician (Toulmin Data)
     logician_model = state.get_context("step_logician", LogicianOutput)
-    
+
     logician_data = None
     if logician_model and logician_model.logician_data:
         logician_data = logician_model.logician_data
@@ -236,7 +235,7 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
     # Update Metadata (Strict Pydantic Enforcement)
     new_context = state.context_variables.copy()
     existing_meta_raw = new_context.get("metadata", {})
-    
+
     try:
         if isinstance(existing_meta_raw, dict):
             # If creating from scratch or parsed JSON, inflate strongly
@@ -257,7 +256,7 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
             audit_logs = existing_meta_raw.audit_logs or []
             audit_logs.append(audit.model_dump())
             new_context["metadata"] = existing_meta_raw.model_copy(update={"audit_logs": audit_logs})
-            
+
     except Exception as e:
         logger.warning(f"[IntegrityHook] Failed to inflate strict Metadata for CitationAudit append: {e}")
 

@@ -2,8 +2,7 @@
 
 import logging
 
-from backend.exceptions import AppException, ConfigurationError, ErrorCodes
-from backend.models.llm import LLMProviderConfig
+from backend.exceptions import AppException, ErrorCodes
 from backend.models.state import WorkflowState
 from backend.settings import get_settings
 
@@ -72,14 +71,13 @@ def configure_llm_context(state: WorkflowState) -> WorkflowState:
 
     # 3. Resolve Provider & Model via SSOT Strategy Factory
     try:
-        from backend.llm.client import LLMClient
         import asyncio
-        
-        # Factory method is async. Pre-hooks run synchronously in the current engine, 
+
+        # Factory method is async. Pre-hooks run synchronously in the current engine,
         # so we must handle the event loop carefully. If configure_llm_context
         # remains synchronous, we use asyncio.run or retrieve settings synchronously.
         # Given it's a hook, let's adapt it safely:
-        
+
         # In a perfect refactor, hooks would be async. However, since they might be sync:
         loop = asyncio.get_event_loop()
         if loop.is_running():
@@ -88,41 +86,41 @@ def configure_llm_context(state: WorkflowState) -> WorkflowState:
             # avoiding the async API if we are inside a sync hook execution.
             from backend.database.repository import UnifiedWorkflowRepository
             repo = UnifiedWorkflowRepository()
-            
-            # Since the hook is `def configure...` and NOT `async def configure...`, 
+
+            # Since the hook is `def configure...` and NOT `async def configure...`,
             # we must execute the async factory cleanly.
-            # Usually the engine awaits async hooks if they are defined as async, 
+            # Usually the engine awaits async hooks if they are defined as async,
             # but if it enforces sync execution, we might need a workaround.
-            # Let's assume for this transition we extract the logic synchronously 
+            # Let's assume for this transition we extract the logic synchronously
             # or the engine permits async if we change the signature.
-            # To be safe without breaking the BaseAgent hook runner, we will emulate 
+            # To be safe without breaking the BaseAgent hook runner, we will emulate
             # what the factory does here synchronously using the cached settings if possible,
             # but ideally we convert this hook to async in the future.
-            
+
             # For now, we perform local resolution using identical Pydantic models.
             pass
-            
+
         from backend.exceptions import ConfigurationError
         from backend.models.llm import LLMProviderConfig, ModelRegistryConfig
         from backend.utils.pydantic_utils import inflate
-            
+
         raw_registry = getattr(settings, "model_registry", {})
         if not raw_registry:
             raise ConfigurationError("System config 'model_registry' is missing.")
-            
+
         registry = inflate(raw_registry, ModelRegistryConfig)
         if not registry or not registry.models:
             raise ConfigurationError("ModelRegistry is corrupt.")
 
         # V1/Simple: We assume 'google' as primary provider
         provider = ctx.get("provider_id", "google")
-        
+
         provider_models = registry.models.get(provider)
         if not provider_models:
              raise ConfigurationError(f"Provider '{provider}' not found in registry.")
-             
+
         target_strategy = provider_models.get(model_strategy)
-        
+
         if not target_strategy:
             raise ConfigurationError(
                 message=f"Strategy '{model_strategy}' not found for provider '{provider}'.",

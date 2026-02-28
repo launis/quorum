@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep
-from backend.exceptions import AppException, ConflictError, ResourceNotFoundError, ErrorCodes, format_validation_error
+from backend.exceptions import AppException, ConflictError, ErrorCodes, ResourceNotFoundError, format_validation_error
 from backend.models.dtos.config import StepDefinition, StepDeleteResponse
 
 logger = logging.getLogger(__name__)

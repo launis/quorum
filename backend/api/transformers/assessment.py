@@ -23,7 +23,7 @@ class AssessmentTransformer(BaseTransformer):
             steps = getattr(workflow_definition, "steps", [])
             if not steps and isinstance(workflow_definition, dict):
                 steps = workflow_definition.get("steps", [])
-                
+
             if isinstance(steps, list):
                 for s in steps:
                     if isinstance(s, str):
@@ -45,7 +45,7 @@ class AssessmentTransformer(BaseTransformer):
         progress_items = []
         for step_id in chain:
             step_status = "pending"
-            
+
             # The execution results dictionary keys are formatted as 'step_{slug}'
             # Our chain contains raw UUIDs. We must translate the UUID to the slug
             # using the `step_id_to_name` mapping we just built to check completion.
@@ -57,7 +57,7 @@ class AssessmentTransformer(BaseTransformer):
                 expected_result_key = f"step_{step_slug}"
             else:
                 expected_result_key = f"step_{step_name_label.lower().replace(' ', '_')}"
-            
+
             # Allow fallback to direct ID access in case the engine used raw IDs
             step_res = current_data.get(expected_result_key) or current_data.get(step_id)
 
@@ -77,7 +77,7 @@ class AssessmentTransformer(BaseTransformer):
                 label = display_name
             else:
                 label = self._t(f"STEP_{step_id.upper()}", display_name)
-            
+
             progress_items.append(StepProgressItem(id=step_id, label=label, status=step_status))
 
         return progress_items
@@ -154,23 +154,23 @@ class AssessmentTransformer(BaseTransformer):
                     status_message = error_details if error_details else self._t("Unknown error", "Tuntematon virhe")
             elif status == "running":
                 status_message = self._t("Processing...", "Käsitellään...")
-                
+
                 # Make sure step_names is a dict
                 s_map = step_names or {}
-                
+
                 if steps_data:
                     count = len(steps_data)
                     # Fail safe for empty dict
                     if steps_data:
                         # Safe last step extraction
                         last_key = list(steps_data.keys())[-1]
-                        
+
                         # Use mapped name if available
                         if last_key in s_map:
                              last_step = s_map[last_key]
                         else:
                              last_step = last_key.replace("step_", "").capitalize()
-                        
+
                         # FIX: Last step is COMPLETED, so label it 'Valmis'
                         status_message = f"{self._t('status.completed', 'Valmis')}: {last_step} ({count})"
 
@@ -183,12 +183,12 @@ class AssessmentTransformer(BaseTransformer):
                             expected_key = f"step_{step_slug}"
                         else:
                             expected_key = f"step_{item.label.lower().replace(' ', '_')}"
-                        
+
                         if expected_key not in completed_ids and item.id not in completed_ids:
                             # Create new instance as model is frozen
                             steps_list[i] = StepProgressItem(id=item.id, label=item.label, status="running")
                             # UPDATE: Use item.label directly since we fixed it earlier!
-                            running_step = item.label 
+                            running_step = item.label
                             status_message = f"{self._t('status.running', 'Käsitellään')}: {running_step}"
                             break
 

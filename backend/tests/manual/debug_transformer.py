@@ -9,8 +9,9 @@ from backend.models.state import WorkflowState
 
 try:
     print("Testing Fail Fast...")
-    from backend.models.domain.execution import ExecutionRecord
     import uuid
+
+    from backend.models.domain.execution import ExecutionRecord
     state = WorkflowState(workflow_id="fail_test", execution_id=uuid.uuid4())
     record = ExecutionRecord(id=str(state.execution_id), results=state, status="failed")
     ReportTransformer().transform(record)

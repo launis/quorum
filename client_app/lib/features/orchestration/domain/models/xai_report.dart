@@ -9,10 +9,10 @@ part 'xai_report.g.dart';
 abstract class ScoreCardItem with _$ScoreCardItem {
   const factory ScoreCardItem({
     @JsonKey(name: 'agent_name') required String agentName,
-    @JsonKey(name: 'total_score') required double totalScore,
-    @JsonKey(name: 'min_score') @Default(0) int minScore,
-    @JsonKey(name: 'max_score') @Default(5) int maxScore,
-    required String verdict,
+    @JsonKey(name: 'total_score') double? totalScore,
+    @JsonKey(name: 'min_score') int? minScore,
+    @JsonKey(name: 'max_score') int? maxScore,
+    String? verdict,
     @Default([]) List<DimensionResultItem> dimensions,
   }) = _ScoreCardItem;
 
@@ -26,22 +26,22 @@ abstract class XAIReport with _$XAIReport {
   const factory XAIReport({
     // --- BaseJSON Metadata ---
     required Map<String, dynamic> metadata,
-    @JsonKey(name: 'metodologinen_loki') required String metodologinenLoki,
+    @JsonKey(name: 'metodologinen_loki') String? metodologinenLoki,
     @JsonKey(name: 'edellisen_vaiheen_validointi')
-    required String edellisenVaiheenValidointi,
+    String? edellisenVaiheenValidointi,
     @JsonKey(name: 'semanttinen_tarkistussumma')
     required String semanttinenTarkistussumma,
 
     // --- Report Fields ---
-    @JsonKey(name: 'executive_summary') required String executiveSummary,
-    @JsonKey(name: 'analysis_strengths') required String analysisStrengths,
-    @JsonKey(name: 'analysis_weaknesses') required String analysisWeaknesses,
+    @JsonKey(name: 'executive_summary') String? executiveSummary,
+    @JsonKey(name: 'analysis_strengths') String? analysisStrengths,
+    @JsonKey(name: 'analysis_weaknesses') String? analysisWeaknesses,
     @JsonKey(name: 'analysis_opportunities')
-    required String analysisOpportunities,
+    String? analysisOpportunities,
     @JsonKey(name: 'analysis_recommendations')
-    required String analysisRecommendations,
-    @JsonKey(name: 'final_verdict') required String finalVerdict,
-    @JsonKey(name: 'confidence_score') required double confidenceScore,
+    String? analysisRecommendations,
+    @JsonKey(name: 'final_verdict') String? finalVerdict,
+    @JsonKey(name: 'confidence_score') double? confidenceScore,
 
     @JsonKey(name: 'xai_report_formatted') String? xaiReportFormatted,
     @JsonKey(name: 'comparison_data') Map<String, dynamic>? comparisonData,

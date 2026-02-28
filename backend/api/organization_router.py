@@ -252,8 +252,9 @@ async def get_organization(
     return OrganizationResponse(**Organization(**org).model_dump())
 
 
-from backend.models.dtos.organization import OrganizationUsageResponse, DetailedUsageResponse
 from typing import Literal
+
+from backend.models.dtos.organization import DetailedUsageResponse, OrganizationUsageResponse
 
 
 @router.get("/{org_id}/usage", response_model=OrganizationUsageResponse)
@@ -333,16 +334,16 @@ async def get_detailed_organization_usage(
     scope: Literal["user", "org", "system"] = "org",
 ):
     """Get detailed usage metrics based on role and requested scope."""
-    from backend.exceptions import PermissionDeniedError, ResourceNotFoundError, AppException
-    
+    from backend.exceptions import AppException, PermissionDeniedError, ResourceNotFoundError
+
     # 1. Access Control
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
             raise PermissionDeniedError(message="Permission denied", details={"error_code": "PERMISSION_DENIED"})
-            
+
         if scope == "system":
             raise PermissionDeniedError(message="System scope requires ROOT role.", details={"error_code": "PERMISSION_DENIED"})
-            
+
         if scope == "org" and user.role in [UserRole.MEMBER, UserRole.VIEWER]:
             raise PermissionDeniedError(message="Organization scope requires ADMIN or MANAGER role.", details={"error_code": "PERMISSION_DENIED"})
 
@@ -357,7 +358,7 @@ async def get_detailed_organization_usage(
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
         target_id = user.id if scope == "user" else org_id
-        
+
         detailed_data = await repo.get_detailed_usage(scope, target_id=target_id, since=start_of_month)
 
         percentage = 0.0

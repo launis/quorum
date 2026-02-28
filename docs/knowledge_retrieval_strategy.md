@@ -1,4 +1,4 @@
-# Knowledge Base, Search & Retrieval Strategy (V3.2)
+# Knowledge Base, Search & Retrieval Strategy (V5.1 / Phase 9)
 
 ## 1. Core Concepts
 
@@ -47,7 +47,7 @@ To handle evolving schemas while maintaining seamless access to historical data,
 
 ---
 
-## 3. Google Search Integration (V3.2)
+## 3. Google Search Integration (V5.1)
 
 The `Overseer` functionality is now implemented as a **Role** (in `PanelAgent`) and a **Hook** (`execute_google_search`).
 

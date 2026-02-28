@@ -27,7 +27,7 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
 
     state_field = "step_coach"
     REQUIRES_KEYS = []  # Logic handles either step_judge or step_judge_cognitive.
-    
+
     INPUT_SCHEMA = CoachInput
     OUTPUT_SCHEMA = CoachingPlan
     DTO_SCHEMA = CoachingPlanDTO
@@ -147,12 +147,11 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
         focus_keywords = set()
 
         judge_inputs = []
-        # Convert Pydantic model to dict to iterate over all fields (including extras)
-        input_dict = input_data.model_dump()
-
-        for key, value in input_dict.items():
-            if key.startswith("step_judge") and value:
-                judge_inputs.append((key, value))
+        
+        if input_data.step_judge:
+            judge_inputs.append(("step_judge", input_data.step_judge))
+        if input_data.step_judge_cognitive:
+            judge_inputs.append(("step_judge_cognitive", input_data.step_judge_cognitive))
 
         if kwargs.get("verdict"):
             judge_inputs.append(("kwargs_verdict", kwargs.get("verdict")))
@@ -170,8 +169,7 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
         if judge_inputs:
             for key, tuomio in judge_inputs:
                 try:
-                    # tuomio could be a dict or a Model (if Pydantic validated it as Any)
-                    # If it came from input_data (CoachInput), it's either dict or Any.
+                    # tuomio is JudgeOutput (or string/dict if from kwargs)
                     content = str(tuomio)
                     if hasattr(tuomio, "model_dump_json"):
                         content = tuomio.model_dump_json(indent=2)
@@ -182,29 +180,22 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
 
                     parts.append(f"### VERDICT (from {key}):\n{content}")
 
-                    data = tuomio
-                    if hasattr(tuomio, "model_dump"):
-                        data = tuomio.model_dump()
-
-                    if isinstance(data, dict):
-                        # Check dimensions field (Standard)
-                        dimensions = data.get("dimensions", [])
-                        if dimensions:
-                            for dim in dimensions:
-                                # Normalize
-                                d_data = dim if isinstance(dim, dict) else dim.__dict__
-                                score = d_data.get("score")
-                                dim_id = d_data.get("dimension_id", "").lower()
-                                if isinstance(score, (int, float)) and score < 3:
-                                    weak_areas.append(f"- [{key}] {dim_id}: Score {score} (Low)")
-                                    focus_keywords.add(dim_id)
-                                    # Add related keywords based on dimension
-                                    if "analy" in dim_id:
-                                        focus_keywords.update(["bias", "analy", "cognitive", "heuristic"])
-                                    elif "logi" in dim_id:
-                                        focus_keywords.update(["logic", "fallacy", "argument", "toulmin", "deduct"])
-                                    elif "falsi" in dim_id:
-                                        focus_keywords.update(["falsif", "popp", "scien", "test"])
+                    # Check dimensions strictly typed
+                    if hasattr(tuomio, "score_card") and tuomio.score_card:
+                        dimensions = tuomio.score_card.dimensions
+                        for dim in dimensions:
+                            score = float(dim.score) # Defensive cast
+                            dim_id = dim.dimension_id.lower()
+                            if score < 3.0:
+                                weak_areas.append(f"- [{key}] {dim_id}: Score {score} (Low)")
+                                focus_keywords.add(dim_id)
+                                # Add related keywords based on dimension
+                                if "analy" in dim_id:
+                                    focus_keywords.update(["bias", "analy", "cognitive", "heuristic"])
+                                elif "logi" in dim_id:
+                                    focus_keywords.update(["logic", "fallacy", "argument", "toulmin", "deduct"])
+                                elif "falsi" in dim_id:
+                                    focus_keywords.update(["falsif", "popp", "scien", "test"])
 
                 except Exception as e:
                     # FAIL FAST

@@ -794,13 +794,13 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         if entity_id:
             update_data["entity_id"] = entity_id
         update_data["period"] = period
-        
+
         existing = await self.get_usage_aggregate(scope, entity_id, period)
         if existing:
             import copy
             merged = copy.deepcopy(existing)
             merged["total_executions"] = existing.get("total_executions", 0) + update_data.get("total_executions", 0)
-            
+
             ex_usage = existing.get("usage", {})
             up_usage = update_data.get("usage", {})
             merged["usage"] = {
@@ -820,7 +820,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                     update_data["usage"][k] = update_data.get(k, 0)
             if "cost_usd" not in update_data["usage"]:
                 update_data["usage"]["cost_usd"] = update_data.get("cost_usd", 0.0)
-                
+
             await self.driver.upsert("usage_aggregates", update_data, agg_id)
 
     async def get_usage_records(
@@ -831,10 +831,10 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             filters.append(Filter("org_id", "==", entity_id))
         elif scope == "user" and entity_id:
             filters.append(Filter("user_id", "==", entity_id))
-            
+
         if since:
             filters.append(Filter("timestamp", ">=", since))
-            
+
         return await self.driver.query("usage", filters)
 
     # --- Organizations ---
@@ -894,45 +894,45 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         filters = []
         if since:
             filters.append(Filter("completed_at", ">=", since))
-            
+
         if scope == "user" and target_id:
             filters.append(Filter("user_id", "==", target_id))
         elif scope == "org" and target_id:
             filters.append(Filter("organization_id", "==", target_id))
         # if scope == "system", no id filter
-        
+
         execs = await self.driver.query("executions", filters)
-        
+
         total_cost = 0.0
         total_runs = len(execs)
         total_time = 0
         models_used: dict[str, int] = {}
         workflows_used: dict[str, int] = {}
-        
+
         for e in execs:
             total_cost += e.get("cost_estimate", 0.0)
-            
+
             # Duration (if available)
             total_time += e.get("duration_ms", 0)
-            
+
             # Workflows
             wid = e.get("workflow_id")
             if wid:
                 workflows_used[wid] = workflows_used.get(wid, 0) + 1
-                
+
             # Models
             mu = e.get("models_used", {})
             if isinstance(mu, dict):
                 for m, count in mu.items():
                     models_used[m] = models_used.get(m, 0) + count
-                    
+
         # Map workflow IDs to human-readable names
         if workflows_used:
             try:
                 # get_all_workflows is an abstract method implemented by driver wrappers
                 all_workflows = await self.get_all_workflows(organization_id=target_id if scope == "org" else None)
                 wf_names = {w["id"]: w.get("name", w["id"]) for w in all_workflows}
-                
+
                 named_workflows_used = {}
                 for wid, count in workflows_used.items():
                     name = wf_names.get(wid, wid)
@@ -947,7 +947,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         total_tokens = 0
         cached_tokens = 0
         reasoning_tokens = 0
-        
+
         # Determine period for aggregate lookup
         period = "all-time"
         if since:

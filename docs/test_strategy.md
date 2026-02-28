@@ -1,4 +1,4 @@
-# Cognitive Quorum Testing Strategy (V3.2 - Phase 8 Standards)
+# Cognitive Quorum Testing Strategy (V5.1 - Phase 9 Hardening)
 
 ## Core Philosophy: "Zero-Magic"
 We prioritize **speed** and **readability** over complex tooling.

@@ -94,11 +94,11 @@ class UsageService:
                         "cost_usd": cost_usd
                     }
                 }
-                
+
                 # System Level (All traffic)
                 await self.repo.upsert_usage_aggregate("system", None, period, update_data)
                 await self.repo.upsert_usage_aggregate("system", None, "all-time", update_data)
-                
+
                 # Organization Level
                 if org_id:
                     await self.repo.upsert_usage_aggregate("organization", org_id, period, update_data)
@@ -172,13 +172,13 @@ class UsageService:
             start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
             if since >= start_of_month:
                 period = now.strftime("%Y-%m")
-        
+
         agg = None
         if hasattr(self.repo, "get_usage_aggregate"):
             # Map frontend scope 'org' to 'organization' exactly as aggregated
             mapped_scope = "organization" if scope == "org" else scope
             agg = await self.repo.get_usage_aggregate(mapped_scope, entity_id, period)
-        
+
         if agg:
             usage_data = agg.get("usage", {})
             token_usage = TokenUsage(
@@ -194,14 +194,14 @@ class UsageService:
             if hasattr(self.repo, "get_usage_records"):
                 mapped_scope = "organization" if scope == "org" else scope
                 records_data = await self.repo.get_usage_records(scope=mapped_scope, entity_id=entity_id, since=since)
-            
+
             prompt_tokens = sum(r.get("input_tokens", 0) for r in records_data)
             completion_tokens = sum(r.get("output_tokens", 0) for r in records_data)
             total_tokens = sum(r.get("total_tokens", r.get("input_tokens", 0) + r.get("output_tokens", 0)) for r in records_data)
             cached_tokens = sum(r.get("cached_tokens", 0) for r in records_data)
             reasoning_tokens = sum(r.get("reasoning_tokens", 0) for r in records_data)
             cost_usd = sum(float(r.get("cost_usd", 0.0)) for r in records_data)
-                
+
             token_usage = TokenUsage(
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
@@ -210,7 +210,7 @@ class UsageService:
                 reasoning_tokens=reasoning_tokens,
                 cost_usd=cost_usd
             )
-        
+
         quota_limit = None
         percentage_used = None
         mapped_scope = "organization" if scope == "org" else scope
@@ -220,7 +220,7 @@ class UsageService:
                 quota_limit = float(org.get("quota_limit", 10.0))
                 if quota_limit > 0:
                     percentage_used = min(100.0, (token_usage.cost_usd / quota_limit) * 100.0)
-                    
+
         return UsageReport(
             scope=scope,
             entity_id=entity_id,

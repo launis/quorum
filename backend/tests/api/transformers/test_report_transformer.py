@@ -22,13 +22,11 @@ def test_report_transformer_process_all_stages():
             "step_results": {
                 # Context
                 "step_context": {
-                    "context_data": {
-                        "thought_process": "Thinking...",
-                        "conclusion": "Conclusion",
-                        "confidence_score": 0.9,
-                        "precedents": "Prec",
-                        "knowledge_items": [],
-                    }
+                    "thought_process": "Thinking...",
+                    "conclusion": "Conclusion",
+                    "confidence_score": 0.9,
+                    "precedents": "Prec",
+                    "knowledge_items": [],
                 },
                 # Logic
                 "step_logician": {
@@ -87,50 +85,44 @@ def test_report_transformer_process_all_stages():
                 },
                 # Profiler
                 "step_profiler": {
-                    "profiler_data": {
-                        "metrics": {
-                            "control_ratio": 0.6,
-                            "word_count": 100,
-                            "avg_sentence_length": 10.0,
-                            "sentence_count": 10,
-                            "lexical_diversity": 0.5,
-                            "capitalization_ratio": 0.1,
-                            "automation_bias": 0.1,
-                            "say_do_gap": 0.9,
-                        },
-                        "author_intent": "Info",
-                        "emotional_tone": "Neutral",
-                        "cognitive_biases": ["Bias1"],
-                        "thought_process": "Thinking...",
-                        "conclusion": "Conclusion",
-                        "confidence_score": 0.9,
-                    }
+                    "metrics": {
+                        "control_ratio": 0.6,
+                        "word_count": 100,
+                        "avg_sentence_length": 10.0,
+                        "sentence_count": 10,
+                        "lexical_diversity": 0.5,
+                        "capitalization_ratio": 0.1,
+                        "automation_bias": 0.1,
+                        "say_do_gap": 0.9,
+                    },
+                    "author_intent": "Info",
+                    "emotional_tone": "Neutral",
+                    "cognitive_biases": ["Bias1"],
+                    "thought_process": "Thinking...",
+                    "conclusion": "Conclusion",
+                    "confidence_score": 0.9,
                 },
                 # Driver
                 "step_driver": {
-                    "interaction_analysis": {
-                        "role_classification": "Driver",
-                        "high_dependency": False,
-                        "imperative_command_count": 2,
-                        "strategy": "Zero-shot",
-                        "thought_process": "Thinking...",
-                        "conclusion": "Conclusion",
-                        "confidence_score": 0.9,
-                    }
+                    "role_classification": "Driver",
+                    "high_dependency": False,
+                    "imperative_command_count": 2,
+                    "strategy": "Zero-shot",
+                    "thought_process": "Thinking...",
+                    "conclusion": "Conclusion",
+                    "confidence_score": 0.9,
                 },
                 # Archivist
                 "step_archivist": {
-                    "archivist_data": {
-                        "compliance_score": 9.5,
-                        "compliance_analysis": "Aligned",
-                        "description": "Good",
-                        "relevant_cases": [],
-                        "stare_decisis_adherence": True,
-                        "thought_process": "Thinking...",
-                        "conclusion": "Conclusion",
-                        "confidence_score": 0.9,
-                        "consistency_analysis": "Consistent",
-                    }
+                    "compliance_score": 9.5,
+                    "compliance_analysis": "Aligned",
+                    "description": "Good",
+                    "relevant_cases": [],
+                    "stare_decisis_adherence": True,
+                    "thought_process": "Thinking...",
+                    "conclusion": "Conclusion",
+                    "confidence_score": 0.9,
+                    "consistency_analysis": "Consistent",
                 },
             }
         },

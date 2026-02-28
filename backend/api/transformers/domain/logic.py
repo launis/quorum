@@ -13,65 +13,21 @@ logger = logging.getLogger(__name__)
 
 
 class LogicDomainTransformer(BaseTransformer):
-    def _extract_logician_section(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_logician")
+    def _extract_logician_section(self, state: 'WorkflowState') -> UiSection | None:
+        model = state.step_logician
         # Fallback to Panel data (inner data only)
-        if not step:
-            panel = steps.get("step_panel")
-            if panel and isinstance(panel, dict):
-                # Check multiple potential keys for inner data
-                step = panel.get("logician_data") or panel.get("logiikka_auditointi")
+        if not model:
+            panel = state.step_panel
+            if panel and getattr(panel, "logician_data", None):
+                model = LogicianOutput(
+                    logician_data=panel.logician_data,
+                    thought_process="[Aggregated Panel Analysis]",
+                    conclusion="N/A",
+                    confidence_score=1.0,
+                )
 
-        if not step:
+        if not model:
             return None
-
-        # STRICT VALIDATION: LogicianOutput
-        try:
-            if isinstance(step, dict):
-                # Case A: Full LogicianOutput
-                if "logician_data" in step:
-                    # Adapt legacy reasoning_trace to strict ReasoningTraceDTO
-                    if "reasoning_trace" in step and "thought_process" not in step:
-                        step = step.copy()
-                        step["thought_process"] = step.pop("reasoning_trace")
-                        step["conclusion"] = "Implicit in Analysis"
-                        step["confidence_score"] = 1.0
-
-                    model = LogicianOutput(**step)
-                else:
-                    # Case B: Inner Data Only (e.g. from Panel aggregation)
-                    # We must reconstruct the wrapper to satisfy strict schema
-                    inner = LogicianData(**step)
-                    model = LogicianOutput(
-                        logician_data=inner,
-                        thought_process="[Aggregated Panel Analysis]",
-                        conclusion="N/A",
-                        confidence_score=1.0,
-                    )
-            elif hasattr(step, "logician_data"):
-                model = step if isinstance(step, LogicianOutput) else LogicianOutput.model_validate(step)
-            else:
-                model = LogicianOutput.model_validate(step)
-        except ValidationError as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.VALIDATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Logic validation failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Logic validation failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
-        except Exception as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
-            error_code = ErrorCodes.REPORT_GENERATION_FAILED
-            logger.error(f"[ReportTransformer] {error_code.name}: Logic transform failed: {e}", exc_info=True)
-            raise AppException(
-                message=f"Logic transform failed: {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code.value, "original_error": str(e)},
-            ) from e
 
         try:
             display_model = self._transform_logician_data(model)
@@ -117,7 +73,14 @@ class LogicDomainTransformer(BaseTransformer):
         # --- ARGUMENTS ---
         arguments = []
         for arg in data.toulmin_analysis:
-            arguments.append(ToulminDisplay(claim=arg.claim, warrant=arg.warrant))
+            arguments.append(ToulminDisplay(
+                claim=arg.claim, 
+                data=arg.data,
+                warrant=arg.warrant,
+                backing=arg.backing,
+                rebuttal=arg.rebuttal,
+                qualifier=arg.qualifier
+            ))
 
         # --- DISPLAY OBJECT ---
         return LogicAnalysisDisplay(

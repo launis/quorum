@@ -18,29 +18,32 @@ from backend.models.view import (
 # Deprecated: backend.models.view_extensions
 
 
+from backend.models.state import WorkflowState, TraceEvent
+
 # --- Logic Transformer Tests ---
 def test_logic_transformer_extracts_display_model():
     transformer = LogicDomainTransformer()
-    mock_step = {
-        "step_logician": {
-            "logician_data": {
-                "cognitive_level": {
-                    "strategic_depth": "STRAT_HIGH",
-                    "strategic_score": 3.5,
-                    "bloom_level": "BLOOM_EVALUATING",
-                    "bloom_score": 5.8,
-                },
-                "toulmin_score": 5.0,
-                "toulmin_analysis": [{"id": "T1", "claim": "C1", "data": "D1", "warrant": "W1"}],
-                "walton_scheme": {"identified_scheme": "Expert Opinion", "critical_questions": ["Q1"]},
+    mock_step_data = {
+        "logician_data": {
+            "cognitive_level": {
+                "strategic_depth": "STRAT_HIGH",
+                "strategic_score": 3.5,
+                "bloom_level": "BLOOM_EVALUATING",
+                "bloom_score": 5.8,
             },
-            "thought_process": "Thinking...",
-            "conclusion": "Conclusion",
-            "confidence_score": 0.9,
-        }
+            "toulmin_score": 5.0,
+            "toulmin_analysis": [{"id": "T1", "claim": "C1", "data": "D1", "warrant": "W1"}],
+            "walton_scheme": {"identified_scheme": "Expert Opinion", "critical_questions": ["Q1"]},
+        },
+        "thought_process": "Thinking...",
+        "conclusion": "Conclusion",
+        "confidence_score": 0.9,
     }
+    
+    mock_state = WorkflowState(workflow_id="test_wf")
+    mock_state.context_variables["step_logician"] = mock_step_data
 
-    section = transformer._extract_logician_section(mock_step)
+    section = transformer._extract_logician_section(mock_state)
     assert isinstance(section, UiSection)
     assert section.type == SectionType.LOGIC_ANALYSIS
     assert isinstance(section.data, LogicAnalysisDisplay)
@@ -51,31 +54,33 @@ def test_logic_transformer_extracts_display_model():
 
 def test_logic_transformer_handles_missing_step():
     transformer = LogicDomainTransformer()
-    section = transformer._extract_logician_section({})
+    mock_state = WorkflowState(workflow_id="test_wf")
+    section = transformer._extract_logician_section(mock_state)
     assert section is None
 
 
 # --- Stress Transformer Tests ---
 def test_stress_transformer_extracts_display_model():
     transformer = FalsificationDomainTransformer()
-    mock_step = {
-        "step_falsifier": {
-            "falsifier_data": {
-                "fidelity_audit": {
-                    "fidelity_score": "FIDELITY_HIGH",
-                    "fidelity_numeric": 2.9,
-                    "justification": "Solid",
-                    "post_hoc_rationalization": False,
-                },
-                "stress_test_findings": [{"question": "Q1", "evidence_held": True, "observation": "Obs1"}],
+    mock_step_data = {
+        "falsifier_data": {
+            "fidelity_audit": {
+                "fidelity_score": "FIDELITY_HIGH",
+                "fidelity_numeric": 2.9,
+                "justification": "Solid",
+                "post_hoc_rationalization": False,
             },
-            "thought_process": "Thinking...",
-            "conclusion": "Conclusion",
-            "confidence_score": 0.9,
-        }
+            "stress_test_findings": [{"question": "Q1", "evidence_held": True, "observation": "Obs1"}],
+        },
+        "thought_process": "Thinking...",
+        "conclusion": "Conclusion",
+        "confidence_score": 0.9,
     }
 
-    section = transformer._extract_falsifier_section(mock_step)
+    mock_state = WorkflowState(workflow_id="test_wf")
+    mock_state.context_variables["step_falsifier"] = mock_step_data
+
+    section = transformer._extract_falsifier_section(mock_state)
     assert isinstance(section, UiSection)
     assert section.type == SectionType.STRESS_TEST
     assert isinstance(section.data, StressTestDisplay)
@@ -88,32 +93,33 @@ def test_stress_transformer_extracts_display_model():
 # --- Causal Transformer Tests ---
 def test_causal_transformer_extracts_display_model():
     transformer = CausalDomainTransformer()
-    mock_step = {
-        "step_causal": {
-            "causal_analysis": {
-                "abductive_reasoning": {"verdict": "OK", "confidence_score": 0.9, "conclusion": "Conc1"},
-                "abductive_conclusion": "ABDUCT_GENUINE",
-                "abductive_score": 3.0,
-                "counterfactual_test": {
-                    "plausibility": "PLAUSIBLE",
-                    "confidence_score": 0.8,
-                    "actual_scenario": "A1",
-                    "simulated_scenario": "S1",
-                    "plausibility_score": "PLAUS_PLAUSIBLE",
-                    "plausibility_numeric": 2.0,
-                    "simulation_result": "SimResult",
-                },
-                "plausibility_check": {"score": 2.5},
-                "observation": "Obs1",
-                "hypothesis": "Hyp1",
+    mock_step_data = {
+        "causal_analysis": {
+            "abductive_reasoning": {"verdict": "OK", "confidence_score": 0.9, "conclusion": "Conc1"},
+            "abductive_conclusion": "ABDUCT_GENUINE",
+            "abductive_score": 3.0,
+            "counterfactual_test": {
+                "plausibility": "PLAUSIBLE",
+                "confidence_score": 0.8,
+                "actual_scenario": "A1",
+                "simulated_scenario": "S1",
+                "plausibility_score": "PLAUS_PLAUSIBLE",
+                "plausibility_numeric": 2.0,
+                "simulation_result": "SimResult",
             },
-            "thought_process": "Thinking...",
-            "conclusion": "Conclusion",
-            "confidence_score": 0.9,
-        }
+            "plausibility_check": {"score": 2.5},
+            "observation": "Obs1",
+            "hypothesis": "Hyp1",
+        },
+        "thought_process": "Thinking...",
+        "conclusion": "Conclusion",
+        "confidence_score": 0.9,
     }
+    
+    mock_state = WorkflowState(workflow_id="test_wf")
+    mock_state.context_variables["step_causal"] = mock_step_data
 
-    section = transformer._extract_causal_section(mock_step)
+    section = transformer._extract_causal_section(mock_state)
     assert isinstance(section, UiSection)
     assert section.type == SectionType.CAUSAL_ANALYSIS
     assert isinstance(section.data, CausalDisplay)
@@ -124,30 +130,29 @@ def test_causal_transformer_extracts_display_model():
 # --- Profiler Transformer Tests ---
 def test_profiler_transformer_extracts_display_model():
     transformer = ProfilingDomainTransformer()
-    mock_step = {
-        "step_profiler": {
-            "profiler_data": {
-                "metrics": {
-                    "control_ratio": 0.6,
-                    "word_count": 100,
-                    "avg_sentence_length": 10.0,
-                    "sentence_count": 10,
-                    "lexical_diversity": 0.5,
-                    "capitalization_ratio": 0.1,
-                    "automation_bias": 0.1,
-                    "say_do_gap": 0.9,
-                },
-                "author_intent": "Info",
-                "emotional_tone": "Neutral",
-                "cognitive_biases": ["Bias1"],
-                "thought_process": "Thinking...",
-                "conclusion": "Conclusion",
-                "confidence_score": 0.9,
-            }
-        }
+    mock_step_data = {
+        "metrics": {
+            "control_ratio": 0.6,
+            "word_count": 100,
+            "avg_sentence_length": 10.0,
+            "sentence_count": 10,
+            "lexical_diversity": 0.5,
+            "capitalization_ratio": 0.1,
+            "automation_bias": 0.1,
+            "say_do_gap": 0.9,
+        },
+        "author_intent": "Info",
+        "emotional_tone": "Neutral",
+        "cognitive_biases": ["Bias1"],
+        "thought_process": "Thinking...",
+        "conclusion": "Conclusion",
+        "confidence_score": 0.9,
     }
 
-    section = transformer._extract_profiler_section(mock_step)
+    mock_state = WorkflowState(workflow_id="test_wf")
+    mock_state.context_variables["step_profiler"] = mock_step_data
+
+    section = transformer._extract_profiler_section(mock_state)
     assert isinstance(section, UiSection)
     assert section.type == SectionType.PROFILER_ANALYSIS
     assert isinstance(section.data, ProfilerDisplay)
@@ -159,21 +164,22 @@ def test_profiler_transformer_extracts_display_model():
 # --- Detector Transformer Tests (in Profiling) ---
 def test_detector_transformer_extracts_display_model():
     transformer = ProfilingDomainTransformer()
-    mock_step = {
-        "step_detector": {
-            "performativity_analysis": {
-                "authenticity_score": 2.5,
-                "authenticity_assessment": "AUTH_ORGANIC",
-                "performativity_heuristics": [{"heuristic_name": "H1", "flag_raised": True, "description": "Desc1"}],
-                "pre_mortem_analysis": {"performed": True, "weak_signals": ["Signal1"]},
-            },
-            "thought_process": "Thinking...",
-            "conclusion": "Conclusion",
-            "confidence_score": 0.9,
-        }
+    mock_step_data = {
+        "performativity_analysis": {
+            "authenticity_score": 2.5,
+            "authenticity_assessment": "AUTH_ORGANIC",
+            "performativity_heuristics": [{"heuristic_name": "H1", "flag_raised": True, "description": "Desc1"}],
+            "pre_mortem_analysis": {"performed": True, "weak_signals": ["Signal1"]},
+        },
+        "thought_process": "Thinking...",
+        "conclusion": "Conclusion",
+        "confidence_score": 0.9,
     }
 
-    section = transformer._extract_detector_section(mock_step)
+    mock_state = WorkflowState(workflow_id="test_wf")
+    mock_state.context_variables["step_detector"] = mock_step_data
+
+    section = transformer._extract_detector_section(mock_state)
     assert isinstance(section, UiSection)
     assert section.type == SectionType.PERFORMATIVITY_CHECK
     assert isinstance(section.data, PerformativityDisplay)
@@ -185,21 +191,20 @@ def test_detector_transformer_extracts_display_model():
 # --- Driver Transformer Tests (in Profiling) ---
 def test_driver_transformer_extracts_display_model():
     transformer = ProfilingDomainTransformer()
-    mock_step = {
-        "step_interaction": {
-            "interaction_analysis": {
-                "role_classification": "Driver",
-                "high_dependency": False,
-                "imperative_command_count": 2,
-                "strategy": "Zero-shot",
-                "thought_process": "Thinking...",
-                "conclusion": "Conclusion",
-                "confidence_score": 0.9,
-            }
-        }
+    mock_step_data = {
+        "role_classification": "Driver",
+        "high_dependency": False,
+        "imperative_command_count": 2,
+        "strategy": "Zero-shot",
+        "thought_process": "Thinking...",
+        "conclusion": "Conclusion",
+        "confidence_score": 0.9,
     }
 
-    section = transformer._extract_interaction_section(mock_step)
+    mock_state = WorkflowState(workflow_id="test_wf")
+    mock_state.context_variables["step_interaction"] = mock_step_data
+
+    section = transformer._extract_interaction_section(mock_state)
     assert isinstance(section, UiSection)
     assert section.type == SectionType.DRIVER_PROFILE
     assert isinstance(section.data, DriverProfileDisplay)
@@ -209,24 +214,23 @@ def test_driver_transformer_extracts_display_model():
 # --- Archivist Transformer Tests (in Compliance) ---
 def test_archivist_transformer_extracts_display_model():
     transformer = ComplianceDomainTransformer()
-    mock_step = {
-        "step_archivist": {
-            "archivist_data": {
-                "compliance_score": 9.5,
-                "compliance_analysis": "Aligned",
-                "description": "Good",
-                "relevant_cases": [{"case_id": "C1", "summary": "Sum1", "similarity_score": 0.9, "verdict": "V1"}],
-                "stare_decisis_adherence": True,
-                "consistency_analysis": "Consistent",
-                "thought_process": "Thinking...",
-                "conclusion": "Conclusion",
-                "confidence_score": 0.9,
-            }
-        }
+    mock_step_data = {
+        "compliance_score": 4.0,
+        "compliance_analysis": "Aligned",
+        "description": "Good",
+        "relevant_cases": [{"case_id": "C1", "summary": "Sum1", "similarity_score": 0.9, "verdict": "V1"}],
+        "stare_decisis_adherence": True,
+        "consistency_analysis": "Consistent",
+        "thought_process": "Thinking...",
+        "conclusion": "Conclusion",
+        "confidence_score": 0.9,
     }
 
-    section = transformer._extract_archivist_section(mock_step)
+    mock_state = WorkflowState(workflow_id="test_wf")
+    mock_state.context_variables["step_archivist"] = mock_step_data
+
+    section = transformer._extract_archivist_section(mock_state)
     assert isinstance(section, UiSection)
     assert section.type == SectionType.ARCHIVIST_CHECK
     assert isinstance(section.data, ArchivistDisplay)
-    assert section.data.compliance_score == 9.5
+    assert section.data.compliance_score == 4.0

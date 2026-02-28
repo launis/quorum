@@ -192,11 +192,15 @@ class ToulminDisplay(BaseModel):
     """Strict View Model for Toulmin Arguments."""
 
     claim: str
+    data: str
     warrant: str
+    backing: str | None = None
+    rebuttal: str | None = None
+    qualifier: str | None = None
 
     model_config = ConfigDict(frozen=True, strict=False)
 
-    @field_validator("claim", "warrant")
+    @field_validator("claim", "data", "warrant")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
@@ -331,7 +335,7 @@ class EthicalIssueDisplay(BaseModel):
 class FactCheckDisplay(BaseModel):
     """Server-Driven UI Data for Fact & Ethics Check."""
 
-    verified_facts: list[VerifiedFactDisplay]
+    fact_checks: list[VerifiedFactDisplay]
     ethical_issues: list[EthicalIssueDisplay]
 
     model_config = ConfigDict(frozen=True, strict=False)
@@ -502,5 +506,6 @@ class DriverProfileDisplay(BaseModel):
     high_dependency: bool
     imperative_command_count: int
     strategy: str
+    input_control_ratio: float | None = None
 
     model_config = ConfigDict(frozen=True, strict=True)

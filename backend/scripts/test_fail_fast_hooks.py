@@ -15,7 +15,6 @@ import asyncio
 from backend.exceptions import AppException
 from backend.hooks.metrics import calculate_text_metrics_hook
 from backend.hooks.search import execute_google_search
-from backend.hooks.security import check_banned_phrases_hook
 from backend.hooks.validation import verify_structure
 from backend.models.state import WorkflowState
 
@@ -45,13 +44,13 @@ async def test_search_fail():
     print("\n--- Testing Search Hook Fail Fast (Config error) ---")
     # Simulate a state where analyst requested search
     # We will pass a repository that returns an invalid or missing registry to force a ConfigurationError.
-    
+
     class MockRepository:
         class Driver:
             async def get(self, *args, **kwargs):
                 return None  # Missing registry triggers ConfigurationError
         driver = Driver()
-        
+
     mock_analyst = {
         "thought_process": "Mock reasoning",
         "conclusion": "Mock conclusion",

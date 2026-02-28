@@ -11,6 +11,7 @@ from backend.agents.base import BaseAgent
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import JudgeScoreCard, XAIOutput, XAIReporterInput
+from backend.utils.math_utils import normalize_score_to_100
 
 if TYPE_CHECKING:
     pass
@@ -63,35 +64,17 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
         # Aggregate Judge Results from potentially multiple judges (Dual Chain)
         judge_results = []
 
-        # Convert Pydantic model to dict to iterate over dynamic fields (step_judge*)
-        # XAIReporterInput uses extra="allow" to support these.
-        input_dict = input_data.model_dump()
+        judges = []
+        if input_data.step_judge:
+            judges.append(input_data.step_judge)
+        if input_data.step_judge_cognitive:
+            judges.append(input_data.step_judge_cognitive)
 
-        for key, value in input_dict.items():
-            if key.startswith("step_judge") and value:
-                # Normalize (if it's a nested model, dump it too)
-                data = value.model_dump() if hasattr(value, "model_dump") else value
-
-                # If value is just a dict (from input_dict), it's already a dict.
-                # But check if it was a model originally. input_data.model_dump() converts sub-models to dicts usually.
-
-                # Identify Judge Name
-                matrix_id = data.get("matrix_id")
-                if not matrix_id:
-                    error_msg = (
-                        f"Strict XAI: Judge output in '{key}' is missing 'matrix_id'. Agent must return matrix_id."
-                    )
-                    logger.error(f"[XAIReporterAgent] Strict Mode Violation: {error_msg}")
-                    raise AgentExecutionError(
-                        detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                        original_error=ValueError(error_msg),
-                        agent_name="XAIReporterAgent",
-                    )
-
-                name = f"Judge ({matrix_id})"
-
-                judge_results.append((name, data))
-                logger.info(f"[XAIReporterAgent] Found Judge Output: {name}")
+        for judge in judges:
+            matrix_id = judge.matrix_id
+            name = f"Judge ({matrix_id})"
+            judge_results.append((name, judge))
+            logger.info(f"[XAIReporterAgent] Found Judge Output: {name}")
 
         if not judge_results:
             logger.warning("[XAIReporterAgent] No 'step_judge*' data found in inputs.")
@@ -104,29 +87,25 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
             lines.append(f"\n#### EVALUATION FROM: {name}")
 
             # 1. Total Score
-            total_score = data.get("total_score", "N/A")
+            sc = data.score_card
+            total_score = sc.total_score if sc else "N/A"
             lines.append(f"- **Total Score**: {total_score}")
 
             # 2. Dimensions
-            dimensions = data.get("dimensions", [])
+            dimensions = sc.dimensions if sc else []
             if dimensions:
                 lines.append("  **Dimensions:**")
                 for dim in dimensions:
-                    # Handle dict vs object properties if necessary (usually dict here)
-                    d_data = dim if isinstance(dim, dict) else dim.__dict__
-
-                    d_id = d_data.get("dimension_id", "unknown").capitalize()
-                    score = d_data.get("score", "-")
-                    reason = d_data.get("reasoning", "")
-
-                    max_val = data.get("scale_max", "UNKNOWN")
+                    d_id = dim.dimension_id.capitalize()
+                    score = dim.score
+                    reason = dim.reasoning
+                    max_val = sc.scale_max if sc else "UNKNOWN"
                     lines.append(f"  - **{d_id}**: {score}/{max_val} - {reason}")
             else:
-                # Strict Mode: No fallback for legacy 'pisteet'.
                 pass
 
             # 3. Critical Findings
-            crit_findings = data.get("critical_findings", [])
+            crit_findings = data.critical_findings
             if crit_findings:
                 lines.append("  **Critical Findings:**")
                 for item in crit_findings:
@@ -157,12 +136,8 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
         Raises:
             AgentExecutionError: If mandatory inputs are missing or invalid.
         """
-        # Convert to dict for dynamic field access
-        input_dict = input_data.model_dump()
-
         # FAIL FAST: XAI requires Judge outputs
-        has_judge_data = any(k.startswith("step_judge") for k in input_dict.keys())
-        if not has_judge_data:
+        if not input_data.step_judge and not input_data.step_judge_cognitive:
             error_msg = "Mandatory input 'step_judge' or 'step_judge_cognitive' missing. Reporting aborted."
             logger.error(f"[XAIReporterAgent] {error_msg}")
             raise AgentExecutionError(
@@ -177,91 +152,25 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
         # 2. Aggregate Scores from any Judge Outputs found in input_data
         score_cards = []
 
-        for key, value in input_dict.items():
-            if key.startswith("step_judge") and isinstance(value, (dict, BaseModel)):
-                try:
-                    # Normalize to dict
-                    data = value.model_dump() if hasattr(value, "model_dump") else value
+        judges = []
+        if input_data.step_judge:
+            judges.append(input_data.step_judge)
+        if input_data.step_judge_cognitive:
+            judges.append(input_data.step_judge_cognitive)
 
-                    # Extract Name
-                    # Prefer matrix_id if available, otherwise format the step key
-                    matrix_id = data.get("matrix_id")
-                    if matrix_id:
-                        agent_name = f"Judge ({matrix_id})"
-                    if not matrix_id:
-                        raise ValueError(
-                            f"Strict XAI: Judge output in '{key}' is missing 'matrix_id'. Cannot build ScoreCard."
-                        )
+        for judge_data in judges:
+            try:
+                # The scorecard is strictly typed in Phase 8 Standard!
+                sc = judge_data.score_card
+                if sc:
+                    score_cards.append(sc)
 
-                    agent_name = f"Judge ({matrix_id})"
-
-                    # Extract Score Data (Strict Phase 8 Standard)
-                    score_card_data = data.get("score_card")
-                    if not score_card_data:
-                        # FAIL FAST: JudgeOutput MUST have score_card.
-                        # This prevents default 0.0 scores or invalid data ingestion.
-                        raise AgentExecutionError(
-                            detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
-                            original_error=ValueError(
-                                f"Strict XAI: Judge output in '{key}' is missing 'score_card'. Legacy flat structure is forbidden."
-                            ),
-                            agent_name="XAIReporterAgent",
-                        )
-
-                    # Standard Extraction from ScoreCard
-                    total_score = float(score_card_data.get("total_score", 0.0))
-                    max_val_raw = score_card_data.get("scale_max") or score_card_data.get("max_score")
-
-                    if max_val_raw is None:
-                        # Fallback to root level scale_max if missing in card (data.get("scale_max"))
-                        # But strictly, it should be in the card. Let's allow root fallback ONLY if missing in card for now.
-                        max_val_raw = data.get("scale_max")
-
-                    max_score = int(max_val_raw) if max_val_raw is not None else 5
-
-                    verdict = score_card_data.get("verdict")
-                    if not verdict:
-                        verdict = "Verdict missing" # STRICT DTO: verdict is required and cannot be empty
-
-                    dimensions = score_card_data.get("dimensions", [])
-                    scale_min = float(score_card_data.get("scale_min", 0.0))
-                    scale_max = float(score_card_data.get("scale_max", max_score))
-
-                    # Strict type forcing for dimensions array just in case LLM gave us dicts that don't pass
-                    from backend.models.domain.judge import DimensionResultItem
-                    cleaned_dimensions = []
-                    for d in dimensions:
-                        if isinstance(d, dict):
-                            # Default missing fields for strictly required dimension keys
-                            cleaned_dimensions.append(
-                                DimensionResultItem(
-                                    dimension_id=d.get("dimension_id", "unknown"),
-                                    dimension_label=d.get("dimension_label", d.get("dimension_id", "Unknown")),
-                                    score=float(d.get("score", 0.0)),
-                                    reasoning=d.get("reasoning", "No reasoning provided.")
-                                )
-                            )
-                        elif isinstance(d, DimensionResultItem):
-                            cleaned_dimensions.append(d)
-
-                    score_cards.append(
-                        JudgeScoreCard(
-                            agent_name=agent_name,
-                            total_score=total_score,
-                            max_score=max_score,
-                            verdict=verdict,
-                            dimensions=cleaned_dimensions,
-                            scale_min=scale_min,
-                            scale_max=scale_max,
-                        )
-                    )
-
-                except Exception as e:
-                    # FAIL FAST: Do not swallow errors in strict coding standards.
-                    logger.error(f"[XAIReporter] Failed to process scorecard for {key}: {e}", exc_info=True)
-                    raise AgentExecutionError(
-                        detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name="XAIReporterAgent"
-                    ) from e
+            except Exception as e:
+                # FAIL FAST: Do not swallow errors in strict coding standards.
+                logger.error(f"[XAIReporter] Failed to process scorecard for {judge_data.matrix_id}: {e}", exc_info=True)
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name="XAIReporterAgent"
+                ) from e
 
         # 3. Generate Flat Report (Phase 3)
         # We need execution_id and timestamp from context or generate them
@@ -292,11 +201,14 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
 
         # We use the Aggregated Score Cards
         for card in score_cards:
-            total_score_sum += card.total_score
+            total_normalized = normalize_score_to_100(card.total_score, card.scale_min, card.scale_max)
+            total_score_sum += total_normalized
             count += 1
             for dim in card.dimensions:
                 # Use dimension_id as key
-                flattened_scores[dim.dimension_id] = float(dim.score)
+                # Strict: normalize each dimension score individually according to its card's scale
+                normalized_dim = normalize_score_to_100(dim.score, card.scale_min, card.scale_max)
+                flattened_scores[dim.dimension_id] = normalized_dim
 
         final_avg_score = (total_score_sum / count) if count > 0 else 0.0
 

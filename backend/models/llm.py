@@ -255,9 +255,9 @@ class AgentSystemConfig(BaseModel):
 
 class LLMStrategy(BaseModel):
     """Pydantic Enforced Strategy Configuration for an LLM execution."""
-    
+
     model_config = ConfigDict(extra="ignore", strict=True)
-    
+
     model_name: Annotated[str, Field(..., description="Model identifier (e.g. 'gemini-2.5-pro').")]
     temperature: Annotated[float, Field(default=0.7, ge=0.0, le=2.0)]
     tpm_limit: Annotated[int, Field(default=0, ge=0, description="Tokens per minute limit.")]

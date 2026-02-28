@@ -35,7 +35,7 @@ def test_verify_structure_short_input(mock_state):
     mock_state = mock_state.model_copy(
         update={
             "context_variables": {
-                "inputs": {"history_text": "Too short", "product_text": "Valid " * 20, "reflection_text": "Valid " * 20}
+                "inputs": {"history_text": "Too short", "product_text": "Valid " * 20, "reflection_text": "Reflection " * 20}
             }
         }
     )

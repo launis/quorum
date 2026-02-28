@@ -87,7 +87,7 @@
 **UNIVERSAL MANDATE & CONSTRAINTS (2026-01-24):**
 
 1.  **ANTIGRAVITY CONTEXT:**
-    -   Context: Jan 24, 2026. Phase 2 Hardening.
+    -   Context: V5.1. Phase 9 Hardening.
     -   Reference: `@docs/flutterpromptohje.md`.
     -   Execute this request as a single, isolated step.
 

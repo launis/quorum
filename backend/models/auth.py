@@ -4,10 +4,10 @@ This module defines Pydantic models for user identity, role-based access control
 organization management, and cryptographic token structures.
 """
 
+import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Literal
-import uuid
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 

@@ -50,7 +50,7 @@ class ScoreCardRadar extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        card.verdict,
+                        card.verdict ?? "",
                         style: textTheme.bodyMedium?.copyWith(
                           fontStyle: FontStyle.italic,
                         ),
@@ -71,7 +71,7 @@ class ScoreCardRadar extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        card.totalScore.toStringAsFixed(1),
+                        (card.totalScore ?? 0.0).toStringAsFixed(1),
                         style: textTheme.titleLarge?.copyWith(
                           color: colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.bold,
@@ -79,7 +79,7 @@ class ScoreCardRadar extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "(Scale: ${card.minScore}-${card.maxScore})",
+                        "(Scale: ${card.minScore ?? 1}-${card.maxScore ?? 5})",
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onPrimaryContainer.withOpacity(
                             0.7,

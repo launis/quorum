@@ -1,4 +1,4 @@
-# Unified Naming Strategy (V1.0)
+# Unified Naming Strategy (V5.1 - Phase 9 Hardening)
 
 This document defines the strict naming conventions for the Cognitive Quorum system. In a system where data traverses from Database -> Pydantic Domain -> DTO/BFF -> Flutter Freezed Models, inconsistent naming causes serialization errors, null pointer exceptions, and type mapping failures.
 

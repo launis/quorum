@@ -122,7 +122,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
         query = self.db.collection("executions").where("status", "==", "completed")
         query = query.order_by("completed_at", direction=firestore.Query.DESCENDING).limit(limit)
-        
+
         docs = await query.stream()
         results = []
         async for doc in docs:
@@ -474,7 +474,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             logger.error(f"Firestore model registry check failed: {e}")
             from backend.exceptions import AppException, ErrorCodes, status
             raise AppException(message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": ErrorCodes.DATABASE_ERROR}) from e
-            
+
         logger.error("[FirestoreRepository] SYSTEM_CONFIG_NOT_FOUND: 'model_registry' document is missing from database.")
         from backend.exceptions import ResourceNotFoundError
         raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
@@ -573,38 +573,38 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
     async def get_detailed_usage(self, scope: str, target_id: str | None = None, since: str | None = None) -> dict[str, Any]:
         """Aggregate detailed usage metrics filtered by role scope."""
         query = self.db.collection("executions")
-        
+
         if since:
             query = query.where("created_at", ">=", since)
-            
+
         if scope == "user" and target_id:
             query = query.where("user_id", "==", target_id)
         elif scope == "org" and target_id:
             query = query.where("organization_id", "==", target_id)
-            
+
         docs = await query.stream()
-        
+
         total_cost = 0.0
         total_runs = 0
         total_time = 0
         models_used: dict[str, int] = {}
         workflows_used: dict[str, int] = {}
-        
+
         async for doc in docs:
             data = doc.to_dict()
             total_runs += 1
             total_cost += data.get("cost_estimate", 0.0)
             total_time += data.get("duration_ms", 0)
-            
+
             wid = data.get("workflow_id")
             if wid:
                 workflows_used[wid] = workflows_used.get(wid, 0) + 1
-                
+
             mu = data.get("models_used", {})
             if isinstance(mu, dict):
                 for m, count in mu.items():
                     models_used[m] = models_used.get(m, 0) + count
-                    
+
         return {
             "total_cost_usd": total_cost,
             "total_runs": total_runs,

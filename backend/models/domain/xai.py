@@ -9,7 +9,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.models.domain.base import ReasoningTrace
-from backend.models.domain.judge import JudgeScoreCard
+from backend.models.domain.judge import JudgeScoreCard, JudgeOutput
 from backend.models.dtos.pdf_context import ReportContext
 from backend.models.dtos.report import XAIFlatReportDTO
 
@@ -17,27 +17,16 @@ from backend.models.dtos.report import XAIFlatReportDTO
 class XAIReporterInput(BaseModel):
     """Strict input schema for XAIReporterAgent."""
 
-    # XAI Reporter iterates over all keys starting with 'step_judge'
-    # So we can't strictly define them all as fields if they are dynamic.
-    # However, we can define the core inputs.
-
-    # It aggregates potentially many judges.
-    # We use extra="allow" to pass through the dynamic step_judge keys to the agent logic,
-    # OR we define a validator that checks for at least one.
-
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    step_judge: JudgeOutput | None = Field(default=None, description="Standard evaluate output.")
+    step_judge_cognitive: JudgeOutput | None = Field(default=None, description="Cognitive Judge output.")
 
-    model_config = ConfigDict(frozen=True, extra="allow")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
-    @model_validator(mode="before")
-    @classmethod
-    def check_judges(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            any(k.startswith("step_judge") for k in data.keys())
-            # We don't fail here because the Agent 'execute' method has its own "Fail Fast".
-            # But strictly speaking, the Input Schema should probably validate it?
-            # Let's leave it flexible for the Agent to enforce.
-        return data
+    @model_validator(mode="after")
+    def check_judges(self) -> 'XAIReporterInput':
+        # The Agent execute still has Fail Fast, but we can do a quick check here too if desired.
+        return self
 
 
 class XAIScoreItem(BaseModel):

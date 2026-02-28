@@ -1,4 +1,4 @@
-# Workflow Data Architecture: Courtroom Audit Chains (V3.2 - Phase 8 Standards)
+# Workflow Data Architecture: Courtroom Audit Chains (V5.1 - Phase 9 Hardening)
 
 **Workflows Covered:**
 1.  **Courtroom 3.0 (Fused):** `fused_audit_chain` (Primary Production Workflow).
@@ -154,7 +154,7 @@ All steps operate on the **Hybrid State Architecture**:
 
 ---
 
-## 3. Core Data Services & Integrity Paradigms (V3.2 Additions)
+## 3. Core Data Services & Integrity Paradigms (V5.1 Additions)
 
 ### 3.1 Strict Identifiers & Storage
 To mitigate data collisions and standardize file-system abstractions:

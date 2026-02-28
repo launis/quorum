@@ -1,6 +1,6 @@
-# Dynamic Prompt Engineering (V3.2 - Phase 8 Standards)
+# Dynamic Prompt Engineering (V5.1 - Phase 9 Hardening)
 
-In Cognitive Quorum V3.2, prompt engineering is an **architectural discipline**, not just text editing. The system uses a **Polymorphic Injection** strategy to dynamically assemble prompts from database components, strict Pydantic schemas, and runtime state.
+In Cognitive Quorum V5.1, prompt engineering is an **architectural discipline**, not just text editing. The system uses a **Polymorphic Injection** strategy to dynamically assemble prompts from database components, strict Pydantic schemas, and runtime state.
 
 Instead of static text files, prompts are constructed at runtime by the `PromptBuilder` service (`backend/services/prompt_builder.py`), ensuring that every agent receives exactly the context it needs—and nothing else.
 
@@ -73,7 +73,7 @@ The `PromptBuilder` supports a specific set of injection keys. These are **Case-
 
 ## 3. Behaviorally Anchored Rating Scales (BARS)
 
-V3.2 rejects generic "Rate 1-5" instructions. We use **BARS** matrices defined as JSON components. The `MatrixFormatter` transforms these into human-readable instructions.
+V5.1 rejects generic "Rate 1-5" instructions. We use **BARS** matrices defined as JSON components. The `MatrixFormatter` transforms these into human-readable instructions.
 
 **Formatted Prompt Output (Markdown BARS):**
 ```markdown

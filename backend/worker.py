@@ -110,7 +110,7 @@ async def execute_workflow_job(
                 cost_estimate = 0.0
                 models_used: dict[str, int] = {}
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
-                
+
                 if isinstance(result, dict):
                     trace = result.get("execution_trace", [])
                     if isinstance(trace, list):
@@ -124,17 +124,17 @@ async def execute_workflow_job(
                                         m = meta.get("model")
                                         if m:
                                             models_used[m] = models_used.get(m, 0) + 1
-                                        
+
                                         # Extract Cost per step
                                         tu = meta.get("token_usage", {})
                                         if isinstance(tu, dict):
                                             cost_estimate += tu.get("cost_usd", 0.0)
 
                 await repository.update_execution(
-                    execution_id, 
+                    execution_id,
                     {
-                        "status": "completed", 
-                        "results": result, 
+                        "status": "completed",
+                        "results": result,
                         "completed_at": datetime.now(UTC).isoformat(),
                         "cost_estimate": cost_estimate,
                         "duration_ms": duration_ms,

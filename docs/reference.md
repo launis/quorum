@@ -1,10 +1,10 @@
-# Reference Manual & API (V3.2 - Phase 8 Standards)
+# Reference Manual & API (V5.1 - Phase 9 Hardening)
 
 This document serves as the technical reference for **Cognitive Quorum V2026**. It covers the directory structure, CLI commands, and the Backend API.
 
 ---
 
-## 1. Directory Structure (V3.2)
+## 1. Directory Structure (V5.1)
 
 The project follows a **Modular Monolith** architecture with **Strict Pydantic V2** enforcement and **Prefixed Identifiers** for automated relation mapping.
 
@@ -25,7 +25,7 @@ quorum/
 │   ├── models/             # Pydantic V2 Schemas (SSOT)
 │   │   ├── domain/         # Domain Models (System Authority, Rich)
 │   │   ├── dtos/           # Data Transfer Objects (Pure LLM Output)
-│   │   ├── identifiers.py  # Prefixed UUID NewTypes (e.g., WorkflowID)
+│   │   ├── view/           # View Models & SDUI Response Schemas
 │   │   ├── enums.py        # Shared Enumerations
 │   │   └── state.py        # Workflow State Defs
 │   ├── services/           # Business Logic (Auth, Storage, PromptBuilder)

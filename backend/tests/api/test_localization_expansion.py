@@ -92,12 +92,34 @@ def test_get_execution_view_fi():
     mock_repo = AsyncMock()
     from backend.models.domain.execution import ExecutionRecord
 
+    from backend.models.state import WorkflowState
+
     mock_execution = ExecutionRecord(
         id="test-exec-1",
         status="completed",
-        results={
-            "step_results": {"step_judge": {"total_score": 3, "final_verdict": "Good", "scale_min": 1, "scale_max": 5}}
-        },
+        results=WorkflowState(
+            workflow_id="test_wf",
+            context_variables={
+                "step_judge": {
+                    "thought_process": "x",
+                    "conclusion": "y",
+                    "confidence_score": 0.9,
+                    "matrix_id": "test_matrix",
+                    "scale_min": 1.0,
+                    "scale_max": 5.0,
+                    "critical_findings": [],
+                    "score_card": {
+                        "agent_name": "Judge",
+                        "total_score": 3.0,
+                        "scale_min": 1.0,
+                        "scale_max": 5.0,
+                        "max_score": 5.0,
+                        "verdict": "Good",
+                        "dimensions": []
+                    }
+                }
+            }
+        ),
     )
     mock_repo.get_execution.return_value = mock_execution
 
@@ -125,5 +147,5 @@ def test_get_execution_view_fi():
     # Structure: sections -> list. Find type=SCORE_CARD
     score_card = next((s for s in view["sections"] if s["type"] == "SCORE_CARD"), None)
     assert score_card is not None
-    assert score_card["title"] == "Analyysin Tulos"
-    assert score_card["data"]["agent_name"] == "Tuomari"
+    assert score_card["title"] == "Analyysin Tulos (Judge)"
+    assert score_card["data"]["agent_name"] == "Judge"

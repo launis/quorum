@@ -446,6 +446,17 @@
   "lblAuthenticity": "Authenticity Assessment",
   "lblHeuristics": "Heuristics",
   "lblMethodologicalLog": "Methodological Log",
+  "btnHideRawData": "Hide Raw Data",
+  "btnShowJson": "JSON",
+  "msgJsonCopied": "JSON copied to clipboard",
+  "errDataIntegrity": "Data Integrity Error (Fail Fast)",
+  "subLogicAnalysis": "Toulmin & Cognitive Level",
+  "subStressTest": "Walton Falsification",
+  "subCausalAnalysis": "Causal & Counterfactual",
+  "subPerformativityCheck": "Authenticity & Pre-Mortem",
+  "subFactCheck": "Hallucinations & Ethics",
+  "subProfilerAnalysis": "Biases & Psycho-profile",
+  "subArchivistCheck": "Compliance & Precedents",
   "lblCognitiveLevel": "Cognitive Level",
   "lblStrategicDepth": "Strategic Depth",
   "lblArguments": "Arguments",
@@ -459,6 +470,19 @@
   "lblCapitalsRatio": "Capitals Ratio",
   "lblAutomationBias": "Automation Bias",
   "lblSayDoGap": "Say-Do Gap",
+  "lblBehavioralIndicators": "Behavioral Indicators:",
+  "lblAutomationBiasValue": "Automation Bias: {value}",
+  "@lblAutomationBiasValue": {
+    "placeholders": {
+        "value": {"type": "String"}
+    }
+  },
+  "lblSayDoGapValue": "Say-Do Gap: {value}",
+  "@lblSayDoGapValue": {
+    "placeholders": {
+        "value": {"type": "String"}
+    }
+  },
   "plausibility_desc": "Plausibility measures scenario realism and consistency.",
   "bloomRemembering": "Remembering",
   "bloomUnderstanding": "Understanding",

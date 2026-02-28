@@ -243,9 +243,9 @@ class PdfReportService:
                             }
                         )
                     sec_data["processed_ethics"] = processed_ethics
-                    
+
                 new_sections.append(section.model_copy(update={"data": sec_data}))
-                
+
             report_view = report_view.model_copy(update={"sections": new_sections})
 
             # 5. Render Template

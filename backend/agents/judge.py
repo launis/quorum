@@ -121,7 +121,7 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
         # STRICT FAIL FAST: Judge requires scoring_logic to function.
         # This is typically passed in execution_context or via kwargs as execution_config.
         config = execution_context or kwargs.get("execution_config") or {}
-        
+
         if "scoring_logic" not in config and "matrix_id" not in config:
             raise AgentExecutionError(
                 detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
@@ -315,10 +315,10 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
         for field_name, field_info in input_data.model_fields.items():
             if field_name == "step_analyst":
                 continue # Already handled above as core map
-            
+
             # Check if this input field was actually populated with data
             evidence = getattr(input_data, field_name, None)
-            
+
             # It's evidence if it's a Pydantic model (DTO) from another agent.
             if evidence and isinstance(evidence, BaseModel):
                 content = serialize_evidence(evidence)

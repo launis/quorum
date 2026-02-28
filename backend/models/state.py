@@ -231,9 +231,9 @@ class WorkflowState(BaseModel):
 
     @property
     def step_detector(self) -> Any | None:
-        from backend.models.domain.falsifier import FalsifierOutput
+        from backend.models.domain.performativity import PerformativityOutput
 
-        return self.get_context("step_detector", FalsifierOutput)
+        return self.get_context("step_detector", PerformativityOutput)
 
     @property
     def step_judge_cognitive(self) -> Any | None:

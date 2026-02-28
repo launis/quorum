@@ -1,10 +1,10 @@
-# Cognitive Quorum: Structured Cognitive Architecture (V3.2 - Phase 8 Standards)
+# Cognitive Quorum: Structured Cognitive Architecture (V5.1 - Phase 9 Hardening)
 
 ## Abstract
 
-**Cognitive Quorum V3.2** is a data-driven cognitive architecture designed to produce deterministic, high-fidelity reasoning from stochastic LLMs. It separates the **Cognitive Strategy** (JSON-defined logic) from the **Execution Spine** (Python-defined flow).
+**Cognitive Quorum V5.1** is a data-driven cognitive architecture designed to produce deterministic, high-fidelity reasoning from stochastic LLMs. It separates the **Cognitive Strategy** (JSON-defined logic) from the **Execution Spine** (Python-defined flow).
 
-The V3.2 iteration enforces a **Unidirectional Data Flow** where the "DNA" of the system (Evaluation Matrices, Prompts, System Config) is immutable code, seeded into the database to drive execution.
+The V5.1 iteration enforces a **Unidirectional Data Flow** where the "DNA" of the system (Evaluation Matrices, Prompts, System Config) is immutable code, seeded into the database to drive execution.
 
 ---
 
@@ -34,7 +34,7 @@ To prevent LLM hallucinations of system metadata (timestamps, IDs) and guarantee
 3.  **Domain Promotion**: The enriched object is promoted to a full **Domain Model** (e.g., `PanelOutput`) before entering the `WorkflowState`.
 
 ### Panel Fusion Pattern (The "Senate")
-In V3.2, we replaced individual Critic agents with a single **Panel Agent**.
+In V5.1, we replaced individual Critic agents with a single **Panel Agent**.
 *   **Goal**: Reduce latency and improve coherence.
 *   **Mechanism**: A single LLM call (using a "Deep" strategy model like Gemini Pro) assumes multiple personas (Logician, Falsifier, Profiler) simultaneously.
 *   **Fan-Out**: The `PanelOutput` is then "fanned out" by the Engine to individual state keys, maintaining backward compatibility with the rest of the pipeline.

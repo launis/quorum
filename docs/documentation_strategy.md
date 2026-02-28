@@ -1,4 +1,4 @@
-# Documentation Strategy (V3.2)
+# Documentation Strategy (V5.1 / Phase 9 Hardening)
 
 This document outlines the hierarchy of project documentation and the "Living Documentation" strategy for Gemini 3 Pro (Antigravity).
 
@@ -27,7 +27,7 @@ Documentation is organized into four distinct levels:
 ### Level 3: Architectural Reference
 *   **Files**:
     *   `docs/components.md`: Detailed breakdown of Agents, Hooks, and Services (Registry, Engine).
-    *   `docs/data_management.md`: Data flow, persistence, seeding, and strict typing rules (Phase 8).
+    *   `docs/data_management.md`: Data flow, persistence, seeding, and strict typing rules (Phase 9).
     *   `docs/output_generation_pipeline.md`: The rendering pipeline (Agent -> BFF -> Report).
     *   `docs/api_models.md`: The strict Pydantic definitions and DTO contracts.
 *   **Role**: "System Maps".
@@ -82,7 +82,7 @@ When initiating a new task:
 
 ---
 
-## 4. Specific Documentation Protocols (Phase 8)
+## 4. Specific Documentation Protocols (Phase 9)
 
 ### 4.1. Error Documentation (RFC 7807)
 *   **Location**: `docs/flutterpromptohje.md` (Contract) and `backend/exceptions.py` (Implementation).

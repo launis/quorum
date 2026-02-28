@@ -52,7 +52,7 @@ async def run_prompt(request: PlaygroundRequest) -> PlaygroundResponse:
     try:
         from backend.database.repository import UnifiedWorkflowRepository
         repo = UnifiedWorkflowRepository()
-        
+
         client = await LLMClient.from_strategy(request.strategy, repository=repo)
     except Exception as e:
         error_code = "STRATEGY_RESOLUTION_FAILED"

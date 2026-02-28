@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 from backend.database.repository import AbstractWorkflowRepository
 from backend.models.domain.analyst import AnalystOutput, Hypothesis
 from backend.models.domain.causal import CausalAnalysis, CausalOutput, CounterfactualTest
-from backend.models.domain.coach import CoachingPlan, BibliographyItem
+from backend.models.domain.coach import BibliographyItem, CoachingPlan
 from backend.models.domain.evaluation import DimensionResultItem
-from backend.models.domain.falsifier import FalsifierData, FalsifierOutput, WaltonStressTest, ReasoningFidelity
+from backend.models.domain.falsifier import FalsifierData, FalsifierOutput, ReasoningFidelity, WaltonStressTest
 from backend.models.domain.judge import JudgeOutput, JudgeScoreCard
 from backend.models.domain.logician import CognitiveLevel, LogicianData, LogicianOutput, ToulminComponent, WaltonScheme
-from backend.models.domain.overseer import OverseerData, OverseerOutput, FactCheckRFI
+from backend.models.domain.overseer import FactCheckRFI, OverseerData, OverseerOutput
 from backend.models.domain.xai import XAIOutput
 from backend.models.enums import AbductiveConclusion, BloomLevel, FidelityLevel, PlausibilityLevel, StrategicDepth
 from backend.models.state import WorkflowState
@@ -85,11 +85,9 @@ class MockWorkflowRepository(AbstractWorkflowRepository):
         pass
 
     async def get_audit_logs(self, organization_id=None, actor_id=None, action=None, limit=100, **kwargs):
-        from typing import Any
         return []
 
     async def get_all_workflows(self, organization_id=None, role=None, **kwargs):
-        from typing import Any
         return []
 
     async def get_workflow_by_id(self, workflow_id):
@@ -120,7 +118,6 @@ class MockWorkflowRepository(AbstractWorkflowRepository):
         return True
 
     async def get_all_components(self, type=None, exclude_types=None, **kwargs):
-        from typing import Any
         return []
 
     async def get_component_by_name(self, name):

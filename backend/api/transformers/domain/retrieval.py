@@ -16,30 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 class RetrievalDomainTransformer(BaseTransformer):
-    def _extract_context_section(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_context")
-        if not step:
+    def _extract_context_section(self, state: 'WorkflowState') -> UiSection | None:
+        model = state.get_context("step_context", ContextData)
+        if not model:
             return None
-
-        # STRICT VALIDATION
-        try:
-            # Handle wrapped vs flat
-            if "context_data" in step:
-                model = ContextData(**step["context_data"])
-            else:
-                model = ContextData(**step)
-        except ValidationError as e:
-            error_code = "CONTEXT_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
-            raise AppException(
-                message=f"Context validation failed: {e}",
-                status_code=500,
-                details={"error_code": error_code, "errors": e.errors()},
-            ) from e
-        except Exception as e:
-            error_code = "CONTEXT_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
-            raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
         try:
             display_model = self._transform_context_data(model)
@@ -50,6 +30,7 @@ class RetrievalDomainTransformer(BaseTransformer):
                 data=display_model,
             )
         except Exception as e:
+            from backend.exceptions import AppException
             raise AppException(f"Failed to transform Context display: {e}", 500) from e
 
     def _transform_context_data(self, model: ContextData) -> EvidenceList:

@@ -55,10 +55,10 @@ class TinyDBDriver(StorageDriver):
             return val == f.value
         elif f.operator == "!=":
             return val != f.value
-            
+
         if val is None:
             return False
-            
+
         if f.operator == "<":
             return val < f.value
         elif f.operator == "<=":

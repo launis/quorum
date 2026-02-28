@@ -76,7 +76,7 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> lis
         ) from e
 
 
-async def generate_bibliography_hook(state, repository: Any = None) -> "WorkflowState":
+async def generate_bibliography_hook(state, repository: Any = None) -> WorkflowState:
     """Wrap generate_bibliography and inject its results into WorkflowState."""
     logger.debug("[ReferenceHook] Running generate_bibliography_hook...")
 
@@ -92,7 +92,7 @@ async def generate_bibliography_hook(state, repository: Any = None) -> "Workflow
 
         step_coach = state.context_variables.get("step_coach")
         if step_coach and hasattr(step_coach, "model_dump"):
-            text_dump += json.dumps(step_coach.model_dump(), ensure_ascii=False)
+            text_dump += json.dumps(step_coach.model_dump(mode="json"), ensure_ascii=False)
 
         if not text_dump.strip():
             logger.warning("[ReferenceHook] No text to scan.")

@@ -57,49 +57,26 @@ class ReportTransformer(
         # "If it has a shape, it must be a Model."
 
         execution_id = ""
-        results = {}
-        context = {}
-        trace = []
+        state = None
 
         if isinstance(raw_data, ExecutionRecord):
             execution_id = raw_data.id
-            # Results might be WorkflowState or dict
             if isinstance(raw_data.results, WorkflowState):
-                results = raw_data.results.model_dump()  # TODO: Use attributes?
-                trace = raw_data.results.execution_trace
-                context = raw_data.results.context_variables
+                state = raw_data.results
             elif isinstance(raw_data.results, dict):
-                results = raw_data.results
-                # Trace might be in results or missing if raw legacy
-                trace = results.get("execution_trace", [])
-                context = results.get("context_variables", {})
+                # We attempt to reconstruct State
+                raw_res = raw_data.results
+                ctx_vars = raw_res.get('context_variables', raw_res.get('step_results', raw_res))
+                state = WorkflowState(workflow_id=raw_data.workflow_id or "legacy_fallback", context_variables=ctx_vars)
             else:
-                logger.warning(f"Unrecognized results type {type(raw_data.results)}, defaulting to empty data.")
+                logger.warning(f"Unrecognized results type {type(raw_data.results)}, defaulting to empty WorkflowState.")
+                state = WorkflowState(workflow_id="unknown")
         else:
-            # FAIL FAST: Strict Schema Requirement (Feb 2026 Mandate)
+            # FAIL FAST: Strict Schema Requirement
             raise TypeError(f"ReportTransformer requires ExecutionRecord. Got: {type(raw_data)}")
 
         if not execution_id:
-            # Fail Fast: Strict Schema Requirement
             raise ValueError("Execution data missing mandatory 'id' field.")
-
-        # --- Event Sourcing Adaptation ---
-
-        # Modern Standard (V3): Step results are stored in context_variables
-        steps = {}
-        if context and isinstance(context, dict):
-            for k, v in context.items():
-                # Some steps may not be dicts, but most agent outputs are.
-                if k.startswith("step_") and isinstance(v, dict):
-                    steps[k] = v
-
-        # Legacy Fallbacks
-        if not steps and isinstance(results, dict) and "step_results" in results:
-            steps = results["step_results"]
-
-        # Deep Fallback: Reconstruct from strict Event Trace (Source of Truth)
-        if not steps and trace:
-            steps = self._reconstruct_state_from_trace(trace)
 
         sections = []
 
@@ -107,15 +84,18 @@ class ReportTransformer(
         judge_keys = ["step_judge", "step_judge_cognitive"]
 
         for key in judge_keys:
-            step_data = steps.get(key)
-            if step_data:
+            # Use type-safe property dynamically from WorkflowState
+            # Returns JudgeOutput or None
+            step_output = getattr(state, key) if hasattr(state, key) else None
+            
+            if step_output:
                 # Determine base title and agent name
                 base_title = (
                     self._get_label(LabelKey.ANALYSIS_RESULT)
                     if key == "step_judge"
                     else self._get_label(LabelKey.COGNITIVE_ASSESSMENT)
                 )
-                
+
                 # Use step name if provided, else fallback to hardcoded
                 base_agent_name = ""
                 if step_names and key in step_names:
@@ -127,21 +107,20 @@ class ReportTransformer(
                         else self._get_label(LabelKey.AGENT_COGNITIVE_JUDGE)
                     )
 
-                # Extract all cards (Legacy or V3 Array)
                 cards = []
-                if "score_cards" in step_data and isinstance(step_data["score_cards"], list):
-                    cards = step_data["score_cards"]
-                elif "score_card" in step_data:
-                    cards = [step_data["score_card"]]
+                if hasattr(step_output, "score_cards") and step_output.score_cards:
+                    cards = step_output.score_cards
+                elif hasattr(step_output, "score_card") and step_output.score_card:
+                    cards = [step_output.score_card]
                 else:
-                    cards = [step_data]  # Legacy fallback where step is the card
+                    cards = [step_output]  # Just in case JudgeOutput itself is the card payload
 
                 for idx, card in enumerate(cards):
                     try:
                         # Fail Fast: Try/Except used for context logging, BUT we re-raise.
 
-                        # Use specific agent name from card if available
-                        card_agent_name = card.get("agent_name") or base_agent_name
+                        # Attribute access. If missing, it crashes (Fail Fast)
+                        card_agent_name = getattr(card, "agent_name", base_agent_name)
 
                         # Construct title
                         if len(cards) > 1 or card_agent_name != base_agent_name:
@@ -175,82 +154,82 @@ class ReportTransformer(
             sections.append(usage_section)
 
         # --- B. XAI Report ---
-        xai_section = self._build_xai_section(steps)
+        xai_section = self._build_xai_section(state)
         if xai_section:
             sections.append(xai_section)
 
         # --- B2. Generic Data Sections (Versatile Reporting) ---
         # Domain Mixins handle these
-        guard_grid = self._extract_guard_grid(steps)
+        guard_grid = self._extract_guard_grid(state)
         if guard_grid:
             sections.append(guard_grid)
 
         # --- Truth Protocol Findings (Critical Findings) ---
         # User Request: "Näytetään löydökset kirjallisena lopputulosteessa"
         # We extract 'critical_findings' from Judge step and show them prominently.
-        truth_section = self._extract_critical_findings(steps)
+        truth_section = self._extract_critical_findings(state)
         if truth_section:
             sections.append(truth_section)
 
-        analyst_table = self._extract_analyst_table(steps)
+        analyst_table = self._extract_analyst_table(state)
         if analyst_table:
             sections.append(analyst_table)
 
             # Helper: Extract Evidence separately if present
-            evidence = self._extract_analyst_evidence(steps)
+            evidence = self._extract_analyst_evidence(state)
             if evidence:
                 sections.append(evidence)
 
-        profiler_section = self._extract_profiler_section(steps)
+        profiler_section = self._extract_profiler_section(state)
         if profiler_section:
             sections.append(profiler_section)
 
         # RetrievalDomainTransformer handles this
-        context_section = self._extract_context_section(steps)
+        context_section = self._extract_context_section(state)
         if context_section:
             sections.append(context_section)
 
         # --- SPECIALIST BACKBONE (Courtroom 3.0) ---
 
         # 1. Logic / Logician
-        logician = self._extract_logician_section(steps)
+        logician = self._extract_logician_section(state)
         if logician:
             sections.append(logician)
 
         # 2. Falsification / Falsifier
-        falsifier = self._extract_falsifier_section(steps)
+        falsifier = self._extract_falsifier_section(state)
         if falsifier:
             sections.append(falsifier)
 
         # 3. Causal / Causal Analyst
-        causal = self._extract_causal_section(steps)
+        causal = self._extract_causal_section(state)
         if causal:
             sections.append(causal)
 
         # 4. Performativity / Detector
-        detector = self._extract_detector_section(steps)
+        detector = self._extract_detector_section(state)
         if detector:
             sections.append(detector)
 
         # 5. Facts & Ethics / Overseer
-        overseer = self._extract_overseer_section(steps)
+        overseer = self._extract_overseer_section(state)
         if overseer:
             sections.append(overseer)
 
-        interaction_grid = self._extract_interaction_section(steps)
+        interaction_grid = self._extract_interaction_section(state)
         if interaction_grid:
             sections.append(interaction_grid)
 
-        coach_section = self._extract_coach_section(steps)
+        coach_section = self._extract_coach_section(state)
         if coach_section:
             sections.append(coach_section)
 
-        archivist_section = self._extract_archivist_section(steps)
+        archivist_section = self._extract_archivist_section(state)
         if archivist_section:
             sections.append(archivist_section)
 
         # --- C. Timeline ---
-        timeline_events = self._build_timeline(steps, step_names)
+        timeline_events = self._build_timeline(state, step_names)
 
         sections.append(
             UiSection(
@@ -261,13 +240,8 @@ class ReportTransformer(
             )
         )
 
-
         # Extract Metrics from context_variables (if available)
-        metrics = None
-        # context is already extracted strictly above
-
-        if context:
-            metrics = context.get("audit_metrics")
+        metrics = state.context_variables.get("audit_metrics") if state else None
 
         # --- D. Dynamic Theming & Notifications ---
         status_theme, notification = self._determine_report_status(metrics, guard_grid)
@@ -320,9 +294,14 @@ class ReportTransformer(
         return theme, notification
 
     def _extract_score_data(
-        self, judge_step: dict, agent_name: str, valid_range: tuple[float, float] | None
+        self, judge_step: object, agent_name: str, valid_range: tuple[float, float] | None
     ) -> ScoreCardDisplay:
         """Extracts score and verdict from V3 Schema."""
+        if hasattr(judge_step, "model_dump"):
+            judge_step = judge_step.model_dump()
+        elif hasattr(judge_step, "dict"):
+            judge_step = judge_step.dict()
+
         score = None
         raw_score = None
         verdict = None
@@ -400,16 +379,16 @@ class ReportTransformer(
             dimensions=mapped_dimensions,
         )
 
-    def _build_xai_section(self, steps: dict) -> UiSection | None:
-        if "step_xai" not in steps:
+    def _build_xai_section(self, state: 'WorkflowState') -> UiSection | None:
+        xai = state.step_xai
+        if not xai:
             logger.warning("Missing data for step_xai in XAI Report layout")
             return None
 
-        xai = steps["step_xai"]
-        content = xai.get("xai_report_formatted")
+        content = getattr(xai, "xai_report_formatted", None)
 
         if not content:
-            content = xai.get("final_verdict")
+            content = getattr(xai, "final_verdict", None)
 
         if not content:
             logger.warning("step_xai exists but missing both 'xai_report_formatted' and 'final_verdict'")
@@ -422,7 +401,7 @@ class ReportTransformer(
             data={"content": content},
         )
 
-    def _build_timeline(self, steps: dict, step_names: dict[str, str] | None = None) -> list[dict]:
+    def _build_timeline(self, state: 'WorkflowState', step_names: dict[str, str] | None = None) -> list[dict]:
         events = []
         agent_names = {
             "step_guard": f"🛡️ {self._get_label(LabelKey.AGENT_GUARD)}",
@@ -439,14 +418,25 @@ class ReportTransformer(
             "step_xai": f"📝 {self._get_label(LabelKey.AGENT_REPORTER)}",
         }
 
-        for step_key, step_data in steps.items():
-            if not isinstance(step_data, dict):
-                logger.warning(f"Timeline extraction: step_data for {step_key} is not a dict, skipping.")
+        # Iterate context_variables to find all step keys
+        for step_key in state.context_variables.keys():
+            if not step_key.startswith("step_"):
                 continue
 
-            meta = step_data.get("metadata") or {}
-            timestamp = meta.get("luontiaika")
-            
+            # Load typed Pydantic model using WorkflowState's intelligent accessor properties
+            model = getattr(state, step_key, None)
+            if not model:
+                logger.warning(f"Timeline extraction: no typed property found in WorkflowState for {step_key}, skipping.")
+                continue
+
+            meta = getattr(model, "metadata", None)
+            if not meta:
+                continue
+                
+            timestamp = getattr(meta, "luontiaika", None)
+            if timestamp:
+                timestamp = timestamp.isoformat()
+
             # Determine agent label from hardcoded defaults or dynamic step_names
             if step_key in agent_names:
                 agent_label = agent_names[step_key]
@@ -456,16 +446,17 @@ class ReportTransformer(
                 agent_label = step_key
 
             # 1. Reasoning Trace (The thinking process)
-            rt = step_data.get("reasoning_trace")
+            rt = getattr(model, "reasoning_trace", None)
             if rt:
+                thought = getattr(rt, "thought_process", str(rt))
                 events.append(
                     {
                         "timestamp": timestamp,
                         "actor": agent_label,
                         "label": agent_label,
                         "type": "reasoning",
-                        "message": str(rt)[:250] + "...",
-                        "content": str(rt)[:250] + "...",
+                        "message": thought[:250] + "...",
+                        "content": thought[:250] + "...",
                         "compliance_help": self._t(HelpTextKey.ARCHIVIST.value, default="Archivist Help"),
                         "bloom_help": self._t(HelpTextKey.BLOOM.value, default="Bloom Help"),
                         "strategic_help": self._t(HelpTextKey.STRATEGIC_DEPTH.value, default="Strategic Depth Help"),
@@ -476,13 +467,17 @@ class ReportTransformer(
                 )
 
             # 2. Audit Logs
-            if "audit_logs" in meta and isinstance(meta["audit_logs"], list):
-                for log in meta["audit_logs"]:
-                    if log.get("role") == "system":
+            audit_logs = getattr(meta, "audit_logs", None)
+            if audit_logs and isinstance(audit_logs, list):
+                for log in audit_logs:
+                    # 'log' is an AuditLogEntry pydantic model
+                    # But it could be a dict if Pydantic conversion failed
+                    role = getattr(log, "level", None) or getattr(log, "role", None)
+                    if role == "system":
                         continue
 
-                    content = log.get("content", "")
-                    clean_msg = content.replace("<<REFERENCE:", "[Viittaus:").replace(">>", "]")
+                    content = getattr(log, "message", None) or getattr(log, "content", "")
+                    clean_msg = str(content).replace("<<REFERENCE:", "[Viittaus:").replace(">>", "]")
 
                     events.append(
                         {
@@ -497,20 +492,20 @@ class ReportTransformer(
 
         return sorted(events, key=lambda x: x.get("timestamp") or "")
 
-    def _extract_analyst_table(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_analyst")
-        if not step or not isinstance(step, dict):
+    def _extract_analyst_table(self, state: 'WorkflowState') -> UiSection | None:
+        step = state.step_analyst
+        if not step:
             logger.warning("Missing data for step_analyst in Analyst Table layout")
             return None
 
-        hypotheses = step.get("hypotheses") or step.get("hypoteesit", [])
+        hypotheses = getattr(step, "hypotheses", None) or getattr(step, "hypoteesit", [])
         if not hypotheses:
             logger.warning("step_analyst exists but 'hypotheses' data is missing or empty")
             return None
 
         rows = []
         for h in hypotheses:
-            h_data = h if isinstance(h, dict) else h.dict()
+            h_data = h if isinstance(h, dict) else h.model_dump()
             rows.append(
                 {
                     "id": h_data.get("id"),
@@ -521,7 +516,7 @@ class ReportTransformer(
             )
 
         # Enhancement: Include RAG Evidence if available
-        rag_evidence = step.get("rag_evidence")
+        rag_evidence = getattr(step, "rag_evidence", None)
         evidence_content = ""
         if rag_evidence:
             evidence_content = f"### {self._get_label(LabelKey.EVIDENCE_FOUND)}\n"
@@ -544,21 +539,21 @@ class ReportTransformer(
             },
         )
 
-    def _extract_analyst_evidence(self, steps: dict) -> UiSection | None:
+    def _extract_analyst_evidence(self, state: 'WorkflowState') -> UiSection | None:
         """Helper to extract RAG evidence as a separate section if needed."""
-        step = steps.get("step_analyst")
+        step = state.step_analyst
         if not step:
             logger.warning("Missing data for step_analyst in Analyst Evidence layout")
             return None
 
-        rag_evidence = step.get("rag_evidence")
+        rag_evidence = getattr(step, "rag_evidence", None)
         if not rag_evidence:
             logger.warning("step_analyst exists but 'rag_evidence' data is missing or empty")
             return None
 
         items = []
         for i, item in enumerate(rag_evidence):
-            items.append(EvidenceItem(id=f"evidence-{i}", source="RAG Search", content=item, score=1.0, type="concept"))
+            items.append(EvidenceItem(id=f"evidence-{i}", source="RAG Search", content=str(item), score=1.0, type="concept"))
 
         return UiSection(
             id="analyst-evidence",
@@ -579,20 +574,21 @@ class ReportTransformer(
         completion_tokens = 0
 
         # Access results safely
-        res_data = {}
         if isinstance(record.results, WorkflowState):
-            # No standard 'usage' field in WorkflowState yet? Check context?
-            # Or maybe it's in context_variables.audit_metrics?
-            pass
+            usage = record.results.context_variables.get("usage")
+            if not usage:
+                # Fallback to total audit_metrics if usage object is absent
+                metrics = record.results.context_variables.get("audit_metrics", {})
+                usage = metrics.get("usage")
         elif isinstance(record.results, dict):
             res_data = record.results
-
-        # Try to find usage dict
-        usage = res_data.get("usage")
-        if not usage and "result" in res_data:
-            usage = res_data["result"].get("usage")
-        if not usage and "context_variables" in res_data:
-            usage = res_data["context_variables"].get("usage")
+            usage = res_data.get("usage")
+            if not usage and "result" in res_data:
+                usage = res_data["result"].get("usage")
+            if not usage and "context_variables" in res_data:
+                usage = res_data["context_variables"].get("usage")
+        else:
+            usage = None
 
         if usage:
             total_tokens = usage.get("total_tokens", 0)
@@ -619,23 +615,28 @@ class ReportTransformer(
             id="usage-stats", type=SectionType.USAGE_STATS, title=self._get_title(TitleKey.USAGE), data=data
         )
 
-    def _extract_critical_findings(self, steps: dict) -> UiSection | None:
+    def _extract_critical_findings(self, state: 'WorkflowState') -> UiSection | None:
         """Extracts Truth Protocol findings (Critical Findings) from Judge step."""
         findings = []
 
         # Check both judges
         for key in ["step_judge", "step_judge_cognitive"]:
-            step = steps.get(key)
+            # Returns typed JudgeOutput
+            step = getattr(state, key, None)
             if not step:
                 logger.warning(f"Missing data for {key} in Critical Findings layout")
                 continue
 
-            # Direct list from dict or Pydantic model dump
-            f_list = step.get("critical_findings", [])
+            f_list = getattr(step, "critical_findings", [])
 
-            # Legacy/Fallback: Check inside score_card if not at top level (unlikely with current hook, but safe)
-            if not f_list and "score_card" in step:
-                f_list = step["score_card"].get("critical_findings", [])
+            # Legacy/Fallback: Check inside score_card if not at top level
+            if not f_list and hasattr(step, "score_card") and step.score_card:
+                f_list = getattr(step.score_card, "critical_findings", [])
+            elif not f_list and hasattr(step, "score_cards") and step.score_cards:
+                 for card in step.score_cards:
+                     card_findings = getattr(card, "critical_findings", [])
+                     if card_findings:
+                         f_list.extend(card_findings)
 
             if f_list:
                 findings.extend(f_list)

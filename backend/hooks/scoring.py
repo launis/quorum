@@ -11,6 +11,7 @@ from backend.models.domain import (
     ScoringResult,
 )
 from backend.models.state import WorkflowState
+from backend.utils.math_utils import normalize_score_to_100
 from backend.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
@@ -53,10 +54,10 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
     # 2. Falsifier Penalty Check
     is_post_hoc = False
     falsifier_model = state.get_context("step_falsifier", FalsifierOutput)
-    
+
     from backend.models.domain.panel import PanelOutput
     panel_model = state.get_context("step_panel", PanelOutput)
-    
+
     falsifier_data = None
     if falsifier_model and falsifier_model.falsifier_data:
         falsifier_data = falsifier_model.falsifier_data
@@ -97,9 +98,15 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
         # Using strict inflate here because item is from list iteration, not direct context key
         judge_model = inflate(item, JudgeOutput)
         if judge_model:
-            total_score_accum += judge_model.score_card.total_score
+            # 3.1 Normalize score to 0.0 - 100.0 before aggregating
+            normalized = normalize_score_to_100(
+                score=judge_model.score_card.total_score,
+                scale_min=judge_model.score_card.scale_min,
+                scale_max=judge_model.score_card.scale_max,
+            )
+            total_score_accum += normalized
             count += 1
-            scores_found.append(judge_model.score_card.total_score)
+            scores_found.append(normalized)
             continue
 
     if count == 0:
@@ -137,9 +144,7 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
             )
 
     # Safety Clamp (Relative scores should technically not go below min if min is 0, but if min is 1, they can)
-    # We don't have easy access to scale_min here across all judges, so we assume 1.0 or 0.0 depending on context?
-    # Actually, apply_scoring_logic is for EvaluationResult which is a Summary.
-    # Let's rely on the individual judge updates for strict bounds, but for this summary, max(0.0) is safe.
+    # We now operate on a 0.0 - 100.0 scale for the aggregated score.
     final_score = max(0.0, final_score)
 
     # 5. Create Result
@@ -205,7 +210,7 @@ def enforce_scoring_penalties(result: Any, context: Any) -> Any:
     # 1.2 Falsifier Findings
     step_falsifier = _get_ctx("step_falsifier")
     step_panel = _get_ctx("step_panel")
-    
+
     falsifier_data = None
     if step_falsifier:
         falsifier_model = inflate(step_falsifier, FalsifierOutput)

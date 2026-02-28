@@ -127,7 +127,7 @@ async def monitor_execution(
             if not steps_list and isinstance(workflow_definition, dict):
                 steps_list = workflow_definition.get("steps", [])
             logger.info(f"[Monitor] workflow_definition steps: {steps_list}")
-            
+
             for sid in steps_list:
                 if isinstance(sid, str):
                     try:
@@ -135,14 +135,14 @@ async def monitor_execution(
                         if not step_doc:
                             # Fallback: Is the step directly referring to a Component ID?
                             step_doc = await repository.get_component_by_id(sid)
-                            
+
                         if step_doc:
                             # step_doc is generic dict. Extract 'name' (human readable)
                             # or 'slug' (fallback, e.g. 'step_analyst')
                             name = step_doc.get("name") or step_doc.get("slug")
                             if name:
                                 step_names_map[sid] = name
-                                
+
                             task_key = step_doc.get("task_key") or step_doc.get("component")
                             if task_key:
                                 step_slugs_map[sid] = task_key

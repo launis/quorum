@@ -1,4 +1,4 @@
-# Simplified Verification Strategy (V3.2 - Phase 8 Standards)
+# Simplified Verification Strategy (V5.1 - Phase 9 Hardening)
 
 **Philosophy**: "Zero-Magic". We avoid complex test runners and implicit states in favor of clear, readable, single-file verification scripts.
 **Principle**: "Fail Fast". Verification should halt immediately upon detecting invalid configuration or state.

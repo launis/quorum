@@ -99,10 +99,10 @@ async def list_registry_items(repo: RepositoryDep) -> list[RegistryComponentItem
     """Retrieves all system components directly from the Repository."""
     raw_components = await repo.get_all_components()
     raw_agents = await repo.get_all_agents()
-    
+
     # Combine sources for the UI registry
     combined = raw_components + raw_agents
-    
+
     items = []
 
     for comp_data in combined:
