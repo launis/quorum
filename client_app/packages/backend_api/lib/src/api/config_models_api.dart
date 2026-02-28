@@ -16,7 +16,6 @@ import 'package:backend_api/src/model/llm_provider_config.dart';
 import 'package:backend_api/src/model/model_options_response.dart';
 
 class ConfigModelsApi {
-
   final Dio _dio;
 
   const ConfigModelsApi(this._dio);
@@ -25,7 +24,7 @@ class ConfigModelsApi {
   /// Delete a specific provider strategy configuration.  Enforces Reference Integrity (Workflow Usage) and System Integrity (Default Strategy). Strictly requires &#39;provider/strategy&#39; format.
   ///
   /// Parameters:
-  /// * [providerId] 
+  /// * [providerId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -35,7 +34,7 @@ class ConfigModelsApi {
   ///
   /// Returns a [Future]
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<void>> deleteModelConfigV1ConfigModelsProviderIdDelete({ 
+  Future<Response<void>> deleteModelConfigV1ConfigModelsProviderIdDelete({
     required String providerId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -44,16 +43,16 @@ class ConfigModelsApi {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/models/{provider_id}'.replaceAll('{' r'provider_id' '}', providerId.toString());
+    final _path = r'/v1/config/models/{provider_id}'.replaceAll(
+      '{'
+      r'provider_id'
+      '}',
+      providerId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -81,7 +80,8 @@ class ConfigModelsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [Map<String, String>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Map<String, String>>> getAgentMappingsV1ConfigModelsMappingsGet({ 
+  Future<Response<Map<String, String>>>
+  getAgentMappingsV1ConfigModelsMappingsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -92,13 +92,8 @@ class ConfigModelsApi {
     final _path = r'/v1/config/models/mappings';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -113,9 +108,14 @@ class ConfigModelsApi {
     Map<String, String>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<Map<String, String>, String>(rawData, 'Map<String, String>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<Map<String, String>, String>(
+              rawData,
+              'Map<String, String>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -151,7 +151,8 @@ _responseData = rawData == null ? null : deserialize<Map<String, String>, String
   ///
   /// Returns a [Future] containing a [Response] with a [ModelOptionsResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ModelOptionsResponse>> listModelOptionsV1ConfigModelsOptionsGet({ 
+  Future<Response<ModelOptionsResponse>>
+  listModelOptionsV1ConfigModelsOptionsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -162,13 +163,8 @@ _responseData = rawData == null ? null : deserialize<Map<String, String>, String
     final _path = r'/v1/config/models/options';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -183,9 +179,14 @@ _responseData = rawData == null ? null : deserialize<Map<String, String>, String
     ModelOptionsResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ModelOptionsResponse, ModelOptionsResponse>(rawData, 'ModelOptionsResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ModelOptionsResponse, ModelOptionsResponse>(
+              rawData,
+              'ModelOptionsResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -221,7 +222,7 @@ _responseData = rawData == null ? null : deserialize<ModelOptionsResponse, Model
   ///
   /// Returns a [Future] containing a [Response] with a [List<LLMProviderConfig>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<LLMProviderConfig>>> listModelsV1ConfigModelsGet({ 
+  Future<Response<List<LLMProviderConfig>>> listModelsV1ConfigModelsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -232,13 +233,8 @@ _responseData = rawData == null ? null : deserialize<ModelOptionsResponse, Model
     final _path = r'/v1/config/models';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -253,9 +249,14 @@ _responseData = rawData == null ? null : deserialize<ModelOptionsResponse, Model
     List<LLMProviderConfig>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<LLMProviderConfig>, LLMProviderConfig>(rawData, 'List<LLMProviderConfig>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<LLMProviderConfig>, LLMProviderConfig>(
+              rawData,
+              'List<LLMProviderConfig>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -282,7 +283,7 @@ _responseData = rawData == null ? null : deserialize<List<LLMProviderConfig>, LL
   /// Execute an ephemeral LLM request to test credentials/latency.  Does NOT use the database configuration unless strategy_id is specifically requested. Returns status&#x3D;\&quot;error\&quot; instead of 500 for expected connection failures (User Feedback).
   ///
   /// Parameters:
-  /// * [adHocTestRequest] 
+  /// * [adHocTestRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -292,7 +293,8 @@ _responseData = rawData == null ? null : deserialize<List<LLMProviderConfig>, LL
   ///
   /// Returns a [Future] containing a [Response] with a [AdHocTestResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<AdHocTestResponse>> testModelConnectionV1ConfigModelsTestPost({ 
+  Future<Response<AdHocTestResponse>>
+  testModelConnectionV1ConfigModelsTestPost({
     required AdHocTestRequest adHocTestRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -304,13 +306,8 @@ _responseData = rawData == null ? null : deserialize<List<LLMProviderConfig>, LL
     final _path = r'/v1/config/models/test';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -318,13 +315,10 @@ _responseData = rawData == null ? null : deserialize<List<LLMProviderConfig>, LL
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(adHocTestRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(adHocTestRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -343,9 +337,14 @@ _bodyData=jsonEncode(adHocTestRequest);
     AdHocTestResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<AdHocTestResponse, AdHocTestResponse>(rawData, 'AdHocTestResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<AdHocTestResponse, AdHocTestResponse>(
+              rawData,
+              'AdHocTestResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -372,7 +371,7 @@ _responseData = rawData == null ? null : deserialize<AdHocTestResponse, AdHocTes
   /// Update Agent to Model Strategy mappings.  Expects dict mapping Agent IDs to \&quot;provider/strategy\&quot; strings.
   ///
   /// Parameters:
-  /// * [requestBody] 
+  /// * [requestBody]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -382,7 +381,8 @@ _responseData = rawData == null ? null : deserialize<AdHocTestResponse, AdHocTes
   ///
   /// Returns a [Future] containing a [Response] with a [Map<String, String>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Map<String, String>>> updateAgentMappingsV1ConfigModelsMappingsPut({ 
+  Future<Response<Map<String, String>>>
+  updateAgentMappingsV1ConfigModelsMappingsPut({
     required Map<String, String> requestBody,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -394,13 +394,8 @@ _responseData = rawData == null ? null : deserialize<AdHocTestResponse, AdHocTes
     final _path = r'/v1/config/models/mappings';
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -408,13 +403,10 @@ _responseData = rawData == null ? null : deserialize<AdHocTestResponse, AdHocTes
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(requestBody);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(requestBody);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -433,9 +425,14 @@ _bodyData=jsonEncode(requestBody);
     Map<String, String>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<Map<String, String>, String>(rawData, 'Map<String, String>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<Map<String, String>, String>(
+              rawData,
+              'Map<String, String>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -462,8 +459,8 @@ _responseData = rawData == null ? null : deserialize<Map<String, String>, String
   /// Update configuration for a specific provider strategy.  &#39;provider_id&#39; MUST be complex path &#39;provider/strategy&#39;. Legacy flat IDs are strictly rejected.
   ///
   /// Parameters:
-  /// * [providerId] 
-  /// * [lLMProviderConfig] 
+  /// * [providerId]
+  /// * [lLMProviderConfig]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -473,7 +470,8 @@ _responseData = rawData == null ? null : deserialize<Map<String, String>, String
   ///
   /// Returns a [Future] containing a [Response] with a [LLMProviderConfig] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<LLMProviderConfig>> updateModelConfigV1ConfigModelsProviderIdPut({ 
+  Future<Response<LLMProviderConfig>>
+  updateModelConfigV1ConfigModelsProviderIdPut({
     required String providerId,
     required LLMProviderConfig lLMProviderConfig,
     CancelToken? cancelToken,
@@ -483,16 +481,16 @@ _responseData = rawData == null ? null : deserialize<Map<String, String>, String
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/models/{provider_id}'.replaceAll('{' r'provider_id' '}', providerId.toString());
+    final _path = r'/v1/config/models/{provider_id}'.replaceAll(
+      '{'
+      r'provider_id'
+      '}',
+      providerId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -500,13 +498,10 @@ _responseData = rawData == null ? null : deserialize<Map<String, String>, String
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(lLMProviderConfig);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(lLMProviderConfig);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -525,9 +520,14 @@ _bodyData=jsonEncode(lLMProviderConfig);
     LLMProviderConfig? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<LLMProviderConfig, LLMProviderConfig>(rawData, 'LLMProviderConfig', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<LLMProviderConfig, LLMProviderConfig>(
+              rawData,
+              'LLMProviderConfig',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -549,5 +549,4 @@ _responseData = rawData == null ? null : deserialize<LLMProviderConfig, LLMProvi
       extra: _response.extra,
     );
   }
-
 }

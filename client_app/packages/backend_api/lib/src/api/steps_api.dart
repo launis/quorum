@@ -14,7 +14,6 @@ import 'package:backend_api/src/model/step_definition.dart';
 import 'package:backend_api/src/model/step_delete_response.dart';
 
 class StepsApi {
-
   final Dio _dio;
 
   const StepsApi(this._dio);
@@ -23,7 +22,7 @@ class StepsApi {
   /// Creates a new step. Pydantic validator adapts legacy input to DB schema.
   ///
   /// Parameters:
-  /// * [stepDefinition] 
+  /// * [stepDefinition]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -33,7 +32,7 @@ class StepsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [StepDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDefinition>> createStepV1ConfigStepsPost({ 
+  Future<Response<StepDefinition>> createStepV1ConfigStepsPost({
     required StepDefinition stepDefinition,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -45,13 +44,8 @@ class StepsApi {
     final _path = r'/v1/config/steps';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -59,13 +53,10 @@ class StepsApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(stepDefinition);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(stepDefinition);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -84,9 +75,14 @@ _bodyData=jsonEncode(stepDefinition);
     StepDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinition>(rawData, 'StepDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDefinition, StepDefinition>(
+              rawData,
+              'StepDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -113,7 +109,7 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
   /// Deletes a step.
   ///
   /// Parameters:
-  /// * [stepId] 
+  /// * [stepId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -123,7 +119,7 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
   ///
   /// Returns a [Future] containing a [Response] with a [StepDeleteResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDeleteResponse>> deleteStepV1ConfigStepsStepIdDelete({ 
+  Future<Response<StepDeleteResponse>> deleteStepV1ConfigStepsStepIdDelete({
     required String stepId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -132,16 +128,16 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/steps/{step_id}'.replaceAll('{' r'step_id' '}', stepId.toString());
+    final _path = r'/v1/config/steps/{step_id}'.replaceAll(
+      '{'
+      r'step_id'
+      '}',
+      stepId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -156,9 +152,14 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     StepDeleteResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDeleteResponse>(rawData, 'StepDeleteResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDeleteResponse, StepDeleteResponse>(
+              rawData,
+              'StepDeleteResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -185,7 +186,7 @@ _responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDel
   /// Retrieves a single step by ID.
   ///
   /// Parameters:
-  /// * [stepId] 
+  /// * [stepId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -195,7 +196,7 @@ _responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDel
   ///
   /// Returns a [Future] containing a [Response] with a [StepDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDefinition>> getStepV1ConfigStepsStepIdGet({ 
+  Future<Response<StepDefinition>> getStepV1ConfigStepsStepIdGet({
     required String stepId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -204,16 +205,16 @@ _responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDel
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/steps/{step_id}'.replaceAll('{' r'step_id' '}', stepId.toString());
+    final _path = r'/v1/config/steps/{step_id}'.replaceAll(
+      '{'
+      r'step_id'
+      '}',
+      stepId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -228,9 +229,14 @@ _responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDel
     StepDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinition>(rawData, 'StepDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDefinition, StepDefinition>(
+              rawData,
+              'StepDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -266,7 +272,7 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
   ///
   /// Returns a [Future] containing a [Response] with a [List<StepDefinition>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<StepDefinition>>> getStepsV1ConfigStepsGet({ 
+  Future<Response<List<StepDefinition>>> getStepsV1ConfigStepsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -277,13 +283,8 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     final _path = r'/v1/config/steps';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -298,9 +299,14 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     List<StepDefinition>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepDefinition>(rawData, 'List<StepDefinition>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<StepDefinition>, StepDefinition>(
+              rawData,
+              'List<StepDefinition>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -327,8 +333,8 @@ _responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepD
   /// Updates an existing step.
   ///
   /// Parameters:
-  /// * [stepId] 
-  /// * [stepDefinition] 
+  /// * [stepId]
+  /// * [stepDefinition]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -338,7 +344,7 @@ _responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepD
   ///
   /// Returns a [Future] containing a [Response] with a [StepDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDefinition>> updateStepV1ConfigStepsStepIdPut({ 
+  Future<Response<StepDefinition>> updateStepV1ConfigStepsStepIdPut({
     required String stepId,
     required StepDefinition stepDefinition,
     CancelToken? cancelToken,
@@ -348,16 +354,16 @@ _responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepD
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/steps/{step_id}'.replaceAll('{' r'step_id' '}', stepId.toString());
+    final _path = r'/v1/config/steps/{step_id}'.replaceAll(
+      '{'
+      r'step_id'
+      '}',
+      stepId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -365,13 +371,10 @@ _responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepD
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(stepDefinition);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(stepDefinition);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -390,9 +393,14 @@ _bodyData=jsonEncode(stepDefinition);
     StepDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinition>(rawData, 'StepDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDefinition, StepDefinition>(
+              rawData,
+              'StepDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -414,5 +422,4 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
       extra: _response.extra,
     );
   }
-
 }

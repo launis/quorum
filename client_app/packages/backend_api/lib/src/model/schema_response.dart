@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'schema_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,26 @@ part 'schema_response.g.dart';
 )
 class SchemaResponse {
   /// Returns a new [SchemaResponse] instance.
-  SchemaResponse({
+  SchemaResponse({required this.modelName, required this.schemaDef});
 
-    required  this.modelName,
-
-    required  this.schemaDef,
-  });
-
-  @JsonKey(
-    
-    name: r'model_name',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'model_name', required: true)
   final String modelName;
 
-
-
-  @JsonKey(
-    
-    name: r'schema_def',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'schema_def', required: true)
   final Map<String, Object> schemaDef;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SchemaResponse &&
+          other.modelName == modelName &&
+          other.schemaDef == schemaDef;
 
+  @override
+  int get hashCode => modelName.hashCode + schemaDef.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is SchemaResponse &&
-      other.modelName == modelName &&
-      other.schemaDef == schemaDef;
-
-    @override
-    int get hashCode =>
-        modelName.hashCode +
-        schemaDef.hashCode;
-
-  factory SchemaResponse.fromJson(Map<String, dynamic> json) => _$SchemaResponseFromJson(json);
+  factory SchemaResponse.fromJson(Map<String, dynamic> json) =>
+      _$SchemaResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$SchemaResponseToJson(this);
 
@@ -69,6 +44,4 @@ class SchemaResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

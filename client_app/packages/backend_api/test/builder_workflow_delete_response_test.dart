@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for BuilderWorkflowDeleteResponse
 void main() {
-  final BuilderWorkflowDeleteResponse? instance = /* BuilderWorkflowDeleteResponse(...) */ null;
+  final BuilderWorkflowDeleteResponse?
+  instance = /* BuilderWorkflowDeleteResponse(...) */ null;
   // TODO add properties to the entity
 
   group(BuilderWorkflowDeleteResponse, () {
@@ -16,6 +17,5 @@ void main() {
     test('to test the property `deletedSteps`', () async {
       // TODO
     });
-
   });
 }

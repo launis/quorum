@@ -23,10 +23,11 @@ class ActiveWorkflowController extends _$ActiveWorkflowController {
     if (current == null) return;
 
     final originalSteps = current.steps;
-    final updatedSteps = current.steps.map((step) {
-      if (step.id == stepId) return step.copyWith(config: newConfig);
-      return step;
-    }).toList();
+    final updatedSteps =
+        current.steps.map((step) {
+          if (step.id == stepId) return step.copyWith(config: newConfig);
+          return step;
+        }).toList();
 
     final updatedWf = current.copyWith(steps: updatedSteps);
     state = AsyncData(updatedWf);

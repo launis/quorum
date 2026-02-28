@@ -19,7 +19,8 @@ class SseClient {
     Map<String, dynamic>? queryParameters,
     Dio? dio,
   }) async* {
-    final client = dio ??
+    final client =
+        dio ??
         Dio(
           BaseOptions(
             connectTimeout: const Duration(seconds: 10),
@@ -54,7 +55,7 @@ class SseClient {
         // Split by double newlines (\n\n or \r\n\r\n) which separate SSE events
         // Using a regex to robustly handle different line endings from server
         final delimiterRegex = RegExp(r'\r\n\r\n|\n\n');
-        
+
         while (delimiterRegex.hasMatch(buffer)) {
           final match = delimiterRegex.firstMatch(buffer)!;
           final eventBlock = buffer.substring(0, match.start);
@@ -65,8 +66,8 @@ class SseClient {
 
           for (final line in lines) {
             if (line.isNotEmpty) {
-               // Temporary Debug Logging
-               // print('SSE RAW: $line'); 
+              // Temporary Debug Logging
+              // print('SSE RAW: $line');
             }
             // Filter lines starting with data:
             if (line.startsWith('data:')) {

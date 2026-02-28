@@ -21,15 +21,18 @@ void main() {
 
   setUp(() {
     mockRepository = MockStudioRepository();
-    
-    when(() => mockRepository.getComponents())
-        .thenAnswer((_) async => <StudioComponentDef>[]);
 
-    when(() => mockRepository.getAgents())
-        .thenAnswer((_) async => <StudioComponentDef>[]);
-        
-    when(() => mockRepository.getOutputConfigs())
-        .thenAnswer((_) async => <StudioComponentDef>[]);
+    when(
+      () => mockRepository.getComponents(),
+    ).thenAnswer((_) async => <StudioComponentDef>[]);
+
+    when(
+      () => mockRepository.getAgents(),
+    ).thenAnswer((_) async => <StudioComponentDef>[]);
+
+    when(
+      () => mockRepository.getOutputConfigs(),
+    ).thenAnswer((_) async => <StudioComponentDef>[]);
   });
 
   const testSteps = [
@@ -49,16 +52,15 @@ void main() {
       ProviderScope(
         overrides: [
           studioRepositoryProvider.overrideWithValue(mockRepository),
-          studioControllerProvider.overrideWith(() => FakeStudioController(testWorkflow)),
+          studioControllerProvider.overrideWith(
+            () => FakeStudioController(testWorkflow),
+          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
-            body: StudioSidebar(
-              selectedStepId: 's1',
-              onStepSelected: (_) {},
-            ),
+            body: StudioSidebar(selectedStepId: 's1', onStepSelected: (_) {}),
           ),
         ),
       ),
@@ -78,7 +80,9 @@ void main() {
       ProviderScope(
         overrides: [
           studioRepositoryProvider.overrideWithValue(mockRepository),
-          studioControllerProvider.overrideWith(() => FakeStudioController(testWorkflow)),
+          studioControllerProvider.overrideWith(
+            () => FakeStudioController(testWorkflow),
+          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -96,7 +100,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('W1'));
-    expect(selectedId, null); // Selected ID is cleared when a workflow is tapped in the sidebar
+    expect(
+      selectedId,
+      null,
+    ); // Selected ID is cleared when a workflow is tapped in the sidebar
   });
 }
 
@@ -112,30 +119,33 @@ class FakeStudioController extends StudioController {
       activeWorkflow: AsyncValue.data(initialData),
     );
   }
-  
+
   // Stubs for other methods to satisfy interface if needed (runtime mixin usually handles it)
   // Since we only override 'build' for the state, we need to implement methods if called.
   // BUT: StudioSidebar calls addStep/reorderSteps on ref.read(notifier).
   // Implicitly this class IS the notifier.
-  
+
   @override
   Future<void> addStep(WorkflowStepDef step) async {}
-  
+
   @override
   Future<void> reorderSteps(int oldIndex, int newIndex) async {}
-  
+
   @override
-  Future<void> loadWorkflow(String id) async  {}
-  
+  Future<void> loadWorkflow(String id) async {}
+
   @override
   Future<void> save() async {}
 
   @override
   Future<void> updateMetadata({String? name, String? description}) async {}
-  
+
   @override
-  Future<void> updateStep(String stepId, Map<String, dynamic> newConfig) async {}
-  
+  Future<void> updateStep(
+    String stepId,
+    Map<String, dynamic> newConfig,
+  ) async {}
+
   @override
   bool get isValid => true;
 

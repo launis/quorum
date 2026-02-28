@@ -10,7 +10,6 @@ part 'available_matrices_controller.g.dart';
 /// "Optimistic Update + Silent Invalidation" pattern (Riverpod 3.0 Best Practice).
 @riverpod
 class AvailableMatricesController extends _$AvailableMatricesController {
-  
   @override
   FutureOr<List<MatrixDef>> build() async {
     return ref.watch(studioRepositoryProvider).getMatrices();
@@ -27,7 +26,7 @@ class AvailableMatricesController extends _$AvailableMatricesController {
       scale: {'min': 1, 'max': 5},
       criteria: [],
     );
-    
+
     final currentList = state.value ?? [];
     state = AsyncData([...currentList, newMatrix]);
 
@@ -41,7 +40,10 @@ class AvailableMatricesController extends _$AvailableMatricesController {
     } catch (e, st) {
       // 5. Rollback
       state = previousState; // Assign directly, do not wrap in AsyncData
-      state = AsyncError(e, st); // Also expose error to UI? Or just rollback + rethrow?
+      state = AsyncError(
+        e,
+        st,
+      ); // Also expose error to UI? Or just rollback + rethrow?
       // Standard: Rollback state to data, then rethrow for Snackbar.
       state = previousState;
       rethrow;
@@ -51,7 +53,7 @@ class AvailableMatricesController extends _$AvailableMatricesController {
   /// **Delete Matrix**
   Future<void> deleteMatrix(String id) async {
     final previousState = state;
-    
+
     // 1. Optimistic Update
     final currentList = state.value ?? [];
     state = AsyncData(currentList.where((m) => m.id != id).toList());

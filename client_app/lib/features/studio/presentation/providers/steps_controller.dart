@@ -27,7 +27,7 @@ class StepsController extends _$StepsController {
     if (state.value != null) {
       state = AsyncData([...state.value!, step]);
     }
-    
+
     try {
       // 2. API Call
       await ref.read(studioRepositoryProvider).saveStep(step);
@@ -57,16 +57,16 @@ class StepsController extends _$StepsController {
       // 3. Silent Invalidation
       ref.invalidateSelf();
     } catch (e, st) {
-       // 4. Rollback
-       state = previousState;
-       state = AsyncValue.error(e, st);
+      // 4. Rollback
+      state = previousState;
+      state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> delete(String id) async {
     final previousState = state;
     if (previousState.value == null) return;
-    
+
     // 1. Optimistic Update
     final updatedList = previousState.value!.where((s) => s.id != id).toList();
     state = AsyncValue.data(updatedList);
@@ -77,9 +77,9 @@ class StepsController extends _$StepsController {
       // 3. Silent Invalidation
       ref.invalidateSelf();
     } catch (e, st) {
-       // 4. Rollback
-       state = previousState;
-       state = AsyncValue.error(e, st);
+      // 4. Rollback
+      state = previousState;
+      state = AsyncValue.error(e, st);
     }
   }
 }

@@ -35,7 +35,9 @@ class WorkflowStudioScreen extends HookConsumerWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // Deep link specific workflow if provided
         if (workflowId != null && initialTabIndex == 0) {
-          ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflowId!);
+          ref
+              .read(activeWorkflowControllerProvider.notifier)
+              .loadWorkflow(workflowId!);
         }
       });
       return null;
@@ -93,11 +95,16 @@ class WorkflowStudioScreen extends HookConsumerWidget {
                       icon: const Icon(Icons.save),
                       label: Text(l10n.save),
                       onPressed: () async {
-                        await ref.read(activeWorkflowControllerProvider.notifier).save();
+                        await ref
+                            .read(activeWorkflowControllerProvider.notifier)
+                            .save();
                         if (context.mounted) {
-                           ScaffoldMessenger.of(context).showSnackBar(
-                             SnackBar(content: Text(l10n.studioChangesSaved), duration: const Duration(seconds: 2))
-                           );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.studioChangesSaved),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
                         }
                       },
                     ),
@@ -106,45 +113,51 @@ class WorkflowStudioScreen extends HookConsumerWidget {
       ),
       // 4. Split View Layout (Desktop First)
       // 4. Split View Layout (Desktop First)
-      body: initialTabIndex == 2 
-            ? const StepsManagerPanel()
-            : initialTabIndex == 3
-                ? const ComponentsManagerPanel()
-                : Row(
-        children: [
-          StudioSidebar(
-            selectedStepId: selectedStepId.value,
-            onStepSelected: (id) {
-              selectedStepId.value = id;
-              // If in Matrix Mode, select the matrix in the controller
-              if (initialTabIndex == 1 && id != null) {
-                ref.read(matrixControllerProvider.notifier).selectMatrix(id);
-              }
-            },
-            mode:
-                initialTabIndex == 0
-                    ? StudioSidebarMode.workflows
-                    : StudioSidebarMode.matrices,
-          ),
-          const VerticalDivider(width: 1),
-          // Content Area
-          Expanded(
-            child:
-                initialTabIndex == 1
-                    ? const Row(
-                      children: [
-                        Expanded(flex: 5, child: MatrixEditorPanel()),
-                        VerticalDivider(width: 1),
-                        Expanded(flex: 3, child: OntologyManagerPanel()),
-                      ],
-                    )
-                    : StudioEditorArea(
-                        selectedStepId: selectedStepId.value,
-                        onStepSelected: (id) => selectedStepId.value = id,
-                      ),
-          ),
-        ],
-      ),
+      body:
+          initialTabIndex == 2
+              ? const StepsManagerPanel()
+              : initialTabIndex == 3
+              ? const ComponentsManagerPanel()
+              : Row(
+                children: [
+                  StudioSidebar(
+                    selectedStepId: selectedStepId.value,
+                    onStepSelected: (id) {
+                      selectedStepId.value = id;
+                      // If in Matrix Mode, select the matrix in the controller
+                      if (initialTabIndex == 1 && id != null) {
+                        ref
+                            .read(matrixControllerProvider.notifier)
+                            .selectMatrix(id);
+                      }
+                    },
+                    mode:
+                        initialTabIndex == 0
+                            ? StudioSidebarMode.workflows
+                            : StudioSidebarMode.matrices,
+                  ),
+                  const VerticalDivider(width: 1),
+                  // Content Area
+                  Expanded(
+                    child:
+                        initialTabIndex == 1
+                            ? const Row(
+                              children: [
+                                Expanded(flex: 5, child: MatrixEditorPanel()),
+                                VerticalDivider(width: 1),
+                                Expanded(
+                                  flex: 3,
+                                  child: OntologyManagerPanel(),
+                                ),
+                              ],
+                            )
+                            : StudioEditorArea(
+                              selectedStepId: selectedStepId.value,
+                              onStepSelected: (id) => selectedStepId.value = id,
+                            ),
+                  ),
+                ],
+              ),
     );
   }
 }

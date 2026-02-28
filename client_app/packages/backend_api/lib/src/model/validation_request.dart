@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'validation_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,52 +17,28 @@ part 'validation_request.g.dart';
 )
 class ValidationRequest {
   /// Returns a new [ValidationRequest] instance.
-  ValidationRequest({
+  ValidationRequest({required this.sourceStep, required this.targetStep});
 
-    required  this.sourceStep,
-
-    required  this.targetStep,
-  });
-
-      /// ID of the source step.
-  @JsonKey(
-    
-    name: r'source_step',
-    required: true,
-    
-  )
-
-
+  /// ID of the source step.
+  @JsonKey(name: r'source_step', required: true)
   final String sourceStep;
 
-
-
-      /// ID of the target step.
-  @JsonKey(
-    
-    name: r'target_step',
-    required: true,
-    
-  )
-
-
+  /// ID of the target step.
+  @JsonKey(name: r'target_step', required: true)
   final String targetStep;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ValidationRequest &&
+          other.sourceStep == sourceStep &&
+          other.targetStep == targetStep;
 
+  @override
+  int get hashCode => sourceStep.hashCode + targetStep.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ValidationRequest &&
-      other.sourceStep == sourceStep &&
-      other.targetStep == targetStep;
-
-    @override
-    int get hashCode =>
-        sourceStep.hashCode +
-        targetStep.hashCode;
-
-  factory ValidationRequest.fromJson(Map<String, dynamic> json) => _$ValidationRequestFromJson(json);
+  factory ValidationRequest.fromJson(Map<String, dynamic> json) =>
+      _$ValidationRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$ValidationRequestToJson(this);
 
@@ -71,6 +46,4 @@ class ValidationRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

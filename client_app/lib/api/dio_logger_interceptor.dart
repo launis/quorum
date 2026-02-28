@@ -17,10 +17,13 @@ class DioLoggerInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    logger.info('HTTP', 'RES: ${response.statusCode} ${response.requestOptions.path}');
+    logger.info(
+      'HTTP',
+      'RES: ${response.statusCode} ${response.requestOptions.path}',
+    );
     handler.next(response);
   }
-  
+
   // onError is handled by ErrorInterceptor (to avoid double logging or specific handling)
   // But if we want raw logging even of handled errors?
   // ErrorInterceptor rejects with new error.
@@ -29,7 +32,7 @@ class DioLoggerInterceptor extends Interceptor {
   // Response <- DioLogger <- ErrorInterceptor <- Network
   // If ErrorInterceptor catches, does it propagate to DioLogger?
   // Rejection propagates to onError.
-  
+
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     // We let ErrorInterceptor handle the DETAILED logging of the error (with stack trace etc)

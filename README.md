@@ -27,7 +27,7 @@ We replaced sequential agent chains with a **"Fused Panel"** architecture:
 The system decouples **User Interaction** from **Cognitive Reasoning**:
 *   **API (FastAPI)**: Handles HTTP requests and enqueues jobs (< 50ms).
 *   **Worker (Arq/Redis)**: Executes deep reasoning tasks (10m+) without timeouts.
-*   **Client (Flutter)**: A "Thick Client" that polls for real-time updates.
+*   **Client (Flutter)**: A "Thick Client" that polls for real-time updates. See the **[Client Application README](client_app/README.md)** for details.
 
 ---
 

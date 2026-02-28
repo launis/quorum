@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class AssessmentTransformer(BaseTransformer):
     def _get_workflow_steps(
-        self, workflow_id: str, current_data: dict, workflow_definition: Any | None = None, step_names: dict[str, str] | None = None
+        self, workflow_id: str, current_data: dict, workflow_definition: Any | None = None, step_names: dict[str, str] | None = None, step_slugs: dict[str, str] | None = None
     ) -> list[StepProgressItem]:
         """Determines the steps for the workflow and their status dynamically."""
         chain = []
@@ -45,7 +45,21 @@ class AssessmentTransformer(BaseTransformer):
         progress_items = []
         for step_id in chain:
             step_status = "pending"
-            step_res = current_data.get(step_id)
+            
+            # The execution results dictionary keys are formatted as 'step_{slug}'
+            # Our chain contains raw UUIDs. We must translate the UUID to the slug
+            # using the `step_id_to_name` mapping we just built to check completion.
+            step_name_label = step_id_to_name.get(step_id, step_id)
+            # Create slug format e.g., 'Guard' -> 'step_guard', 'Retrieval Agent' -> 'step_retrieval_agent'
+            # Extract real slug instead of guessing from name if provided
+            step_slug = step_slugs.get(step_id) if step_slugs else None
+            if step_slug:
+                expected_result_key = f"step_{step_slug}"
+            else:
+                expected_result_key = f"step_{step_name_label.lower().replace(' ', '_')}"
+            
+            # Allow fallback to direct ID access in case the engine used raw IDs
+            step_res = current_data.get(expected_result_key) or current_data.get(step_id)
 
             if step_res:
                 step_status = "completed"
@@ -74,6 +88,7 @@ class AssessmentTransformer(BaseTransformer):
         workflow_definition: Any | None = None,
         valid_range: tuple[float, float] | None = None,
         step_names: dict[str, str] | None = None,
+        step_slugs: dict[str, str] | None = None,
     ) -> AssessmentView:
         """Transforms raw execution state into a live Monitoring View (AssessmentView)."""
         try:
@@ -110,7 +125,7 @@ class AssessmentTransformer(BaseTransformer):
                 steps_data = self._reconstruct_state_from_trace(raw_data["results"]["execution_trace"])
 
             # GENERATE STEPS LIST
-            steps_list = self._get_workflow_steps(str(workflow_id), steps_data, workflow_definition, step_names)
+            steps_list = self._get_workflow_steps(str(workflow_id), steps_data, workflow_definition, step_names, step_slugs)
 
             # Filter out pending steps if the execution is completed or failed
             if status in ("completed", "finished", "failed", "rejected"):
@@ -159,9 +174,17 @@ class AssessmentTransformer(BaseTransformer):
                         # FIX: Last step is COMPLETED, so label it 'Valmis'
                         status_message = f"{self._t('status.completed', 'Valmis')}: {last_step} ({count})"
 
+                    # Determine which running step to show by checking their computed slugs
                     completed_ids = set(steps_data.keys())
                     for i, item in enumerate(steps_list):
-                        if item.id not in completed_ids:
+                        # Calculate what the slug would be for this item to check against completed_ids
+                        step_slug = step_slugs.get(item.id) if step_slugs else None
+                        if step_slug:
+                            expected_key = f"step_{step_slug}"
+                        else:
+                            expected_key = f"step_{item.label.lower().replace(' ', '_')}"
+                        
+                        if expected_key not in completed_ids and item.id not in completed_ids:
                             # Create new instance as model is frozen
                             steps_list[i] = StepProgressItem(id=item.id, label=item.label, status="running")
                             # UPDATE: Use item.label directly since we fixed it earlier!

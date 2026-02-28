@@ -498,9 +498,9 @@ class ScoreCardDisplay(BaseModel):
 class DriverProfileDisplay(BaseModel):
     """Server-Driven UI for Driver Profile."""
 
-    role_classification: str | None
-    input_quality_score: float | None
-    input_quality_label: str | None
-    strategies: list[str]
+    role_classification: str
+    high_dependency: bool
+    imperative_command_count: int
+    strategy: str
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=True)

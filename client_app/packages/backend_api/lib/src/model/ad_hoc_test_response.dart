@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'ad_hoc_test_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,68 +18,38 @@ part 'ad_hoc_test_response.g.dart';
 class AdHocTestResponse {
   /// Returns a new [AdHocTestResponse] instance.
   AdHocTestResponse({
+    required this.content,
 
-    required  this.content,
+    required this.latencyMs,
 
-    required  this.latencyMs,
-
-    required  this.status,
+    required this.status,
   });
 
-      /// Generated content.
-  @JsonKey(
-    
-    name: r'content',
-    required: true,
-    
-  )
-
-
+  /// Generated content.
+  @JsonKey(name: r'content', required: true)
   final String content;
 
-
-
-      /// Execution latency in milliseconds.
-  @JsonKey(
-    
-    name: r'latency_ms',
-    required: true,
-    
-  )
-
-
+  /// Execution latency in milliseconds.
+  @JsonKey(name: r'latency_ms', required: true)
   final num latencyMs;
 
-
-
-      /// Status string (e.g. 'success', 'error').
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  /// Status string (e.g. 'success', 'error').
+  @JsonKey(name: r'status', required: true)
   final String status;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AdHocTestResponse &&
+          other.content == content &&
+          other.latencyMs == latencyMs &&
+          other.status == status;
 
+  @override
+  int get hashCode => content.hashCode + latencyMs.hashCode + status.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is AdHocTestResponse &&
-      other.content == content &&
-      other.latencyMs == latencyMs &&
-      other.status == status;
-
-    @override
-    int get hashCode =>
-        content.hashCode +
-        latencyMs.hashCode +
-        status.hashCode;
-
-  factory AdHocTestResponse.fromJson(Map<String, dynamic> json) => _$AdHocTestResponseFromJson(json);
+  factory AdHocTestResponse.fromJson(Map<String, dynamic> json) =>
+      _$AdHocTestResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$AdHocTestResponseToJson(this);
 
@@ -88,6 +57,4 @@ class AdHocTestResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

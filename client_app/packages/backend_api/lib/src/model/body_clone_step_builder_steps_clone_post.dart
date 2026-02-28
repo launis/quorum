@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'body_clone_step_builder_steps_clone_post.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,41 +17,29 @@ part 'body_clone_step_builder_steps_clone_post.g.dart';
 )
 class BodyCloneStepBuilderStepsClonePost {
   /// Returns a new [BodyCloneStepBuilderStepsClonePost] instance.
-  BodyCloneStepBuilderStepsClonePost({
+  BodyCloneStepBuilderStepsClonePost({required this.sourceStepId});
 
-    required  this.sourceStepId,
-  });
-
-  @JsonKey(
-    
-    name: r'source_step_id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'source_step_id', required: true)
   final String sourceStepId;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BodyCloneStepBuilderStepsClonePost &&
+          other.sourceStepId == sourceStepId;
 
+  @override
+  int get hashCode => sourceStepId.hashCode;
 
+  factory BodyCloneStepBuilderStepsClonePost.fromJson(
+    Map<String, dynamic> json,
+  ) => _$BodyCloneStepBuilderStepsClonePostFromJson(json);
 
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is BodyCloneStepBuilderStepsClonePost &&
-      other.sourceStepId == sourceStepId;
-
-    @override
-    int get hashCode =>
-        sourceStepId.hashCode;
-
-  factory BodyCloneStepBuilderStepsClonePost.fromJson(Map<String, dynamic> json) => _$BodyCloneStepBuilderStepsClonePostFromJson(json);
-
-  Map<String, dynamic> toJson() => _$BodyCloneStepBuilderStepsClonePostToJson(this);
+  Map<String, dynamic> toJson() =>
+      _$BodyCloneStepBuilderStepsClonePostToJson(this);
 
   @override
   String toString() {
     return toJson().toString();
   }
-
 }
-

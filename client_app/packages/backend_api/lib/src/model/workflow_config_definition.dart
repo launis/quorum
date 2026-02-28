@@ -9,7 +9,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'workflow_config_definition.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -20,148 +19,76 @@ part 'workflow_config_definition.g.dart';
 class WorkflowConfigDefinition {
   /// Returns a new [WorkflowConfigDefinition] instance.
   WorkflowConfigDefinition({
+    this.id,
 
-     this.id,
+    this.slug,
 
-     this.slug,
+    required this.name,
 
-    required  this.name,
+    this.description,
 
-     this.description,
+    this.sequence = const [],
 
-     this.sequence = const [],
+    this.steps,
 
-     this.steps,
+    this.uiSchema,
 
-     this.uiSchema,
-
-     this.defaultModelMapping,
+    this.defaultModelMapping,
   });
 
-      /// Workflow UUID
-  @JsonKey(
-    
-    name: r'id',
-    required: false,
-    
-  )
-
-
+  /// Workflow UUID
+  @JsonKey(name: r'id', required: false)
   final String? id;
 
-
-
-  @JsonKey(
-    
-    name: r'slug',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'slug', required: false)
   final String? slug;
 
-
-
-      /// Workflow Name
-  @JsonKey(
-    
-    name: r'name',
-    required: true,
-    
-  )
-
-
+  /// Workflow Name
+  @JsonKey(name: r'name', required: true)
   final String name;
 
-
-
-  @JsonKey(
-    
-    name: r'description',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'description', required: false)
   final String? description;
 
-
-
-      /// Ordered list of Step IDs
-  @JsonKey(
-    defaultValue: [],
-    name: r'sequence',
-    required: false,
-    
-  )
-
-
+  /// Ordered list of Step IDs
+  @JsonKey(defaultValue: [], name: r'sequence', required: false)
   final List<String>? sequence;
 
-
-
-  @JsonKey(
-    
-    name: r'steps',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'steps', required: false)
   final Steps? steps;
 
-
-
-  @JsonKey(
-    
-    name: r'ui_schema',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'ui_schema', required: false)
   final Map<String, Object>? uiSchema;
 
-
-
-  @JsonKey(
-    
-    name: r'default_model_mapping',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'default_model_mapping', required: false)
   final Map<String, String>? defaultModelMapping;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WorkflowConfigDefinition &&
+          other.id == id &&
+          other.slug == slug &&
+          other.name == name &&
+          other.description == description &&
+          other.sequence == sequence &&
+          other.steps == steps &&
+          other.uiSchema == uiSchema &&
+          other.defaultModelMapping == defaultModelMapping;
 
+  @override
+  int get hashCode =>
+      id.hashCode +
+      (slug == null ? 0 : slug.hashCode) +
+      name.hashCode +
+      (description == null ? 0 : description.hashCode) +
+      sequence.hashCode +
+      steps.hashCode +
+      (uiSchema == null ? 0 : uiSchema.hashCode) +
+      (defaultModelMapping == null ? 0 : defaultModelMapping.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is WorkflowConfigDefinition &&
-      other.id == id &&
-      other.slug == slug &&
-      other.name == name &&
-      other.description == description &&
-      other.sequence == sequence &&
-      other.steps == steps &&
-      other.uiSchema == uiSchema &&
-      other.defaultModelMapping == defaultModelMapping;
-
-    @override
-    int get hashCode =>
-        id.hashCode +
-        (slug == null ? 0 : slug.hashCode) +
-        name.hashCode +
-        (description == null ? 0 : description.hashCode) +
-        sequence.hashCode +
-        steps.hashCode +
-        (uiSchema == null ? 0 : uiSchema.hashCode) +
-        (defaultModelMapping == null ? 0 : defaultModelMapping.hashCode);
-
-  factory WorkflowConfigDefinition.fromJson(Map<String, dynamic> json) => _$WorkflowConfigDefinitionFromJson(json);
+  factory WorkflowConfigDefinition.fromJson(Map<String, dynamic> json) =>
+      _$WorkflowConfigDefinitionFromJson(json);
 
   Map<String, dynamic> toJson() => _$WorkflowConfigDefinitionToJson(this);
 
@@ -169,6 +96,4 @@ class WorkflowConfigDefinition {
   String toString() {
     return toJson().toString();
   }
-
 }
-

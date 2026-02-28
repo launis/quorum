@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'agent_definition.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,113 +18,59 @@ part 'agent_definition.g.dart';
 class AgentDefinition {
   /// Returns a new [AgentDefinition] instance.
   AgentDefinition({
+    required this.name,
 
-    required  this.name,
+    required this.class_,
 
-    required  this.class_,
+    required this.description,
 
-    required  this.description,
+    required this.model,
 
-    required  this.model,
+    this.inputSchema,
 
-     this.inputSchema,
-
-     this.outputSchema,
+    this.outputSchema,
   });
 
-  @JsonKey(
-    
-    name: r'name',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'name', required: true)
   final String name;
 
-
-
-  @JsonKey(
-    
-    name: r'class',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'class', required: true)
   final String class_;
 
-
-
-  @JsonKey(
-    
-    name: r'description',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'description', required: true)
   final String description;
 
-
-
-  @JsonKey(
-    
-    name: r'model',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'model', required: true)
   final String model;
 
-
-
-  @JsonKey(
-    
-    name: r'input_schema',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'input_schema', required: false)
   final Map<String, Object>? inputSchema;
 
-
-
-  @JsonKey(
-    
-    name: r'output_schema',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'output_schema', required: false)
   final Map<String, Object>? outputSchema;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AgentDefinition &&
+          other.name == name &&
+          other.class_ == class_ &&
+          other.description == description &&
+          other.model == model &&
+          other.inputSchema == inputSchema &&
+          other.outputSchema == outputSchema;
 
+  @override
+  int get hashCode =>
+      name.hashCode +
+      class_.hashCode +
+      description.hashCode +
+      model.hashCode +
+      (inputSchema == null ? 0 : inputSchema.hashCode) +
+      (outputSchema == null ? 0 : outputSchema.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is AgentDefinition &&
-      other.name == name &&
-      other.class_ == class_ &&
-      other.description == description &&
-      other.model == model &&
-      other.inputSchema == inputSchema &&
-      other.outputSchema == outputSchema;
-
-    @override
-    int get hashCode =>
-        name.hashCode +
-        class_.hashCode +
-        description.hashCode +
-        model.hashCode +
-        (inputSchema == null ? 0 : inputSchema.hashCode) +
-        (outputSchema == null ? 0 : outputSchema.hashCode);
-
-  factory AgentDefinition.fromJson(Map<String, dynamic> json) => _$AgentDefinitionFromJson(json);
+  factory AgentDefinition.fromJson(Map<String, dynamic> json) =>
+      _$AgentDefinitionFromJson(json);
 
   Map<String, dynamic> toJson() => _$AgentDefinitionToJson(this);
 
@@ -133,6 +78,4 @@ class AgentDefinition {
   String toString() {
     return toJson().toString();
   }
-
 }
-

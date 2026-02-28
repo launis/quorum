@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'validation_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,51 +17,27 @@ part 'validation_response.g.dart';
 )
 class ValidationResponse {
   /// Returns a new [ValidationResponse] instance.
-  ValidationResponse({
+  ValidationResponse({required this.valid, this.reason});
 
-    required  this.valid,
-
-     this.reason,
-  });
-
-      /// Whether the connection is valid.
-  @JsonKey(
-    
-    name: r'valid',
-    required: true,
-    
-  )
-
-
+  /// Whether the connection is valid.
+  @JsonKey(name: r'valid', required: true)
   final bool valid;
 
-
-
-  @JsonKey(
-    
-    name: r'reason',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'reason', required: false)
   final String? reason;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ValidationResponse &&
+          other.valid == valid &&
+          other.reason == reason;
 
+  @override
+  int get hashCode => valid.hashCode + (reason == null ? 0 : reason.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ValidationResponse &&
-      other.valid == valid &&
-      other.reason == reason;
-
-    @override
-    int get hashCode =>
-        valid.hashCode +
-        (reason == null ? 0 : reason.hashCode);
-
-  factory ValidationResponse.fromJson(Map<String, dynamic> json) => _$ValidationResponseFromJson(json);
+  factory ValidationResponse.fromJson(Map<String, dynamic> json) =>
+      _$ValidationResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ValidationResponseToJson(this);
 
@@ -70,6 +45,4 @@ class ValidationResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

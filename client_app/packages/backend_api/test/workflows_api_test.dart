@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for WorkflowsApi
 void main() {
   final instance = BackendApi().getWorkflowsApi();
@@ -60,6 +59,5 @@ void main() {
     test('test validateFlowV1ConfigWorkflowsValidateFlowPost', () async {
       // TODO
     });
-
   });
 }

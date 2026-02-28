@@ -13,7 +13,6 @@ import 'package:backend_api/src/model/http_validation_error.dart';
 import 'package:backend_api/src/model/system_settings.dart';
 
 class GlobalSettingsApi {
-
   final Dio _dio;
 
   const GlobalSettingsApi(this._dio);
@@ -31,7 +30,7 @@ class GlobalSettingsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [SystemSettings] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<SystemSettings>> getSettingsSettingsGet({ 
+  Future<Response<SystemSettings>> getSettingsSettingsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -42,13 +41,8 @@ class GlobalSettingsApi {
     final _path = r'/settings';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -63,9 +57,14 @@ class GlobalSettingsApi {
     SystemSettings? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<SystemSettings, SystemSettings>(rawData, 'SystemSettings', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<SystemSettings, SystemSettings>(
+              rawData,
+              'SystemSettings',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -92,8 +91,8 @@ _responseData = rawData == null ? null : deserialize<SystemSettings, SystemSetti
   /// Updates global system settings.  Requires ROOT.
   ///
   /// Parameters:
-  /// * [systemSettings] 
-  /// * [authorization] 
+  /// * [systemSettings]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -103,7 +102,7 @@ _responseData = rawData == null ? null : deserialize<SystemSettings, SystemSetti
   ///
   /// Returns a [Future] containing a [Response] with a [SystemSettings] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<SystemSettings>> updateSettingsSettingsPatch({ 
+  Future<Response<SystemSettings>> updateSettingsSettingsPatch({
     required SystemSettings systemSettings,
     String? authorization,
     CancelToken? cancelToken,
@@ -116,14 +115,8 @@ _responseData = rawData == null ? null : deserialize<SystemSettings, SystemSetti
     final _path = r'/settings';
     final _options = Options(
       method: r'PATCH',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -131,13 +124,10 @@ _responseData = rawData == null ? null : deserialize<SystemSettings, SystemSetti
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(systemSettings);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(systemSettings);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -156,9 +146,14 @@ _bodyData=jsonEncode(systemSettings);
     SystemSettings? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<SystemSettings, SystemSettings>(rawData, 'SystemSettings', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<SystemSettings, SystemSettings>(
+              rawData,
+              'SystemSettings',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -180,5 +175,4 @@ _responseData = rawData == null ? null : deserialize<SystemSettings, SystemSetti
       extra: _response.extra,
     );
   }
-
 }

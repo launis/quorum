@@ -9,7 +9,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'usage_report.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -20,116 +19,62 @@ part 'usage_report.g.dart';
 class UsageReport {
   /// Returns a new [UsageReport] instance.
   UsageReport({
+    required this.scope,
 
-    required  this.scope,
+    this.entityId,
 
-     this.entityId,
+    required this.period,
 
-    required  this.period,
+    this.usage,
 
-     this.usage,
+    this.quotaLimitUsd,
 
-     this.quotaLimitUsd,
-
-     this.percentageUsed,
+    this.percentageUsed,
   });
 
-      /// Scope of the report (system, organization, user).
-  @JsonKey(
-    
-    name: r'scope',
-    required: true,
-    
-  )
-
-
+  /// Scope of the report (system, organization, user).
+  @JsonKey(name: r'scope', required: true)
   final String scope;
 
-
-
-  @JsonKey(
-    
-    name: r'entity_id',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'entity_id', required: false)
   final String? entityId;
 
-
-
-      /// Reporting period (e.g., '2026-02', 'all-time').
-  @JsonKey(
-    
-    name: r'period',
-    required: true,
-    
-  )
-
-
+  /// Reporting period (e.g., '2026-02', 'all-time').
+  @JsonKey(name: r'period', required: true)
   final String period;
 
-
-
-      /// Aggregated token and cost statistics.
-  @JsonKey(
-    
-    name: r'usage',
-    required: false,
-    
-  )
-
-
+  /// Aggregated token and cost statistics.
+  @JsonKey(name: r'usage', required: false)
   final TokenUsage? usage;
 
-
-
-  @JsonKey(
-    
-    name: r'quota_limit_usd',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'quota_limit_usd', required: false)
   final num? quotaLimitUsd;
 
-
-
-  @JsonKey(
-    
-    name: r'percentage_used',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'percentage_used', required: false)
   final num? percentageUsed;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UsageReport &&
+          other.scope == scope &&
+          other.entityId == entityId &&
+          other.period == period &&
+          other.usage == usage &&
+          other.quotaLimitUsd == quotaLimitUsd &&
+          other.percentageUsed == percentageUsed;
 
+  @override
+  int get hashCode =>
+      scope.hashCode +
+      (entityId == null ? 0 : entityId.hashCode) +
+      period.hashCode +
+      usage.hashCode +
+      (quotaLimitUsd == null ? 0 : quotaLimitUsd.hashCode) +
+      (percentageUsed == null ? 0 : percentageUsed.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is UsageReport &&
-      other.scope == scope &&
-      other.entityId == entityId &&
-      other.period == period &&
-      other.usage == usage &&
-      other.quotaLimitUsd == quotaLimitUsd &&
-      other.percentageUsed == percentageUsed;
-
-    @override
-    int get hashCode =>
-        scope.hashCode +
-        (entityId == null ? 0 : entityId.hashCode) +
-        period.hashCode +
-        usage.hashCode +
-        (quotaLimitUsd == null ? 0 : quotaLimitUsd.hashCode) +
-        (percentageUsed == null ? 0 : percentageUsed.hashCode);
-
-  factory UsageReport.fromJson(Map<String, dynamic> json) => _$UsageReportFromJson(json);
+  factory UsageReport.fromJson(Map<String, dynamic> json) =>
+      _$UsageReportFromJson(json);
 
   Map<String, dynamic> toJson() => _$UsageReportToJson(this);
 
@@ -137,6 +82,4 @@ class UsageReport {
   String toString() {
     return toJson().toString();
   }
-
 }
-

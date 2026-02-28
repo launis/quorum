@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'model_options_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,34 +17,21 @@ part 'model_options_response.g.dart';
 )
 class ModelOptionsResponse {
   /// Returns a new [ModelOptionsResponse] instance.
-  ModelOptionsResponse({
+  ModelOptionsResponse({required this.options});
 
-    required  this.options,
-  });
-
-  @JsonKey(
-    
-    name: r'options',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'options', required: true)
   final Map<String, List<String>> options;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ModelOptionsResponse && other.options == options;
 
+  @override
+  int get hashCode => options.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ModelOptionsResponse &&
-      other.options == options;
-
-    @override
-    int get hashCode =>
-        options.hashCode;
-
-  factory ModelOptionsResponse.fromJson(Map<String, dynamic> json) => _$ModelOptionsResponseFromJson(json);
+  factory ModelOptionsResponse.fromJson(Map<String, dynamic> json) =>
+      _$ModelOptionsResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ModelOptionsResponseToJson(this);
 
@@ -53,6 +39,4 @@ class ModelOptionsResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

@@ -10,10 +10,14 @@ part 'dashboard_routes.g.dart';
 @TypedGoRoute<DashboardHomeRoute>(
   path: '/dashboard',
   routes: [
-    TypedGoRoute<ExecutionMonitorRoute>(path: 'executions/:executionId/monitor'),
+    TypedGoRoute<ExecutionMonitorRoute>(
+      path: 'executions/:executionId/monitor',
+    ),
     TypedGoRoute<ExecutionResultRoute>(path: 'executions/:executionId/report'),
-    TypedGoRoute<ExecutionDetailsRoute>(path: 'executions/:executionId/details'),
-  ]
+    TypedGoRoute<ExecutionDetailsRoute>(
+      path: 'executions/:executionId/details',
+    ),
+  ],
 )
 class DashboardHomeRoute extends GoRouteData with $DashboardHomeRoute {
   const DashboardHomeRoute();

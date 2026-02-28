@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for ComponentSchemaResponse
 void main() {
-  final ComponentSchemaResponse? instance = /* ComponentSchemaResponse(...) */ null;
+  final ComponentSchemaResponse? instance = /* ComponentSchemaResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(ComponentSchemaResponse, () {
@@ -11,6 +12,5 @@ void main() {
     test('to test the property `schema`', () async {
       // TODO
     });
-
   });
 }

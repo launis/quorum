@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'concept_extraction_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,50 +18,31 @@ part 'concept_extraction_response.g.dart';
 class ConceptExtractionResponse {
   /// Returns a new [ConceptExtractionResponse] instance.
   ConceptExtractionResponse({
+    required this.sourceLength,
 
-    required  this.sourceLength,
-
-    required  this.concepts,
+    required this.concepts,
   });
 
-      /// Length of the source text processed.
-  @JsonKey(
-    
-    name: r'source_length',
-    required: true,
-    
-  )
-
-
+  /// Length of the source text processed.
+  @JsonKey(name: r'source_length', required: true)
   final int sourceLength;
 
-
-
-  @JsonKey(
-    
-    name: r'concepts',
-    required: true,
-    includeIfNull: true,
-  )
-
-
+  @JsonKey(name: r'concepts', required: true, includeIfNull: true)
   final Object? concepts;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConceptExtractionResponse &&
+          other.sourceLength == sourceLength &&
+          other.concepts == concepts;
 
+  @override
+  int get hashCode =>
+      sourceLength.hashCode + (concepts == null ? 0 : concepts.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ConceptExtractionResponse &&
-      other.sourceLength == sourceLength &&
-      other.concepts == concepts;
-
-    @override
-    int get hashCode =>
-        sourceLength.hashCode +
-        (concepts == null ? 0 : concepts.hashCode);
-
-  factory ConceptExtractionResponse.fromJson(Map<String, dynamic> json) => _$ConceptExtractionResponseFromJson(json);
+  factory ConceptExtractionResponse.fromJson(Map<String, dynamic> json) =>
+      _$ConceptExtractionResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ConceptExtractionResponseToJson(this);
 
@@ -70,6 +50,4 @@ class ConceptExtractionResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

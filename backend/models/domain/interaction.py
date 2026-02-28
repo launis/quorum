@@ -37,31 +37,19 @@ class InteractionAnalysis(ReasoningTrace):
         description="User role classification.",
         json_schema_extra={"x-ui-label": "Role"},
     )
-    input_quality_score: float = Field(
+    high_dependency: bool = Field(
         ...,
-        description="Quality score of user input.",
-        json_schema_extra={"x-ui-label": "Input Quality"},
+        description="Flag indicating high dependency on AI.",
+        json_schema_extra={"x-ui-label": "High Dependency"},
     )
-    improvement_suggestions: list[str] = Field(
+    imperative_command_count: int = Field(
         ...,
-        description="Suggestions for better prompting.",
-        json_schema_extra={"x-ui-label": "Suggestions"},
+        description="Number of direct commands given by user.",
+        json_schema_extra={"x-ui-label": "Commands"},
+    )
+    strategy: Literal["Zero-shot", "Few-shot", "Chain-of-Thought"] = Field(
+        ...,
+        description="Identified prompting strategy.",
+        json_schema_extra={"x-ui-label": "Strategy"},
     )
     model_config = ConfigDict(frozen=True)
-
-    @field_validator("input_quality_score")
-    @classmethod
-    def validate_score_range(cls, v: float) -> float:
-        if not (0.0 <= v <= 1.0):
-            raise ValueError("Score must be between 0.0 and 1.0.")
-        return v
-
-    @field_validator("improvement_suggestions")
-    @classmethod
-    def validate_suggestions(cls, v: list[str]) -> list[str]:
-        # Filter out empty strings first? Or fail fast?
-        # RFC 7807 says strictness. so Fail Fast if empty string provided.
-        for item in v:
-            if not item or not item.strip():
-                raise ValueError("Improvement suggestions cannot contain empty strings.")
-        return v

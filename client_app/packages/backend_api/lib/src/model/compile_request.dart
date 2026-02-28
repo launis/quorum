@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'compile_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,52 +17,28 @@ part 'compile_request.g.dart';
 )
 class CompileRequest {
   /// Returns a new [CompileRequest] instance.
-  CompileRequest({
+  CompileRequest({required this.workflowId, required this.steps});
 
-    required  this.workflowId,
-
-    required  this.steps,
-  });
-
-      /// Target workflow ID.
-  @JsonKey(
-    
-    name: r'workflow_id',
-    required: true,
-    
-  )
-
-
+  /// Target workflow ID.
+  @JsonKey(name: r'workflow_id', required: true)
   final String workflowId;
 
-
-
-      /// List of step IDs to fuse.
-  @JsonKey(
-    
-    name: r'steps',
-    required: true,
-    
-  )
-
-
+  /// List of step IDs to fuse.
+  @JsonKey(name: r'steps', required: true)
   final List<String> steps;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CompileRequest &&
+          other.workflowId == workflowId &&
+          other.steps == steps;
 
+  @override
+  int get hashCode => workflowId.hashCode + steps.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is CompileRequest &&
-      other.workflowId == workflowId &&
-      other.steps == steps;
-
-    @override
-    int get hashCode =>
-        workflowId.hashCode +
-        steps.hashCode;
-
-  factory CompileRequest.fromJson(Map<String, dynamic> json) => _$CompileRequestFromJson(json);
+  factory CompileRequest.fromJson(Map<String, dynamic> json) =>
+      _$CompileRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$CompileRequestToJson(this);
 
@@ -71,6 +46,4 @@ class CompileRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

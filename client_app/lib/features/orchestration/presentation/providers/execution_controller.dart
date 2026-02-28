@@ -42,7 +42,6 @@ Stream<AssessmentView> assessmentStream(Ref ref, String executionId) {
 /// Does NOT hold the active execution state (use [executionStream] for that).
 @riverpod
 class ExecutionController extends _$ExecutionController {
-  
   @override
   FutureOr<void> build() {
     // Stateless controller for actions
@@ -61,18 +60,16 @@ class ExecutionController extends _$ExecutionController {
   Future<void> deleteExecution(String id) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final result = await ref.read(executionRepositoryProvider).deleteExecution(id).run();
-      
-      result.fold(
-        (error) {
-          // If 404, we consider it already deleted
-          // However, AppError might need inspection. For now, strictly throw.
-          // Ideally: if (error is NotFound) return;
-          throw error;
-        },
-        (_) => null,
-      );
-      
+      final result =
+          await ref.read(executionRepositoryProvider).deleteExecution(id).run();
+
+      result.fold((error) {
+        // If 404, we consider it already deleted
+        // However, AppError might need inspection. For now, strictly throw.
+        // Ideally: if (error is NotFound) return;
+        throw error;
+      }, (_) => null);
+
       // Invalidate list to remove the item from grid
       ref.invalidate(executionListControllerProvider);
     });
@@ -94,7 +91,7 @@ class ExecutionController extends _$ExecutionController {
       final error =
           validation.getLeft().toNullable() ??
           const AppError.validation(ValidationErrorReason.unknown);
-      
+
       state = AsyncError(error, StackTrace.current);
       throw error;
     }
@@ -126,7 +123,7 @@ class ExecutionController extends _$ExecutionController {
       inputs: jsonInputs,
       files: files,
     );
-    
+
     // We handle the result manually because we need to return the ID
     final result = await repository.createExecution(input).run();
 

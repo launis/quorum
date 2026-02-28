@@ -1,0 +1,19 @@
+
+--- Testing Metrics Hook Fail Fast ---
+✅ PASSED: Caught ErrorCodes.INTERNAL_SERVER_ERROR
+
+--- Testing Validation Hook Fail Fast ---
+ERROR:backend.hooks.validation:[ValidationHook] Structural Validation Failed: ["Input 'history_text' is too short (5 chars). Min required: 100.", "Missing mandatory input 'product_text'.", "Missing mandatory input 'reflection_text'."]
+✅ PASSED: Caught ErrorCodes.VALIDATION_FAILED
+
+--- Testing Security Hook Fail Fast (Skipped) ---
+
+--- Testing Search Hook Fail Fast (Config error) ---
+ERROR:backend.utils.pydantic_utils:Failed to inflate AnalystOutput: 1 validation error for AnalystOutput
+hypotheses.0
+  Value error, Hypothesis claims evidence_found=True but provides no quotes. [type=value_error, input_value={'id': 'H1', 'claim_text'...ggestion': 'test query'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+ERROR:backend.hooks.search:[SearchHook] ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED: Invalid AnalystOutput data in context. Failed to inflate <class 'dict'>.
+❌ FAILED: Wrong error: ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
+
+💥 HOOK TESTS FAILED

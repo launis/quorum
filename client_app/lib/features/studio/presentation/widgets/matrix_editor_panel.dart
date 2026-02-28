@@ -93,16 +93,17 @@ class MatrixEditorPanel extends HookConsumerWidget {
 
           String msg = e.toString();
           if (e is AppError) {
-             e.maybeMap(
-               api: (apiError) {
-                 if (apiError.errorCode == 'Errors.DeleteBlockedByExecutions') {
-                    msg = l10n.errorDeleteBlockedByExecutions;
-                 } else if (apiError.errorCode == 'Errors.DeleteBlockedByMatrix') {
-                    msg = l10n.errorDeleteBlockedByMatrix;
-                 }
-               },
-               orElse: () {},
-             );
+            e.maybeMap(
+              api: (apiError) {
+                if (apiError.errorCode == 'Errors.DeleteBlockedByExecutions') {
+                  msg = l10n.errorDeleteBlockedByExecutions;
+                } else if (apiError.errorCode ==
+                    'Errors.DeleteBlockedByMatrix') {
+                  msg = l10n.errorDeleteBlockedByMatrix;
+                }
+              },
+              orElse: () {},
+            );
           }
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -135,12 +136,12 @@ class MatrixEditorPanel extends HookConsumerWidget {
                   const CircularProgressIndicator()
                 else ...[
                   OutlinedButton.icon(
-                      icon: const Icon(Icons.close),
-                      label: Text(l10n.cancel), // Ensure l10n.cancel exists
-                      onPressed: () {
-                          // Clear selection to close editor
-                          ref.read(matrixEditorStateProvider.notifier).set(null);
-                      },
+                    icon: const Icon(Icons.close),
+                    label: Text(l10n.cancel), // Ensure l10n.cancel exists
+                    onPressed: () {
+                      // Clear selection to close editor
+                      ref.read(matrixEditorStateProvider.notifier).set(null);
+                    },
                   ),
                   const SizedBox(width: 8),
                   FilledButton.icon(
@@ -361,13 +362,13 @@ class _CriterionRow extends HookConsumerWidget {
       );
 
       if (selectedDim.id.isNotEmpty) {
-        // User Request: ID should be independent (technical key). 
+        // User Request: ID should be independent (technical key).
         // Use the Registry's Display Name (selectedDim.name/label) as the Criterion Label.
         // This ensures the Dimension Name is dynamic and human-readable.
         if (selectedDim.name.isNotEmpty) {
-           newLabel = selectedDim.name;
+          newLabel = selectedDim.name;
         }
-        
+
         if (newPrompt.isEmpty) newPrompt = selectedDim.description;
       }
 

@@ -15,7 +15,6 @@ import 'package:client_app/features/orchestration/presentation/widgets/output_re
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/specialist_section.dart';
 import 'package:client_app/core/ui/error_view.dart';
 
-
 class ResultDashboard extends ConsumerStatefulWidget {
   final Execution execution;
 
@@ -37,23 +36,24 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
   Future<ReportView> _fetchReportView() async {
     final execId = widget.execution.id;
     debugPrint('Fetching ReportView for $execId via Repository (Auth)');
-    
+
     // Use the Authenticated Repository via Riverpod
     final task = ref.read(executionRepositoryProvider).getReportView(execId);
-    
+
     // Run with 15s timeout to prevent infinite spinner
     final result = await task.run().timeout(
       const Duration(seconds: 15),
-      onTimeout: () => throw Exception('Aikakatkaisu: Palvelin ei vastannut 15 sekuntiin.'),
+      onTimeout:
+          () =>
+              throw Exception(
+                'Aikakatkaisu: Palvelin ei vastannut 15 sekuntiin.',
+              ),
     );
-    
-    return result.fold(
-      (error) {
-        debugPrint('Error fetching report view: $error');
-        throw Exception(error.toString()); 
-      },
-      (view) => view,
-    );
+
+    return result.fold((error) {
+      debugPrint('Error fetching report view: $error');
+      throw Exception(error.toString());
+    }, (view) => view);
   }
 
   @override
@@ -73,8 +73,14 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
             unselectedLabelColor: Colors.grey,
             tabs: [
               Tab(icon: Icon(Icons.dashboard_outlined), text: 'Raportti'),
-              Tab(icon: Icon(Icons.description_outlined), text: 'Tiivistetty Data (Flat)'),
-              Tab(icon: Icon(Icons.data_object_outlined), text: 'Koko Raakadata'),
+              Tab(
+                icon: Icon(Icons.description_outlined),
+                text: 'Tiivistetty Data (Flat)',
+              ),
+              Tab(
+                icon: Icon(Icons.data_object_outlined),
+                text: 'Koko Raakadata',
+              ),
             ],
           ),
           Expanded(
@@ -89,12 +95,14 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
                     } else if (snapshot.hasError) {
                       return Center(child: Text("Virhe: ${snapshot.error}"));
                     } else if (!snapshot.hasData) {
-                       return const Center(child: Text("Raporttia ei löytynyt."));
+                      return const Center(
+                        child: Text("Raporttia ei löytynyt."),
+                      );
                     }
                     return _buildDynamicDashboard(context, snapshot.data!);
                   },
                 ),
-                
+
                 // Tab 2: Flat Report JSON
                 _buildFlatDataView(context, rawResult),
 
@@ -129,9 +137,12 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
 
   Widget _buildHeader(BuildContext context, ReportView view) {
     Color statusColor = Colors.grey;
-    if (view.statusTheme == 'success') statusColor = Colors.green;
-    else if (view.statusTheme == 'warning') statusColor = Colors.orange;
-    else if (view.statusTheme == 'danger') statusColor = Colors.red;
+    if (view.statusTheme == 'success')
+      statusColor = Colors.green;
+    else if (view.statusTheme == 'warning')
+      statusColor = Colors.orange;
+    else if (view.statusTheme == 'danger')
+      statusColor = Colors.red;
 
     return Card(
       elevation: 4,
@@ -148,7 +159,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
-                color: statusColor
+                color: statusColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -158,16 +169,25 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     );
   }
 
-  Widget _renderSection(BuildContext context, UiSection section, ReportView view) {
+  Widget _renderSection(
+    BuildContext context,
+    UiSection section,
+    ReportView view,
+  ) {
     switch (section.type) {
       case 'SCORE_CARD':
-        // Fallback or specific renderer? 
+        // Fallback or specific renderer?
         // BFF sends "data" which matches ScoreCard model structure mostly.
         try {
-           final card = ScoreCardItem.fromJson(section.data); // Use ScoreCardItem from xai_report.dart
-           return ScoreCardRadar(card: card); 
+          final card = ScoreCardItem.fromJson(
+            section.data,
+          ); // Use ScoreCardItem from xai_report.dart
+          return ScoreCardRadar(card: card);
         } catch (e) {
-           return ErrorView(error: "Error rendering ScoreCard: $e", compact: true);
+          return ErrorView(
+            error: "Error rendering ScoreCard: $e",
+            compact: true,
+          );
         }
 
       case 'KEY_VALUE_GRID':
@@ -183,14 +203,17 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                    if (section.title.isNotEmpty) ...[
-                        Text(section.title, style: Theme.of(context).textTheme.titleMedium),
-                        const Divider(),
-                    ],
-                    OutputRenderer(markdownContent: content),
-                ]
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (section.title.isNotEmpty) ...[
+                  Text(
+                    section.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const Divider(),
+                ],
+                OutputRenderer(markdownContent: content),
+              ],
             ),
           ),
         );
@@ -200,53 +223,70 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
         // BFF Timeline is a list of events.
         final events = section.data['events'] as List<dynamic>? ?? [];
         return Card(
-             child: Semantics(
-                excludeSemantics: Platform.isWindows,
-                child: ExpansionTile(
-                  title: Text(section.title),
-                  children: events.map<Widget>((e) {
-                      final ts = e['timestamp'] as String? ?? '';
-                      String timeDisplay = ts;
-                      if (ts.length >= 16) {
-                       // Simple substring for HH:mm if ISO format (T12:34)
-                       final tIndex = ts.indexOf('T');
-                       if (tIndex != -1 && tIndex + 5 < ts.length) {
-                           timeDisplay = ts.substring(tIndex + 1, tIndex + 6);
-                       }
+          child: Semantics(
+            excludeSemantics: Platform.isWindows,
+            child: ExpansionTile(
+              title: Text(section.title),
+              children:
+                  events.map<Widget>((e) {
+                    final ts = e['timestamp'] as String? ?? '';
+                    String timeDisplay = ts;
+                    if (ts.length >= 16) {
+                      // Simple substring for HH:mm if ISO format (T12:34)
+                      final tIndex = ts.indexOf('T');
+                      if (tIndex != -1 && tIndex + 5 < ts.length) {
+                        timeDisplay = ts.substring(tIndex + 1, tIndex + 6);
+                      }
                     }
-                    
+
                     return ListTile(
-                        leading: Container(
-                          width: 50, // Fixed width to prevent overlap
-                          alignment: Alignment.centerRight,
-                          child: Text(timeDisplay, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      leading: Container(
+                        width: 50, // Fixed width to prevent overlap
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          timeDisplay,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
-                        title: Text(e['label'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(e['content'] ?? ''),
-                        dense: true,
+                      ),
+                      title: Text(
+                        e['label'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(e['content'] ?? ''),
+                      dense: true,
                     );
-                }).toList(),
-              ),
-        ),
-      );
+                  }).toList(),
+            ),
+          ),
+        );
 
       case 'EVIDENCE_LIST':
         final items = section.data['items'] as List<dynamic>? ?? [];
         return Card(
-             child: Semantics(
-                excludeSemantics: Platform.isWindows,
-                child: ExpansionTile(
-                  title: Text(section.title),
-                  children: items.map<Widget>((e) {
-                      return ListTile(
-                        leading: const Icon(Icons.source_outlined, color: Colors.blueGrey),
-                        title: Text(e['source']?.toString() ?? 'Lähdetieto', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(e['content']?.toString() ?? ''),
-                        dense: true,
-                      );
+          child: Semantics(
+            excludeSemantics: Platform.isWindows,
+            child: ExpansionTile(
+              title: Text(section.title),
+              children:
+                  items.map<Widget>((e) {
+                    return ListTile(
+                      leading: const Icon(
+                        Icons.source_outlined,
+                        color: Colors.blueGrey,
+                      ),
+                      title: Text(
+                        e['source']?.toString() ?? 'Lähdetieto',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(e['content']?.toString() ?? ''),
+                      dense: true,
+                    );
                   }).toList(),
-                ),
-             ),
+            ),
+          ),
         );
 
       // --- Specialist Sections (Backbone) ---
@@ -261,13 +301,15 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
       case 'SECURITY_CHECK':
         return SpecialistSection(
           title: section.title,
-          type: section.type, 
+          type: section.type,
           data: section.data,
           metrics: view.metrics, // Pass global metrics
         );
 
       default:
-        debugPrint('UI FALLBACK ACTIVATED: Unknown Section Type: ${section.type}');
+        debugPrint(
+          'UI FALLBACK ACTIVATED: Unknown Section Type: ${section.type}',
+        );
         return ErrorView(
           error: "Unknown Section Type: ${section.type}",
           compact: true,
@@ -276,59 +318,62 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
   }
 
   Widget _buildFlatDataView(BuildContext context, Map<String, dynamic> data) {
-      // Extract XAIFlatReportDTO if available, otherwise show empty/error
-      Map<String, dynamic>? flatReport;
-      try {
-        if (data.containsKey('context_variables')) {
-          final ctx = data['context_variables'] as Map<String, dynamic>;
-          if (ctx.containsKey('step_xai') && ctx['step_xai'] is Map) {
-             final stepXai = ctx['step_xai'] as Map<String, dynamic>;
-             if (stepXai.containsKey('flat_report') && stepXai['flat_report'] is Map) {
-                flatReport = stepXai['flat_report'] as Map<String, dynamic>;
-             }
-          }
-        } else if (data.containsKey('step_results')) {
-          final steps = data['step_results'] as Map<String, dynamic>;
-          if (steps.containsKey('step_xai') && steps['step_xai'] is Map) {
-             final stepXai = steps['step_xai'] as Map<String, dynamic>;
-             if (stepXai.containsKey('flat_report') && stepXai['flat_report'] is Map) {
-                flatReport = stepXai['flat_report'] as Map<String, dynamic>;
-             }
+    // Extract XAIFlatReportDTO if available, otherwise show empty/error
+    Map<String, dynamic>? flatReport;
+    try {
+      if (data.containsKey('context_variables')) {
+        final ctx = data['context_variables'] as Map<String, dynamic>;
+        if (ctx.containsKey('step_xai') && ctx['step_xai'] is Map) {
+          final stepXai = ctx['step_xai'] as Map<String, dynamic>;
+          if (stepXai.containsKey('flat_report') &&
+              stepXai['flat_report'] is Map) {
+            flatReport = stepXai['flat_report'] as Map<String, dynamic>;
           }
         }
-      } catch (e) {
-        debugPrint('Koko datan parsiminen flat_reportia varten epäonnistui: $e');
+      } else if (data.containsKey('step_results')) {
+        final steps = data['step_results'] as Map<String, dynamic>;
+        if (steps.containsKey('step_xai') && steps['step_xai'] is Map) {
+          final stepXai = steps['step_xai'] as Map<String, dynamic>;
+          if (stepXai.containsKey('flat_report') &&
+              stepXai['flat_report'] is Map) {
+            flatReport = stepXai['flat_report'] as Map<String, dynamic>;
+          }
+        }
       }
+    } catch (e) {
+      debugPrint('Koko datan parsiminen flat_reportia varten epäonnistui: $e');
+    }
 
-      final dataToShow = flatReport ?? {'_info': 'Flat Report dataa ei löytynyt tästä ajosta.'};
+    final dataToShow =
+        flatReport ?? {'_info': 'Flat Report dataa ei löytynyt tästä ajosta.'};
 
-      const encoder = JsonEncoder.withIndent('  ');
-      final jsonString = encoder.convert(dataToShow);
+    const encoder = JsonEncoder.withIndent('  ');
+    final jsonString = encoder.convert(dataToShow);
 
-      return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: SelectableText(
-            jsonString,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-          ),
-      );
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: SelectableText(
+        jsonString,
+        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+      ),
+    );
   }
 
   Widget _buildRawDataView(BuildContext context, Map<String, dynamic> data) {
-      // User specifically requested to see the full raw workflow output data
-      // rather than just the narrowed down flat_report.
-      final dataToShow = data;
+    // User specifically requested to see the full raw workflow output data
+    // rather than just the narrowed down flat_report.
+    final dataToShow = data;
 
-      // Use JsonEncoder to pretty print
-      const encoder = JsonEncoder.withIndent('  ');
-      final jsonString = encoder.convert(dataToShow);
+    // Use JsonEncoder to pretty print
+    const encoder = JsonEncoder.withIndent('  ');
+    final jsonString = encoder.convert(dataToShow);
 
-      return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: SelectableText(
-            jsonString,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-          ),
-      );
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: SelectableText(
+        jsonString,
+        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+      ),
+    );
   }
 }

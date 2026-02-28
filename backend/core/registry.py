@@ -154,7 +154,16 @@ class TaskRegistry:
                 prompts = execution_config["llm_prompts"]
                 if prompts:
                     prompt_map = await ComponentRegistry.resolve_prompts_map(repo, tuple(prompts))
-                    system_instruction = "\n\n".join(prompt_map.values())
+                    
+                    # MANDATE: Strict Unique Concatenation (Feb 2026 Bug Fix)
+                    # Do not use prompt_map.values() as aliases/slugs create duplicated dictionary values
+                    # resulting in 2x/4x prompt bloat. Iterate in strict array order.
+                    resolved_parts = []
+                    for pid in prompts:
+                        if pid in prompt_map:
+                            resolved_parts.append(prompt_map[pid])
+                    
+                    system_instruction = "\n\n".join(resolved_parts)
 
                     if execution_config is None:
                         execution_config = {}
@@ -174,6 +183,7 @@ class TaskRegistry:
                     vars_to_inject["DYNAMIC_LOCATION"] = "Sijainti: VIRTUAL_ENCLAVE"
 
                     if system_instruction:
+                        logger.info(f"[DEBUG-INJECTION] System instruction Base Length: {len(system_instruction)}")
                         for key, value in vars_to_inject.items():
                             if value is None:
                                 value = ""
@@ -187,11 +197,22 @@ class TaskRegistry:
                                 replacement = str(value)
 
                             placeholder = f"{{{{{key.upper()}}}}}"
+                            placeholder_lower = f"{{{{{key}}}}}"
+                            
+                            old_len = len(system_instruction)
+                            replaced = False
+
                             if placeholder in system_instruction:
                                 system_instruction = system_instruction.replace(placeholder, replacement)
-                            placeholder_lower = f"{{{{{key}}}}}"
+                                replaced = True
                             if placeholder_lower in system_instruction:
                                 system_instruction = system_instruction.replace(placeholder_lower, replacement)
+                                replaced = True
+                            
+                            if replaced:
+                                diff = len(system_instruction) - old_len
+                                logger.info(f"[DEBUG-INJECTION] Replaced {key}: {old_len} -> {len(system_instruction)} chars")
+
 
             # 4. Execute using New Signature (Strict Model Pass-Through)
             # Do NOT downcast to dict unless it's GenericInput

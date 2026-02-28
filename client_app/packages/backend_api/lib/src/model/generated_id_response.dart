@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'generated_id_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,34 +17,20 @@ part 'generated_id_response.g.dart';
 )
 class GeneratedIdResponse {
   /// Returns a new [GeneratedIdResponse] instance.
-  GeneratedIdResponse({
+  GeneratedIdResponse({required this.id});
 
-    required  this.id,
-  });
-
-  @JsonKey(
-    
-    name: r'id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: true)
   final String id;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is GeneratedIdResponse && other.id == id;
 
+  @override
+  int get hashCode => id.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is GeneratedIdResponse &&
-      other.id == id;
-
-    @override
-    int get hashCode =>
-        id.hashCode;
-
-  factory GeneratedIdResponse.fromJson(Map<String, dynamic> json) => _$GeneratedIdResponseFromJson(json);
+  factory GeneratedIdResponse.fromJson(Map<String, dynamic> json) =>
+      _$GeneratedIdResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$GeneratedIdResponseToJson(this);
 
@@ -53,6 +38,4 @@ class GeneratedIdResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

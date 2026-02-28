@@ -1,4 +1,3 @@
-
 class ReportView {
   final String viewId;
   final String title;
@@ -19,9 +18,10 @@ class ReportView {
       viewId: json['view_id'] ?? '',
       title: json['title'] ?? '',
       statusTheme: json['status_theme'] ?? 'success',
-      sections: (json['sections'] as List<dynamic>? ?? [])
-          .map((e) => UiSection.fromJson(e))
-          .toList(),
+      sections:
+          (json['sections'] as List<dynamic>? ?? [])
+              .map((e) => UiSection.fromJson(e))
+              .toList(),
       metrics: json['metrics'] as Map<String, dynamic>?,
     );
   }

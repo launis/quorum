@@ -63,19 +63,25 @@ class ExecutionDetailsScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, stack) {
             final user = ref.read(authControllerProvider).value;
-            final isAdmin = user?.role == UserRole.admin || user?.role == UserRole.root;
-            final isIngestionError = err.toString().contains('KNOWLEDGE_NOT_INGESTED');
-            
+            final isAdmin =
+                user?.role == UserRole.admin || user?.role == UserRole.root;
+            final isIngestionError = err.toString().contains(
+              'KNOWLEDGE_NOT_INGESTED',
+            );
+
             return ErrorView(
               error: err,
-              onRetry: () => ref.invalidate(executionStreamProvider(executionId)),
+              onRetry:
+                  () => ref.invalidate(executionStreamProvider(executionId)),
               retryLabel: l10n.retry,
-              onAction: (isIngestionError && isAdmin) 
-                  ? () => context.go('/ingestion') 
-                  : null,
-              actionLabel: (isIngestionError && isAdmin) 
-                  ? l10n.actionGoToIngestion 
-                  : null,
+              onAction:
+                  (isIngestionError && isAdmin)
+                      ? () => context.go('/ingestion')
+                      : null,
+              actionLabel:
+                  (isIngestionError && isAdmin)
+                      ? l10n.actionGoToIngestion
+                      : null,
             );
           },
         ),
@@ -164,17 +170,29 @@ class _OverviewTab extends StatelessWidget {
     );
   }
 
-  List<StepProgressItem> _buildStepItems(BuildContext context, Execution execution) {
+  List<StepProgressItem> _buildStepItems(
+    BuildContext context,
+    Execution execution,
+  ) {
     // 1. DYNAMIC: Use steps from Backend (SSOT)
-    if (execution.workflowSteps != null && execution.workflowSteps!.isNotEmpty) {
-      return _buildDynamicStepItems(context, execution, execution.workflowSteps!);
+    if (execution.workflowSteps != null &&
+        execution.workflowSteps!.isNotEmpty) {
+      return _buildDynamicStepItems(
+        context,
+        execution,
+        execution.workflowSteps!,
+      );
     }
-    
+
     // 2. NO FALLBACK: Return empty if no steps provided
     return [];
   }
 
-  List<StepProgressItem> _buildDynamicStepItems(BuildContext context, Execution execution, List<String> steps) {
+  List<StepProgressItem> _buildDynamicStepItems(
+    BuildContext context,
+    Execution execution,
+    List<String> steps,
+  ) {
     // Determine Current Index
     int currentIndex = -1;
     if (execution.currentStepName != null) {
@@ -186,27 +204,30 @@ class _OverviewTab extends StatelessWidget {
 
     // Build List
     return steps.asMap().entries.map((entry) {
-       final index = entry.key;
-       final stepKey = entry.value;
-       
-       String status = 'pending';
-       bool isCompleted = index < currentIndex;
-       bool isCurrent = index == currentIndex && execution.status != ExecutionStatus.completed;
-       
-       if (execution.status == ExecutionStatus.completed) {
-         isCompleted = true;
-         isCurrent = false;
-       }
-       
-       if (isCompleted) status = 'completed';
-       if (isCurrent) status = 'running';
-       if (isCurrent && execution.status == ExecutionStatus.failed) status = 'failed';
+      final index = entry.key;
+      final stepKey = entry.value;
 
-       return StepProgressItem(
-         id: stepKey,
-         label: _getStepLabel(context, stepKey),
-         status: status,
-       );
+      String status = 'pending';
+      bool isCompleted = index < currentIndex;
+      bool isCurrent =
+          index == currentIndex &&
+          execution.status != ExecutionStatus.completed;
+
+      if (execution.status == ExecutionStatus.completed) {
+        isCompleted = true;
+        isCurrent = false;
+      }
+
+      if (isCompleted) status = 'completed';
+      if (isCurrent) status = 'running';
+      if (isCurrent && execution.status == ExecutionStatus.failed)
+        status = 'failed';
+
+      return StepProgressItem(
+        id: stepKey,
+        label: _getStepLabel(context, stepKey),
+        status: status,
+      );
     }).toList();
   }
 
@@ -250,7 +271,9 @@ class _OverviewTab extends StatelessWidget {
     return switch (status) {
       ExecutionStatus.completed => Colors.green,
       ExecutionStatus.running => Colors.blue,
-      ExecutionStatus.failed || ExecutionStatus.rejected || ExecutionStatus.interrupted => Colors.red,
+      ExecutionStatus.failed ||
+      ExecutionStatus.rejected ||
+      ExecutionStatus.interrupted => Colors.red,
       _ => Colors.grey,
     };
   }
@@ -259,7 +282,9 @@ class _OverviewTab extends StatelessWidget {
     return switch (status) {
       ExecutionStatus.completed => Icons.check_circle,
       ExecutionStatus.running => Icons.sync,
-      ExecutionStatus.failed || ExecutionStatus.rejected || ExecutionStatus.interrupted => Icons.error,
+      ExecutionStatus.failed ||
+      ExecutionStatus.rejected ||
+      ExecutionStatus.interrupted => Icons.error,
       _ => Icons.hourglass_empty,
     };
   }
@@ -335,22 +360,23 @@ class _RawDataTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Try to fetch raw data from API
     final rawDataAsync = ref.watch(executionRawDataProvider(execution.id));
-    
+
     return rawDataAsync.when(
       data: (rawData) => _buildRawDataView(context, rawData),
-      loading: () => const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading raw data from API...'),
-          ],
-        ),
-      ),
+      loading:
+          () => const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading raw data from API...'),
+              ],
+            ),
+          ),
       error: (err, stack) => _buildFallbackView(context, l10n, err),
     );
   }
@@ -371,9 +397,15 @@ class _RawDataTab extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Divider(),
-                _infoRow('Duration', '${rawData['duration_seconds']?.toStringAsFixed(1) ?? 'N/A'} seconds'),
+                _infoRow(
+                  'Duration',
+                  '${rawData['duration_seconds']?.toStringAsFixed(1) ?? 'N/A'} seconds',
+                ),
                 _infoRow('Status', (rawData['status'] ?? 'Unknown') as String),
-                _infoRow('Workflow', (rawData['workflow_id'] ?? 'Unknown') as String),
+                _infoRow(
+                  'Workflow',
+                  (rawData['workflow_id'] ?? 'Unknown') as String,
+                ),
               ],
             ),
           ),
@@ -381,31 +413,36 @@ class _RawDataTab extends ConsumerWidget {
         const SizedBox(height: 16),
 
         // Agent Outputs Section
-        if (rawData['agent_outputs'] != null && (rawData['agent_outputs'] as Map).isNotEmpty) ...[
+        if (rawData['agent_outputs'] != null &&
+            (rawData['agent_outputs'] as Map).isNotEmpty) ...[
           Text(
             'Agent Outputs (${(rawData['agent_outputs'] as Map).length})',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          ...((rawData['agent_outputs'] as Map).entries.map((e) => 
-            ExpansionTile(
+          ...((rawData['agent_outputs'] as Map).entries.map(
+            (e) => ExpansionTile(
               title: Text(e.key as String),
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: SelectableText(
                     _prettyPrint(e.value),
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
-            )
+            ),
           )),
           const SizedBox(height: 16),
         ],
 
         // Hook Outputs Section
-        if (rawData['hook_outputs'] != null && (rawData['hook_outputs'] as Map).isNotEmpty) ...[
+        if (rawData['hook_outputs'] != null &&
+            (rawData['hook_outputs'] as Map).isNotEmpty) ...[
           Text(
             'Hook Outputs (aux_data)',
             style: Theme.of(context).textTheme.titleMedium,
@@ -441,7 +478,11 @@ class _RawDataTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildFallbackView(BuildContext context, AppLocalizations l10n, Object err) {
+  Widget _buildFallbackView(
+    BuildContext context,
+    AppLocalizations l10n,
+    Object err,
+  ) {
     // Fallback to local data if API fails
     final safeInputs = _sanitizeMap(execution.inputs);
     final safeResult = execution.mapOrNull(
@@ -470,7 +511,9 @@ class _RawDataTab extends ConsumerWidget {
                 children: [
                   const Icon(Icons.warning, color: Colors.orange),
                   const SizedBox(width: 8),
-                  Expanded(child: Text('Raw API unavailable. Showing local data.')),
+                  Expanded(
+                    child: Text('Raw API unavailable. Showing local data.'),
+                  ),
                 ],
               ),
             ),

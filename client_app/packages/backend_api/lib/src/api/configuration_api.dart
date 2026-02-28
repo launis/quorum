@@ -26,7 +26,6 @@ import 'package:backend_api/src/model/workflow_config_definition.dart';
 import 'package:backend_api/src/model/workflow_config_update.dart';
 
 class ConfigurationApi {
-
   final Dio _dio;
 
   const ConfigurationApi(this._dio);
@@ -35,7 +34,7 @@ class ConfigurationApi {
   /// Creates a new configuration component.
   ///
   /// Parameters:
-  /// * [componentCreate] 
+  /// * [componentCreate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -45,7 +44,8 @@ class ConfigurationApi {
   ///
   /// Returns a [Future] containing a [Response] with a [TextComponentResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<TextComponentResponse>> createComponentV1ConfigComponentsPost({ 
+  Future<Response<TextComponentResponse>>
+  createComponentV1ConfigComponentsPost({
     required ComponentCreate componentCreate,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -57,13 +57,8 @@ class ConfigurationApi {
     final _path = r'/v1/config/components';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -71,13 +66,10 @@ class ConfigurationApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(componentCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(componentCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -96,9 +88,14 @@ _bodyData=jsonEncode(componentCreate);
     TextComponentResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<TextComponentResponse, TextComponentResponse>(rawData, 'TextComponentResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<TextComponentResponse, TextComponentResponse>(
+              rawData,
+              'TextComponentResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -125,7 +122,7 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   /// Creates a new step. Pydantic validator adapts legacy input to DB schema.
   ///
   /// Parameters:
-  /// * [stepDefinition] 
+  /// * [stepDefinition]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -135,7 +132,7 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   ///
   /// Returns a [Future] containing a [Response] with a [StepDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDefinition>> createStepV1ConfigStepsPost({ 
+  Future<Response<StepDefinition>> createStepV1ConfigStepsPost({
     required StepDefinition stepDefinition,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -147,13 +144,8 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     final _path = r'/v1/config/steps';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -161,13 +153,10 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(stepDefinition);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(stepDefinition);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -186,9 +175,14 @@ _bodyData=jsonEncode(stepDefinition);
     StepDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinition>(rawData, 'StepDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDefinition, StepDefinition>(
+              rawData,
+              'StepDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -215,7 +209,7 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
   /// Create a new workflow.
   ///
   /// Parameters:
-  /// * [workflowConfigCreate] 
+  /// * [workflowConfigCreate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -225,7 +219,8 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowConfigDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowConfigDefinition>> createWorkflowV1ConfigWorkflowsPost({ 
+  Future<Response<WorkflowConfigDefinition>>
+  createWorkflowV1ConfigWorkflowsPost({
     required WorkflowConfigCreate workflowConfigCreate,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -237,13 +232,8 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     final _path = r'/v1/config/workflows';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -251,13 +241,10 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(workflowConfigCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(workflowConfigCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -276,9 +263,14 @@ _bodyData=jsonEncode(workflowConfigCreate);
     WorkflowConfigDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(rawData, 'WorkflowConfigDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(
+              rawData,
+              'WorkflowConfigDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -305,7 +297,7 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   /// Deletes a component if it is not referenced by any existing steps OR executions.
   ///
   /// Parameters:
-  /// * [compId] 
+  /// * [compId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -315,7 +307,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   ///
   /// Returns a [Future] containing a [Response] with a [ComponentDeleteResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ComponentDeleteResponse>> deleteComponentV1ConfigComponentsCompIdDelete({ 
+  Future<Response<ComponentDeleteResponse>>
+  deleteComponentV1ConfigComponentsCompIdDelete({
     required String compId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -324,16 +317,16 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/components/{comp_id}'.replaceAll('{' r'comp_id' '}', compId.toString());
+    final _path = r'/v1/config/components/{comp_id}'.replaceAll(
+      '{'
+      r'comp_id'
+      '}',
+      compId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -348,9 +341,14 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     ComponentDeleteResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ComponentDeleteResponse, ComponentDeleteResponse>(rawData, 'ComponentDeleteResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ComponentDeleteResponse, ComponentDeleteResponse>(
+              rawData,
+              'ComponentDeleteResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -377,7 +375,7 @@ _responseData = rawData == null ? null : deserialize<ComponentDeleteResponse, Co
   /// Deletes a step.
   ///
   /// Parameters:
-  /// * [stepId] 
+  /// * [stepId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -387,7 +385,7 @@ _responseData = rawData == null ? null : deserialize<ComponentDeleteResponse, Co
   ///
   /// Returns a [Future] containing a [Response] with a [StepDeleteResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDeleteResponse>> deleteStepV1ConfigStepsStepIdDelete({ 
+  Future<Response<StepDeleteResponse>> deleteStepV1ConfigStepsStepIdDelete({
     required String stepId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -396,16 +394,16 @@ _responseData = rawData == null ? null : deserialize<ComponentDeleteResponse, Co
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/steps/{step_id}'.replaceAll('{' r'step_id' '}', stepId.toString());
+    final _path = r'/v1/config/steps/{step_id}'.replaceAll(
+      '{'
+      r'step_id'
+      '}',
+      stepId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -420,9 +418,14 @@ _responseData = rawData == null ? null : deserialize<ComponentDeleteResponse, Co
     StepDeleteResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDeleteResponse>(rawData, 'StepDeleteResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDeleteResponse, StepDeleteResponse>(
+              rawData,
+              'StepDeleteResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -449,7 +452,7 @@ _responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDel
   /// Delete a workflow.
   ///
   /// Parameters:
-  /// * [wfId] 
+  /// * [wfId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -459,7 +462,8 @@ _responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDel
   ///
   /// Returns a [Future] containing a [Response] with a [ConfigWorkflowDeleteResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ConfigWorkflowDeleteResponse>> deleteWorkflowV1ConfigWorkflowsWfIdDelete({ 
+  Future<Response<ConfigWorkflowDeleteResponse>>
+  deleteWorkflowV1ConfigWorkflowsWfIdDelete({
     required String wfId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -468,16 +472,16 @@ _responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDel
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll('{' r'wf_id' '}', wfId.toString());
+    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll(
+      '{'
+      r'wf_id'
+      '}',
+      wfId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -492,9 +496,13 @@ _responseData = rawData == null ? null : deserialize<StepDeleteResponse, StepDel
     ConfigWorkflowDeleteResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ConfigWorkflowDeleteResponse, ConfigWorkflowDeleteResponse>(rawData, 'ConfigWorkflowDeleteResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<
+              ConfigWorkflowDeleteResponse,
+              ConfigWorkflowDeleteResponse
+            >(rawData, 'ConfigWorkflowDeleteResponse', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -531,7 +539,8 @@ _responseData = rawData == null ? null : deserialize<ConfigWorkflowDeleteRespons
   ///
   /// Returns a [Future] containing a [Response] with a [TextComponentResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<TextComponentResponse>> getComponentV1ConfigComponentsCompIdGet({ 
+  Future<Response<TextComponentResponse>>
+  getComponentV1ConfigComponentsCompIdGet({
     required String compId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -540,16 +549,16 @@ _responseData = rawData == null ? null : deserialize<ConfigWorkflowDeleteRespons
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/components/{comp_id}'.replaceAll('{' r'comp_id' '}', compId.toString());
+    final _path = r'/v1/config/components/{comp_id}'.replaceAll(
+      '{'
+      r'comp_id'
+      '}',
+      compId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -564,9 +573,14 @@ _responseData = rawData == null ? null : deserialize<ConfigWorkflowDeleteRespons
     TextComponentResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<TextComponentResponse, TextComponentResponse>(rawData, 'TextComponentResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<TextComponentResponse, TextComponentResponse>(
+              rawData,
+              'TextComponentResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -593,8 +607,8 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   /// Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).  Args:     repo (RepositoryDep): Repository dependency.     type (str | None): Optional filter by component type.     exclude_type (list[str] | None): Optional types to exclude (defaults to agents/processors).  Returns:     list[ComponentResponse]: List of configuration components.
   ///
   /// Parameters:
-  /// * [type] 
-  /// * [excludeType] 
+  /// * [type]
+  /// * [excludeType]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -604,7 +618,8 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   ///
   /// Returns a [Future] containing a [Response] with a [List<TextComponentResponse>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<TextComponentResponse>>> getComponentsV1ConfigComponentsGet({ 
+  Future<Response<List<TextComponentResponse>>>
+  getComponentsV1ConfigComponentsGet({
     String? type,
     List<String>? excludeType,
     CancelToken? cancelToken,
@@ -617,13 +632,8 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     final _path = r'/v1/config/components';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -644,9 +654,14 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     List<TextComponentResponse>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<TextComponentResponse>, TextComponentResponse>(rawData, 'List<TextComponentResponse>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<TextComponentResponse>, TextComponentResponse>(
+              rawData,
+              'List<TextComponentResponse>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -673,7 +688,7 @@ _responseData = rawData == null ? null : deserialize<List<TextComponentResponse>
   /// Returns the JSON Schema for a registered Pydantic model. citations: dynamic
   ///
   /// Parameters:
-  /// * [modelName] 
+  /// * [modelName]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -683,7 +698,7 @@ _responseData = rawData == null ? null : deserialize<List<TextComponentResponse>
   ///
   /// Returns a [Future] containing a [Response] with a [SchemaResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<SchemaResponse>> getModelSchemaV1ConfigSchemasModelNameGet({ 
+  Future<Response<SchemaResponse>> getModelSchemaV1ConfigSchemasModelNameGet({
     required String modelName,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -692,16 +707,16 @@ _responseData = rawData == null ? null : deserialize<List<TextComponentResponse>
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/schemas/{model_name}'.replaceAll('{' r'model_name' '}', modelName.toString());
+    final _path = r'/v1/config/schemas/{model_name}'.replaceAll(
+      '{'
+      r'model_name'
+      '}',
+      modelName.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -716,9 +731,14 @@ _responseData = rawData == null ? null : deserialize<List<TextComponentResponse>
     SchemaResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<SchemaResponse, SchemaResponse>(rawData, 'SchemaResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<SchemaResponse, SchemaResponse>(
+              rawData,
+              'SchemaResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -754,7 +774,7 @@ _responseData = rawData == null ? null : deserialize<SchemaResponse, SchemaRespo
   ///
   /// Returns a [Future] containing a [Response] with a [SchemaListResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<SchemaListResponse>> getSchemasV1ConfigSchemasGet({ 
+  Future<Response<SchemaListResponse>> getSchemasV1ConfigSchemasGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -765,13 +785,8 @@ _responseData = rawData == null ? null : deserialize<SchemaResponse, SchemaRespo
     final _path = r'/v1/config/schemas';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -786,9 +801,14 @@ _responseData = rawData == null ? null : deserialize<SchemaResponse, SchemaRespo
     SchemaListResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<SchemaListResponse, SchemaListResponse>(rawData, 'SchemaListResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<SchemaListResponse, SchemaListResponse>(
+              rawData,
+              'SchemaListResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -815,7 +835,7 @@ _responseData = rawData == null ? null : deserialize<SchemaListResponse, SchemaL
   /// Retrieves a single step by ID.
   ///
   /// Parameters:
-  /// * [stepId] 
+  /// * [stepId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -825,7 +845,7 @@ _responseData = rawData == null ? null : deserialize<SchemaListResponse, SchemaL
   ///
   /// Returns a [Future] containing a [Response] with a [StepDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDefinition>> getStepV1ConfigStepsStepIdGet({ 
+  Future<Response<StepDefinition>> getStepV1ConfigStepsStepIdGet({
     required String stepId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -834,16 +854,16 @@ _responseData = rawData == null ? null : deserialize<SchemaListResponse, SchemaL
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/steps/{step_id}'.replaceAll('{' r'step_id' '}', stepId.toString());
+    final _path = r'/v1/config/steps/{step_id}'.replaceAll(
+      '{'
+      r'step_id'
+      '}',
+      stepId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -858,9 +878,14 @@ _responseData = rawData == null ? null : deserialize<SchemaListResponse, SchemaL
     StepDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinition>(rawData, 'StepDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDefinition, StepDefinition>(
+              rawData,
+              'StepDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -896,7 +921,7 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
   ///
   /// Returns a [Future] containing a [Response] with a [List<StepDefinition>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<StepDefinition>>> getStepsV1ConfigStepsGet({ 
+  Future<Response<List<StepDefinition>>> getStepsV1ConfigStepsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -907,13 +932,8 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     final _path = r'/v1/config/steps';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -928,9 +948,14 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     List<StepDefinition>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepDefinition>(rawData, 'List<StepDefinition>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<StepDefinition>, StepDefinition>(
+              rawData,
+              'List<StepDefinition>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -957,7 +982,7 @@ _responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepD
   /// Get a specific workflow.
   ///
   /// Parameters:
-  /// * [wfId] 
+  /// * [wfId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -967,7 +992,8 @@ _responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepD
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowConfigDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowConfigDefinition>> getWorkflowV1ConfigWorkflowsWfIdGet({ 
+  Future<Response<WorkflowConfigDefinition>>
+  getWorkflowV1ConfigWorkflowsWfIdGet({
     required String wfId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -976,16 +1002,16 @@ _responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepD
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll('{' r'wf_id' '}', wfId.toString());
+    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll(
+      '{'
+      r'wf_id'
+      '}',
+      wfId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1000,9 +1026,14 @@ _responseData = rawData == null ? null : deserialize<List<StepDefinition>, StepD
     WorkflowConfigDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(rawData, 'WorkflowConfigDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(
+              rawData,
+              'WorkflowConfigDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1038,7 +1069,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   ///
   /// Returns a [Future] containing a [Response] with a [List<WorkflowConfigDefinition>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<WorkflowConfigDefinition>>> getWorkflowsV1ConfigWorkflowsGet({ 
+  Future<Response<List<WorkflowConfigDefinition>>>
+  getWorkflowsV1ConfigWorkflowsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1049,13 +1081,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     final _path = r'/v1/config/workflows';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1070,9 +1097,13 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     List<WorkflowConfigDefinition>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<WorkflowConfigDefinition>, WorkflowConfigDefinition>(rawData, 'List<WorkflowConfigDefinition>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<
+              List<WorkflowConfigDefinition>,
+              WorkflowConfigDefinition
+            >(rawData, 'List<WorkflowConfigDefinition>', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1108,7 +1139,8 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowConfigDefiniti
   ///
   /// Returns a [Future] containing a [Response] with a [List<RegistryComponentItem>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<RegistryComponentItem>>> listRegistryItemsV1ConfigComponentsRegistryItemsGet({ 
+  Future<Response<List<RegistryComponentItem>>>
+  listRegistryItemsV1ConfigComponentsRegistryItemsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1119,13 +1151,8 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowConfigDefiniti
     final _path = r'/v1/config/components/registry_items';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1140,9 +1167,14 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowConfigDefiniti
     List<RegistryComponentItem>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>, RegistryComponentItem>(rawData, 'List<RegistryComponentItem>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<RegistryComponentItem>, RegistryComponentItem>(
+              rawData,
+              'List<RegistryComponentItem>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1169,8 +1201,8 @@ _responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>
   /// Updates an existing component&#39;s content and metadata.  Args:     comp_id (str): The ID of the component to update.     update (ComponentUpdate): The new data.     repo (RepositoryDep): Repository dependency.  Returns:     ComponentResponse: The updated component.  Raises:     HTTPException: If not found (404).
   ///
   /// Parameters:
-  /// * [compId] 
-  /// * [componentUpdate] 
+  /// * [compId]
+  /// * [componentUpdate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1180,7 +1212,8 @@ _responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>
   ///
   /// Returns a [Future] containing a [Response] with a [TextComponentResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<TextComponentResponse>> updateComponentV1ConfigComponentsCompIdPut({ 
+  Future<Response<TextComponentResponse>>
+  updateComponentV1ConfigComponentsCompIdPut({
     required String compId,
     required ComponentUpdate componentUpdate,
     CancelToken? cancelToken,
@@ -1190,16 +1223,16 @@ _responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/components/{comp_id}'.replaceAll('{' r'comp_id' '}', compId.toString());
+    final _path = r'/v1/config/components/{comp_id}'.replaceAll(
+      '{'
+      r'comp_id'
+      '}',
+      compId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1207,13 +1240,10 @@ _responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(componentUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(componentUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1232,9 +1262,14 @@ _bodyData=jsonEncode(componentUpdate);
     TextComponentResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<TextComponentResponse, TextComponentResponse>(rawData, 'TextComponentResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<TextComponentResponse, TextComponentResponse>(
+              rawData,
+              'TextComponentResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1261,8 +1296,8 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   /// Updates an existing step.
   ///
   /// Parameters:
-  /// * [stepId] 
-  /// * [stepDefinition] 
+  /// * [stepId]
+  /// * [stepDefinition]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1272,7 +1307,7 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   ///
   /// Returns a [Future] containing a [Response] with a [StepDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDefinition>> updateStepV1ConfigStepsStepIdPut({ 
+  Future<Response<StepDefinition>> updateStepV1ConfigStepsStepIdPut({
     required String stepId,
     required StepDefinition stepDefinition,
     CancelToken? cancelToken,
@@ -1282,16 +1317,16 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/steps/{step_id}'.replaceAll('{' r'step_id' '}', stepId.toString());
+    final _path = r'/v1/config/steps/{step_id}'.replaceAll(
+      '{'
+      r'step_id'
+      '}',
+      stepId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1299,13 +1334,10 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(stepDefinition);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(stepDefinition);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1324,9 +1356,14 @@ _bodyData=jsonEncode(stepDefinition);
     StepDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinition>(rawData, 'StepDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDefinition, StepDefinition>(
+              rawData,
+              'StepDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1353,8 +1390,8 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
   /// Update a workflow definition.
   ///
   /// Parameters:
-  /// * [wfId] 
-  /// * [workflowConfigUpdate] 
+  /// * [wfId]
+  /// * [workflowConfigUpdate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1364,7 +1401,8 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowConfigDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowConfigDefinition>> updateWorkflowV1ConfigWorkflowsWfIdPut({ 
+  Future<Response<WorkflowConfigDefinition>>
+  updateWorkflowV1ConfigWorkflowsWfIdPut({
     required String wfId,
     required WorkflowConfigUpdate workflowConfigUpdate,
     CancelToken? cancelToken,
@@ -1374,16 +1412,16 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll('{' r'wf_id' '}', wfId.toString());
+    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll(
+      '{'
+      r'wf_id'
+      '}',
+      wfId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1391,13 +1429,10 @@ _responseData = rawData == null ? null : deserialize<StepDefinition, StepDefinit
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(workflowConfigUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(workflowConfigUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1416,9 +1451,14 @@ _bodyData=jsonEncode(workflowConfigUpdate);
     WorkflowConfigDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(rawData, 'WorkflowConfigDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(
+              rawData,
+              'WorkflowConfigDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1445,7 +1485,7 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   /// Dry run validation.
   ///
   /// Parameters:
-  /// * [workflowConfigCreate] 
+  /// * [workflowConfigCreate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1455,7 +1495,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   ///
   /// Returns a [Future] containing a [Response] with a [ValidationReportResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ValidationReportResponse>> validateFlowV1ConfigWorkflowsValidateFlowPost({ 
+  Future<Response<ValidationReportResponse>>
+  validateFlowV1ConfigWorkflowsValidateFlowPost({
     required WorkflowConfigCreate workflowConfigCreate,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1467,13 +1508,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     final _path = r'/v1/config/workflows/validate-flow';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1481,13 +1517,10 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(workflowConfigCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(workflowConfigCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1506,9 +1539,14 @@ _bodyData=jsonEncode(workflowConfigCreate);
     ValidationReportResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ValidationReportResponse, ValidationReportResponse>(rawData, 'ValidationReportResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ValidationReportResponse, ValidationReportResponse>(
+              rawData,
+              'ValidationReportResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1530,5 +1568,4 @@ _responseData = rawData == null ? null : deserialize<ValidationReportResponse, V
       extra: _response.extra,
     );
   }
-
 }

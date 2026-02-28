@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for KnowledgeApi
 void main() {
   final instance = BackendApi().getKnowledgeApi();
@@ -42,6 +41,5 @@ void main() {
     test('test resetKnowledgeBaseV1ConfigKnowledgeResetDelete', () async {
       // TODO
     });
-
   });
 }

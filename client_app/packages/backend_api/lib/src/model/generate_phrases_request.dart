@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'generate_phrases_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,35 +17,22 @@ part 'generate_phrases_request.g.dart';
 )
 class GeneratePhrasesRequest {
   /// Returns a new [GeneratePhrasesRequest] instance.
-  GeneratePhrasesRequest({
+  GeneratePhrasesRequest({this.language = 'en'});
 
-     this.language = 'en',
-  });
-
-      /// Target language code (e.g., 'en').
-  @JsonKey(
-    defaultValue: 'en',
-    name: r'language',
-    required: false,
-    
-  )
-
-
+  /// Target language code (e.g., 'en').
+  @JsonKey(defaultValue: 'en', name: r'language', required: false)
   final String? language;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GeneratePhrasesRequest && other.language == language;
 
+  @override
+  int get hashCode => language.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is GeneratePhrasesRequest &&
-      other.language == language;
-
-    @override
-    int get hashCode =>
-        language.hashCode;
-
-  factory GeneratePhrasesRequest.fromJson(Map<String, dynamic> json) => _$GeneratePhrasesRequestFromJson(json);
+  factory GeneratePhrasesRequest.fromJson(Map<String, dynamic> json) =>
+      _$GeneratePhrasesRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$GeneratePhrasesRequestToJson(this);
 
@@ -54,6 +40,4 @@ class GeneratePhrasesRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

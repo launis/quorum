@@ -186,16 +186,16 @@ class ProfilingDomainTransformer(BaseTransformer):
         # Ensure correct formatting for frontend ENUM
         role_key = f"ROLE_{role_raw.upper()}"
 
-        strategies = model.improvement_suggestions
-        input_quality = model.input_quality_score
-        iq_label = str(input_quality)
+        high_dependency = model.high_dependency
+        cmd_count = model.imperative_command_count
+        strategy = model.strategy
 
         # Construct Strict View Model
         return DriverProfileDisplay(
             role_classification=role_key, 
-            input_quality_score=input_quality,
-            input_quality_label=iq_label, 
-            strategies=strategies
+            high_dependency=high_dependency,
+            imperative_command_count=cmd_count, 
+            strategy=strategy
         )
 
     def _extract_detector_section(self, steps: dict) -> UiSection | None:

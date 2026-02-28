@@ -141,6 +141,13 @@ class LLMProviderConfig(BaseModel):
             json_schema_extra={"x-ui-label": "Max Tokens"},
         ),
     ] = None
+    parsing_mode: Annotated[
+        str | None,
+        Field(
+            description="Instructor parsing mode (e.g. 'GEMINI_JSON', 'JSON').",
+            json_schema_extra={"x-ui-label": "Parsing Mode"},
+        ),
+    ] = None
     vertex_location: Annotated[
         str | None,
         Field(
@@ -259,6 +266,7 @@ class LLMStrategy(BaseModel):
     allowed_tools: Annotated[list[str], Field(default_factory=list, description="Allowed function tools.")]
     supports_grounding: Annotated[bool, Field(default=False, description="Does this strategy require Vertex Grounding.")]
     api_key: Annotated[str | None, Field(default=None, description="Resolver specific API key override.")]
+    parsing_mode: Annotated[str | None, Field(default=None, description="Instructor parsing mode override (e.g. 'GEMINI_JSON').")]
 
 
 class ModelRegistryConfig(BaseModel):
@@ -267,10 +275,11 @@ class ModelRegistryConfig(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
 
     id: Literal["model_registry"] = Field(default="model_registry", description="Fixed ID.")
+    slug: str | None = Field(default=None, description="Legacy human-readable identifier")
     type: Literal["model_registry"] = Field(default="model_registry", description="Fixed Type.")
     # Map of Provider (e.g. google, openai) -> Map of Strategy Name (e.g. fast, SearchHook) -> Strategy
     models: Annotated[
-        dict[str, dict[str, LLMStrategy]],
+        dict[str, dict[str, LLMStrategy | str]],
         Field(..., description="Map of Provider -> Strategy Map."),
     ]
 

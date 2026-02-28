@@ -77,7 +77,8 @@ class ErrorView extends StatelessWidget {
                 icon: const Icon(Icons.arrow_forward, size: 16),
                 label: Text(actionLabel!),
                 style: FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary, // Distinct from Error Color
+                  backgroundColor:
+                      theme.colorScheme.primary, // Distinct from Error Color
                   foregroundColor: theme.colorScheme.onPrimary,
                   visualDensity: VisualDensity.compact,
                 ),
@@ -88,13 +89,14 @@ class ErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton.icon( // Downgrade Retry to TextButton if Action is present? Or keep both?
+              child: TextButton.icon(
+                // Downgrade Retry to TextButton if Action is present? Or keep both?
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 16),
                 label: Text(retryLabel ?? 'Retry'),
                 style: TextButton.styleFrom(
-                   foregroundColor: iconColor,
-                   visualDensity: VisualDensity.compact,
+                  foregroundColor: iconColor,
+                  visualDensity: VisualDensity.compact,
                 ),
               ),
             ),

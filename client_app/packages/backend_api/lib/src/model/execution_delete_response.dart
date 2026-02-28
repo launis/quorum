@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'execution_delete_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,26 @@ part 'execution_delete_response.g.dart';
 )
 class ExecutionDeleteResponse {
   /// Returns a new [ExecutionDeleteResponse] instance.
-  ExecutionDeleteResponse({
+  ExecutionDeleteResponse({required this.status, required this.id});
 
-    required  this.status,
-
-    required  this.id,
-  });
-
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: true)
   final String id;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExecutionDeleteResponse &&
+          other.status == status &&
+          other.id == id;
 
+  @override
+  int get hashCode => status.hashCode + id.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ExecutionDeleteResponse &&
-      other.status == status &&
-      other.id == id;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        id.hashCode;
-
-  factory ExecutionDeleteResponse.fromJson(Map<String, dynamic> json) => _$ExecutionDeleteResponseFromJson(json);
+  factory ExecutionDeleteResponse.fromJson(Map<String, dynamic> json) =>
+      _$ExecutionDeleteResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ExecutionDeleteResponseToJson(this);
 
@@ -69,6 +44,4 @@ class ExecutionDeleteResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

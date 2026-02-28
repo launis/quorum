@@ -13,7 +13,6 @@ import 'package:backend_api/src/model/audit_event.dart';
 import 'package:backend_api/src/model/http_validation_error.dart';
 
 class AuditApi {
-
   final Dio _dio;
 
   const AuditApi(this._dio);
@@ -25,8 +24,8 @@ class AuditApi {
   /// * [organizationId] - Filter by Organization ID
   /// * [actorId] - Filter by Actor UID
   /// * [action] - Filter by Action type
-  /// * [limit] 
-  /// * [authorization] 
+  /// * [limit]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -36,7 +35,7 @@ class AuditApi {
   ///
   /// Returns a [Future] containing a [Response] with a [List<AuditEvent>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<AuditEvent>>> getAuditLogsAuditLogsGet({ 
+  Future<Response<List<AuditEvent>>> getAuditLogsAuditLogsGet({
     String? organizationId,
     String? actorId,
     String? action,
@@ -52,14 +51,8 @@ class AuditApi {
     final _path = r'/audit/logs';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -82,9 +75,14 @@ class AuditApi {
     List<AuditEvent>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<AuditEvent>, AuditEvent>(rawData, 'List<AuditEvent>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<AuditEvent>, AuditEvent>(
+              rawData,
+              'List<AuditEvent>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -106,5 +104,4 @@ _responseData = rawData == null ? null : deserialize<List<AuditEvent>, AuditEven
       extra: _response.extra,
     );
   }
-
 }

@@ -9,7 +9,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'ui_section.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -20,84 +19,48 @@ part 'ui_section.g.dart';
 class UiSection {
   /// Returns a new [UiSection] instance.
   UiSection({
+    required this.id,
 
-    required  this.id,
+    required this.type,
 
-    required  this.type,
+    required this.title,
 
-    required  this.title,
-
-     this.data,
+    this.data,
   });
 
-      /// Unique identifier for the section (e.g. 'verdict-card')
-  @JsonKey(
-    
-    name: r'id',
-    required: true,
-    
-  )
-
-
+  /// Unique identifier for the section (e.g. 'verdict-card')
+  @JsonKey(name: r'id', required: true)
   final String id;
 
-
-
-      /// Determines which UI component to render
-  @JsonKey(
-    
-    name: r'type',
-    required: true,
-    
-  )
-
-
+  /// Determines which UI component to render
+  @JsonKey(name: r'type', required: true)
   final SectionType type;
 
-
-
-      /// User-facing title of the section
-  @JsonKey(
-    
-    name: r'title',
-    required: true,
-    
-  )
-
-
+  /// User-facing title of the section
+  @JsonKey(name: r'title', required: true)
   final String title;
 
-
-
-  @JsonKey(
-    
-    name: r'data',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'data', required: false)
   final Object? data;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UiSection &&
+          other.id == id &&
+          other.type == type &&
+          other.title == title &&
+          other.data == data;
 
+  @override
+  int get hashCode =>
+      id.hashCode +
+      type.hashCode +
+      title.hashCode +
+      (data == null ? 0 : data.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is UiSection &&
-      other.id == id &&
-      other.type == type &&
-      other.title == title &&
-      other.data == data;
-
-    @override
-    int get hashCode =>
-        id.hashCode +
-        type.hashCode +
-        title.hashCode +
-        (data == null ? 0 : data.hashCode);
-
-  factory UiSection.fromJson(Map<String, dynamic> json) => _$UiSectionFromJson(json);
+  factory UiSection.fromJson(Map<String, dynamic> json) =>
+      _$UiSectionFromJson(json);
 
   Map<String, dynamic> toJson() => _$UiSectionToJson(this);
 
@@ -105,6 +68,4 @@ class UiSection {
   String toString() {
     return toJson().toString();
   }
-
 }
-

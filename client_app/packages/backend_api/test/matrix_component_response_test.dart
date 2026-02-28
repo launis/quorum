@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for MatrixComponentResponse
 void main() {
-  final MatrixComponentResponse? instance = /* MatrixComponentResponse(...) */ null;
+  final MatrixComponentResponse? instance = /* MatrixComponentResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(MatrixComponentResponse, () {
@@ -66,6 +67,5 @@ void main() {
     test('to test the property `content`', () async {
       // TODO
     });
-
   });
 }

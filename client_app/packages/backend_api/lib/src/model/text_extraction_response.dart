@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'text_extraction_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,51 +17,28 @@ part 'text_extraction_response.g.dart';
 )
 class TextExtractionResponse {
   /// Returns a new [TextExtractionResponse] instance.
-  TextExtractionResponse({
+  TextExtractionResponse({this.filename, required this.text});
 
-     this.filename,
-
-    required  this.text,
-  });
-
-  @JsonKey(
-    
-    name: r'filename',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'filename', required: false)
   final String? filename;
 
-
-
-      /// Extracted raw text content.
-  @JsonKey(
-    
-    name: r'text',
-    required: true,
-    
-  )
-
-
+  /// Extracted raw text content.
+  @JsonKey(name: r'text', required: true)
   final String text;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TextExtractionResponse &&
+          other.filename == filename &&
+          other.text == text;
 
+  @override
+  int get hashCode =>
+      (filename == null ? 0 : filename.hashCode) + text.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is TextExtractionResponse &&
-      other.filename == filename &&
-      other.text == text;
-
-    @override
-    int get hashCode =>
-        (filename == null ? 0 : filename.hashCode) +
-        text.hashCode;
-
-  factory TextExtractionResponse.fromJson(Map<String, dynamic> json) => _$TextExtractionResponseFromJson(json);
+  factory TextExtractionResponse.fromJson(Map<String, dynamic> json) =>
+      _$TextExtractionResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$TextExtractionResponseToJson(this);
 
@@ -70,6 +46,4 @@ class TextExtractionResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

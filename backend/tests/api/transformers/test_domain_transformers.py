@@ -189,8 +189,9 @@ def test_driver_transformer_extracts_display_model():
         "step_interaction": {
             "interaction_analysis": {
                 "role_classification": "Driver",
-                "input_quality_score": 0.9,
-                "improvement_suggestions": ["Direct"],
+                "high_dependency": False,
+                "imperative_command_count": 2,
+                "strategy": "Zero-shot",
                 "thought_process": "Thinking...",
                 "conclusion": "Conclusion",
                 "confidence_score": 0.9,
@@ -202,7 +203,7 @@ def test_driver_transformer_extracts_display_model():
     assert isinstance(section, UiSection)
     assert section.type == SectionType.DRIVER_PROFILE
     assert isinstance(section.data, DriverProfileDisplay)
-    assert section.data.classification == "ROLE_DRIVER"
+    assert section.data.role_classification == "ROLE_DRIVER"
 
 
 # --- Archivist Transformer Tests (in Compliance) ---

@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for ConfigComponentResponse
 void main() {
-  final ConfigComponentResponse? instance = /* ConfigComponentResponse(...) */ null;
+  final ConfigComponentResponse? instance = /* ConfigComponentResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(ConfigComponentResponse, () {
@@ -71,6 +72,5 @@ void main() {
     test('to test the property `uiHints`', () async {
       // TODO
     });
-
   });
 }

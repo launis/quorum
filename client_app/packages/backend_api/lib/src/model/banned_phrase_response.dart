@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'banned_phrase_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,26 @@ part 'banned_phrase_response.g.dart';
 )
 class BannedPhraseResponse {
   /// Returns a new [BannedPhraseResponse] instance.
-  BannedPhraseResponse({
+  BannedPhraseResponse({required this.status, required this.phrase});
 
-    required  this.status,
-
-    required  this.phrase,
-  });
-
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'phrase',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'phrase', required: true)
   final String phrase;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BannedPhraseResponse &&
+          other.status == status &&
+          other.phrase == phrase;
 
+  @override
+  int get hashCode => status.hashCode + phrase.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is BannedPhraseResponse &&
-      other.status == status &&
-      other.phrase == phrase;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        phrase.hashCode;
-
-  factory BannedPhraseResponse.fromJson(Map<String, dynamic> json) => _$BannedPhraseResponseFromJson(json);
+  factory BannedPhraseResponse.fromJson(Map<String, dynamic> json) =>
+      _$BannedPhraseResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$BannedPhraseResponseToJson(this);
 
@@ -69,6 +44,4 @@ class BannedPhraseResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

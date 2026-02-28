@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'validation_report_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,81 +18,45 @@ part 'validation_report_response.g.dart';
 class ValidationReportResponse {
   /// Returns a new [ValidationReportResponse] instance.
   ValidationReportResponse({
+    required this.valid,
 
-    required  this.valid,
+    required this.errors,
 
-    required  this.errors,
+    required this.trace,
 
-    required  this.trace,
-
-    required  this.finalStateKeys,
+    required this.finalStateKeys,
   });
 
-  @JsonKey(
-    
-    name: r'valid',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'valid', required: true)
   final bool valid;
 
-
-
-  @JsonKey(
-    
-    name: r'errors',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'errors', required: true)
   final List<String> errors;
 
-
-
-  @JsonKey(
-    
-    name: r'trace',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'trace', required: true)
   final List<String> trace;
 
-
-
-  @JsonKey(
-    
-    name: r'final_state_keys',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'final_state_keys', required: true)
   final List<String> finalStateKeys;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ValidationReportResponse &&
+          other.valid == valid &&
+          other.errors == errors &&
+          other.trace == trace &&
+          other.finalStateKeys == finalStateKeys;
 
+  @override
+  int get hashCode =>
+      valid.hashCode +
+      errors.hashCode +
+      trace.hashCode +
+      finalStateKeys.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ValidationReportResponse &&
-      other.valid == valid &&
-      other.errors == errors &&
-      other.trace == trace &&
-      other.finalStateKeys == finalStateKeys;
-
-    @override
-    int get hashCode =>
-        valid.hashCode +
-        errors.hashCode +
-        trace.hashCode +
-        finalStateKeys.hashCode;
-
-  factory ValidationReportResponse.fromJson(Map<String, dynamic> json) => _$ValidationReportResponseFromJson(json);
+  factory ValidationReportResponse.fromJson(Map<String, dynamic> json) =>
+      _$ValidationReportResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ValidationReportResponseToJson(this);
 
@@ -101,6 +64,4 @@ class ValidationReportResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

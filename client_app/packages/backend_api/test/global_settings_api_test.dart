@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for GlobalSettingsApi
 void main() {
   final instance = BackendApi().getGlobalSettingsApi();
@@ -24,6 +23,5 @@ void main() {
     test('test updateSettingsSettingsPatch', () async {
       // TODO
     });
-
   });
 }

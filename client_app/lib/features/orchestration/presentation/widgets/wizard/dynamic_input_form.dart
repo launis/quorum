@@ -26,9 +26,10 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
     final workflowAsync = ref.watch(workflowListProvider);
     final inputs = ref.watch(wizardStateProvider.select((s) => s.inputs));
 
-    final workflow = workflowAsync.asData?.value
-        .where((w) => w.id == workflowId)
-        .firstOrNull;
+    final workflow =
+        workflowAsync.asData?.value
+            .where((w) => w.id == workflowId)
+            .firstOrNull;
 
     return Form(
       key: _formKey,
@@ -54,36 +55,39 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
             ...workflow.uiSchema!.entries
                 .where((e) => e.key != 'default_model_mapping')
                 .map((entry) {
-              final val = entry.value as Map<String, dynamic>;
-              final key = entry.key;
-              final type = val['type'] as String? ?? 'text';
-              final label = _getLocalizedLabel(context, val['label'] as String? ?? key);
-              final iconData = _getIcon(val['icon'] as String?);
-              final minLines = val['minLines'] as int? ?? 1;
+                  final val = entry.value as Map<String, dynamic>;
+                  final key = entry.key;
+                  final type = val['type'] as String? ?? 'text';
+                  final label = _getLocalizedLabel(
+                    context,
+                    val['label'] as String? ?? key,
+                  );
+                  final iconData = _getIcon(val['icon'] as String?);
+                  final minLines = val['minLines'] as int? ?? 1;
 
-              if (type == 'file') {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: _buildFileInput(
-                    label: label,
-                    keyName: key,
-                    icon: iconData,
-                    currentValue: inputs[key] as PlatformFile?,
-                  ),
-                );
-              } else {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: _buildTextField(
-                    label: label,
-                    keyName: key,
-                    currentValue: inputs[key] as String?,
-                    icon: iconData,
-                    minLines: minLines,
-                  ),
-                );
-              }
-            }),
+                  if (type == 'file') {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: _buildFileInput(
+                        label: label,
+                        keyName: key,
+                        icon: iconData,
+                        currentValue: inputs[key] as PlatformFile?,
+                      ),
+                    );
+                  } else {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: _buildTextField(
+                        label: label,
+                        keyName: key,
+                        currentValue: inputs[key] as String?,
+                        icon: iconData,
+                        minLines: minLines,
+                      ),
+                    );
+                  }
+                }),
           ] else
             Center(
               child: Padding(

@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for ExecutionV1Api
 void main() {
   final instance = BackendApi().getExecutionV1Api();
@@ -33,6 +32,5 @@ void main() {
     test('test executeWorkflowRouteV1ExecuteWorkflowIdPost', () async {
       // TODO
     });
-
   });
 }

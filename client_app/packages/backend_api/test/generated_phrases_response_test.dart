@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for GeneratedPhrasesResponse
 void main() {
-  final GeneratedPhrasesResponse? instance = /* GeneratedPhrasesResponse(...) */ null;
+  final GeneratedPhrasesResponse? instance = /* GeneratedPhrasesResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(GeneratedPhrasesResponse, () {
@@ -21,6 +22,5 @@ void main() {
     test('to test the property `addedPhrases`', () async {
       // TODO
     });
-
   });
 }

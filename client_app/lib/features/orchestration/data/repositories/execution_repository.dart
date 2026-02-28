@@ -109,7 +109,7 @@ class ExecutionRepository {
             filename: file.name,
           );
         } else if (!kIsWeb && file.path != null) {
-           formDataMap[entry.key] = await MultipartFile.fromFile(
+          formDataMap[entry.key] = await MultipartFile.fromFile(
             file.path!,
             filename: file.name,
           );
@@ -191,14 +191,14 @@ class ExecutionRepository {
   Stream<Execution> streamExecution(String id) {
     // Request RAW view for full Execution model
     final url = '/executions/$id/events?view=raw';
-    
+
     // We utilize the SseClient helper
     final stream = SseClient.connect<Execution>(
       url: url,
       parser: (json) => Execution.fromJson(json),
       dio: _client,
     );
-    
+
     return stream;
   }
 
@@ -208,7 +208,7 @@ class ExecutionRepository {
   Stream<AssessmentView> streamAssessment(String id) {
     // Request ASSESSMENT view for UI-optimized model
     final url = '/executions/$id/events?view=assessment';
-    
+
     return SseClient.connect<AssessmentView>(
       url: url,
       parser: (json) => AssessmentView.fromJson(json),
@@ -254,9 +254,10 @@ class ExecutionRepository {
       final response = await _client.get<Map<String, dynamic>>(
         '/executions/$id/view',
       );
-      debugPrint('[ExecutionRepository] getReportView($id) SUCCESS: ${response.statusCode}');
+      debugPrint(
+        '[ExecutionRepository] getReportView($id) SUCCESS: ${response.statusCode}',
+      );
       return ReportView.fromJson(response.data!);
     }, (error, stackTrace) => _mapError(error));
   }
 }
-

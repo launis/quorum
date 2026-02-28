@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'knowledge_ingest_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,34 +17,21 @@ part 'knowledge_ingest_response.g.dart';
 )
 class KnowledgeIngestResponse {
   /// Returns a new [KnowledgeIngestResponse] instance.
-  KnowledgeIngestResponse({
+  KnowledgeIngestResponse({required this.jobId});
 
-    required  this.jobId,
-  });
-
-  @JsonKey(
-    
-    name: r'job_id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'job_id', required: true)
   final String jobId;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KnowledgeIngestResponse && other.jobId == jobId;
 
+  @override
+  int get hashCode => jobId.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is KnowledgeIngestResponse &&
-      other.jobId == jobId;
-
-    @override
-    int get hashCode =>
-        jobId.hashCode;
-
-  factory KnowledgeIngestResponse.fromJson(Map<String, dynamic> json) => _$KnowledgeIngestResponseFromJson(json);
+  factory KnowledgeIngestResponse.fromJson(Map<String, dynamic> json) =>
+      _$KnowledgeIngestResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$KnowledgeIngestResponseToJson(this);
 
@@ -53,6 +39,4 @@ class KnowledgeIngestResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

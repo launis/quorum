@@ -3,7 +3,9 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet
 void main() {
-  final ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet? instance = /* ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet(...) */ null;
+  final ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet?
+  instance = /* ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet(...) */
+      null;
   // TODO add properties to the entity
 
   group(ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet, () {
@@ -26,6 +28,5 @@ void main() {
     test('to test the property `message`', () async {
       // TODO
     });
-
   });
 }

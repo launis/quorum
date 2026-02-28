@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'location_inner.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -21,15 +20,15 @@ class LocationInner {
   LocationInner({this.dummy});
   final String? dummy;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is LocationInner;
 
+  @override
+  int get hashCode => 0;
 
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is LocationInner ;
-
-    @override
-    int get hashCode => 0;
-
-  factory LocationInner.fromJson(Map<String, dynamic> json) => _$LocationInnerFromJson(json);
+  factory LocationInner.fromJson(Map<String, dynamic> json) =>
+      _$LocationInnerFromJson(json);
 
   Map<String, dynamic> toJson() => _$LocationInnerToJson(this);
 
@@ -37,6 +36,4 @@ class LocationInner {
   String toString() {
     return toJson().toString();
   }
-
 }
-

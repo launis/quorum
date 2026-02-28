@@ -9,7 +9,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'login_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,66 +18,33 @@ part 'login_response.g.dart';
 )
 class LoginResponse {
   /// Returns a new [LoginResponse] instance.
-  LoginResponse({
+  LoginResponse({required this.user, required this.tokenValid, this.debugMsg});
 
-    required  this.user,
-
-    required  this.tokenValid,
-
-     this.debugMsg,
-  });
-
-  @JsonKey(
-    
-    name: r'user',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'user', required: true)
   final User user;
 
-
-
-  @JsonKey(
-    
-    name: r'token_valid',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'token_valid', required: true)
   final bool tokenValid;
 
-
-
-  @JsonKey(
-    
-    name: r'debug_msg',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'debug_msg', required: false)
   final String? debugMsg;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LoginResponse &&
+          other.user == user &&
+          other.tokenValid == tokenValid &&
+          other.debugMsg == debugMsg;
 
+  @override
+  int get hashCode =>
+      user.hashCode +
+      tokenValid.hashCode +
+      (debugMsg == null ? 0 : debugMsg.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is LoginResponse &&
-      other.user == user &&
-      other.tokenValid == tokenValid &&
-      other.debugMsg == debugMsg;
-
-    @override
-    int get hashCode =>
-        user.hashCode +
-        tokenValid.hashCode +
-        (debugMsg == null ? 0 : debugMsg.hashCode);
-
-  factory LoginResponse.fromJson(Map<String, dynamic> json) => _$LoginResponseFromJson(json);
+  factory LoginResponse.fromJson(Map<String, dynamic> json) =>
+      _$LoginResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$LoginResponseToJson(this);
 
@@ -86,6 +52,4 @@ class LoginResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

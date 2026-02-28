@@ -45,7 +45,8 @@ class _FileInputFieldState extends State<FileInputField> {
           'yaml',
           'yml',
         ],
-        withData: true, // Always load bytes to ensure reliability across platforms
+        withData:
+            true, // Always load bytes to ensure reliability across platforms
       );
 
       if (result != null && result.files.isNotEmpty) {

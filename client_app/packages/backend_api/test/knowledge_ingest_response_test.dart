@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for KnowledgeIngestResponse
 void main() {
-  final KnowledgeIngestResponse? instance = /* KnowledgeIngestResponse(...) */ null;
+  final KnowledgeIngestResponse? instance = /* KnowledgeIngestResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(KnowledgeIngestResponse, () {
@@ -11,6 +12,5 @@ void main() {
     test('to test the property `jobId`', () async {
       // TODO
     });
-
   });
 }

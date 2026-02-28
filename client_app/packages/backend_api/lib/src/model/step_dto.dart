@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'step_dto.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,113 +18,59 @@ part 'step_dto.g.dart';
 class StepDTO {
   /// Returns a new [StepDTO] instance.
   StepDTO({
+    required this.id,
 
-    required  this.id,
+    this.name,
 
-     this.name,
+    required this.taskKey,
 
-    required  this.taskKey,
+    this.description,
 
-     this.description,
+    this.config,
 
-     this.config,
-
-     this.inputs = const {},
+    this.inputs = const {},
   });
 
-  @JsonKey(
-    
-    name: r'id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: true)
   final String id;
 
-
-
-  @JsonKey(
-    
-    name: r'name',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'name', required: false)
   final String? name;
 
-
-
-  @JsonKey(
-    
-    name: r'task_key',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'task_key', required: true)
   final String taskKey;
 
-
-
-  @JsonKey(
-    
-    name: r'description',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'description', required: false)
   final String? description;
 
-
-
-  @JsonKey(
-    
-    name: r'config',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'config', required: false)
   final Map<String, Object>? config;
 
-
-
-  @JsonKey(
-    defaultValue: {},
-    name: r'inputs',
-    required: false,
-    
-  )
-
-
+  @JsonKey(defaultValue: {}, name: r'inputs', required: false)
   final Map<String, String>? inputs;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StepDTO &&
+          other.id == id &&
+          other.name == name &&
+          other.taskKey == taskKey &&
+          other.description == description &&
+          other.config == config &&
+          other.inputs == inputs;
 
+  @override
+  int get hashCode =>
+      id.hashCode +
+      (name == null ? 0 : name.hashCode) +
+      taskKey.hashCode +
+      (description == null ? 0 : description.hashCode) +
+      (config == null ? 0 : config.hashCode) +
+      inputs.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is StepDTO &&
-      other.id == id &&
-      other.name == name &&
-      other.taskKey == taskKey &&
-      other.description == description &&
-      other.config == config &&
-      other.inputs == inputs;
-
-    @override
-    int get hashCode =>
-        id.hashCode +
-        (name == null ? 0 : name.hashCode) +
-        taskKey.hashCode +
-        (description == null ? 0 : description.hashCode) +
-        (config == null ? 0 : config.hashCode) +
-        inputs.hashCode;
-
-  factory StepDTO.fromJson(Map<String, dynamic> json) => _$StepDTOFromJson(json);
+  factory StepDTO.fromJson(Map<String, dynamic> json) =>
+      _$StepDTOFromJson(json);
 
   Map<String, dynamic> toJson() => _$StepDTOToJson(this);
 
@@ -133,6 +78,4 @@ class StepDTO {
   String toString() {
     return toJson().toString();
   }
-
 }
-

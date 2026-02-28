@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'admin_task_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,81 +18,45 @@ part 'admin_task_response.g.dart';
 class AdminTaskResponse {
   /// Returns a new [AdminTaskResponse] instance.
   AdminTaskResponse({
+    required this.status,
 
-    required  this.status,
+    required this.jobId,
 
-    required  this.jobId,
+    required this.task,
 
-    required  this.task,
-
-     this.message,
+    this.message,
   });
 
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final AdminTaskResponseStatusEnum status;
 
-
-
-  @JsonKey(
-    
-    name: r'job_id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'job_id', required: true)
   final String jobId;
 
-
-
-  @JsonKey(
-    
-    name: r'task',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'task', required: true)
   final String task;
 
-
-
-  @JsonKey(
-    
-    name: r'message',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'message', required: false)
   final String? message;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AdminTaskResponse &&
+          other.status == status &&
+          other.jobId == jobId &&
+          other.task == task &&
+          other.message == message;
 
+  @override
+  int get hashCode =>
+      status.hashCode +
+      jobId.hashCode +
+      task.hashCode +
+      (message == null ? 0 : message.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is AdminTaskResponse &&
-      other.status == status &&
-      other.jobId == jobId &&
-      other.task == task &&
-      other.message == message;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        jobId.hashCode +
-        task.hashCode +
-        (message == null ? 0 : message.hashCode);
-
-  factory AdminTaskResponse.fromJson(Map<String, dynamic> json) => _$AdminTaskResponseFromJson(json);
+  factory AdminTaskResponse.fromJson(Map<String, dynamic> json) =>
+      _$AdminTaskResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$AdminTaskResponseToJson(this);
 
@@ -101,24 +64,20 @@ class AdminTaskResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-
 
 enum AdminTaskResponseStatusEnum {
-@JsonValue(r'started')
-started(r'started'),
-@JsonValue(r'starting')
-starting(r'starting'),
-@JsonValue(r'failed')
-failed(r'failed');
+  @JsonValue(r'started')
+  started(r'started'),
+  @JsonValue(r'starting')
+  starting(r'starting'),
+  @JsonValue(r'failed')
+  failed(r'failed');
 
-const AdminTaskResponseStatusEnum(this.value);
+  const AdminTaskResponseStatusEnum(this.value);
 
-final String value;
+  final String value;
 
-@override
-String toString() => value;
+  @override
+  String toString() => value;
 }
-
-

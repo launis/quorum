@@ -14,13 +14,14 @@ class AvailableAgentsController extends _$AvailableAgentsController {
   Future<void> saveAgent(StudioComponentDef agent) async {
     final previousState = state;
     final currentList = state.value ?? [];
-    
+
     // Naively replace or append based on ID, simple optimistic approach
     final isNew = !currentList.any((a) => a.id == agent.id);
-    final newList = isNew 
-      ? [...currentList, agent]
-      : currentList.map((a) => a.id == agent.id ? agent : a).toList();
-      
+    final newList =
+        isNew
+            ? [...currentList, agent]
+            : currentList.map((a) => a.id == agent.id ? agent : a).toList();
+
     state = AsyncData(newList);
 
     try {

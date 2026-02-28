@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'component_update.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,97 +18,52 @@ part 'component_update.g.dart';
 class ComponentUpdate {
   /// Returns a new [ComponentUpdate] instance.
   ComponentUpdate({
+    required this.content,
 
-    required  this.content,
+    this.description,
 
-     this.description,
+    this.citation,
 
-     this.citation,
+    this.citationFull,
 
-     this.citationFull,
-
-     this.type,
+    this.type,
   });
 
-  @JsonKey(
-    
-    name: r'content',
-    required: true,
-    includeIfNull: true,
-  )
-
-
+  @JsonKey(name: r'content', required: true, includeIfNull: true)
   final Object? content;
 
-
-
-  @JsonKey(
-    
-    name: r'description',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'description', required: false)
   final Object? description;
 
-
-
-  @JsonKey(
-    
-    name: r'citation',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'citation', required: false)
   final Object? citation;
 
-
-
-  @JsonKey(
-    
-    name: r'citation_full',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'citation_full', required: false)
   final Object? citationFull;
 
-
-
-  @JsonKey(
-    
-    name: r'type',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'type', required: false)
   final Object? type;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ComponentUpdate &&
+          other.content == content &&
+          other.description == description &&
+          other.citation == citation &&
+          other.citationFull == citationFull &&
+          other.type == type;
 
+  @override
+  int get hashCode =>
+      (content == null ? 0 : content.hashCode) +
+      (description == null ? 0 : description.hashCode) +
+      (citation == null ? 0 : citation.hashCode) +
+      (citationFull == null ? 0 : citationFull.hashCode) +
+      (type == null ? 0 : type.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ComponentUpdate &&
-      other.content == content &&
-      other.description == description &&
-      other.citation == citation &&
-      other.citationFull == citationFull &&
-      other.type == type;
-
-    @override
-    int get hashCode =>
-        (content == null ? 0 : content.hashCode) +
-        (description == null ? 0 : description.hashCode) +
-        (citation == null ? 0 : citation.hashCode) +
-        (citationFull == null ? 0 : citationFull.hashCode) +
-        (type == null ? 0 : type.hashCode);
-
-  factory ComponentUpdate.fromJson(Map<String, dynamic> json) => _$ComponentUpdateFromJson(json);
+  factory ComponentUpdate.fromJson(Map<String, dynamic> json) =>
+      _$ComponentUpdateFromJson(json);
 
   Map<String, dynamic> toJson() => _$ComponentUpdateToJson(this);
 
@@ -117,6 +71,4 @@ class ComponentUpdate {
   String toString() {
     return toJson().toString();
   }
-
 }
-

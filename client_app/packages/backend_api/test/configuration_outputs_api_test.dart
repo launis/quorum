@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for ConfigurationOutputsApi
 void main() {
   final instance = BackendApi().getConfigurationOutputsApi();
@@ -51,6 +50,5 @@ void main() {
     test('test updateOutputV1ConfigOutputsOutputIdPut', () async {
       // TODO
     });
-
   });
 }

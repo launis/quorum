@@ -4,7 +4,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'model_registry.freezed.dart';
 part 'model_registry.g.dart';
 
-
 @freezed
 abstract class LLMProviderConfig with _$LLMProviderConfig {
   const factory LLMProviderConfig({

@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for OrganizationCreateRequest
 void main() {
-  final OrganizationCreateRequest? instance = /* OrganizationCreateRequest(...) */ null;
+  final OrganizationCreateRequest?
+  instance = /* OrganizationCreateRequest(...) */ null;
   // TODO add properties to the entity
 
   group(OrganizationCreateRequest, () {
@@ -46,6 +47,5 @@ void main() {
     test('to test the property `settingsOverride`', () async {
       // TODO
     });
-
   });
 }

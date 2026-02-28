@@ -21,7 +21,6 @@ import 'package:backend_api/src/model/response_download_execution_pdf_executions
 import 'package:backend_api/src/model/xai_flat_report_dto.dart';
 
 class ExecutionsApi {
-
   final Dio _dio;
 
   const ExecutionsApi(this._dio);
@@ -30,8 +29,8 @@ class ExecutionsApi {
   /// Signals the workflow engine to cancel the running execution.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -41,7 +40,8 @@ class ExecutionsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [ExecutionCancelResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ExecutionCancelResponse>> cancelExecutionExecutionsExecutionIdCancelDelete({ 
+  Future<Response<ExecutionCancelResponse>>
+  cancelExecutionExecutionsExecutionIdCancelDelete({
     required String executionId,
     String? authorization,
     CancelToken? cancelToken,
@@ -51,17 +51,16 @@ class ExecutionsApi {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/cancel'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/cancel'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -76,9 +75,14 @@ class ExecutionsApi {
     ExecutionCancelResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ExecutionCancelResponse, ExecutionCancelResponse>(rawData, 'ExecutionCancelResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ExecutionCancelResponse, ExecutionCancelResponse>(
+              rawData,
+              'ExecutionCancelResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -105,8 +109,8 @@ _responseData = rawData == null ? null : deserialize<ExecutionCancelResponse, Ex
   /// Cancels the download process and cleans up files.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -116,7 +120,8 @@ _responseData = rawData == null ? null : deserialize<ExecutionCancelResponse, Ex
   ///
   /// Returns a [Future] containing a [Response] with a [PDFCancelResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<PDFCancelResponse>> cancelPdfGenerationExecutionsExecutionIdPdfCancelDelete({ 
+  Future<Response<PDFCancelResponse>>
+  cancelPdfGenerationExecutionsExecutionIdPdfCancelDelete({
     required String executionId,
     String? authorization,
     CancelToken? cancelToken,
@@ -126,17 +131,16 @@ _responseData = rawData == null ? null : deserialize<ExecutionCancelResponse, Ex
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/pdf/cancel'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/pdf/cancel'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -151,9 +155,14 @@ _responseData = rawData == null ? null : deserialize<ExecutionCancelResponse, Ex
     PDFCancelResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<PDFCancelResponse, PDFCancelResponse>(rawData, 'PDFCancelResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<PDFCancelResponse, PDFCancelResponse>(
+              rawData,
+              'PDFCancelResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -180,7 +189,7 @@ _responseData = rawData == null ? null : deserialize<PDFCancelResponse, PDFCance
   /// Creates a new execution for a given workflow.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -190,7 +199,7 @@ _responseData = rawData == null ? null : deserialize<PDFCancelResponse, PDFCance
   ///
   /// Returns a [Future] containing a [Response] with a [ExecutionResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ExecutionResponse>> createExecutionExecutionsPost({ 
+  Future<Response<ExecutionResponse>> createExecutionExecutionsPost({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -202,14 +211,8 @@ _responseData = rawData == null ? null : deserialize<PDFCancelResponse, PDFCance
     final _path = r'/executions/';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -224,9 +227,14 @@ _responseData = rawData == null ? null : deserialize<PDFCancelResponse, PDFCance
     ExecutionResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ExecutionResponse, ExecutionResponse>(rawData, 'ExecutionResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ExecutionResponse, ExecutionResponse>(
+              rawData,
+              'ExecutionResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -253,8 +261,8 @@ _responseData = rawData == null ? null : deserialize<ExecutionResponse, Executio
   /// Delete an execution record.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -264,7 +272,8 @@ _responseData = rawData == null ? null : deserialize<ExecutionResponse, Executio
   ///
   /// Returns a [Future] containing a [Response] with a [ExecutionDeleteResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ExecutionDeleteResponse>> deleteExecutionExecutionsExecutionIdDelete({ 
+  Future<Response<ExecutionDeleteResponse>>
+  deleteExecutionExecutionsExecutionIdDelete({
     required String executionId,
     String? authorization,
     CancelToken? cancelToken,
@@ -274,17 +283,16 @@ _responseData = rawData == null ? null : deserialize<ExecutionResponse, Executio
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -299,9 +307,14 @@ _responseData = rawData == null ? null : deserialize<ExecutionResponse, Executio
     ExecutionDeleteResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ExecutionDeleteResponse, ExecutionDeleteResponse>(rawData, 'ExecutionDeleteResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ExecutionDeleteResponse, ExecutionDeleteResponse>(
+              rawData,
+              'ExecutionDeleteResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -328,9 +341,9 @@ _responseData = rawData == null ? null : deserialize<ExecutionDeleteResponse, Ex
   /// Securely download the PDF report. Enqueues generation if missing.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [checkLocal] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [checkLocal]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -340,7 +353,10 @@ _responseData = rawData == null ? null : deserialize<ExecutionDeleteResponse, Ex
   ///
   /// Returns a [Future] containing a [Response] with a [ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet>> downloadExecutionPdfExecutionsExecutionIdPdfDownloadGet({ 
+  Future<
+    Response<ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet>
+  >
+  downloadExecutionPdfExecutionsExecutionIdPdfDownloadGet({
     required String executionId,
     bool? checkLocal = false,
     String? authorization,
@@ -351,17 +367,16 @@ _responseData = rawData == null ? null : deserialize<ExecutionDeleteResponse, Ex
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/pdf/download'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/pdf/download'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -378,12 +393,21 @@ _responseData = rawData == null ? null : deserialize<ExecutionDeleteResponse, Ex
       onReceiveProgress: onReceiveProgress,
     );
 
-    ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet? _responseData;
+    ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet?
+    _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet, ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet>(rawData, 'ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<
+              ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet,
+              ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet
+            >(
+              rawData,
+              'ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -394,7 +418,9 @@ _responseData = rawData == null ? null : deserialize<ResponseDownloadExecutionPd
       );
     }
 
-    return Response<ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet>(
+    return Response<
+      ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet
+    >(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -410,8 +436,8 @@ _responseData = rawData == null ? null : deserialize<ResponseDownloadExecutionPd
   /// Get execution details by ID. Returns standardized ExecutionResponse.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -421,7 +447,7 @@ _responseData = rawData == null ? null : deserialize<ResponseDownloadExecutionPd
   ///
   /// Returns a [Future] containing a [Response] with a [ExecutionResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ExecutionResponse>> getExecutionExecutionsExecutionIdGet({ 
+  Future<Response<ExecutionResponse>> getExecutionExecutionsExecutionIdGet({
     required String executionId,
     String? authorization,
     CancelToken? cancelToken,
@@ -431,17 +457,16 @@ _responseData = rawData == null ? null : deserialize<ResponseDownloadExecutionPd
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -456,9 +481,14 @@ _responseData = rawData == null ? null : deserialize<ResponseDownloadExecutionPd
     ExecutionResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ExecutionResponse, ExecutionResponse>(rawData, 'ExecutionResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ExecutionResponse, ExecutionResponse>(
+              rawData,
+              'ExecutionResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -485,7 +515,7 @@ _responseData = rawData == null ? null : deserialize<ExecutionResponse, Executio
   /// Returns the execution report as a raw JSON dump (Common Intermediate Representation).
   ///
   /// Parameters:
-  /// * [executionId] 
+  /// * [executionId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -495,7 +525,8 @@ _responseData = rawData == null ? null : deserialize<ExecutionResponse, Executio
   ///
   /// Returns a [Future] containing a [Response] with a [ReportView] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ReportView>> getExecutionJsonExportExecutionsExecutionIdJsonGet({ 
+  Future<Response<ReportView>>
+  getExecutionJsonExportExecutionsExecutionIdJsonGet({
     required String executionId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -504,16 +535,16 @@ _responseData = rawData == null ? null : deserialize<ExecutionResponse, Executio
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/json'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/json'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -528,9 +559,14 @@ _responseData = rawData == null ? null : deserialize<ExecutionResponse, Executio
     ReportView? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ReportView, ReportView>(rawData, 'ReportView', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ReportView, ReportView>(
+              rawData,
+              'ReportView',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -557,8 +593,8 @@ _responseData = rawData == null ? null : deserialize<ReportView, ReportView>(raw
   /// Returns complete raw execution data including agent and hook outputs.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -568,7 +604,8 @@ _responseData = rawData == null ? null : deserialize<ReportView, ReportView>(raw
   ///
   /// Returns a [Future] containing a [Response] with a [ExecutionRawResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ExecutionRawResponse>> getExecutionRawExecutionsExecutionIdRawGet({ 
+  Future<Response<ExecutionRawResponse>>
+  getExecutionRawExecutionsExecutionIdRawGet({
     required String executionId,
     String? authorization,
     CancelToken? cancelToken,
@@ -578,17 +615,16 @@ _responseData = rawData == null ? null : deserialize<ReportView, ReportView>(raw
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/raw'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/raw'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -603,9 +639,14 @@ _responseData = rawData == null ? null : deserialize<ReportView, ReportView>(raw
     ExecutionRawResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ExecutionRawResponse, ExecutionRawResponse>(rawData, 'ExecutionRawResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ExecutionRawResponse, ExecutionRawResponse>(
+              rawData,
+              'ExecutionRawResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -632,9 +673,9 @@ _responseData = rawData == null ? null : deserialize<ExecutionRawResponse, Execu
   /// Returns the SDUI-optimized view model for the Report UI.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [acceptLanguage] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [acceptLanguage]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -644,7 +685,7 @@ _responseData = rawData == null ? null : deserialize<ExecutionRawResponse, Execu
   ///
   /// Returns a [Future] containing a [Response] with a [ReportView] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ReportView>> getExecutionViewExecutionsExecutionIdViewGet({ 
+  Future<Response<ReportView>> getExecutionViewExecutionsExecutionIdViewGet({
     required String executionId,
     String? acceptLanguage,
     String? authorization,
@@ -655,7 +696,12 @@ _responseData = rawData == null ? null : deserialize<ExecutionRawResponse, Execu
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/view'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/view'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
       headers: <String, dynamic>{
@@ -663,10 +709,7 @@ _responseData = rawData == null ? null : deserialize<ExecutionRawResponse, Execu
         r'authorization': authorization,
         ...?headers,
       },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -681,9 +724,14 @@ _responseData = rawData == null ? null : deserialize<ExecutionRawResponse, Execu
     ReportView? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ReportView, ReportView>(rawData, 'ReportView', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ReportView, ReportView>(
+              rawData,
+              'ReportView',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -710,8 +758,8 @@ _responseData = rawData == null ? null : deserialize<ReportView, ReportView>(raw
   /// Returns the machine-readable flat report (XAIFlatReportDTO).
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -721,7 +769,7 @@ _responseData = rawData == null ? null : deserialize<ReportView, ReportView>(raw
   ///
   /// Returns a [Future] containing a [Response] with a [XAIFlatReportDTO] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<XAIFlatReportDTO>> getFlatReportExecutionsExecutionIdFlatGet({ 
+  Future<Response<XAIFlatReportDTO>> getFlatReportExecutionsExecutionIdFlatGet({
     required String executionId,
     String? authorization,
     CancelToken? cancelToken,
@@ -731,17 +779,16 @@ _responseData = rawData == null ? null : deserialize<ReportView, ReportView>(raw
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/flat'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/flat'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -756,9 +803,14 @@ _responseData = rawData == null ? null : deserialize<ReportView, ReportView>(raw
     XAIFlatReportDTO? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<XAIFlatReportDTO, XAIFlatReportDTO>(rawData, 'XAIFlatReportDTO', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<XAIFlatReportDTO, XAIFlatReportDTO>(
+              rawData,
+              'XAIFlatReportDTO',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -785,8 +837,8 @@ _responseData = rawData == null ? null : deserialize<XAIFlatReportDTO, XAIFlatRe
   /// Server-Sent Events (SSE) for PDF generation progress.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -796,7 +848,7 @@ _responseData = rawData == null ? null : deserialize<XAIFlatReportDTO, XAIFlatRe
   ///
   /// Returns a [Future] containing a [Response] with a [Object] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Object>> getPdfProgressExecutionsExecutionIdPdfProgressGet({ 
+  Future<Response<Object>> getPdfProgressExecutionsExecutionIdPdfProgressGet({
     required String executionId,
     String? authorization,
     CancelToken? cancelToken,
@@ -806,17 +858,16 @@ _responseData = rawData == null ? null : deserialize<XAIFlatReportDTO, XAIFlatRe
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/pdf/progress'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/pdf/progress'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -831,9 +882,10 @@ _responseData = rawData == null ? null : deserialize<XAIFlatReportDTO, XAIFlatRe
     Object? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'Object', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<Object, Object>(rawData, 'Object', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -860,8 +912,8 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   /// Generates and returns the PDF report.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [authorization] 
+  /// * [executionId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -871,7 +923,7 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   ///
   /// Returns a [Future]
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<void>> getPdfReportExecutionsExecutionIdPdfGet({ 
+  Future<Response<void>> getPdfReportExecutionsExecutionIdPdfGet({
     required String executionId,
     String? authorization,
     CancelToken? cancelToken,
@@ -881,17 +933,16 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/pdf'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/pdf'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -910,8 +961,8 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   /// Get a list of recent executions.
   ///
   /// Parameters:
-  /// * [limit] 
-  /// * [authorization] 
+  /// * [limit]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -921,7 +972,8 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   ///
   /// Returns a [Future] containing a [Response] with a [List<ExecutionResponse>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<ExecutionResponse>>> getRecentExecutionsExecutionsRecentGet({ 
+  Future<Response<List<ExecutionResponse>>>
+  getRecentExecutionsExecutionsRecentGet({
     int? limit = 10,
     String? authorization,
     CancelToken? cancelToken,
@@ -934,14 +986,8 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
     final _path = r'/executions/recent';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -961,9 +1007,14 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
     List<ExecutionResponse>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<ExecutionResponse>, ExecutionResponse>(rawData, 'List<ExecutionResponse>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<ExecutionResponse>, ExecutionResponse>(
+              rawData,
+              'List<ExecutionResponse>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -990,9 +1041,9 @@ _responseData = rawData == null ? null : deserialize<List<ExecutionResponse>, Ex
   /// Server-Sent Events alias for monitoring.
   ///
   /// Parameters:
-  /// * [executionId] 
-  /// * [view] 
-  /// * [acceptLanguage] 
+  /// * [executionId]
+  /// * [view]
+  /// * [acceptLanguage]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1002,7 +1053,7 @@ _responseData = rawData == null ? null : deserialize<List<ExecutionResponse>, Ex
   ///
   /// Returns a [Future] containing a [Response] with a [Object] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Object>> monitorExecutionExecutionsExecutionIdEventsGet({ 
+  Future<Response<Object>> monitorExecutionExecutionsExecutionIdEventsGet({
     required String executionId,
     String? view = 'assessment',
     String? acceptLanguage,
@@ -1013,23 +1064,23 @@ _responseData = rawData == null ? null : deserialize<List<ExecutionResponse>, Ex
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/executions/{execution_id}/events'.replaceAll('{' r'execution_id' '}', executionId.toString());
+    final _path = r'/executions/{execution_id}/events'.replaceAll(
+      '{'
+      r'execution_id'
+      '}',
+      executionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
       headers: <String, dynamic>{
         r'accept-language': acceptLanguage,
         ...?headers,
       },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
-    final _queryParameters = <String, dynamic>{
-      if (view != null) r'view': view,
-    };
+    final _queryParameters = <String, dynamic>{if (view != null) r'view': view};
 
     final _response = await _dio.request<Object>(
       _path,
@@ -1043,9 +1094,10 @@ _responseData = rawData == null ? null : deserialize<List<ExecutionResponse>, Ex
     Object? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'Object', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<Object, Object>(rawData, 'Object', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1067,5 +1119,4 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
       extra: _response.extra,
     );
   }
-
 }

@@ -36,27 +36,30 @@ void main() {
 
   testWidgets('WorkflowStudioScreen full flow', (tester) async {
     // 1. Arrange
-    when(() => mockRepository.getWorkflow('1'))
-        .thenAnswer((_) async => testWorkflow);
-        
-    when(() => mockRepository.saveWorkflow(any()))
-        .thenAnswer((_) async => {}); // Successful save
+    when(
+      () => mockRepository.getWorkflow('1'),
+    ).thenAnswer((_) async => testWorkflow);
 
-    when(() => mockRepository.getComponents())
-        .thenAnswer((_) async => <StudioComponentDef>[]);
+    when(
+      () => mockRepository.saveWorkflow(any()),
+    ).thenAnswer((_) async => {}); // Successful save
 
-    when(() => mockRepository.getAgents())
-        .thenAnswer((_) async => <StudioComponentDef>[]);
-        
-    when(() => mockRepository.getOutputConfigs())
-        .thenAnswer((_) async => <StudioComponentDef>[]);
+    when(
+      () => mockRepository.getComponents(),
+    ).thenAnswer((_) async => <StudioComponentDef>[]);
+
+    when(
+      () => mockRepository.getAgents(),
+    ).thenAnswer((_) async => <StudioComponentDef>[]);
+
+    when(
+      () => mockRepository.getOutputConfigs(),
+    ).thenAnswer((_) async => <StudioComponentDef>[]);
 
     // 2. Pump Screen
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          studioRepositoryProvider.overrideWithValue(mockRepository),
-        ],
+        overrides: [studioRepositoryProvider.overrideWithValue(mockRepository)],
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -84,7 +87,9 @@ void main() {
 
     // 7. Edit Config (Enter new value)
     await tester.enterText(find.widgetWithText(TextField, 'Param'), 'newVal');
-    await tester.testTextInput.receiveAction(TextInputAction.done); // Trigger submit
+    await tester.testTextInput.receiveAction(
+      TextInputAction.done,
+    ); // Trigger submit
     await tester.pumpAndSettle();
 
     // 8. Verify Save called (Auto-save on field change)

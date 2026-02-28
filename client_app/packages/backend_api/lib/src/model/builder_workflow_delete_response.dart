@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'builder_workflow_delete_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,49 +18,29 @@ part 'builder_workflow_delete_response.g.dart';
 class BuilderWorkflowDeleteResponse {
   /// Returns a new [BuilderWorkflowDeleteResponse] instance.
   BuilderWorkflowDeleteResponse({
+    required this.status,
 
-    required  this.status,
-
-    required  this.deletedSteps,
+    required this.deletedSteps,
   });
 
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'deleted_steps',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'deleted_steps', required: true)
   final List<String> deletedSteps;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BuilderWorkflowDeleteResponse &&
+          other.status == status &&
+          other.deletedSteps == deletedSteps;
 
+  @override
+  int get hashCode => status.hashCode + deletedSteps.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is BuilderWorkflowDeleteResponse &&
-      other.status == status &&
-      other.deletedSteps == deletedSteps;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        deletedSteps.hashCode;
-
-  factory BuilderWorkflowDeleteResponse.fromJson(Map<String, dynamic> json) => _$BuilderWorkflowDeleteResponseFromJson(json);
+  factory BuilderWorkflowDeleteResponse.fromJson(Map<String, dynamic> json) =>
+      _$BuilderWorkflowDeleteResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$BuilderWorkflowDeleteResponseToJson(this);
 
@@ -69,6 +48,4 @@ class BuilderWorkflowDeleteResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

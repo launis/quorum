@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'audit_event.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,129 +18,66 @@ part 'audit_event.g.dart';
 class AuditEvent {
   /// Returns a new [AuditEvent] instance.
   AuditEvent({
+    required this.id,
 
-    required  this.id,
+    required this.timestamp,
 
-    required  this.timestamp,
+    required this.actorId,
 
-    required  this.actorId,
+    required this.action,
 
-    required  this.action,
+    this.organizationId,
 
-     this.organizationId,
+    this.targetId,
 
-     this.targetId,
-
-     this.details,
+    this.details,
   });
 
-  @JsonKey(
-    
-    name: r'id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: true)
   final String id;
 
-
-
-  @JsonKey(
-    
-    name: r'timestamp',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'timestamp', required: true)
   final DateTime timestamp;
 
-
-
-  @JsonKey(
-    
-    name: r'actor_id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'actor_id', required: true)
   final String actorId;
 
-
-
-  @JsonKey(
-    
-    name: r'action',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'action', required: true)
   final String action;
 
-
-
-  @JsonKey(
-    
-    name: r'organization_id',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'organization_id', required: false)
   final String? organizationId;
 
-
-
-  @JsonKey(
-    
-    name: r'target_id',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'target_id', required: false)
   final String? targetId;
 
-
-
-  @JsonKey(
-    
-    name: r'details',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'details', required: false)
   final Map<String, Object>? details;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AuditEvent &&
+          other.id == id &&
+          other.timestamp == timestamp &&
+          other.actorId == actorId &&
+          other.action == action &&
+          other.organizationId == organizationId &&
+          other.targetId == targetId &&
+          other.details == details;
 
+  @override
+  int get hashCode =>
+      id.hashCode +
+      timestamp.hashCode +
+      actorId.hashCode +
+      action.hashCode +
+      (organizationId == null ? 0 : organizationId.hashCode) +
+      (targetId == null ? 0 : targetId.hashCode) +
+      details.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is AuditEvent &&
-      other.id == id &&
-      other.timestamp == timestamp &&
-      other.actorId == actorId &&
-      other.action == action &&
-      other.organizationId == organizationId &&
-      other.targetId == targetId &&
-      other.details == details;
-
-    @override
-    int get hashCode =>
-        id.hashCode +
-        timestamp.hashCode +
-        actorId.hashCode +
-        action.hashCode +
-        (organizationId == null ? 0 : organizationId.hashCode) +
-        (targetId == null ? 0 : targetId.hashCode) +
-        details.hashCode;
-
-  factory AuditEvent.fromJson(Map<String, dynamic> json) => _$AuditEventFromJson(json);
+  factory AuditEvent.fromJson(Map<String, dynamic> json) =>
+      _$AuditEventFromJson(json);
 
   Map<String, dynamic> toJson() => _$AuditEventToJson(this);
 
@@ -149,6 +85,4 @@ class AuditEvent {
   String toString() {
     return toJson().toString();
   }
-
 }
-

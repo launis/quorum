@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'step_preview_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,68 +18,39 @@ part 'step_preview_response.g.dart';
 class StepPreviewResponse {
   /// Returns a new [StepPreviewResponse] instance.
   StepPreviewResponse({
+    required this.systemInstruction,
 
-    required  this.systemInstruction,
+    required this.userPrompt,
 
-    required  this.userPrompt,
-
-    required  this.agentClass,
+    required this.agentClass,
   });
 
-      /// The full system prompt.
-  @JsonKey(
-    
-    name: r'system_instruction',
-    required: true,
-    
-  )
-
-
+  /// The full system prompt.
+  @JsonKey(name: r'system_instruction', required: true)
   final String systemInstruction;
 
-
-
-      /// The user prompt template logic.
-  @JsonKey(
-    
-    name: r'user_prompt',
-    required: true,
-    
-  )
-
-
+  /// The user prompt template logic.
+  @JsonKey(name: r'user_prompt', required: true)
   final String userPrompt;
 
-
-
-      /// The agent component class.
-  @JsonKey(
-    
-    name: r'agent_class',
-    required: true,
-    
-  )
-
-
+  /// The agent component class.
+  @JsonKey(name: r'agent_class', required: true)
   final String agentClass;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StepPreviewResponse &&
+          other.systemInstruction == systemInstruction &&
+          other.userPrompt == userPrompt &&
+          other.agentClass == agentClass;
 
+  @override
+  int get hashCode =>
+      systemInstruction.hashCode + userPrompt.hashCode + agentClass.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is StepPreviewResponse &&
-      other.systemInstruction == systemInstruction &&
-      other.userPrompt == userPrompt &&
-      other.agentClass == agentClass;
-
-    @override
-    int get hashCode =>
-        systemInstruction.hashCode +
-        userPrompt.hashCode +
-        agentClass.hashCode;
-
-  factory StepPreviewResponse.fromJson(Map<String, dynamic> json) => _$StepPreviewResponseFromJson(json);
+  factory StepPreviewResponse.fromJson(Map<String, dynamic> json) =>
+      _$StepPreviewResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$StepPreviewResponseToJson(this);
 
@@ -88,6 +58,4 @@ class StepPreviewResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

@@ -185,11 +185,15 @@ User _$UserFromJson(Map<String, dynamic> json) => $checkedCreate(
       isActive: $checkedConvert('is_active', (v) => v as bool? ?? true),
       language: $checkedConvert(
         'language',
-        (v) => $enumDecodeNullable(_$UserLanguageEnumEnumMap, v) ?? UserLanguageEnum.fi,
+        (v) =>
+            $enumDecodeNullable(_$UserLanguageEnumEnumMap, v) ??
+            UserLanguageEnum.fi,
       ),
       themeMode: $checkedConvert(
         'theme_mode',
-        (v) => $enumDecodeNullable(_$UserThemeModeEnumEnumMap, v) ?? UserThemeModeEnum.system,
+        (v) =>
+            $enumDecodeNullable(_$UserThemeModeEnumEnumMap, v) ??
+            UserThemeModeEnum.system,
       ),
       id: $checkedConvert('id', (v) => v as String?),
       slug: $checkedConvert('slug', (v) => v as String?),

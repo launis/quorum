@@ -52,6 +52,5 @@ void main() {
     test('to test the property `flattenedScores`', () async {
       // TODO
     });
-
   });
 }

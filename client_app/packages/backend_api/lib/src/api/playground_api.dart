@@ -14,7 +14,6 @@ import 'package:backend_api/src/model/playground_request.dart';
 import 'package:backend_api/src/model/playground_response.dart';
 
 class PlaygroundApi {
-
   final Dio _dio;
 
   const PlaygroundApi(this._dio);
@@ -23,7 +22,7 @@ class PlaygroundApi {
   /// Executes a prompt template with variables against the LLM.
   ///
   /// Parameters:
-  /// * [playgroundRequest] 
+  /// * [playgroundRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -33,7 +32,7 @@ class PlaygroundApi {
   ///
   /// Returns a [Future] containing a [Response] with a [PlaygroundResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<PlaygroundResponse>> runPromptBuilderPlaygroundRunPost({ 
+  Future<Response<PlaygroundResponse>> runPromptBuilderPlaygroundRunPost({
     required PlaygroundRequest playgroundRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -45,13 +44,8 @@ class PlaygroundApi {
     final _path = r'/builder/playground/run';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -59,13 +53,10 @@ class PlaygroundApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(playgroundRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(playgroundRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -84,9 +75,14 @@ _bodyData=jsonEncode(playgroundRequest);
     PlaygroundResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<PlaygroundResponse, PlaygroundResponse>(rawData, 'PlaygroundResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<PlaygroundResponse, PlaygroundResponse>(
+              rawData,
+              'PlaygroundResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -108,5 +104,4 @@ _responseData = rawData == null ? null : deserialize<PlaygroundResponse, Playgro
       extra: _response.extra,
     );
   }
-
 }

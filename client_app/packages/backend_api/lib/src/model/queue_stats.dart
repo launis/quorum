@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'queue_stats.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,68 +18,39 @@ part 'queue_stats.g.dart';
 class QueueStats {
   /// Returns a new [QueueStats] instance.
   QueueStats({
+    required this.queuedJobs,
 
-    required  this.queuedJobs,
+    required this.activeJobs,
 
-    required  this.activeJobs,
-
-    required  this.deadJobs,
+    required this.deadJobs,
   });
 
-      /// Number of jobs currently waiting in the queue.
-  @JsonKey(
-    
-    name: r'queued_jobs',
-    required: true,
-    
-  )
-
-
+  /// Number of jobs currently waiting in the queue.
+  @JsonKey(name: r'queued_jobs', required: true)
   final int queuedJobs;
 
-
-
-      /// Number of jobs currently being processed.
-  @JsonKey(
-    
-    name: r'active_jobs',
-    required: true,
-    
-  )
-
-
+  /// Number of jobs currently being processed.
+  @JsonKey(name: r'active_jobs', required: true)
   final int activeJobs;
 
-
-
-      /// Number of jobs in the dead letter queue (failed).
-  @JsonKey(
-    
-    name: r'dead_jobs',
-    required: true,
-    
-  )
-
-
+  /// Number of jobs in the dead letter queue (failed).
+  @JsonKey(name: r'dead_jobs', required: true)
   final int deadJobs;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is QueueStats &&
+          other.queuedJobs == queuedJobs &&
+          other.activeJobs == activeJobs &&
+          other.deadJobs == deadJobs;
 
+  @override
+  int get hashCode =>
+      queuedJobs.hashCode + activeJobs.hashCode + deadJobs.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is QueueStats &&
-      other.queuedJobs == queuedJobs &&
-      other.activeJobs == activeJobs &&
-      other.deadJobs == deadJobs;
-
-    @override
-    int get hashCode =>
-        queuedJobs.hashCode +
-        activeJobs.hashCode +
-        deadJobs.hashCode;
-
-  factory QueueStats.fromJson(Map<String, dynamic> json) => _$QueueStatsFromJson(json);
+  factory QueueStats.fromJson(Map<String, dynamic> json) =>
+      _$QueueStatsFromJson(json);
 
   Map<String, dynamic> toJson() => _$QueueStatsToJson(this);
 
@@ -88,6 +58,4 @@ class QueueStats {
   String toString() {
     return toJson().toString();
   }
-
 }
-

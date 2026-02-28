@@ -18,7 +18,11 @@ class StudioEditorArea extends ConsumerStatefulWidget {
   final String? selectedStepId;
   final ValueChanged<String?>? onStepSelected;
 
-  const StudioEditorArea({super.key, required this.selectedStepId, this.onStepSelected});
+  const StudioEditorArea({
+    super.key,
+    required this.selectedStepId,
+    this.onStepSelected,
+  });
 
   @override
   ConsumerState<StudioEditorArea> createState() => _StudioEditorAreaState();
@@ -35,7 +39,9 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
       error: (err, st) => Center(child: Text('Error loading editor: $err')),
       data: (workflow) {
         if (workflow == null) {
-          return const Center(child: Text('Select a workflow or matrix to edit.'));
+          return const Center(
+            child: Text('Select a workflow or matrix to edit.'),
+          );
         }
 
         // If no step selected, show Step Sequencer & Scoring Configuration with Tabs
@@ -56,21 +62,35 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
                     children: [
                       // Tab 1: Sequencer
                       SingleChildScrollView(
-                        child: _buildStepSequencer(context, ref, workflow, l10n),
+                        child: _buildStepSequencer(
+                          context,
+                          ref,
+                          workflow,
+                          l10n,
+                        ),
                       ),
                       // Tab 2: Scoring
                       ScoringConfigSection(workflow: workflow),
                       // Tab 3: Model Mapping
-                       SingleChildScrollView(
-                         child: Padding(
-                           padding: const EdgeInsets.all(16.0),
-                           child: ModelMappingGrid(
-                             steps: workflow.steps,
-                             currentMapping: (workflow.uiSchema['default_model_mapping'] as Map?)?.cast<String, String>() ?? {},
-                             onChanged: (newMapping) => _updateModelMapping(ref, workflow, newMapping),
-                           ),
-                         ),
-                       ),
+                      SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: ModelMappingGrid(
+                            steps: workflow.steps,
+                            currentMapping:
+                                (workflow.uiSchema['default_model_mapping']
+                                        as Map?)
+                                    ?.cast<String, String>() ??
+                                {},
+                            onChanged:
+                                (newMapping) => _updateModelMapping(
+                                  ref,
+                                  workflow,
+                                  newMapping,
+                                ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -137,6 +157,7 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
       },
     );
   }
+
   Widget _buildStepSequencer(
     BuildContext context,
     WidgetRef ref,
@@ -148,7 +169,7 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-           Padding(
+          Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
               l10n.studioStepsHeader,
@@ -169,16 +190,18 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
                 _updateSteps(ref, workflow, newSteps);
               },
               onReorder: (oldIndex, newIndex) {
-                 ref.read(activeWorkflowControllerProvider.notifier).reorderSteps(oldIndex, newIndex);
+                ref
+                    .read(activeWorkflowControllerProvider.notifier)
+                    .reorderSteps(oldIndex, newIndex);
               },
               itemFactory: () {
-                 // Create a valid default step to prevent cast errors
-                 final id = 'step_${DateTime.now().millisecondsSinceEpoch}';
-                 return WorkflowStepDef(
-                   id: id, 
-                   name: 'New Step', 
-                   taskKey: 'judge',
-                 );
+                // Create a valid default step to prevent cast errors
+                final id = 'step_${DateTime.now().millisecondsSinceEpoch}';
+                return WorkflowStepDef(
+                  id: id,
+                  name: 'New Step',
+                  taskKey: 'judge',
+                );
               },
               customItemBuilder: (context, index, item) {
                 final step = item as WorkflowStepDef;
@@ -187,12 +210,16 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
                   margin: const EdgeInsets.symmetric(vertical: 4.0),
                   child: ListTile(
                     leading: const Icon(Icons.drag_handle),
-                    title: Text(step.name.isNotEmpty ? step.name : (step.slug ?? 'Unnamed Step')),
+                    title: Text(
+                      step.name.isNotEmpty
+                          ? step.name
+                          : (step.slug ?? 'Unnamed Step'),
+                    ),
                     subtitle: Text('Task: ${step.taskKey}'),
                     onTap: () => widget.onStepSelected?.call(step.id),
                     trailing: IconButton(
-                       icon: const Icon(Icons.delete, color: Colors.red),
-                       onPressed: () => _deleteStep(ref, workflow, step.id),
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteStep(ref, workflow, step.id),
                     ),
                   ),
                 );
@@ -204,46 +231,63 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
     );
   }
 
-  Future<void> _updateSteps(WidgetRef ref, WorkflowDef workflow, List<WorkflowStepDef> newSteps) async {
+  Future<void> _updateSteps(
+    WidgetRef ref,
+    WorkflowDef workflow,
+    List<WorkflowStepDef> newSteps,
+  ) async {
     final newWf = workflow.copyWith(steps: newSteps);
     try {
       await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
-      await ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflow.id);
+      await ref
+          .read(activeWorkflowControllerProvider.notifier)
+          .loadWorkflow(workflow.id);
     } catch (e) {
       _showError(context, e);
     }
   }
 
-  Future<void> _deleteStep(WidgetRef ref, WorkflowDef workflow, String stepId) async {
+  Future<void> _deleteStep(
+    WidgetRef ref,
+    WorkflowDef workflow,
+    String stepId,
+  ) async {
     final newSteps = workflow.steps.where((s) => s.id != stepId).toList();
     final newWf = workflow.copyWith(steps: newSteps);
 
     try {
       await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
-      await ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflow.id);
+      await ref
+          .read(activeWorkflowControllerProvider.notifier)
+          .loadWorkflow(workflow.id);
     } catch (e) {
-       _showError(context, e);
+      _showError(context, e);
     }
   }
 
-  Future<void> _updateModelMapping(WidgetRef ref, WorkflowDef workflow, Map<String, String> mapping) async {
+  Future<void> _updateModelMapping(
+    WidgetRef ref,
+    WorkflowDef workflow,
+    Map<String, String> mapping,
+  ) async {
     final newUiSchema = Map<String, dynamic>.from(workflow.uiSchema);
     newUiSchema['default_model_mapping'] = mapping;
-    
+
     final newWf = workflow.copyWith(uiSchema: newUiSchema);
-    
+
     try {
-       await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
-       await ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflow.id);
+      await ref.read(studioRepositoryProvider).saveWorkflow(newWf);
+      await ref
+          .read(activeWorkflowControllerProvider.notifier)
+          .loadWorkflow(workflow.id);
     } catch (e) {
-       _showError(context, e);
+      _showError(context, e);
     }
   }
-
 
   void _showError(BuildContext context, Object error) {
     if (!context.mounted) return;
-    
+
     String errorMessage = 'An error occurred';
     if (error is AppError) {
       errorMessage = error.when(
@@ -335,17 +379,25 @@ class ScoringConfigSection extends ConsumerWidget {
     WidgetRef ref,
     WorkflowDef workflow,
   ) async {
-    final newLogic = ScoringLogic(label: 'New Logic ${workflow.scoringLogic.length + 1}');
+    final newLogic = ScoringLogic(
+      label: 'New Logic ${workflow.scoringLogic.length + 1}',
+    );
     final updatedList = [...workflow.scoringLogic, newLogic];
     final updatedWf = workflow.copyWith(scoringLogic: updatedList);
     await _saveAndReload(context, ref, updatedWf);
   }
 
-  static Future<void> _saveAndReload(BuildContext context, WidgetRef ref, WorkflowDef updatedWf) async {
+  static Future<void> _saveAndReload(
+    BuildContext context,
+    WidgetRef ref,
+    WorkflowDef updatedWf,
+  ) async {
     try {
       await ref.read(studioRepositoryProvider).saveWorkflow(updatedWf);
       // Reload to refresh UI (Repo Save is single source of truth here)
-      await ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(updatedWf.id);
+      await ref
+          .read(activeWorkflowControllerProvider.notifier)
+          .loadWorkflow(updatedWf.id);
     } catch (e) {
       debugPrint("Failed to save: $e");
       if (context.mounted) {
@@ -358,12 +410,13 @@ class ScoringConfigSection extends ConsumerWidget {
             unauthorized: () => 'Unauthorized',
             notFound: (msg) => msg,
             validation: (reason) => 'Validation error: $reason',
-            validationMissing: (fields) => 'Missing fields: ${fields.join(", ")}',
+            validationMissing:
+                (fields) => 'Missing fields: ${fields.join(", ")}',
             cancelled: () => 'Cancelled',
             api: (_, detail, __, ___) => detail,
           );
         } else {
-             errorMessage = e.toString();
+          errorMessage = e.toString();
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -402,66 +455,91 @@ class _RulesTable extends ConsumerWidget {
             DataColumn(label: Text('Weight')),
             DataColumn(label: Text('Actions')),
           ],
-          rows: logic.rules.asMap().entries.map((entry) {
-            final ruleIndex = entry.key;
-            final rule = entry.value;
-            return DataRow(cells: [
-              DataCell(
-                DropdownButton<String>(
-                  value: availableComponents.any((c) => c.id == rule.componentId) ? rule.componentId : null,
-                  hint: Text(rule.componentId),
-                  items: availableComponents.map((c) {
-                    return DropdownMenuItem(
-                      value: c.id,
-                      child: Text(c.name ?? c.slug ?? c.id),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) _updateRule(context, ref, ruleIndex, rule.copyWith(componentId: val));
-                  },
-                ),
-              ),
-              DataCell(
-                SizedBox(
-                  width: 150,
-                  child: TextFormField(
-                    initialValue: rule.metricKey,
-                    decoration: const InputDecoration(isDense: true),
-                    onFieldSubmitted: (val) {
-                      _updateRule(context, ref, ruleIndex, rule.copyWith(metricKey: val));
-                    },
-                  ),
-                ),
-              ),
-              DataCell(
-                SizedBox(
-                  width: 150,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Slider(
-                          value: rule.weight,
-                          onChanged: (val) {
-                            // Debounce logic would go here
-                          },
-                          onChangeEnd: (val) {
-                             _updateRule(context, ref, ruleIndex, rule.copyWith(weight: val));
+          rows:
+              logic.rules.asMap().entries.map((entry) {
+                final ruleIndex = entry.key;
+                final rule = entry.value;
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      DropdownButton<String>(
+                        value:
+                            availableComponents.any(
+                                  (c) => c.id == rule.componentId,
+                                )
+                                ? rule.componentId
+                                : null,
+                        hint: Text(rule.componentId),
+                        items:
+                            availableComponents.map((c) {
+                              return DropdownMenuItem(
+                                value: c.id,
+                                child: Text(c.name ?? c.slug ?? c.id),
+                              );
+                            }).toList(),
+                        onChanged: (val) {
+                          if (val != null)
+                            _updateRule(
+                              context,
+                              ref,
+                              ruleIndex,
+                              rule.copyWith(componentId: val),
+                            );
+                        },
+                      ),
+                    ),
+                    DataCell(
+                      SizedBox(
+                        width: 150,
+                        child: TextFormField(
+                          initialValue: rule.metricKey,
+                          decoration: const InputDecoration(isDense: true),
+                          onFieldSubmitted: (val) {
+                            _updateRule(
+                              context,
+                              ref,
+                              ruleIndex,
+                              rule.copyWith(metricKey: val),
+                            );
                           },
                         ),
                       ),
-                      Text(rule.weight.toStringAsFixed(1)),
-                    ],
-                  ),
-                ),
-              ),
-              DataCell(
-                IconButton(
-                  icon: const Icon(Icons.delete, size: 20),
-                  onPressed: () => _removeRule(context, ref, ruleIndex),
-                ),
-              ),
-            ]);
-          }).toList(),
+                    ),
+                    DataCell(
+                      SizedBox(
+                        width: 150,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Slider(
+                                value: rule.weight,
+                                onChanged: (val) {
+                                  // Debounce logic would go here
+                                },
+                                onChangeEnd: (val) {
+                                  _updateRule(
+                                    context,
+                                    ref,
+                                    ruleIndex,
+                                    rule.copyWith(weight: val),
+                                  );
+                                },
+                              ),
+                            ),
+                            Text(rule.weight.toStringAsFixed(1)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      IconButton(
+                        icon: const Icon(Icons.delete, size: 20),
+                        onPressed: () => _removeRule(context, ref, ruleIndex),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
         ),
         Padding(
           padding: const EdgeInsets.all(8.0),
@@ -474,13 +552,22 @@ class _RulesTable extends ConsumerWidget {
     );
   }
 
-  Future<void> _updateRule(BuildContext context, WidgetRef ref, int ruleIndex, ComponentScoringRule newRule) async {
+  Future<void> _updateRule(
+    BuildContext context,
+    WidgetRef ref,
+    int ruleIndex,
+    ComponentScoringRule newRule,
+  ) async {
     final newRules = List<ComponentScoringRule>.from(logic.rules);
     newRules[ruleIndex] = newRule;
     await _updateLogic(context, ref, logic.copyWith(rules: newRules));
   }
 
-  Future<void> _removeRule(BuildContext context, WidgetRef ref, int ruleIndex) async {
+  Future<void> _removeRule(
+    BuildContext context,
+    WidgetRef ref,
+    int ruleIndex,
+  ) async {
     final newRules = List<ComponentScoringRule>.from(logic.rules);
     newRules.removeAt(ruleIndex);
     await _updateLogic(context, ref, logic.copyWith(rules: newRules));
@@ -488,13 +575,24 @@ class _RulesTable extends ConsumerWidget {
 
   Future<void> _addRule(BuildContext context, WidgetRef ref) async {
     // Default to first component or empty
-    final compId = availableComponents.isNotEmpty ? availableComponents.first.id : 'unknown';
-    final newRule = ComponentScoringRule(componentId: compId, metricKey: 'score', weight: 1.0);
-     final newRules = [...logic.rules, newRule];
+    final compId =
+        availableComponents.isNotEmpty
+            ? availableComponents.first.id
+            : 'unknown';
+    final newRule = ComponentScoringRule(
+      componentId: compId,
+      metricKey: 'score',
+      weight: 1.0,
+    );
+    final newRules = [...logic.rules, newRule];
     await _updateLogic(context, ref, logic.copyWith(rules: newRules));
   }
 
-  Future<void> _updateLogic(BuildContext context, WidgetRef ref, ScoringLogic newLogic) async {
+  Future<void> _updateLogic(
+    BuildContext context,
+    WidgetRef ref,
+    ScoringLogic newLogic,
+  ) async {
     final newLogics = List<ScoringLogic>.from(workflow.scoringLogic);
     newLogics[logicIndex] = newLogic;
     final updatedWf = workflow.copyWith(scoringLogic: newLogics);

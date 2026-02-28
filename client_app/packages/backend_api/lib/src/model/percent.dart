@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'percent.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -21,15 +20,14 @@ class Percent {
   Percent({this.dummy});
   final String? dummy;
 
+  @override
+  bool operator ==(Object other) => identical(this, other) || other is Percent;
 
+  @override
+  int get hashCode => 0;
 
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is Percent ;
-
-    @override
-    int get hashCode => 0;
-
-  factory Percent.fromJson(Map<String, dynamic> json) => _$PercentFromJson(json);
+  factory Percent.fromJson(Map<String, dynamic> json) =>
+      _$PercentFromJson(json);
 
   Map<String, dynamic> toJson() => _$PercentToJson(this);
 
@@ -37,6 +35,4 @@ class Percent {
   String toString() {
     return toJson().toString();
   }
-
 }
-

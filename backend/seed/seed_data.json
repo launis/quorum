@@ -2,6 +2,7 @@
     "system_config": [
         {
             "id": "model_registry",
+            "slug": "config_model_registry",
             "type": "model_registry",
             "models": {
                 "google": {
@@ -13,6 +14,7 @@
                         "supports_grounding": true,
                         "tpm_limit": 100000,
                         "rpm_limit": 10,
+                        "parsing_mode": "GEMINI_JSON",
                         "is_active": true
                     },
                     "fast": {
@@ -23,6 +25,7 @@
                         "supports_grounding": false,
                         "tpm_limit": 100000,
                         "rpm_limit": 15,
+                        "parsing_mode": "GEMINI_JSON",
                         "is_active": true
                     },
                     "search": {
@@ -33,6 +36,7 @@
                         "supports_grounding": true,
                         "tpm_limit": 100000,
                         "rpm_limit": 15,
+                        "parsing_mode": "GEMINI_JSON",
                         "is_active": true
                     },
                     "precise": {
@@ -43,6 +47,7 @@
                         "supports_grounding": false,
                         "tpm_limit": 100000,
                         "rpm_limit": 10,
+                        "parsing_mode": "GEMINI_JSON",
                         "is_active": true
                     },
                     "strict": {
@@ -53,6 +58,7 @@
                         "supports_grounding": false,
                         "tpm_limit": 100000,
                         "rpm_limit": 10,
+                        "parsing_mode": "GEMINI_JSON",
                         "is_active": true
                     },
                     "GuardAgent": "fast",

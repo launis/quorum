@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/execution_timeline.dart';
 import 'package:client_app/core/ui/error_view.dart';
 
-
 class ExecutionMonitorScreen extends ConsumerStatefulWidget {
   final String executionId;
 
@@ -47,7 +46,9 @@ class _ExecutionMonitorScreenState extends ConsumerState<ExecutionMonitorScreen>
 
   @override
   Widget build(BuildContext context) {
-    final asyncExecution = ref.watch(assessmentStreamProvider(widget.executionId));
+    final asyncExecution = ref.watch(
+      assessmentStreamProvider(widget.executionId),
+    );
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -67,7 +68,7 @@ class _ExecutionMonitorScreenState extends ConsumerState<ExecutionMonitorScreen>
           // Auto-redirect if completed (logic might need adjustment based on AssessmentView fields)
           // For now, checks if finalScore is present or specific statusLabel
           if (assessment.finalScore != null) {
-             // ...
+            // ...
           }
           return _MonitorView(assessment: assessment);
         },
@@ -130,12 +131,12 @@ class _MonitorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final l10n = AppLocalizations.of(context)!;
-    
+
     final color = _getVariantColor(assessment.uiVariant);
-    final isRunning = assessment.statusLabel.toLowerCase().contains("analysoidaan") || 
-                      assessment.statusLabel.contains("..."); // Heuristic or explicit field?
+    final isRunning =
+        assessment.statusLabel.toLowerCase().contains("analysoidaan") ||
+        assessment.statusLabel.contains("..."); // Heuristic or explicit field?
 
     return Center(
       child: ConstrainedBox(
@@ -168,11 +169,14 @@ class _MonitorView extends StatelessWidget {
                               ),
                       title: Text(
                         assessment.statusLabel,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                       subtitle: Text(assessment.statusMessage),
                     ),
-                     if (assessment.showWarningBanner)
+                    if (assessment.showWarningBanner)
                       Container(
                         margin: const EdgeInsets.only(top: 16),
                         padding: const EdgeInsets.all(8),
@@ -183,9 +187,16 @@ class _MonitorView extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.warning_amber, color: Colors.orange),
+                            const Icon(
+                              Icons.warning_amber,
+                              color: Colors.orange,
+                            ),
                             const SizedBox(width: 8),
-                            Expanded(child: Text("Warning: Non-standard conditions detected.")),
+                            Expanded(
+                              child: Text(
+                                "Warning: Non-standard conditions detected.",
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -193,15 +204,18 @@ class _MonitorView extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Steps Progress (Timeline)
             if (assessment.steps.isNotEmpty) ...[
-               const SizedBox(height: 16),
-               const Padding(
-                 padding: EdgeInsets.symmetric(horizontal: 16.0),
-                 child: Text("Vaiheet", style: TextStyle(fontWeight: FontWeight.bold)),
-               ),
-               ExecutionTimeline(steps: assessment.steps, compact: true),
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  "Vaiheet",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              ExecutionTimeline(steps: assessment.steps, compact: true),
             ],
 
             if (assessment.uiVariant == 'success') ...[
@@ -236,7 +250,7 @@ class _MonitorView extends StatelessWidget {
   }
 
   IconData _getVariantIcon(String variant) {
-     return switch (variant) {
+    return switch (variant) {
       'success' => Icons.check_circle,
       'warning' => Icons.warning,
       'error' => Icons.error,
@@ -294,5 +308,3 @@ class _CompletionBanner extends StatelessWidget {
     );
   }
 }
-
-

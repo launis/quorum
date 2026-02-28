@@ -35,7 +35,6 @@ import 'package:backend_api/src/model/workflow_template.dart';
 import 'package:backend_api/src/model/workflow_update_request.dart';
 
 class BuilderApi {
-
   final Dio _dio;
 
   const BuilderApi(this._dio);
@@ -44,7 +43,7 @@ class BuilderApi {
   /// V2: Clone a step to a new Custom Step (Copy-on-Write).
   ///
   /// Parameters:
-  /// * [bodyCloneStepBuilderStepsClonePost] 
+  /// * [bodyCloneStepBuilderStepsClonePost]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -54,8 +53,9 @@ class BuilderApi {
   ///
   /// Returns a [Future] containing a [Response] with a [StepDTO] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDTO>> cloneStepBuilderStepsClonePost({ 
-    required BodyCloneStepBuilderStepsClonePost bodyCloneStepBuilderStepsClonePost,
+  Future<Response<StepDTO>> cloneStepBuilderStepsClonePost({
+    required BodyCloneStepBuilderStepsClonePost
+    bodyCloneStepBuilderStepsClonePost,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -66,13 +66,8 @@ class BuilderApi {
     final _path = r'/builder/steps/clone';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -80,13 +75,10 @@ class BuilderApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(bodyCloneStepBuilderStepsClonePost);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(bodyCloneStepBuilderStepsClonePost);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -105,9 +97,10 @@ _bodyData=jsonEncode(bodyCloneStepBuilderStepsClonePost);
     StepDTO? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 'StepDTO', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDTO, StepDTO>(rawData, 'StepDTO', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -134,7 +127,7 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
   /// V2: Prompt Fusion Compilation.  Replaces a sequence of steps with a compatible Composite Step (Panel).
   ///
   /// Parameters:
-  /// * [compileRequest] 
+  /// * [compileRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -144,7 +137,7 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
   ///
   /// Returns a [Future] containing a [Response] with a [CompilationResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<CompilationResponse>> compileFusionBuilderCompilePost({ 
+  Future<Response<CompilationResponse>> compileFusionBuilderCompilePost({
     required CompileRequest compileRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -156,13 +149,8 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
     final _path = r'/builder/compile';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -170,13 +158,10 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(compileRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(compileRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -195,9 +180,14 @@ _bodyData=jsonEncode(compileRequest);
     CompilationResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<CompilationResponse, CompilationResponse>(rawData, 'CompilationResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<CompilationResponse, CompilationResponse>(
+              rawData,
+              'CompilationResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -224,8 +214,8 @@ _responseData = rawData == null ? null : deserialize<CompilationResponse, Compil
   /// Deep Copy a workflow structure (Shallow copy of steps).
   ///
   /// Parameters:
-  /// * [workflowId] 
-  /// * [copyWorkflowRequest] 
+  /// * [workflowId]
+  /// * [copyWorkflowRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -235,7 +225,8 @@ _responseData = rawData == null ? null : deserialize<CompilationResponse, Compil
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowResponse>> copyWorkflowBuilderWorkflowsWorkflowIdCopyPost({ 
+  Future<Response<WorkflowResponse>>
+  copyWorkflowBuilderWorkflowsWorkflowIdCopyPost({
     required String workflowId,
     required CopyWorkflowRequest copyWorkflowRequest,
     CancelToken? cancelToken,
@@ -245,16 +236,16 @@ _responseData = rawData == null ? null : deserialize<CompilationResponse, Compil
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/builder/workflows/{workflow_id}/copy'.replaceAll('{' r'workflow_id' '}', workflowId.toString());
+    final _path = r'/builder/workflows/{workflow_id}/copy'.replaceAll(
+      '{'
+      r'workflow_id'
+      '}',
+      workflowId.toString(),
+    );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -262,13 +253,10 @@ _responseData = rawData == null ? null : deserialize<CompilationResponse, Compil
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(copyWorkflowRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(copyWorkflowRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -287,9 +275,14 @@ _bodyData=jsonEncode(copyWorkflowRequest);
     WorkflowResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowResponse>(rawData, 'WorkflowResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowResponse, WorkflowResponse>(
+              rawData,
+              'WorkflowResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -316,7 +309,7 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
   /// Creates a new custom step definition server-side with proper defaults.
   ///
   /// Parameters:
-  /// * [customStepCreateRequest] 
+  /// * [customStepCreateRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -326,7 +319,7 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
   ///
   /// Returns a [Future] containing a [Response] with a [StepDTO] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDTO>> createCustomStepBuilderStepsCreateCustomPost({ 
+  Future<Response<StepDTO>> createCustomStepBuilderStepsCreateCustomPost({
     required CustomStepCreateRequest customStepCreateRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -338,13 +331,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
     final _path = r'/builder/steps/create-custom';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -352,13 +340,10 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(customStepCreateRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(customStepCreateRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -377,9 +362,10 @@ _bodyData=jsonEncode(customStepCreateRequest);
     StepDTO? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 'StepDTO', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDTO, StepDTO>(rawData, 'StepDTO', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -406,8 +392,8 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
   /// Create a new workflow.
   ///
   /// Parameters:
-  /// * [builderWorkflowCreateRequest] 
-  /// * [authorization] 
+  /// * [builderWorkflowCreateRequest]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -417,7 +403,7 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowResponse>> createWorkflowBuilderWorkflowsPost({ 
+  Future<Response<WorkflowResponse>> createWorkflowBuilderWorkflowsPost({
     required BuilderWorkflowCreateRequest builderWorkflowCreateRequest,
     String? authorization,
     CancelToken? cancelToken,
@@ -430,14 +416,8 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
     final _path = r'/builder/workflows';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -445,13 +425,10 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(builderWorkflowCreateRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(builderWorkflowCreateRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -470,9 +447,14 @@ _bodyData=jsonEncode(builderWorkflowCreateRequest);
     WorkflowResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowResponse>(rawData, 'WorkflowResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowResponse, WorkflowResponse>(
+              rawData,
+              'WorkflowResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -499,8 +481,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
   /// Delete a workflow AND its orphan steps (Garbage Collection).
   ///
   /// Parameters:
-  /// * [workflowId] 
-  /// * [authorization] 
+  /// * [workflowId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -510,7 +492,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
   ///
   /// Returns a [Future] containing a [Response] with a [BuilderWorkflowDeleteResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<BuilderWorkflowDeleteResponse>> deleteWorkflowBuilderWorkflowsWorkflowIdDelete({ 
+  Future<Response<BuilderWorkflowDeleteResponse>>
+  deleteWorkflowBuilderWorkflowsWorkflowIdDelete({
     required String workflowId,
     String? authorization,
     CancelToken? cancelToken,
@@ -520,17 +503,16 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/builder/workflows/{workflow_id}'.replaceAll('{' r'workflow_id' '}', workflowId.toString());
+    final _path = r'/builder/workflows/{workflow_id}'.replaceAll(
+      '{'
+      r'workflow_id'
+      '}',
+      workflowId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -545,9 +527,13 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
     BuilderWorkflowDeleteResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<BuilderWorkflowDeleteResponse, BuilderWorkflowDeleteResponse>(rawData, 'BuilderWorkflowDeleteResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<
+              BuilderWorkflowDeleteResponse,
+              BuilderWorkflowDeleteResponse
+            >(rawData, 'BuilderWorkflowDeleteResponse', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -574,7 +560,7 @@ _responseData = rawData == null ? null : deserialize<BuilderWorkflowDeleteRespon
   /// Generates a unique ID with optional prefix.
   ///
   /// Parameters:
-  /// * [prefix] 
+  /// * [prefix]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -584,7 +570,7 @@ _responseData = rawData == null ? null : deserialize<BuilderWorkflowDeleteRespon
   ///
   /// Returns a [Future] containing a [Response] with a [GeneratedIdResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<GeneratedIdResponse>> generateIdBuilderUtilsGenerateIdGet({ 
+  Future<Response<GeneratedIdResponse>> generateIdBuilderUtilsGenerateIdGet({
     String? prefix = 'custom_step',
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -596,13 +582,8 @@ _responseData = rawData == null ? null : deserialize<BuilderWorkflowDeleteRespon
     final _path = r'/builder/utils/generate-id';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -622,9 +603,14 @@ _responseData = rawData == null ? null : deserialize<BuilderWorkflowDeleteRespon
     GeneratedIdResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<GeneratedIdResponse, GeneratedIdResponse>(rawData, 'GeneratedIdResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<GeneratedIdResponse, GeneratedIdResponse>(
+              rawData,
+              'GeneratedIdResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -660,7 +646,8 @@ _responseData = rawData == null ? null : deserialize<GeneratedIdResponse, Genera
   ///
   /// Returns a [Future] containing a [Response] with a [List<AgentMetadataDTO>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<AgentMetadataDTO>>> getAvailableAgentsBuilderConfigAgentsGet({ 
+  Future<Response<List<AgentMetadataDTO>>>
+  getAvailableAgentsBuilderConfigAgentsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -671,13 +658,8 @@ _responseData = rawData == null ? null : deserialize<GeneratedIdResponse, Genera
     final _path = r'/builder/config/agents';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -692,9 +674,14 @@ _responseData = rawData == null ? null : deserialize<GeneratedIdResponse, Genera
     List<AgentMetadataDTO>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<AgentMetadataDTO>, AgentMetadataDTO>(rawData, 'List<AgentMetadataDTO>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<AgentMetadataDTO>, AgentMetadataDTO>(
+              rawData,
+              'List<AgentMetadataDTO>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -721,8 +708,8 @@ _responseData = rawData == null ? null : deserialize<List<AgentMetadataDTO>, Age
   /// Retrieve the JSON Schema for a specific component type (SDUI).
   ///
   /// Parameters:
-  /// * [componentType] 
-  /// * [authorization] 
+  /// * [componentType]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -732,7 +719,8 @@ _responseData = rawData == null ? null : deserialize<List<AgentMetadataDTO>, Age
   ///
   /// Returns a [Future] containing a [Response] with a [ComponentSchemaResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ComponentSchemaResponse>> getComponentSchemaBuilderSchemaComponentTypeGet({ 
+  Future<Response<ComponentSchemaResponse>>
+  getComponentSchemaBuilderSchemaComponentTypeGet({
     required String componentType,
     String? authorization,
     CancelToken? cancelToken,
@@ -742,17 +730,16 @@ _responseData = rawData == null ? null : deserialize<List<AgentMetadataDTO>, Age
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/builder/schema/{component_type}'.replaceAll('{' r'component_type' '}', componentType.toString());
+    final _path = r'/builder/schema/{component_type}'.replaceAll(
+      '{'
+      r'component_type'
+      '}',
+      componentType.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -767,9 +754,14 @@ _responseData = rawData == null ? null : deserialize<List<AgentMetadataDTO>, Age
     ComponentSchemaResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ComponentSchemaResponse, ComponentSchemaResponse>(rawData, 'ComponentSchemaResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ComponentSchemaResponse, ComponentSchemaResponse>(
+              rawData,
+              'ComponentSchemaResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -805,7 +797,8 @@ _responseData = rawData == null ? null : deserialize<ComponentSchemaResponse, Co
   ///
   /// Returns a [Future] containing a [Response] with a [List<FusionRuleDTO>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<FusionRuleDTO>>> getFusionRulesBuilderConfigFusionRulesGet({ 
+  Future<Response<List<FusionRuleDTO>>>
+  getFusionRulesBuilderConfigFusionRulesGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -816,13 +809,8 @@ _responseData = rawData == null ? null : deserialize<ComponentSchemaResponse, Co
     final _path = r'/builder/config/fusion-rules';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -837,9 +825,14 @@ _responseData = rawData == null ? null : deserialize<ComponentSchemaResponse, Co
     List<FusionRuleDTO>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<FusionRuleDTO>, FusionRuleDTO>(rawData, 'List<FusionRuleDTO>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<FusionRuleDTO>, FusionRuleDTO>(
+              rawData,
+              'List<FusionRuleDTO>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -875,7 +868,7 @@ _responseData = rawData == null ? null : deserialize<List<FusionRuleDTO>, Fusion
   ///
   /// Returns a [Future] containing a [Response] with a [List<String>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<String>>> getPromptTypesBuilderConfigPromptTypesGet({ 
+  Future<Response<List<String>>> getPromptTypesBuilderConfigPromptTypesGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -886,13 +879,8 @@ _responseData = rawData == null ? null : deserialize<List<FusionRuleDTO>, Fusion
     final _path = r'/builder/config/prompt-types';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -907,9 +895,14 @@ _responseData = rawData == null ? null : deserialize<List<FusionRuleDTO>, Fusion
     List<String>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<String>, String>(rawData, 'List<String>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<String>, String>(
+              rawData,
+              'List<String>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -936,7 +929,7 @@ _responseData = rawData == null ? null : deserialize<List<String>, String>(rawDa
   /// Retrieves the raw seed data configuration (components, steps, workflows).  Now scoped by User Role (Root sees all).
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -946,7 +939,7 @@ _responseData = rawData == null ? null : deserialize<List<String>, String>(rawDa
   ///
   /// Returns a [Future] containing a [Response] with a [SeedDataResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<SeedDataResponse>> getSeedDataBuilderSeedDataGet({ 
+  Future<Response<SeedDataResponse>> getSeedDataBuilderSeedDataGet({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -958,14 +951,8 @@ _responseData = rawData == null ? null : deserialize<List<String>, String>(rawDa
     final _path = r'/builder/seed_data';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -980,9 +967,14 @@ _responseData = rawData == null ? null : deserialize<List<String>, String>(rawDa
     SeedDataResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<SeedDataResponse, SeedDataResponse>(rawData, 'SeedDataResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<SeedDataResponse, SeedDataResponse>(
+              rawData,
+              'SeedDataResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1009,7 +1001,7 @@ _responseData = rawData == null ? null : deserialize<SeedDataResponse, SeedDataR
   /// V2: Get full configuration of a step.
   ///
   /// Parameters:
-  /// * [stepId] 
+  /// * [stepId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1019,7 +1011,7 @@ _responseData = rawData == null ? null : deserialize<SeedDataResponse, SeedDataR
   ///
   /// Returns a [Future] containing a [Response] with a [StepDTO] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDTO>> getStepDetailsBuilderStepsStepIdGet({ 
+  Future<Response<StepDTO>> getStepDetailsBuilderStepsStepIdGet({
     required String stepId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1028,16 +1020,16 @@ _responseData = rawData == null ? null : deserialize<SeedDataResponse, SeedDataR
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/builder/steps/{step_id}'.replaceAll('{' r'step_id' '}', stepId.toString());
+    final _path = r'/builder/steps/{step_id}'.replaceAll(
+      '{'
+      r'step_id'
+      '}',
+      stepId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1052,9 +1044,10 @@ _responseData = rawData == null ? null : deserialize<SeedDataResponse, SeedDataR
     StepDTO? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 'StepDTO', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDTO, StepDTO>(rawData, 'StepDTO', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1081,7 +1074,7 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
   /// Get details of a specific workflow.
   ///
   /// Parameters:
-  /// * [workflowId] 
+  /// * [workflowId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1091,7 +1084,7 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowResponse>> getWorkflowBuilderWorkflowsWorkflowIdGet({ 
+  Future<Response<WorkflowResponse>> getWorkflowBuilderWorkflowsWorkflowIdGet({
     required String workflowId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1100,16 +1093,16 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/builder/workflows/{workflow_id}'.replaceAll('{' r'workflow_id' '}', workflowId.toString());
+    final _path = r'/builder/workflows/{workflow_id}'.replaceAll(
+      '{'
+      r'workflow_id'
+      '}',
+      workflowId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1124,9 +1117,14 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
     WorkflowResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowResponse>(rawData, 'WorkflowResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowResponse, WorkflowResponse>(
+              rawData,
+              'WorkflowResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1162,7 +1160,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowTemplate] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowTemplate>> getWorkflowTemplateBuilderConfigTemplateGet({ 
+  Future<Response<WorkflowTemplate>>
+  getWorkflowTemplateBuilderConfigTemplateGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1173,13 +1172,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
     final _path = r'/builder/config/template';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1194,9 +1188,14 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
     WorkflowTemplate? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowTemplate, WorkflowTemplate>(rawData, 'WorkflowTemplate', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowTemplate, WorkflowTemplate>(
+              rawData,
+              'WorkflowTemplate',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1232,7 +1231,7 @@ _responseData = rawData == null ? null : deserialize<WorkflowTemplate, WorkflowT
   ///
   /// Returns a [Future] containing a [Response] with a [List<StepDTO>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<StepDTO>>> listStepsBuilderStepsGet({ 
+  Future<Response<List<StepDTO>>> listStepsBuilderStepsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1243,13 +1242,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowTemplate, WorkflowT
     final _path = r'/builder/steps';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1264,9 +1258,14 @@ _responseData = rawData == null ? null : deserialize<WorkflowTemplate, WorkflowT
     List<StepDTO>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<StepDTO>, StepDTO>(rawData, 'List<StepDTO>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<StepDTO>, StepDTO>(
+              rawData,
+              'List<StepDTO>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1293,7 +1292,7 @@ _responseData = rawData == null ? null : deserialize<List<StepDTO>, StepDTO>(raw
   /// List all workflows visible to the current user.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1303,7 +1302,7 @@ _responseData = rawData == null ? null : deserialize<List<StepDTO>, StepDTO>(raw
   ///
   /// Returns a [Future] containing a [Response] with a [List<WorkflowResponse>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<WorkflowResponse>>> listWorkflowsBuilderWorkflowsGet({ 
+  Future<Response<List<WorkflowResponse>>> listWorkflowsBuilderWorkflowsGet({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1315,14 +1314,8 @@ _responseData = rawData == null ? null : deserialize<List<StepDTO>, StepDTO>(raw
     final _path = r'/builder/workflows';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1337,9 +1330,14 @@ _responseData = rawData == null ? null : deserialize<List<StepDTO>, StepDTO>(raw
     List<WorkflowResponse>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<WorkflowResponse>, WorkflowResponse>(rawData, 'List<WorkflowResponse>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<WorkflowResponse>, WorkflowResponse>(
+              rawData,
+              'List<WorkflowResponse>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1366,7 +1364,7 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowResponse>, Wor
   /// Generates a markdown preview of the entire workflow chain.
   ///
   /// Parameters:
-  /// * [workflowId] 
+  /// * [workflowId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1376,7 +1374,8 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowResponse>, Wor
   ///
   /// Returns a [Future] containing a [Response] with a [ChainPreviewResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ChainPreviewResponse>> previewChainBuilderWorkflowsWorkflowIdChainPreviewGet({ 
+  Future<Response<ChainPreviewResponse>>
+  previewChainBuilderWorkflowsWorkflowIdChainPreviewGet({
     required String workflowId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1385,16 +1384,16 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowResponse>, Wor
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/builder/workflows/{workflow_id}/chain-preview'.replaceAll('{' r'workflow_id' '}', workflowId.toString());
+    final _path = r'/builder/workflows/{workflow_id}/chain-preview'.replaceAll(
+      '{'
+      r'workflow_id'
+      '}',
+      workflowId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1409,9 +1408,14 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowResponse>, Wor
     ChainPreviewResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ChainPreviewResponse, ChainPreviewResponse>(rawData, 'ChainPreviewResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ChainPreviewResponse, ChainPreviewResponse>(
+              rawData,
+              'ChainPreviewResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1438,7 +1442,7 @@ _responseData = rawData == null ? null : deserialize<ChainPreviewResponse, Chain
   /// Previews the LLM prompt for a step.  Uses PromptBuilder to construct the full system prompt and fetch user prompt template.
   ///
   /// Parameters:
-  /// * [stepId] 
+  /// * [stepId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1448,7 +1452,8 @@ _responseData = rawData == null ? null : deserialize<ChainPreviewResponse, Chain
   ///
   /// Returns a [Future] containing a [Response] with a [StepPreviewResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepPreviewResponse>> previewStepBuilderStepsStepIdPreviewPost({ 
+  Future<Response<StepPreviewResponse>>
+  previewStepBuilderStepsStepIdPreviewPost({
     required String stepId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1457,16 +1462,16 @@ _responseData = rawData == null ? null : deserialize<ChainPreviewResponse, Chain
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/builder/steps/{step_id}/preview'.replaceAll('{' r'step_id' '}', stepId.toString());
+    final _path = r'/builder/steps/{step_id}/preview'.replaceAll(
+      '{'
+      r'step_id'
+      '}',
+      stepId.toString(),
+    );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1481,9 +1486,14 @@ _responseData = rawData == null ? null : deserialize<ChainPreviewResponse, Chain
     StepPreviewResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepPreviewResponse, StepPreviewResponse>(rawData, 'StepPreviewResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepPreviewResponse, StepPreviewResponse>(
+              rawData,
+              'StepPreviewResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1510,7 +1520,7 @@ _responseData = rawData == null ? null : deserialize<StepPreviewResponse, StepPr
   /// Executes a prompt template with variables against the LLM.
   ///
   /// Parameters:
-  /// * [playgroundRequest] 
+  /// * [playgroundRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1520,7 +1530,7 @@ _responseData = rawData == null ? null : deserialize<StepPreviewResponse, StepPr
   ///
   /// Returns a [Future] containing a [Response] with a [PlaygroundResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<PlaygroundResponse>> runPromptBuilderPlaygroundRunPost({ 
+  Future<Response<PlaygroundResponse>> runPromptBuilderPlaygroundRunPost({
     required PlaygroundRequest playgroundRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1532,13 +1542,8 @@ _responseData = rawData == null ? null : deserialize<StepPreviewResponse, StepPr
     final _path = r'/builder/playground/run';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1546,13 +1551,10 @@ _responseData = rawData == null ? null : deserialize<StepPreviewResponse, StepPr
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(playgroundRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(playgroundRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1571,9 +1573,14 @@ _bodyData=jsonEncode(playgroundRequest);
     PlaygroundResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<PlaygroundResponse, PlaygroundResponse>(rawData, 'PlaygroundResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<PlaygroundResponse, PlaygroundResponse>(
+              rawData,
+              'PlaygroundResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1600,8 +1607,8 @@ _responseData = rawData == null ? null : deserialize<PlaygroundResponse, Playgro
   /// V2: Update a step configuration.  WARNING: This modifies the global step definition.
   ///
   /// Parameters:
-  /// * [stepId] 
-  /// * [stepUpdateRequest] 
+  /// * [stepId]
+  /// * [stepUpdateRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1611,7 +1618,7 @@ _responseData = rawData == null ? null : deserialize<PlaygroundResponse, Playgro
   ///
   /// Returns a [Future] containing a [Response] with a [StepDTO] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<StepDTO>> updateStepBuilderStepsStepIdPut({ 
+  Future<Response<StepDTO>> updateStepBuilderStepsStepIdPut({
     required String stepId,
     required StepUpdateRequest stepUpdateRequest,
     CancelToken? cancelToken,
@@ -1621,16 +1628,16 @@ _responseData = rawData == null ? null : deserialize<PlaygroundResponse, Playgro
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/builder/steps/{step_id}'.replaceAll('{' r'step_id' '}', stepId.toString());
+    final _path = r'/builder/steps/{step_id}'.replaceAll(
+      '{'
+      r'step_id'
+      '}',
+      stepId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1638,13 +1645,10 @@ _responseData = rawData == null ? null : deserialize<PlaygroundResponse, Playgro
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(stepUpdateRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(stepUpdateRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1663,9 +1667,10 @@ _bodyData=jsonEncode(stepUpdateRequest);
     StepDTO? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 'StepDTO', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<StepDTO, StepDTO>(rawData, 'StepDTO', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1692,9 +1697,9 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
   /// Update an existing workflow.
   ///
   /// Parameters:
-  /// * [workflowId] 
-  /// * [workflowUpdateRequest] 
-  /// * [authorization] 
+  /// * [workflowId]
+  /// * [workflowUpdateRequest]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1704,7 +1709,8 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowResponse>> updateWorkflowBuilderWorkflowsWorkflowIdPut({ 
+  Future<Response<WorkflowResponse>>
+  updateWorkflowBuilderWorkflowsWorkflowIdPut({
     required String workflowId,
     required WorkflowUpdateRequest workflowUpdateRequest,
     String? authorization,
@@ -1715,17 +1721,16 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/builder/workflows/{workflow_id}'.replaceAll('{' r'workflow_id' '}', workflowId.toString());
+    final _path = r'/builder/workflows/{workflow_id}'.replaceAll(
+      '{'
+      r'workflow_id'
+      '}',
+      workflowId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1733,13 +1738,10 @@ _responseData = rawData == null ? null : deserialize<StepDTO, StepDTO>(rawData, 
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(workflowUpdateRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(workflowUpdateRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1758,9 +1760,14 @@ _bodyData=jsonEncode(workflowUpdateRequest);
     WorkflowResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowResponse>(rawData, 'WorkflowResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowResponse, WorkflowResponse>(
+              rawData,
+              'WorkflowResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1787,7 +1794,7 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
   /// Validates connection between two steps based on Agent I/O contracts.
   ///
   /// Parameters:
-  /// * [validationRequest] 
+  /// * [validationRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1797,7 +1804,7 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
   ///
   /// Returns a [Future] containing a [Response] with a [ValidationResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ValidationResponse>> validateConnectionBuilderValidatePost({ 
+  Future<Response<ValidationResponse>> validateConnectionBuilderValidatePost({
     required ValidationRequest validationRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1809,13 +1816,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
     final _path = r'/builder/validate';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1823,13 +1825,10 @@ _responseData = rawData == null ? null : deserialize<WorkflowResponse, WorkflowR
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(validationRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(validationRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1848,9 +1847,14 @@ _bodyData=jsonEncode(validationRequest);
     ValidationResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ValidationResponse, ValidationResponse>(rawData, 'ValidationResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ValidationResponse, ValidationResponse>(
+              rawData,
+              'ValidationResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1872,5 +1876,4 @@ _responseData = rawData == null ? null : deserialize<ValidationResponse, Validat
       extra: _response.extra,
     );
   }
-
 }

@@ -20,7 +20,6 @@ import 'package:backend_api/src/model/model_registry_update_response.dart';
 import 'package:backend_api/src/model/provider_list_response.dart';
 
 class LLMApi {
-
   final Dio _dio;
 
   const LLMApi(this._dio);
@@ -29,8 +28,8 @@ class LLMApi {
   /// Processes multiple completion requests in parallel.  Args:     batch (BatchCompletionRequest): List of requests.     registry (RegistryDep): Registry dependency.     user (CurrentUserDep): Authenticated user.     repo (RepositoryDep): Data repository.  Returns:     BatchLLMResponse: List of results (success or error) for each request.
   ///
   /// Parameters:
-  /// * [batchCompletionRequest] 
-  /// * [authorization] 
+  /// * [batchCompletionRequest]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -40,7 +39,7 @@ class LLMApi {
   ///
   /// Returns a [Future] containing a [Response] with a [BatchLLMResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<BatchLLMResponse>> batchCompletionLlmBatchCompletionPost({ 
+  Future<Response<BatchLLMResponse>> batchCompletionLlmBatchCompletionPost({
     required BatchCompletionRequest batchCompletionRequest,
     String? authorization,
     CancelToken? cancelToken,
@@ -53,14 +52,8 @@ class LLMApi {
     final _path = r'/llm/batch-completion';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -68,13 +61,10 @@ class LLMApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(batchCompletionRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(batchCompletionRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -93,9 +83,14 @@ _bodyData=jsonEncode(batchCompletionRequest);
     BatchLLMResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<BatchLLMResponse, BatchLLMResponse>(rawData, 'BatchLLMResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<BatchLLMResponse, BatchLLMResponse>(
+              rawData,
+              'BatchLLMResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -122,8 +117,8 @@ _responseData = rawData == null ? null : deserialize<BatchLLMResponse, BatchLLMR
   /// Directly invokes the LLM using the specified strategy.  Supports structured output if schema is provided.  Args:     request (CompletionRequest): The prompt and settings.     registry (RegistryDep): Registry dependency to resolve strategies.     user (CurrentUserDep): Authenticated user (required for rate limits).     repo (RepositoryDep): Data repository.  Returns:     LLMResponse: Result object containing the generated content.  Raises:     HTTPException: If strategy is invalid (400) or generation fails (500).
   ///
   /// Parameters:
-  /// * [completionRequest] 
-  /// * [authorization] 
+  /// * [completionRequest]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -133,7 +128,7 @@ _responseData = rawData == null ? null : deserialize<BatchLLMResponse, BatchLLMR
   ///
   /// Returns a [Future] containing a [Response] with a [LLMResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<LLMResponse>> generateCompletionLlmCompletionPost({ 
+  Future<Response<LLMResponse>> generateCompletionLlmCompletionPost({
     required CompletionRequest completionRequest,
     String? authorization,
     CancelToken? cancelToken,
@@ -146,14 +141,8 @@ _responseData = rawData == null ? null : deserialize<BatchLLMResponse, BatchLLMR
     final _path = r'/llm/completion';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -161,13 +150,10 @@ _responseData = rawData == null ? null : deserialize<BatchLLMResponse, BatchLLMR
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(completionRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(completionRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -186,9 +172,14 @@ _bodyData=jsonEncode(completionRequest);
     LLMResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<LLMResponse, LLMResponse>(rawData, 'LLMResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<LLMResponse, LLMResponse>(
+              rawData,
+              'LLMResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -224,7 +215,7 @@ _responseData = rawData == null ? null : deserialize<LLMResponse, LLMResponse>(r
   ///
   /// Returns a [Future] containing a [Response] with a [ModelRegistryResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ModelRegistryResponse>> getModelConfigLlmConfigGet({ 
+  Future<Response<ModelRegistryResponse>> getModelConfigLlmConfigGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -235,13 +226,8 @@ _responseData = rawData == null ? null : deserialize<LLMResponse, LLMResponse>(r
     final _path = r'/llm/config';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -256,9 +242,14 @@ _responseData = rawData == null ? null : deserialize<LLMResponse, LLMResponse>(r
     ModelRegistryResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ModelRegistryResponse, ModelRegistryResponse>(rawData, 'ModelRegistryResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ModelRegistryResponse, ModelRegistryResponse>(
+              rawData,
+              'ModelRegistryResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -294,7 +285,7 @@ _responseData = rawData == null ? null : deserialize<ModelRegistryResponse, Mode
   ///
   /// Returns a [Future] containing a [Response] with a [ProviderListResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ProviderListResponse>> listProvidersLlmProvidersGet({ 
+  Future<Response<ProviderListResponse>> listProvidersLlmProvidersGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -305,13 +296,8 @@ _responseData = rawData == null ? null : deserialize<ModelRegistryResponse, Mode
     final _path = r'/llm/providers';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -326,9 +312,14 @@ _responseData = rawData == null ? null : deserialize<ModelRegistryResponse, Mode
     ProviderListResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ProviderListResponse, ProviderListResponse>(rawData, 'ProviderListResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ProviderListResponse, ProviderListResponse>(
+              rawData,
+              'ProviderListResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -355,7 +346,7 @@ _responseData = rawData == null ? null : deserialize<ProviderListResponse, Provi
   /// Updates the system&#39;s model registry configuration in the database.  Args:     update (ModelRegistryUpdate): The new configuration.     registry (RegistryDep): Registry dependency.  Returns:     ModelRegistryUpdateResponse: Status and the updated registry.  Raises:     HTTPException: If database update fails (500).
   ///
   /// Parameters:
-  /// * [modelRegistryUpdate] 
+  /// * [modelRegistryUpdate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -365,7 +356,7 @@ _responseData = rawData == null ? null : deserialize<ProviderListResponse, Provi
   ///
   /// Returns a [Future] containing a [Response] with a [ModelRegistryUpdateResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ModelRegistryUpdateResponse>> updateModelConfigLlmConfigPost({ 
+  Future<Response<ModelRegistryUpdateResponse>> updateModelConfigLlmConfigPost({
     required ModelRegistryUpdate modelRegistryUpdate,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -377,13 +368,8 @@ _responseData = rawData == null ? null : deserialize<ProviderListResponse, Provi
     final _path = r'/llm/config';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -391,13 +377,10 @@ _responseData = rawData == null ? null : deserialize<ProviderListResponse, Provi
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(modelRegistryUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(modelRegistryUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -416,9 +399,13 @@ _bodyData=jsonEncode(modelRegistryUpdate);
     ModelRegistryUpdateResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ModelRegistryUpdateResponse, ModelRegistryUpdateResponse>(rawData, 'ModelRegistryUpdateResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<
+              ModelRegistryUpdateResponse,
+              ModelRegistryUpdateResponse
+            >(rawData, 'ModelRegistryUpdateResponse', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -440,5 +427,4 @@ _responseData = rawData == null ? null : deserialize<ModelRegistryUpdateResponse
       extra: _response.extra,
     );
   }
-
 }

@@ -20,7 +20,6 @@ import 'package:backend_api/src/model/user_delete_response.dart';
 import 'package:backend_api/src/model/user_update.dart';
 
 class AuthenticationUsersApi {
-
   final Dio _dio;
 
   const AuthenticationUsersApi(this._dio);
@@ -29,8 +28,8 @@ class AuthenticationUsersApi {
   /// Create a new user.  Args:     request (Request): The HTTP Request object.     user_data (UserCreate): Payload for the new user.     current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).     auth_service (AuthServiceDep): Authentication service dependency.  Returns:     User: The created user profile.  Raises:     HTTPException: If permission denied (403) or validation fails (400).
   ///
   /// Parameters:
-  /// * [userCreate] 
-  /// * [authorization] 
+  /// * [userCreate]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -40,7 +39,7 @@ class AuthenticationUsersApi {
   ///
   /// Returns a [Future] containing a [Response] with a [User] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<User>> createUserAuthUsersPost({ 
+  Future<Response<User>> createUserAuthUsersPost({
     required UserCreate userCreate,
     String? authorization,
     CancelToken? cancelToken,
@@ -53,14 +52,8 @@ class AuthenticationUsersApi {
     final _path = r'/auth/users';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -68,13 +61,10 @@ class AuthenticationUsersApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(userCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(userCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -93,9 +83,10 @@ _bodyData=jsonEncode(userCreate);
     User? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<User, User>(rawData, 'User', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -122,8 +113,8 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
   /// Delete a user.  Enforces Last Admin Protection.  Args:     id (str): The UID of the user to delete.     current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).     auth_service (AuthServiceDep): Authorization service.     repo (RepositoryDep): Repository dependency.  Returns:     UserDeleteResponse: Status confirmation.  Raises:     HTTPException: Permission denied (403) or business logic error (400).
   ///
   /// Parameters:
-  /// * [id] 
-  /// * [authorization] 
+  /// * [id]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -133,7 +124,7 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
   ///
   /// Returns a [Future] containing a [Response] with a [UserDeleteResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<UserDeleteResponse>> deleteUserAuthUsersIdDelete({ 
+  Future<Response<UserDeleteResponse>> deleteUserAuthUsersIdDelete({
     required String id,
     String? authorization,
     CancelToken? cancelToken,
@@ -143,17 +134,16 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/auth/users/{id}'.replaceAll('{' r'id' '}', id.toString());
+    final _path = r'/auth/users/{id}'.replaceAll(
+      '{'
+      r'id'
+      '}',
+      id.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -168,9 +158,14 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
     UserDeleteResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<UserDeleteResponse, UserDeleteResponse>(rawData, 'UserDeleteResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<UserDeleteResponse, UserDeleteResponse>(
+              rawData,
+              'UserDeleteResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -197,7 +192,7 @@ _responseData = rawData == null ? null : deserialize<UserDeleteResponse, UserDel
   /// Get the currently authenticated user&#39;s profile.  Args:     current_user (CurrentUserDep): The authenticated user.     auth_service (AuthServiceDep): Auth service.  Returns:     User: The full user profile.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -207,7 +202,7 @@ _responseData = rawData == null ? null : deserialize<UserDeleteResponse, UserDel
   ///
   /// Returns a [Future] containing a [Response] with a [User] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<User>> getMyProfileAuthMeGet({ 
+  Future<Response<User>> getMyProfileAuthMeGet({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -219,14 +214,8 @@ _responseData = rawData == null ? null : deserialize<UserDeleteResponse, UserDel
     final _path = r'/auth/me';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -241,9 +230,10 @@ _responseData = rawData == null ? null : deserialize<UserDeleteResponse, UserDel
     User? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<User, User>(rawData, 'User', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -270,8 +260,8 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
   /// Generates an impersonation token for the target user. Requires ROOT.  Args:     request (ImpersonationRequest): Payload containing target_id.     current_user (CurrentUserDep): The requesting user (must be ROOT).     auth_service (AuthServiceDep): Auth service.  Returns:     ImpersonationResponse: The access token.  Raises:     HTTPException: If permission denied (403) or target not found (404).
   ///
   /// Parameters:
-  /// * [impersonationRequest] 
-  /// * [authorization] 
+  /// * [impersonationRequest]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -281,7 +271,7 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
   ///
   /// Returns a [Future] containing a [Response] with a [ImpersonationResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ImpersonationResponse>> impersonateUserAuthImpersonatePost({ 
+  Future<Response<ImpersonationResponse>> impersonateUserAuthImpersonatePost({
     required ImpersonationRequest impersonationRequest,
     String? authorization,
     CancelToken? cancelToken,
@@ -294,14 +284,8 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
     final _path = r'/auth/impersonate';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -309,13 +293,10 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(impersonationRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(impersonationRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -334,9 +315,14 @@ _bodyData=jsonEncode(impersonationRequest);
     ImpersonationResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ImpersonationResponse, ImpersonationResponse>(rawData, 'ImpersonationResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ImpersonationResponse, ImpersonationResponse>(
+              rawData,
+              'ImpersonationResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -372,7 +358,7 @@ _responseData = rawData == null ? null : deserialize<ImpersonationResponse, Impe
   ///
   /// Returns a [Future] containing a [Response] with a [List<String>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<String>>> listAvailableRolesAuthRolesGet({ 
+  Future<Response<List<String>>> listAvailableRolesAuthRolesGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -383,13 +369,8 @@ _responseData = rawData == null ? null : deserialize<ImpersonationResponse, Impe
     final _path = r'/auth/roles';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -404,9 +385,14 @@ _responseData = rawData == null ? null : deserialize<ImpersonationResponse, Impe
     List<String>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<String>, String>(rawData, 'List<String>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<String>, String>(
+              rawData,
+              'List<String>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -433,7 +419,7 @@ _responseData = rawData == null ? null : deserialize<List<String>, String>(rawDa
   /// List users visible to the current user (scoped by Organization).  Args:     current_user (CurrentUserDep): The requesting user.     auth_service (AuthServiceDep): Authorization service.  Returns:     list[User]: A list of accessible user profiles.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -443,7 +429,7 @@ _responseData = rawData == null ? null : deserialize<List<String>, String>(rawDa
   ///
   /// Returns a [Future] containing a [Response] with a [List<User>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<User>>> listUsersAuthUsersGet({ 
+  Future<Response<List<User>>> listUsersAuthUsersGet({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -455,14 +441,8 @@ _responseData = rawData == null ? null : deserialize<List<String>, String>(rawDa
     final _path = r'/auth/users';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -477,9 +457,14 @@ _responseData = rawData == null ? null : deserialize<List<String>, String>(rawDa
     List<User>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<User>, User>(rawData, 'List<User>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<User>, User>(
+              rawData,
+              'List<User>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -506,9 +491,9 @@ _responseData = rawData == null ? null : deserialize<List<User>, User>(rawData, 
   /// Update a user (Role, Display Name, etc).  Args:     id (str): The UID of the user to update.     user_update (UserUpdate): Fields to update.     current_user (CurrentUserDep): Requesting user.     auth_service (AuthServiceDep): Authorization service.  Returns:     User: The updated user profile.
   ///
   /// Parameters:
-  /// * [id] 
-  /// * [userUpdate] 
-  /// * [authorization] 
+  /// * [id]
+  /// * [userUpdate]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -518,7 +503,7 @@ _responseData = rawData == null ? null : deserialize<List<User>, User>(rawData, 
   ///
   /// Returns a [Future] containing a [Response] with a [User] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<User>> updateUserAuthUsersIdPatch({ 
+  Future<Response<User>> updateUserAuthUsersIdPatch({
     required String id,
     required UserUpdate userUpdate,
     String? authorization,
@@ -529,17 +514,16 @@ _responseData = rawData == null ? null : deserialize<List<User>, User>(rawData, 
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/auth/users/{id}'.replaceAll('{' r'id' '}', id.toString());
+    final _path = r'/auth/users/{id}'.replaceAll(
+      '{'
+      r'id'
+      '}',
+      id.toString(),
+    );
     final _options = Options(
       method: r'PATCH',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -547,13 +531,10 @@ _responseData = rawData == null ? null : deserialize<List<User>, User>(rawData, 
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(userUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(userUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -572,9 +553,10 @@ _bodyData=jsonEncode(userUpdate);
     User? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<User, User>(rawData, 'User', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -601,7 +583,7 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
   /// Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.  Args:     request (Request): The HTTP Request object.     payload (TokenPayload): The token payload.     auth_service (AuthServiceDep): Authentication service dependency.  Returns:     LoginResponse: The authenticated user profile and status.  Raises:     HTTPException: If the user is found in Firebase but not in the DB (404),                    or if the token is invalid (401).
   ///
   /// Parameters:
-  /// * [tokenPayload] 
+  /// * [tokenPayload]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -611,7 +593,7 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
   ///
   /// Returns a [Future] containing a [Response] with a [LoginResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<LoginResponse>> verifyUserTokenAuthVerifyPost({ 
+  Future<Response<LoginResponse>> verifyUserTokenAuthVerifyPost({
     required TokenPayload tokenPayload,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -623,13 +605,8 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
     final _path = r'/auth/verify';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -637,13 +614,10 @@ _responseData = rawData == null ? null : deserialize<User, User>(rawData, 'User'
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(tokenPayload);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(tokenPayload);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -662,9 +636,14 @@ _bodyData=jsonEncode(tokenPayload);
     LoginResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<LoginResponse, LoginResponse>(rawData, 'LoginResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<LoginResponse, LoginResponse>(
+              rawData,
+              'LoginResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -686,5 +665,4 @@ _responseData = rawData == null ? null : deserialize<LoginResponse, LoginRespons
       extra: _response.extra,
     );
   }
-
 }

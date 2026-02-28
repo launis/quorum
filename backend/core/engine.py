@@ -91,6 +91,16 @@ class GraphEngine:
         else:
             context_vars["inputs"] = initial_input
 
+        # Fetch knowledge base upfront so it is available globally (e.g., for ReferenceHook)
+        if repository:
+            try:
+                # We need to await inside an async function
+                references = await repository.get_references()
+                concepts = await repository.get_concepts()
+                context_vars["knowledge_base"] = {"references": references, "concepts": concepts}
+            except Exception as e:
+                logger.warning(f"[GraphEngine] Failed to initialize global knowledge_base: {e}")
+
         # Cast for mypy strictness
         state_payload: dict[str, Any] = {
             "execution_id": uuid.UUID(execution_id) if execution_id else uuid.uuid4(),
@@ -414,8 +424,10 @@ class GraphEngine:
                 execution_state = execution_state.add_event(new_event)
 
                 # 8. Update Context Variables (Snapshot for next steps)
-                # We merge the content_payload into context_variables[step.id]
+                # We merge the content_payload into context_variables[step.id] and [step.slug]
                 execution_state.context_variables[step.id] = content_payload
+                if getattr(step, "slug", None):
+                    execution_state.context_variables[step.slug] = content_payload
 
                 logger.debug(f"Step '{step.id}' event added to trace.")
 

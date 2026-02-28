@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for ComponentsApi
 void main() {
   final instance = BackendApi().getComponentsApi();
@@ -60,6 +59,5 @@ void main() {
     test('test updateComponentV1ConfigComponentsCompIdPut', () async {
       // TODO
     });
-
   });
 }

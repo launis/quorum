@@ -14,7 +14,7 @@ part 'studio_routes.g.dart';
     TypedGoRoute<StudioStepsRoute>(path: 'steps'),
     TypedGoRoute<StudioComponentsRoute>(path: 'components'),
     TypedGoRoute<StudioKnowledgeRoute>(path: 'knowledge'),
-  ]
+  ],
 )
 class StudioDashboardRoute extends GoRouteData with $StudioDashboardRoute {
   const StudioDashboardRoute();
@@ -28,29 +28,34 @@ class StudioDashboardRoute extends GoRouteData with $StudioDashboardRoute {
 class StudioWorkflowsRoute extends GoRouteData with $StudioWorkflowsRoute {
   const StudioWorkflowsRoute();
   @override
-  Widget build(BuildContext context, GoRouterState state) => const WorkflowStudioScreen(initialTabIndex: 0);
+  Widget build(BuildContext context, GoRouterState state) =>
+      const WorkflowStudioScreen(initialTabIndex: 0);
 }
 
 class StudioMatricesRoute extends GoRouteData with $StudioMatricesRoute {
   const StudioMatricesRoute();
   @override
-  Widget build(BuildContext context, GoRouterState state) => const WorkflowStudioScreen(initialTabIndex: 1);
+  Widget build(BuildContext context, GoRouterState state) =>
+      const WorkflowStudioScreen(initialTabIndex: 1);
 }
 
 class StudioStepsRoute extends GoRouteData with $StudioStepsRoute {
   const StudioStepsRoute();
   @override
-  Widget build(BuildContext context, GoRouterState state) => const WorkflowStudioScreen(initialTabIndex: 2);
+  Widget build(BuildContext context, GoRouterState state) =>
+      const WorkflowStudioScreen(initialTabIndex: 2);
 }
 
 class StudioComponentsRoute extends GoRouteData with $StudioComponentsRoute {
   const StudioComponentsRoute();
   @override
-  Widget build(BuildContext context, GoRouterState state) => const WorkflowStudioScreen(initialTabIndex: 3);
+  Widget build(BuildContext context, GoRouterState state) =>
+      const WorkflowStudioScreen(initialTabIndex: 3);
 }
 
 class StudioKnowledgeRoute extends GoRouteData with $StudioKnowledgeRoute {
   const StudioKnowledgeRoute();
   @override
-  Widget build(BuildContext context, GoRouterState state) => const IngestionView();
+  Widget build(BuildContext context, GoRouterState state) =>
+      const IngestionView();
 }

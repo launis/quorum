@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'config_workflow_delete_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,26 @@ part 'config_workflow_delete_response.g.dart';
 )
 class ConfigWorkflowDeleteResponse {
   /// Returns a new [ConfigWorkflowDeleteResponse] instance.
-  ConfigWorkflowDeleteResponse({
+  ConfigWorkflowDeleteResponse({required this.status, required this.id});
 
-    required  this.status,
-
-    required  this.id,
-  });
-
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: true)
   final String id;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConfigWorkflowDeleteResponse &&
+          other.status == status &&
+          other.id == id;
 
+  @override
+  int get hashCode => status.hashCode + id.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ConfigWorkflowDeleteResponse &&
-      other.status == status &&
-      other.id == id;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        id.hashCode;
-
-  factory ConfigWorkflowDeleteResponse.fromJson(Map<String, dynamic> json) => _$ConfigWorkflowDeleteResponseFromJson(json);
+  factory ConfigWorkflowDeleteResponse.fromJson(Map<String, dynamic> json) =>
+      _$ConfigWorkflowDeleteResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ConfigWorkflowDeleteResponseToJson(this);
 
@@ -69,6 +44,4 @@ class ConfigWorkflowDeleteResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

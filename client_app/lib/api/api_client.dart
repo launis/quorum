@@ -45,10 +45,10 @@ Dio apiClient(Ref ref) {
 
   // Add Auth Interceptor (must be first to add token)
   dio.interceptors.add(AuthInterceptor(ref));
-  
+
   // Add Locale Interceptor (Dynamic Accept-Language)
   dio.interceptors.add(LocaleInterceptor(ref));
-  
+
   // Add Logger (before ErrorInterceptor to capture raw requests)
   dio.interceptors.add(DioLoggerInterceptor(ref));
 

@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'knowledge_reset_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,34 +17,21 @@ part 'knowledge_reset_response.g.dart';
 )
 class KnowledgeResetResponse {
   /// Returns a new [KnowledgeResetResponse] instance.
-  KnowledgeResetResponse({
+  KnowledgeResetResponse({required this.message});
 
-    required  this.message,
-  });
-
-  @JsonKey(
-    
-    name: r'message',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'message', required: true)
   final String message;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KnowledgeResetResponse && other.message == message;
 
+  @override
+  int get hashCode => message.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is KnowledgeResetResponse &&
-      other.message == message;
-
-    @override
-    int get hashCode =>
-        message.hashCode;
-
-  factory KnowledgeResetResponse.fromJson(Map<String, dynamic> json) => _$KnowledgeResetResponseFromJson(json);
+  factory KnowledgeResetResponse.fromJson(Map<String, dynamic> json) =>
+      _$KnowledgeResetResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$KnowledgeResetResponseToJson(this);
 
@@ -53,6 +39,4 @@ class KnowledgeResetResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'pdf_queued_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,26 @@ part 'pdf_queued_response.g.dart';
 )
 class PDFQueuedResponse {
   /// Returns a new [PDFQueuedResponse] instance.
-  PDFQueuedResponse({
+  PDFQueuedResponse({required this.status, required this.message});
 
-    required  this.status,
-
-    required  this.message,
-  });
-
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'message',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'message', required: true)
   final String message;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PDFQueuedResponse &&
+          other.status == status &&
+          other.message == message;
 
+  @override
+  int get hashCode => status.hashCode + message.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is PDFQueuedResponse &&
-      other.status == status &&
-      other.message == message;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        message.hashCode;
-
-  factory PDFQueuedResponse.fromJson(Map<String, dynamic> json) => _$PDFQueuedResponseFromJson(json);
+  factory PDFQueuedResponse.fromJson(Map<String, dynamic> json) =>
+      _$PDFQueuedResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$PDFQueuedResponseToJson(this);
 
@@ -69,6 +44,4 @@ class PDFQueuedResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

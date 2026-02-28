@@ -157,9 +157,19 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
 
     # 3. Check Falsifier (Fidelity Audit)
     falsifier_model = state.get_context("step_falsifier", FalsifierOutput)
-
+    
+    # Also check Panel fallback for Fused Audit Chain
+    from backend.models.domain.panel import PanelOutput
+    panel_model = state.get_context("step_panel", PanelOutput)
+    
+    falsifier_data = None
     if falsifier_model and falsifier_model.falsifier_data:
-        audit = falsifier_model.falsifier_data.fidelity_audit
+        falsifier_data = falsifier_model.falsifier_data
+    elif panel_model and panel_model.falsifier_data:
+        falsifier_data = panel_model.falsifier_data
+
+    if falsifier_data:
+        audit = falsifier_data.fidelity_audit
         if audit and audit.quote:
             total_count += 1
             if check_quote(audit.quote):
@@ -169,9 +179,15 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
 
     # 4. Check Logician (Toulmin Data)
     logician_model = state.get_context("step_logician", LogicianOutput)
-
+    
+    logician_data = None
     if logician_model and logician_model.logician_data:
-        for comp in logician_model.logician_data.toulmin_analysis:
+        logician_data = logician_model.logician_data
+    elif panel_model and panel_model.logician_data:
+        logician_data = panel_model.logician_data
+
+    if logician_data:
+        for comp in logician_data.toulmin_analysis:
             if comp.data:
                 total_count += 1
                 if check_quote(comp.data):
@@ -180,7 +196,7 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
                     invalid_citations.append(f"Logician: {comp.data[:50]}...")
 
     if total_count == 0:
-        logger.info("[IntegrityHook] No citations found to verify.")
+        logger.warning("[IntegrityHook] No citations found to verify.")
         return state
 
     # FAIL FAST: Data Integrity (Part 18.1)

@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for AgentsApi
 void main() {
   final instance = BackendApi().getAgentsApi();
@@ -24,6 +23,5 @@ void main() {
     test('test runAgentAgentsAgentNameRunPost', () async {
       // TODO
     });
-
   });
 }

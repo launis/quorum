@@ -14,7 +14,7 @@ class WorkflowsController extends _$WorkflowsController {
   Future<void> createWorkflow(WorkflowDef workflow) async {
     final previousState = state;
     final currentList = state.value ?? [];
-    
+
     // Optimistic Update
     state = AsyncData([...currentList, workflow]);
 
@@ -45,7 +45,9 @@ class WorkflowsController extends _$WorkflowsController {
   Future<void> copyWorkflow(String originalId, String newName) async {
     // Rely on loader for copying, as inserting a fake item is complex
     try {
-      await ref.read(studioRepositoryProvider).copyWorkflow(originalId, newName);
+      await ref
+          .read(studioRepositoryProvider)
+          .copyWorkflow(originalId, newName);
       ref.invalidateSelf();
     } catch (e) {
       rethrow;

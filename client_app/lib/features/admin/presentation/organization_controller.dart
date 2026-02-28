@@ -28,14 +28,14 @@ class OrganizationList extends _$OrganizationList {
   Future<void> addOrganization(Map<String, dynamic> data) async {
     final previousState = state;
     // 1. Optimistic Update
-    // We try to keep the list visible. Ideally we'd append a temp org, 
+    // We try to keep the list visible. Ideally we'd append a temp org,
     // but constructing it from raw map might be fragile without ID.
     // At minimum, we DON'T set state to loading (which hides the list).
     // If we want true optimistic, we'd need Organization.fromMap(data) with temp ID.
     // For now: Keep previous state visible (semi-optimistic).
-    
+
     // state = const AsyncValue.loading(); // REMOVED (Pessimistic)
-    
+
     try {
       // 2. API Call
       final repository = ref.read(organizationRepositoryProvider);
@@ -44,8 +44,8 @@ class OrganizationList extends _$OrganizationList {
       result.fold(
         (error) => throw error, // Trigger catch block
         (_) {
-           // 3. Silent Invalidation
-           ref.invalidateSelf();
+          // 3. Silent Invalidation
+          ref.invalidateSelf();
         },
       );
     } catch (e, st) {
@@ -60,7 +60,7 @@ class OrganizationList extends _$OrganizationList {
       // better: state = previousState (Data) + Action Error?
       // Riverpod AsyncValue doesn't support "Data + Side Error" well without generic.
       // So ensuring we rethrow for UI toast is key.
-      state = previousState; 
+      state = previousState;
       // We rethrow so the UI can show a SnackBar or Dialog error.
       rethrow;
     }
@@ -69,7 +69,7 @@ class OrganizationList extends _$OrganizationList {
   Future<void> updateOrganization(String id, Map<String, dynamic> data) async {
     final previousState = state;
     // 1. Optimistic (Keep List Visible)
-    
+
     try {
       // 2. API Call
       final repository = ref.read(organizationRepositoryProvider);
@@ -91,7 +91,7 @@ class OrganizationList extends _$OrganizationList {
     // 1. Optimistic (Remove from list immediately)
     if (previousState.value != null) {
       state = AsyncValue.data(
-        previousState.value!.where((org) => org.id != id).toList()
+        previousState.value!.where((org) => org.id != id).toList(),
       );
     }
 
@@ -102,9 +102,9 @@ class OrganizationList extends _$OrganizationList {
 
       return result.fold(
         (error) {
-           // 4. Rollback on API failure
-           state = previousState;
-           return error; // Return error for UI handling (Dialog?)
+          // 4. Rollback on API failure
+          state = previousState;
+          return error; // Return error for UI handling (Dialog?)
         },
         (_) {
           // 3. Silent Invalidation (Sync)
@@ -113,12 +113,12 @@ class OrganizationList extends _$OrganizationList {
         },
       );
     } catch (e, st) {
-       // 4. Rollback on Exception
-       state = previousState;
-       // If unexpected exception
-       state = AsyncValue.error(e, st);
-       // Or return as AppError?
-       return AppError.server(e.toString());
+      // 4. Rollback on Exception
+      state = previousState;
+      // If unexpected exception
+      state = AsyncValue.error(e, st);
+      // Or return as AppError?
+      return AppError.server(e.toString());
     }
   }
 }

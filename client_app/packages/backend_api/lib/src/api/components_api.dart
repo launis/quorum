@@ -17,7 +17,6 @@ import 'package:backend_api/src/model/registry_component_item.dart';
 import 'package:backend_api/src/model/text_component_response.dart';
 
 class ComponentsApi {
-
   final Dio _dio;
 
   const ComponentsApi(this._dio);
@@ -26,7 +25,7 @@ class ComponentsApi {
   /// Creates a new configuration component.
   ///
   /// Parameters:
-  /// * [componentCreate] 
+  /// * [componentCreate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -36,7 +35,8 @@ class ComponentsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [TextComponentResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<TextComponentResponse>> createComponentV1ConfigComponentsPost({ 
+  Future<Response<TextComponentResponse>>
+  createComponentV1ConfigComponentsPost({
     required ComponentCreate componentCreate,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -48,13 +48,8 @@ class ComponentsApi {
     final _path = r'/v1/config/components';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -62,13 +57,10 @@ class ComponentsApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(componentCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(componentCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -87,9 +79,14 @@ _bodyData=jsonEncode(componentCreate);
     TextComponentResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<TextComponentResponse, TextComponentResponse>(rawData, 'TextComponentResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<TextComponentResponse, TextComponentResponse>(
+              rawData,
+              'TextComponentResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -116,7 +113,7 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   /// Deletes a component if it is not referenced by any existing steps OR executions.
   ///
   /// Parameters:
-  /// * [compId] 
+  /// * [compId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -126,7 +123,8 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   ///
   /// Returns a [Future] containing a [Response] with a [ComponentDeleteResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ComponentDeleteResponse>> deleteComponentV1ConfigComponentsCompIdDelete({ 
+  Future<Response<ComponentDeleteResponse>>
+  deleteComponentV1ConfigComponentsCompIdDelete({
     required String compId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -135,16 +133,16 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/components/{comp_id}'.replaceAll('{' r'comp_id' '}', compId.toString());
+    final _path = r'/v1/config/components/{comp_id}'.replaceAll(
+      '{'
+      r'comp_id'
+      '}',
+      compId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -159,9 +157,14 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     ComponentDeleteResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ComponentDeleteResponse, ComponentDeleteResponse>(rawData, 'ComponentDeleteResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ComponentDeleteResponse, ComponentDeleteResponse>(
+              rawData,
+              'ComponentDeleteResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -198,7 +201,8 @@ _responseData = rawData == null ? null : deserialize<ComponentDeleteResponse, Co
   ///
   /// Returns a [Future] containing a [Response] with a [TextComponentResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<TextComponentResponse>> getComponentV1ConfigComponentsCompIdGet({ 
+  Future<Response<TextComponentResponse>>
+  getComponentV1ConfigComponentsCompIdGet({
     required String compId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -207,16 +211,16 @@ _responseData = rawData == null ? null : deserialize<ComponentDeleteResponse, Co
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/components/{comp_id}'.replaceAll('{' r'comp_id' '}', compId.toString());
+    final _path = r'/v1/config/components/{comp_id}'.replaceAll(
+      '{'
+      r'comp_id'
+      '}',
+      compId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -231,9 +235,14 @@ _responseData = rawData == null ? null : deserialize<ComponentDeleteResponse, Co
     TextComponentResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<TextComponentResponse, TextComponentResponse>(rawData, 'TextComponentResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<TextComponentResponse, TextComponentResponse>(
+              rawData,
+              'TextComponentResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -260,8 +269,8 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   /// Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).  Args:     repo (RepositoryDep): Repository dependency.     type (str | None): Optional filter by component type.     exclude_type (list[str] | None): Optional types to exclude (defaults to agents/processors).  Returns:     list[ComponentResponse]: List of configuration components.
   ///
   /// Parameters:
-  /// * [type] 
-  /// * [excludeType] 
+  /// * [type]
+  /// * [excludeType]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -271,7 +280,8 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
   ///
   /// Returns a [Future] containing a [Response] with a [List<TextComponentResponse>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<TextComponentResponse>>> getComponentsV1ConfigComponentsGet({ 
+  Future<Response<List<TextComponentResponse>>>
+  getComponentsV1ConfigComponentsGet({
     String? type,
     List<String>? excludeType,
     CancelToken? cancelToken,
@@ -284,13 +294,8 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     final _path = r'/v1/config/components';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -311,9 +316,14 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
     List<TextComponentResponse>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<TextComponentResponse>, TextComponentResponse>(rawData, 'List<TextComponentResponse>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<TextComponentResponse>, TextComponentResponse>(
+              rawData,
+              'List<TextComponentResponse>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -349,7 +359,8 @@ _responseData = rawData == null ? null : deserialize<List<TextComponentResponse>
   ///
   /// Returns a [Future] containing a [Response] with a [List<RegistryComponentItem>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<RegistryComponentItem>>> listRegistryItemsV1ConfigComponentsRegistryItemsGet({ 
+  Future<Response<List<RegistryComponentItem>>>
+  listRegistryItemsV1ConfigComponentsRegistryItemsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -360,13 +371,8 @@ _responseData = rawData == null ? null : deserialize<List<TextComponentResponse>
     final _path = r'/v1/config/components/registry_items';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -381,9 +387,14 @@ _responseData = rawData == null ? null : deserialize<List<TextComponentResponse>
     List<RegistryComponentItem>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>, RegistryComponentItem>(rawData, 'List<RegistryComponentItem>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<RegistryComponentItem>, RegistryComponentItem>(
+              rawData,
+              'List<RegistryComponentItem>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -410,8 +421,8 @@ _responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>
   /// Updates an existing component&#39;s content and metadata.  Args:     comp_id (str): The ID of the component to update.     update (ComponentUpdate): The new data.     repo (RepositoryDep): Repository dependency.  Returns:     ComponentResponse: The updated component.  Raises:     HTTPException: If not found (404).
   ///
   /// Parameters:
-  /// * [compId] 
-  /// * [componentUpdate] 
+  /// * [compId]
+  /// * [componentUpdate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -421,7 +432,8 @@ _responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>
   ///
   /// Returns a [Future] containing a [Response] with a [TextComponentResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<TextComponentResponse>> updateComponentV1ConfigComponentsCompIdPut({ 
+  Future<Response<TextComponentResponse>>
+  updateComponentV1ConfigComponentsCompIdPut({
     required String compId,
     required ComponentUpdate componentUpdate,
     CancelToken? cancelToken,
@@ -431,16 +443,16 @@ _responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/components/{comp_id}'.replaceAll('{' r'comp_id' '}', compId.toString());
+    final _path = r'/v1/config/components/{comp_id}'.replaceAll(
+      '{'
+      r'comp_id'
+      '}',
+      compId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -448,13 +460,10 @@ _responseData = rawData == null ? null : deserialize<List<RegistryComponentItem>
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(componentUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(componentUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -473,9 +482,14 @@ _bodyData=jsonEncode(componentUpdate);
     TextComponentResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<TextComponentResponse, TextComponentResponse>(rawData, 'TextComponentResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<TextComponentResponse, TextComponentResponse>(
+              rawData,
+              'TextComponentResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -497,5 +511,4 @@ _responseData = rawData == null ? null : deserialize<TextComponentResponse, Text
       extra: _response.extra,
     );
   }
-
 }

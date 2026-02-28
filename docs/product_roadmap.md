@@ -345,6 +345,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [ ] **Internal Knowledge Base Vectorization**: Upgrade `knowledge_base_service.py` (`retrieve_context`) from in-memory string matching MVP to Vector Semantic Search (Embeddings) for internal document retrieval (e.g. Brand Books).
 - [ ] **Reference Hook Engine Integration**: Modernize `backend/hooks/references.py` to seamlessly integrate with `GraphEngine` dynamic retrieval loops instead of evaluating plain strings, ensuring robust Domain Compliance validation.
 - [ ] **Eliminate Magic Strings (Data-Driven Configuration)**: Refactor `seed_data.json` step configs to define explicit roles (e.g., `core_template`, `dynamic_tasks`) mapping to prompt slugs rather than blindly injecting an array. This enables true strict Pydantic Dependency Injection into Agents, eliminating the need to hardcode `execution_context.get("PANEL_PROMPT_TEMPLATE")` inside Python files.
+- [ ] **Dynamic Provider Parsing Modes**: Upgrade `backend/llm/provider.py` and `LLMProviderConfig` to support configuring the structured parsing strategy dynamically from the database (e.g., `GEMINI_JSON` vs `JSON_SCHEMA` vs `MD_JSON`). Currently, Instructor parsing modes are hardcoded heuristics in the client, but the system should natively support a switch/case block inside `provider.py` reading directly from the database's `model_registry` config block (`case "google": mode = GEMINI_JSON`, `case "openai": mode = JSON_SCHEMA`).
 
 ---
 

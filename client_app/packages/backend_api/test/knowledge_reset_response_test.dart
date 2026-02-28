@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for KnowledgeResetResponse
 void main() {
-  final KnowledgeResetResponse? instance = /* KnowledgeResetResponse(...) */ null;
+  final KnowledgeResetResponse? instance = /* KnowledgeResetResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(KnowledgeResetResponse, () {
@@ -11,6 +12,5 @@ void main() {
     test('to test the property `message`', () async {
       // TODO
     });
-
   });
 }

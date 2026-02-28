@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for ValidationReportResponse
 void main() {
-  final ValidationReportResponse? instance = /* ValidationReportResponse(...) */ null;
+  final ValidationReportResponse? instance = /* ValidationReportResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(ValidationReportResponse, () {
@@ -26,6 +27,5 @@ void main() {
     test('to test the property `finalStateKeys`', () async {
       // TODO
     });
-
   });
 }

@@ -90,15 +90,15 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
 
         formatted_list = generate_bibliography(text_dump, self.knowledge_base)
 
-        # SCHEMA ADAPTER: CoachingPlan expects list[dict], but hook returns list[str].
+        # SCHEMA ADAPTER: CoachingPlan expects list[dict].
         final_bib = []
-        for ref_str in formatted_list:
+        for item in formatted_list:
             final_bib.append(
                 {
-                    "source_id": "ref_generated",  # Placeholder or hash?
-                    "title": ref_str,
-                    "url": None,
-                    "snippet": None,
+                    "source_id": item.source_id,
+                    "title": item.title,
+                    "url": item.url,
+                    "snippet": item.snippet,
                 }
             )
 

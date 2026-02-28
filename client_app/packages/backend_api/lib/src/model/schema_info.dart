@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'schema_info.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,25 @@ part 'schema_info.g.dart';
 )
 class SchemaInfo {
   /// Returns a new [SchemaInfo] instance.
-  SchemaInfo({
+  SchemaInfo({required this.schema, this.example});
 
-    required  this.schema,
-
-     this.example,
-  });
-
-  @JsonKey(
-    
-    name: r'schema',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'schema', required: true)
   final Map<String, Object> schema;
 
-
-
-  @JsonKey(
-    
-    name: r'example',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'example', required: false)
   final dynamic? example;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SchemaInfo && other.schema == schema && other.example == example;
 
+  @override
+  int get hashCode =>
+      schema.hashCode + (example == null ? 0 : example.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is SchemaInfo &&
-      other.schema == schema &&
-      other.example == example;
-
-    @override
-    int get hashCode =>
-        schema.hashCode +
-        (example == null ? 0 : example.hashCode);
-
-  factory SchemaInfo.fromJson(Map<String, dynamic> json) => _$SchemaInfoFromJson(json);
+  factory SchemaInfo.fromJson(Map<String, dynamic> json) =>
+      _$SchemaInfoFromJson(json);
 
   Map<String, dynamic> toJson() => _$SchemaInfoToJson(this);
 
@@ -69,6 +43,4 @@ class SchemaInfo {
   String toString() {
     return toJson().toString();
   }
-
 }
-

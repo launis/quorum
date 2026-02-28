@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'playground_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,51 +17,27 @@ part 'playground_response.g.dart';
 )
 class PlaygroundResponse {
   /// Returns a new [PlaygroundResponse] instance.
-  PlaygroundResponse({
+  PlaygroundResponse({required this.content, this.usage});
 
-    required  this.content,
-
-     this.usage,
-  });
-
-      /// The LLM response content.
-  @JsonKey(
-    
-    name: r'content',
-    required: true,
-    
-  )
-
-
+  /// The LLM response content.
+  @JsonKey(name: r'content', required: true)
   final String content;
 
-
-
-  @JsonKey(
-    
-    name: r'usage',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'usage', required: false)
   final Map<String, Object>? usage;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlaygroundResponse &&
+          other.content == content &&
+          other.usage == usage;
 
+  @override
+  int get hashCode => content.hashCode + (usage == null ? 0 : usage.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is PlaygroundResponse &&
-      other.content == content &&
-      other.usage == usage;
-
-    @override
-    int get hashCode =>
-        content.hashCode +
-        (usage == null ? 0 : usage.hashCode);
-
-  factory PlaygroundResponse.fromJson(Map<String, dynamic> json) => _$PlaygroundResponseFromJson(json);
+  factory PlaygroundResponse.fromJson(Map<String, dynamic> json) =>
+      _$PlaygroundResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$PlaygroundResponseToJson(this);
 
@@ -70,6 +45,4 @@ class PlaygroundResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

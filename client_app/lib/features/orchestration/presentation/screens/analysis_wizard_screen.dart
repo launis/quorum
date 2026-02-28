@@ -22,51 +22,53 @@ class AnalysisWizardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     // 0. Pre-flight Check: Knowledge Base Status
     final knowledgeStatusAsync = ref.watch(knowledgeStatusProvider);
 
     return knowledgeStatusAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (err, stack) => Scaffold(
-        appBar: AppBar(title: Text(l10n.newAnalysis)),
-        body: ErrorView(
-          error: err,
-          stackTrace: stack,
-          onRetry: () => ref.invalidate(knowledgeStatusProvider),
-        ),
-      ),
+      loading:
+          () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error:
+          (err, stack) => Scaffold(
+            appBar: AppBar(title: Text(l10n.newAnalysis)),
+            body: ErrorView(
+              error: err,
+              stackTrace: stack,
+              onRetry: () => ref.invalidate(knowledgeStatusProvider),
+            ),
+          ),
       data: (status) {
         // BLOCKING STATE: No Knowledge Data
         // BLOCKING STATE: No Knowledge Data
         if (!status.hasDocuments) {
-           final userWrapper = ref.watch(authControllerProvider);
-           final userRole = userWrapper.value?.role;
-           final isAdmin = userRole == UserRole.admin || userRole == UserRole.root;
+          final userWrapper = ref.watch(authControllerProvider);
+          final userRole = userWrapper.value?.role;
+          final isAdmin =
+              userRole == UserRole.admin || userRole == UserRole.root;
 
-           if (isAdmin) {
-              // RESTORED: Automatic Redirection for empty knowledge base (Admins Only)
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (context.mounted) {
-                  context.go('/studio/knowledge');
-                }
-              });
-              // Show a loader while redirecting
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-           } else {
-              // Non-Admins get the blocking ErrorView (No redirection)
-              return Scaffold(
-                appBar: AppBar(title: Text(l10n.newAnalysis)),
-                body: ErrorView(
-                  title: l10n.errKnowledgeNotIngestedTitle,
-                  error: l10n.errKnowledgeNotIngested,
-                ),
-              );
-           }
+          if (isAdmin) {
+            // RESTORED: Automatic Redirection for empty knowledge base (Admins Only)
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                context.go('/studio/knowledge');
+              }
+            });
+            // Show a loader while redirecting
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          } else {
+            // Non-Admins get the blocking ErrorView (No redirection)
+            return Scaffold(
+              appBar: AppBar(title: Text(l10n.newAnalysis)),
+              body: ErrorView(
+                title: l10n.errKnowledgeNotIngestedTitle,
+                error: l10n.errKnowledgeNotIngested,
+              ),
+            );
+          }
         }
 
         // 1. Passive View Listener
@@ -83,7 +85,8 @@ class AnalysisWizardScreen extends ConsumerWidget {
                 network: (_) => message = l10n.errorNetwork,
                 server:
                     (msg, _) =>
-                        message = msg ?? l10n.errorServer, // Fallback if msg null
+                        message =
+                            msg ?? l10n.errorServer, // Fallback if msg null
                 unauthorized: () => message = l10n.errorUnauthorized,
                 notFound: (_) => message = l10n.errorNotFound,
                 cancelled: () {}, // No-op
@@ -98,7 +101,9 @@ class AnalysisWizardScreen extends ConsumerWidget {
                 },
                 validationMissing:
                     (fields) =>
-                        message = l10n.errorValidationMissing(fields.join(', ')),
+                        message = l10n.errorValidationMissing(
+                          fields.join(', '),
+                        ),
                 api: (errorCode, detail, status, instance) {
                   // RFC 7807 error - use detail as message
                   message = detail;
@@ -128,60 +133,61 @@ class AnalysisWizardScreen extends ConsumerWidget {
         return Scaffold(
           appBar: AppBar(title: Text(l10n.newAnalysis)),
           body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 1. Selector
-                const WorkflowSelector(),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1000),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 1. Selector
+                    const WorkflowSelector(),
 
-                const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-                // 2. Inputs (Dynamically rendered based on selection)
-                const DynamicInputForm(),
+                    // 2. Inputs (Dynamically rendered based on selection)
+                    const DynamicInputForm(),
 
-                const SizedBox(height: 48),
+                    const SizedBox(height: 48),
 
-                // 3. Submit Action
-                SizedBox(
-                  height: 50,
-                  child: FilledButton.icon(
-                    onPressed: isSubmitting ? null : () => _submit(context, ref),
-                    icon:
-                        isSubmitting
-                            ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Icon(Icons.rocket_launch),
-                    label: Text(
-                      isSubmitting
-                          ? l10n.analysisInProgress
-                          : l10n.startAnalysis,
-                      style: const TextStyle(fontSize: 16),
+                    // 3. Submit Action
+                    SizedBox(
+                      height: 50,
+                      child: FilledButton.icon(
+                        onPressed:
+                            isSubmitting ? null : () => _submit(context, ref),
+                        icon:
+                            isSubmitting
+                                ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : const Icon(Icons.rocket_launch),
+                        label: Text(
+                          isSubmitting
+                              ? l10n.analysisInProgress
+                              : l10n.startAnalysis,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
-  },
-);
   }
 
   Future<void> _submit(BuildContext context, WidgetRef ref) async {
     final logger = ref.read(loggerServiceProvider);
-    
+
     try {
       logger.info('AnalysisWizard', 'Submit pressed');
       final wizardState = ref.read(wizardStateProvider);
@@ -192,13 +198,18 @@ class AnalysisWizardScreen extends ConsumerWidget {
           workflowList.asData?.value
               .where((w) => w.id == wizardState.selectedWorkflowId)
               .firstOrNull;
-      
+
       if (workflow == null) {
-         logger.warning('AnalysisWizard', 'Workflow not found for ID: ${wizardState.selectedWorkflowId}');
-         ScaffoldMessenger.of(ref.context).showSnackBar(
-           const SnackBar(content: Text('Error: Invalid Workflow Selection. Please refresh.')),
-         );
-         return;
+        logger.warning(
+          'AnalysisWizard',
+          'Workflow not found for ID: ${wizardState.selectedWorkflowId}',
+        );
+        ScaffoldMessenger.of(ref.context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Invalid Workflow Selection. Please refresh.'),
+          ),
+        );
+        return;
       }
 
       logger.info('AnalysisWizard', 'Selected workflow: ${workflow.id}');
@@ -207,15 +218,16 @@ class AnalysisWizardScreen extends ConsumerWidget {
       final List<String> requiredInputs;
       if (workflow.uiSchema?.isNotEmpty ?? false) {
         // Exclude system fields like 'default_model_mapping' which are configuration, not user inputs
-        requiredInputs = workflow.uiSchema!.keys
-            .where((k) => k != 'default_model_mapping')
-            .toList();
+        requiredInputs =
+            workflow.uiSchema!.keys
+                .where((k) => k != 'default_model_mapping')
+                .toList();
       } else {
         requiredInputs = [];
       }
-      
+
       logger.debug('AnalysisWizard', 'Required inputs: $requiredInputs');
-      
+
       // Sanitize inputs for logging (avoid printing file bytes)
       final sanitizedInputs = wizardState.inputs.map((key, value) {
         if (value is PlatformFile) {
@@ -236,9 +248,9 @@ class AnalysisWizardScreen extends ConsumerWidget {
             inputs: wizardState.inputs,
             requiredInputs: requiredInputs,
           );
-      
+
       logger.info('AnalysisWizard', 'StartAnalysis returned ID: $executionId');
-      
+
       if (executionId != null && context.mounted) {
         // Explicit navigation to the NEW execution
         context.go('/dashboard/executions/$executionId');
@@ -246,11 +258,11 @@ class AnalysisWizardScreen extends ConsumerWidget {
     } catch (e, stack) {
       logger.error('AnalysisWizard', 'Error in _submit', e, stack);
       // Ensure specific errors are rethrown or handled if not by ref.listen
-       if (context.mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Submission Error: $e')),
-         );
-       }
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Submission Error: $e')));
+      }
     }
   }
 }

@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'agent_run_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,26 @@ part 'agent_run_response.g.dart';
 )
 class AgentRunResponse {
   /// Returns a new [AgentRunResponse] instance.
-  AgentRunResponse({
+  AgentRunResponse({required this.agent, required this.result});
 
-    required  this.agent,
-
-    required  this.result,
-  });
-
-  @JsonKey(
-    
-    name: r'agent',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'agent', required: true)
   final String agent;
 
-
-
-  @JsonKey(
-    
-    name: r'result',
-    required: true,
-    includeIfNull: true,
-  )
-
-
+  @JsonKey(name: r'result', required: true, includeIfNull: true)
   final Object? result;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AgentRunResponse &&
+          other.agent == agent &&
+          other.result == result;
 
+  @override
+  int get hashCode => agent.hashCode + (result == null ? 0 : result.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is AgentRunResponse &&
-      other.agent == agent &&
-      other.result == result;
-
-    @override
-    int get hashCode =>
-        agent.hashCode +
-        (result == null ? 0 : result.hashCode);
-
-  factory AgentRunResponse.fromJson(Map<String, dynamic> json) => _$AgentRunResponseFromJson(json);
+  factory AgentRunResponse.fromJson(Map<String, dynamic> json) =>
+      _$AgentRunResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$AgentRunResponseToJson(this);
 
@@ -69,6 +44,4 @@ class AgentRunResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

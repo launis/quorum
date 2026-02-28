@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for AuthenticationUsersApi
 void main() {
   final instance = BackendApi().getAuthenticationUsersApi();
@@ -78,6 +77,5 @@ void main() {
     test('test verifyUserTokenAuthVerifyPost', () async {
       // TODO
     });
-
   });
 }

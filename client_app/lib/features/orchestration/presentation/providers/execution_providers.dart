@@ -53,7 +53,7 @@ class ExecutionListController extends _$ExecutionListController {
 
     result.match(
       (error) {
-        // Can't easily set AsyncError on the list state itself without replacing the list, 
+        // Can't easily set AsyncError on the list state itself without replacing the list,
         // so we might want to rethrow or let UI handle?
         // For now, simpler: just refresh. If delete failed, it will reappear.
         // Ideally show toast/snackbar, but controller doesn't have context.

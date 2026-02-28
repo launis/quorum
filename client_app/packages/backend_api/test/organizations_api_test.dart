@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for OrganizationsApi
 void main() {
   final instance = BackendApi().getOrganizationsApi();
@@ -39,9 +38,12 @@ void main() {
     // Delete a user from an organization.
     //
     //Future deleteOrganizationUserOrganizationsOrgIdUsersTargetIdDelete(String orgId, String targetId, { String authorization }) async
-    test('test deleteOrganizationUserOrganizationsOrgIdUsersTargetIdDelete', () async {
-      // TODO
-    });
+    test(
+      'test deleteOrganizationUserOrganizationsOrgIdUsersTargetIdDelete',
+      () async {
+        // TODO
+      },
+    );
 
     // Get My Organization
     //
@@ -87,6 +89,5 @@ void main() {
     test('test updateOrganizationOrganizationsOrgIdPut', () async {
       // TODO
     });
-
   });
 }

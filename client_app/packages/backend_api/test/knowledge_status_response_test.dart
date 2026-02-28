@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for KnowledgeStatusResponse
 void main() {
-  final KnowledgeStatusResponse? instance = /* KnowledgeStatusResponse(...) */ null;
+  final KnowledgeStatusResponse? instance = /* KnowledgeStatusResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(KnowledgeStatusResponse, () {
@@ -24,6 +25,5 @@ void main() {
     test('to test the property `precedentCount`', () async {
       // TODO
     });
-
   });
 }

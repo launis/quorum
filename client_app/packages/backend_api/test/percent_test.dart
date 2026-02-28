@@ -6,6 +6,5 @@ void main() {
   final Percent? instance = /* Percent(...) */ null;
   // TODO add properties to the entity
 
-  group(Percent, () {
-  });
+  group(Percent, () {});
 }

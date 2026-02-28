@@ -27,7 +27,7 @@ class KnowledgeRepository extends _$KnowledgeRepository {
   /// Throws [DioException] if the upload fails.
   Future<String> uploadKnowledgeBase(File file, {String? modelStrategy}) async {
     final fileName = file.path.split(Platform.pathSeparator).last;
-    
+
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(file.path, filename: fileName),
     });
@@ -42,7 +42,7 @@ class KnowledgeRepository extends _$KnowledgeRepository {
       data: formData,
       queryParameters: queryParams,
     );
-    
+
     // API returns {"job_id": "..."}
     return response.data['job_id'] as String;
   }
@@ -70,7 +70,7 @@ class KnowledgeRepository extends _$KnowledgeRepository {
     // We map that to KnowledgeModelStrategy.
     final response = await _dio.get('/v1/config/models');
     final List<dynamic> data = response.data;
-    
+
     return data
         .map((e) => KnowledgeModelStrategy.fromJson(e as Map<String, dynamic>))
         .toList();

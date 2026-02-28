@@ -22,7 +22,7 @@ class OntologyController extends _$OntologyController {
     try {
       // 2. API Call
       await ref.read(studioRepositoryProvider).saveDimension(dimension);
-      
+
       // 3. Silent Invalidation
       // Always invalidate to ensure backend-generated IDs or sanitization is reflected.
       ref.invalidateSelf();
@@ -50,7 +50,7 @@ class OntologyController extends _$OntologyController {
       await ref
           .read(studioRepositoryProvider)
           .saveDimension(dimension, isUpdate: true);
-      
+
       // 3. Silent Invalidation
       ref.invalidateSelf();
     } catch (e, st) {
@@ -72,7 +72,7 @@ class OntologyController extends _$OntologyController {
     try {
       // 2. API Call
       await ref.read(studioRepositoryProvider).deleteDimension(id);
-      
+
       // 3. Silent Invalidation
       ref.invalidateSelf();
     } catch (e) {

@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for StepsApi
 void main() {
   final instance = BackendApi().getStepsApi();
@@ -51,6 +50,5 @@ void main() {
     test('test updateStepV1ConfigStepsStepIdPut', () async {
       // TODO
     });
-
   });
 }

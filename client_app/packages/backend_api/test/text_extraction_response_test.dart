@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for TextExtractionResponse
 void main() {
-  final TextExtractionResponse? instance = /* TextExtractionResponse(...) */ null;
+  final TextExtractionResponse? instance = /* TextExtractionResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(TextExtractionResponse, () {
@@ -17,6 +18,5 @@ void main() {
     test('to test the property `text`', () async {
       // TODO
     });
-
   });
 }

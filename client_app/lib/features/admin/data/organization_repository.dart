@@ -174,7 +174,10 @@ class OrganizationRepository {
 
   /// Get detailed usage stats for an organization.
   /// GET /api/v1/organizations/{id}/usage/detailed
-  Future<Either<AppError, Map<String, dynamic>>> getDetailedUsage(String id, {String scope = 'org'}) async {
+  Future<Either<AppError, Map<String, dynamic>>> getDetailedUsage(
+    String id, {
+    String scope = 'org',
+  }) async {
     try {
       final response = await _client.get<Map<String, dynamic>>(
         '/organizations/$id/usage/detailed',

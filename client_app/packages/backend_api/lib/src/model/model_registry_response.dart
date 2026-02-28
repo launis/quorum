@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'model_registry_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,35 +17,22 @@ part 'model_registry_response.g.dart';
 )
 class ModelRegistryResponse {
   /// Returns a new [ModelRegistryResponse] instance.
-  ModelRegistryResponse({
+  ModelRegistryResponse({this.models});
 
-     this.models,
-  });
-
-      /// Nested map of provider -> strategy -> config.
-  @JsonKey(
-    
-    name: r'models',
-    required: false,
-    
-  )
-
-
+  /// Nested map of provider -> strategy -> config.
+  @JsonKey(name: r'models', required: false)
   final Map<String, Map<String, Object>>? models;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ModelRegistryResponse && other.models == models;
 
+  @override
+  int get hashCode => models.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ModelRegistryResponse &&
-      other.models == models;
-
-    @override
-    int get hashCode =>
-        models.hashCode;
-
-  factory ModelRegistryResponse.fromJson(Map<String, dynamic> json) => _$ModelRegistryResponseFromJson(json);
+  factory ModelRegistryResponse.fromJson(Map<String, dynamic> json) =>
+      _$ModelRegistryResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ModelRegistryResponseToJson(this);
 
@@ -54,6 +40,4 @@ class ModelRegistryResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

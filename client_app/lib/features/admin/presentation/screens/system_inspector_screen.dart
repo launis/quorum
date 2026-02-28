@@ -63,7 +63,11 @@ class _SystemInspectorScreenState extends ConsumerState<SystemInspectorScreen> {
                     final isSelected = _selectedWorkflow?.id == workflow.id;
                     return ListTile(
                       title: Text(workflow.name),
-                      subtitle: Text(workflow.id.length > 8 ? workflow.id.substring(0, 8) : workflow.id),
+                      subtitle: Text(
+                        workflow.id.length > 8
+                            ? workflow.id.substring(0, 8)
+                            : workflow.id,
+                      ),
                       selected: isSelected,
                       selectedTileColor:
                           Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -194,7 +198,8 @@ class _PreviewTabState extends ConsumerState<_PreviewTab> {
     // Safety check: deeply validate that _selectedStepId is actually present in the current steps.
     // If we switched workflows and state persisted (despite Key), this prevents a crash.
     String? effectiveSelectedStepId = _selectedStepId;
-    if (effectiveSelectedStepId != null && !steps.any((s) => s.id == effectiveSelectedStepId)) {
+    if (effectiveSelectedStepId != null &&
+        !steps.any((s) => s.id == effectiveSelectedStepId)) {
       effectiveSelectedStepId = null;
       // Schedule a cleanup to sync state
       WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'step_update_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,28 @@ part 'step_update_request.g.dart';
 )
 class StepUpdateRequest {
   /// Returns a new [StepUpdateRequest] instance.
-  StepUpdateRequest({
+  StepUpdateRequest({this.name, this.config});
 
-     this.name,
-
-     this.config,
-  });
-
-  @JsonKey(
-    
-    name: r'name',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'name', required: false)
   final String? name;
 
-
-
-  @JsonKey(
-    
-    name: r'config',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'config', required: false)
   final Map<String, Object>? config;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StepUpdateRequest &&
+          other.name == name &&
+          other.config == config;
 
+  @override
+  int get hashCode =>
+      (name == null ? 0 : name.hashCode) +
+      (config == null ? 0 : config.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is StepUpdateRequest &&
-      other.name == name &&
-      other.config == config;
-
-    @override
-    int get hashCode =>
-        (name == null ? 0 : name.hashCode) +
-        (config == null ? 0 : config.hashCode);
-
-  factory StepUpdateRequest.fromJson(Map<String, dynamic> json) => _$StepUpdateRequestFromJson(json);
+  factory StepUpdateRequest.fromJson(Map<String, dynamic> json) =>
+      _$StepUpdateRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$StepUpdateRequestToJson(this);
 
@@ -69,6 +46,4 @@ class StepUpdateRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

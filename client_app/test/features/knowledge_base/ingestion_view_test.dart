@@ -15,7 +15,9 @@ void main() {
   Widget createWidgetUnderTest(AsyncValue<IngestionStatus?> state) {
     return ProviderScope(
       overrides: [
-        ingestionControllerProvider.overrideWith(() => MockIngestionController(state)),
+        ingestionControllerProvider.overrideWith(
+          () => MockIngestionController(state),
+        ),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -27,7 +29,9 @@ void main() {
 
   group('IngestionView Tests', () {
     testWidgets('Renders initial state correctly', (tester) async {
-      await tester.pumpWidget(createWidgetUnderTest(const AsyncValue.data(null)));
+      await tester.pumpWidget(
+        createWidgetUnderTest(const AsyncValue.data(null)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Knowledge Base Ingestion'), findsOneWidget);
@@ -44,7 +48,7 @@ void main() {
         progress: 50,
         stage: 'Parsing',
       );
-      
+
       await tester.pumpWidget(createWidgetUnderTest(AsyncValue.data(status)));
       await tester.pumpAndSettle();
 
@@ -59,7 +63,7 @@ void main() {
         claimsCount: 2,
         filename: 'test.docx',
       );
-      
+
       final status = IngestionStatus(
         jobId: '123',
         status: 'completed',

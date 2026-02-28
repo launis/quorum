@@ -25,7 +25,8 @@ extension AppErrorExt on AppError {
             return l10n.errorValidation;
         }
       },
-      validationMissing: (fields) => l10n.errorValidationMissing(fields.join(', ')),
+      validationMissing:
+          (fields) => l10n.errorValidationMissing(fields.join(', ')),
       cancelled: () => l10n.cancel,
       // RFC 7807 API errors - map error_code to localized strings
       api: (errorCode, detail, status, instance) {
@@ -76,4 +77,3 @@ extension AppErrorExt on AppError {
     };
   }
 }
-

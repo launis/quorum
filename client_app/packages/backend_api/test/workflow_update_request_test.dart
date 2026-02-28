@@ -52,6 +52,5 @@ void main() {
     test('to test the property `scoringLogic`', () async {
       // TODO
     });
-
   });
 }

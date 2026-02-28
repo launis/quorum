@@ -17,7 +17,6 @@ import 'package:backend_api/src/model/workflow_config_definition.dart';
 import 'package:backend_api/src/model/workflow_config_update.dart';
 
 class WorkflowsApi {
-
   final Dio _dio;
 
   const WorkflowsApi(this._dio);
@@ -26,7 +25,7 @@ class WorkflowsApi {
   /// Create a new workflow.
   ///
   /// Parameters:
-  /// * [workflowConfigCreate] 
+  /// * [workflowConfigCreate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -36,7 +35,8 @@ class WorkflowsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowConfigDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowConfigDefinition>> createWorkflowV1ConfigWorkflowsPost({ 
+  Future<Response<WorkflowConfigDefinition>>
+  createWorkflowV1ConfigWorkflowsPost({
     required WorkflowConfigCreate workflowConfigCreate,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -48,13 +48,8 @@ class WorkflowsApi {
     final _path = r'/v1/config/workflows';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -62,13 +57,10 @@ class WorkflowsApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(workflowConfigCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(workflowConfigCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -87,9 +79,14 @@ _bodyData=jsonEncode(workflowConfigCreate);
     WorkflowConfigDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(rawData, 'WorkflowConfigDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(
+              rawData,
+              'WorkflowConfigDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -116,7 +113,7 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   /// Delete a workflow.
   ///
   /// Parameters:
-  /// * [wfId] 
+  /// * [wfId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -126,7 +123,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   ///
   /// Returns a [Future] containing a [Response] with a [ConfigWorkflowDeleteResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ConfigWorkflowDeleteResponse>> deleteWorkflowV1ConfigWorkflowsWfIdDelete({ 
+  Future<Response<ConfigWorkflowDeleteResponse>>
+  deleteWorkflowV1ConfigWorkflowsWfIdDelete({
     required String wfId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -135,16 +133,16 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll('{' r'wf_id' '}', wfId.toString());
+    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll(
+      '{'
+      r'wf_id'
+      '}',
+      wfId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -159,9 +157,13 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     ConfigWorkflowDeleteResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ConfigWorkflowDeleteResponse, ConfigWorkflowDeleteResponse>(rawData, 'ConfigWorkflowDeleteResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<
+              ConfigWorkflowDeleteResponse,
+              ConfigWorkflowDeleteResponse
+            >(rawData, 'ConfigWorkflowDeleteResponse', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -188,7 +190,7 @@ _responseData = rawData == null ? null : deserialize<ConfigWorkflowDeleteRespons
   /// Get a specific workflow.
   ///
   /// Parameters:
-  /// * [wfId] 
+  /// * [wfId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -198,7 +200,8 @@ _responseData = rawData == null ? null : deserialize<ConfigWorkflowDeleteRespons
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowConfigDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowConfigDefinition>> getWorkflowV1ConfigWorkflowsWfIdGet({ 
+  Future<Response<WorkflowConfigDefinition>>
+  getWorkflowV1ConfigWorkflowsWfIdGet({
     required String wfId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -207,16 +210,16 @@ _responseData = rawData == null ? null : deserialize<ConfigWorkflowDeleteRespons
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll('{' r'wf_id' '}', wfId.toString());
+    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll(
+      '{'
+      r'wf_id'
+      '}',
+      wfId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -231,9 +234,14 @@ _responseData = rawData == null ? null : deserialize<ConfigWorkflowDeleteRespons
     WorkflowConfigDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(rawData, 'WorkflowConfigDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(
+              rawData,
+              'WorkflowConfigDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -269,7 +277,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   ///
   /// Returns a [Future] containing a [Response] with a [List<WorkflowConfigDefinition>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<WorkflowConfigDefinition>>> getWorkflowsV1ConfigWorkflowsGet({ 
+  Future<Response<List<WorkflowConfigDefinition>>>
+  getWorkflowsV1ConfigWorkflowsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -280,13 +289,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     final _path = r'/v1/config/workflows';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -301,9 +305,13 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     List<WorkflowConfigDefinition>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<WorkflowConfigDefinition>, WorkflowConfigDefinition>(rawData, 'List<WorkflowConfigDefinition>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<
+              List<WorkflowConfigDefinition>,
+              WorkflowConfigDefinition
+            >(rawData, 'List<WorkflowConfigDefinition>', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -330,8 +338,8 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowConfigDefiniti
   /// Update a workflow definition.
   ///
   /// Parameters:
-  /// * [wfId] 
-  /// * [workflowConfigUpdate] 
+  /// * [wfId]
+  /// * [workflowConfigUpdate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -341,7 +349,8 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowConfigDefiniti
   ///
   /// Returns a [Future] containing a [Response] with a [WorkflowConfigDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WorkflowConfigDefinition>> updateWorkflowV1ConfigWorkflowsWfIdPut({ 
+  Future<Response<WorkflowConfigDefinition>>
+  updateWorkflowV1ConfigWorkflowsWfIdPut({
     required String wfId,
     required WorkflowConfigUpdate workflowConfigUpdate,
     CancelToken? cancelToken,
@@ -351,16 +360,16 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowConfigDefiniti
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll('{' r'wf_id' '}', wfId.toString());
+    final _path = r'/v1/config/workflows/{wf_id}'.replaceAll(
+      '{'
+      r'wf_id'
+      '}',
+      wfId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -368,13 +377,10 @@ _responseData = rawData == null ? null : deserialize<List<WorkflowConfigDefiniti
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(workflowConfigUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(workflowConfigUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -393,9 +399,14 @@ _bodyData=jsonEncode(workflowConfigUpdate);
     WorkflowConfigDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(rawData, 'WorkflowConfigDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WorkflowConfigDefinition, WorkflowConfigDefinition>(
+              rawData,
+              'WorkflowConfigDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -422,7 +433,7 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   /// Dry run validation.
   ///
   /// Parameters:
-  /// * [workflowConfigCreate] 
+  /// * [workflowConfigCreate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -432,7 +443,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
   ///
   /// Returns a [Future] containing a [Response] with a [ValidationReportResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ValidationReportResponse>> validateFlowV1ConfigWorkflowsValidateFlowPost({ 
+  Future<Response<ValidationReportResponse>>
+  validateFlowV1ConfigWorkflowsValidateFlowPost({
     required WorkflowConfigCreate workflowConfigCreate,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -444,13 +456,8 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     final _path = r'/v1/config/workflows/validate-flow';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -458,13 +465,10 @@ _responseData = rawData == null ? null : deserialize<WorkflowConfigDefinition, W
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(workflowConfigCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(workflowConfigCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -483,9 +487,14 @@ _bodyData=jsonEncode(workflowConfigCreate);
     ValidationReportResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ValidationReportResponse, ValidationReportResponse>(rawData, 'ValidationReportResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ValidationReportResponse, ValidationReportResponse>(
+              rawData,
+              'ValidationReportResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -507,5 +516,4 @@ _responseData = rawData == null ? null : deserialize<ValidationReportResponse, V
       extra: _response.extra,
     );
   }
-
 }

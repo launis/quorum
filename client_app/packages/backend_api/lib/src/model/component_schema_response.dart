@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'component_schema_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,34 +17,21 @@ part 'component_schema_response.g.dart';
 )
 class ComponentSchemaResponse {
   /// Returns a new [ComponentSchemaResponse] instance.
-  ComponentSchemaResponse({
+  ComponentSchemaResponse({required this.schema});
 
-    required  this.schema,
-  });
-
-  @JsonKey(
-    
-    name: r'schema',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'schema', required: true)
   final Map<String, Object> schema;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ComponentSchemaResponse && other.schema == schema;
 
+  @override
+  int get hashCode => schema.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ComponentSchemaResponse &&
-      other.schema == schema;
-
-    @override
-    int get hashCode =>
-        schema.hashCode;
-
-  factory ComponentSchemaResponse.fromJson(Map<String, dynamic> json) => _$ComponentSchemaResponseFromJson(json);
+  factory ComponentSchemaResponse.fromJson(Map<String, dynamic> json) =>
+      _$ComponentSchemaResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ComponentSchemaResponseToJson(this);
 
@@ -53,6 +39,4 @@ class ComponentSchemaResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

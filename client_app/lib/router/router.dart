@@ -25,7 +25,9 @@ part 'router.g.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 bool _isUuid(String input) {
-  final regex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+  final regex = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
   return regex.hasMatch(input);
 }
 
@@ -139,7 +141,9 @@ GoRouter router(Ref ref) {
                         builder: (context, state) {
                           final id = state.pathParameters['id']!;
                           if (!_isUuid(id)) {
-                            debugPrint('🔴 UI GRACEFUL DEGRADATION: Route parsed non-UUID for ExecutionMonitorScreen (using slug/fallback): $id');
+                            debugPrint(
+                              '🔴 UI GRACEFUL DEGRADATION: Route parsed non-UUID for ExecutionMonitorScreen (using slug/fallback): $id',
+                            );
                           }
                           return ExecutionMonitorScreen(executionId: id);
                         },
@@ -149,7 +153,9 @@ GoRouter router(Ref ref) {
                         builder: (context, state) {
                           final id = state.pathParameters['id']!;
                           if (!_isUuid(id)) {
-                            debugPrint('🔴 UI GRACEFUL DEGRADATION: Route parsed non-UUID for ExecutionResultScreen (using slug/fallback): $id');
+                            debugPrint(
+                              '🔴 UI GRACEFUL DEGRADATION: Route parsed non-UUID for ExecutionResultScreen (using slug/fallback): $id',
+                            );
                           }
                           return ExecutionResultScreen(executionId: id);
                         },
@@ -159,7 +165,9 @@ GoRouter router(Ref ref) {
                         builder: (context, state) {
                           final id = state.pathParameters['id']!;
                           if (!_isUuid(id)) {
-                            debugPrint('🔴 UI GRACEFUL DEGRADATION: Route parsed non-UUID for ExecutionDetailsScreen (using slug/fallback): $id');
+                            debugPrint(
+                              '🔴 UI GRACEFUL DEGRADATION: Route parsed non-UUID for ExecutionDetailsScreen (using slug/fallback): $id',
+                            );
                           }
                           return ExecutionDetailsScreen(executionId: id);
                         },
@@ -194,7 +202,9 @@ GoRouter router(Ref ref) {
       // Studio Route (Typed - Independent Shell)
       GoRoute(
         path: '/studio',
-        builder: (context, state) => const StudioDashboardRoute().build(context, state),
+        builder:
+            (context, state) =>
+                const StudioDashboardRoute().build(context, state),
         routes: [
           GoRoute(
             path: 'workflows',

@@ -7,15 +7,16 @@ part 'assessment_view.g.dart';
 abstract class AssessmentView with _$AssessmentView {
   const factory AssessmentView({
     required String sessionId,
-    required String statusLabel,      // e.g. "Analysoidaan..."
-    required String uiVariant,        // "default", "warning", "error"
-    required String statusMessage,    // Contextual help text
-    required bool showWarningBanner,  // Toggle for warning UI
+    required String statusLabel, // e.g. "Analysoidaan..."
+    required String uiVariant, // "default", "warning", "error"
+    required String statusMessage, // Contextual help text
+    required bool showWarningBanner, // Toggle for warning UI
     @Default([]) List<StepProgressItem> steps, // Progress indicators
-    int? finalScore,                  // Nullable
+    int? finalScore, // Nullable
   }) = _AssessmentView;
 
-  factory AssessmentView.fromJson(Map<String, dynamic> json) => _$AssessmentViewFromJson(json);
+  factory AssessmentView.fromJson(Map<String, dynamic> json) =>
+      _$AssessmentViewFromJson(json);
 }
 
 @freezed
@@ -26,5 +27,6 @@ abstract class StepProgressItem with _$StepProgressItem {
     required String status, // "pending", "running", "completed", "failed"
   }) = _StepProgressItem;
 
-  factory StepProgressItem.fromJson(Map<String, dynamic> json) => _$StepProgressItemFromJson(json);
+  factory StepProgressItem.fromJson(Map<String, dynamic> json) =>
+      _$StepProgressItemFromJson(json);
 }

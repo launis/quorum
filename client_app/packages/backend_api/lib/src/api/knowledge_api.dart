@@ -16,7 +16,6 @@ import 'package:backend_api/src/model/knowledge_reset_response.dart';
 import 'package:backend_api/src/model/knowledge_status_response.dart';
 
 class KnowledgeApi {
-
   final Dio _dio;
 
   const KnowledgeApi(this._dio);
@@ -25,7 +24,7 @@ class KnowledgeApi {
   /// Polls the status of an ingestion job.  Args:     job_id (str): The unique identifier of the ingestion job.  Returns:     KnowledgeJobStatusResponse: The current state of the job (status, progress, stage, result, error).  Raises:     AppException: If the job_id is not found (404 JOB_NOT_FOUND).
   ///
   /// Parameters:
-  /// * [jobId] 
+  /// * [jobId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -35,7 +34,8 @@ class KnowledgeApi {
   ///
   /// Returns a [Future] containing a [Response] with a [KnowledgeJobStatusResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<KnowledgeJobStatusResponse>> getIngestionStatusV1ConfigKnowledgeIngestJobIdGet({ 
+  Future<Response<KnowledgeJobStatusResponse>>
+  getIngestionStatusV1ConfigKnowledgeIngestJobIdGet({
     required String jobId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -44,16 +44,16 @@ class KnowledgeApi {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/knowledge/ingest/{job_id}'.replaceAll('{' r'job_id' '}', jobId.toString());
+    final _path = r'/v1/config/knowledge/ingest/{job_id}'.replaceAll(
+      '{'
+      r'job_id'
+      '}',
+      jobId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -68,9 +68,14 @@ class KnowledgeApi {
     KnowledgeJobStatusResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<KnowledgeJobStatusResponse, KnowledgeJobStatusResponse>(rawData, 'KnowledgeJobStatusResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<KnowledgeJobStatusResponse, KnowledgeJobStatusResponse>(
+              rawData,
+              'KnowledgeJobStatusResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -106,7 +111,8 @@ _responseData = rawData == null ? null : deserialize<KnowledgeJobStatusResponse,
   ///
   /// Returns a [Future] containing a [Response] with a [KnowledgeStatusResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<KnowledgeStatusResponse>> getKnowledgeStatusV1ConfigKnowledgeStatusGet({ 
+  Future<Response<KnowledgeStatusResponse>>
+  getKnowledgeStatusV1ConfigKnowledgeStatusGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -117,13 +123,8 @@ _responseData = rawData == null ? null : deserialize<KnowledgeJobStatusResponse,
     final _path = r'/v1/config/knowledge/status';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -138,9 +139,14 @@ _responseData = rawData == null ? null : deserialize<KnowledgeJobStatusResponse,
     KnowledgeStatusResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<KnowledgeStatusResponse, KnowledgeStatusResponse>(rawData, 'KnowledgeStatusResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<KnowledgeStatusResponse, KnowledgeStatusResponse>(
+              rawData,
+              'KnowledgeStatusResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -167,9 +173,9 @@ _responseData = rawData == null ? null : deserialize<KnowledgeStatusResponse, Kn
   /// Starts an asynchronous knowledge base ingestion job.  This endpoint accepts a file upload (DOCX or MD), initiates an asynchronous processing task, and returns a job ID for polling status.  Args:     background_tasks (BackgroundTasks): FastAPI background task manager.     file (UploadFile): The file to ingest (docx, md).     service (KnowledgeBaseServiceDep): The knowledge base service dependency.     language (str): Language code of the document (e.g. &#39;en&#39;, &#39;fi&#39;, &#39;auto&#39;).                   Defaults to \&quot;auto\&quot;.  Returns:     KnowledgeIngestResponse: A generic response containing the &#39;job_id&#39;.
   ///
   /// Parameters:
-  /// * [file] 
-  /// * [language] 
-  /// * [modelStrategy] 
+  /// * [file]
+  /// * [language]
+  /// * [modelStrategy]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -179,7 +185,8 @@ _responseData = rawData == null ? null : deserialize<KnowledgeStatusResponse, Kn
   ///
   /// Returns a [Future] containing a [Response] with a [KnowledgeIngestResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<KnowledgeIngestResponse>> ingestKnowledgeBaseV1ConfigKnowledgeIngestPost({ 
+  Future<Response<KnowledgeIngestResponse>>
+  ingestKnowledgeBaseV1ConfigKnowledgeIngestPost({
     required MultipartFile file,
     String? language = 'auto',
     String? modelStrategy,
@@ -193,13 +200,8 @@ _responseData = rawData == null ? null : deserialize<KnowledgeStatusResponse, Kn
     final _path = r'/v1/config/knowledge/ingest';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'multipart/form-data',
       validateStatus: validateStatus,
     );
@@ -211,11 +213,9 @@ _responseData = rawData == null ? null : deserialize<KnowledgeStatusResponse, Kn
 
     dynamic _bodyData;
 
-    try {
-
-    } catch(error, stackTrace) {
+    try {} catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
+        requestOptions: _options.compose(
           _dio.options,
           _path,
           queryParameters: _queryParameters,
@@ -239,9 +239,14 @@ _responseData = rawData == null ? null : deserialize<KnowledgeStatusResponse, Kn
     KnowledgeIngestResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<KnowledgeIngestResponse, KnowledgeIngestResponse>(rawData, 'KnowledgeIngestResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<KnowledgeIngestResponse, KnowledgeIngestResponse>(
+              rawData,
+              'KnowledgeIngestResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -277,7 +282,8 @@ _responseData = rawData == null ? null : deserialize<KnowledgeIngestResponse, Kn
   ///
   /// Returns a [Future] containing a [Response] with a [KnowledgeResetResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<KnowledgeResetResponse>> resetKnowledgeBaseV1ConfigKnowledgeResetDelete({ 
+  Future<Response<KnowledgeResetResponse>>
+  resetKnowledgeBaseV1ConfigKnowledgeResetDelete({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -288,13 +294,8 @@ _responseData = rawData == null ? null : deserialize<KnowledgeIngestResponse, Kn
     final _path = r'/v1/config/knowledge/reset';
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -309,9 +310,14 @@ _responseData = rawData == null ? null : deserialize<KnowledgeIngestResponse, Kn
     KnowledgeResetResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<KnowledgeResetResponse, KnowledgeResetResponse>(rawData, 'KnowledgeResetResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<KnowledgeResetResponse, KnowledgeResetResponse>(
+              rawData,
+              'KnowledgeResetResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -333,5 +339,4 @@ _responseData = rawData == null ? null : deserialize<KnowledgeResetResponse, Kno
       extra: _response.extra,
     );
   }
-
 }

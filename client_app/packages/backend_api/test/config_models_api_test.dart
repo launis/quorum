@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for ConfigModelsApi
 void main() {
   final instance = BackendApi().getConfigModelsApi();
@@ -69,6 +68,5 @@ void main() {
     test('test updateModelConfigV1ConfigModelsProviderIdPut', () async {
       // TODO
     });
-
   });
 }

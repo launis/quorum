@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for BodyRunAgentAgentsAgentNameRunPost
 void main() {
-  final BodyRunAgentAgentsAgentNameRunPost? instance = /* BodyRunAgentAgentsAgentNameRunPost(...) */ null;
+  final BodyRunAgentAgentsAgentNameRunPost?
+  instance = /* BodyRunAgentAgentsAgentNameRunPost(...) */ null;
   // TODO add properties to the entity
 
   group(BodyRunAgentAgentsAgentNameRunPost, () {
@@ -22,6 +23,5 @@ void main() {
     test('to test the property `model`', () async {
       // TODO
     });
-
   });
 }

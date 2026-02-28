@@ -6,9 +6,7 @@ import '../../data/model_registry_repository.dart';
 part 'model_registry_providers.g.dart';
 
 @riverpod
-ModelRegistryRepository modelRegistryRepository(
-  Ref ref,
-) {
+ModelRegistryRepository modelRegistryRepository(Ref ref) {
   final client = ref.watch(apiClientProvider);
   return ModelRegistryRepository(client);
 }

@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for BatchCompletionRequest
 void main() {
-  final BatchCompletionRequest? instance = /* BatchCompletionRequest(...) */ null;
+  final BatchCompletionRequest? instance = /* BatchCompletionRequest(...) */
+      null;
   // TODO add properties to the entity
 
   group(BatchCompletionRequest, () {
@@ -12,6 +13,5 @@ void main() {
     test('to test the property `requests`', () async {
       // TODO
     });
-
   });
 }

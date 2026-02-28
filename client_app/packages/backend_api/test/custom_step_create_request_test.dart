@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for CustomStepCreateRequest
 void main() {
-  final CustomStepCreateRequest? instance = /* CustomStepCreateRequest(...) */ null;
+  final CustomStepCreateRequest? instance = /* CustomStepCreateRequest(...) */
+      null;
   // TODO add properties to the entity
 
   group(CustomStepCreateRequest, () {
@@ -17,6 +18,5 @@ void main() {
     test('to test the property `nameHint`', () async {
       // TODO
     });
-
   });
 }

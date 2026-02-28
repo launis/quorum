@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 
 class AppConfig {
@@ -12,7 +11,7 @@ class AppConfig {
     }
     // Simple logic for emulator vs web/desktop
     if (defaultTargetPlatform == TargetPlatform.android) {
-        return _androidUrl;
+      return _androidUrl;
     }
     return _localUrl;
   }

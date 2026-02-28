@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for ConfigurationMatricesApi
 void main() {
   final instance = BackendApi().getConfigurationMatricesApi();
@@ -51,6 +50,5 @@ void main() {
     test('test updateMatrixV1ConfigMatricesMatrixIdPut', () async {
       // TODO
     });
-
   });
 }

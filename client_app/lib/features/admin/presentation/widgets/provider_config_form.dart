@@ -44,9 +44,13 @@ class ProviderConfigForm extends HookConsumerWidget {
     final supportsGrounding = useState(config.supportsGrounding);
     final isActive = useState(config.isActive);
 
-    // Watch options specific to provider for capabilities? 
+    // Watch options specific to provider for capabilities?
     // For now, simple conditional checks based on string.
-    final availableOptions = ref.watch(modelRegistryControllerProvider.select((s) => s.whenData((data) => data.availableOptions)));
+    final availableOptions = ref.watch(
+      modelRegistryControllerProvider.select(
+        (s) => s.whenData((data) => data.availableOptions),
+      ),
+    );
 
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
@@ -65,18 +69,19 @@ class ProviderConfigForm extends HookConsumerWidget {
               final sortedProviders = providerList.toList()..sort();
 
               return DropdownButtonFormField<String>(
-                value: sortedProviders.contains(config.provider) ? config.provider : null,
+                value:
+                    sortedProviders.contains(config.provider)
+                        ? config.provider
+                        : null,
                 decoration: InputDecoration(
                   labelText: l10n.providerLabel,
                   border: const OutlineInputBorder(),
                   helperText: l10n.helperSelectProvider,
                 ),
-                items: sortedProviders.map((p) {
-                  return DropdownMenuItem(
-                    value: p,
-                    child: Text(p),
-                  );
-                }).toList(),
+                items:
+                    sortedProviders.map((p) {
+                      return DropdownMenuItem(value: p, child: Text(p));
+                    }).toList(),
                 onChanged: (value) {
                   if (value != null) {
                     providerCtrl.text = value;
@@ -101,16 +106,16 @@ class ProviderConfigForm extends HookConsumerWidget {
               // Models logic:
               // Backend returns dict[str, list[str]].
               // We should look up safely.
-              
+
               // Find key safely
               final matchingKey = options.keys.firstWhere(
                 (k) => k.toLowerCase() == currentProvider,
                 orElse: () => currentProvider,
               );
-              
+
               final fetchedModels = options[matchingKey] ?? [];
               final modelSet = fetchedModels.toSet();
-              
+
               if (config.modelName.isNotEmpty) {
                 modelSet.add(config.modelName);
               }
@@ -118,20 +123,21 @@ class ProviderConfigForm extends HookConsumerWidget {
 
               // If current provider has no models and we have no current value, this might be empty.
               // But we added config.modelName if not empty.
-              
+
               return DropdownButtonFormField<String>(
-                value: sortedModels.contains(config.modelName) ? config.modelName : null,
+                value:
+                    sortedModels.contains(config.modelName)
+                        ? config.modelName
+                        : null,
                 decoration: InputDecoration(
                   labelText: l10n.modelNameLabel,
                   border: const OutlineInputBorder(),
                   helperText: l10n.helperSelectModel,
                 ),
-                items: sortedModels.map((m) {
-                  return DropdownMenuItem(
-                    value: m,
-                    child: Text(m),
-                  );
-                }).toList(),
+                items:
+                    sortedModels.map((m) {
+                      return DropdownMenuItem(value: m, child: Text(m));
+                    }).toList(),
                 onChanged: (value) {
                   if (value != null) {
                     modelNameCtrl.text = value;
@@ -178,7 +184,9 @@ class ProviderConfigForm extends HookConsumerWidget {
                     labelText: l10n.temperatureLabel,
                     border: const OutlineInputBorder(),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) return null;
                     final n = double.tryParse(value);
@@ -193,13 +201,15 @@ class ProviderConfigForm extends HookConsumerWidget {
                 child: TextFormField(
                   controller: maxTokensCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Max Tokens', // This is also hardcoded! Add to l10n? User didn't ask but "Max Tokens" is English.
+                    labelText:
+                        'Max Tokens', // This is also hardcoded! Add to l10n? User didn't ask but "Max Tokens" is English.
                     border: const OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || value.isEmpty) return null;
-                    if (int.tryParse(value) == null) return l10n.errorMustBeInteger;
+                    if (int.tryParse(value) == null)
+                      return l10n.errorMustBeInteger;
                     return null;
                   },
                 ),
@@ -215,15 +225,16 @@ class ProviderConfigForm extends HookConsumerWidget {
                 child: TextFormField(
                   controller: tpmCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'TPM Limit', 
+                    labelText: 'TPM Limit',
                     border: OutlineInputBorder(),
                     helperText: '0 = Unlimited',
                   ),
                   keyboardType: TextInputType.number,
                   validator: (value) {
-                     if (value == null || value.isEmpty) return null;
-                     if (int.tryParse(value) == null) return l10n.errorMustBeInteger;
-                     return null;
+                    if (value == null || value.isEmpty) return null;
+                    if (int.tryParse(value) == null)
+                      return l10n.errorMustBeInteger;
+                    return null;
                   },
                 ),
               ),
@@ -232,15 +243,16 @@ class ProviderConfigForm extends HookConsumerWidget {
                 child: TextFormField(
                   controller: rpmCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'RPM Limit', 
+                    labelText: 'RPM Limit',
                     border: OutlineInputBorder(),
                     helperText: '0 = Unlimited',
                   ),
                   keyboardType: TextInputType.number,
                   validator: (value) {
-                     if (value == null || value.isEmpty) return null;
-                     if (int.tryParse(value) == null) return l10n.errorMustBeInteger;
-                     return null;
+                    if (value == null || value.isEmpty) return null;
+                    if (int.tryParse(value) == null)
+                      return l10n.errorMustBeInteger;
+                    return null;
                   },
                 ),
               ),
@@ -249,7 +261,8 @@ class ProviderConfigForm extends HookConsumerWidget {
           const SizedBox(height: 16),
 
           // Advanced / Provider Specific
-          if (providerCtrl.text.toLowerCase().contains('vertex') || providerCtrl.text.toLowerCase().contains('google')) ...[
+          if (providerCtrl.text.toLowerCase().contains('vertex') ||
+              providerCtrl.text.toLowerCase().contains('google')) ...[
             TextFormField(
               controller: locationCtrl,
               decoration: const InputDecoration(
@@ -260,20 +273,20 @@ class ProviderConfigForm extends HookConsumerWidget {
             ),
             const SizedBox(height: 16),
             SwitchListTile(
-               title: const Text('Supports Grounding'),
-               subtitle: const Text('Enable Google Search integration'),
-               value: supportsGrounding.value,
-               onChanged: (v) => supportsGrounding.value = v,
+              title: const Text('Supports Grounding'),
+              subtitle: const Text('Enable Google Search integration'),
+              value: supportsGrounding.value,
+              onChanged: (v) => supportsGrounding.value = v,
             ),
           ],
-          
+
           SwitchListTile(
             title: const Text('Is Active'),
             subtitle: const Text('Disable to prevent usage'),
             value: isActive.value,
             onChanged: (v) => isActive.value = v,
           ),
-          
+
           const SizedBox(height: 24),
 
           ElevatedButton.icon(
@@ -283,24 +296,36 @@ class ProviderConfigForm extends HookConsumerWidget {
                     : () {
                       if (formKey.currentState!.validate()) {
                         // Merge max_tokens into additionalParams
-                        final newParams = Map<String, dynamic>.from(config.additionalParams);
+                        final newParams = Map<String, dynamic>.from(
+                          config.additionalParams,
+                        );
                         if (maxTokensCtrl.text.isNotEmpty) {
-                          newParams['max_tokens'] = int.tryParse(maxTokensCtrl.text);
+                          newParams['max_tokens'] = int.tryParse(
+                            maxTokensCtrl.text,
+                          );
                         } else {
                           newParams.remove('max_tokens');
                         }
 
-                          
                         final newConfig = config.copyWith(
                           provider: providerCtrl.text,
                           modelName: modelNameCtrl.text,
-                          apiKey: apiKeyCtrl.text.isEmpty ? null : apiKeyCtrl.text,
-                          baseUrl: baseUrlCtrl.text.isEmpty ? null : baseUrlCtrl.text,
+                          apiKey:
+                              apiKeyCtrl.text.isEmpty ? null : apiKeyCtrl.text,
+                          baseUrl:
+                              baseUrlCtrl.text.isEmpty
+                                  ? null
+                                  : baseUrlCtrl.text,
                           temperature: double.tryParse(tempCtrl.text) ?? 0.7,
                           tpmLimit: int.tryParse(tpmCtrl.text) ?? 0,
                           rpmLimit: int.tryParse(rpmCtrl.text) ?? 0,
-                          defaultMaxTokens: int.tryParse(defMaxCtrl.text), // Correctly map to field, not params
-                          vertexLocation: locationCtrl.text.isEmpty ? null : locationCtrl.text,
+                          defaultMaxTokens: int.tryParse(
+                            defMaxCtrl.text,
+                          ), // Correctly map to field, not params
+                          vertexLocation:
+                              locationCtrl.text.isEmpty
+                                  ? null
+                                  : locationCtrl.text,
                           supportsGrounding: supportsGrounding.value,
                           isActive: isActive.value,
                           additionalParams: newParams,

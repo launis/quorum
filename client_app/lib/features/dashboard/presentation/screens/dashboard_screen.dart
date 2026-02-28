@@ -46,14 +46,8 @@ class DashboardScreen extends ConsumerWidget {
                   }
                 },
                 items: const [
-                  DropdownMenuItem(
-                    value: Locale('fi'),
-                     child: Text('🇫🇮 FI'),
-                  ),
-                  DropdownMenuItem(
-                    value: Locale('en'),
-                    child: Text('🇬🇧 EN'),
-                  ),
+                  DropdownMenuItem(value: Locale('fi'), child: Text('🇫🇮 FI')),
+                  DropdownMenuItem(value: Locale('en'), child: Text('🇬🇧 EN')),
                 ],
               ),
             ),
@@ -66,8 +60,8 @@ class DashboardScreen extends ConsumerWidget {
                 ref.watch(themeModeProvider) == ThemeMode.light
                     ? Icons.light_mode
                     : ref.watch(themeModeProvider) == ThemeMode.dark
-                        ? Icons.dark_mode
-                        : Icons.brightness_auto,
+                    ? Icons.dark_mode
+                    : Icons.brightness_auto,
               ),
               tooltip: l10n.themeMode,
               onPressed: () {
@@ -77,21 +71,22 @@ class DashboardScreen extends ConsumerWidget {
                     current == ThemeMode.system
                         ? ThemeMode.light
                         : current == ThemeMode.light
-                            ? ThemeMode.dark
-                            : ThemeMode.system;
+                        ? ThemeMode.dark
+                        : ThemeMode.system;
                 ref.read(themeModeProvider.notifier).setThemeMode(next);
               },
             ),
           ),
           // User Info (Simple Text for now)
           Padding(
-             padding: const EdgeInsets.symmetric(horizontal: 8.0),
-             child: Center(
-               child: Text(
-                 ref.watch(authControllerProvider).asData?.value?.displayName ?? "",
-                 style: const TextStyle(fontWeight: FontWeight.bold),
-               ),
-             ),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Center(
+              child: Text(
+                ref.watch(authControllerProvider).asData?.value?.displayName ??
+                    "",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -104,7 +99,6 @@ class DashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
         ],
-
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {

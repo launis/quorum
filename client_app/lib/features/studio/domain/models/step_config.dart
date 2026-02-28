@@ -11,7 +11,7 @@ sealed class StepConfig with _$StepConfig {
     String? description,
     @JsonKey(name: 'task_key') @Default('analyst') String taskKey,
     @JsonKey(name: 'config') @Default({}) Map<String, dynamic> config,
-    
+
     // Legacy support (optional, if API sends it, we can ignore or store it)
     // We stick to RAW access for Flutter as requested ("Simple")
   }) = _StepConfig;

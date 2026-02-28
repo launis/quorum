@@ -36,18 +36,18 @@ abstract class XAIReport with _$XAIReport {
     @JsonKey(name: 'executive_summary') required String executiveSummary,
     @JsonKey(name: 'analysis_strengths') required String analysisStrengths,
     @JsonKey(name: 'analysis_weaknesses') required String analysisWeaknesses,
-    @JsonKey(name: 'analysis_opportunities') required String analysisOpportunities,
-    @JsonKey(name: 'analysis_recommendations') required String analysisRecommendations,
+    @JsonKey(name: 'analysis_opportunities')
+    required String analysisOpportunities,
+    @JsonKey(name: 'analysis_recommendations')
+    required String analysisRecommendations,
     @JsonKey(name: 'final_verdict') required String finalVerdict,
     @JsonKey(name: 'confidence_score') required double confidenceScore,
-    
+
     @JsonKey(name: 'xai_report_formatted') String? xaiReportFormatted,
     @JsonKey(name: 'comparison_data') Map<String, dynamic>? comparisonData,
-    
+
     // --- New Aggregated Scores ---
-    @JsonKey(name: 'score_cards') 
-    @Default([]) 
-    List<ScoreCardItem> scoreCards,
+    @JsonKey(name: 'score_cards') @Default([]) List<ScoreCardItem> scoreCards,
   }) = _XAIReport;
 
   factory XAIReport.fromJson(Map<String, dynamic> json) =>

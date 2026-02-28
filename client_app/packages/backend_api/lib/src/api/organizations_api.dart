@@ -17,7 +17,6 @@ import 'package:backend_api/src/model/organization_usage_response.dart';
 import 'package:backend_api/src/model/organization_user_create.dart';
 
 class OrganizationsApi {
-
   final Dio _dio;
 
   const OrganizationsApi(this._dio);
@@ -26,8 +25,8 @@ class OrganizationsApi {
   /// Create a new Tenant Organization.  Args:     org (OrganizationCreateRequest): Organization details.     user (TokenData): Requesting user (ROOT required).     auth (AuthServiceDep): Authentication service.     repo (RepositoryDep): Repository dependency.     audit_service (AuditServiceDep): Audit logging service.  Returns:     OrganizationResponse: The created organization.  Raises:     HTTPException: If ID conflict (409).
   ///
   /// Parameters:
-  /// * [organizationCreateRequest] 
-  /// * [authorization] 
+  /// * [organizationCreateRequest]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -37,7 +36,7 @@ class OrganizationsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [OrganizationResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<OrganizationResponse>> createOrganizationOrganizationsPost({ 
+  Future<Response<OrganizationResponse>> createOrganizationOrganizationsPost({
     required OrganizationCreateRequest organizationCreateRequest,
     String? authorization,
     CancelToken? cancelToken,
@@ -50,14 +49,8 @@ class OrganizationsApi {
     final _path = r'/organizations/';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -65,13 +58,10 @@ class OrganizationsApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(organizationCreateRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(organizationCreateRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -90,9 +80,14 @@ _bodyData=jsonEncode(organizationCreateRequest);
     OrganizationResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<OrganizationResponse, OrganizationResponse>(rawData, 'OrganizationResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<OrganizationResponse, OrganizationResponse>(
+              rawData,
+              'OrganizationResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -119,9 +114,9 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
   /// Create a user within an organization.  Enforces strict typing and no defaults.
   ///
   /// Parameters:
-  /// * [orgId] 
-  /// * [organizationUserCreate] 
-  /// * [authorization] 
+  /// * [orgId]
+  /// * [organizationUserCreate]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -131,7 +126,7 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
   ///
   /// Returns a [Future] containing a [Response] with a [Object] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Object>> createOrganizationUserOrganizationsOrgIdUsersPost({ 
+  Future<Response<Object>> createOrganizationUserOrganizationsOrgIdUsersPost({
     required String orgId,
     required OrganizationUserCreate organizationUserCreate,
     String? authorization,
@@ -142,17 +137,16 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/organizations/{org_id}/users'.replaceAll('{' r'org_id' '}', orgId.toString());
+    final _path = r'/organizations/{org_id}/users'.replaceAll(
+      '{'
+      r'org_id'
+      '}',
+      orgId.toString(),
+    );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -160,13 +154,10 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(organizationUserCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(organizationUserCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -185,9 +176,10 @@ _bodyData=jsonEncode(organizationUserCreate);
     Object? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'Object', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<Object, Object>(rawData, 'Object', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -214,9 +206,9 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   /// Delete an organization.  Args:     org_id (str): Organization ID.     user (CurrentUserDep): Requesting user.     repo (RepositoryDep): Repository dependency.     audit_service (AuditServiceDep): Audit service.     force (bool): If True, delete even if users exist.
   ///
   /// Parameters:
-  /// * [orgId] 
-  /// * [force] 
-  /// * [authorization] 
+  /// * [orgId]
+  /// * [force]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -226,7 +218,7 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   ///
   /// Returns a [Future]
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<void>> deleteOrganizationOrganizationsOrgIdDelete({ 
+  Future<Response<void>> deleteOrganizationOrganizationsOrgIdDelete({
     required String orgId,
     bool? force = false,
     String? authorization,
@@ -237,17 +229,16 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/organizations/{org_id}'.replaceAll('{' r'org_id' '}', orgId.toString());
+    final _path = r'/organizations/{org_id}'.replaceAll(
+      '{'
+      r'org_id'
+      '}',
+      orgId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -271,9 +262,9 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   /// Delete a user from an organization.
   ///
   /// Parameters:
-  /// * [orgId] 
-  /// * [targetId] 
-  /// * [authorization] 
+  /// * [orgId]
+  /// * [targetId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -283,7 +274,8 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   ///
   /// Returns a [Future]
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<void>> deleteOrganizationUserOrganizationsOrgIdUsersTargetIdDelete({ 
+  Future<Response<void>>
+  deleteOrganizationUserOrganizationsOrgIdUsersTargetIdDelete({
     required String orgId,
     required String targetId,
     String? authorization,
@@ -294,17 +286,23 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/organizations/{org_id}/users/{target_id}'.replaceAll('{' r'org_id' '}', orgId.toString()).replaceAll('{' r'target_id' '}', targetId.toString());
+    final _path = r'/organizations/{org_id}/users/{target_id}'
+        .replaceAll(
+          '{'
+          r'org_id'
+          '}',
+          orgId.toString(),
+        )
+        .replaceAll(
+          '{'
+          r'target_id'
+          '}',
+          targetId.toString(),
+        );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -323,7 +321,7 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   /// Get the organization of the current user.  Args:     user (CurrentUserDep): Requesting user.     repo (RepositoryDep): Repository dependency.  Returns:     OrganizationResponse: organization details.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -333,7 +331,7 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   ///
   /// Returns a [Future] containing a [Response] with a [OrganizationResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<OrganizationResponse>> getMyOrganizationOrganizationsMeGet({ 
+  Future<Response<OrganizationResponse>> getMyOrganizationOrganizationsMeGet({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -345,14 +343,8 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
     final _path = r'/organizations/me';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -367,9 +359,14 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
     OrganizationResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<OrganizationResponse, OrganizationResponse>(rawData, 'OrganizationResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<OrganizationResponse, OrganizationResponse>(
+              rawData,
+              'OrganizationResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -396,8 +393,8 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
   /// Get organization details.  Args:     org_id (str): Organization ID.     user (CurrentUserDep): Requesting user.     repo (RepositoryDep): Repository dependency.  Returns:     OrganizationResponse: organization details.
   ///
   /// Parameters:
-  /// * [orgId] 
-  /// * [authorization] 
+  /// * [orgId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -407,7 +404,7 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
   ///
   /// Returns a [Future] containing a [Response] with a [OrganizationResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<OrganizationResponse>> getOrganizationOrganizationsOrgIdGet({ 
+  Future<Response<OrganizationResponse>> getOrganizationOrganizationsOrgIdGet({
     required String orgId,
     String? authorization,
     CancelToken? cancelToken,
@@ -417,17 +414,16 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/organizations/{org_id}'.replaceAll('{' r'org_id' '}', orgId.toString());
+    final _path = r'/organizations/{org_id}'.replaceAll(
+      '{'
+      r'org_id'
+      '}',
+      orgId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -442,9 +438,14 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
     OrganizationResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<OrganizationResponse, OrganizationResponse>(rawData, 'OrganizationResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<OrganizationResponse, OrganizationResponse>(
+              rawData,
+              'OrganizationResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -471,8 +472,8 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
   /// Get current usage statistics and limits for an organization.  Args:     org_id (str): Organization ID.     user (CurrentUserDep): Requesting user.     repo (RepositoryDep): Repository dependency.  Returns:     OrganizationUsageResponse: Usage stats (cost, limits, percentage).
   ///
   /// Parameters:
-  /// * [orgId] 
-  /// * [authorization] 
+  /// * [orgId]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -482,7 +483,8 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
   ///
   /// Returns a [Future] containing a [Response] with a [OrganizationUsageResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<OrganizationUsageResponse>> getOrganizationUsageOrganizationsOrgIdUsageGet({ 
+  Future<Response<OrganizationUsageResponse>>
+  getOrganizationUsageOrganizationsOrgIdUsageGet({
     required String orgId,
     String? authorization,
     CancelToken? cancelToken,
@@ -492,17 +494,16 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/organizations/{org_id}/usage'.replaceAll('{' r'org_id' '}', orgId.toString());
+    final _path = r'/organizations/{org_id}/usage'.replaceAll(
+      '{'
+      r'org_id'
+      '}',
+      orgId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -517,9 +518,14 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
     OrganizationUsageResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<OrganizationUsageResponse, OrganizationUsageResponse>(rawData, 'OrganizationUsageResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<OrganizationUsageResponse, OrganizationUsageResponse>(
+              rawData,
+              'OrganizationUsageResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -546,7 +552,7 @@ _responseData = rawData == null ? null : deserialize<OrganizationUsageResponse, 
   /// List all organizations.  Args:     user (TokenData): Requesting user (must be ROOT).     repo (RepositoryDep): Repository dependency.  Returns:     List[OrganizationResponse]: List of all organizations.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -556,7 +562,8 @@ _responseData = rawData == null ? null : deserialize<OrganizationUsageResponse, 
   ///
   /// Returns a [Future] containing a [Response] with a [List<OrganizationResponse>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<OrganizationResponse>>> listOrganizationsOrganizationsGet({ 
+  Future<Response<List<OrganizationResponse>>>
+  listOrganizationsOrganizationsGet({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -568,14 +575,8 @@ _responseData = rawData == null ? null : deserialize<OrganizationUsageResponse, 
     final _path = r'/organizations/';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -590,9 +591,14 @@ _responseData = rawData == null ? null : deserialize<OrganizationUsageResponse, 
     List<OrganizationResponse>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<OrganizationResponse>, OrganizationResponse>(rawData, 'List<OrganizationResponse>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<OrganizationResponse>, OrganizationResponse>(
+              rawData,
+              'List<OrganizationResponse>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -619,9 +625,9 @@ _responseData = rawData == null ? null : deserialize<List<OrganizationResponse>,
   /// Update organization details.  Args:     org_id (str): Organization ID.     organization_update (OrganizationUpdate): Fields to update.     user (CurrentUserDep): Requesting user.     repo (RepositoryDep): Repository dependency.  Returns:     OrganizationResponse: Updated organization.
   ///
   /// Parameters:
-  /// * [orgId] 
-  /// * [organizationUpdate] 
-  /// * [authorization] 
+  /// * [orgId]
+  /// * [organizationUpdate]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -631,7 +637,8 @@ _responseData = rawData == null ? null : deserialize<List<OrganizationResponse>,
   ///
   /// Returns a [Future] containing a [Response] with a [OrganizationResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<OrganizationResponse>> updateOrganizationOrganizationsOrgIdPut({ 
+  Future<Response<OrganizationResponse>>
+  updateOrganizationOrganizationsOrgIdPut({
     required String orgId,
     required OrganizationUpdate organizationUpdate,
     String? authorization,
@@ -642,17 +649,16 @@ _responseData = rawData == null ? null : deserialize<List<OrganizationResponse>,
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/organizations/{org_id}'.replaceAll('{' r'org_id' '}', orgId.toString());
+    final _path = r'/organizations/{org_id}'.replaceAll(
+      '{'
+      r'org_id'
+      '}',
+      orgId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -660,13 +666,10 @@ _responseData = rawData == null ? null : deserialize<List<OrganizationResponse>,
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(organizationUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(organizationUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -685,9 +688,14 @@ _bodyData=jsonEncode(organizationUpdate);
     OrganizationResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<OrganizationResponse, OrganizationResponse>(rawData, 'OrganizationResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<OrganizationResponse, OrganizationResponse>(
+              rawData,
+              'OrganizationResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -709,5 +717,4 @@ _responseData = rawData == null ? null : deserialize<OrganizationResponse, Organ
       extra: _response.extra,
     );
   }
-
 }

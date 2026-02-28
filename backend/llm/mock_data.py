@@ -206,8 +206,9 @@ MOCK_INTERACTION_OUTPUT = InteractionAnalysis(
     confidence_score=0.9,
     metadata=MOCK_METADATA.model_copy(update={"agentti": "InteractionAgent"}),
     role_classification="Architect",
-    input_quality_score=0.9,
-    improvement_suggestions=["Suggestion 1"],
+    high_dependency=False,
+    imperative_command_count=2,
+    strategy="Chain-of-Thought",
 )
 
 MOCK_PROFILER_OUTPUT = ProfilerOutput(

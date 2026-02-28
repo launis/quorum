@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:client_app/features/orchestration/domain/models/assessment_view.dart'; // For StepProgressItem
 
@@ -28,11 +27,12 @@ class ExecutionTimeline extends StatelessWidget {
         separatorBuilder: (_, _) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final step = steps[index];
-          
-          final isCompleted = step.status == 'completed' || step.status == 'finished';
+
+          final isCompleted =
+              step.status == 'completed' || step.status == 'finished';
           final isRunning = step.status == 'running';
           final isFailed = step.status == 'failed' || step.status == 'error';
-          
+
           Color? labelColor;
           if (isRunning) labelColor = Theme.of(context).primaryColor;
           if (isFailed) labelColor = Theme.of(context).colorScheme.error;
@@ -44,17 +44,21 @@ class ExecutionTimeline extends StatelessWidget {
             title: Text(
               step.label,
               style: TextStyle(
-                fontWeight: isRunning || isCompleted ? FontWeight.bold : FontWeight.normal,
+                fontWeight:
+                    isRunning || isCompleted
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                 color: labelColor,
               ),
             ),
-            trailing: isRunning
-                ? const SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : null,
+            trailing:
+                isRunning
+                    ? const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : null,
           );
         },
       ),

@@ -13,7 +13,6 @@ import 'package:backend_api/src/model/http_validation_error.dart';
 import 'package:backend_api/src/model/usage_report.dart';
 
 class UsageApi {
-
   final Dio _dio;
 
   const UsageApi(this._dio);
@@ -22,9 +21,9 @@ class UsageApi {
   /// Get usage statistics for a specific organization.
   ///
   /// Parameters:
-  /// * [orgId] 
+  /// * [orgId]
   /// * [since] - ISO timestamp to filter from
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -34,7 +33,8 @@ class UsageApi {
   ///
   /// Returns a [Future] containing a [Response] with a [UsageReport] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<UsageReport>> getOrganizationUsageV1UsageOrganizationOrgIdGet({ 
+  Future<Response<UsageReport>>
+  getOrganizationUsageV1UsageOrganizationOrgIdGet({
     required String orgId,
     String? since,
     String? authorization,
@@ -45,23 +45,20 @@ class UsageApi {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/usage/organization/{org_id}'.replaceAll('{' r'org_id' '}', orgId.toString());
+    final _path = r'/v1/usage/organization/{org_id}'.replaceAll(
+      '{'
+      r'org_id'
+      '}',
+      orgId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
-    final _queryParameters = <String, dynamic>{
-      r'since': since,
-    };
+    final _queryParameters = <String, dynamic>{r'since': since};
 
     final _response = await _dio.request<Object>(
       _path,
@@ -75,9 +72,14 @@ class UsageApi {
     UsageReport? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(rawData, 'UsageReport', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<UsageReport, UsageReport>(
+              rawData,
+              'UsageReport',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -105,7 +107,7 @@ _responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(r
   ///
   /// Parameters:
   /// * [since] - ISO timestamp to filter from (e.g., '2026-02-01T00:00:00Z')
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -115,7 +117,7 @@ _responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(r
   ///
   /// Returns a [Future] containing a [Response] with a [UsageReport] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<UsageReport>> getSystemUsageV1UsageSystemGet({ 
+  Future<Response<UsageReport>> getSystemUsageV1UsageSystemGet({
     String? since,
     String? authorization,
     CancelToken? cancelToken,
@@ -128,20 +130,12 @@ _responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(r
     final _path = r'/v1/usage/system';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
-    final _queryParameters = <String, dynamic>{
-      r'since': since,
-    };
+    final _queryParameters = <String, dynamic>{r'since': since};
 
     final _response = await _dio.request<Object>(
       _path,
@@ -155,9 +149,14 @@ _responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(r
     UsageReport? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(rawData, 'UsageReport', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<UsageReport, UsageReport>(
+              rawData,
+              'UsageReport',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -184,9 +183,9 @@ _responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(r
   /// Get usage statistics for a specific user.
   ///
   /// Parameters:
-  /// * [userId] 
+  /// * [userId]
   /// * [since] - ISO timestamp to filter from
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -196,7 +195,7 @@ _responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(r
   ///
   /// Returns a [Future] containing a [Response] with a [UsageReport] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<UsageReport>> getUserUsageV1UsageUserUserIdGet({ 
+  Future<Response<UsageReport>> getUserUsageV1UsageUserUserIdGet({
     required String userId,
     String? since,
     String? authorization,
@@ -207,23 +206,20 @@ _responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(r
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/usage/user/{user_id}'.replaceAll('{' r'user_id' '}', userId.toString());
+    final _path = r'/v1/usage/user/{user_id}'.replaceAll(
+      '{'
+      r'user_id'
+      '}',
+      userId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
-    final _queryParameters = <String, dynamic>{
-      r'since': since,
-    };
+    final _queryParameters = <String, dynamic>{r'since': since};
 
     final _response = await _dio.request<Object>(
       _path,
@@ -237,9 +233,14 @@ _responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(r
     UsageReport? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(rawData, 'UsageReport', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<UsageReport, UsageReport>(
+              rawData,
+              'UsageReport',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -261,5 +262,4 @@ _responseData = rawData == null ? null : deserialize<UsageReport, UsageReport>(r
       extra: _response.extra,
     );
   }
-
 }

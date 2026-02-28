@@ -6,6 +6,5 @@ void main() {
   final Steps? instance = /* Steps(...) */ null;
   // TODO add properties to the entity
 
-  group(Steps, () {
-  });
+  group(Steps, () {});
 }

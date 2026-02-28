@@ -15,12 +15,13 @@ class ScoreCardRadar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     // Use dimensions or fallback if empty
-    final dimensions = card.dimensions.isNotEmpty
-        ? card.dimensions
-        : [
-            // Dummy breakdown if missing, to ensure chart renders something
-            // In production, we might hide the chart or show "No Data"
-          ];
+    final dimensions =
+        card.dimensions.isNotEmpty
+            ? card.dimensions
+            : [
+              // Dummy breakdown if missing, to ensure chart renders something
+              // In production, we might hide the chart or show "No Data"
+            ];
 
     final hasData = dimensions.isNotEmpty;
     final canShowRadar = dimensions.length >= 3;
@@ -80,7 +81,9 @@ class ScoreCardRadar extends StatelessWidget {
                       Text(
                         "(Scale: ${card.minScore}-${card.maxScore})",
                         style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onPrimaryContainer.withOpacity(0.7),
+                          color: colorScheme.onPrimaryContainer.withOpacity(
+                            0.7,
+                          ),
                           fontSize: 8,
                         ),
                       ),
@@ -90,7 +93,7 @@ class ScoreCardRadar extends StatelessWidget {
               ],
             ),
             const Divider(height: 24),
-            
+
             // Radar Chart Section
             if (canShowRadar)
               SizedBox(
@@ -100,33 +103,37 @@ class ScoreCardRadar extends StatelessWidget {
                     radarTouchData: RadarTouchData(enabled: false),
                     dataSets: [
                       RadarDataSet(
-                        fillColor: colorScheme.primary.withAlpha(50), 
+                        fillColor: colorScheme.primary.withAlpha(50),
                         borderColor: colorScheme.primary,
                         entryRadius: 2,
-                        dataEntries: dimensions
-                            .map((d) => RadarEntry(value: d.score))
-                            .toList(),
+                        dataEntries:
+                            dimensions
+                                .map((d) => RadarEntry(value: d.score))
+                                .toList(),
                         borderWidth: 2,
                       ),
                     ],
                     radarBackgroundColor: Colors.transparent,
                     borderData: FlBorderData(show: false),
-                    radarBorderData: const BorderSide(color: Colors.transparent),
+                    radarBorderData: const BorderSide(
+                      color: Colors.transparent,
+                    ),
                     titlePositionPercentageOffset: 0.2,
                     titleTextStyle: textTheme.bodySmall?.copyWith(fontSize: 10),
                     getTitle: (index, angle) {
-                      if (index >= dimensions.length) return const RadarChartTitle(text: '');
-                      
+                      if (index >= dimensions.length)
+                        return const RadarChartTitle(text: '');
+
                       final d = dimensions[index];
                       // strict translation of dimensionLabel key
                       final label = _translateDimension(d.dimensionLabel, l10n);
-                      
-                      return RadarChartTitle(text: label); 
+
+                      return RadarChartTitle(text: label);
                     },
                     tickCount: 1,
                     ticksTextStyle: const TextStyle(color: Colors.transparent),
                     gridBorderData: BorderSide(
-                      color: colorScheme.outlineVariant.withAlpha(50), 
+                      color: colorScheme.outlineVariant.withAlpha(50),
                       width: 1,
                     ),
                   ),
@@ -139,59 +146,66 @@ class ScoreCardRadar extends StatelessWidget {
                   child: Text("No detailed dimension data available."),
                 ),
               ),
-              
+
             // Detailed Breakdown List
             if (hasData) ...[
-                 const SizedBox(height: 24),
-                 Align(
-                   alignment: Alignment.centerLeft,
-                   child: Text(
-                     "Detailed Breakdown",
-                     style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold),
-                   ),
-                 ),
-                 const SizedBox(height: 8),
-                 ...dimensions.map((d) {
-                    final label = _translateDimension(d.dimensionLabel, l10n);
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
+              const SizedBox(height: 24),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Detailed Breakdown",
+                  style: textTheme.titleSmall!.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...dimensions.map((d) {
+                final label = _translateDimension(d.dimensionLabel, l10n);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: colorScheme.outlineVariant),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: colorScheme.outlineVariant),
+                        color: colorScheme.primaryContainer,
+                        shape: BoxShape.circle,
                       ),
-                      child: ListTile(
-                        leading: Container(
-                          width: 40,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                             color: colorScheme.primaryContainer,
-                             shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                             d.score.toStringAsFixed(0),
-                             style: textTheme.titleMedium!.copyWith(
-                               color: colorScheme.onPrimaryContainer, 
-                               fontWeight: FontWeight.bold
-                             ),
-                          ),
-                        ),
-                        title: Text(
-                            label, 
-                            style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold)
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            d.reasoning.replaceAll(RegExp(r'^Havainto:\s*', caseSensitive: false), ''),
-                            style: textTheme.bodyMedium,
-                          ),
+                      child: Text(
+                        d.score.toStringAsFixed(0),
+                        style: textTheme.titleMedium!.copyWith(
+                          color: colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    );
-                 }).toList(),
-            ]
+                    ),
+                    title: Text(
+                      label,
+                      style: textTheme.titleSmall!.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        d.reasoning.replaceAll(
+                          RegExp(r'^Havainto:\s*', caseSensitive: false),
+                          '',
+                        ),
+                        style: textTheme.bodyMedium,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ],
           ],
         ),
       ),

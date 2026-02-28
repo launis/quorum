@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'workflow_template.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,97 +18,52 @@ part 'workflow_template.g.dart';
 class WorkflowTemplate {
   /// Returns a new [WorkflowTemplate] instance.
   WorkflowTemplate({
+    required this.name,
 
-    required  this.name,
+    required this.description,
 
-    required  this.description,
+    required this.steps,
 
-    required  this.steps,
+    required this.defaultModelMapping,
 
-    required  this.defaultModelMapping,
-
-    required  this.uiSchema,
+    required this.uiSchema,
   });
 
-  @JsonKey(
-    
-    name: r'name',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'name', required: true)
   final String name;
 
-
-
-  @JsonKey(
-    
-    name: r'description',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'description', required: true)
   final String description;
 
-
-
-  @JsonKey(
-    
-    name: r'steps',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'steps', required: true)
   final List<String> steps;
 
-
-
-  @JsonKey(
-    
-    name: r'default_model_mapping',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'default_model_mapping', required: true)
   final Map<String, String> defaultModelMapping;
 
-
-
-  @JsonKey(
-    
-    name: r'ui_schema',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'ui_schema', required: true)
   final Map<String, Object> uiSchema;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WorkflowTemplate &&
+          other.name == name &&
+          other.description == description &&
+          other.steps == steps &&
+          other.defaultModelMapping == defaultModelMapping &&
+          other.uiSchema == uiSchema;
 
+  @override
+  int get hashCode =>
+      name.hashCode +
+      description.hashCode +
+      steps.hashCode +
+      defaultModelMapping.hashCode +
+      uiSchema.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is WorkflowTemplate &&
-      other.name == name &&
-      other.description == description &&
-      other.steps == steps &&
-      other.defaultModelMapping == defaultModelMapping &&
-      other.uiSchema == uiSchema;
-
-    @override
-    int get hashCode =>
-        name.hashCode +
-        description.hashCode +
-        steps.hashCode +
-        defaultModelMapping.hashCode +
-        uiSchema.hashCode;
-
-  factory WorkflowTemplate.fromJson(Map<String, dynamic> json) => _$WorkflowTemplateFromJson(json);
+  factory WorkflowTemplate.fromJson(Map<String, dynamic> json) =>
+      _$WorkflowTemplateFromJson(json);
 
   Map<String, dynamic> toJson() => _$WorkflowTemplateToJson(this);
 
@@ -117,6 +71,4 @@ class WorkflowTemplate {
   String toString() {
     return toJson().toString();
   }
-
 }
-

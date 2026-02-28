@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'web_scrape_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,52 +17,28 @@ part 'web_scrape_response.g.dart';
 )
 class WebScrapeResponse {
   /// Returns a new [WebScrapeResponse] instance.
-  WebScrapeResponse({
+  WebScrapeResponse({required this.url, required this.content});
 
-    required  this.url,
-
-    required  this.content,
-  });
-
-      /// The target URL.
-  @JsonKey(
-    
-    name: r'url',
-    required: true,
-    
-  )
-
-
+  /// The target URL.
+  @JsonKey(name: r'url', required: true)
   final String url;
 
-
-
-      /// Scraped content.
-  @JsonKey(
-    
-    name: r'content',
-    required: true,
-    
-  )
-
-
+  /// Scraped content.
+  @JsonKey(name: r'content', required: true)
   final String content;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WebScrapeResponse &&
+          other.url == url &&
+          other.content == content;
 
+  @override
+  int get hashCode => url.hashCode + content.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is WebScrapeResponse &&
-      other.url == url &&
-      other.content == content;
-
-    @override
-    int get hashCode =>
-        url.hashCode +
-        content.hashCode;
-
-  factory WebScrapeResponse.fromJson(Map<String, dynamic> json) => _$WebScrapeResponseFromJson(json);
+  factory WebScrapeResponse.fromJson(Map<String, dynamic> json) =>
+      _$WebScrapeResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$WebScrapeResponseToJson(this);
 
@@ -71,6 +46,4 @@ class WebScrapeResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

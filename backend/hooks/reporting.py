@@ -109,6 +109,16 @@ def generate_report(state: WorkflowState) -> WorkflowState:
     overseer_out = _get_agent_output("step_overseer", OverseerOutput)
     logician_out = _get_agent_output("step_logician", LogicianOutput)
     performativity_out = _get_agent_output("step_detector", PerformativityOutput)  # Check key name!
+    
+    from backend.models.domain.panel import PanelOutput
+    panel_out = _get_agent_output("step_panel", PanelOutput)
+    
+    # Extract inner data correctly regardless of source
+    overseer_data = overseer_out.overseer_data if overseer_out else (panel_out.overseer_data if panel_out else None)
+    logician_data = logician_out.logician_data if logician_out else (panel_out.logician_data if panel_out else None)
+    perf_data = performativity_out.performativity_analysis if performativity_out else (panel_out.performativity_analysis if panel_out else None)
+    falsifier_data = panel_out.falsifier_data if panel_out else None
+    causal_data = panel_out.causal_analysis if panel_out else None
 
     # 3. MAP DATA TO REPORT CONTEXT
 
@@ -125,23 +135,23 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         context["critical_findings"] = []
 
     # Pre-Morten Signals (From Performativity/Detector)
-    if performativity_out and performativity_out.performativity_analysis:
-        context["pre_mortem_signals"] = performativity_out.performativity_analysis.pre_mortem_analysis.weak_signals
+    if perf_data:
+        context["pre_mortem_signals"] = perf_data.pre_mortem_analysis.weak_signals
     else:
         context["pre_mortem_signals"] = []
 
     # Ethical Issues (From Overseer)
     ethical_issues_list = []
-    if overseer_out and overseer_out.overseer_data:
-        for issue in overseer_out.overseer_data.ethical_issues:
+    if overseer_data:
+        for issue in overseer_data.ethical_issues:
             # Convert model to dict for ReportContext
             ethical_issues_list.append(issue.model_dump())
     context["ethical_issues"] = ethical_issues_list
 
     # Audit Questions (From Logician)
     audit_questions_list = []
-    if logician_out and logician_out.logician_data and logician_out.logician_data.walton_scheme:
-        for q in logician_out.logician_data.walton_scheme.critical_questions:
+    if logician_data and logician_data.walton_scheme:
+        for q in logician_data.walton_scheme.critical_questions:
             audit_questions_list.append({"question": q, "status": "Open"})
     context["audit_questions"] = audit_questions_list
 
@@ -198,11 +208,11 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         context["bibliography"] = []
 
     # 4. PASS THROUGH SPECIALIST DATA (For Template deep dives)
-    context["logician_data"] = logician_out.logician_data if logician_out else None
-    context["overseer_data"] = overseer_out.overseer_data if overseer_out else None
-    context["falsifier_data"] = None  # Add Falsifier extraction if available
-    context["causal_analysis"] = None  # Add Causal extraction if available
-    context["performativity_analysis"] = performativity_out.performativity_analysis if performativity_out else None
+    context["logician_data"] = logician_data
+    context["overseer_data"] = overseer_data
+    context["falsifier_data"] = falsifier_data
+    context["causal_analysis"] = causal_data
+    context["performativity_analysis"] = perf_data
 
     # 5. ENRICHMENT (Metrics & Knowledge)
     profiler_out = _get_agent_output("step_profiler", ProfilerOutput)

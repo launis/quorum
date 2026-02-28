@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'execution_cancel_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,65 +18,35 @@ part 'execution_cancel_response.g.dart';
 class ExecutionCancelResponse {
   /// Returns a new [ExecutionCancelResponse] instance.
   ExecutionCancelResponse({
+    required this.id,
 
-    required  this.id,
+    required this.status,
 
-    required  this.status,
-
-    required  this.message,
+    required this.message,
   });
 
-  @JsonKey(
-    
-    name: r'id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: true)
   final String id;
 
-
-
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'message',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'message', required: true)
   final String message;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExecutionCancelResponse &&
+          other.id == id &&
+          other.status == status &&
+          other.message == message;
 
+  @override
+  int get hashCode => id.hashCode + status.hashCode + message.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ExecutionCancelResponse &&
-      other.id == id &&
-      other.status == status &&
-      other.message == message;
-
-    @override
-    int get hashCode =>
-        id.hashCode +
-        status.hashCode +
-        message.hashCode;
-
-  factory ExecutionCancelResponse.fromJson(Map<String, dynamic> json) => _$ExecutionCancelResponseFromJson(json);
+  factory ExecutionCancelResponse.fromJson(Map<String, dynamic> json) =>
+      _$ExecutionCancelResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ExecutionCancelResponseToJson(this);
 
@@ -85,6 +54,4 @@ class ExecutionCancelResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

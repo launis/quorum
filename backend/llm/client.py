@@ -82,7 +82,19 @@ class LLMClient:
 
         for p_name, strategies in registry.models.items():
             if strategy_name in strategies:
-                target_strategy = strategies[strategy_name]
+                current_val = strategies[strategy_name]
+                visited = {strategy_name}
+                
+                # Resolve aliases (e.g. "SearchHook": "search")
+                while isinstance(current_val, str):
+                    if current_val in visited:
+                        raise ConfigurationError(f"Circular alias '{current_val}' in provider '{p_name}'.")
+                    if current_val not in strategies:
+                        raise ConfigurationError(f"Alias '{current_val}' for strategy '{strategy_name}' not found in provider '{p_name}'.")
+                    visited.add(current_val)
+                    current_val = strategies[current_val]
+                
+                target_strategy = current_val
                 target_provider = p_name
                 break
 
@@ -99,7 +111,8 @@ class LLMClient:
             tpm_limit=target_strategy.tpm_limit,
             rpm_limit=target_strategy.rpm_limit,
             default_max_tokens=target_strategy.max_tokens,
-            supports_grounding=target_strategy.supports_grounding
+            supports_grounding=target_strategy.supports_grounding,
+            parsing_mode=target_strategy.parsing_mode
         )
 
         return cls(config=provider_config)

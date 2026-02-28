@@ -61,7 +61,6 @@ class WorkflowSelector extends ConsumerWidget {
           },
           loading: () => const LinearProgressIndicator(),
           error:
-
               (err, stack) => ErrorView(
                 error: err,
                 compact: true,

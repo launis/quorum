@@ -21,7 +21,9 @@ class KnowledgeStatus {
   }
 }
 
-final knowledgeStatusProvider = FutureProvider.autoDispose<KnowledgeStatus>((ref) async {
+final knowledgeStatusProvider = FutureProvider.autoDispose<KnowledgeStatus>((
+  ref,
+) async {
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/v1/config/knowledge/status');
   return KnowledgeStatus.fromJson(response.data);

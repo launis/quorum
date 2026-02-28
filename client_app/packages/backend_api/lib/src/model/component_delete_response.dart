@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'component_delete_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,26 @@ part 'component_delete_response.g.dart';
 )
 class ComponentDeleteResponse {
   /// Returns a new [ComponentDeleteResponse] instance.
-  ComponentDeleteResponse({
+  ComponentDeleteResponse({required this.status, required this.id});
 
-    required  this.status,
-
-    required  this.id,
-  });
-
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: true)
   final String id;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ComponentDeleteResponse &&
+          other.status == status &&
+          other.id == id;
 
+  @override
+  int get hashCode => status.hashCode + id.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ComponentDeleteResponse &&
-      other.status == status &&
-      other.id == id;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        id.hashCode;
-
-  factory ComponentDeleteResponse.fromJson(Map<String, dynamic> json) => _$ComponentDeleteResponseFromJson(json);
+  factory ComponentDeleteResponse.fromJson(Map<String, dynamic> json) =>
+      _$ComponentDeleteResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ComponentDeleteResponseToJson(this);
 
@@ -69,6 +44,4 @@ class ComponentDeleteResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

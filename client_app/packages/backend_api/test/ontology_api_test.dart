@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for OntologyApi
 void main() {
   final instance = BackendApi().getOntologyApi();
@@ -21,9 +20,12 @@ void main() {
     // Deletes a dimension if it is not used in any matrix.
     //
     //Future<DimensionDeleteResponse> deleteDimensionV1ConfigOntologyDimensionsDimIdDelete_0(String dimId) async
-    test('test deleteDimensionV1ConfigOntologyDimensionsDimIdDelete_0', () async {
-      // TODO
-    });
+    test(
+      'test deleteDimensionV1ConfigOntologyDimensionsDimIdDelete_0',
+      () async {
+        // TODO
+      },
+    );
 
     // Get Known Dimensions
     //
@@ -60,6 +62,5 @@ void main() {
     test('test updateDimensionV1ConfigOntologyDimensionsDimIdPut_0', () async {
       // TODO
     });
-
   });
 }

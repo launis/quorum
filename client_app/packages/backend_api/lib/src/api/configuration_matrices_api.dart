@@ -14,7 +14,6 @@ import 'package:backend_api/src/model/http_validation_error.dart';
 import 'package:backend_api/src/model/matrix_component_response.dart';
 
 class ConfigurationMatricesApi {
-
   final Dio _dio;
 
   const ConfigurationMatricesApi(this._dio);
@@ -23,7 +22,7 @@ class ConfigurationMatricesApi {
   /// Creates a new evaluation matrix.
   ///
   /// Parameters:
-  /// * [matrixComponentResponse] 
+  /// * [matrixComponentResponse]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -33,7 +32,7 @@ class ConfigurationMatricesApi {
   ///
   /// Returns a [Future] containing a [Response] with a [String] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<String>> createMatrixV1ConfigMatricesPost({ 
+  Future<Response<String>> createMatrixV1ConfigMatricesPost({
     required MatrixComponentResponse matrixComponentResponse,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -45,13 +44,8 @@ class ConfigurationMatricesApi {
     final _path = r'/v1/config/matrices';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -59,13 +53,10 @@ class ConfigurationMatricesApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(matrixComponentResponse);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(matrixComponentResponse);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -84,9 +75,10 @@ _bodyData=jsonEncode(matrixComponentResponse);
     String? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<String, String>(rawData, 'String', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<String, String>(rawData, 'String', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -113,7 +105,7 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
   /// Deletes an evaluation matrix.
   ///
   /// Parameters:
-  /// * [matrixId] 
+  /// * [matrixId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -123,7 +115,7 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
   ///
   /// Returns a [Future] containing a [Response] with a [bool] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<bool>> deleteMatrixV1ConfigMatricesMatrixIdDelete({ 
+  Future<Response<bool>> deleteMatrixV1ConfigMatricesMatrixIdDelete({
     required String matrixId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -132,16 +124,16 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/matrices/{matrix_id}'.replaceAll('{' r'matrix_id' '}', matrixId.toString());
+    final _path = r'/v1/config/matrices/{matrix_id}'.replaceAll(
+      '{'
+      r'matrix_id'
+      '}',
+      matrixId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -156,9 +148,10 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
     bool? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<bool, bool>(rawData, 'bool', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -194,7 +187,8 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
   ///
   /// Returns a [Future] containing a [Response] with a [List<MatrixComponentResponse>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<MatrixComponentResponse>>> getMatricesV1ConfigMatricesGet({ 
+  Future<Response<List<MatrixComponentResponse>>>
+  getMatricesV1ConfigMatricesGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -205,13 +199,8 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
     final _path = r'/v1/config/matrices';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -226,9 +215,14 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
     List<MatrixComponentResponse>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<MatrixComponentResponse>, MatrixComponentResponse>(rawData, 'List<MatrixComponentResponse>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<MatrixComponentResponse>, MatrixComponentResponse>(
+              rawData,
+              'List<MatrixComponentResponse>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -265,7 +259,8 @@ _responseData = rawData == null ? null : deserialize<List<MatrixComponentRespons
   ///
   /// Returns a [Future] containing a [Response] with a [MatrixComponentResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<MatrixComponentResponse>> getMatrixV1ConfigMatricesMatrixIdGet({ 
+  Future<Response<MatrixComponentResponse>>
+  getMatrixV1ConfigMatricesMatrixIdGet({
     required String matrixId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -274,16 +269,16 @@ _responseData = rawData == null ? null : deserialize<List<MatrixComponentRespons
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/matrices/{matrix_id}'.replaceAll('{' r'matrix_id' '}', matrixId.toString());
+    final _path = r'/v1/config/matrices/{matrix_id}'.replaceAll(
+      '{'
+      r'matrix_id'
+      '}',
+      matrixId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -298,9 +293,14 @@ _responseData = rawData == null ? null : deserialize<List<MatrixComponentRespons
     MatrixComponentResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<MatrixComponentResponse, MatrixComponentResponse>(rawData, 'MatrixComponentResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<MatrixComponentResponse, MatrixComponentResponse>(
+              rawData,
+              'MatrixComponentResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -327,8 +327,8 @@ _responseData = rawData == null ? null : deserialize<MatrixComponentResponse, Ma
   /// Updates an existing evaluation matrix.
   ///
   /// Parameters:
-  /// * [matrixId] 
-  /// * [componentUpdate] 
+  /// * [matrixId]
+  /// * [componentUpdate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -338,7 +338,7 @@ _responseData = rawData == null ? null : deserialize<MatrixComponentResponse, Ma
   ///
   /// Returns a [Future] containing a [Response] with a [bool] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<bool>> updateMatrixV1ConfigMatricesMatrixIdPut({ 
+  Future<Response<bool>> updateMatrixV1ConfigMatricesMatrixIdPut({
     required String matrixId,
     required ComponentUpdate componentUpdate,
     CancelToken? cancelToken,
@@ -348,16 +348,16 @@ _responseData = rawData == null ? null : deserialize<MatrixComponentResponse, Ma
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/matrices/{matrix_id}'.replaceAll('{' r'matrix_id' '}', matrixId.toString());
+    final _path = r'/v1/config/matrices/{matrix_id}'.replaceAll(
+      '{'
+      r'matrix_id'
+      '}',
+      matrixId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -365,13 +365,10 @@ _responseData = rawData == null ? null : deserialize<MatrixComponentResponse, Ma
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(componentUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(componentUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -390,9 +387,10 @@ _bodyData=jsonEncode(componentUpdate);
     bool? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<bool, bool>(rawData, 'bool', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -414,5 +412,4 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
       extra: _response.extra,
     );
   }
-
 }

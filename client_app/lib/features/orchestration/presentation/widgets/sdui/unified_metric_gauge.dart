@@ -5,7 +5,8 @@ class UnifiedMetricGauge extends StatelessWidget {
   final double value;
   final double max;
   final String description; // Primary localized description
-  final String? descriptionSecondary; // Optional secondary (e.g. English fallback)
+  final String?
+  descriptionSecondary; // Optional secondary (e.g. English fallback)
   final String displayValue; // e.g. "4/6" or "High"
   final Color? color;
   final List<String>? axisLabels;
@@ -24,12 +25,32 @@ class UnifiedMetricGauge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (label.trim().isEmpty) {
+      throw FormatException("UnifiedMetricGauge requires a non-empty label.");
+    }
+    if (displayValue.trim().isEmpty) {
+      throw FormatException(
+        "UnifiedMetricGauge requires a non-empty displayValue for '$label'.",
+      );
+    }
+
+    if (max <= 0) {
+      throw FormatException(
+        "UnifiedMetricGauge '$label' requires max > 0, got $max.",
+      );
+    }
+    if (value < 0 || value > max) {
+      throw FormatException(
+        "UnifiedMetricGauge '$label' value $value is out of bounds [0, $max].",
+      );
+    }
+
     final theme = Theme.of(context);
     final effectiveColor = color ?? theme.primaryColor;
-    
+
     // Segment logic
     final int totalSegments = max.toInt();
-    final int filledSegments = value.clamp(0, max).toInt();
+    final int filledSegments = value.toInt();
 
     final mainRow = Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -40,14 +61,11 @@ class UnifiedMetricGauge extends StatelessWidget {
             width: 140,
             child: Text(
               label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          
+
           // 2. Segmented Bar
           Expanded(
             child: SizedBox(
@@ -76,10 +94,7 @@ class UnifiedMetricGauge extends StatelessWidget {
             child: Text(
               displayValue,
               textAlign: TextAlign.end,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
 
@@ -89,7 +104,7 @@ class UnifiedMetricGauge extends StatelessWidget {
         ],
       ),
     );
-    
+
     if (axisLabels == null || axisLabels!.isEmpty) {
       return mainRow;
     }
@@ -102,23 +117,23 @@ class UnifiedMetricGauge extends StatelessWidget {
         mainRow,
         Row(
           children: [
-             // Spacer for Label (width 140)
-             const SizedBox(width: 140),
-             // Labels
-             Expanded(
-               child: Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: _buildAlignedLabels(axisLabels!, totalSegments),
-               ),
-             ),
-             const SizedBox(width: 12),
-             // Spacer for DisplayValue (width 40)
-             const SizedBox(width: 40),
-             const SizedBox(width: 8),
-             // Spacer for Icon (approx 24)
-             const SizedBox(width: 24),
+            // Spacer for Label (width 140)
+            const SizedBox(width: 140),
+            // Labels
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: _buildAlignedLabels(axisLabels!, totalSegments),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Spacer for DisplayValue (width 40)
+            const SizedBox(width: 40),
+            const SizedBox(width: 8),
+            // Spacer for Icon (approx 24)
+            const SizedBox(width: 24),
           ],
-        )
+        ),
       ],
     );
   }
@@ -126,66 +141,83 @@ class UnifiedMetricGauge extends StatelessWidget {
   Widget _buildHelpTrigger(BuildContext context) {
     return GestureDetector(
       onTap: () => _showHelpDialog(context),
-      child: Icon(
-        Icons.help_outline,
-        size: 16,
-        color: Colors.grey[400],
-      ),
+      child: Icon(Icons.help_outline, size: 16, color: Colors.grey[400]),
     );
   }
 
   void _showHelpDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.info_outline, size: 20, color: Colors.blue),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(description, style: const TextStyle(fontSize: 14)),
-            if (descriptionSecondary != null) ...[
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 8),
-              Text(
-                descriptionSecondary!, 
-                style: TextStyle(fontSize: 13, color: Colors.grey[700], fontStyle: FontStyle.italic)
+      builder:
+          (ctx) => AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.info_outline, size: 20, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(description, style: const TextStyle(fontSize: 14)),
+                if (descriptionSecondary != null) ...[
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Text(
+                    descriptionSecondary!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("OK"),
               ),
             ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("OK"),
           ),
-        ],
-      ),
     );
   }
+
   List<Widget> _buildAlignedLabels(List<String> labels, int segmentCount) {
     if (labels.length == segmentCount) {
-      return labels.map((l) => Expanded(
-        child: Text(
-          l,
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 8, color: Colors.grey[600], fontWeight: FontWeight.w500),
-        ),
-      )).toList();
+      return labels
+          .map(
+            (l) => Expanded(
+              child: Text(
+                l,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 8,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          )
+          .toList();
     }
-    
-    return labels.map((l) => Text(
-      l, 
-      style: TextStyle(fontSize: 9, color: Colors.grey[600]),
-    )).toList();
+
+    return labels
+        .map(
+          (l) =>
+              Text(l, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+        )
+        .toList();
   }
 }
-

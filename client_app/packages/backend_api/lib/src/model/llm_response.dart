@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'llm_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,51 +17,27 @@ part 'llm_response.g.dart';
 )
 class LLMResponse {
   /// Returns a new [LLMResponse] instance.
-  LLMResponse({
+  LLMResponse({required this.result, this.usage});
 
-    required  this.result,
-
-     this.usage,
-  });
-
-  @JsonKey(
-    
-    name: r'result',
-    required: true,
-    includeIfNull: true,
-  )
-
-
+  @JsonKey(name: r'result', required: true, includeIfNull: true)
   final Object? result;
 
-
-
-      /// Usage statistics if available.
-  @JsonKey(
-    
-    name: r'usage',
-    required: false,
-    
-  )
-
-
+  /// Usage statistics if available.
+  @JsonKey(name: r'usage', required: false)
   final dynamic? usage;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LLMResponse && other.result == result && other.usage == usage;
 
+  @override
+  int get hashCode =>
+      (result == null ? 0 : result.hashCode) +
+      (usage == null ? 0 : usage.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is LLMResponse &&
-      other.result == result &&
-      other.usage == usage;
-
-    @override
-    int get hashCode =>
-        (result == null ? 0 : result.hashCode) +
-        (usage == null ? 0 : usage.hashCode);
-
-  factory LLMResponse.fromJson(Map<String, dynamic> json) => _$LLMResponseFromJson(json);
+  factory LLMResponse.fromJson(Map<String, dynamic> json) =>
+      _$LLMResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$LLMResponseToJson(this);
 
@@ -70,6 +45,4 @@ class LLMResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

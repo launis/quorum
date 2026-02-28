@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/features/admin/presentation/providers/model_registry_controller.dart';
@@ -21,12 +20,17 @@ class StrategySelectionField extends HookConsumerWidget {
 
     return registryState.when(
       loading: () => const LinearProgressIndicator(),
-      error: (err, _) => Text('Error loading strategies: $err', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      error:
+          (err, _) => Text(
+            'Error loading strategies: $err',
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
       data: (state) {
         // Collect strategies from providers list
-        // We assume 'id' in provider config acts as the strategy name for now, 
+        // We assume 'id' in provider config acts as the strategy name for now,
         // or we might need a distinct list. Based on backend, strategy maps to a config.
-        final strategies = state.providers.map((p) => p.id).toSet().toList()..sort();
+        final strategies =
+            state.providers.map((p) => p.id).toSet().toList()..sort();
 
         return DropdownButtonFormField<String>(
           value: strategies.contains(currentStrategy) ? currentStrategy : null,
@@ -37,13 +41,13 @@ class StrategySelectionField extends HookConsumerWidget {
             helperText: 'Select the AI model strategy for this step.',
           ),
           items: [
-             const DropdownMenuItem(value: null, child: Text('Default (Inherit)')),
-             ...strategies.map((s) {
-               return DropdownMenuItem(
-                 value: s,
-                 child: Text(s),
-               );
-             }),
+            const DropdownMenuItem(
+              value: null,
+              child: Text('Default (Inherit)'),
+            ),
+            ...strategies.map((s) {
+              return DropdownMenuItem(value: s, child: Text(s));
+            }),
           ],
           onChanged: onChanged,
         );

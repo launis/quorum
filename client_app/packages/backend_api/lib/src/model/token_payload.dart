@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'token_payload.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,34 +17,20 @@ part 'token_payload.g.dart';
 )
 class TokenPayload {
   /// Returns a new [TokenPayload] instance.
-  TokenPayload({
+  TokenPayload({required this.token});
 
-    required  this.token,
-  });
-
-  @JsonKey(
-    
-    name: r'token',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'token', required: true)
   final String token;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is TokenPayload && other.token == token;
 
+  @override
+  int get hashCode => token.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is TokenPayload &&
-      other.token == token;
-
-    @override
-    int get hashCode =>
-        token.hashCode;
-
-  factory TokenPayload.fromJson(Map<String, dynamic> json) => _$TokenPayloadFromJson(json);
+  factory TokenPayload.fromJson(Map<String, dynamic> json) =>
+      _$TokenPayloadFromJson(json);
 
   Map<String, dynamic> toJson() => _$TokenPayloadToJson(this);
 
@@ -53,6 +38,4 @@ class TokenPayload {
   String toString() {
     return toJson().toString();
   }
-
 }
-

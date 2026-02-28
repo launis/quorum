@@ -10,7 +10,9 @@ sealed class Workflow with _$Workflow {
     required String id,
     @JsonKey(defaultValue: 'Unnamed Workflow') required String name,
     @JsonKey(defaultValue: '') @Default('') String description,
-    @JsonKey(defaultValue: <WorkflowStep>[]) @Default([]) List<WorkflowStep> steps,
+    @JsonKey(defaultValue: <WorkflowStep>[])
+    @Default([])
+    List<WorkflowStep> steps,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'is_public') @Default(false) bool isPublic,
     @JsonKey(name: 'ui_schema') Map<String, dynamic>? uiSchema,
@@ -19,5 +21,3 @@ sealed class Workflow with _$Workflow {
   factory Workflow.fromJson(Map<String, dynamic> json) =>
       _$WorkflowFromJson(json);
 }
-
-

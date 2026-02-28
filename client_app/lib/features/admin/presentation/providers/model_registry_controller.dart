@@ -11,7 +11,6 @@ import 'model_registry_providers.dart';
 part 'model_registry_controller.freezed.dart';
 part 'model_registry_controller.g.dart';
 
-
 @freezed
 abstract class ModelRegistryState with _$ModelRegistryState {
   const factory ModelRegistryState({
@@ -25,38 +24,42 @@ abstract class ModelRegistryState with _$ModelRegistryState {
 
 @riverpod
 class ModelRegistryController extends _$ModelRegistryController {
-  
   @override
   Future<ModelRegistryState> build() async {
     final repository = ref.watch(modelRegistryRepositoryProvider);
-    
+
     // Parallel Fetch (Fail Fast)
     final result = await Future.wait([
       repository.getProviders(),
       repository.getModelOptions(),
     ]);
 
-    final providersResult = result[0] as Either<AppError, List<LLMProviderConfig>>;
-    final optionsResult = result[1] as Either<AppError, Map<String, List<String>>>;
+    final providersResult =
+        result[0] as Either<AppError, List<LLMProviderConfig>>;
+    final optionsResult =
+        result[1] as Either<AppError, Map<String, List<String>>>;
 
     // We throw first error encountered to set state to AsyncError
-    final providers = providersResult.getRight().getOrElse(() => throw providersResult.getLeft().toNullable()!);
-    final options = optionsResult.getRight().getOrElse(() => throw optionsResult.getLeft().toNullable()!);
-
-    return ModelRegistryState(
-      providers: providers,
-      availableOptions: options,
+    final providers = providersResult.getRight().getOrElse(
+      () => throw providersResult.getLeft().toNullable()!,
     );
+    final options = optionsResult.getRight().getOrElse(
+      () => throw optionsResult.getLeft().toNullable()!,
+    );
+
+    return ModelRegistryState(providers: providers, availableOptions: options);
   }
 
   void selectProvider(String? id) {
     final currentState = state.value;
     if (currentState == null) return;
 
-    state = AsyncData(currentState.copyWith(
-      selectedProviderId: id,
-      testResult: const AsyncValue.data(null),
-    ));
+    state = AsyncData(
+      currentState.copyWith(
+        selectedProviderId: id,
+        testResult: const AsyncValue.data(null),
+      ),
+    );
   }
 
   /// **Save Config**
@@ -68,7 +71,7 @@ class ModelRegistryController extends _$ModelRegistryController {
     // 1. Optimistic Update
     final currentList = previousState.providers;
     final index = currentList.indexWhere((p) => p.id == id);
-    
+
     List<LLMProviderConfig> newList;
     if (index >= 0) {
       newList = List.of(currentList)..[index] = config;
@@ -76,14 +79,15 @@ class ModelRegistryController extends _$ModelRegistryController {
       newList = [...currentList, config];
     }
 
-    state = AsyncData(previousState.copyWith(
-      providers: newList,
-      isSaving: true, 
-    ));
+    state = AsyncData(
+      previousState.copyWith(providers: newList, isSaving: true),
+    );
 
     try {
       // 2. API Call
-      await ref.read(modelRegistryRepositoryProvider).updateProvider(id, config);
+      await ref
+          .read(modelRegistryRepositoryProvider)
+          .updateProvider(id, config);
 
       // 3. Silent Sync
       ref.invalidateSelf();
@@ -104,21 +108,31 @@ class ModelRegistryController extends _$ModelRegistryController {
     final currentList = previousState.providers;
     final newList = currentList.where((p) => p.id != id).toList();
 
-    state = AsyncData(previousState.copyWith(
-      providers: newList,
-      selectedProviderId: previousState.selectedProviderId == id ? null : previousState.selectedProviderId,
-      isSaving: true,
-    ));
+    state = AsyncData(
+      previousState.copyWith(
+        providers: newList,
+        selectedProviderId:
+            previousState.selectedProviderId == id
+                ? null
+                : previousState.selectedProviderId,
+        isSaving: true,
+      ),
+    );
 
     // 2. API Call
-    final result = await ref.read(modelRegistryRepositoryProvider).deleteProvider(id);
+    final result = await ref
+        .read(modelRegistryRepositoryProvider)
+        .deleteProvider(id);
 
     result.fold(
       (l) {
         // 3. Rollback
         state = AsyncData(previousState);
         // set error while keeping data
-        state = AsyncError<ModelRegistryState>(l, StackTrace.current).copyWithPrevious(AsyncData(previousState));
+        state = AsyncError<ModelRegistryState>(
+          l,
+          StackTrace.current,
+        ).copyWithPrevious(AsyncData(previousState));
       },
       (r) {
         // 4. Silent Sync
@@ -132,20 +146,26 @@ class ModelRegistryController extends _$ModelRegistryController {
     if (currentState == null) return;
 
     // Local Loading State for Test Result
-    state = AsyncData(currentState.copyWith(testResult: const AsyncValue.loading()));
+    state = AsyncData(
+      currentState.copyWith(testResult: const AsyncValue.loading()),
+    );
 
-    final result = await ref.read(modelRegistryRepositoryProvider).runAdHocTest(request);
+    final result = await ref
+        .read(modelRegistryRepositoryProvider)
+        .runAdHocTest(request);
 
     result.fold(
       (l) {
-         state = AsyncData(currentState.copyWith(
+        state = AsyncData(
+          currentState.copyWith(
             testResult: AsyncValue.error(l, StackTrace.current),
-         ));
+          ),
+        );
       },
       (r) {
-         state = AsyncData(currentState.copyWith(
-            testResult: AsyncValue.data(r),
-         ));
+        state = AsyncData(
+          currentState.copyWith(testResult: AsyncValue.data(r)),
+        );
       },
     );
   }

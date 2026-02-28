@@ -42,14 +42,8 @@ class SettingsScreen extends ConsumerWidget {
                   }
                 },
                 items: const [
-                  DropdownMenuItem(
-                    value: Locale('fi'),
-                     child: Text('🇫🇮 FI'),
-                  ),
-                  DropdownMenuItem(
-                    value: Locale('en'),
-                    child: Text('🇬🇧 EN'),
-                  ),
+                  DropdownMenuItem(value: Locale('fi'), child: Text('🇫🇮 FI')),
+                  DropdownMenuItem(value: Locale('en'), child: Text('🇬🇧 EN')),
                 ],
               ),
             ),
@@ -62,29 +56,29 @@ class SettingsScreen extends ConsumerWidget {
                 themeMode == ThemeMode.light
                     ? Icons.light_mode
                     : themeMode == ThemeMode.dark
-                        ? Icons.dark_mode
-                        : Icons.brightness_auto,
+                    ? Icons.dark_mode
+                    : Icons.brightness_auto,
               ),
               onPressed: () {
                 final next =
                     themeMode == ThemeMode.system
                         ? ThemeMode.light
                         : themeMode == ThemeMode.light
-                            ? ThemeMode.dark
-                            : ThemeMode.system;
+                        ? ThemeMode.dark
+                        : ThemeMode.system;
                 ref.read(themeModeProvider.notifier).setThemeMode(next);
               },
             ),
           ),
           // User Info
           Padding(
-             padding: const EdgeInsets.symmetric(horizontal: 8.0),
-             child: Center(
-               child: Text(
-                 user?.displayName ?? "",
-                 style: const TextStyle(fontWeight: FontWeight.bold),
-               ),
-             ),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Center(
+              child: Text(
+                user?.displayName ?? "",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -99,7 +93,9 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   title: Text('Debug: ${user.role}'),
                   subtitle: Text(
-                    user.slug != null ? 'Ref: ${user.slug}' : 'Role: ${user.role.name.toUpperCase()}',
+                    user.slug != null
+                        ? 'Ref: ${user.slug}'
+                        : 'Role: ${user.role.name.toUpperCase()}',
                   ),
                   tileColor: Colors.amber.withValues(alpha: 0.2),
                 ),

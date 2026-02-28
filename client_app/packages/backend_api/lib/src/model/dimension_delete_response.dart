@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'dimension_delete_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,50 +17,26 @@ part 'dimension_delete_response.g.dart';
 )
 class DimensionDeleteResponse {
   /// Returns a new [DimensionDeleteResponse] instance.
-  DimensionDeleteResponse({
+  DimensionDeleteResponse({required this.status, required this.id});
 
-    required  this.status,
-
-    required  this.id,
-  });
-
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: true)
   final String id;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DimensionDeleteResponse &&
+          other.status == status &&
+          other.id == id;
 
+  @override
+  int get hashCode => status.hashCode + id.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is DimensionDeleteResponse &&
-      other.status == status &&
-      other.id == id;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        id.hashCode;
-
-  factory DimensionDeleteResponse.fromJson(Map<String, dynamic> json) => _$DimensionDeleteResponseFromJson(json);
+  factory DimensionDeleteResponse.fromJson(Map<String, dynamic> json) =>
+      _$DimensionDeleteResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$DimensionDeleteResponseToJson(this);
 
@@ -69,6 +44,4 @@ class DimensionDeleteResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

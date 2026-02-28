@@ -30,7 +30,6 @@ import 'package:backend_api/src/model/user_role.dart';
 import 'package:backend_api/src/model/user_update.dart';
 
 class AdminApi {
-
   final Dio _dio;
 
   const AdminApi(this._dio);
@@ -39,7 +38,7 @@ class AdminApi {
   /// Adds a new phrase to the banned list.
   ///
   /// Parameters:
-  /// * [bannedPhraseRequest] 
+  /// * [bannedPhraseRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -49,7 +48,7 @@ class AdminApi {
   ///
   /// Returns a [Future] containing a [Response] with a [BannedPhraseResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<BannedPhraseResponse>> addBannedPhraseAdminBannedPhrasesPost({ 
+  Future<Response<BannedPhraseResponse>> addBannedPhraseAdminBannedPhrasesPost({
     required BannedPhraseRequest bannedPhraseRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -61,13 +60,8 @@ class AdminApi {
     final _path = r'/admin/banned-phrases';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -75,13 +69,10 @@ class AdminApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(bannedPhraseRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(bannedPhraseRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -100,9 +91,14 @@ _bodyData=jsonEncode(bannedPhraseRequest);
     BannedPhraseResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<BannedPhraseResponse, BannedPhraseResponse>(rawData, 'BannedPhraseResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<BannedPhraseResponse, BannedPhraseResponse>(
+              rawData,
+              'BannedPhraseResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -129,8 +125,8 @@ _responseData = rawData == null ? null : deserialize<BannedPhraseResponse, Banne
   /// Creates a new Tenant Organization.  Args:     request (OrganizationCreate): Payload for the new organization.     user (CurrentUserDep): The requesting user (must be ROOT).     auth_service (AuthServiceDep): Authentication service dependency.  Returns:     Organization: The created organization.  Raises:     HTTPException: If user is not ROOT (403) or creation fails.
   ///
   /// Parameters:
-  /// * [organizationCreate] 
-  /// * [authorization] 
+  /// * [organizationCreate]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -140,7 +136,7 @@ _responseData = rawData == null ? null : deserialize<BannedPhraseResponse, Banne
   ///
   /// Returns a [Future] containing a [Response] with a [Organization] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Organization>> createOrganizationAdminOrganizationsPost({ 
+  Future<Response<Organization>> createOrganizationAdminOrganizationsPost({
     required OrganizationCreate organizationCreate,
     String? authorization,
     CancelToken? cancelToken,
@@ -153,14 +149,8 @@ _responseData = rawData == null ? null : deserialize<BannedPhraseResponse, Banne
     final _path = r'/admin/organizations';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -168,13 +158,10 @@ _responseData = rawData == null ? null : deserialize<BannedPhraseResponse, Banne
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(organizationCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(organizationCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -193,9 +180,14 @@ _bodyData=jsonEncode(organizationCreate);
     Organization? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<Organization, Organization>(rawData, 'Organization', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<Organization, Organization>(
+              rawData,
+              'Organization',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -222,8 +214,8 @@ _responseData = rawData == null ? null : deserialize<Organization, Organization>
   /// Creates a new user under the active organization constraints.
   ///
   /// Parameters:
-  /// * [userCreate] 
-  /// * [authorization] 
+  /// * [userCreate]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -233,7 +225,7 @@ _responseData = rawData == null ? null : deserialize<Organization, Organization>
   ///
   /// Returns a [Future] containing a [Response] with a [UserAdminView] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<UserAdminView>> createUserAdminUsersPost({ 
+  Future<Response<UserAdminView>> createUserAdminUsersPost({
     required UserCreate userCreate,
     String? authorization,
     CancelToken? cancelToken,
@@ -246,14 +238,8 @@ _responseData = rawData == null ? null : deserialize<Organization, Organization>
     final _path = r'/admin/users';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -261,13 +247,10 @@ _responseData = rawData == null ? null : deserialize<Organization, Organization>
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(userCreate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(userCreate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -286,9 +269,14 @@ _bodyData=jsonEncode(userCreate);
     UserAdminView? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminView>(rawData, 'UserAdminView', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<UserAdminView, UserAdminView>(
+              rawData,
+              'UserAdminView',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -325,7 +313,8 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
   ///
   /// Returns a [Future] containing a [Response] with a [BannedPhraseResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<BannedPhraseResponse>> deleteBannedPhraseAdminBannedPhrasesPhraseDelete({ 
+  Future<Response<BannedPhraseResponse>>
+  deleteBannedPhraseAdminBannedPhrasesPhraseDelete({
     required String phrase,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -334,16 +323,16 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/admin/banned-phrases/{phrase}'.replaceAll('{' r'phrase' '}', phrase.toString());
+    final _path = r'/admin/banned-phrases/{phrase}'.replaceAll(
+      '{'
+      r'phrase'
+      '}',
+      phrase.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -358,9 +347,14 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
     BannedPhraseResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<BannedPhraseResponse, BannedPhraseResponse>(rawData, 'BannedPhraseResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<BannedPhraseResponse, BannedPhraseResponse>(
+              rawData,
+              'BannedPhraseResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -388,7 +382,7 @@ _responseData = rawData == null ? null : deserialize<BannedPhraseResponse, Banne
   ///
   /// Parameters:
   /// * [userId] - Target User UID
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -398,7 +392,7 @@ _responseData = rawData == null ? null : deserialize<BannedPhraseResponse, Banne
   ///
   /// Returns a [Future] containing a [Response] with a [GenericActionResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<GenericActionResponse>> deleteUserAdminUsersUserIdDelete({ 
+  Future<Response<GenericActionResponse>> deleteUserAdminUsersUserIdDelete({
     required String userId,
     String? authorization,
     CancelToken? cancelToken,
@@ -408,17 +402,16 @@ _responseData = rawData == null ? null : deserialize<BannedPhraseResponse, Banne
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/admin/users/{user_id}'.replaceAll('{' r'user_id' '}', userId.toString());
+    final _path = r'/admin/users/{user_id}'.replaceAll(
+      '{'
+      r'user_id'
+      '}',
+      userId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -433,9 +426,14 @@ _responseData = rawData == null ? null : deserialize<BannedPhraseResponse, Banne
     GenericActionResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<GenericActionResponse, GenericActionResponse>(rawData, 'GenericActionResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<GenericActionResponse, GenericActionResponse>(
+              rawData,
+              'GenericActionResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -462,7 +460,7 @@ _responseData = rawData == null ? null : deserialize<GenericActionResponse, Gene
   /// Trigger seed data export task.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -472,7 +470,7 @@ _responseData = rawData == null ? null : deserialize<GenericActionResponse, Gene
   ///
   /// Returns a [Future] containing a [Response] with a [AdminTaskResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<AdminTaskResponse>> exportSeedDataAdminExportSeedDataPost({ 
+  Future<Response<AdminTaskResponse>> exportSeedDataAdminExportSeedDataPost({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -484,14 +482,8 @@ _responseData = rawData == null ? null : deserialize<GenericActionResponse, Gene
     final _path = r'/admin/export/seed-data';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -506,9 +498,14 @@ _responseData = rawData == null ? null : deserialize<GenericActionResponse, Gene
     AdminTaskResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTaskResponse>(rawData, 'AdminTaskResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<AdminTaskResponse, AdminTaskResponse>(
+              rawData,
+              'AdminTaskResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -535,7 +532,7 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
   /// Uses LLM to generate banned phrases.
   ///
   /// Parameters:
-  /// * [generatePhrasesRequest] 
+  /// * [generatePhrasesRequest]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -545,7 +542,8 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
   ///
   /// Returns a [Future] containing a [Response] with a [GeneratedPhrasesResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<GeneratedPhrasesResponse>> generateBannedPhrasesAdminBannedPhrasesGeneratePost({ 
+  Future<Response<GeneratedPhrasesResponse>>
+  generateBannedPhrasesAdminBannedPhrasesGeneratePost({
     required GeneratePhrasesRequest generatePhrasesRequest,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -557,13 +555,8 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     final _path = r'/admin/banned-phrases/generate';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -571,13 +564,10 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(generatePhrasesRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(generatePhrasesRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -596,9 +586,14 @@ _bodyData=jsonEncode(generatePhrasesRequest);
     GeneratedPhrasesResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<GeneratedPhrasesResponse, GeneratedPhrasesResponse>(rawData, 'GeneratedPhrasesResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<GeneratedPhrasesResponse, GeneratedPhrasesResponse>(
+              rawData,
+              'GeneratedPhrasesResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -625,7 +620,7 @@ _responseData = rawData == null ? null : deserialize<GeneratedPhrasesResponse, G
   /// Returns the list of roles the currently authenticated user is allowed to assign.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -635,7 +630,7 @@ _responseData = rawData == null ? null : deserialize<GeneratedPhrasesResponse, G
   ///
   /// Returns a [Future] containing a [Response] with a [List<UserRole>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<UserRole>>> getAssignableRolesAdminUsersRolesGet({ 
+  Future<Response<List<UserRole>>> getAssignableRolesAdminUsersRolesGet({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -647,14 +642,8 @@ _responseData = rawData == null ? null : deserialize<GeneratedPhrasesResponse, G
     final _path = r'/admin/users/roles';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -669,9 +658,14 @@ _responseData = rawData == null ? null : deserialize<GeneratedPhrasesResponse, G
     List<UserRole>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<UserRole>, UserRole>(rawData, 'List<UserRole>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<UserRole>, UserRole>(
+              rawData,
+              'List<UserRole>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -707,7 +701,8 @@ _responseData = rawData == null ? null : deserialize<List<UserRole>, UserRole>(r
   ///
   /// Returns a [Future] containing a [Response] with a [List<Map<String, Object>>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<Map<String, Object>>>> getBannedPhrasesAdminBannedPhrasesGet({ 
+  Future<Response<List<Map<String, Object>>>>
+  getBannedPhrasesAdminBannedPhrasesGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -718,13 +713,8 @@ _responseData = rawData == null ? null : deserialize<List<UserRole>, UserRole>(r
     final _path = r'/admin/banned-phrases';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -739,9 +729,14 @@ _responseData = rawData == null ? null : deserialize<List<UserRole>, UserRole>(r
     List<Map<String, Object>>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<Map<String, Object>>, Map>(rawData, 'List<Map<String, Object>>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<Map<String, Object>>, Map>(
+              rawData,
+              'List<Map<String, Object>>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -779,7 +774,7 @@ _responseData = rawData == null ? null : deserialize<List<Map<String, Object>>, 
   /// Returns a [Future] containing a [Response] with a [Object] as data
   /// Throws [DioException] if API call or serialization fails
   @Deprecated('This operation has been deprecated')
-  Future<Response<Object>> getIngestionStatusAdminKnowledgeBaseStatusJobIdGet({ 
+  Future<Response<Object>> getIngestionStatusAdminKnowledgeBaseStatusJobIdGet({
     required String jobId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -788,16 +783,16 @@ _responseData = rawData == null ? null : deserialize<List<Map<String, Object>>, 
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/admin/knowledge-base/status/{job_id}'.replaceAll('{' r'job_id' '}', jobId.toString());
+    final _path = r'/admin/knowledge-base/status/{job_id}'.replaceAll(
+      '{'
+      r'job_id'
+      '}',
+      jobId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -812,9 +807,10 @@ _responseData = rawData == null ? null : deserialize<List<Map<String, Object>>, 
     Object? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'Object', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<Object, Object>(rawData, 'Object', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -841,7 +837,7 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   /// Retrieves current metrics from the ArQ Redis queue.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -851,7 +847,7 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
   ///
   /// Returns a [Future] containing a [Response] with a [QueueStats] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<QueueStats>> getQueueStatsAdminSystemQueueGet({ 
+  Future<Response<QueueStats>> getQueueStatsAdminSystemQueueGet({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -863,14 +859,8 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
     final _path = r'/admin/system/queue';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -885,9 +875,14 @@ _responseData = rawData == null ? null : deserialize<Object, Object>(rawData, 'O
     QueueStats? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<QueueStats, QueueStats>(rawData, 'QueueStats', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<QueueStats, QueueStats>(
+              rawData,
+              'QueueStats',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -924,7 +919,7 @@ _responseData = rawData == null ? null : deserialize<QueueStats, QueueStats>(raw
   ///
   /// Returns a [Future] containing a [Response] with a [TaskStatusResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<TaskStatusResponse>> getTaskStatusAdminStatusJobIdGet({ 
+  Future<Response<TaskStatusResponse>> getTaskStatusAdminStatusJobIdGet({
     required String jobId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -933,16 +928,16 @@ _responseData = rawData == null ? null : deserialize<QueueStats, QueueStats>(raw
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/admin/status/{job_id}'.replaceAll('{' r'job_id' '}', jobId.toString());
+    final _path = r'/admin/status/{job_id}'.replaceAll(
+      '{'
+      r'job_id'
+      '}',
+      jobId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -957,9 +952,14 @@ _responseData = rawData == null ? null : deserialize<QueueStats, QueueStats>(raw
     TaskStatusResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<TaskStatusResponse, TaskStatusResponse>(rawData, 'TaskStatusResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<TaskStatusResponse, TaskStatusResponse>(
+              rawData,
+              'TaskStatusResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -987,7 +987,7 @@ _responseData = rawData == null ? null : deserialize<TaskStatusResponse, TaskSta
   ///
   /// Parameters:
   /// * [organizationId] - Organization ID
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -997,7 +997,8 @@ _responseData = rawData == null ? null : deserialize<TaskStatusResponse, TaskSta
   ///
   /// Returns a [Future] containing a [Response] with a [List<UserAdminView>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<UserAdminView>>> listOrganizationUsersAdminOrgOrganizationIdUsersGet({ 
+  Future<Response<List<UserAdminView>>>
+  listOrganizationUsersAdminOrgOrganizationIdUsersGet({
     required String organizationId,
     String? authorization,
     CancelToken? cancelToken,
@@ -1007,17 +1008,16 @@ _responseData = rawData == null ? null : deserialize<TaskStatusResponse, TaskSta
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/admin/org/{organization_id}/users'.replaceAll('{' r'organization_id' '}', organizationId.toString());
+    final _path = r'/admin/org/{organization_id}/users'.replaceAll(
+      '{'
+      r'organization_id'
+      '}',
+      organizationId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1032,9 +1032,14 @@ _responseData = rawData == null ? null : deserialize<TaskStatusResponse, TaskSta
     List<UserAdminView>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<UserAdminView>, UserAdminView>(rawData, 'List<UserAdminView>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<UserAdminView>, UserAdminView>(
+              rawData,
+              'List<UserAdminView>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1061,7 +1066,7 @@ _responseData = rawData == null ? null : deserialize<List<UserAdminView>, UserAd
   /// Trigger database rebuild task.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1071,7 +1076,7 @@ _responseData = rawData == null ? null : deserialize<List<UserAdminView>, UserAd
   ///
   /// Returns a [Future] containing a [Response] with a [AdminTaskResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<AdminTaskResponse>> rebuildDatabaseAdminDatabaseRebuildPost({ 
+  Future<Response<AdminTaskResponse>> rebuildDatabaseAdminDatabaseRebuildPost({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1083,14 +1088,8 @@ _responseData = rawData == null ? null : deserialize<List<UserAdminView>, UserAd
     final _path = r'/admin/database/rebuild';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1105,9 +1104,14 @@ _responseData = rawData == null ? null : deserialize<List<UserAdminView>, UserAd
     AdminTaskResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTaskResponse>(rawData, 'AdminTaskResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<AdminTaskResponse, AdminTaskResponse>(
+              rawData,
+              'AdminTaskResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1134,7 +1138,7 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
   /// Trigger firestore database reset task.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1144,7 +1148,8 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
   ///
   /// Returns a [Future] containing a [Response] with a [AdminTaskResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<AdminTaskResponse>> resetFirestoreDbAdminDatabaseResetFirestorePost({ 
+  Future<Response<AdminTaskResponse>>
+  resetFirestoreDbAdminDatabaseResetFirestorePost({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1156,14 +1161,8 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     final _path = r'/admin/database/reset/firestore';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1178,9 +1177,14 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     AdminTaskResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTaskResponse>(rawData, 'AdminTaskResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<AdminTaskResponse, AdminTaskResponse>(
+              rawData,
+              'AdminTaskResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1207,7 +1211,7 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
   /// Trigger mock database reset task.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1217,7 +1221,7 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
   ///
   /// Returns a [Future] containing a [Response] with a [AdminTaskResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<AdminTaskResponse>> resetMockDbAdminDatabaseResetMockPost({ 
+  Future<Response<AdminTaskResponse>> resetMockDbAdminDatabaseResetMockPost({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1229,14 +1233,8 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     final _path = r'/admin/database/reset/mock';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1251,9 +1249,14 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     AdminTaskResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTaskResponse>(rawData, 'AdminTaskResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<AdminTaskResponse, AdminTaskResponse>(
+              rawData,
+              'AdminTaskResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1280,7 +1283,7 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
   /// Trigger production database reset task.
   ///
   /// Parameters:
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1290,7 +1293,7 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
   ///
   /// Returns a [Future] containing a [Response] with a [AdminTaskResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<AdminTaskResponse>> resetProdDbAdminDatabaseResetProdPost({ 
+  Future<Response<AdminTaskResponse>> resetProdDbAdminDatabaseResetProdPost({
     String? authorization,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1302,14 +1305,8 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     final _path = r'/admin/database/reset/prod';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1324,9 +1321,14 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     AdminTaskResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTaskResponse>(rawData, 'AdminTaskResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<AdminTaskResponse, AdminTaskResponse>(
+              rawData,
+              'AdminTaskResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1362,7 +1364,7 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
   ///
   /// Returns a [Future] containing a [Response] with a [SelfTestResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<SelfTestResponse>> runSelfTestAdminSelfTestPost({ 
+  Future<Response<SelfTestResponse>> runSelfTestAdminSelfTestPost({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1373,13 +1375,8 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     final _path = r'/admin/self-test';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -1394,9 +1391,14 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
     SelfTestResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<SelfTestResponse, SelfTestResponse>(rawData, 'SelfTestResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<SelfTestResponse, SelfTestResponse>(
+              rawData,
+              'SelfTestResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1423,8 +1425,8 @@ _responseData = rawData == null ? null : deserialize<SelfTestResponse, SelfTestR
   /// Triggers ingestion from a local file path.
   ///
   /// Parameters:
-  /// * [ingestRequest] 
-  /// * [authorization] 
+  /// * [ingestRequest]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1434,7 +1436,7 @@ _responseData = rawData == null ? null : deserialize<SelfTestResponse, SelfTestR
   ///
   /// Returns a [Future] containing a [Response] with a [AsyncJobResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<AsyncJobResponse>> triggerIngestAdminIngestPost({ 
+  Future<Response<AsyncJobResponse>> triggerIngestAdminIngestPost({
     required IngestRequest ingestRequest,
     String? authorization,
     CancelToken? cancelToken,
@@ -1447,14 +1449,8 @@ _responseData = rawData == null ? null : deserialize<SelfTestResponse, SelfTestR
     final _path = r'/admin/ingest';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1462,13 +1458,10 @@ _responseData = rawData == null ? null : deserialize<SelfTestResponse, SelfTestR
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(ingestRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(ingestRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1487,9 +1480,14 @@ _bodyData=jsonEncode(ingestRequest);
     AsyncJobResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<AsyncJobResponse, AsyncJobResponse>(rawData, 'AsyncJobResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<AsyncJobResponse, AsyncJobResponse>(
+              rawData,
+              'AsyncJobResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1517,8 +1515,8 @@ _responseData = rawData == null ? null : deserialize<AsyncJobResponse, AsyncJobR
   ///
   /// Parameters:
   /// * [userId] - Target User UID
-  /// * [userUpdate] 
-  /// * [authorization] 
+  /// * [userUpdate]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1528,7 +1526,7 @@ _responseData = rawData == null ? null : deserialize<AsyncJobResponse, AsyncJobR
   ///
   /// Returns a [Future] containing a [Response] with a [UserAdminView] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<UserAdminView>> updateUserAdminUsersUserIdPatch({ 
+  Future<Response<UserAdminView>> updateUserAdminUsersUserIdPatch({
     required String userId,
     required UserUpdate userUpdate,
     String? authorization,
@@ -1539,17 +1537,16 @@ _responseData = rawData == null ? null : deserialize<AsyncJobResponse, AsyncJobR
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/admin/users/{user_id}'.replaceAll('{' r'user_id' '}', userId.toString());
+    final _path = r'/admin/users/{user_id}'.replaceAll(
+      '{'
+      r'user_id'
+      '}',
+      userId.toString(),
+    );
     final _options = Options(
       method: r'PATCH',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1557,13 +1554,10 @@ _responseData = rawData == null ? null : deserialize<AsyncJobResponse, AsyncJobR
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(userUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(userUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1582,9 +1576,14 @@ _bodyData=jsonEncode(userUpdate);
     UserAdminView? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminView>(rawData, 'UserAdminView', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<UserAdminView, UserAdminView>(
+              rawData,
+              'UserAdminView',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1612,8 +1611,8 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
   ///
   /// Parameters:
   /// * [userId] - User ID
-  /// * [updateRoleRequest] 
-  /// * [authorization] 
+  /// * [updateRoleRequest]
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1623,7 +1622,7 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
   ///
   /// Returns a [Future] containing a [Response] with a [UserAdminView] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<UserAdminView>> updateUserRoleAdminUserUserIdRolePut({ 
+  Future<Response<UserAdminView>> updateUserRoleAdminUserUserIdRolePut({
     required String userId,
     required UpdateRoleRequest updateRoleRequest,
     String? authorization,
@@ -1634,17 +1633,16 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/admin/user/{user_id}/role'.replaceAll('{' r'user_id' '}', userId.toString());
+    final _path = r'/admin/user/{user_id}/role'.replaceAll(
+      '{'
+      r'user_id'
+      '}',
+      userId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -1652,13 +1650,10 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(updateRoleRequest);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(updateRoleRequest);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -1677,9 +1672,14 @@ _bodyData=jsonEncode(updateRoleRequest);
     UserAdminView? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminView>(rawData, 'UserAdminView', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<UserAdminView, UserAdminView>(
+              rawData,
+              'UserAdminView',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1709,7 +1709,7 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
   /// * [file] - File to ingest.
   /// * [resetDb] - Clear KB first.
   /// * [modelStrategy] - LLM Strategy (fast, deep). Default: None (Basic Parsing).
-  /// * [authorization] 
+  /// * [authorization]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1719,7 +1719,8 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
   ///
   /// Returns a [Future] containing a [Response] with a [AdminTaskResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<AdminTaskResponse>> uploadKnowledgeBaseAdminKnowledgeBaseUploadPost({ 
+  Future<Response<AdminTaskResponse>>
+  uploadKnowledgeBaseAdminKnowledgeBaseUploadPost({
     required MultipartFile file,
     bool? resetDb = false,
     String? modelStrategy,
@@ -1734,14 +1735,8 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
     final _path = r'/admin/knowledge-base/upload';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'authorization': authorization,
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{r'authorization': authorization, ...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'multipart/form-data',
       validateStatus: validateStatus,
     );
@@ -1753,11 +1748,9 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
 
     dynamic _bodyData;
 
-    try {
-
-    } catch(error, stackTrace) {
+    try {} catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
+        requestOptions: _options.compose(
           _dio.options,
           _path,
           queryParameters: _queryParameters,
@@ -1781,9 +1774,14 @@ _responseData = rawData == null ? null : deserialize<UserAdminView, UserAdminVie
     AdminTaskResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTaskResponse>(rawData, 'AdminTaskResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<AdminTaskResponse, AdminTaskResponse>(
+              rawData,
+              'AdminTaskResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1805,5 +1803,4 @@ _responseData = rawData == null ? null : deserialize<AdminTaskResponse, AdminTas
       extra: _response.extra,
     );
   }
-
 }

@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'chain_preview_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,35 +17,22 @@ part 'chain_preview_response.g.dart';
 )
 class ChainPreviewResponse {
   /// Returns a new [ChainPreviewResponse] instance.
-  ChainPreviewResponse({
+  ChainPreviewResponse({required this.markdownContent});
 
-    required  this.markdownContent,
-  });
-
-      /// The full Markdown concatenation of all step prompts.
-  @JsonKey(
-    
-    name: r'markdown_content',
-    required: true,
-    
-  )
-
-
+  /// The full Markdown concatenation of all step prompts.
+  @JsonKey(name: r'markdown_content', required: true)
   final String markdownContent;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ChainPreviewResponse && other.markdownContent == markdownContent;
 
+  @override
+  int get hashCode => markdownContent.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ChainPreviewResponse &&
-      other.markdownContent == markdownContent;
-
-    @override
-    int get hashCode =>
-        markdownContent.hashCode;
-
-  factory ChainPreviewResponse.fromJson(Map<String, dynamic> json) => _$ChainPreviewResponseFromJson(json);
+  factory ChainPreviewResponse.fromJson(Map<String, dynamic> json) =>
+      _$ChainPreviewResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$ChainPreviewResponseToJson(this);
 
@@ -54,6 +40,4 @@ class ChainPreviewResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

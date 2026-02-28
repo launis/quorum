@@ -156,8 +156,17 @@ class LiteLLMProvider(LLMProvider):
         # Initialize Instructor Client checking compatibility with Router
         # Instructor expects a client-like object or a completion function.
         # We wrap the router's acompletion method.
-        # mode=instructor.Mode.MD_JSON is standard for generic models.
-        self.client = instructor.from_litellm(self.router.acompletion, mode=instructor.Mode.MD_JSON)
+        
+        # 4. Determine Parsing Mode
+        parse_mode = instructor.Mode.MD_JSON
+        if self.settings and getattr(self.settings, "parsing_mode", None):
+            mode_str = self.settings.parsing_mode.upper()
+            if hasattr(instructor.Mode, mode_str):
+                parse_mode = getattr(instructor.Mode, mode_str)
+            else:
+                logger.warning(f"[LiteLLMProvider] Invalid parsing_mode '{mode_str}' in config, falling back to MD_JSON")
+
+        self.client = instructor.from_litellm(self.router.acompletion, mode=parse_mode)
 
     @retry_strategy
     async def generate(
@@ -371,15 +380,27 @@ class LiteLLMProvider(LLMProvider):
                 # Standard `.create()` is rock solid for big context but swallows the raw headers.
                 # We only use the fragile `create_with_completion` if Grounding is explicitly required.
 
-                if self.settings and getattr(self.settings, "supports_grounding", False):
-                    logger.info(f"[Instructor] Grounding enabled. Using create_with_completion.")
-                    structured_response, raw_completion = await self.client.chat.completions.create_with_completion(**call_kwargs)
-                    parsed_obj = structured_response
-                else:
-                    logger.info(f"[Instructor] Standard extraction. Using .create().")
-                    parsed_obj = await self.client.chat.completions.create(**call_kwargs)
-                    # For metrics, attempt to extract the underlying object if available
-                    raw_completion = getattr(parsed_obj, "_raw_response", None)
+                try:
+                    if self.settings and getattr(self.settings, "supports_grounding", False):
+                        logger.info(f"[Instructor] Grounding enabled. Using create_with_completion.")
+                        structured_response, raw_completion = await self.client.chat.completions.create_with_completion(**call_kwargs)
+                        parsed_obj = structured_response
+                    else:
+                        logger.info(f"[Instructor] Standard extraction. Using .create().")
+                        parsed_obj = await self.client.chat.completions.create(**call_kwargs)
+                        # For metrics, attempt to extract the underlying object if available
+                        raw_completion = getattr(parsed_obj, "_raw_response", None)
+                except Exception as e:
+                    # Fail Fast: Catch Instructor empty choices or parsing failures cleanly
+                    error_str = str(e)
+                    if "ResponseParsingError" in type(e).__name__ or "No completion choices found" in error_str:
+                        logger.error(f"[LiteLLMProvider] Instructor JSON Parsing Failure: {error_str}")
+                        raise AppException(
+                            message="Tekoälymalli palautti tyhjän tai virheellisesti muotoillun vastauksen. Tämä johtuu usein liian suuresta promptista (Search-data) tai JSON-formaatin asetusvirheestä.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED, "raw_error": error_str}
+                        )
+                    raise e
 
                 final_content = parsed_obj.model_dump_json()
 
@@ -620,6 +641,9 @@ class LiteLLMProvider(LLMProvider):
             )
 
         except Exception as e:
+            if isinstance(e, AppException) or hasattr(e, "status_code"):
+                raise e
+                
             # Jan 2026: Reduce Error Verbosity & Improve Classification
             error_msg = str(e)
             error_type = type(e).__name__
@@ -633,12 +657,12 @@ class LiteLLMProvider(LLMProvider):
                 ) from e
 
             # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens/Empty Response)
-            elif "InstructorRetryException" in error_type:
+            elif "InstructorRetryException" in error_type or "ResponseParsingError" in error_type:
                 logger.error(f"[LiteLLM] INSTRUCTOR / MODEL FAILURE (Empty choices or schema mismatch): {error_msg}")
                 raise AppException(
                     message="Model failed to generate structured output (empty response or looping).",
                     status_code=500,
-                    details={"error_code": ErrorCodes.MODEL_OUTPUT_LIMIT_EXCEEDED, "original_error": error_msg},
+                    details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED, "original_error": error_msg},
                 ) from e
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
@@ -699,6 +723,8 @@ class LiteLLMProvider(LLMProvider):
                 logger.error(f"[LiteLLM] Execution Failed ({error_type}): {error_msg}")
 
                 logger.debug(f"[LiteLLM] Full Error Trace: {e}", exc_info=True)
+                import traceback
+                traceback.print_exc()
 
                 # Default to ServiceUnavailable for unknown upstream errors
                 raise ServiceUnavailableError(

@@ -17,13 +17,19 @@ class AgentMappingsController extends _$AgentMappingsController {
   /// Updates the mapping optimistically.
   Future<void> updateMapping(String agentId, String strategyId) async {
     final previousState = state;
-    if (previousState is! AsyncData<Map<String, ({String? strategyId, String name})>>) return;
+    if (previousState
+        is! AsyncData<Map<String, ({String? strategyId, String name})>>)
+      return;
 
-    final currentMap = Map<String, ({String? strategyId, String name})>.from(previousState.value);
-    
+    final currentMap = Map<String, ({String? strategyId, String name})>.from(
+      previousState.value,
+    );
+
     // Preserve existing name on update
     final existingName = currentMap[agentId]?.name ?? agentId;
-    final newMap = Map<String, ({String? strategyId, String name})>.from(currentMap)..[agentId] = (strategyId: strategyId, name: existingName);
+    final newMap = Map<String, ({String? strategyId, String name})>.from(
+      currentMap,
+    )..[agentId] = (strategyId: strategyId, name: existingName);
 
     // Optimistic update
     state = AsyncData(newMap);

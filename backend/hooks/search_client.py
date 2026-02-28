@@ -89,7 +89,10 @@ class VertexAISearchTool:
             # We assume enabled (Strict) or Disabled?
             # Strict: Raise error.
             logger.critical(f"[VertexAISearchTool] Failed to load settings during init: {e}")
-            raise ConfigurationError(f"Settings load failure: {e}") from e
+            raise ConfigurationError(
+                f"Settings load failure: {e}",
+                details={"error_code": ErrorCodes.SEARCH_CONFIG_ERROR, "original_error": str(e)}
+            ) from e
 
         self.project_id = project_id or os.getenv("GOOGLE_CLOUD_PROJECT")
         if not self.project_id:

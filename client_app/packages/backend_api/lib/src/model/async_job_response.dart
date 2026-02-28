@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'async_job_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,68 +17,35 @@ part 'async_job_response.g.dart';
 )
 class AsyncJobResponse {
   /// Returns a new [AsyncJobResponse] instance.
-  AsyncJobResponse({
+  AsyncJobResponse({required this.jobId, required this.status, this.message});
 
-    required  this.jobId,
-
-    required  this.status,
-
-     this.message,
-  });
-
-      /// Unique Identifier for the background job.
-  @JsonKey(
-    
-    name: r'job_id',
-    required: true,
-    
-  )
-
-
+  /// Unique Identifier for the background job.
+  @JsonKey(name: r'job_id', required: true)
   final String jobId;
 
-
-
-      /// Initial status (e.g. 'queued', 'starting').
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  /// Initial status (e.g. 'queued', 'starting').
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'message',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'message', required: false)
   final String? message;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AsyncJobResponse &&
+          other.jobId == jobId &&
+          other.status == status &&
+          other.message == message;
 
+  @override
+  int get hashCode =>
+      jobId.hashCode +
+      status.hashCode +
+      (message == null ? 0 : message.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is AsyncJobResponse &&
-      other.jobId == jobId &&
-      other.status == status &&
-      other.message == message;
-
-    @override
-    int get hashCode =>
-        jobId.hashCode +
-        status.hashCode +
-        (message == null ? 0 : message.hashCode);
-
-  factory AsyncJobResponse.fromJson(Map<String, dynamic> json) => _$AsyncJobResponseFromJson(json);
+  factory AsyncJobResponse.fromJson(Map<String, dynamic> json) =>
+      _$AsyncJobResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$AsyncJobResponseToJson(this);
 
@@ -87,6 +53,4 @@ class AsyncJobResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for ModelRegistryUpdateResponse
 void main() {
-  final ModelRegistryUpdateResponse? instance = /* ModelRegistryUpdateResponse(...) */ null;
+  final ModelRegistryUpdateResponse?
+  instance = /* ModelRegistryUpdateResponse(...) */ null;
   // TODO add properties to the entity
 
   group(ModelRegistryUpdateResponse, () {
@@ -16,6 +17,5 @@ void main() {
     test('to test the property `registry`', () async {
       // TODO
     });
-
   });
 }

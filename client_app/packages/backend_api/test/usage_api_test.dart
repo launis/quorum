@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for UsageApi
 void main() {
   final instance = BackendApi().getUsageApi();
@@ -33,6 +32,5 @@ void main() {
     test('test getUserUsageV1UsageUserUserIdGet', () async {
       // TODO
     });
-
   });
 }

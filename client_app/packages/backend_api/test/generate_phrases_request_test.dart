@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for GeneratePhrasesRequest
 void main() {
-  final GeneratePhrasesRequest? instance = /* GeneratePhrasesRequest(...) */ null;
+  final GeneratePhrasesRequest? instance = /* GeneratePhrasesRequest(...) */
+      null;
   // TODO add properties to the entity
 
   group(GeneratePhrasesRequest, () {
@@ -12,6 +13,5 @@ void main() {
     test('to test the property `language`', () async {
       // TODO
     });
-
   });
 }

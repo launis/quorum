@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for OrganizationUserCreate
 void main() {
-  final OrganizationUserCreate? instance = /* OrganizationUserCreate(...) */ null;
+  final OrganizationUserCreate? instance = /* OrganizationUserCreate(...) */
+      null;
   // TODO add properties to the entity
 
   group(OrganizationUserCreate, () {
@@ -26,6 +27,5 @@ void main() {
     test('to test the property `password`', () async {
       // TODO
     });
-
   });
 }

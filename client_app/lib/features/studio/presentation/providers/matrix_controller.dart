@@ -58,7 +58,7 @@ class MatrixController extends _$MatrixController {
   Future<void> saveCurrentMatrix() async {
     final currentDraft = ref.read(matrixEditorStateProvider);
     if (currentDraft == null) return;
-    
+
     final previousState = state;
 
     // 1. Optimistic Update (Keep UI interactive / show clean state)
@@ -68,7 +68,7 @@ class MatrixController extends _$MatrixController {
     try {
       // 2. API Call
       await ref.read(studioRepositoryProvider).saveMatrix(currentDraft);
-      
+
       // 3. Silent Invalidation
       // This will trigger build() -> fetchMatrix(id) to get backend data
       ref.invalidateSelf();
@@ -76,7 +76,7 @@ class MatrixController extends _$MatrixController {
       // 4. Rollback / Error
       // If save fails, we might want to keep the draft state but show error.
       state = previousState;
-      state = AsyncValue.error(e, st); 
+      state = AsyncValue.error(e, st);
       // Rethrow for UI handling
       rethrow;
     }
@@ -84,7 +84,7 @@ class MatrixController extends _$MatrixController {
 
   Future<void> deleteMatrix(String id) async {
     final previousState = state;
-    
+
     // 1. Optimistic Update (Clear Editor)
     state = const AsyncValue.data(null);
     ref.read(matrixEditorStateProvider.notifier).set(null);
@@ -92,7 +92,7 @@ class MatrixController extends _$MatrixController {
     try {
       // 2. API Call
       await ref.read(studioRepositoryProvider).deleteComponent(id);
-      
+
       // 3. Silent Invalidation (Verify null)
       ref.invalidateSelf();
     } catch (e, st) {
@@ -102,7 +102,7 @@ class MatrixController extends _$MatrixController {
         ref.read(matrixEditorStateProvider.notifier).set(previousState.value);
         state = previousState;
       }
-      
+
       // Rethrow for UI
       final appError = e is AppError ? e : AppError.server(e.toString());
       state = AsyncValue.error(appError, st);

@@ -106,8 +106,14 @@ class StudioRepository {
     return getComponents();
   }
 
-  Future<List<StudioComponentDef>> getComponents({String? type, List<String>? excludeTypes}) async {
-    _logger.info('REPO', 'Fetching raw text components: type=$type, excludeTypes=$excludeTypes');
+  Future<List<StudioComponentDef>> getComponents({
+    String? type,
+    List<String>? excludeTypes,
+  }) async {
+    _logger.info(
+      'REPO',
+      'Fetching raw text components: type=$type, excludeTypes=$excludeTypes',
+    );
     try {
       final Map<String, dynamic> queryParams = {};
       if (type != null) {
@@ -169,10 +175,11 @@ class StudioRepository {
         // Flatten backend DTO "content" to root for MatrixDef
         final content = json['content'] as Map<String, dynamic>? ?? {};
         final flattened = {
-           ...json,
-           'scale': content['scale'] ?? {'min': 1, 'max': 5},
-           'criteria': content['criteria'] ?? [],
-           if (content.containsKey('role_description')) 'role_description': content['role_description'],
+          ...json,
+          'scale': content['scale'] ?? {'min': 1, 'max': 5},
+          'criteria': content['criteria'] ?? [],
+          if (content.containsKey('role_description'))
+            'role_description': content['role_description'],
         };
         return MatrixDef.fromJson(flattened);
       }).toList();
@@ -188,10 +195,11 @@ class StudioRepository {
       final json = response.data as Map<String, dynamic>;
       final content = json['content'] as Map<String, dynamic>? ?? {};
       final flattened = {
-         ...json,
-         'scale': content['scale'] ?? {'min': 1, 'max': 5},
-         'criteria': content['criteria'] ?? [],
-         if (content.containsKey('role_description')) 'role_description': content['role_description'],
+        ...json,
+        'scale': content['scale'] ?? {'min': 1, 'max': 5},
+        'criteria': content['criteria'] ?? [],
+        if (content.containsKey('role_description'))
+          'role_description': content['role_description'],
       };
       return MatrixDef.fromJson(flattened);
     } catch (e) {
@@ -202,35 +210,33 @@ class StudioRepository {
   Future<void> saveMatrix(MatrixDef matrix) async {
     try {
       final rawJson = matrix.toJson();
-      
+
       // Un-flatten: move MatrixDef specific fields back to 'content' for backend Strict DTO
       final content = {
-         'scale': rawJson['scale'],
-         'criteria': rawJson['criteria'],
-         if (rawJson.containsKey('role_description')) 'role_description': rawJson['role_description'],
+        'scale': rawJson['scale'],
+        'criteria': rawJson['criteria'],
+        if (rawJson.containsKey('role_description'))
+          'role_description': rawJson['role_description'],
       };
 
       final payload = {
-         'id': rawJson['id'],
-         'name': rawJson['name'],
-         'description': rawJson['description'],
-         'type': 'evaluation_matrix',
-         'content': content,
+        'id': rawJson['id'],
+        'name': rawJson['name'],
+        'description': rawJson['description'],
+        'type': 'evaluation_matrix',
+        'content': content,
       };
 
       if (matrix.id.isEmpty || matrix.id.startsWith('new_')) {
         await _api.post('/v1/config/matrices', data: payload);
       } else {
-        await _api.put(
-          '/v1/config/matrices/${matrix.id}',
-          data: payload,
-        );
+        await _api.put('/v1/config/matrices/${matrix.id}', data: payload);
       }
     } catch (e) {
       throw AppError.server(e.toString());
     }
   }
-  
+
   Future<void> deleteMatrix(String id) async {
     try {
       await _api.delete('/v1/config/matrices/$id');
@@ -259,10 +265,7 @@ class StudioRepository {
       if (agent.id.isEmpty || agent.id.startsWith('new_')) {
         await _api.post('/v1/config/agents', data: agent.toJson());
       } else {
-        await _api.put(
-          '/v1/config/agents/${agent.id}',
-          data: agent.toJson(),
-        );
+        await _api.put('/v1/config/agents/${agent.id}', data: agent.toJson());
       }
     } catch (e) {
       throw AppError.server(e.toString());
@@ -388,11 +391,11 @@ class StudioRepository {
   }
 
   Future<void> saveComponent(StudioComponentDef component) async {
-      if (component.id.isEmpty || component.id.startsWith('new_')) {
-        await createComponent(component);
-      } else {
-        await updateComponent(component);
-      }
+    if (component.id.isEmpty || component.id.startsWith('new_')) {
+      await createComponent(component);
+    } else {
+      await updateComponent(component);
+    }
   }
 
   Future<void> deleteComponent(String id) async {

@@ -149,20 +149,24 @@ class _ExecutionGridItemState extends ConsumerState<ExecutionGridItem> {
                               .read(executionControllerProvider.notifier)
                               .cancelExecution(widget.execution.id);
                         },
-                        icon: const Icon(Icons.cancel, color: Colors.orange), // Orange for 'Stop'
+                        icon: const Icon(
+                          Icons.cancel,
+                          color: Colors.orange,
+                        ), // Orange for 'Stop'
                         iconSize: 20,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         tooltip: l10n.cancel,
                       ),
                     )
-                  else if (widget.execution.status == ExecutionStatus.completed ||
-                           widget.execution.status == ExecutionStatus.failed ||
-                           widget.execution.status == ExecutionStatus.rejected ||
-                           widget.execution.status == ExecutionStatus.interrupted ||
-                           widget.execution.status == ExecutionStatus.cancelling ||
-                           widget.execution.status == ExecutionStatus.unknown)
-                     Container(
+                  else if (widget.execution.status ==
+                          ExecutionStatus.completed ||
+                      widget.execution.status == ExecutionStatus.failed ||
+                      widget.execution.status == ExecutionStatus.rejected ||
+                      widget.execution.status == ExecutionStatus.interrupted ||
+                      widget.execution.status == ExecutionStatus.cancelling ||
+                      widget.execution.status == ExecutionStatus.unknown)
+                    Container(
                       margin: const EdgeInsets.only(left: 8),
                       child: IconButton(
                         onPressed: () {
@@ -171,7 +175,10 @@ class _ExecutionGridItemState extends ConsumerState<ExecutionGridItem> {
                               .read(executionListControllerProvider.notifier)
                               .deleteExecution(widget.execution.id);
                         },
-                        icon: const Icon(Icons.delete_outline, color: Colors.grey), // Grey/Red for Delete
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.grey,
+                        ), // Grey/Red for Delete
                         iconSize: 20,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),

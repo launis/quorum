@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for WorkflowConfigDefinition
 void main() {
-  final WorkflowConfigDefinition? instance = /* WorkflowConfigDefinition(...) */ null;
+  final WorkflowConfigDefinition? instance = /* WorkflowConfigDefinition(...) */
+      null;
   // TODO add properties to the entity
 
   group(WorkflowConfigDefinition, () {
@@ -49,6 +50,5 @@ void main() {
     test('to test the property `defaultModelMapping`', () async {
       // TODO
     });
-
   });
 }

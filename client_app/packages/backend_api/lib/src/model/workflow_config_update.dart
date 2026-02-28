@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'workflow_config_update.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,81 +18,45 @@ part 'workflow_config_update.g.dart';
 class WorkflowConfigUpdate {
   /// Returns a new [WorkflowConfigUpdate] instance.
   WorkflowConfigUpdate({
+    this.steps,
 
-     this.steps,
+    this.sequence,
 
-     this.sequence,
+    this.description,
 
-     this.description,
-
-     this.defaultModelMapping,
+    this.defaultModelMapping,
   });
 
-  @JsonKey(
-    
-    name: r'steps',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'steps', required: false)
   final List<Map<String, Object>>? steps;
 
-
-
-  @JsonKey(
-    
-    name: r'sequence',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'sequence', required: false)
   final List<String>? sequence;
 
-
-
-  @JsonKey(
-    
-    name: r'description',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'description', required: false)
   final String? description;
 
-
-
-  @JsonKey(
-    
-    name: r'default_model_mapping',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'default_model_mapping', required: false)
   final Map<String, String>? defaultModelMapping;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WorkflowConfigUpdate &&
+          other.steps == steps &&
+          other.sequence == sequence &&
+          other.description == description &&
+          other.defaultModelMapping == defaultModelMapping;
 
+  @override
+  int get hashCode =>
+      (steps == null ? 0 : steps.hashCode) +
+      (sequence == null ? 0 : sequence.hashCode) +
+      (description == null ? 0 : description.hashCode) +
+      (defaultModelMapping == null ? 0 : defaultModelMapping.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is WorkflowConfigUpdate &&
-      other.steps == steps &&
-      other.sequence == sequence &&
-      other.description == description &&
-      other.defaultModelMapping == defaultModelMapping;
-
-    @override
-    int get hashCode =>
-        (steps == null ? 0 : steps.hashCode) +
-        (sequence == null ? 0 : sequence.hashCode) +
-        (description == null ? 0 : description.hashCode) +
-        (defaultModelMapping == null ? 0 : defaultModelMapping.hashCode);
-
-  factory WorkflowConfigUpdate.fromJson(Map<String, dynamic> json) => _$WorkflowConfigUpdateFromJson(json);
+  factory WorkflowConfigUpdate.fromJson(Map<String, dynamic> json) =>
+      _$WorkflowConfigUpdateFromJson(json);
 
   Map<String, dynamic> toJson() => _$WorkflowConfigUpdateToJson(this);
 
@@ -101,6 +64,4 @@ class WorkflowConfigUpdate {
   String toString() {
     return toJson().toString();
   }
-
 }
-

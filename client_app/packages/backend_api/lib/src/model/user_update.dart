@@ -9,7 +9,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'user_update.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -20,129 +19,66 @@ part 'user_update.g.dart';
 class UserUpdate {
   /// Returns a new [UserUpdate] instance.
   UserUpdate({
+    this.displayName,
 
-     this.displayName,
+    this.role,
 
-     this.role,
+    this.isActive,
 
-     this.isActive,
+    this.password,
 
-     this.password,
+    this.language,
 
-     this.language,
+    this.themeMode,
 
-     this.themeMode,
-
-     this.organizationId,
+    this.organizationId,
   });
 
-  @JsonKey(
-    
-    name: r'display_name',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'display_name', required: false)
   final String? displayName;
 
-
-
-  @JsonKey(
-    
-    name: r'role',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'role', required: false)
   final UserRole? role;
 
-
-
-  @JsonKey(
-    
-    name: r'is_active',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'is_active', required: false)
   final bool? isActive;
 
-
-
-  @JsonKey(
-    
-    name: r'password',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'password', required: false)
   final String? password;
 
-
-
-  @JsonKey(
-    
-    name: r'language',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'language', required: false)
   final String? language;
 
-
-
-  @JsonKey(
-    
-    name: r'theme_mode',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'theme_mode', required: false)
   final String? themeMode;
 
-
-
-  @JsonKey(
-    
-    name: r'organization_id',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'organization_id', required: false)
   final String? organizationId;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UserUpdate &&
+          other.displayName == displayName &&
+          other.role == role &&
+          other.isActive == isActive &&
+          other.password == password &&
+          other.language == language &&
+          other.themeMode == themeMode &&
+          other.organizationId == organizationId;
 
+  @override
+  int get hashCode =>
+      (displayName == null ? 0 : displayName.hashCode) +
+      (role == null ? 0 : role.hashCode) +
+      (isActive == null ? 0 : isActive.hashCode) +
+      (password == null ? 0 : password.hashCode) +
+      (language == null ? 0 : language.hashCode) +
+      (themeMode == null ? 0 : themeMode.hashCode) +
+      (organizationId == null ? 0 : organizationId.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is UserUpdate &&
-      other.displayName == displayName &&
-      other.role == role &&
-      other.isActive == isActive &&
-      other.password == password &&
-      other.language == language &&
-      other.themeMode == themeMode &&
-      other.organizationId == organizationId;
-
-    @override
-    int get hashCode =>
-        (displayName == null ? 0 : displayName.hashCode) +
-        (role == null ? 0 : role.hashCode) +
-        (isActive == null ? 0 : isActive.hashCode) +
-        (password == null ? 0 : password.hashCode) +
-        (language == null ? 0 : language.hashCode) +
-        (themeMode == null ? 0 : themeMode.hashCode) +
-        (organizationId == null ? 0 : organizationId.hashCode);
-
-  factory UserUpdate.fromJson(Map<String, dynamic> json) => _$UserUpdateFromJson(json);
+  factory UserUpdate.fromJson(Map<String, dynamic> json) =>
+      _$UserUpdateFromJson(json);
 
   Map<String, dynamic> toJson() => _$UserUpdateToJson(this);
 
@@ -150,6 +86,4 @@ class UserUpdate {
   String toString() {
     return toJson().toString();
   }
-
 }
-

@@ -101,51 +101,65 @@ class ModelMappingGrid extends StatelessWidget {
           children: [
             Text(
               'Model Mapping',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-             SingleChildScrollView(
+            SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
                 columns: [
                   const DataColumn(label: Text('Model / Step')),
-                  ...steps.map((s) => DataColumn(
-                    label: Tooltip(
-                      message: s.taskKey,
-                      child: Text(s.name.isNotEmpty ? s.name : (s.slug ?? 'Unnamed Step')),
+                  ...steps.map(
+                    (s) => DataColumn(
+                      label: Tooltip(
+                        message: s.taskKey,
+                        child: Text(
+                          s.name.isNotEmpty
+                              ? s.name
+                              : (s.slug ?? 'Unnamed Step'),
+                        ),
+                      ),
                     ),
-                  )),
+                  ),
                 ],
-                rows: _availableModels.map((model) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(model, style: const TextStyle(fontWeight: FontWeight.w600))),
-                      ...steps.map((step) {
-                        final currentModel = currentMapping[step.id];
-                        final isSelected = currentModel == model;
-                        
-                        return DataCell(
-                          Center(
-                            child: Checkbox(
-                              value: isSelected,
-                              onChanged: (val) {
-                                if (val == true) {
-                                  _updateMapping(step.id, model);
-                                } else {
-                                  // Optional: Allow deselecting? Or force selection?
-                                  // For now, allow deselect (remove key)
-                                   _updateMapping(step.id, null);
-                                }
-                              },
+                rows:
+                    _availableModels.map((model) {
+                      return DataRow(
+                        cells: [
+                          DataCell(
+                            Text(
+                              model,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        );
-                      }),
-                    ],
-                  );
-                }).toList(),
+                          ...steps.map((step) {
+                            final currentModel = currentMapping[step.id];
+                            final isSelected = currentModel == model;
+
+                            return DataCell(
+                              Center(
+                                child: Checkbox(
+                                  value: isSelected,
+                                  onChanged: (val) {
+                                    if (val == true) {
+                                      _updateMapping(step.id, model);
+                                    } else {
+                                      // Optional: Allow deselecting? Or force selection?
+                                      // For now, allow deselect (remove key)
+                                      _updateMapping(step.id, null);
+                                    }
+                                  },
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      );
+                    }).toList(),
               ),
             ),
           ],

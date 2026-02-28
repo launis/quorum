@@ -26,12 +26,12 @@ abstract class IngestionSummary with _$IngestionSummary {
     @JsonKey(name: 'claims_count') @Default(0) int claimsCount,
     @JsonKey(name: 'file_size') @Default(0) int fileSize,
     required String filename,
-
   }) = _IngestionSummary;
 
   factory IngestionSummary.fromJson(Map<String, dynamic> json) =>
       _$IngestionSummaryFromJson(json);
 }
+
 @freezed
 abstract class KnowledgeModelStrategy with _$KnowledgeModelStrategy {
   const factory KnowledgeModelStrategy({

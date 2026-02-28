@@ -9,7 +9,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'update_role_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,34 +18,21 @@ part 'update_role_request.g.dart';
 )
 class UpdateRoleRequest {
   /// Returns a new [UpdateRoleRequest] instance.
-  UpdateRoleRequest({
+  UpdateRoleRequest({required this.role});
 
-    required  this.role,
-  });
-
-  @JsonKey(
-    
-    name: r'role',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'role', required: true)
   final UserRole role;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UpdateRoleRequest && other.role == role;
 
+  @override
+  int get hashCode => role.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is UpdateRoleRequest &&
-      other.role == role;
-
-    @override
-    int get hashCode =>
-        role.hashCode;
-
-  factory UpdateRoleRequest.fromJson(Map<String, dynamic> json) => _$UpdateRoleRequestFromJson(json);
+  factory UpdateRoleRequest.fromJson(Map<String, dynamic> json) =>
+      _$UpdateRoleRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$UpdateRoleRequestToJson(this);
 
@@ -54,6 +40,4 @@ class UpdateRoleRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

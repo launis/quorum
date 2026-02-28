@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for AdminApi
 void main() {
   final instance = BackendApi().getAdminApi();
@@ -204,6 +203,5 @@ void main() {
     test('test uploadKnowledgeBaseAdminKnowledgeBaseUploadPost', () async {
       // TODO
     });
-
   });
 }

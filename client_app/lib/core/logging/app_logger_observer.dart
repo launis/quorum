@@ -1,4 +1,3 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:riverpod/riverpod.dart';
@@ -10,20 +9,21 @@ final class AppLoggerObserver extends ProviderObserver {
   AppLoggerObserver(this._logger);
 
   @override
-  void didAddProvider(
-    ProviderObserverContext context,
-    Object? value,
-  ) {
+  void didAddProvider(ProviderObserverContext context, Object? value) {
     if (_shouldIgnore(context.provider)) return;
-    _logger.debug('RIVERPOD', 'Initialized: ${context.provider.name ?? context.provider.runtimeType}');
+    _logger.debug(
+      'RIVERPOD',
+      'Initialized: ${context.provider.name ?? context.provider.runtimeType}',
+    );
   }
 
   @override
-  void didDisposeProvider(
-    ProviderObserverContext context,
-  ) {
+  void didDisposeProvider(ProviderObserverContext context) {
     if (_shouldIgnore(context.provider)) return;
-    _logger.debug('RIVERPOD', 'Disposed: ${context.provider.name ?? context.provider.runtimeType}');
+    _logger.debug(
+      'RIVERPOD',
+      'Disposed: ${context.provider.name ?? context.provider.runtimeType}',
+    );
   }
 
   @override
@@ -36,15 +36,15 @@ final class AppLoggerObserver extends ProviderObserver {
 
     // Use AsyncValue check to avoid AsyncError type conflict/visibility issues
     if (newValue is AsyncValue) {
-       final errorState = newValue.asError;
-       if (errorState != null) {
-         _logger.error(
-          'RIVERPOD', 
-          'Provider Error [${context.provider.name ?? context.provider.runtimeType}]', 
-          errorState.error, 
-          errorState.stackTrace
+      final errorState = newValue.asError;
+      if (errorState != null) {
+        _logger.error(
+          'RIVERPOD',
+          'Provider Error [${context.provider.name ?? context.provider.runtimeType}]',
+          errorState.error,
+          errorState.stackTrace,
         );
-       }
+      }
     }
   }
 
@@ -54,19 +54,17 @@ final class AppLoggerObserver extends ProviderObserver {
     Object error,
     StackTrace stackTrace,
   ) {
-
-
     _logger.error(
-      'RIVERPOD', 
-      'Provider Build Failed [${context.provider.name ?? context.provider.runtimeType}]', 
-      error, 
-      stackTrace
+      'RIVERPOD',
+      'Provider Build Failed [${context.provider.name ?? context.provider.runtimeType}]',
+      error,
+      stackTrace,
     );
   }
 
   // Filter out internal or noisy providers if needed
   bool _shouldIgnore(Object? provider) {
     // If we need to check properties, strict type might be needed, but dynamic/Object prevents build error if type is hidden
-    return false; 
+    return false;
   }
 }

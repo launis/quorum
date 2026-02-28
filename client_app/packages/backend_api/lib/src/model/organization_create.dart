@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'organization_create.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,113 +18,59 @@ part 'organization_create.g.dart';
 class OrganizationCreate {
   /// Returns a new [OrganizationCreate] instance.
   OrganizationCreate({
+    required this.name,
 
-    required  this.name,
+    required this.adminEmail,
 
-    required  this.adminEmail,
+    required this.adminPassword,
 
-    required  this.adminPassword,
+    required this.adminName,
 
-    required  this.adminName,
+    this.tpmLimit = 100000,
 
-     this.tpmLimit = 100000,
-
-     this.rpmLimit = 60,
+    this.rpmLimit = 60,
   });
 
-  @JsonKey(
-    
-    name: r'name',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'name', required: true)
   final String name;
 
-
-
-  @JsonKey(
-    
-    name: r'admin_email',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'admin_email', required: true)
   final String adminEmail;
 
-
-
-  @JsonKey(
-    
-    name: r'admin_password',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'admin_password', required: true)
   final String adminPassword;
 
-
-
-  @JsonKey(
-    
-    name: r'admin_name',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'admin_name', required: true)
   final String adminName;
 
-
-
-  @JsonKey(
-    defaultValue: 100000,
-    name: r'tpm_limit',
-    required: false,
-    
-  )
-
-
+  @JsonKey(defaultValue: 100000, name: r'tpm_limit', required: false)
   final int? tpmLimit;
 
-
-
-  @JsonKey(
-    defaultValue: 60,
-    name: r'rpm_limit',
-    required: false,
-    
-  )
-
-
+  @JsonKey(defaultValue: 60, name: r'rpm_limit', required: false)
   final int? rpmLimit;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationCreate &&
+          other.name == name &&
+          other.adminEmail == adminEmail &&
+          other.adminPassword == adminPassword &&
+          other.adminName == adminName &&
+          other.tpmLimit == tpmLimit &&
+          other.rpmLimit == rpmLimit;
 
+  @override
+  int get hashCode =>
+      name.hashCode +
+      adminEmail.hashCode +
+      adminPassword.hashCode +
+      adminName.hashCode +
+      tpmLimit.hashCode +
+      rpmLimit.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is OrganizationCreate &&
-      other.name == name &&
-      other.adminEmail == adminEmail &&
-      other.adminPassword == adminPassword &&
-      other.adminName == adminName &&
-      other.tpmLimit == tpmLimit &&
-      other.rpmLimit == rpmLimit;
-
-    @override
-    int get hashCode =>
-        name.hashCode +
-        adminEmail.hashCode +
-        adminPassword.hashCode +
-        adminName.hashCode +
-        tpmLimit.hashCode +
-        rpmLimit.hashCode;
-
-  factory OrganizationCreate.fromJson(Map<String, dynamic> json) => _$OrganizationCreateFromJson(json);
+  factory OrganizationCreate.fromJson(Map<String, dynamic> json) =>
+      _$OrganizationCreateFromJson(json);
 
   Map<String, dynamic> toJson() => _$OrganizationCreateToJson(this);
 
@@ -133,6 +78,4 @@ class OrganizationCreate {
   String toString() {
     return toJson().toString();
   }
-
 }
-

@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for CitationLookupResponse
 void main() {
-  final CitationLookupResponse? instance = /* CitationLookupResponse(...) */ null;
+  final CitationLookupResponse? instance = /* CitationLookupResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(CitationLookupResponse, () {
@@ -12,6 +13,5 @@ void main() {
     test('to test the property `results`', () async {
       // TODO
     });
-
   });
 }

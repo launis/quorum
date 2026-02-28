@@ -49,16 +49,16 @@ class DynamicConfigForm extends HookConsumerWidget {
                     Text(
                       'Editing Raw Configuration',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: Colors.orange[800],
-                            fontWeight: FontWeight.bold,
-                          ),
+                        color: Colors.orange[800],
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Labels like "History Text" are Translation Keys. Do not rename them to "Historiateksti" or localization will break.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -67,58 +67,58 @@ class DynamicConfigForm extends HookConsumerWidget {
           ),
         ),
         ...config.entries.map((entry) {
-            final key = entry.key;
-            final value = entry.value;
-            final label = _capitalize(key);
+          final key = entry.key;
+          final value = entry.value;
+          final label = _capitalize(key);
 
-            if (value is bool) {
-              return _buildSwitch(context, key, label, value);
-            } else if (value is int) {
-              return _HookTextField(
-                key: ValueKey(
-                  key,
-                ), // Important for identifying fields if order changes
-                fieldKey: key,
-                label: label,
-                initialValue: value.toString(),
-                keyboardType: TextInputType.number,
-                onChanged: (val) => onFieldChanged(key, int.tryParse(val) ?? 0),
-              );
-            } else if (value is double) {
-              return _HookTextField(
-                key: ValueKey(key),
-                fieldKey: key,
-                label: label,
-                initialValue: value.toString(),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                onChanged:
-                    (val) => onFieldChanged(key, double.tryParse(val) ?? 0.0),
-              );
-            } else if (value is String) {
-              return _HookTextField(
-                key: ValueKey(key),
-                fieldKey: key,
-                label: label,
-                initialValue: value,
-                onChanged: (val) => onFieldChanged(key, val),
-              );
-            } else if (value is List) {
-              return ListTile(
-                title: Text(label),
-                subtitle: Text(
-                  '${value.length} items (List editing not supported)',
-                ),
-                leading: const Icon(Icons.list),
-              );
-            }
-
+          if (value is bool) {
+            return _buildSwitch(context, key, label, value);
+          } else if (value is int) {
+            return _HookTextField(
+              key: ValueKey(
+                key,
+              ), // Important for identifying fields if order changes
+              fieldKey: key,
+              label: label,
+              initialValue: value.toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (val) => onFieldChanged(key, int.tryParse(val) ?? 0),
+            );
+          } else if (value is double) {
+            return _HookTextField(
+              key: ValueKey(key),
+              fieldKey: key,
+              label: label,
+              initialValue: value.toString(),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged:
+                  (val) => onFieldChanged(key, double.tryParse(val) ?? 0.0),
+            );
+          } else if (value is String) {
+            return _HookTextField(
+              key: ValueKey(key),
+              fieldKey: key,
+              label: label,
+              initialValue: value,
+              onChanged: (val) => onFieldChanged(key, val),
+            );
+          } else if (value is List) {
             return ListTile(
               title: Text(label),
-              subtitle: Text('Unsupported type: ${value.runtimeType}'),
+              subtitle: Text(
+                '${value.length} items (List editing not supported)',
+              ),
+              leading: const Icon(Icons.list),
             );
-          }).toList(),
+          }
+
+          return ListTile(
+            title: Text(label),
+            subtitle: Text('Unsupported type: ${value.runtimeType}'),
+          );
+        }).toList(),
       ],
     );
   }

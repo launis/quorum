@@ -121,6 +121,7 @@ async def monitor_execution(
 
         # Map step names out-of-band to prevent UI UUIDs
         step_names_map: dict[str, str] = {}
+        step_slugs_map: dict[str, str] = {}
         if workflow_definition:
             steps_list = getattr(workflow_definition, "steps", [])
             if not steps_list and isinstance(workflow_definition, dict):
@@ -141,13 +142,19 @@ async def monitor_execution(
                             name = step_doc.get("name") or step_doc.get("slug")
                             if name:
                                 step_names_map[sid] = name
+                                
+                            task_key = step_doc.get("task_key") or step_doc.get("component")
+                            if task_key:
+                                step_slugs_map[sid] = task_key
                     except Exception as e:
                         logger.warning(f"[Monitor] Failed to fetch step {sid} for mapping: {e}")
             logger.info(f"[Monitor] Resolved step_names_map: {step_names_map}")
+            logger.info(f"[Monitor] Resolved step_slugs_map: {step_slugs_map}")
 
         import asyncio
 
         async def event_generator():
+            last_payload = None
             # Simple polling simulator for now to satisfy contract without Redis
             try:
                 # Poll more frequently for smoother UI updates (1s is fine for local)
@@ -193,16 +200,18 @@ async def monitor_execution(
                         try:
                             transformer = AssessmentTransformer(language=accept_language or "en")
                             assessment_view = transformer.transform(
-                                exec_dict, workflow_definition, step_names=step_names_map
+                                exec_dict, workflow_definition, step_names=step_names_map, step_slugs=step_slugs_map
                             )
                             payload = assessment_view.model_dump_json()
                         except Exception as trans_err:
-                            logger.error(f"[Monitor] Transformation Failed: {trans_err}")
+                            logger.error(f"[Monitor] Transformation Failed: {trans_err}", exc_info=True)
                             yield {"event": "error", "data": "Transformation Failed"}
                             break
 
-                    # logger.debug(f"[Monitor] Yielding update for {execution_id}. Payload len: {len(payload)}")
-                    yield {"event": "update", "data": payload}
+                    if payload != last_payload:
+                        logger.info(f"[Monitor] Yielding update for {execution_id}. Status: {current_status}. Payload len: {len(payload)}")
+                        last_payload = payload
+                        yield {"event": "update", "data": payload}
 
                     if current_status in ("completed", "failed", "cancelled", "rejected"):
                         logger.info(f"[Monitor] Execution {execution_id} finished ({current_status}). Closing stream.")

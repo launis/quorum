@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'system_notification.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,65 +18,35 @@ part 'system_notification.g.dart';
 class SystemNotification {
   /// Returns a new [SystemNotification] instance.
   SystemNotification({
+    required this.title,
 
-    required  this.title,
+    required this.message,
 
-    required  this.message,
-
-     this.level = 'info',
+    this.level = 'info',
   });
 
-  @JsonKey(
-    
-    name: r'title',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'title', required: true)
   final String title;
 
-
-
-  @JsonKey(
-    
-    name: r'message',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'message', required: true)
   final String message;
 
-
-
-  @JsonKey(
-    defaultValue: 'info',
-    name: r'level',
-    required: false,
-    
-  )
-
-
+  @JsonKey(defaultValue: 'info', name: r'level', required: false)
   final String? level;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SystemNotification &&
+          other.title == title &&
+          other.message == message &&
+          other.level == level;
 
+  @override
+  int get hashCode => title.hashCode + message.hashCode + level.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is SystemNotification &&
-      other.title == title &&
-      other.message == message &&
-      other.level == level;
-
-    @override
-    int get hashCode =>
-        title.hashCode +
-        message.hashCode +
-        level.hashCode;
-
-  factory SystemNotification.fromJson(Map<String, dynamic> json) => _$SystemNotificationFromJson(json);
+  factory SystemNotification.fromJson(Map<String, dynamic> json) =>
+      _$SystemNotificationFromJson(json);
 
   Map<String, dynamic> toJson() => _$SystemNotificationToJson(this);
 
@@ -85,6 +54,4 @@ class SystemNotification {
   String toString() {
     return toJson().toString();
   }
-
 }
-

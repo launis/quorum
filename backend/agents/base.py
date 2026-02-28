@@ -643,73 +643,8 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
             # We assume usage tracking is handled by the caller or logging for now.
             logger.info(f"BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
 
-            # 4.6 Capture Audit Logs (Prompts)
-            if hasattr(response_obj, "messages") and response_obj.messages:
-                # DE-DUPLICATION LOGIC (Jan 2026):
-                # We extract the content from litellm messages to a flat AuditLogEntry.
-                # Convert to AuditLogEntry directly without intermediate dict lists.
-                audit_entries: list[AuditLogEntry] = []
-                timestamp_now = datetime.now(timezone.utc)
-                
-                try:
-                    for _msg in response_obj.messages:
-                        audit_msg: Any = _msg
-                        role = "unknown"
-                        content = ""
-                        
-                        # Handle Pydantic Message object directly
-                        if hasattr(audit_msg, "role"):
-                            role = str(audit_msg.role)
-                        elif isinstance(audit_msg, dict) and "role" in audit_msg:
-                            role = str(audit_msg["role"])
-                            
-                        # Handle Content
-                        content_raw: Any = getattr(audit_msg, "content", None)
-                        if content_raw is None and isinstance(audit_msg, dict):
-                            content_raw = audit_msg.get("content")
-                        
-                        if isinstance(content_raw, dict):
-                            content = json.dumps(content_raw)
-                        elif content_raw is not None:
-                            content = str(content_raw)
-
-                        # Truncate
-                        if content:
-                            content = content[:5000]
-                            
-                        entry = AuditLogEntry(
-                            timestamp=timestamp_now,
-                            level="INFO",
-                            message=content,
-                            context={"original_role": role},
-                        )
-                        audit_entries.append(entry)
-                except Exception as e:
-                    logger.warning(f"Failed to process messages for AuditLogEntry: {e}")
-
-                    if isinstance(response_data, dict):
-                        if "metadata" not in response_data:
-                            response_data["metadata"] = {}
-                        if isinstance(response_data["metadata"], dict):
-                            response_data["metadata"]["audit_logs"] = audit_entries
-                    elif isinstance(response_data, BaseModel):
-                        if hasattr(response_data, "metadata"):
-                            if isinstance(response_data.metadata, dict):
-                                response_data.metadata["audit_logs"] = audit_entries
-                            elif hasattr(response_data.metadata, "audit_logs"):  # Check field existence first
-                                # We enabled extra="allow" in Metadata but strict validation means type must match
-                                try:
-                                    # If metadata is a model (Metadata), set the field
-                                    if hasattr(response_data.metadata, "model_dump"):
-                                        # Pydantic model
-                                        # We can't set directly if it's frozen, but BaseAgent constructs it?
-                                        # Metadata is frozen=False.
-                                        response_data.metadata.audit_logs = audit_entries
-                                    else:
-                                        # Unknown type
-                                        pass
-                                except Exception as e:
-                                    logger.warning(f"Could not attach audit logs to metadata model: {e}")
+            # 4.6 Capture Audit Logs (Prompts) disabled to prevent payload bloat.
+            # Production UI execution traces do not require full LLM prompt serialization.
 
             # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
             if response_data is not None:
@@ -726,7 +661,7 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
                     token_usage=getattr(response_obj, "token_usage", None),
                     organization_id=org_id,
                     workflow=workflow_id,
-                    audit_logs=audit_entries if 'audit_entries' in locals() else None,
+                    audit_logs=None,
                     user_id=user_id,
                     execution_id=execution_id,
                     step_id=step_id,

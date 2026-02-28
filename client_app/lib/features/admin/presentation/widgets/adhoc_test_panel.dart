@@ -52,7 +52,6 @@ class AdHocTestPanel extends HookConsumerWidget {
 
                     // Connection Info (Removed API Key override as per user request to rely on Registry)
                     // The backend will resolve keys based on the selected configuration ID.
-                    
                     Expanded(
                       child: ListView(
                         children: [
@@ -91,7 +90,8 @@ class AdHocTestPanel extends HookConsumerWidget {
                                     systemInstruction: systemCtrl.text,
                                     userPrompt: userCtrl.text,
                                     modelParams: {}, // Defaults
-                                    apiKey: null, // Always use backend/env resolution
+                                    apiKey:
+                                        null, // Always use backend/env resolution
                                   ),
                                 );
                               },
@@ -140,7 +140,8 @@ class AdHocTestPanel extends HookConsumerWidget {
                           label: Text(
                             '${l10n.latency}: ${testResult.value!.latencyMs!.toStringAsFixed(0)}ms',
                           ),
-                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primaryContainer,
                         ),
                     ],
                   ),

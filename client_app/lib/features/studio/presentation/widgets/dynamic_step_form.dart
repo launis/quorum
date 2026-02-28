@@ -21,24 +21,25 @@ class DynamicStepForm extends HookConsumerWidget {
     if (schema != null && schema!.properties != null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: schema!.properties!.entries.map((entry) {
-          final key = entry.key;
-          final prop = entry.value;
-          final value = config[key]; // No defaultValue in model
+        children:
+            schema!.properties!.entries.map((entry) {
+              final key = entry.key;
+              final prop = entry.value;
+              final value = config[key]; // No defaultValue in model
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: _BuildField(
-              keyName: key,
-              value: value,
-              schema: prop,
-              onChanged: onChanged,
-            ),
-          );
-        }).toList(),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: _BuildField(
+                  keyName: key,
+                  value: value,
+                  schema: prop,
+                  onChanged: onChanged,
+                ),
+              );
+            }).toList(),
       );
     }
-    
+
     // 2. Fallback: Iterate config keys (Legacy/Schemaless mode)
     if (config.isEmpty) {
       return const Center(
@@ -53,9 +54,9 @@ class DynamicStepForm extends HookConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children:
           config.entries.map((entry) {
-             // Skip internal keys
+            // Skip internal keys
             if (entry.key.startsWith('_')) return const SizedBox.shrink();
-            
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
               child: _BuildField(
@@ -100,8 +101,11 @@ class _BuildField extends HookConsumerWidget {
     }
 
     // Number
-    final isNumber = (value is num) || (schema?.type == 'number') || (schema?.type == 'integer');
-    
+    final isNumber =
+        (value is num) ||
+        (schema?.type == 'number') ||
+        (schema?.type == 'integer');
+
     // Text Controller
     final controller = useTextEditingController(text: value?.toString() ?? '');
     final focusNode = useFocusNode();
@@ -109,7 +113,7 @@ class _BuildField extends HookConsumerWidget {
     // Sync external changes
     useEffect(() {
       if (!focusNode.hasFocus && controller.text != (value?.toString() ?? '')) {
-         controller.text = value?.toString() ?? '';
+        controller.text = value?.toString() ?? '';
       }
       return null;
     }, [value]);
@@ -141,18 +145,18 @@ class _BuildField extends HookConsumerWidget {
   }
 
   void _submit(String text, bool isNumber) {
-     if (isNumber) {
-       final numVal = num.tryParse(text);
-       if (numVal != null && numVal != value) {
-          onChanged(keyName, numVal);
-       }
-     } else {
-        if (text != (value?.toString() ?? '')) {
-          onChanged(keyName, text);
-        }
-     }
+    if (isNumber) {
+      final numVal = num.tryParse(text);
+      if (numVal != null && numVal != value) {
+        onChanged(keyName, numVal);
+      }
+    } else {
+      if (text != (value?.toString() ?? '')) {
+        onChanged(keyName, text);
+      }
+    }
   }
-  
+
   String _capitalize(String s) {
     if (s.isEmpty) return s;
     return s[0].toUpperCase() + s.substring(1);

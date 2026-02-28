@@ -5,7 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'available_output_configs_controller.g.dart';
 
 @riverpod
-class AvailableOutputConfigsController extends _$AvailableOutputConfigsController {
+class AvailableOutputConfigsController
+    extends _$AvailableOutputConfigsController {
   @override
   FutureOr<List<StudioComponentDef>> build() async {
     return ref.watch(studioRepositoryProvider).getOutputConfigs();
@@ -14,12 +15,13 @@ class AvailableOutputConfigsController extends _$AvailableOutputConfigsControlle
   Future<void> saveOutputConfig(StudioComponentDef config) async {
     final previousState = state;
     final currentList = state.value ?? [];
-    
+
     final isNew = !currentList.any((c) => c.id == config.id);
-    final newList = isNew 
-      ? [...currentList, config]
-      : currentList.map((c) => c.id == config.id ? config : c).toList();
-      
+    final newList =
+        isNew
+            ? [...currentList, config]
+            : currentList.map((c) => c.id == config.id ? config : c).toList();
+
     state = AsyncData(newList);
 
     try {

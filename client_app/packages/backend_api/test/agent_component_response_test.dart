@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for AgentComponentResponse
 void main() {
-  final AgentComponentResponse? instance = /* AgentComponentResponse(...) */ null;
+  final AgentComponentResponse? instance = /* AgentComponentResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(AgentComponentResponse, () {
@@ -66,6 +67,5 @@ void main() {
     test('to test the property `content`', () async {
       // TODO
     });
-
   });
 }

@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'copy_workflow_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,35 +17,22 @@ part 'copy_workflow_request.g.dart';
 )
 class CopyWorkflowRequest {
   /// Returns a new [CopyWorkflowRequest] instance.
-  CopyWorkflowRequest({
+  CopyWorkflowRequest({required this.newName});
 
-    required  this.newName,
-  });
-
-      /// Name for the copy.
-  @JsonKey(
-    
-    name: r'new_name',
-    required: true,
-    
-  )
-
-
+  /// Name for the copy.
+  @JsonKey(name: r'new_name', required: true)
   final String newName;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CopyWorkflowRequest && other.newName == newName;
 
+  @override
+  int get hashCode => newName.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is CopyWorkflowRequest &&
-      other.newName == newName;
-
-    @override
-    int get hashCode =>
-        newName.hashCode;
-
-  factory CopyWorkflowRequest.fromJson(Map<String, dynamic> json) => _$CopyWorkflowRequestFromJson(json);
+  factory CopyWorkflowRequest.fromJson(Map<String, dynamic> json) =>
+      _$CopyWorkflowRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$CopyWorkflowRequestToJson(this);
 
@@ -54,6 +40,4 @@ class CopyWorkflowRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

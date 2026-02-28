@@ -9,7 +9,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'steps.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -22,13 +21,11 @@ class Steps {
   Steps({this.dummy});
   final String? dummy;
 
+  @override
+  bool operator ==(Object other) => identical(this, other) || other is Steps;
 
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is Steps ;
-
-    @override
-    int get hashCode => 0;
+  @override
+  int get hashCode => 0;
 
   factory Steps.fromJson(Map<String, dynamic> json) => _$StepsFromJson(json);
 
@@ -38,6 +35,4 @@ class Steps {
   String toString() {
     return toJson().toString();
   }
-
 }
-

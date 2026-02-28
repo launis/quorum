@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for PlaygroundApi
 void main() {
   final instance = BackendApi().getPlaygroundApi();
@@ -15,6 +14,5 @@ void main() {
     test('test runPromptBuilderPlaygroundRunPost', () async {
       // TODO
     });
-
   });
 }

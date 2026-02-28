@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'agent_component_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,209 +18,101 @@ part 'agent_component_response.g.dart';
 class AgentComponentResponse {
   /// Returns a new [AgentComponentResponse] instance.
   AgentComponentResponse({
+    this.id,
 
-     this.id,
+    this.slug,
 
-     this.slug,
+    this.name,
 
-     this.name,
+    this.description,
 
-     this.description,
+    this.citation,
 
-     this.citation,
+    this.citationFull,
 
-     this.citationFull,
+    this.module,
 
-     this.module,
+    this.componentClass,
 
-     this.componentClass,
+    this.className,
 
-     this.className,
+    this.registeredAt,
 
-     this.registeredAt,
+    required this.type,
 
-    required  this.type,
-
-     this.content,
+    this.content,
   });
 
-  @JsonKey(
-    
-    name: r'id',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: false)
   final String? id;
 
-
-
-  @JsonKey(
-    
-    name: r'slug',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'slug', required: false)
   final String? slug;
 
-
-
-  @JsonKey(
-    
-    name: r'name',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'name', required: false)
   final String? name;
 
-
-
-  @JsonKey(
-    
-    name: r'description',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'description', required: false)
   final String? description;
 
-
-
-  @JsonKey(
-    
-    name: r'citation',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'citation', required: false)
   final String? citation;
 
-
-
-  @JsonKey(
-    
-    name: r'citation_full',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'citation_full', required: false)
   final String? citationFull;
 
-
-
-  @JsonKey(
-    
-    name: r'module',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'module', required: false)
   final String? module;
 
-
-
-  @JsonKey(
-    
-    name: r'component_class',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'component_class', required: false)
   final String? componentClass;
 
-
-
-  @JsonKey(
-    
-    name: r'class_name',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'class_name', required: false)
   final String? className;
 
-
-
-  @JsonKey(
-    
-    name: r'registered_at',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'registered_at', required: false)
   final String? registeredAt;
 
-
-
-  @JsonKey(
-    
-    name: r'type',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'type', required: true)
   final AgentComponentResponseTypeEnum type;
 
-
-
-  @JsonKey(
-    
-    name: r'content',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'content', required: false)
   final dynamic? content;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AgentComponentResponse &&
+          other.id == id &&
+          other.slug == slug &&
+          other.name == name &&
+          other.description == description &&
+          other.citation == citation &&
+          other.citationFull == citationFull &&
+          other.module == module &&
+          other.componentClass == componentClass &&
+          other.className == className &&
+          other.registeredAt == registeredAt &&
+          other.type == type &&
+          other.content == content;
 
+  @override
+  int get hashCode =>
+      id.hashCode +
+      (slug == null ? 0 : slug.hashCode) +
+      (name == null ? 0 : name.hashCode) +
+      (description == null ? 0 : description.hashCode) +
+      (citation == null ? 0 : citation.hashCode) +
+      (citationFull == null ? 0 : citationFull.hashCode) +
+      (module == null ? 0 : module.hashCode) +
+      (componentClass == null ? 0 : componentClass.hashCode) +
+      (className == null ? 0 : className.hashCode) +
+      (registeredAt == null ? 0 : registeredAt.hashCode) +
+      type.hashCode +
+      content.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is AgentComponentResponse &&
-      other.id == id &&
-      other.slug == slug &&
-      other.name == name &&
-      other.description == description &&
-      other.citation == citation &&
-      other.citationFull == citationFull &&
-      other.module == module &&
-      other.componentClass == componentClass &&
-      other.className == className &&
-      other.registeredAt == registeredAt &&
-      other.type == type &&
-      other.content == content;
-
-    @override
-    int get hashCode =>
-        id.hashCode +
-        (slug == null ? 0 : slug.hashCode) +
-        (name == null ? 0 : name.hashCode) +
-        (description == null ? 0 : description.hashCode) +
-        (citation == null ? 0 : citation.hashCode) +
-        (citationFull == null ? 0 : citationFull.hashCode) +
-        (module == null ? 0 : module.hashCode) +
-        (componentClass == null ? 0 : componentClass.hashCode) +
-        (className == null ? 0 : className.hashCode) +
-        (registeredAt == null ? 0 : registeredAt.hashCode) +
-        type.hashCode +
-        content.hashCode;
-
-  factory AgentComponentResponse.fromJson(Map<String, dynamic> json) => _$AgentComponentResponseFromJson(json);
+  factory AgentComponentResponse.fromJson(Map<String, dynamic> json) =>
+      _$AgentComponentResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$AgentComponentResponseToJson(this);
 
@@ -229,22 +120,18 @@ class AgentComponentResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-
 
 enum AgentComponentResponseTypeEnum {
-@JsonValue(r'agent')
-agent(r'agent'),
-@JsonValue(r'processor')
-processor(r'processor');
+  @JsonValue(r'agent')
+  agent(r'agent'),
+  @JsonValue(r'processor')
+  processor(r'processor');
 
-const AgentComponentResponseTypeEnum(this.value);
+  const AgentComponentResponseTypeEnum(this.value);
 
-final String value;
+  final String value;
 
-@override
-String toString() => value;
+  @override
+  String toString() => value;
 }
-
-

@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for ExecutionDeleteResponse
 void main() {
-  final ExecutionDeleteResponse? instance = /* ExecutionDeleteResponse(...) */ null;
+  final ExecutionDeleteResponse? instance = /* ExecutionDeleteResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(ExecutionDeleteResponse, () {
@@ -16,6 +17,5 @@ void main() {
     test('to test the property `id`', () async {
       // TODO
     });
-
   });
 }

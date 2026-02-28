@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'playground_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,85 +18,49 @@ part 'playground_request.g.dart';
 class PlaygroundRequest {
   /// Returns a new [PlaygroundRequest] instance.
   PlaygroundRequest({
+    required this.systemInstruction,
 
-    required  this.systemInstruction,
+    required this.userMessage,
 
-    required  this.userMessage,
+    this.variables,
 
-     this.variables,
-
-     this.modelParams,
+    this.modelParams,
   });
 
-      /// System prompt template.
-  @JsonKey(
-    
-    name: r'system_instruction',
-    required: true,
-    
-  )
-
-
+  /// System prompt template.
+  @JsonKey(name: r'system_instruction', required: true)
   final String systemInstruction;
 
-
-
-      /// User message.
-  @JsonKey(
-    
-    name: r'user_message',
-    required: true,
-    
-  )
-
-
+  /// User message.
+  @JsonKey(name: r'user_message', required: true)
   final String userMessage;
 
-
-
-      /// Variables to inject into system prompt.
-  @JsonKey(
-    
-    name: r'variables',
-    required: false,
-    
-  )
-
-
+  /// Variables to inject into system prompt.
+  @JsonKey(name: r'variables', required: false)
   final Map<String, String>? variables;
 
-
-
-      /// Optional LLM parameters.
-  @JsonKey(
-    
-    name: r'model_params',
-    required: false,
-    
-  )
-
-
+  /// Optional LLM parameters.
+  @JsonKey(name: r'model_params', required: false)
   final Map<String, Object>? modelParams;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlaygroundRequest &&
+          other.systemInstruction == systemInstruction &&
+          other.userMessage == userMessage &&
+          other.variables == variables &&
+          other.modelParams == modelParams;
 
+  @override
+  int get hashCode =>
+      systemInstruction.hashCode +
+      userMessage.hashCode +
+      variables.hashCode +
+      modelParams.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is PlaygroundRequest &&
-      other.systemInstruction == systemInstruction &&
-      other.userMessage == userMessage &&
-      other.variables == variables &&
-      other.modelParams == modelParams;
-
-    @override
-    int get hashCode =>
-        systemInstruction.hashCode +
-        userMessage.hashCode +
-        variables.hashCode +
-        modelParams.hashCode;
-
-  factory PlaygroundRequest.fromJson(Map<String, dynamic> json) => _$PlaygroundRequestFromJson(json);
+  factory PlaygroundRequest.fromJson(Map<String, dynamic> json) =>
+      _$PlaygroundRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$PlaygroundRequestToJson(this);
 
@@ -105,6 +68,4 @@ class PlaygroundRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

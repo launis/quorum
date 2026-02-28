@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'model_registry_update.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,35 +17,22 @@ part 'model_registry_update.g.dart';
 )
 class ModelRegistryUpdate {
   /// Returns a new [ModelRegistryUpdate] instance.
-  ModelRegistryUpdate({
+  ModelRegistryUpdate({required this.registry});
 
-    required  this.registry,
-  });
-
-      /// The new configuration map for model strategies (e.g. {'fast': {'model_name': '...'}}).
-  @JsonKey(
-    
-    name: r'registry',
-    required: true,
-    
-  )
-
-
+  /// The new configuration map for model strategies (e.g. {'fast': {'model_name': '...'}}).
+  @JsonKey(name: r'registry', required: true)
   final Map<String, Map<String, String>> registry;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ModelRegistryUpdate && other.registry == registry;
 
+  @override
+  int get hashCode => registry.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ModelRegistryUpdate &&
-      other.registry == registry;
-
-    @override
-    int get hashCode =>
-        registry.hashCode;
-
-  factory ModelRegistryUpdate.fromJson(Map<String, dynamic> json) => _$ModelRegistryUpdateFromJson(json);
+  factory ModelRegistryUpdate.fromJson(Map<String, dynamic> json) =>
+      _$ModelRegistryUpdateFromJson(json);
 
   Map<String, dynamic> toJson() => _$ModelRegistryUpdateToJson(this);
 
@@ -54,6 +40,4 @@ class ModelRegistryUpdate {
   String toString() {
     return toJson().toString();
   }
-
 }
-

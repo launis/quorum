@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for PDFDownloadCheckResponse
 void main() {
-  final PDFDownloadCheckResponse? instance = /* PDFDownloadCheckResponse(...) */ null;
+  final PDFDownloadCheckResponse? instance = /* PDFDownloadCheckResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(PDFDownloadCheckResponse, () {
@@ -21,6 +22,5 @@ void main() {
     test('to test the property `localPath`', () async {
       // TODO
     });
-
   });
 }

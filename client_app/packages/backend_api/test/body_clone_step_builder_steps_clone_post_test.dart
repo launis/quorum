@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for BodyCloneStepBuilderStepsClonePost
 void main() {
-  final BodyCloneStepBuilderStepsClonePost? instance = /* BodyCloneStepBuilderStepsClonePost(...) */ null;
+  final BodyCloneStepBuilderStepsClonePost?
+  instance = /* BodyCloneStepBuilderStepsClonePost(...) */ null;
   // TODO add properties to the entity
 
   group(BodyCloneStepBuilderStepsClonePost, () {
@@ -11,6 +12,5 @@ void main() {
     test('to test the property `sourceStepId`', () async {
       // TODO
     });
-
   });
 }

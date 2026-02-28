@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'impersonation_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,34 +17,21 @@ part 'impersonation_request.g.dart';
 )
 class ImpersonationRequest {
   /// Returns a new [ImpersonationRequest] instance.
-  ImpersonationRequest({
+  ImpersonationRequest({required this.targetId});
 
-    required  this.targetId,
-  });
-
-  @JsonKey(
-    
-    name: r'target_id',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'target_id', required: true)
   final String targetId;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImpersonationRequest && other.targetId == targetId;
 
+  @override
+  int get hashCode => targetId.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ImpersonationRequest &&
-      other.targetId == targetId;
-
-    @override
-    int get hashCode =>
-        targetId.hashCode;
-
-  factory ImpersonationRequest.fromJson(Map<String, dynamic> json) => _$ImpersonationRequestFromJson(json);
+  factory ImpersonationRequest.fromJson(Map<String, dynamic> json) =>
+      _$ImpersonationRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$ImpersonationRequestToJson(this);
 
@@ -53,6 +39,4 @@ class ImpersonationRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

@@ -22,7 +22,8 @@ class ReorderableArrayBuilder extends ConsumerStatefulWidget {
     this.itemFactory,
   });
 
-  final Widget Function(BuildContext context, int index, dynamic item)? customItemBuilder;
+  final Widget Function(BuildContext context, int index, dynamic item)?
+  customItemBuilder;
   final void Function(int oldIndex, int newIndex)? onReorder;
   final dynamic Function()? itemFactory;
 
@@ -60,7 +61,7 @@ class _ReorderableArrayBuilderState
       }
       final item = _items.removeAt(oldIndex);
       _items.insert(newIndex, item);
-      
+
       if (widget.onReorder != null) {
         widget.onReorder!(oldIndex, newIndex);
       } else {
@@ -71,9 +72,10 @@ class _ReorderableArrayBuilderState
 
   void _onAddItem() {
     setState(() {
-      final newItem = widget.itemFactory != null 
-          ? widget.itemFactory!() 
-          : _createDefaultValue();
+      final newItem =
+          widget.itemFactory != null
+              ? widget.itemFactory!()
+              : _createDefaultValue();
       _items.add(newItem);
       _updateItems();
     });
@@ -141,25 +143,30 @@ class _ReorderableArrayBuilderState
             itemCount: _items.length,
             onReorder: _onReorder,
             itemBuilder: (context, index) {
-              return widget.customItemBuilder?.call(context, index, _items[index]) ?? Card(
-                key: ValueKey('item_$index'), // Simple key strategy
-                margin: const EdgeInsets.only(bottom: 8.0),
-                child: ExpansionTile(
-                  key: PageStorageKey('item_$index'), // Persist expansion
-                  leading: const Icon(Icons.drag_handle),
-                  title: Text('Item ${index + 1}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _onRemoveItem(index),
-                  ),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: _buildItemContent(index, itemSchema!),
+              return widget.customItemBuilder?.call(
+                    context,
+                    index,
+                    _items[index],
+                  ) ??
+                  Card(
+                    key: ValueKey('item_$index'), // Simple key strategy
+                    margin: const EdgeInsets.only(bottom: 8.0),
+                    child: ExpansionTile(
+                      key: PageStorageKey('item_$index'), // Persist expansion
+                      leading: const Icon(Icons.drag_handle),
+                      title: Text('Item ${index + 1}'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _onRemoveItem(index),
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: _buildItemContent(index, itemSchema!),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
+                  );
             },
           ),
         OutlinedButton.icon(

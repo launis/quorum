@@ -14,7 +14,6 @@ import 'package:backend_api/src/model/config_component_response.dart';
 import 'package:backend_api/src/model/http_validation_error.dart';
 
 class ConfigurationOutputsApi {
-
   final Dio _dio;
 
   const ConfigurationOutputsApi(this._dio);
@@ -23,7 +22,7 @@ class ConfigurationOutputsApi {
   /// Creates a new output configuration.
   ///
   /// Parameters:
-  /// * [configComponentResponse] 
+  /// * [configComponentResponse]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -33,7 +32,7 @@ class ConfigurationOutputsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [String] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<String>> createOutputV1ConfigOutputsPost({ 
+  Future<Response<String>> createOutputV1ConfigOutputsPost({
     required ConfigComponentResponse configComponentResponse,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -45,13 +44,8 @@ class ConfigurationOutputsApi {
     final _path = r'/v1/config/outputs';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -59,13 +53,10 @@ class ConfigurationOutputsApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(configComponentResponse);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(configComponentResponse);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -84,9 +75,10 @@ _bodyData=jsonEncode(configComponentResponse);
     String? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<String, String>(rawData, 'String', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<String, String>(rawData, 'String', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -113,7 +105,7 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
   /// Deletes an output configuration.
   ///
   /// Parameters:
-  /// * [outputId] 
+  /// * [outputId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -123,7 +115,7 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
   ///
   /// Returns a [Future] containing a [Response] with a [bool] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<bool>> deleteOutputV1ConfigOutputsOutputIdDelete({ 
+  Future<Response<bool>> deleteOutputV1ConfigOutputsOutputIdDelete({
     required String outputId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -132,16 +124,16 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/outputs/{output_id}'.replaceAll('{' r'output_id' '}', outputId.toString());
+    final _path = r'/v1/config/outputs/{output_id}'.replaceAll(
+      '{'
+      r'output_id'
+      '}',
+      outputId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -156,9 +148,10 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
     bool? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<bool, bool>(rawData, 'bool', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -195,7 +188,8 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
   ///
   /// Returns a [Future] containing a [Response] with a [ConfigComponentResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ConfigComponentResponse>> getOutputV1ConfigOutputsOutputIdGet({ 
+  Future<Response<ConfigComponentResponse>>
+  getOutputV1ConfigOutputsOutputIdGet({
     required String outputId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -204,16 +198,16 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/outputs/{output_id}'.replaceAll('{' r'output_id' '}', outputId.toString());
+    final _path = r'/v1/config/outputs/{output_id}'.replaceAll(
+      '{'
+      r'output_id'
+      '}',
+      outputId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -228,9 +222,14 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
     ConfigComponentResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ConfigComponentResponse, ConfigComponentResponse>(rawData, 'ConfigComponentResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ConfigComponentResponse, ConfigComponentResponse>(
+              rawData,
+              'ConfigComponentResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -266,7 +265,7 @@ _responseData = rawData == null ? null : deserialize<ConfigComponentResponse, Co
   ///
   /// Returns a [Future] containing a [Response] with a [List<ConfigComponentResponse>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<ConfigComponentResponse>>> getOutputsV1ConfigOutputsGet({ 
+  Future<Response<List<ConfigComponentResponse>>> getOutputsV1ConfigOutputsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -277,13 +276,8 @@ _responseData = rawData == null ? null : deserialize<ConfigComponentResponse, Co
     final _path = r'/v1/config/outputs';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -298,9 +292,14 @@ _responseData = rawData == null ? null : deserialize<ConfigComponentResponse, Co
     List<ConfigComponentResponse>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<ConfigComponentResponse>, ConfigComponentResponse>(rawData, 'List<ConfigComponentResponse>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<ConfigComponentResponse>, ConfigComponentResponse>(
+              rawData,
+              'List<ConfigComponentResponse>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -327,8 +326,8 @@ _responseData = rawData == null ? null : deserialize<List<ConfigComponentRespons
   /// Updates an existing output configuration.
   ///
   /// Parameters:
-  /// * [outputId] 
-  /// * [componentUpdate] 
+  /// * [outputId]
+  /// * [componentUpdate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -338,7 +337,7 @@ _responseData = rawData == null ? null : deserialize<List<ConfigComponentRespons
   ///
   /// Returns a [Future] containing a [Response] with a [bool] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<bool>> updateOutputV1ConfigOutputsOutputIdPut({ 
+  Future<Response<bool>> updateOutputV1ConfigOutputsOutputIdPut({
     required String outputId,
     required ComponentUpdate componentUpdate,
     CancelToken? cancelToken,
@@ -348,16 +347,16 @@ _responseData = rawData == null ? null : deserialize<List<ConfigComponentRespons
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/outputs/{output_id}'.replaceAll('{' r'output_id' '}', outputId.toString());
+    final _path = r'/v1/config/outputs/{output_id}'.replaceAll(
+      '{'
+      r'output_id'
+      '}',
+      outputId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -365,13 +364,10 @@ _responseData = rawData == null ? null : deserialize<List<ConfigComponentRespons
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(componentUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(componentUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -390,9 +386,10 @@ _bodyData=jsonEncode(componentUpdate);
     bool? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<bool, bool>(rawData, 'bool', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -414,5 +411,4 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
       extra: _response.extra,
     );
   }
-
 }

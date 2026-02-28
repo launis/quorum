@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'seed_data_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,65 +18,35 @@ part 'seed_data_response.g.dart';
 class SeedDataResponse {
   /// Returns a new [SeedDataResponse] instance.
   SeedDataResponse({
+    required this.components,
 
-    required  this.components,
+    required this.steps,
 
-    required  this.steps,
-
-    required  this.workflows,
+    required this.workflows,
   });
 
-  @JsonKey(
-    
-    name: r'components',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'components', required: true)
   final List<Map<String, Object>> components;
 
-
-
-  @JsonKey(
-    
-    name: r'steps',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'steps', required: true)
   final List<Map<String, Object>> steps;
 
-
-
-  @JsonKey(
-    
-    name: r'workflows',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'workflows', required: true)
   final List<Map<String, Object>> workflows;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SeedDataResponse &&
+          other.components == components &&
+          other.steps == steps &&
+          other.workflows == workflows;
 
+  @override
+  int get hashCode => components.hashCode + steps.hashCode + workflows.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is SeedDataResponse &&
-      other.components == components &&
-      other.steps == steps &&
-      other.workflows == workflows;
-
-    @override
-    int get hashCode =>
-        components.hashCode +
-        steps.hashCode +
-        workflows.hashCode;
-
-  factory SeedDataResponse.fromJson(Map<String, dynamic> json) => _$SeedDataResponseFromJson(json);
+  factory SeedDataResponse.fromJson(Map<String, dynamic> json) =>
+      _$SeedDataResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$SeedDataResponseToJson(this);
 
@@ -85,6 +54,4 @@ class SeedDataResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

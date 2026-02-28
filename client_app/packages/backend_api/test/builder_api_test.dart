@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for BuilderApi
 void main() {
   final instance = BackendApi().getBuilderApi();
@@ -165,9 +164,12 @@ void main() {
     // Generates a markdown preview of the entire workflow chain.
     //
     //Future<ChainPreviewResponse> previewChainBuilderWorkflowsWorkflowIdChainPreviewGet(String workflowId) async
-    test('test previewChainBuilderWorkflowsWorkflowIdChainPreviewGet', () async {
-      // TODO
-    });
+    test(
+      'test previewChainBuilderWorkflowsWorkflowIdChainPreviewGet',
+      () async {
+        // TODO
+      },
+    );
 
     // Preview Step Prompt
     //
@@ -213,6 +215,5 @@ void main() {
     test('test validateConnectionBuilderValidatePost', () async {
       // TODO
     });
-
   });
 }

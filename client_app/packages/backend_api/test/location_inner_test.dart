@@ -6,6 +6,5 @@ void main() {
   final LocationInner? instance = /* LocationInner(...) */ null;
   // TODO add properties to the entity
 
-  group(LocationInner, () {
-  });
+  group(LocationInner, () {});
 }

@@ -9,7 +9,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'organization_create_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -20,145 +19,77 @@ part 'organization_create_request.g.dart';
 class OrganizationCreateRequest {
   /// Returns a new [OrganizationCreateRequest] instance.
   OrganizationCreateRequest({
+    this.id,
 
-     this.id,
+    required this.name,
 
-    required  this.name,
+    this.tier = 'standard',
 
-     this.tier = 'standard',
+    this.contactEmail,
 
-     this.contactEmail,
+    this.billingId,
 
-     this.billingId,
+    this.subscriptionStatus = SubscriptionStatus.trial,
 
-     this.subscriptionStatus = SubscriptionStatus.trial,
+    this.quotaLimit = 10.0,
 
-     this.quotaLimit = 10.0,
-
-     this.settingsOverride,
+    this.settingsOverride,
   });
 
-  @JsonKey(
-    
-    name: r'id',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: false)
   final String? id;
 
-
-
-  @JsonKey(
-    
-    name: r'name',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'name', required: true)
   final String name;
 
-
-
-  @JsonKey(
-    defaultValue: 'standard',
-    name: r'tier',
-    required: false,
-    
-  )
-
-
+  @JsonKey(defaultValue: 'standard', name: r'tier', required: false)
   final String? tier;
 
-
-
-  @JsonKey(
-    
-    name: r'contact_email',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'contact_email', required: false)
   final String? contactEmail;
 
-
-
-  @JsonKey(
-    
-    name: r'billing_id',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'billing_id', required: false)
   final String? billingId;
-
-
 
   @JsonKey(
     defaultValue: SubscriptionStatus.trial,
     name: r'subscription_status',
     required: false,
-    
   )
-
-
   final SubscriptionStatus? subscriptionStatus;
 
-
-
-  @JsonKey(
-    defaultValue: 10.0,
-    name: r'quota_limit',
-    required: false,
-    
-  )
-
-
+  @JsonKey(defaultValue: 10.0, name: r'quota_limit', required: false)
   final num? quotaLimit;
 
-
-
-  @JsonKey(
-    
-    name: r'settings_override',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'settings_override', required: false)
   final Map<String, Object>? settingsOverride;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationCreateRequest &&
+          other.id == id &&
+          other.name == name &&
+          other.tier == tier &&
+          other.contactEmail == contactEmail &&
+          other.billingId == billingId &&
+          other.subscriptionStatus == subscriptionStatus &&
+          other.quotaLimit == quotaLimit &&
+          other.settingsOverride == settingsOverride;
 
+  @override
+  int get hashCode =>
+      (id == null ? 0 : id.hashCode) +
+      name.hashCode +
+      tier.hashCode +
+      (contactEmail == null ? 0 : contactEmail.hashCode) +
+      (billingId == null ? 0 : billingId.hashCode) +
+      subscriptionStatus.hashCode +
+      quotaLimit.hashCode +
+      (settingsOverride == null ? 0 : settingsOverride.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is OrganizationCreateRequest &&
-      other.id == id &&
-      other.name == name &&
-      other.tier == tier &&
-      other.contactEmail == contactEmail &&
-      other.billingId == billingId &&
-      other.subscriptionStatus == subscriptionStatus &&
-      other.quotaLimit == quotaLimit &&
-      other.settingsOverride == settingsOverride;
-
-    @override
-    int get hashCode =>
-        (id == null ? 0 : id.hashCode) +
-        name.hashCode +
-        tier.hashCode +
-        (contactEmail == null ? 0 : contactEmail.hashCode) +
-        (billingId == null ? 0 : billingId.hashCode) +
-        subscriptionStatus.hashCode +
-        quotaLimit.hashCode +
-        (settingsOverride == null ? 0 : settingsOverride.hashCode);
-
-  factory OrganizationCreateRequest.fromJson(Map<String, dynamic> json) => _$OrganizationCreateRequestFromJson(json);
+  factory OrganizationCreateRequest.fromJson(Map<String, dynamic> json) =>
+      _$OrganizationCreateRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$OrganizationCreateRequestToJson(this);
 
@@ -166,6 +97,4 @@ class OrganizationCreateRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

@@ -13,11 +13,14 @@ abstract class WorkflowDef with _$WorkflowDef {
     required String name,
     required String description,
     @Default([]) List<WorkflowStepDef> steps,
-    @Default([]) @JsonKey(name: 'scoring_logic') List<ScoringLogic> scoringLogic,
+    @Default([])
+    @JsonKey(name: 'scoring_logic')
+    List<ScoringLogic> scoringLogic,
     @Default({}) @JsonKey(name: 'ui_schema') Map<String, dynamic> uiSchema,
   }) = _WorkflowDef;
 
-  factory WorkflowDef.fromJson(Map<String, dynamic> json) => _$WorkflowDefFromJson(json);
+  factory WorkflowDef.fromJson(Map<String, dynamic> json) =>
+      _$WorkflowDefFromJson(json);
 }
 
 @freezed
@@ -30,7 +33,8 @@ abstract class WorkflowStepDef with _$WorkflowStepDef {
     @Default({}) Map<String, dynamic> config,
   }) = _WorkflowStepDef;
 
-  factory WorkflowStepDef.fromJson(Map<String, dynamic> json) => _$WorkflowStepDefFromJson(json);
+  factory WorkflowStepDef.fromJson(Map<String, dynamic> json) =>
+      _$WorkflowStepDefFromJson(json);
 }
 
 @freezed
@@ -41,7 +45,8 @@ abstract class ComponentScoringRule with _$ComponentScoringRule {
     @JsonKey(name: 'metric_key') required String metricKey,
   }) = _ComponentScoringRule;
 
-  factory ComponentScoringRule.fromJson(Map<String, dynamic> json) => _$ComponentScoringRuleFromJson(json);
+  factory ComponentScoringRule.fromJson(Map<String, dynamic> json) =>
+      _$ComponentScoringRuleFromJson(json);
 }
 
 @freezed
@@ -51,7 +56,8 @@ abstract class ScoringLogic with _$ScoringLogic {
     @Default([]) List<ComponentScoringRule> rules,
   }) = _ScoringLogic;
 
-  factory ScoringLogic.fromJson(Map<String, dynamic> json) => _$ScoringLogicFromJson(json);
+  factory ScoringLogic.fromJson(Map<String, dynamic> json) =>
+      _$ScoringLogicFromJson(json);
 }
 
 @freezed
@@ -66,5 +72,6 @@ abstract class ComponentDef with _$ComponentDef {
     String? citation,
   }) = _ComponentDef;
 
-  factory ComponentDef.fromJson(Map<String, dynamic> json) => _$ComponentDefFromJson(json);
+  factory ComponentDef.fromJson(Map<String, dynamic> json) =>
+      _$ComponentDefFromJson(json);
 }

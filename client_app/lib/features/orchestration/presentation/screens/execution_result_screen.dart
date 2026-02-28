@@ -27,7 +27,8 @@ class ExecutionResultScreen extends ConsumerStatefulWidget {
   const ExecutionResultScreen({super.key, required this.executionId});
 
   @override
-  ConsumerState<ExecutionResultScreen> createState() => _ExecutionResultScreenState();
+  ConsumerState<ExecutionResultScreen> createState() =>
+      _ExecutionResultScreenState();
 }
 
 class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
@@ -57,15 +58,21 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
       await launchUrl(Uri.file(path));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Avataan tiedosto...'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Avataan tiedosto...'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } else {
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Virhe: Ei voida avata tiedostoa: $path'), backgroundColor: Colors.red),
-           );
-        }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Virhe: Ei voida avata tiedostoa: $path'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -74,7 +81,7 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
       try {
         final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
         final filename = 'AUDIT_REPORT_${widget.executionId}_$timestamp.pdf';
-        
+
         // Save file
         final String path = await FileSaver.instance.saveFile(
           name: filename,
@@ -84,18 +91,20 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
 
         // Cache the path
         if (path.isNotEmpty) {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('pdf_path_${widget.executionId}', path);
-            
-            // Open it
-            await _openSavedFile(path);
-        }
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('pdf_path_${widget.executionId}', path);
 
+          // Open it
+          await _openSavedFile(path);
+        }
       } catch (e) {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Virhe tallennuksessa: $e'), backgroundColor: Colors.red),
-           );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Virhe tallennuksessa: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
     }
@@ -107,11 +116,11 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
     final cachedPath = prefs.getString('pdf_path_${widget.executionId}');
 
     if (cachedPath != null) {
-        final file = File(cachedPath);
-        if (await file.exists()) {
-            await _openSavedFile(cachedPath);
-            return;
-        }
+      final file = File(cachedPath);
+      if (await file.exists()) {
+        await _openSavedFile(cachedPath);
+        return;
+      }
     }
 
     // 2. Start Download if not found
@@ -129,99 +138,122 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
     try {
       final auth = ref.read(firebaseAuthInstanceProvider);
       final user = auth?.currentUser;
-      String? token = (user != null) ? await user.getIdToken() : ref.read(mockTokenProvider);
+      String? token =
+          (user != null)
+              ? await user.getIdToken()
+              : ref.read(mockTokenProvider);
 
       if (token == null) throw Exception('Ei kirjautumista');
 
-      // Skip "check_local" backend call as we rely on client-side cache now, 
+      // Skip "check_local" backend call as we rely on client-side cache now,
       // or we can keep it as fallback, but for now let's simplify to direct download.
       setState(() => _message = "Aloitetaan lataus...");
-      final url = Uri.parse('${AppConfig.apiBaseUrl}/executions/${widget.executionId}/pdf/download');
-      
-      var response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
+      final url = Uri.parse(
+        '${AppConfig.apiBaseUrl}/executions/${widget.executionId}/pdf/download',
+      );
+
+      var response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
       if (response.statusCode == 200) {
         // Ready immediately (Cached)
         if (mounted) {
-            setState(() {
-              _pdfBytes = response.bodyBytes;
-              _status = _PdfStatus.ready;
-              _message = 'Valmis';
-              _progress = 1.0;
-            });
-            // Manual Open
+          setState(() {
+            _pdfBytes = response.bodyBytes;
+            _status = _PdfStatus.ready;
+            _message = 'Valmis';
+            _progress = 1.0;
+          });
+          // Manual Open
         }
         return;
       }
 
       if (response.statusCode == 202) {
-         // 3. Start SSE
-         final progressUrl = Uri.parse('${AppConfig.apiBaseUrl}/executions/${widget.executionId}/pdf/progress');
-         _activeClient = http.Client();
-         final request = http.Request('GET', progressUrl);
-         request.headers['Authorization'] = 'Bearer $token';
-         request.headers['Accept'] = 'text/event-stream';
+        // 3. Start SSE
+        final progressUrl = Uri.parse(
+          '${AppConfig.apiBaseUrl}/executions/${widget.executionId}/pdf/progress',
+        );
+        _activeClient = http.Client();
+        final request = http.Request('GET', progressUrl);
+        request.headers['Authorization'] = 'Bearer $token';
+        request.headers['Accept'] = 'text/event-stream';
 
-         final streamResponse = await _activeClient!.send(request);
-         
-         await for (final chunk in streamResponse.stream.transform(utf8.decoder)) {
-             final lines = chunk.split('\n');
-             for (final line in lines) {
-               if (line.startsWith('data: ')) {
-                  try {
-                      final jsonStr = line.substring(6).trim();
-                      if (jsonStr.isEmpty) continue;
+        final streamResponse = await _activeClient!.send(request);
 
-                      if (jsonStr.contains('"progress"')) {
-                          final progressMatch = RegExp(r'"progress"\s*:\s*([\d\.]+)').firstMatch(jsonStr);
-                          final val = double.tryParse(progressMatch?.group(1) ?? '0') ?? 0.0;
-                          
-                          if (mounted) {
-                              setState(() {
-                                _progress = val;
-                                _message = '${(val*100).toInt()}%';
-                              });
-                          }
+        await for (final chunk in streamResponse.stream.transform(
+          utf8.decoder,
+        )) {
+          final lines = chunk.split('\n');
+          for (final line in lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                final jsonStr = line.substring(6).trim();
+                if (jsonStr.isEmpty) continue;
 
-                          if (val >= 1.0) {
-                              _activeClient?.close();
-                              // Fetch Result
-                              final finalResp = await http.get(url, headers: {'Authorization': 'Bearer $token'});
-                              if (finalResp.statusCode == 200 && mounted) {
-                                  setState(() {
-                                      _pdfBytes = finalResp.bodyBytes;
-                                      _status = _PdfStatus.ready;
-                                  });
-                                  // Auto-save on first generation?
-                                  // User aid: "ekalla kerralla lataa itse omalle koneelle"
-                                  // So we should probably invoke _openPdf() automatically here?
-                                  _saveAndOpenPdf(); 
-                              }
-                              return;
-                          }
-                      }
-                  } catch (e) { /* ignore parse error */ }
-               }
-             }
-         }
+                if (jsonStr.contains('"progress"')) {
+                  final progressMatch = RegExp(
+                    r'"progress"\s*:\s*([\d\.]+)',
+                  ).firstMatch(jsonStr);
+                  final val =
+                      double.tryParse(progressMatch?.group(1) ?? '0') ?? 0.0;
+
+                  if (mounted) {
+                    setState(() {
+                      _progress = val;
+                      _message = '${(val * 100).toInt()}%';
+                    });
+                  }
+
+                  if (val >= 1.0) {
+                    _activeClient?.close();
+                    // Fetch Result
+                    final finalResp = await http.get(
+                      url,
+                      headers: {'Authorization': 'Bearer $token'},
+                    );
+                    if (finalResp.statusCode == 200 && mounted) {
+                      setState(() {
+                        _pdfBytes = finalResp.bodyBytes;
+                        _status = _PdfStatus.ready;
+                      });
+                      // Auto-save on first generation?
+                      // User aid: "ekalla kerralla lataa itse omalle koneelle"
+                      // So we should probably invoke _openPdf() automatically here?
+                      _saveAndOpenPdf();
+                    }
+                    return;
+                  }
+                }
+              } catch (e) {
+                /* ignore parse error */
+              }
+            }
+          }
+        }
       } else {
         throw Exception('Virhe: ${response.statusCode}');
       }
-
     } catch (e) {
       if (mounted) {
         setState(() {
           _status = _PdfStatus.error;
           _message = 'Virhe';
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Virhe: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Virhe: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final asyncExecution = ref.watch(executionStreamProvider(widget.executionId));
+    final asyncExecution = ref.watch(
+      executionStreamProvider(widget.executionId),
+    );
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -248,20 +280,25 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                         Text(l10n.analysisNotComplete),
-                         const SizedBox(height: 16),
-                         FilledButton.icon(
-                           onPressed: () => context.go('/dashboard/executions/${widget.executionId}/monitor'),
-                           icon: const Icon(Icons.visibility),
-                           label: Text(l10n.goToMonitor),
-                         ),
+                        Text(l10n.analysisNotComplete),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed:
+                              () => context.go(
+                                '/dashboard/executions/${widget.executionId}/monitor',
+                              ),
+                          icon: const Icon(Icons.visibility),
+                          label: Text(l10n.goToMonitor),
+                        ),
                       ],
                     ),
                   );
                 }
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text(l10n.failedToLoad('$err'))),
+              error:
+                  (err, stack) =>
+                      Center(child: Text(l10n.failedToLoad('$err'))),
             ),
           ),
         ),
@@ -270,63 +307,69 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
   }
 
   Widget _buildActionWidget(AppLocalizations l10n) {
-      switch (_status) {
-        case _PdfStatus.downloading:
-          return Container(
-            width: 180,
-            height: 36,
-            decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(18),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                SizedBox(
-                    width: 16, 
-                    height: 16, 
-                    child: CircularProgressIndicator(value: _progress, strokeWidth: 2)
+    switch (_status) {
+      case _PdfStatus.downloading:
+        return Container(
+          width: 180,
+          height: 36,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  value: _progress,
+                  strokeWidth: 2,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _message, 
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis
-                  ),
-                ),
-                InkWell(
-                    onTap: _cancelDownload,
-                    child: const Icon(Icons.close, size: 18),
-                )
-              ],
-            ),
-          );
-
-        case _PdfStatus.ready:
-          return FilledButton.icon(
-              onPressed: _saveAndOpenPdf,
-              style: FilledButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
               ),
-              icon: const Icon(Icons.download), // Changed to Download Icon
-              label: const Text("Lataa PDF"), // Changed to Download Text
-          );
-        
-        case _PdfStatus.error:
-           return IconButton(
-              onPressed: _handleDownloadAction,
-              icon: const Icon(Icons.refresh, color: Colors.red),
-              tooltip: "Yritä uudelleen",
-           );
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _message,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              InkWell(
+                onTap: _cancelDownload,
+                child: const Icon(Icons.close, size: 18),
+              ),
+            ],
+          ),
+        );
 
-        case _PdfStatus.idle:
-          return IconButton(
-            onPressed: _handleDownloadAction,
-            icon: const Icon(Icons.download),
-            tooltip: l10n.downloadReportTooltip,
-          );
-      }
+      case _PdfStatus.ready:
+        return FilledButton.icon(
+          onPressed: _saveAndOpenPdf,
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+          ),
+          icon: const Icon(Icons.download), // Changed to Download Icon
+          label: const Text("Lataa PDF"), // Changed to Download Text
+        );
+
+      case _PdfStatus.error:
+        return IconButton(
+          onPressed: _handleDownloadAction,
+          icon: const Icon(Icons.refresh, color: Colors.red),
+          tooltip: "Yritä uudelleen",
+        );
+
+      case _PdfStatus.idle:
+        return IconButton(
+          onPressed: _handleDownloadAction,
+          icon: const Icon(Icons.download),
+          tooltip: l10n.downloadReportTooltip,
+        );
+    }
   }
 }

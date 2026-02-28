@@ -56,9 +56,10 @@ class _FileUploaderState extends State<FileUploader> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               border: Border.all(
-                color: widget.errorText != null
-                    ? Theme.of(context).colorScheme.error
-                    : Theme.of(context).colorScheme.outline,
+                color:
+                    widget.errorText != null
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.outline,
               ),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -78,7 +79,9 @@ class _FileUploaderState extends State<FileUploader> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    widget.isLoading ? 'Uploading...' : (_fileName ?? 'Select file...'),
+                    widget.isLoading
+                        ? 'Uploading...'
+                        : (_fileName ?? 'Select file...'),
                     style: TextStyle(
                       color:
                           (widget.isLoading || _fileName != null)
@@ -97,7 +100,7 @@ class _FileUploaderState extends State<FileUploader> {
                         _fileName = null;
                       });
                       // If we are just clearing UI, we might not trigger onFileSelected
-                      // but usually we want to notify parent. 
+                      // but usually we want to notify parent.
                       // PlatformFile not nullable in ValueChanged, so we skip callback or need architectural change if clear needed.
                       // For now, consistent with previous behavior (UI clear only).
                     },

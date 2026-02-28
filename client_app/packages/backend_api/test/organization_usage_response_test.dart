@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for OrganizationUsageResponse
 void main() {
-  final OrganizationUsageResponse? instance = /* OrganizationUsageResponse(...) */ null;
+  final OrganizationUsageResponse?
+  instance = /* OrganizationUsageResponse(...) */ null;
   // TODO add properties to the entity
 
   group(OrganizationUsageResponse, () {
@@ -36,6 +37,5 @@ void main() {
     test('to test the property `period`', () async {
       // TODO
     });
-
   });
 }

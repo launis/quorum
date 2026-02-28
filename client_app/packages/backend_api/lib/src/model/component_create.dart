@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'component_create.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,161 +18,80 @@ part 'component_create.g.dart';
 class ComponentCreate {
   /// Returns a new [ComponentCreate] instance.
   ComponentCreate({
+    this.id,
 
-     this.id,
+    required this.name,
 
-    required  this.name,
+    required this.type,
 
-    required  this.type,
+    required this.content,
 
-    required  this.content,
+    this.description,
 
-     this.description,
+    this.citation,
 
-     this.citation,
+    this.citationFull,
 
-     this.citationFull,
+    this.module,
 
-     this.module,
-
-     this.componentClass,
+    this.componentClass,
   });
 
-  @JsonKey(
-    
-    name: r'id',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'id', required: false)
   final Object? id;
 
-
-
-  @JsonKey(
-    
-    name: r'name',
-    required: true,
-    includeIfNull: true,
-  )
-
-
+  @JsonKey(name: r'name', required: true, includeIfNull: true)
   final Object? name;
 
-
-
-  @JsonKey(
-    
-    name: r'type',
-    required: true,
-    includeIfNull: true,
-  )
-
-
+  @JsonKey(name: r'type', required: true, includeIfNull: true)
   final Object? type;
 
-
-
-  @JsonKey(
-    
-    name: r'content',
-    required: true,
-    includeIfNull: true,
-  )
-
-
+  @JsonKey(name: r'content', required: true, includeIfNull: true)
   final Object? content;
 
-
-
-  @JsonKey(
-    
-    name: r'description',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'description', required: false)
   final Object? description;
 
-
-
-  @JsonKey(
-    
-    name: r'citation',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'citation', required: false)
   final Object? citation;
 
-
-
-  @JsonKey(
-    
-    name: r'citation_full',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'citation_full', required: false)
   final Object? citationFull;
 
-
-
-  @JsonKey(
-    
-    name: r'module',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'module', required: false)
   final Object? module;
 
-
-
-  @JsonKey(
-    
-    name: r'component_class',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'component_class', required: false)
   final Object? componentClass;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ComponentCreate &&
+          other.id == id &&
+          other.name == name &&
+          other.type == type &&
+          other.content == content &&
+          other.description == description &&
+          other.citation == citation &&
+          other.citationFull == citationFull &&
+          other.module == module &&
+          other.componentClass == componentClass;
 
+  @override
+  int get hashCode =>
+      (id == null ? 0 : id.hashCode) +
+      (name == null ? 0 : name.hashCode) +
+      (type == null ? 0 : type.hashCode) +
+      (content == null ? 0 : content.hashCode) +
+      (description == null ? 0 : description.hashCode) +
+      (citation == null ? 0 : citation.hashCode) +
+      (citationFull == null ? 0 : citationFull.hashCode) +
+      (module == null ? 0 : module.hashCode) +
+      (componentClass == null ? 0 : componentClass.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is ComponentCreate &&
-      other.id == id &&
-      other.name == name &&
-      other.type == type &&
-      other.content == content &&
-      other.description == description &&
-      other.citation == citation &&
-      other.citationFull == citationFull &&
-      other.module == module &&
-      other.componentClass == componentClass;
-
-    @override
-    int get hashCode =>
-        (id == null ? 0 : id.hashCode) +
-        (name == null ? 0 : name.hashCode) +
-        (type == null ? 0 : type.hashCode) +
-        (content == null ? 0 : content.hashCode) +
-        (description == null ? 0 : description.hashCode) +
-        (citation == null ? 0 : citation.hashCode) +
-        (citationFull == null ? 0 : citationFull.hashCode) +
-        (module == null ? 0 : module.hashCode) +
-        (componentClass == null ? 0 : componentClass.hashCode);
-
-  factory ComponentCreate.fromJson(Map<String, dynamic> json) => _$ComponentCreateFromJson(json);
+  factory ComponentCreate.fromJson(Map<String, dynamic> json) =>
+      _$ComponentCreateFromJson(json);
 
   Map<String, dynamic> toJson() => _$ComponentCreateToJson(this);
 
@@ -181,6 +99,4 @@ class ComponentCreate {
   String toString() {
     return toJson().toString();
   }
-
 }
-

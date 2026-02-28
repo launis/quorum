@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'matrix_content_dto.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,66 +17,33 @@ part 'matrix_content_dto.g.dart';
 )
 class MatrixContentDTO {
   /// Returns a new [MatrixContentDTO] instance.
-  MatrixContentDTO({
+  MatrixContentDTO({this.scale, this.criteria, this.roleDescription});
 
-     this.scale,
-
-     this.criteria,
-
-     this.roleDescription,
-  });
-
-  @JsonKey(
-    
-    name: r'scale',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'scale', required: false)
   final Map<String, int>? scale;
 
-
-
-  @JsonKey(
-    
-    name: r'criteria',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'criteria', required: false)
   final List<Map<String, Object>>? criteria;
 
-
-
-  @JsonKey(
-    
-    name: r'role_description',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'role_description', required: false)
   final String? roleDescription;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MatrixContentDTO &&
+          other.scale == scale &&
+          other.criteria == criteria &&
+          other.roleDescription == roleDescription;
 
+  @override
+  int get hashCode =>
+      scale.hashCode +
+      criteria.hashCode +
+      (roleDescription == null ? 0 : roleDescription.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is MatrixContentDTO &&
-      other.scale == scale &&
-      other.criteria == criteria &&
-      other.roleDescription == roleDescription;
-
-    @override
-    int get hashCode =>
-        scale.hashCode +
-        criteria.hashCode +
-        (roleDescription == null ? 0 : roleDescription.hashCode);
-
-  factory MatrixContentDTO.fromJson(Map<String, dynamic> json) => _$MatrixContentDTOFromJson(json);
+  factory MatrixContentDTO.fromJson(Map<String, dynamic> json) =>
+      _$MatrixContentDTOFromJson(json);
 
   Map<String, dynamic> toJson() => _$MatrixContentDTOToJson(this);
 
@@ -85,6 +51,4 @@ class MatrixContentDTO {
   String toString() {
     return toJson().toString();
   }
-
 }
-

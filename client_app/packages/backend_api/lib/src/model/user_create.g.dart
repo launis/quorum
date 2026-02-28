@@ -165,7 +165,9 @@ UserCreate _$UserCreateFromJson(Map<String, dynamic> json) => $checkedCreate(
       isActive: $checkedConvert('is_active', (v) => v as bool? ?? true),
       language: $checkedConvert(
         'language',
-        (v) => $enumDecodeNullable(_$UserCreateLanguageEnumEnumMap, v) ?? UserCreateLanguageEnum.fi,
+        (v) =>
+            $enumDecodeNullable(_$UserCreateLanguageEnumEnumMap, v) ??
+            UserCreateLanguageEnum.fi,
       ),
       themeMode: $checkedConvert(
         'theme_mode',

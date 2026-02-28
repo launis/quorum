@@ -133,21 +133,14 @@ async def execute_google_search(state: WorkflowState, repository: Any = None) ->
 
         search_result = SearchResult(results=domain_items)
 
-        # 6.5 Update Analyst Output with newly found evidence
-        # This resolves the warning: "Analyst exists but 'rag_evidence' data is missing or empty"
-        current_evidence = list(analyst_output.rag_evidence) if analyst_output.rag_evidence else []
-        for d_res in domain_items:
-            if d_res.snippet:
-                current_evidence.append(f"[{d_res.title}] {d_res.snippet}")
-
-        updated_analyst = analyst_output.model_copy(update={"rag_evidence": current_evidence})
-
         # 7. Update State (Immutable)
+        # Data Hygiene: We NO LONGER inject search snippets directly into AnalystOutput.rag_evidence. 
+        # This prevents massive Context Bloat (+60k tokens) for downstream agents.
+        # The data is kept cleanly isolated in 'search_result' for targeted use only.
         new_context = state.context_variables.copy()
         new_context["search_result"] = search_result
-        new_context["step_analyst"] = updated_analyst
 
-        logger.info(f"[SearchHook] Search complete. Found {len(domain_items)} results. Added to rag_evidence.")
+        logger.info(f"[SearchHook] Search complete. Found {len(domain_items)} results. Isolated to 'search_result'.")
         return state.model_copy(update={"context_variables": new_context})
 
     except AppException as e:

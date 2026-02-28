@@ -26,9 +26,10 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
     }
 
     final isRoot = user.role.name == 'root';
-    
+
     // Initialize default scope if not set
-    _selectedScope ??= isRoot ? UsageScopeSelection.system : UsageScopeSelection.organization;
+    _selectedScope ??=
+        isRoot ? UsageScopeSelection.system : UsageScopeSelection.organization;
 
     // Enforce role constraints if a non-root user somehow selects system
     if (!isRoot && _selectedScope == UsageScopeSelection.system) {
@@ -41,7 +42,9 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
         usageState = ref.watch(systemUsageControllerProvider);
         break;
       case UsageScopeSelection.organization:
-        usageState = ref.watch(organizationUsageControllerProvider(user.organizationId ?? ''));
+        usageState = ref.watch(
+          organizationUsageControllerProvider(user.organizationId ?? ''),
+        );
         break;
       case UsageScopeSelection.user:
         usageState = ref.watch(userUsageControllerProvider);
@@ -60,7 +63,13 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                   ref.read(systemUsageControllerProvider.notifier).refresh();
                   break;
                 case UsageScopeSelection.organization:
-                  ref.read(organizationUsageControllerProvider(user.organizationId ?? '').notifier).refresh();
+                  ref
+                      .read(
+                        organizationUsageControllerProvider(
+                          user.organizationId ?? '',
+                        ).notifier,
+                      )
+                      .refresh();
                   break;
                 case UsageScopeSelection.user:
                   ref.read(userUsageControllerProvider.notifier).refresh();
@@ -105,8 +114,10 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
             child: usageState.when(
               data: (usageReport) {
                 // Determine missing data intuitively
-                final hasData = usageReport.usage.totalTokens > 0 || usageReport.usage.costUsd > 0;
-                
+                final hasData =
+                    usageReport.usage.totalTokens > 0 ||
+                    usageReport.usage.costUsd > 0;
+
                 return Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -124,7 +135,10 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                       const SizedBox(height: 24),
                       if (!hasData)
                         Card(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          color:
+                              Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
                           child: const Padding(
                             padding: EdgeInsets.all(24.0),
                             child: Center(
@@ -157,14 +171,17 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                                 ListTile(
                                   title: const Text('Completion Tokens'),
                                   trailing: Text(
-                                    usageReport.usage.completionTokens.toString(),
+                                    usageReport.usage.completionTokens
+                                        .toString(),
                                   ),
                                 ),
                                 ListTile(
                                   title: const Text('Total Tokens'),
                                   trailing: Text(
                                     usageReport.usage.totalTokens.toString(),
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                                 const Divider(),
@@ -174,7 +191,8 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                                     '\$\${usageReport.usage.costUsd.toStringAsFixed(4)}',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                                 ),
@@ -187,22 +205,33 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, st) => ErrorView(
-                error: err,
-                onRetry: () {
-                  switch (_selectedScope!) {
-                    case UsageScopeSelection.system:
-                      ref.read(systemUsageControllerProvider.notifier).refresh();
-                      break;
-                    case UsageScopeSelection.organization:
-                      ref.read(organizationUsageControllerProvider(user.organizationId ?? '').notifier).refresh();
-                      break;
-                    case UsageScopeSelection.user:
-                      ref.read(userUsageControllerProvider.notifier).refresh();
-                      break;
-                  }
-                },
-              ),
+              error:
+                  (err, st) => ErrorView(
+                    error: err,
+                    onRetry: () {
+                      switch (_selectedScope!) {
+                        case UsageScopeSelection.system:
+                          ref
+                              .read(systemUsageControllerProvider.notifier)
+                              .refresh();
+                          break;
+                        case UsageScopeSelection.organization:
+                          ref
+                              .read(
+                                organizationUsageControllerProvider(
+                                  user.organizationId ?? '',
+                                ).notifier,
+                              )
+                              .refresh();
+                          break;
+                        case UsageScopeSelection.user:
+                          ref
+                              .read(userUsageControllerProvider.notifier)
+                              .refresh();
+                          break;
+                      }
+                    },
+                  ),
             ),
           ),
         ],

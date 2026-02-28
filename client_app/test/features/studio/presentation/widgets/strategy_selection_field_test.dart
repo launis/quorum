@@ -9,70 +9,85 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 // Mock State Helper
 ModelRegistryState createMockState(List<String> strategyIds) {
   return ModelRegistryState(
-    providers: strategyIds.map((id) => LLMProviderConfig(id: id, provider: 'mock', modelName: 'mock')).toList(),
+    providers:
+        strategyIds
+            .map(
+              (id) => LLMProviderConfig(
+                id: id,
+                provider: 'mock',
+                modelName: 'mock',
+              ),
+            )
+            .toList(),
   );
 }
 
 void main() {
-  testWidgets('StrategySelectionField renders strategies and handles selection', (WidgetTester tester) async {
-    String? selectedValue;
-    
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          modelRegistryControllerProvider.overrideWith(() => MockModelRegistryController())
-        ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: StrategySelectionField(
-              currentStrategy: null,
-              onChanged: (val) => selectedValue = val,
+  testWidgets(
+    'StrategySelectionField renders strategies and handles selection',
+    (WidgetTester tester) async {
+      String? selectedValue;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            modelRegistryControllerProvider.overrideWith(
+              () => MockModelRegistryController(),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: StrategySelectionField(
+                currentStrategy: null,
+                onChanged: (val) => selectedValue = val,
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    // Initial pump (loading or data)
-    await tester.pumpAndSettle();
+      // Initial pump (loading or data)
+      await tester.pumpAndSettle();
 
-    // Verify Dropdown exists
-    expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      // Verify Dropdown exists
+      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
 
-    // Open Dropdown
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
+      // Open Dropdown
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
 
-    // Verify items
-    expect(find.text('fast'), findsOneWidget);
-    expect(find.text('deep'), findsOneWidget);
-    expect(find.text('custom_1'), findsOneWidget);
+      // Verify items
+      expect(find.text('fast'), findsOneWidget);
+      expect(find.text('deep'), findsOneWidget);
+      expect(find.text('custom_1'), findsOneWidget);
 
-    // Select 'deep'
-    await tester.tap(find.text('deep').last);
-    await tester.pumpAndSettle();
+      // Select 'deep'
+      await tester.tap(find.text('deep').last);
+      await tester.pumpAndSettle();
 
-    expect(selectedValue, 'deep');
-  });
+      expect(selectedValue, 'deep');
+    },
+  );
 }
 
-class MockModelRegistryController extends AsyncNotifier<ModelRegistryState> implements ModelRegistryController {
+class MockModelRegistryController extends AsyncNotifier<ModelRegistryState>
+    implements ModelRegistryController {
   @override
   Future<ModelRegistryState> build() async {
     return createMockState(['fast', 'deep', 'custom_1']);
   }
-  
+
   @override
   void selectProvider(String? id) {}
-  
+
   @override
   Future<void> saveConfig(String id, LLMProviderConfig config) async {}
-  
+
   @override
   Future<void> deleteConfig(String id) async {}
-  
+
   @override
   Future<void> runTest(AdHocTestRequest request) async {}
 }

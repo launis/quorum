@@ -196,62 +196,65 @@ extension $UserAdminViewCopyWith on UserAdminView {
 // JsonSerializableGenerator
 // **************************************************************************
 
-UserAdminView _$UserAdminViewFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate(
-  'UserAdminView',
-  json,
-  ($checkedConvert) {
-    $checkKeys(json, requiredKeys: const ['email', 'id', 'created_at']);
-    final val = UserAdminView(
-      email: $checkedConvert('email', (v) => v as String),
-      displayName: $checkedConvert('display_name', (v) => v as String?),
-      role: $checkedConvert(
-        'role',
-        (v) => $enumDecodeNullable(_$UserRoleEnumMap, v) ?? UserRole.MEMBER,
-      ),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
-      isActive: $checkedConvert('is_active', (v) => v as bool? ?? true),
-      language: $checkedConvert(
-        'language',
-        (v) =>
-            $enumDecodeNullable(_$UserAdminViewLanguageEnumEnumMap, v) ?? UserAdminViewLanguageEnum.fi,
-      ),
-      themeMode: $checkedConvert(
-        'theme_mode',
-        (v) =>
-            $enumDecodeNullable(_$UserAdminViewThemeModeEnumEnumMap, v) ??
-            UserAdminViewThemeModeEnum.system,
-      ),
-      id: $checkedConvert('id', (v) => v as String),
-      slug: $checkedConvert('slug', (v) => v as String?),
-      createdAt: $checkedConvert(
-        'created_at',
-        (v) => DateTime.parse(v as String),
-      ),
-      createdBy: $checkedConvert('created_by', (v) => v as String?),
-      lastLoginAt: $checkedConvert(
-        'last_login_at',
-        (v) => v == null ? null : DateTime.parse(v as String),
-      ),
-      executionCount: $checkedConvert(
-        'execution_count',
-        (v) => (v as num?)?.toInt() ?? 0,
-      ),
+UserAdminView _$UserAdminViewFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      'UserAdminView',
+      json,
+      ($checkedConvert) {
+        $checkKeys(json, requiredKeys: const ['email', 'id', 'created_at']);
+        final val = UserAdminView(
+          email: $checkedConvert('email', (v) => v as String),
+          displayName: $checkedConvert('display_name', (v) => v as String?),
+          role: $checkedConvert(
+            'role',
+            (v) => $enumDecodeNullable(_$UserRoleEnumMap, v) ?? UserRole.MEMBER,
+          ),
+          organizationId: $checkedConvert(
+            'organization_id',
+            (v) => v as String?,
+          ),
+          isActive: $checkedConvert('is_active', (v) => v as bool? ?? true),
+          language: $checkedConvert(
+            'language',
+            (v) =>
+                $enumDecodeNullable(_$UserAdminViewLanguageEnumEnumMap, v) ??
+                UserAdminViewLanguageEnum.fi,
+          ),
+          themeMode: $checkedConvert(
+            'theme_mode',
+            (v) =>
+                $enumDecodeNullable(_$UserAdminViewThemeModeEnumEnumMap, v) ??
+                UserAdminViewThemeModeEnum.system,
+          ),
+          id: $checkedConvert('id', (v) => v as String),
+          slug: $checkedConvert('slug', (v) => v as String?),
+          createdAt: $checkedConvert(
+            'created_at',
+            (v) => DateTime.parse(v as String),
+          ),
+          createdBy: $checkedConvert('created_by', (v) => v as String?),
+          lastLoginAt: $checkedConvert(
+            'last_login_at',
+            (v) => v == null ? null : DateTime.parse(v as String),
+          ),
+          executionCount: $checkedConvert(
+            'execution_count',
+            (v) => (v as num?)?.toInt() ?? 0,
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'displayName': 'display_name',
+        'organizationId': 'organization_id',
+        'isActive': 'is_active',
+        'themeMode': 'theme_mode',
+        'createdAt': 'created_at',
+        'createdBy': 'created_by',
+        'lastLoginAt': 'last_login_at',
+        'executionCount': 'execution_count',
+      },
     );
-    return val;
-  },
-  fieldKeyMap: const {
-    'displayName': 'display_name',
-    'organizationId': 'organization_id',
-    'isActive': 'is_active',
-    'themeMode': 'theme_mode',
-    'createdAt': 'created_at',
-    'createdBy': 'created_by',
-    'lastLoginAt': 'last_login_at',
-    'executionCount': 'execution_count',
-  },
-);
 
 Map<String, dynamic> _$UserAdminViewToJson(UserAdminView instance) =>
     <String, dynamic>{

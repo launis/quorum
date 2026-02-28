@@ -80,6 +80,5 @@ void main() {
     test('to test the property `additionalParams`', () async {
       // TODO
     });
-
   });
 }

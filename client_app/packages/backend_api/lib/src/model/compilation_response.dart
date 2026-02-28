@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'compilation_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,68 +18,39 @@ part 'compilation_response.g.dart';
 class CompilationResponse {
   /// Returns a new [CompilationResponse] instance.
   CompilationResponse({
+    required this.status,
 
-    required  this.status,
+    required this.compositeStepId,
 
-    required  this.compositeStepId,
-
-    required  this.newSteps,
+    required this.newSteps,
   });
 
-      /// Compilation status (e.g. 'compiled').
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  /// Compilation status (e.g. 'compiled').
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-      /// The ID of the resulting composite step.
-  @JsonKey(
-    
-    name: r'composite_step_id',
-    required: true,
-    
-  )
-
-
+  /// The ID of the resulting composite step.
+  @JsonKey(name: r'composite_step_id', required: true)
   final String compositeStepId;
 
-
-
-      /// The updated list of step IDs in the workflow.
-  @JsonKey(
-    
-    name: r'new_steps',
-    required: true,
-    
-  )
-
-
+  /// The updated list of step IDs in the workflow.
+  @JsonKey(name: r'new_steps', required: true)
   final List<String> newSteps;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CompilationResponse &&
+          other.status == status &&
+          other.compositeStepId == compositeStepId &&
+          other.newSteps == newSteps;
 
+  @override
+  int get hashCode =>
+      status.hashCode + compositeStepId.hashCode + newSteps.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is CompilationResponse &&
-      other.status == status &&
-      other.compositeStepId == compositeStepId &&
-      other.newSteps == newSteps;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        compositeStepId.hashCode +
-        newSteps.hashCode;
-
-  factory CompilationResponse.fromJson(Map<String, dynamic> json) => _$CompilationResponseFromJson(json);
+  factory CompilationResponse.fromJson(Map<String, dynamic> json) =>
+      _$CompilationResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$CompilationResponseToJson(this);
 
@@ -88,6 +58,4 @@ class CompilationResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for BuilderWorkflowCreateRequest
 void main() {
-  final BuilderWorkflowCreateRequest? instance = /* BuilderWorkflowCreateRequest(...) */ null;
+  final BuilderWorkflowCreateRequest?
+  instance = /* BuilderWorkflowCreateRequest(...) */ null;
   // TODO add properties to the entity
 
   group(BuilderWorkflowCreateRequest, () {
@@ -58,6 +59,5 @@ void main() {
     test('to test the property `scoringLogic`', () async {
       // TODO
     });
-
   });
 }

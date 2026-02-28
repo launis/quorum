@@ -37,10 +37,13 @@ class IngestionController extends _$IngestionController {
     state = const AsyncValue.loading();
     try {
       final repo = ref.read(knowledgeRepositoryProvider.notifier);
-      
+
       // 1. Upload & Get Job ID
-      final jobId = await repo.uploadKnowledgeBase(file, modelStrategy: modelStrategy);
-      
+      final jobId = await repo.uploadKnowledgeBase(
+        file,
+        modelStrategy: modelStrategy,
+      );
+
       // 2. Start Polling
       _startPolling(jobId);
     } catch (e, st) {
@@ -71,12 +74,12 @@ class IngestionController extends _$IngestionController {
       try {
         final repo = ref.read(knowledgeRepositoryProvider.notifier);
         final status = await repo.getIngestionStatus(jobId);
-        
+
         state = AsyncValue.data(status);
-        
+
         if (status.status == 'completed') {
-           ref.invalidate(knowledgeStatusProvider); // Refresh the status banner
-           timer.cancel();
+          ref.invalidate(knowledgeStatusProvider); // Refresh the status banner
+          timer.cancel();
         } else if (status.status == 'failed') {
           timer.cancel();
         }
@@ -87,6 +90,7 @@ class IngestionController extends _$IngestionController {
       }
     });
   }
+
   /// Resets the state to initial (null), clearing any errors or progress.
   void resetState() {
     _timer?.cancel();

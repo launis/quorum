@@ -23,7 +23,9 @@ class WorkflowEditorScreen extends HookConsumerWidget {
       // Riverpod Notifier calls are safe in build? generally NO.
       // Use microtask.
       Future.microtask(() {
-        ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(workflowId);
+        ref
+            .read(activeWorkflowControllerProvider.notifier)
+            .loadWorkflow(workflowId);
       });
       return null;
     }, [workflowId]);

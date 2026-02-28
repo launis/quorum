@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for ExecutionsApi
 void main() {
   final instance = BackendApi().getExecutionsApi();
@@ -21,9 +20,12 @@ void main() {
     // Cancels the download process and cleans up files.
     //
     //Future<PDFCancelResponse> cancelPdfGenerationExecutionsExecutionIdPdfCancelDelete(String executionId, { String authorization }) async
-    test('test cancelPdfGenerationExecutionsExecutionIdPdfCancelDelete', () async {
-      // TODO
-    });
+    test(
+      'test cancelPdfGenerationExecutionsExecutionIdPdfCancelDelete',
+      () async {
+        // TODO
+      },
+    );
 
     // Create Execution
     //
@@ -48,9 +50,12 @@ void main() {
     // Securely download the PDF report. Enqueues generation if missing.
     //
     //Future<ResponseDownloadExecutionPdfExecutionsExecutionIdPdfDownloadGet> downloadExecutionPdfExecutionsExecutionIdPdfDownloadGet(String executionId, { bool checkLocal, String authorization }) async
-    test('test downloadExecutionPdfExecutionsExecutionIdPdfDownloadGet', () async {
-      // TODO
-    });
+    test(
+      'test downloadExecutionPdfExecutionsExecutionIdPdfDownloadGet',
+      () async {
+        // TODO
+      },
+    );
 
     // Get Execution Details
     //
@@ -132,6 +137,5 @@ void main() {
     test('test monitorExecutionExecutionsExecutionIdEventsGet', () async {
       // TODO
     });
-
   });
 }

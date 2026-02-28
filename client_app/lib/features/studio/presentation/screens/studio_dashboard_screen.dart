@@ -11,9 +11,7 @@ class StudioDashboardScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cognitive Studio'),
-        leading: BackButton(
-          onPressed: () => context.go('/dashboard'),
-        ),
+        leading: BackButton(onPressed: () => context.go('/dashboard')),
       ),
       body: Center(
         child: ConstrainedBox(

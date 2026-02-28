@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'banned_phrase_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -18,35 +17,22 @@ part 'banned_phrase_request.g.dart';
 )
 class BannedPhraseRequest {
   /// Returns a new [BannedPhraseRequest] instance.
-  BannedPhraseRequest({
+  BannedPhraseRequest({required this.phrase});
 
-    required  this.phrase,
-  });
-
-      /// The phrase to ban.
-  @JsonKey(
-    
-    name: r'phrase',
-    required: true,
-    
-  )
-
-
+  /// The phrase to ban.
+  @JsonKey(name: r'phrase', required: true)
   final String phrase;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BannedPhraseRequest && other.phrase == phrase;
 
+  @override
+  int get hashCode => phrase.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is BannedPhraseRequest &&
-      other.phrase == phrase;
-
-    @override
-    int get hashCode =>
-        phrase.hashCode;
-
-  factory BannedPhraseRequest.fromJson(Map<String, dynamic> json) => _$BannedPhraseRequestFromJson(json);
+  factory BannedPhraseRequest.fromJson(Map<String, dynamic> json) =>
+      _$BannedPhraseRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$BannedPhraseRequestToJson(this);
 
@@ -54,6 +40,4 @@ class BannedPhraseRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-

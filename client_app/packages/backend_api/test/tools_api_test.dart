@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:backend_api/backend_api.dart';
 
-
 /// tests for ToolsApi
 void main() {
   final instance = BackendApi().getToolsApi();
@@ -21,9 +20,12 @@ void main() {
     // Extracts domain concepts from either raw text or an uploaded file.  Args:     kb_service (KnowledgeBaseService): Injected KB service.     doc_service (DocumentService): Injected document service.     text (str): Raw text input.     file (UploadFile): File input.  Returns:     ConceptExtractionResponse: Extracted concepts.  Raises:     HTTPException: If no input provided (400) or extraction errors (500).
     //
     //Future<ConceptExtractionResponse> extractConceptsFromFileOrTextToolsExtractConceptsPost({ String text, MultipartFile file }) async
-    test('test extractConceptsFromFileOrTextToolsExtractConceptsPost', () async {
-      // TODO
-    });
+    test(
+      'test extractConceptsFromFileOrTextToolsExtractConceptsPost',
+      () async {
+        // TODO
+      },
+    );
 
     // Extract Text from File
     //
@@ -42,6 +44,5 @@ void main() {
     test('test webScrapeToolsWebScrapePost', () async {
       // TODO
     });
-
   });
 }

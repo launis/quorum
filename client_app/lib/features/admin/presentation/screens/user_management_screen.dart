@@ -104,14 +104,13 @@ class UserManagementScreen extends ConsumerWidget {
           constraints: const BoxConstraints(maxWidth: 1000),
           child: authState.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-                error:
-                    (err, stack) => ErrorView(
-                      error: err,
-                      onRetry:
-                          () => ref.invalidate(authControllerProvider),
-                      retryLabel: l10n.retry,
-                    ),
-                data: (currentUser) {
+            error:
+                (err, stack) => ErrorView(
+                  error: err,
+                  onRetry: () => ref.invalidate(authControllerProvider),
+                  retryLabel: l10n.retry,
+                ),
+            data: (currentUser) {
               if (currentUser == null) {
                 return Center(child: Text(l10n.loginRequired));
               }

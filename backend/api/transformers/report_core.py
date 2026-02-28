@@ -444,7 +444,7 @@ class ReportTransformer(
                 logger.warning(f"Timeline extraction: step_data for {step_key} is not a dict, skipping.")
                 continue
 
-            meta = step_data.get("metadata", {})
+            meta = step_data.get("metadata") or {}
             timestamp = meta.get("luontiaika")
             
             # Determine agent label from hardcoded defaults or dynamic step_names

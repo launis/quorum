@@ -18,7 +18,6 @@ import 'package:backend_api/src/model/text_extraction_response.dart';
 import 'package:backend_api/src/model/web_scrape_response.dart';
 
 class ToolsApi {
-
   final Dio _dio;
 
   const ToolsApi(this._dio);
@@ -27,7 +26,7 @@ class ToolsApi {
   /// Uses the Knowledge Base Service to find context for citations.  Args:     kb_service (KnowledgeBaseService): Injected KB service.     queries (List[str]): List of citation keys or queries.  Returns:     CitationLookupResponse: Map of query to resolved context.
   ///
   /// Parameters:
-  /// * [bodyCitationLookupToolsCitationLookupPost] 
+  /// * [bodyCitationLookupToolsCitationLookupPost]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -37,8 +36,10 @@ class ToolsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [CitationLookupResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<CitationLookupResponse>> citationLookupToolsCitationLookupPost({ 
-    required BodyCitationLookupToolsCitationLookupPost bodyCitationLookupToolsCitationLookupPost,
+  Future<Response<CitationLookupResponse>>
+  citationLookupToolsCitationLookupPost({
+    required BodyCitationLookupToolsCitationLookupPost
+    bodyCitationLookupToolsCitationLookupPost,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -49,13 +50,8 @@ class ToolsApi {
     final _path = r'/tools/citation-lookup';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -63,13 +59,10 @@ class ToolsApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(bodyCitationLookupToolsCitationLookupPost);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(bodyCitationLookupToolsCitationLookupPost);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -88,9 +81,14 @@ _bodyData=jsonEncode(bodyCitationLookupToolsCitationLookupPost);
     CitationLookupResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<CitationLookupResponse, CitationLookupResponse>(rawData, 'CitationLookupResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<CitationLookupResponse, CitationLookupResponse>(
+              rawData,
+              'CitationLookupResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -117,8 +115,8 @@ _responseData = rawData == null ? null : deserialize<CitationLookupResponse, Cit
   /// Extracts domain concepts from either raw text or an uploaded file.  Args:     kb_service (KnowledgeBaseService): Injected KB service.     doc_service (DocumentService): Injected document service.     text (str): Raw text input.     file (UploadFile): File input.  Returns:     ConceptExtractionResponse: Extracted concepts.  Raises:     HTTPException: If no input provided (400) or extraction errors (500).
   ///
   /// Parameters:
-  /// * [text] 
-  /// * [file] 
+  /// * [text]
+  /// * [file]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -128,7 +126,8 @@ _responseData = rawData == null ? null : deserialize<CitationLookupResponse, Cit
   ///
   /// Returns a [Future] containing a [Response] with a [ConceptExtractionResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ConceptExtractionResponse>> extractConceptsFromFileOrTextToolsExtractConceptsPost({ 
+  Future<Response<ConceptExtractionResponse>>
+  extractConceptsFromFileOrTextToolsExtractConceptsPost({
     String? text,
     MultipartFile? file,
     CancelToken? cancelToken,
@@ -141,27 +140,17 @@ _responseData = rawData == null ? null : deserialize<CitationLookupResponse, Cit
     final _path = r'/tools/extract-concepts';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'multipart/form-data',
       validateStatus: validateStatus,
     );
 
     dynamic _bodyData;
 
-    try {
-
-    } catch(error, stackTrace) {
+    try {} catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -180,9 +169,14 @@ _responseData = rawData == null ? null : deserialize<CitationLookupResponse, Cit
     ConceptExtractionResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ConceptExtractionResponse, ConceptExtractionResponse>(rawData, 'ConceptExtractionResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<ConceptExtractionResponse, ConceptExtractionResponse>(
+              rawData,
+              'ConceptExtractionResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -209,8 +203,8 @@ _responseData = rawData == null ? null : deserialize<ConceptExtractionResponse, 
   /// Deep-parse a PDF/DOCX file and return raw text.  Args:     file (UploadFile): The binary file to process.     doc_service (DocumentService): Injected document service.     text (str | None): Optional text fallback.  Returns:     TextExtractionResponse: Filename and extracted text.  Raises:     HTTPException: If extraction fails (500).
   ///
   /// Parameters:
-  /// * [text] 
-  /// * [file] 
+  /// * [text]
+  /// * [file]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -220,7 +214,7 @@ _responseData = rawData == null ? null : deserialize<ConceptExtractionResponse, 
   ///
   /// Returns a [Future] containing a [Response] with a [TextExtractionResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<TextExtractionResponse>> extractTextToolsExtractTextPost({ 
+  Future<Response<TextExtractionResponse>> extractTextToolsExtractTextPost({
     String? text,
     MultipartFile? file,
     CancelToken? cancelToken,
@@ -233,27 +227,17 @@ _responseData = rawData == null ? null : deserialize<ConceptExtractionResponse, 
     final _path = r'/tools/extract-text';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'multipart/form-data',
       validateStatus: validateStatus,
     );
 
     dynamic _bodyData;
 
-    try {
-
-    } catch(error, stackTrace) {
+    try {} catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -272,9 +256,14 @@ _responseData = rawData == null ? null : deserialize<ConceptExtractionResponse, 
     TextExtractionResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<TextExtractionResponse, TextExtractionResponse>(rawData, 'TextExtractionResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<TextExtractionResponse, TextExtractionResponse>(
+              rawData,
+              'TextExtractionResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -301,7 +290,7 @@ _responseData = rawData == null ? null : deserialize<TextExtractionResponse, Tex
   /// Scrapes a public web page.  Protected against SSRF (Server-Side Request Forgery). Blocks requests to localhost and private IP ranges.
   ///
   /// Parameters:
-  /// * [bodyWebScrapeToolsWebScrapePost] 
+  /// * [bodyWebScrapeToolsWebScrapePost]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -311,7 +300,7 @@ _responseData = rawData == null ? null : deserialize<TextExtractionResponse, Tex
   ///
   /// Returns a [Future] containing a [Response] with a [WebScrapeResponse] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<WebScrapeResponse>> webScrapeToolsWebScrapePost({ 
+  Future<Response<WebScrapeResponse>> webScrapeToolsWebScrapePost({
     required BodyWebScrapeToolsWebScrapePost bodyWebScrapeToolsWebScrapePost,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -323,13 +312,8 @@ _responseData = rawData == null ? null : deserialize<TextExtractionResponse, Tex
     final _path = r'/tools/web-scrape';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -337,13 +321,10 @@ _responseData = rawData == null ? null : deserialize<TextExtractionResponse, Tex
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(bodyWebScrapeToolsWebScrapePost);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(bodyWebScrapeToolsWebScrapePost);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -362,9 +343,14 @@ _bodyData=jsonEncode(bodyWebScrapeToolsWebScrapePost);
     WebScrapeResponse? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<WebScrapeResponse, WebScrapeResponse>(rawData, 'WebScrapeResponse', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<WebScrapeResponse, WebScrapeResponse>(
+              rawData,
+              'WebScrapeResponse',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -386,5 +372,4 @@ _responseData = rawData == null ? null : deserialize<WebScrapeResponse, WebScrap
       extra: _response.extra,
     );
   }
-
 }

@@ -14,7 +14,6 @@ import 'package:backend_api/src/model/dimension_definition.dart';
 import 'package:backend_api/src/model/http_validation_error.dart';
 
 class ConfigurationDimensionsApi {
-
   final Dio _dio;
 
   const ConfigurationDimensionsApi(this._dio);
@@ -23,7 +22,7 @@ class ConfigurationDimensionsApi {
   /// Creates a new evaluation dimension.
   ///
   /// Parameters:
-  /// * [dimensionDefinition] 
+  /// * [dimensionDefinition]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -33,7 +32,7 @@ class ConfigurationDimensionsApi {
   ///
   /// Returns a [Future] containing a [Response] with a [String] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<String>> createDimensionV1ConfigDimensionsPost({ 
+  Future<Response<String>> createDimensionV1ConfigDimensionsPost({
     required DimensionDefinition dimensionDefinition,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -45,13 +44,8 @@ class ConfigurationDimensionsApi {
     final _path = r'/v1/config/dimensions';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -59,13 +53,10 @@ class ConfigurationDimensionsApi {
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(dimensionDefinition);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(dimensionDefinition);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -84,9 +75,10 @@ _bodyData=jsonEncode(dimensionDefinition);
     String? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<String, String>(rawData, 'String', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<String, String>(rawData, 'String', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -113,7 +105,7 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
   /// Deletes an evaluation dimension.
   ///
   /// Parameters:
-  /// * [dimensionId] 
+  /// * [dimensionId]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -123,7 +115,7 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
   ///
   /// Returns a [Future] containing a [Response] with a [bool] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<bool>> deleteDimensionV1ConfigDimensionsDimensionIdDelete({ 
+  Future<Response<bool>> deleteDimensionV1ConfigDimensionsDimensionIdDelete({
     required String dimensionId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -132,16 +124,16 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/dimensions/{dimension_id}'.replaceAll('{' r'dimension_id' '}', dimensionId.toString());
+    final _path = r'/v1/config/dimensions/{dimension_id}'.replaceAll(
+      '{'
+      r'dimension_id'
+      '}',
+      dimensionId.toString(),
+    );
     final _options = Options(
       method: r'DELETE',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -156,9 +148,10 @@ _responseData = rawData == null ? null : deserialize<String, String>(rawData, 'S
     bool? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<bool, bool>(rawData, 'bool', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -195,7 +188,8 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
   ///
   /// Returns a [Future] containing a [Response] with a [DimensionDefinition] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<DimensionDefinition>> getDimensionV1ConfigDimensionsDimensionIdGet({ 
+  Future<Response<DimensionDefinition>>
+  getDimensionV1ConfigDimensionsDimensionIdGet({
     required String dimensionId,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -204,16 +198,16 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/dimensions/{dimension_id}'.replaceAll('{' r'dimension_id' '}', dimensionId.toString());
+    final _path = r'/v1/config/dimensions/{dimension_id}'.replaceAll(
+      '{'
+      r'dimension_id'
+      '}',
+      dimensionId.toString(),
+    );
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -228,9 +222,14 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
     DimensionDefinition? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<DimensionDefinition, DimensionDefinition>(rawData, 'DimensionDefinition', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<DimensionDefinition, DimensionDefinition>(
+              rawData,
+              'DimensionDefinition',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -266,7 +265,8 @@ _responseData = rawData == null ? null : deserialize<DimensionDefinition, Dimens
   ///
   /// Returns a [Future] containing a [Response] with a [List<DimensionDefinition>] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<List<DimensionDefinition>>> getDimensionsV1ConfigDimensionsGet({ 
+  Future<Response<List<DimensionDefinition>>>
+  getDimensionsV1ConfigDimensionsGet({
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -277,13 +277,8 @@ _responseData = rawData == null ? null : deserialize<DimensionDefinition, Dimens
     final _path = r'/v1/config/dimensions';
     final _options = Options(
       method: r'GET',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       validateStatus: validateStatus,
     );
 
@@ -298,9 +293,14 @@ _responseData = rawData == null ? null : deserialize<DimensionDefinition, Dimens
     List<DimensionDefinition>? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<List<DimensionDefinition>, DimensionDefinition>(rawData, 'List<DimensionDefinition>', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<List<DimensionDefinition>, DimensionDefinition>(
+              rawData,
+              'List<DimensionDefinition>',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -327,8 +327,8 @@ _responseData = rawData == null ? null : deserialize<List<DimensionDefinition>, 
   /// Updates an existing evaluation dimension.
   ///
   /// Parameters:
-  /// * [dimensionId] 
-  /// * [componentUpdate] 
+  /// * [dimensionId]
+  /// * [componentUpdate]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -338,7 +338,7 @@ _responseData = rawData == null ? null : deserialize<List<DimensionDefinition>, 
   ///
   /// Returns a [Future] containing a [Response] with a [bool] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<bool>> updateDimensionV1ConfigDimensionsDimensionIdPut({ 
+  Future<Response<bool>> updateDimensionV1ConfigDimensionsDimensionIdPut({
     required String dimensionId,
     required ComponentUpdate componentUpdate,
     CancelToken? cancelToken,
@@ -348,16 +348,16 @@ _responseData = rawData == null ? null : deserialize<List<DimensionDefinition>, 
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/v1/config/dimensions/{dimension_id}'.replaceAll('{' r'dimension_id' '}', dimensionId.toString());
+    final _path = r'/v1/config/dimensions/{dimension_id}'.replaceAll(
+      '{'
+      r'dimension_id'
+      '}',
+      dimensionId.toString(),
+    );
     final _options = Options(
       method: r'PUT',
-      headers: <String, dynamic>{
-        ...?headers,
-      },
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[],
-        ...?extra,
-      },
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{'secure': <Map<String, String>>[], ...?extra},
       contentType: 'application/json',
       validateStatus: validateStatus,
     );
@@ -365,13 +365,10 @@ _responseData = rawData == null ? null : deserialize<List<DimensionDefinition>, 
     dynamic _bodyData;
 
     try {
-_bodyData=jsonEncode(componentUpdate);
-    } catch(error, stackTrace) {
+      _bodyData = jsonEncode(componentUpdate);
+    } catch (error, stackTrace) {
       throw DioException(
-         requestOptions: _options.compose(
-          _dio.options,
-          _path,
-        ),
+        requestOptions: _options.compose(_dio.options, _path),
         type: DioExceptionType.unknown,
         error: error,
         stackTrace: stackTrace,
@@ -390,9 +387,10 @@ _bodyData=jsonEncode(componentUpdate);
     bool? _responseData;
 
     try {
-final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool', growable: true);
-
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<bool, bool>(rawData, 'bool', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -414,5 +412,4 @@ _responseData = rawData == null ? null : deserialize<bool, bool>(rawData, 'bool'
       extra: _response.extra,
     );
   }
-
 }

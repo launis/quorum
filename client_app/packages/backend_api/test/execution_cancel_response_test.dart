@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for ExecutionCancelResponse
 void main() {
-  final ExecutionCancelResponse? instance = /* ExecutionCancelResponse(...) */ null;
+  final ExecutionCancelResponse? instance = /* ExecutionCancelResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(ExecutionCancelResponse, () {
@@ -21,6 +22,5 @@ void main() {
     test('to test the property `message`', () async {
       // TODO
     });
-
   });
 }

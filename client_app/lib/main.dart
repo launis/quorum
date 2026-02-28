@@ -33,12 +33,14 @@ Future<void> main() async {
   }
 
   // 4. Initialize Logger & Startup Audit
-  final logger = LoggerService(); 
-  await logger.init(); 
-  
+  final logger = LoggerService();
+  await logger.init();
+
   // Redirect all debugPrints so the console remains clean
   debugPrint = (String? message, {int? wrapWidth}) {
-    if (message != null && !message.contains('Error loading .env') && !message.contains('Error initializing Firebase')) {
+    if (message != null &&
+        !message.contains('Error loading .env') &&
+        !message.contains('Error initializing Firebase')) {
       logger.debug('FLUTTER_DEBUG', message);
     }
   };
@@ -46,14 +48,22 @@ Future<void> main() async {
   // LOG: Detailed
   logger.info('SYSTEM', 'Startup Audit:');
   logger.info('SYSTEM', ' - API URL: ${Env.apiUrl}');
-  logger.info('SYSTEM', ' - Platform: ${kIsWeb ? "Web" : Platform.operatingSystem}');
+  logger.info(
+    'SYSTEM',
+    ' - Platform: ${kIsWeb ? "Web" : Platform.operatingSystem}',
+  );
   logger.info('SYSTEM', ' - Build Mode: ${kReleaseMode ? "Release" : "Debug"}');
 
   // 5. Global Error Handling Setup
-  
+
   // A. Flutter Framework Errors (Widget Build)
   FlutterError.onError = (FlutterErrorDetails details) {
-    logger.error('FLUTTER', 'Framework Error', details.exception, details.stack);
+    logger.error(
+      'FLUTTER',
+      'Framework Error',
+      details.exception,
+      details.stack,
+    );
   };
 
   // B. Async/Platform Errors (Futures, Zones)
@@ -68,9 +78,7 @@ Future<void> main() async {
       observers: [
         AppLoggerObserver(logger), // Add Riverpod Observer
       ],
-      overrides: [
-        loggerServiceProvider.overrideWithValue(logger),
-      ],
+      overrides: [loggerServiceProvider.overrideWithValue(logger)],
       child: const App(),
     ),
   );

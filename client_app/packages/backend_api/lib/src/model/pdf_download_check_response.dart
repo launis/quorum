@@ -8,7 +8,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'pdf_download_check_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,65 +18,38 @@ part 'pdf_download_check_response.g.dart';
 class PDFDownloadCheckResponse {
   /// Returns a new [PDFDownloadCheckResponse] instance.
   PDFDownloadCheckResponse({
+    required this.status,
 
-    required  this.status,
+    required this.exists,
 
-    required  this.exists,
-
-     this.localPath,
+    this.localPath,
   });
 
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'exists',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'exists', required: true)
   final bool exists;
 
-
-
-  @JsonKey(
-    
-    name: r'local_path',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'local_path', required: false)
   final String? localPath;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PDFDownloadCheckResponse &&
+          other.status == status &&
+          other.exists == exists &&
+          other.localPath == localPath;
 
+  @override
+  int get hashCode =>
+      status.hashCode +
+      exists.hashCode +
+      (localPath == null ? 0 : localPath.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is PDFDownloadCheckResponse &&
-      other.status == status &&
-      other.exists == exists &&
-      other.localPath == localPath;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        exists.hashCode +
-        (localPath == null ? 0 : localPath.hashCode);
-
-  factory PDFDownloadCheckResponse.fromJson(Map<String, dynamic> json) => _$PDFDownloadCheckResponseFromJson(json);
+  factory PDFDownloadCheckResponse.fromJson(Map<String, dynamic> json) =>
+      _$PDFDownloadCheckResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$PDFDownloadCheckResponseToJson(this);
 
@@ -85,6 +57,4 @@ class PDFDownloadCheckResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

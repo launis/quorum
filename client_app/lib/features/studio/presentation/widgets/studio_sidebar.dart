@@ -30,7 +30,6 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
   final List<WorkflowDef> _optimisticWorkflows = [];
   // _optimisticMatrices removed: Handled by AvailableMatricesController
 
-
   @override
   void initState() {
     super.initState();
@@ -54,38 +53,51 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
-               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-               children: [
-                 Text(
-                   widget.mode == StudioSidebarMode.workflows ? l10n.studioTabWorkflows : l10n.studioTabMatrices,
-                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                     fontWeight: FontWeight.bold,
-                   ),
-                 ),
-                 if (widget.mode == StudioSidebarMode.workflows)
-                   IconButton.filledTonal(
-                     onPressed: _handleCreateNew,
-                     icon: const Icon(Icons.add, size: 20),
-                     tooltip: l10n.studioCreateNew,
-                     visualDensity: VisualDensity.compact,
-                   ),
-               ]
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.mode == StudioSidebarMode.workflows
+                      ? l10n.studioTabWorkflows
+                      : l10n.studioTabMatrices,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (widget.mode == StudioSidebarMode.workflows)
+                  IconButton.filledTonal(
+                    onPressed: _handleCreateNew,
+                    icon: const Icon(Icons.add, size: 20),
+                    tooltip: l10n.studioCreateNew,
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
             ),
           ),
           const Divider(height: 1),
 
           // Content Areas
           Expanded(
-            child: widget.mode == StudioSidebarMode.workflows 
-                ? _buildWorkflowsList(context, workflowsState, activeWorkflowState.value?.id, l10n)
-                : _buildMatricesList(context, l10n),
+            child:
+                widget.mode == StudioSidebarMode.workflows
+                    ? _buildWorkflowsList(
+                      context,
+                      workflowsState,
+                      activeWorkflowState.value?.id,
+                      l10n,
+                    )
+                    : _buildMatricesList(context, l10n),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWorkflowsList(BuildContext context, AsyncValue<List<WorkflowDef>> workflowsState, String? activeId, AppLocalizations l10n) {
+  Widget _buildWorkflowsList(
+    BuildContext context,
+    AsyncValue<List<WorkflowDef>> workflowsState,
+    String? activeId,
+    AppLocalizations l10n,
+  ) {
     return workflowsState.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, st) => _ErrorView(error: err),
@@ -108,8 +120,10 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
               selectedTileColor: colorScheme.primaryContainer,
               selectedColor: colorScheme.onPrimaryContainer,
               onTap: () {
-                 ref.read(activeWorkflowControllerProvider.notifier).loadWorkflow(wf.id);
-                 widget.onStepSelected(null);
+                ref
+                    .read(activeWorkflowControllerProvider.notifier)
+                    .loadWorkflow(wf.id);
+                widget.onStepSelected(null);
               },
               trailing: PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, size: 20),
@@ -117,28 +131,36 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
                   if (value == 'copy') _showCopyDialog(context, wf);
                   if (value == 'delete') _confirmDeleteWorkflow(context, wf);
                 },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'copy',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.copy, size: 18),
-                        const SizedBox(width: 8),
-                        Text(l10n.studioCopyWorkflow),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.delete, size: 18, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
+                itemBuilder:
+                    (context) => [
+                      PopupMenuItem(
+                        value: 'copy',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.copy, size: 18),
+                            const SizedBox(width: 8),
+                            Text(l10n.studioCopyWorkflow),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.delete,
+                              size: 18,
+                              color: Colors.red,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.delete,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
               ),
             );
           },
@@ -148,32 +170,32 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
   }
 
   Widget _buildMatricesList(BuildContext context, AppLocalizations l10n) {
-     final matricesState = ref.watch(availableMatricesControllerProvider);
-     
-     return matricesState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => _ErrorView(error: err),
-        data: (matrices) {
-           if (matrices.isEmpty) {
-             return Center(child: Text(l10n.noMatricesFound));
-           }
+    final matricesState = ref.watch(availableMatricesControllerProvider);
 
-           return ListView.builder(
-              itemCount: matrices.length,
-              itemBuilder: (context, index) {
-                final matrix = matrices[index];
-                return ListTile(
-                   leading: const Icon(Icons.grid_on, size: 20),
-                   title: Text(matrix.name),
-                   subtitle: Text(matrix.description ?? ''),
-                   onTap: () { 
-                       widget.onStepSelected(matrix.id);
-                   },
-                );
+    return matricesState.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, st) => _ErrorView(error: err),
+      data: (matrices) {
+        if (matrices.isEmpty) {
+          return Center(child: Text(l10n.noMatricesFound));
+        }
+
+        return ListView.builder(
+          itemCount: matrices.length,
+          itemBuilder: (context, index) {
+            final matrix = matrices[index];
+            return ListTile(
+              leading: const Icon(Icons.grid_on, size: 20),
+              title: Text(matrix.name),
+              subtitle: Text(matrix.description ?? ''),
+              onTap: () {
+                widget.onStepSelected(matrix.id);
               },
-           );
-        },
-     );
+            );
+          },
+        );
+      },
+    );
   }
 
   void _handleCreateNew() {
@@ -186,84 +208,119 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
 
   Future<void> _createNewWorkflow() async {
     final tempId = 'new_${DateTime.now().millisecondsSinceEpoch}';
-    final tempWf = WorkflowDef(id: tempId, name: 'New Workflow', description: '', steps: []);
-    
+    final tempWf = WorkflowDef(
+      id: tempId,
+      name: 'New Workflow',
+      description: '',
+      steps: [],
+    );
+
     setState(() => _optimisticWorkflows.add(tempWf));
 
     try {
-      await ref.read(workflowsControllerProvider.notifier).createWorkflow(tempWf);
+      await ref
+          .read(workflowsControllerProvider.notifier)
+          .createWorkflow(tempWf);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
     } finally {
       if (mounted) setState(() => _optimisticWorkflows.remove(tempWf));
     }
   }
 
   Future<void> _createNewMatrix() async {
-     final l10n = AppLocalizations.of(context)!;
-     final nameController = TextEditingController();
-     final descController = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
 
-     final result = await showDialog<Map<String, String>>(
-        context: context,
-        builder: (context) => AlertDialog(
-           title: Text(l10n.studioCreateMatrix),
-           content: Column(
-             mainAxisSize: MainAxisSize.min,
-             children: [
-               TextField(
-                 controller: nameController,
-                 decoration: InputDecoration(labelText: l10n.studioMatrixName),
-                 autofocus: true,
-               ),
-               const SizedBox(height: 8),
-               TextField(
-                 controller: descController,
-                 decoration: InputDecoration(labelText: l10n.studioMatrixDesc),
-               ),
-             ],
-           ),
-           actions: [
-             TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-             FilledButton(
-               onPressed: () => Navigator.pop(context, {'name': nameController.text, 'desc': descController.text}),
-               child: Text(l10n.save),
-             ),
-           ],
-        ),
-     );
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(l10n.studioCreateMatrix),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(labelText: l10n.studioMatrixName),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: descController,
+                  decoration: InputDecoration(labelText: l10n.studioMatrixDesc),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed:
+                    () => Navigator.pop(context, {
+                      'name': nameController.text,
+                      'desc': descController.text,
+                    }),
+                child: Text(l10n.save),
+              ),
+            ],
+          ),
+    );
 
-     if (result != null && result['name']!.isNotEmpty) {
-       final name = result['name']!;
-       final desc = result['desc'] ?? '';
-       
-       try {
-          // New Controller handles optimistic updates internally
-          await ref.read(availableMatricesControllerProvider.notifier).createMatrix(name, desc);
-       } catch (e) {
-         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
-       }
-     }
+    if (result != null && result['name']!.isNotEmpty) {
+      final name = result['name']!;
+      final desc = result['desc'] ?? '';
+
+      try {
+        // New Controller handles optimistic updates internally
+        await ref
+            .read(availableMatricesControllerProvider.notifier)
+            .createMatrix(name, desc);
+      } catch (e) {
+        if (mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
   }
 
-  Future<void> _showCopyDialog(BuildContext context, WorkflowDef original) async {
+  Future<void> _showCopyDialog(
+    BuildContext context,
+    WorkflowDef original,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
-    final nameController = TextEditingController(text: '${original.name} (Copy)');
+    final nameController = TextEditingController(
+      text: '${original.name} (Copy)',
+    );
 
     final newName = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.studioCopyWorkflow),
-        content: TextField(
-          controller: nameController,
-          decoration: InputDecoration(labelText: l10n.studioNewNameLabel),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, nameController.text), child: Text(l10n.save)),
-        ],
-      ),
+      builder:
+          (context) => AlertDialog(
+            title: Text(l10n.studioCopyWorkflow),
+            content: TextField(
+              controller: nameController,
+              decoration: InputDecoration(labelText: l10n.studioNewNameLabel),
+              autofocus: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, nameController.text),
+                child: Text(l10n.save),
+              ),
+            ],
+          ),
     );
 
     if (newName != null && newName.isNotEmpty && mounted) {
@@ -271,49 +328,70 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
       setState(() => _optimisticWorkflows.add(tempWf));
 
       try {
-        await ref.read(workflowsControllerProvider.notifier).copyWorkflow(original.id, newName);
+        await ref
+            .read(workflowsControllerProvider.notifier)
+            .copyWorkflow(original.id, newName);
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        if (mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed: $e')));
       } finally {
         if (mounted) setState(() => _optimisticWorkflows.remove(tempWf));
       }
     }
   }
 
-  Future<void> _confirmDeleteWorkflow(BuildContext context, WorkflowDef wf) async {
+  Future<void> _confirmDeleteWorkflow(
+    BuildContext context,
+    WorkflowDef wf,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.delete),
-        content: Text(l10n.deleteWorkflowConfirmation(wf.name)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.delete),
+      builder:
+          (context) => AlertDialog(
+            title: Text(l10n.delete),
+            content: Text(l10n.deleteWorkflowConfirmation(wf.name)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.delete),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirmed == true && mounted) {
       try {
-        await ref.read(workflowsControllerProvider.notifier).deleteWorkflow(wf.id);
+        await ref
+            .read(workflowsControllerProvider.notifier)
+            .deleteWorkflow(wf.id);
         // Clear active if deleted
         if (ref.read(activeWorkflowControllerProvider).value?.id == wf.id) {
-            // Can't clear easily without adding clear method, but we can load non-existent
-            // Actually let's assume parent screen handles routing away or we add clear method later.
+          // Can't clear easily without adding clear method, but we can load non-existent
+          // Actually let's assume parent screen handles routing away or we add clear method later.
         }
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Deleted ${wf.name}')));
-           if (widget.selectedStepId == wf.id) {
-               // widget.onStepSelected(null); // Optional
-           }
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Deleted ${wf.name}')));
+          if (widget.selectedStepId == wf.id) {
+            // widget.onStepSelected(null); // Optional
+          }
         }
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
+        if (mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
       }
     }
   }
@@ -331,4 +409,3 @@ class _ErrorView extends StatelessWidget {
     );
   }
 }
-

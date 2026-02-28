@@ -52,16 +52,22 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
 
     # 2. Falsifier Penalty Check
     is_post_hoc = False
-    if "step_falsifier" in context:
-        falsifier_model = state.get_context("step_falsifier", FalsifierOutput)
-        if falsifier_model:
-            # FalsifierData -> ReasoningFidelity -> post_hoc_rationalization
-            if falsifier_model.falsifier_data.fidelity_audit.post_hoc_rationalization:
-                is_post_hoc = True
-        else:
-            logger.warning("[ScoringHook] step_falsifier present but failed validation via inflate.")
+    falsifier_model = state.get_context("step_falsifier", FalsifierOutput)
+    
+    from backend.models.domain.panel import PanelOutput
+    panel_model = state.get_context("step_panel", PanelOutput)
+    
+    falsifier_data = None
+    if falsifier_model and falsifier_model.falsifier_data:
+        falsifier_data = falsifier_model.falsifier_data
+    elif panel_model and panel_model.falsifier_data:
+        falsifier_data = panel_model.falsifier_data
+
+    if falsifier_data:
+        if falsifier_data.fidelity_audit.post_hoc_rationalization:
+            is_post_hoc = True
     else:
-        logger.debug("[ScoringHook] step_falsifier missing from context, skipping Falsifier Penalty.")
+        logger.debug("[ScoringHook] Falsifier data missing from context, skipping Falsifier Penalty.")
 
     # 3. Aggregate Scores from Audit Results
     total_score_accum = 0.0
@@ -198,17 +204,28 @@ def enforce_scoring_penalties(result: Any, context: Any) -> Any:
 
     # 1.2 Falsifier Findings
     step_falsifier = _get_ctx("step_falsifier")
+    step_panel = _get_ctx("step_panel")
+    
+    falsifier_data = None
     if step_falsifier:
         falsifier_model = inflate(step_falsifier, FalsifierOutput)
-        if falsifier_model and falsifier_model.falsifier_data.fidelity_audit.post_hoc_rationalization:
-            # Load penalty from settings
-            p_val = settings.scoring_post_hoc_penalty
-            if p_val > 0:
-                # Standard: Append Enum Key + Percentage
-                penalties.append(f"{ScoringPenalty.POST_HOC.value} (-{p_val * 100:.0f}%)")
-                penalty_factor *= 1.0 - p_val
-            else:
-                logger.warning(f"[ScoringHook] {ScoringPenalty.POST_HOC.value} (Logged Only - Penalty Disabled)")
+        if falsifier_model and falsifier_model.falsifier_data:
+            falsifier_data = falsifier_model.falsifier_data
+    elif step_panel:
+        from backend.models.domain.panel import PanelOutput
+        panel_model = inflate(step_panel, PanelOutput)
+        if panel_model and panel_model.falsifier_data:
+            falsifier_data = panel_model.falsifier_data
+
+    if falsifier_data and falsifier_data.fidelity_audit.post_hoc_rationalization:
+        # Load penalty from settings
+        p_val = settings.scoring_post_hoc_penalty
+        if p_val > 0:
+            # Standard: Append Enum Key + Percentage
+            penalties.append(f"{ScoringPenalty.POST_HOC.value} (-{p_val * 100:.0f}%)")
+            penalty_factor *= 1.0 - p_val
+        else:
+            logger.warning(f"[ScoringHook] {ScoringPenalty.POST_HOC.value} (Logged Only - Penalty Disabled)")
 
     if not penalties:
         return result

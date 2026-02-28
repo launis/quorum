@@ -11,13 +11,13 @@ class UsageStats {
   final int rpmLimit;
   final double percentage;
   final String period;
-  
+
   // New telemetry
   final int totalRuns;
   final int totalProcessingTimeMs;
   final Map<String, int> modelsUsed;
   final Map<String, int> workflowsUsed;
-  
+
   final int promptTokens;
   final int completionTokens;
   final int totalTokens;
@@ -62,7 +62,10 @@ Future<UsageStats> usageStats(Ref ref, {String scope = "org"}) async {
   }
 
   final repo = ref.watch(organizationRepositoryProvider);
-  final result = await repo.getDetailedUsage(user.organizationId!, scope: scope);
+  final result = await repo.getDetailedUsage(
+    user.organizationId!,
+    scope: scope,
+  );
 
   return result.fold(
     (error) => throw error, // Let UI handle error state
@@ -74,9 +77,18 @@ Future<UsageStats> usageStats(Ref ref, {String scope = "org"}) async {
       percentage: (data['percentage_used'] as num).toDouble() / 100.0,
       period: data['period'] as String,
       totalRuns: (data['total_runs'] as num?)?.toInt() ?? 0,
-      totalProcessingTimeMs: (data['total_processing_time_ms'] as num?)?.toInt() ?? 0,
-      modelsUsed: (data['models_used'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, (v as num).toInt())) ?? {},
-      workflowsUsed: (data['workflows_used'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, (v as num).toInt())) ?? {},
+      totalProcessingTimeMs:
+          (data['total_processing_time_ms'] as num?)?.toInt() ?? 0,
+      modelsUsed:
+          (data['models_used'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(k, (v as num).toInt()),
+          ) ??
+          {},
+      workflowsUsed:
+          (data['workflows_used'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(k, (v as num).toInt()),
+          ) ??
+          {},
       promptTokens: (data['prompt_tokens'] as num?)?.toInt() ?? 0,
       completionTokens: (data['completion_tokens'] as num?)?.toInt() ?? 0,
       totalTokens: (data['total_tokens'] as num?)?.toInt() ?? 0,

@@ -3,7 +3,8 @@ import 'package:backend_api/backend_api.dart';
 
 // tests for DimensionDeleteResponse
 void main() {
-  final DimensionDeleteResponse? instance = /* DimensionDeleteResponse(...) */ null;
+  final DimensionDeleteResponse? instance = /* DimensionDeleteResponse(...) */
+      null;
   // TODO add properties to the entity
 
   group(DimensionDeleteResponse, () {
@@ -16,6 +17,5 @@ void main() {
     test('to test the property `id`', () async {
       // TODO
     });
-
   });
 }

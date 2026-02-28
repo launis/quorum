@@ -10,7 +10,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'task_status_response.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -21,81 +20,45 @@ part 'task_status_response.g.dart';
 class TaskStatusResponse {
   /// Returns a new [TaskStatusResponse] instance.
   TaskStatusResponse({
+    required this.status,
 
-    required  this.status,
+    this.stage,
 
-     this.stage,
+    this.percent,
 
-     this.percent,
-
-     this.error,
+    this.error,
   });
 
-  @JsonKey(
-    
-    name: r'status',
-    required: true,
-    
-  )
-
-
+  @JsonKey(name: r'status', required: true)
   final String status;
 
-
-
-  @JsonKey(
-    
-    name: r'stage',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'stage', required: false)
   final String? stage;
 
-
-
-  @JsonKey(
-    
-    name: r'percent',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'percent', required: false)
   final Percent? percent;
 
-
-
-  @JsonKey(
-    
-    name: r'error',
-    required: false,
-    
-  )
-
-
+  @JsonKey(name: r'error', required: false)
   final ProblemDetail? error;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TaskStatusResponse &&
+          other.status == status &&
+          other.stage == stage &&
+          other.percent == percent &&
+          other.error == error;
 
+  @override
+  int get hashCode =>
+      status.hashCode +
+      (stage == null ? 0 : stage.hashCode) +
+      percent.hashCode +
+      (error == null ? 0 : error.hashCode);
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is TaskStatusResponse &&
-      other.status == status &&
-      other.stage == stage &&
-      other.percent == percent &&
-      other.error == error;
-
-    @override
-    int get hashCode =>
-        status.hashCode +
-        (stage == null ? 0 : stage.hashCode) +
-        percent.hashCode +
-        (error == null ? 0 : error.hashCode);
-
-  factory TaskStatusResponse.fromJson(Map<String, dynamic> json) => _$TaskStatusResponseFromJson(json);
+  factory TaskStatusResponse.fromJson(Map<String, dynamic> json) =>
+      _$TaskStatusResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$TaskStatusResponseToJson(this);
 
@@ -103,6 +66,4 @@ class TaskStatusResponse {
   String toString() {
     return toJson().toString();
   }
-
 }
-

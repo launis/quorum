@@ -15,9 +15,7 @@ void main() {
   setUp(() {
     mockRepository = MockStudioRepository();
     container = ProviderContainer(
-      overrides: [
-        studioRepositoryProvider.overrideWithValue(mockRepository),
-      ],
+      overrides: [studioRepositoryProvider.overrideWithValue(mockRepository)],
     );
 
     // Register fallback values if needed
@@ -54,13 +52,12 @@ void main() {
 
   test('loadWorkflow loads data into activeWorkflow', () async {
     // Arrange
-    when(() => mockRepository.getWorkflow('1'))
-        .thenAnswer((_) async => testWorkflow);
+    when(
+      () => mockRepository.getWorkflow('1'),
+    ).thenAnswer((_) async => testWorkflow);
 
     // Act
-    await container
-        .read(studioControllerProvider.notifier)
-        .loadWorkflow('1');
+    await container.read(studioControllerProvider.notifier).loadWorkflow('1');
 
     // Assert
     final state = container.read(studioControllerProvider);
@@ -69,12 +66,15 @@ void main() {
 
   test('loadComponents loads data into components', () async {
     // Arrange
-    when(() => mockRepository.getComponents())
-        .thenAnswer((_) async => testComponents);
-    when(() => mockRepository.getAgents())
-        .thenAnswer((_) async => <StudioComponentDef>[]);
-    when(() => mockRepository.getOutputConfigs())
-        .thenAnswer((_) async => <StudioComponentDef>[]);
+    when(
+      () => mockRepository.getComponents(),
+    ).thenAnswer((_) async => testComponents);
+    when(
+      () => mockRepository.getAgents(),
+    ).thenAnswer((_) async => <StudioComponentDef>[]);
+    when(
+      () => mockRepository.getOutputConfigs(),
+    ).thenAnswer((_) async => <StudioComponentDef>[]);
 
     // Act
     await container.read(studioControllerProvider.notifier).loadComponents();
@@ -86,15 +86,13 @@ void main() {
 
   test('updateStep updates activeWorkflow optimistically', () async {
     // Arrange
-    when(() => mockRepository.getWorkflow('1'))
-        .thenAnswer((_) async => testWorkflow);
-    when(() => mockRepository.saveWorkflow(any()))
-        .thenAnswer((_) async => {});
+    when(
+      () => mockRepository.getWorkflow('1'),
+    ).thenAnswer((_) async => testWorkflow);
+    when(() => mockRepository.saveWorkflow(any())).thenAnswer((_) async => {});
 
     // Initialize state
-    await container
-        .read(studioControllerProvider.notifier)
-        .loadWorkflow('1');
+    await container.read(studioControllerProvider.notifier).loadWorkflow('1');
 
     // Act
     final newConfig = {'key': 'newValue'};
@@ -110,15 +108,15 @@ void main() {
 
   test('updateStep rolls back on failure', () async {
     // Arrange
-    when(() => mockRepository.getWorkflow('1'))
-        .thenAnswer((_) async => testWorkflow);
-    when(() => mockRepository.saveWorkflow(any()))
-        .thenThrow(Exception('Save failed'));
+    when(
+      () => mockRepository.getWorkflow('1'),
+    ).thenAnswer((_) async => testWorkflow);
+    when(
+      () => mockRepository.saveWorkflow(any()),
+    ).thenThrow(Exception('Save failed'));
 
     // Initialize state
-    await container
-        .read(studioControllerProvider.notifier)
-        .loadWorkflow('1');
+    await container.read(studioControllerProvider.notifier).loadWorkflow('1');
 
     // Act
     final newConfig = {'key': 'newValue'};
@@ -130,20 +128,24 @@ void main() {
     final state = container.read(studioControllerProvider);
     // Should be rolled back to original
     expect(state.activeWorkflow.value!.steps.first.config['key'], 'value');
-    
+
     // Error is swallowed to keep UI usable, but state is reverted.
     expect(state.activeWorkflow.hasError, false);
   });
-  
+
   test('copyWorkflow calls repo and reloads list', () async {
     // Arrange
-    when(() => mockRepository.copyWorkflow('1', 'New Name'))
-        .thenAnswer((_) async => {});
-    when(() => mockRepository.getWorkflows())
-        .thenAnswer((_) async => [testWorkflow]); // Return list with copy? For test just return something.
+    when(
+      () => mockRepository.copyWorkflow('1', 'New Name'),
+    ).thenAnswer((_) async => {});
+    when(() => mockRepository.getWorkflows()).thenAnswer(
+      (_) async => [testWorkflow],
+    ); // Return list with copy? For test just return something.
 
     // Act
-    await container.read(studioControllerProvider.notifier).copyWorkflow('1', 'New Name');
+    await container
+        .read(studioControllerProvider.notifier)
+        .copyWorkflow('1', 'New Name');
 
     // Assert
     verify(() => mockRepository.copyWorkflow('1', 'New Name')).called(1);

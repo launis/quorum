@@ -9,7 +9,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'batch_completion_request.g.dart';
 
-
 @CopyWith()
 @JsonSerializable(
   checked: true,
@@ -19,35 +18,22 @@ part 'batch_completion_request.g.dart';
 )
 class BatchCompletionRequest {
   /// Returns a new [BatchCompletionRequest] instance.
-  BatchCompletionRequest({
+  BatchCompletionRequest({required this.requests});
 
-    required  this.requests,
-  });
-
-      /// List of requests to process in parallel.
-  @JsonKey(
-    
-    name: r'requests',
-    required: true,
-    
-  )
-
-
+  /// List of requests to process in parallel.
+  @JsonKey(name: r'requests', required: true)
   final List<CompletionRequest> requests;
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BatchCompletionRequest && other.requests == requests;
 
+  @override
+  int get hashCode => requests.hashCode;
 
-
-
-    @override
-    bool operator ==(Object other) => identical(this, other) || other is BatchCompletionRequest &&
-      other.requests == requests;
-
-    @override
-    int get hashCode =>
-        requests.hashCode;
-
-  factory BatchCompletionRequest.fromJson(Map<String, dynamic> json) => _$BatchCompletionRequestFromJson(json);
+  factory BatchCompletionRequest.fromJson(Map<String, dynamic> json) =>
+      _$BatchCompletionRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$BatchCompletionRequestToJson(this);
 
@@ -55,6 +41,4 @@ class BatchCompletionRequest {
   String toString() {
     return toJson().toString();
   }
-
 }
-
