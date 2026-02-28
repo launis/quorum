@@ -143,7 +143,9 @@ def test_performativity_analysis():
 
 def test_l10n_keys_exist():
     """Verify all Enum values exist in en.json."""
-    with open("l10n/en.json", encoding="utf-8") as f:
+    from pathlib import Path
+    l10n_path = Path(__file__).parent.parent / "l10n" / "en.json"
+    with open(l10n_path, encoding="utf-8") as f:
         en_data = json.load(f)
 
     from enum import Enum

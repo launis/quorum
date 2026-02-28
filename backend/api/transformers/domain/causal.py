@@ -73,19 +73,19 @@ class CausalDomainTransformer(BaseTransformer):
             abductive_score_display=f"{abd_score:.1f}" if abd_score is not None else "N/A",
             abductive_percent=abd_percent,
             abductive_percent_display=f"{int(abd_percent)}%",
-            abductive_conclusion=str(data.abductive_conclusion.value),
+            abductive_conclusion=self._t(data.abductive_conclusion.value, data.abductive_conclusion.name.title().replace("_", " ")),
             abductive_help=self._t("help.abductive", "Abduktiivinen päättely arvioi selityksen voimaa."),
             # Counterfactual / Plausibility
             plausibility_score=plaus_score,
             plausibility_score_display=f"{plaus_score:.1f}" if plaus_score is not None else "N/A",
             plausibility_percent=plaus_percent,
             plausibility_percent_display=f"{int(plaus_percent)}%",
-            plausibility_label=str(cf.plausibility_score.value),
+            plausibility_label=self._t(cf.plausibility_score.value, cf.plausibility_score.name.title().replace("_", " ")),
             counterfactual_actual=cf.actual_scenario,
             counterfactual_simulated=cf.simulation_result,
             observation=data.observation,
             hypothesis=data.hypothesis,
             # Generic
             score=abd_score,  # Use abductive as main score?
-            verdict=str(data.abductive_conclusion.value),
+            verdict=self._t(data.abductive_conclusion.value, data.abductive_conclusion.name.title().replace("_", " ")),
         )

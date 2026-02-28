@@ -290,9 +290,11 @@ class ProfilerDisplay(BaseModel):
 class ArchivistDisplay(BaseModel):
     compliance_score: float | None
     compliance_analysis: str
+    consistency_analysis: str | None = Field(default=None, description="Detailed text analysis from the LLM.")
     recommendations: list[str]
 
     model_config = ConfigDict(frozen=True, strict=True)
+
 
     # No fields to validate for non-empty string in ArchivistDisplay currently,
     # or add correct validator if needed.

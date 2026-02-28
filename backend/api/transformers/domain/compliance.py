@@ -107,6 +107,7 @@ class ComplianceDomainTransformer(BaseTransformer):
             compliance_score=comp_score,
             compliance_score_display=f"{comp_score:.1f}" if comp_score is not None else "N/A",
             compliance_analysis=comp_desc or comp_analysis,
+            consistency_analysis=model.consistency_analysis,
             compliance_help=self._t("help.compliance", "Säädöstenmukaisuus arvioi tekstin lakiteknistä pätevyyttä."),
             recommendations=recs,
         )

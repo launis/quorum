@@ -36,15 +36,15 @@ class FidelityLevel(str, Enum):
 
 
 class PlausibilityLevel(str, Enum):
-    IMPOSSIBLE = "PLAUS_IMPOSSIBLE"
-    PLAUSIBLE = "PLAUS_PLAUSIBLE"
-    HIGH = "PLAUS_HIGH"
+    IMPOSSIBLE = "IMPOSSIBLE"
+    PLAUSIBLE = "PLAUSIBLE"
+    HIGH = "HIGH"
 
 
 class AbductiveConclusion(str, Enum):
-    POST_HOC = "ABDUCT_POST_HOC"
-    UNCERTAIN = "ABDUCT_UNCERTAIN"
-    GENUINE = "ABDUCT_GENUINE"
+    POST_HOC = "POST_HOC"
+    UNCERTAIN = "UNCERTAIN"
+    GENUINE = "GENUINE"
 
 
 class AuthenticityLevel(str, Enum):

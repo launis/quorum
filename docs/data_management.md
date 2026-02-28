@@ -234,6 +234,18 @@ if isinstance(wf_state, dict):
 ```
 This ensures resilience (DB doesn't crash on load) and integrity (Logic layer verifies schema before use).
 
+### 8.2. Enum Synchronization and Legacy Prefixing (The Causal Analyst Incident)
+
+**The Problem:**
+Historically, LLM prompts in `seed_data.json` instructed the LLM to output specific string values (e.g., `POST_HOC`, `PLAUSIBLE`). The Python code then used a `@model_validator` to artificially prefix these values (e.g., `val = f"ABDUCT_{val}"`) before casting them to a Pydantic `Enum`. UI Localization files (`fi.json`) were then forced to map against these artificial prefixes. This created a fragile, detached schema where the LLM output, the Python Enum, and the UI string were all misaligned, leading to missing translations ("ABDUCT_GENUINE" leaking to the UI).
+
+**The Solution (Direct Alignment):**
+We strictly mandate that Python `Enum` values and UI Localization keys (`l10n/*.json`) MUST perfectly and unambiguously match the raw string values produced by the LLM (as defined in `seed_data.json`). Defensive prefixing or string manipulation in Pydantic `@model_validator` blocks is strictly prohibited. 
+
+**The Migration Consequence (Database Destruction):**
+Because the system strictly casts strings to Enums during deserialization (`model_validate`), changing the fundamental Enum values in code (e.g., from `ABDUCT_GENUINE` to `GENUINE`) instantly invalidates all historical records in the database that hold the old strings. 
+Since this architecture intentionally avoids ORMs and database migration scripts for local development, **the only supported resolution for a schema-breaking Enum change is to completely wipe and re-seed the runtime database** using `python backend/seed/run_seed.py local`. Old execution data is inherently disposable and is intentionally destroyed to maintain strict type hygiene.
+
 ---
 
 ## 10. Model Strategy Architecture (V5.1)

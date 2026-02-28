@@ -82,21 +82,20 @@ class CounterfactualTest(BaseModel):
         if isinstance(data, dict):
             mapping = {PlausibilityLevel.IMPOSSIBLE: 1.0, PlausibilityLevel.PLAUSIBLE: 2.0, PlausibilityLevel.HIGH: 3.0}
             val = data.get("plausibility_score")
-            # If numeric is missing, try to derive from score
-            if data.get("plausibility_numeric") is None and val:
+            if val:
                 try:
-                    # Pydantic will validate the Enum type later, but here we try to map.
-                    # If val is a valid string/enum, we map it.
-                    # We don't need to over-validate type here, just map if known.
                     enum_val = val if isinstance(val, PlausibilityLevel) else PlausibilityLevel(val)
-                    if enum_val in mapping:
+                    data["plausibility_score"] = enum_val
+                    
+                    if data.get("plausibility_numeric") is None and enum_val in mapping:
                         data["plausibility_numeric"] = mapping[enum_val]
-                except ValueError:
-                    # Fail Fast: If we have a score but can't map it, it might be invalid.
-                    # However, Pydantic's main validation happens *after* this pre-validator (for the field itself).
-                    # But if we need the numeric value, we should ensure we can get it.
-                    # Let's let Pydantic handle the Enum validation failure for 'plausibility_score'.
-                    pass
+                except ValueError as e:
+                    from backend.exceptions import AppException
+                    raise AppException(
+                        message=f"Invalid Plausibility Score: {val}. Allowed: IMPOSSIBLE, PLAUSIBLE, HIGH.",
+                        status_code=400,
+                        details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)}
+                    )
         return data
 
     model_config = ConfigDict(frozen=True)
@@ -140,13 +139,20 @@ class CausalAnalysis(BaseModel):
                 AbductiveConclusion.GENUINE: 3.0,
             }
             val = data.get("abductive_conclusion")
-            if data.get("abductive_score") is None and val:
+            if val:
                 try:
                     enum_val = val if isinstance(val, AbductiveConclusion) else AbductiveConclusion(val)
-                    if enum_val in mapping:
+                    data["abductive_conclusion"] = enum_val
+                    
+                    if data.get("abductive_score") is None and enum_val in mapping:
                         data["abductive_score"] = mapping[enum_val]
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    from backend.exceptions import AppException
+                    raise AppException(
+                        message=f"Invalid Abductive Conclusion: {val}. Allowed: POST_HOC, UNCERTAIN, GENUINE.",
+                        status_code=400,
+                        details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)}
+                    )
         return data
 
     model_config = ConfigDict(frozen=True)

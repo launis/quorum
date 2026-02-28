@@ -675,6 +675,15 @@ class GraphEngine:
                 if value is None and hasattr(state, head):
                     value = getattr(state, head)
 
+                # Fallback: Check if head is a property of 'inputs' (Legacy mapping support)
+                if value is None:
+                    inputs_obj = state.get_context("inputs")
+                    if inputs_obj:
+                        if isinstance(inputs_obj, dict):
+                            value = inputs_obj.get(head)
+                        else:
+                            value = getattr(inputs_obj, head, None)
+
                 if value is None:
                     resolved[target_field] = None
                     continue

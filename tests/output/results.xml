@@ -1,4 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.205" timestamp="2026-02-28T19:24:44.277979+02:00" hostname="Laptop-Risto"><testcase classname="" name="backend.tests.integration.test_seed_data_mappings" time="0.000"><error message="collection failure">.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="11" failures="0" skipped="0" tests="11" time="2.493" timestamp="2026-02-28T23:13:20.426980+02:00" hostname="Laptop-Risto"><testcase classname="" name="tests.test_adversarial_security" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_adversarial_security.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
     mod = import_path(
 .venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
     importlib.import_module(module_name)
@@ -13,15 +16,211 @@ C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\
     ???
 &lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
     ???
-.venv\Lib\site-packages\_pytest\assertion\rewrite.py:188: in exec_module
-    source_stat, co = _rewrite_test(fn, self.config)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.venv\Lib\site-packages\_pytest\assertion\rewrite.py:357: in _rewrite_test
-    tree = ast.parse(source, filename=strfn)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\ast.py:46: in parse
-    return compile(source, filename, mode, flags,
-E     File "C:\src\quorum\backend\tests\integration\test_seed_data_mappings.py", line 30
-E       \"\"\"
-E        ^
-E   SyntaxError: unexpected character after line continuation character</error></testcase></testsuite></testsuites>
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_adversarial_security.py:9: in &lt;module&gt;
+    from backend.models.state import InputData, WorkflowState
+E   ImportError: cannot import name 'InputData' from 'backend.models.state' (C:\src\quorum\backend\models\state.py)</error></testcase><testcase classname="" name="tests.test_architecture_v2" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_architecture_v2.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+.venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_architecture_v2.py:4: in &lt;module&gt;
+    from backend.models.domain import Pisteet, PisteetKriteeri, TuomioJaPisteet, XAIReport
+E   ImportError: cannot import name 'Pisteet' from 'backend.models.domain' (C:\src\quorum\backend\models\domain\__init__.py)</error></testcase><testcase classname="" name="tests.test_db_scenarios" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_db_scenarios.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+.venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_db_scenarios.py:10: in &lt;module&gt;
+    from backend.database.repository import TinyDBRepository
+E   ImportError: cannot import name 'TinyDBRepository' from 'backend.database.repository' (C:\src\quorum\backend\database\repository.py)</error></testcase><testcase classname="" name="tests.test_fusion_deep" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_fusion_deep.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+.venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_fusion_deep.py:15: in &lt;module&gt;
+    from backend.database.repository import TinyDBRepository
+E   ImportError: cannot import name 'TinyDBRepository' from 'backend.database.repository' (C:\src\quorum\backend\database\repository.py)</error></testcase><testcase classname="" name="tests.test_guard_hybrid" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_guard_hybrid.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+.venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_guard_hybrid.py:8: in &lt;module&gt;
+    from backend.models.state import InputData, WorkflowState
+E   ImportError: cannot import name 'InputData' from 'backend.models.state' (C:\src\quorum\backend\models\state.py)</error></testcase><testcase classname="" name="tests.test_judge_sanity" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_judge_sanity.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+.venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_judge_sanity.py:9: in &lt;module&gt;
+    from backend.models.state import InputData, WorkflowState
+E   ImportError: cannot import name 'InputData' from 'backend.models.state' (C:\src\quorum\backend\models\state.py)</error></testcase><testcase classname="" name="tests.test_output_dual.txt" time="0.000"><error message="collection failure">C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\pathlib\__init__.py:788: in read_text
+    return f.read()
+           ^^^^^^^^
+&lt;frozen codecs&gt;:325: in decode
+    ???
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte</error></testcase><testcase classname="" name="tests.test_safety_and_hooks" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_safety_and_hooks.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+.venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_safety_and_hooks.py:13: in &lt;module&gt;
+    from backend.database.repository import TinyDBRepository
+E   ImportError: cannot import name 'TinyDBRepository' from 'backend.database.repository' (C:\src\quorum\backend\database\repository.py)</error></testcase><testcase classname="" name="tests.test_schema_validation" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_schema_validation.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+.venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_schema_validation.py:9: in &lt;module&gt;
+    from backend.models.state import InputData, WorkflowState
+E   ImportError: cannot import name 'InputData' from 'backend.models.state' (C:\src\quorum\backend\models\state.py)</error></testcase><testcase classname="" name="tests.test_system_resilience" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_system_resilience.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+.venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_system_resilience.py:6: in &lt;module&gt;
+    from backend.api.builder_router import BuilderWorkflowCreateRequest as WorkflowCreateRequest
+E   ModuleNotFoundError: No module named 'backend.api.builder_router'</error></testcase><testcase classname="" name="tests.test_workflow_construction" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_workflow_construction.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+.venv\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+.venv\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+.venv\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_workflow_construction.py:8: in &lt;module&gt;
+    from backend.database.repository import TinyDBRepository
+E   ImportError: cannot import name 'TinyDBRepository' from 'backend.database.repository' (C:\src\quorum\backend\database\repository.py)</error></testcase></testsuite></testsuites>
