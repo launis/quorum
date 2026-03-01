@@ -11,7 +11,6 @@ from fastapi.concurrency import run_in_threadpool
 
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain.knowledge import KnowledgeBaseDocument
-from backend.services.chat_log_parser import ChatLogParser
 from backend.services.file_driver import FileDriver
 from backend.services.knowledge_base_parser import KnowledgeBaseParser
 
@@ -80,12 +79,6 @@ class DocumentService:
                 else:
                     # Treat as text file
                     text = file_bytes.decode("utf-8", errors="ignore")
-
-                # --- NEW: Parse Chat Logs ---
-                # Attempt to identify and label speakers (User/AI) to assist the Profiler.
-                # ChatLogParser now has FAIL FAST checks.
-                text = ChatLogParser.parse(text)
-                # ----------------------------
 
                 extracted_data[input_key] = text
 

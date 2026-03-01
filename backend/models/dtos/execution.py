@@ -26,13 +26,20 @@ class PDFCancelResponse(BaseModel):
     message: str
 
 
-class ExecutionRequest(BaseModel):
-    """Request payload for creating an execution."""
+class Base64FileDTO(BaseModel):
+    """Represents a file uploaded as Base64."""
 
-    workflowId: str
-    organizationId: str | None = None
-    inputs: dict[str, Any] = {}
-    json_payload: str | None = None  # For multipart/form-data parsing hint
+    filename: str
+    mime_type: str = "application/octet-stream"
+    content_base64: str
+
+
+class ExecutionRequestDTO(BaseModel):
+    """Request payload for creating an execution (Strict Pydantic JSON)."""
+
+    workflow_id: str
+    organization_id: str | None = None
+    inputs: dict[str, str | Base64FileDTO] = {}
 
 
 class ExecutionResponse(BaseModel):

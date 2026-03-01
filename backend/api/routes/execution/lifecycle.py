@@ -21,9 +21,11 @@ from backend.exceptions import AppException, ResourceNotFoundError
 from backend.logging_config import log_error
 from backend.models.auth import UserRole
 from backend.models.dtos.execution import (
+    Base64FileDTO,
     DirectExecutionResponse,
     ExecutionCancelResponse,
     ExecutionDeleteResponse,
+    ExecutionRequestDTO,
     ExecutionResponse,
 )
 from backend.models.workflow import WorkflowDefinition
@@ -58,7 +60,7 @@ executions_router = APIRouter(prefix="/executions", tags=["Executions"])
     status_code=status.HTTP_201_CREATED,
 )
 async def create_execution(
-    request: Request,
+    request: ExecutionRequestDTO,
     engine: EngineDep,
     repository: RepositoryDep,
     document_service: DocumentServiceDep,
@@ -66,69 +68,43 @@ async def create_execution(
     arq_pool: Any = Depends(get_arq_pool),
 ):
     """Creates and starts a workflow execution.
-    Handles both JSON and Multipart payloads.
+    Accepts strict JSON payload and Base64-encoded files.
     """
     try:
-        content_type = request.headers.get("content-type", "")
-        payload = {}
-        inputs = {}
-        workflow_id = None
-        organization_id = None
-
         execution_id = str(uuid.uuid4())
+        workflow_id = request.workflow_id
+        organization_id = request.organization_id
+        
+        inputs = {}
+        files_to_process = {}
+        
+        import base64
 
-        if "application/json" in content_type:
-            payload = await request.json()
-            workflow_id = payload.get("workflowId")
-            inputs = payload.get("inputs", {})
-            organization_id = payload.get("organizationId")
-        elif "multipart/form-data" in content_type:
-            form = await request.form()
-            import json
-
-            # 1. Parse Metadata (json_payload)
-            json_payload_str = form.get("json_payload")
-            if json_payload_str and isinstance(json_payload_str, str):
+        # 1. Y-Funnel: Separate explicit string inputs from Base64 File DTOs
+        for key, value in request.inputs.items():
+            if isinstance(value, Base64FileDTO):
+                # Decode base64 back to binary for DocumentService
                 try:
-                    meta = json.loads(json_payload_str)
-                    workflow_id = meta.get("project_id") or meta.get("workflowId")
-                    organization_id = meta.get("organizationId")
-                    inputs = meta.get("settings", {})
-                except json.JSONDecodeError as e:
-                    error_code = "INVALID_JSON_PAYLOAD"
-                    logger.error(f"{error_code}: {e}")
+                    content_bytes = base64.b64decode(value.content_base64)
+                    files_to_process[key] = (value.filename, content_bytes)
+                except Exception as e:
+                    error_code = "INVALID_BASE64_FILE"
+                    logger.error(f"{error_code}: {e} for key {key}")
                     raise AppException(
-                        message="Invalid JSON in 'json_payload'",
+                        message=f"Failed to decode base64 file for {key}",
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": error_code},
+                        details={"error_code": error_code}
                     ) from e
+            elif isinstance(value, dict) and "content_base64" in value:
+                 # Fallback if unmarshalled simply via dict intersection
+                 try:
+                    content_bytes = base64.b64decode(value["content_base64"])
+                    files_to_process[key] = (value.get("filename", "unknown"), content_bytes)
+                 except Exception as e:
+                    raise AppException(message=f"Failed to decode file {key}", status_code=400) from e
             else:
-                workflow_id = form.get("workflowId")
+                inputs[key] = str(value)
 
-            # 2. Parse Files & Form Fields
-            files_to_process = {}
-            from fastapi import UploadFile
-
-            for key, value in form.items():
-                if key in ("json_payload", "workflowId", "organizationId"):
-                    continue
-
-                # Robust check for UploadFile (handles Starlette/FastAPI/Duck-typing)
-                is_file = isinstance(value, UploadFile) or (hasattr(value, "filename") and hasattr(value, "read"))
-
-                if is_file and hasattr(value, "read"):
-                    # Buffer file in memory for DocumentService (it expects bytes)
-                    # Note: Starlette UploadFile.read() is async
-                    content = await value.read()  # type: ignore[union-attr]
-                    filename = getattr(value, "filename", "unknown_file")
-                    files_to_process[key] = (filename, content)
-                else:
-                    # Non-file form fields
-                    if key not in inputs:
-                        inputs[key] = str(value)
-
-        if organization_id and "organization_id" not in inputs:
-            inputs["organization_id"] = organization_id
 
         # 0. NORMALIZE INPUTS (SSOT Pattern)
         # Ensure organization_id is ALWAYS in inputs, just like file contents.
@@ -166,6 +142,26 @@ async def create_execution(
             except Exception as e:
                 logger.error(f"DocumentService failed: {e}")
                 raise AppException(message=f"File processing failed: {e}", status_code=500, details={"error_code": "FILE_PROCESSING_FAILED"}) from e
+
+        # 4. Y-Funnel Parse: Extract specific features
+        if "history_text" in inputs:
+            from backend.services.chat_parser import parse_pasted_chat
+            try:
+                logger.info("[Lifecycle] Y-Funnel: Parsing history_text with LLM ChatParser")
+                # Pass repository if context is needed (None for now)
+                chat_dto = await parse_pasted_chat(inputs["history_text"])
+                # Store the structured DTO back into inputs as a pure dict
+                inputs["history_text"] = chat_dto.model_dump()
+            except Exception as e:
+                logger.error(f"[Lifecycle] Chat parsing failed in Y-Funnel: {e}")
+                # Re-raise AppException directly if it already is one
+                if isinstance(e, AppException):
+                    raise e
+                raise AppException(
+                    message="Failed to parse chat history",
+                    status_code=400,
+                    details={"error_code": "CHAT_PARSING_FAILED"}
+                ) from e
 
         # DIAGNOSTIC LOG (Requested by User to trace what goes in)
         logger.info(f"[Lifecycle] FINAL Resolved Execution Inputs Keys: {list(inputs.keys())}")

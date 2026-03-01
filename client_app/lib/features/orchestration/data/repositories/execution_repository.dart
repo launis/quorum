@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:client_app/features/orchestration/domain/models/report_view.dart';
 import 'package:flutter/foundation.dart';
@@ -86,48 +87,47 @@ class ExecutionRepository {
   /// - Returns the created execution ID.
   TaskEither<AppError, String> createExecution(ExecutionInput input) {
     return TaskEither.tryCatch(() async {
-      // Backend expects 'json_payload' field containing the ExecutionRequest schema
-      final executionRequest = {
-        'project_id': input.workflowId,
-        'settings': input.inputs,
-        'description': null, // Optional
+      // 1. Resolve inputs and encode files to Base64
+      final resolvedInputs = <String, dynamic>{
+        ...input.inputs,
       };
 
-      final formDataMap = <String, dynamic>{
-        'json_payload': jsonEncode(executionRequest),
-      };
-
-      // Add files if present
       for (final entry in input.files.entries) {
         final file = entry.value;
-        // Web Safety & OOM Prevention:
-        // 1. Prefer bytes if available (Enforced by 'withData: true' for reliability).
-        // 2. Fallback to path on IO if bytes missing.
-        if (file.bytes != null) {
-          formDataMap[entry.key] = MultipartFile.fromBytes(
-            file.bytes!,
-            filename: file.name,
-          );
-        } else if (!kIsWeb && file.path != null) {
-          formDataMap[entry.key] = await MultipartFile.fromFile(
-            file.path!,
-            filename: file.name,
-          );
-        } else {
+        List<int>? bytes = file.bytes;
+
+        // Fallback to IO if bytes are missing (usually on Desktop/Mobile when picking large files)
+        if (bytes == null && !kIsWeb && file.path != null) {
+          final ioFile = File(file.path!);
+          bytes = await ioFile.readAsBytes();
+        }
+
+        if (bytes == null) {
           // CRITICAL FIX: Prevent silent dropping of files (which causes Backend 400).
-          // If neither path (IO) nor bytes (Web/Other) are available, the file is invalid.
           throw const AppError.validation(ValidationErrorReason.emptyInput);
         }
+
+        resolvedInputs[entry.key] = {
+          'filename': file.name,
+          'mime_type': 'application/octet-stream', // Can be refined if needed
+          'content_base64': base64Encode(bytes),
+        };
       }
 
-      final formData = FormData.fromMap(formDataMap);
+      // 2. Build Strict JSON Pydantic-compatible Payload
+      final executionRequest = {
+        'workflow_id': input.workflowId,
+        'organization_id': null, // Organization injected by backend optionally
+        'inputs': resolvedInputs,
+      };
 
+      // 3. Send as standard application/json
       final response = await _client.post<Map<String, dynamic>>(
         '/executions',
-        data: formData,
+        data: executionRequest,
       );
 
-      final data = response.data as Map<String, dynamic>;
+      final data = response.data!;
       return data['id'] as String;
     }, (error, stackTrace) => _mapError(error));
   }

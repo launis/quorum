@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/orchestration/presentation/providers/wizard_provider.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/file_input_field.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/wizard/omni_input_box.dart';
 import 'package:client_app/features/orchestration/domain/models/workflow.dart';
 import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -65,7 +66,24 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
                   final iconData = _getIcon(val['icon'] as String?);
                   final minLines = val['minLines'] as int? ?? 1;
 
-                  if (type == 'file') {
+                  // Check if it's one of the main Omni fields
+                  final isOmniField = ['INPUT_HISTORY_TEXT', 'INPUT_PRODUCT_TEXT', 'INPUT_REFLECTION_TEXT'].contains(val['label']) || key == 'history_text' || key == 'product_text' || key == 'reflection_text';
+
+                  if (isOmniField) {
+                     return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: OmniInputBox(
+                        label: label,
+                        keyName: key,
+                        icon: iconData,
+                        minLines: minLines,
+                        currentValue: inputs[key],
+                        onChanged: (value) {
+                          ref.read(wizardStateProvider.notifier).updateInput(key, value);
+                        },
+                      ),
+                    );
+                  } else if (type == 'file') {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: _buildFileInput(
