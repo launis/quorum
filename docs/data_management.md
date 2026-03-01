@@ -116,6 +116,14 @@ To strictly separate "Content" from "System Authority", the system employs a **D
     *   **Mechanism**: The Backend accepts a DTO (Content), validates it, generating necessary Metadata (Authority), and fuses them into a Domain Object.
     *   **Usage**: The Pipeline *only* reads Domain Models. DTOs are never persisted directly as state.
 
+### 3.2. Uniform Input Processing (The Y-Funnel)
+To strictly adhere to the "No-ORM" Pydantic Architecture, the backend API **does not accept `multipart/form-data`**. All data, including file uploads, must be transmitted as Strict JSON.
+
+1.  **Omni-Input Parsing**: Frontend interfaces (like `OmniInputBox`) allow users to either paste text or drop a file (`.pdf`, `.docx`).
+2.  **Base64 Encoding**: If a file is provided, the frontend encodes the bytes as Base64 and assigns it to a strict `Base64FileDTO` within the JSON body.
+3.  **The Y-Funnel**: The `create_execution` router catches this JSON payload. It routes `Base64FileDTO` payloads through `document_service.py` to extract raw text, and merges the result back to raw string fields (`*_text`). 
+4.  **Purpose**: This guarantees that Agents downstream never need to worry about *how* the data was ingested—they only ever interface with completely normalized, cleaned Domain objects and text strings.
+
 ---
 
 ## 4. Client-Side Data Layer (Flutter)

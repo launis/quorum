@@ -95,6 +95,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Platform Upgrade**: Enforced **Python 3.14.2** strictness.
 - [x] **Hybrid State Audit**: Verified Event Log (Truth) vs Blackboard (Performance) consistency.
 - [x] **Sitra Integration Test**: Validated real-world data processing with strict zero-fallback limits.
+- [x] **Strict JSON File Transfer (Y-Funnel)**: Replaced brittle `multipart/form-data` handlers with Pydantic-validated Base64 JSON encapsulation for bulletproof file ingestion.
 
 ### 1.7 API Modernization (The Modular Core)
 **Objective:** Break down massive routers and prepare for SDUI architecture.
@@ -158,6 +159,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Localization**: Full EN/FI support.
 - [x] **Strict Validation**: Fail-fast input validation.
 - [x] **Dynamic Input Rendering**: Forms generated from `ui_schema`.
+- [x] **OmniInputBox**: Consolidated copy-paste text and file drag-and-drop into a single unified widget for history, logic, and self-evaluation fields.
 
 ### 2.7 Administration & Governance (The Admin Portal)
 - [x] **Admin Portal Separation**: Distinct `/admin` route and theme.
