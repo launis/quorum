@@ -7,13 +7,11 @@ including coaching plans and bibliography.
 # Import JudgeOutput for strict type checking if possible, otherwise use Dict
 # To avoid potential circular imports (though judge doesn't import coach), we can use forward refs or just imports
 # But let's check if we can import JudgeOutput from backend.models.domain.judge
-from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.domain.judge import JudgeOutput
-
 
 
 class CoachInput(BaseModel):

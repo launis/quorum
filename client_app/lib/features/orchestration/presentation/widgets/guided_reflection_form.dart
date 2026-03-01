@@ -79,7 +79,7 @@ class GuidedReflectionForm extends ConsumerWidget {
       onChanged: (val) => ref.read(reflectionFormControllerProvider.notifier).setFreeText(val),
       validator: (value) {
         if (value == null || value.trim().length < 100) {
-          return 'Tekstin tulee olla vähintään 100 merkkiä pitkä.';
+          return l10n.minCharsRequired;
         }
         return null;
       },
@@ -139,7 +139,7 @@ class GuidedReflectionForm extends ConsumerWidget {
               return AppLocalizations.of(context)!.fieldRequired;
             }
             if (len < 100) {
-              return 'Vastauksen tulee olla vähintään 100 merkkiä pitkä ($len/100).';
+              return AppLocalizations.of(context)!.charsRemainingLength(len);
             }
             return null;
           },
@@ -148,7 +148,7 @@ class GuidedReflectionForm extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4.0),
             child: Text(
-              'Suositellaan laajentamaan perusteluita ($length/100 merkkiä)',
+              AppLocalizations.of(context)!.expandArgumentationHint(length),
               style: TextStyle(color: colorScheme.error, fontSize: 12),
             ),
           )

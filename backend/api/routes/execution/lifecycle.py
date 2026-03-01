@@ -21,7 +21,6 @@ from backend.exceptions import AppException, ResourceNotFoundError
 from backend.logging_config import log_error
 from backend.models.auth import UserRole
 from backend.models.dtos.execution import (
-    Base64FileDTO,
     DirectExecutionResponse,
     ExecutionCancelResponse,
     ExecutionDeleteResponse,
@@ -30,7 +29,6 @@ from backend.models.dtos.execution import (
 )
 from backend.models.workflow import WorkflowDefinition
 from backend.services.auth import AuthService
-from backend.services.reflection_service import ReflectionService
 
 logger = logging.getLogger(__name__)
 
@@ -76,118 +74,20 @@ async def create_execution(
         workflow_id = request.workflow_id
         organization_id = request.organization_id
 
-        inputs = {}
-        files_to_process = {}
+        from backend.services.execution_prep_service import ExecutionPrepService
 
-        import base64
+        # 1. Y-Funnel Preparation & Mapping via Service (Architecture Mandate)
+        inputs = await ExecutionPrepService.prepare_execution_inputs(
+            request=request,
+            execution_id=execution_id,
+            organization_id=organization_id,
+            current_user=current_user,
+            document_service=document_service,
+            repository=repository,
+        )
 
-        # 1. Y-Funnel: Separate explicit string inputs from Base64 File DTOs
-        for key, value in request.inputs.items():
-            if isinstance(value, Base64FileDTO):
-                # Decode base64 back to binary for DocumentService
-                try:
-                    content_bytes = base64.b64decode(value.content_base64)
-                    files_to_process[key] = (value.filename, content_bytes)
-                except Exception as e:
-                    error_code = "INVALID_BASE64_FILE"
-                    logger.error(f"{error_code}: {e} for key {key}")
-                    raise AppException(
-                        message=f"Failed to decode base64 file for {key}",
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": error_code}
-                    ) from e
-            elif isinstance(value, dict) and "content_base64" in value:
-                 # Fallback if unmarshalled simply via dict intersection
-                 try:
-                    content_bytes = base64.b64decode(value["content_base64"])
-                    files_to_process[key] = (value.get("filename", "unknown"), content_bytes)
-                 except Exception as e:
-                    raise AppException(message=f"Failed to decode file {key}", status_code=400) from e
-            else:
-                inputs[key] = str(value)
-
-
-        # 0. NORMALIZE INPUTS (SSOT Pattern)
-        # Ensure organization_id is ALWAYS in inputs, just like file contents.
-        # Fallback: If payload is missing it, try current_user (Context Injection)
-        if not inputs.get("organization_id"):
-            if organization_id:
-                inputs["organization_id"] = organization_id
-            elif current_user and getattr(current_user, "organization_id", None):
-                inputs["organization_id"] = current_user.organization_id
-                organization_id = current_user.organization_id  # Sync var for later use
-
-        # 3. Process Evidence Files via DocumentService
-        if files_to_process:
-            try:
-                # DocumentService handles:
-                # 1. Archiving to Storage (Forensic Capture)
-                # 2. Extracting text (PDF/DOCX/Text)
-                # 3. Parsing Chat Logs (ChatLogParser)
-                extracted_texts = await document_service.process_evidence_files(execution_id, files_to_process)
-
-                for raw_key, text_content in extracted_texts.items():
-                    # Smart Mapping: UI often sends UUIDs or filenames like "keskusteluhistoria SITRA.pdf"
-                    lower_key = raw_key.lower()
-                    target_key = raw_key
-
-                    if "historia" in lower_key or "history" in lower_key or "chat" in lower_key:
-                        target_key = "history_text"
-                    elif "lopputuote" in lower_key or "product" in lower_key or "output" in lower_key:
-                        target_key = "product_text"
-                    elif "reflektio" in lower_key or "reflection" in lower_key or "self" in lower_key:
-                        target_key = "reflection_text"
-
-                    inputs[target_key] = text_content
-                    logger.info(
-                        f"[Lifecycle] Mapped uploaded file '{raw_key}' "
-                        f"to input '{target_key}' ({len(text_content)} chars)"
-                    )
-            except Exception as e:
-                logger.error(f"DocumentService failed: {e}")
-                raise AppException(
-                    message=f"File processing failed: {e}",
-                    status_code=500,
-                    details={"error_code": "FILE_PROCESSING_FAILED"}
-                ) from e
-
-        # 4. Y-Funnel Parse: Extract specific features
-        if "history_text" in inputs:
-            from backend.services.chat_parser import parse_pasted_chat
-            try:
-                logger.info("[Lifecycle] Y-Funnel: Parsing history_text with LLM ChatParser")
-                # Pass repository for LLM Client Strategy resolving
-                chat_dto = await parse_pasted_chat(inputs["history_text"], repository=repository)
-                # Store the structured DTO back into inputs as a pure dict under a new key
-                # This preserves the original 'history_text' string for agents that expect a string schema.
-                inputs["parsed_history"] = chat_dto.model_dump()
-            except Exception as e:
-                logger.error(f"[Lifecycle] Chat parsing failed in Y-Funnel: {e}")
-                # Re-raise AppException directly if it already is one
-                if isinstance(e, AppException):
-                    raise e
-                raise AppException(
-                    message="Failed to parse chat history",
-                    status_code=400,
-                    details={"error_code": "CHAT_PARSING_FAILED"}
-                ) from e
-
-        if request.guided_reflection:
-            logger.info("[Lifecycle] Y-Funnel: Generating markdown from GuidedReflectionDTO")
-            try:
-                reflection_markdown = ReflectionService.generate_markdown_document(request.guided_reflection)
-                inputs["reflection_text"] = reflection_markdown
-                logger.info("[Lifecycle] Mapped GuidedReflection to 'reflection_text' input.")
-            except Exception as e:
-                logger.error(f"[Lifecycle] Reflection generation failed in Y-Funnel: {e}")
-                raise AppException(
-                    message="Failed to generate reflection document",
-                    status_code=500,
-                    details={"error_code": "REFLECTION_GENERATION_FAILED"}
-                ) from e
-
-        # DIAGNOSTIC LOG (Requested by User to trace what goes in)
-        logger.info(f"[Lifecycle] FINAL Resolved Execution Inputs Keys: {list(inputs.keys())}")
+        # Sync organization_id if it was resolved by context injection inside the prep service
+        organization_id = inputs.get("organization_id", organization_id)
 
         if not workflow_id or not isinstance(workflow_id, str):
             raise AppException(message="Workflow ID missing or invalid", status_code=400)

@@ -182,9 +182,9 @@ def test_report_transformer_references():
     record = ExecutionRecord.model_validate(mock_execution)
 
     from backend.models.domain.analyst import AnalystOutput
-    from backend.models.domain.judge import JudgeOutput, JudgeScoreCard
     from backend.models.domain.base import Metadata
     from backend.models.domain.coach import BibliographyResult
+    from backend.models.domain.judge import JudgeOutput, JudgeScoreCard
 
     record.results["context_variables"]["step_analyst"] = AnalystOutput.model_construct(
         rag_evidence=["Raw Search Snippet"]

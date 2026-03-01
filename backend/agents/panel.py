@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 # 2. Third Party
 from backend.agents.base import BaseAgent
@@ -12,7 +12,6 @@ from backend.agents.base import BaseAgent
 from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain.panel import PanelInput, PanelOutput, PanelOutputDTO
 from backend.utils.json_utils import flexible_json_dump
-
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +91,7 @@ class PanelAgent(BaseAgent[PanelInput, PanelOutput]):
                 context_section = (
                     f"\nJÄRJESTELMÄN KONTEKSTI (TIETOPANKKI & ENNAKKOTAPAUKSET):\n{context_raw.precedents}\n---"
                 )
-            
+
             # Also update prompt_input_data for JSON dump
             prompt_input_data["step_context"] = context_raw
 

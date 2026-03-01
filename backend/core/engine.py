@@ -13,7 +13,6 @@ from backend.models.domain.inputs import WorkflowInputs
 from backend.models.domain.usage import TokenUsage
 from backend.models.state import ReasoningTrace, TraceEvent, WorkflowState
 from backend.models.workflow import WorkflowDefinition
-from backend.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
@@ -155,12 +154,12 @@ class GraphEngine:
                 # Capture the exact validation error message (e.g., "product_text cannot be identical to history_text")
                 error_msgs = [err.get("msg", "Unknown validation error") for err in ve.errors()]
                 exact_message = " | ".join(error_msgs)
-                
+
                 error_code = ErrorCodes.INVALID_JSON_PAYLOAD
                 logger.error(f"[GraphEngine] {error_code}: {exact_message}")
                 raise AppException(
-                    message=exact_message, 
-                    status_code=400, 
+                    message=exact_message,
+                    status_code=400,
                     details={"error_code": error_code, "original_error": str(ve)}
                 )
             except Exception as e:
@@ -416,10 +415,10 @@ class GraphEngine:
                 # Global Usage Accumulation using STRICT typed TokenUsage
                 global_usage_raw = execution_state.context_variables.get("usage", {})
                 global_usage = global_usage_raw if isinstance(global_usage_raw, TokenUsage) else TokenUsage(**global_usage_raw)
-                
+
                 step_usage_obj = TokenUsage(**step_usage)
                 new_usage = global_usage + step_usage_obj
-                
+
                 execution_state.context_variables["usage"] = new_usage.model_dump()
 
                 # 6. Create TraceEvent
@@ -437,7 +436,7 @@ class GraphEngine:
                 # 8. Update Context Variables (Snapshot for next steps)
                 # STORE STRICTLY TYPED OBJECT (if available) instead of dict
                 typed_payload = result if hasattr(result, "model_dump") else content_payload
-                
+
                 execution_state.context_variables[step.id] = typed_payload
                 if getattr(step, "slug", None):
                     execution_state.context_variables[step.slug] = typed_payload

@@ -185,7 +185,7 @@ class LLMClient:
 
         # 3. Create Provider via Factory
         provider = LLMFactory.create_provider(
-            provider_type=target_provider_type, 
+            provider_type=target_provider_type,
             model_name=target_model_name,
             config=self._config
         )

@@ -3,6 +3,9 @@ from backend.api.transformers.domain.compliance import ComplianceDomainTransform
 from backend.api.transformers.domain.falsification import FalsificationDomainTransformer
 from backend.api.transformers.domain.logic import LogicDomainTransformer
 from backend.api.transformers.domain.profiling import ProfilingDomainTransformer
+
+# Deprecated: backend.models.view_extensions
+from backend.models.state import WorkflowState
 from backend.models.view import (
     ArchivistDisplay,
     CausalDisplay,
@@ -15,10 +18,6 @@ from backend.models.view import (
     UiSection,
 )
 
-# Deprecated: backend.models.view_extensions
-
-
-from backend.models.state import WorkflowState, TraceEvent
 
 # --- Logic Transformer Tests ---
 def test_logic_transformer_extracts_display_model():
@@ -39,7 +38,7 @@ def test_logic_transformer_extracts_display_model():
         "conclusion": "Conclusion",
         "confidence_score": 0.9,
     }
-    
+
     mock_state = WorkflowState(workflow_id="test_wf")
     mock_state.context_variables["step_logician"] = mock_step_data
 
@@ -115,7 +114,7 @@ def test_causal_transformer_extracts_display_model():
         "conclusion": "Conclusion",
         "confidence_score": 0.9,
     }
-    
+
     mock_state = WorkflowState(workflow_id="test_wf")
     mock_state.context_variables["step_causal"] = mock_step_data
 

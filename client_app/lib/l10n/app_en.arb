@@ -34,19 +34,23 @@
   },
   "fileInputLabel": "File: {fileName} ({size} bytes)",
   "@fileInputLabel": {
-      "description": "Label showing selected file details",
-      "placeholders": {
-          "fileName": {"type": "String"},
-          "size": {"type": "int"}
+    "description": "Label showing selected file details",
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      },
+      "size": {
+        "type": "int"
       }
+    }
   },
-  "selectFile": "Select a file...",
+  "selectFile": "Select a file to upload",
   "@selectFile": {
-      "description": "Placeholder text for file picker"
+    "description": "Placeholder text for file picker"
   },
   "fieldRequired": "This field is required.",
   "@fieldRequired": {
-      "description": "Validation error message"
+    "description": "Validation error message"
   },
   "authOrganic": "Organic (Authentic)",
   "authPerformative": "Performative (Staged)",
@@ -56,7 +60,7 @@
   "verUncertain": "Uncertain",
   "fileRequired": "This file is required.",
   "@fileRequired": {
-      "description": "Validation error message for files"
+    "description": "Validation error message for files"
   },
   "dashboardTitle": "Recent Logic Executions",
   "totalRuns": "Total Runs",
@@ -98,7 +102,7 @@
   "back": "Back",
   "cancel": "Cancel",
   "analysisStarted": "Analysis Started!",
-  "submissionFailed": "Submission Failed: {error}",
+  "submissionFailed": "Submission failed: {error}",
   "fillRequiredInputs": "Please fill in required inputs.",
   "errorReadingFile": "Error reading file: {error}",
   "noWorkflowsAvailable": "No workflows available for your account.",
@@ -144,13 +148,13 @@
   },
   "quotaLimit": "{limit} Limit",
   "@quotaLimit": {
-        "placeholders": {
-        "limit": {
-            "type": "int",
-            "format": "decimalPattern"
-        }
-        }
-    },
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "selectWorkflowRequired": "Please select a workflow.",
   "adminDashboardTitle": "Admin Dashboard",
   "welcomeAdmin": "Welcome to Admin Dashboard",
@@ -163,9 +167,11 @@
   "systemSettingsTitle": "System Settings",
   "monitorTitle": "Monitor: {id}",
   "@monitorTitle": {
-      "placeholders": {
-          "id": {"type": "String"}
+    "placeholders": {
+      "id": {
+        "type": "String"
       }
+    }
   },
   "viewResults": "View Results",
   "analysisCompletedSuccess": "Analysis Completed Successfully!",
@@ -198,7 +204,7 @@
     }
   },
   "validationInputEmpty": "Inputs cannot be empty.",
-  "errorUnknown": "Unknown error occurred.",
+  "errorUnknown": "Unknown error",
   "errorNetwork": "Network error. Please check your connection.",
   "errorServer": "Server error. Please try again later.",
   "errorUnauthorized": "Unauthorized. Please log in again.",
@@ -209,7 +215,6 @@
   "errorLoadingData": "Error loading data. Please try again.",
   "createOrganization": "Create Organization",
   "editOrganization": "Edit Organization",
-  "deleteOrganization": "Delete Organization",
   "deleteOrganization": "Delete Organization",
   "errorDeleteBlockedByExecutions": "Cannot delete: Item has active executions.",
   "errorDeleteBlockedByMatrix": "Cannot delete: Dimension is used in a matrix.",
@@ -267,7 +272,6 @@
   "userUpdatedSuccess": "User updated successfully.",
   "userDeletedSuccess": "User deleted successfully.",
   "organizationId": "Organization ID",
-
   "helpBloom": "Based on the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001), this metric evaluates the cognitive complexity of the output. It distinguishes between lower-order thinking (Remembering, Understanding) and higher-order skills (Applying, Analyzing, Evaluating, Creating). High scores indicate the agent is not just retrieving facts but synthesizing new information.",
   "helpToulmin": "Derived from Stephen Toulmin's 'The Uses of Argument' (1958), this model moves beyond formal logic to practical argumentation. It assesses whether the Claim is supported by Data and connected via a Warrant. This structure ensures that arguments are not just assertions but reasoned positions.",
   "helpWalton": "Based on Douglas Walton's Argumentation Schemes, Fidelity measures dialectical consistency. It checks if the reasoning strictly adheres to the provided premises (Source Data) or if the agent engages in 'Post-Hoc Rationalization'—inventing justifications after the fact to support a hallucinated or biased conclusion.",
@@ -279,47 +283,44 @@
   "roleArchitect": "Architect",
   "lblCognitiveLevel": "Cognitive Level",
   "lblStrategicDepth": "Strategic Depth",
-  "lblArguments": "Argumentation (Toulmin)",
+  "lblArguments": "Arguments",
   "lblWaltonScheme": "Walton Scheme",
   "lblCriticalQuestions": "Critical Questions",
   "lblRoleAndPosition": "User Role & Position",
   "lblControlRatio": "Control Ratio",
-  "biasDetected": "Bias Detected",
+  "biasDetected": "BIAS DETECTED",
   "biasNone": "No Bias",
-  "gapDetected": "Action Gap",
+  "gapDetected": "GAP DETECTED",
   "gapNone": "Consistent",
   "lblBloomScore": "Bloom Score",
   "lblToulminScore": "Toulmin Score",
   "lblMethodologicalLog": "Methodological Log",
   "lblLogicMatrix": "Logic Matrix",
   "lblMatrixSubtitle": "Visual analysis of reasoning quality.",
-  
   "lblFidelity": "Reasoning Fidelity",
   "lblPostHocWarning": "⚠️ Post-Hoc Rationalization detected!",
   "lblNoRationalization": "✅ No rationalization.",
   "lblAbductiveReasoning": "Abductive Reasoning",
-  "lblScenarioActual": "Actual",
-  "lblScenarioSimulation": "Simulation",
+  "lblScenarioActual": "Scenario A (Actual)",
+  "lblScenarioSimulation": "Scenario B (Simulation)",
   "lblCredibility": "Credibility",
   "lblTextMetrics": "Text Metrics",
   "lblBias": "Identified Biases",
-  "lblIntent": "Intent",
+  "lblIntent": "Author Intent",
   "lblPsychProfile": "Psychological Profile",
   "lblFactCheck": "Fact Check",
   "lblEthicalObservation": "Ethical Observation",
   "lblAuthenticity": "Authenticity Assessment",
   "lblHeuristics": "Heuristics",
   "lblComplianceAnalysis": "Compliance Analysis",
-
   "helpComplianceAnalysis": "Compliance Analysis",
-  
   "helpFidelity": "Fidelity measures the logical consistency of the argument. It checks if the conclusion follows strictly from the premises, without inventing new information (Hallucination) or justifying a pre-decided conclusion (Post-Hoc Rationalization).",
   "helpAbductive": "Abductive Reasoning (Inference to Best Explanation) evaluates if the AI's conclusion is the most plausible explanation for the observations, rejecting less likely alternatives.",
   "helpStressTest": "Walton's stress test audits the fidelity of reasoning. It reveals 'Post-Hoc rationalization' if the AI has merely invented justifications afterwards and did not actually derive the result from them.",
   "helpCausal": "Rooted in C.S. Peirce's logic of 'Inference to the Best Explanation', Abductive reasoning infers the most likely cause. Plausibility, grounded in Counterfactual theories (e.g. Judea Pearl), tests causal understanding by simulating 'What If?' scenarios to check logical consistency.",
   "helpProfiler": "Profiling analyzes text tone, vocabulary, and latent biases. It helps identify if the AI is attempting to manipulate or is biased.",
-  "helpFactCheck": "Fact-checking compares claims to known sources and checks for ethical risks (e.g. hate speech, discrimination).",
-  "helpPerformativity": "Inspired by Erving Goffman's dramaturgical analysis and J.L. Austin's performativity, this metric detects 'Acting'. It differentiates between 'Organic' interaction (consistent personae) and 'Performative' artifacts (e.g., exaggerated politeness, feigned empathy, or 'AI-splaining').",
+  "helpFactCheck": "Fact Check compares claims against a known knowledge base and scans for ethical risks.",
+  "helpPerformativity": "Performativity analysis evaluates whether the response is authentic and organic or artificial and staged. It detects 'purple prose', excessive humility, and other inauthentic traits.",
   "helpArchivist": "In the context of AI Alignment and Constitutional AI, Compliance measures the agent's adherence to defined behavioral constraints (The Constitution) and organizational norms, ensuring safety and goal alignment regardless of the user's prompt.",
   "studioStepsTitle": "Steps",
   "studioConfigurationTitle": "Configuration",
@@ -348,7 +349,6 @@
   "matrixLevel": "Level {level}",
   "studioSelectMatrix": "Select Evaluation Matrix",
   "update": "Update",
-  "cancel": "Cancel",
   "editDimension": "Edit Dimension",
   "systemInspectorTitle": "System Inspector",
   "workflowConfig": "Config",
@@ -418,7 +418,9 @@
   "stepDeleteConfirmMessage": "Delete step '{id}'?",
   "@stepDeleteConfirmMessage": {
     "placeholders": {
-        "id": {"type": "String"}
+      "id": {
+        "type": "String"
+      }
     }
   },
   "stepAddPromptTitle": "Add Prompt Component",
@@ -435,20 +437,6 @@
   "lblObservation": "Observation",
   "lblCausalAudit": "Causal Audit",
   "lblCounterfactualTest": "Counterfactual Test",
-  "lblAbductiveReasoning": "Abductive Reasoning",
-  "lblScenarioActual": "Scenario A (Actual)",
-  "lblScenarioSimulation": "Scenario B (Simulation)",
-  "lblCredibility": "Credibility",
-  "lblTextMetrics": "Text Metrics",
-  "lblBias": "Identified Biases",
-  "lblIntent": "Author Intent",
-  "lblPsychProfile": "Psychological Profile",
-  "lblFactCheck": "Fact Check",
-  "lblEthicalObservation": "Ethical Observation",
-  "lblComplianceAnalysis": "Compliance Analysis",
-  "lblAuthenticity": "Authenticity Assessment",
-  "lblHeuristics": "Heuristics",
-  "lblMethodologicalLog": "Methodological Log",
   "btnHideRawData": "Hide Raw Data",
   "btnShowJson": "JSON",
   "msgJsonCopied": "JSON copied to clipboard",
@@ -460,12 +448,6 @@
   "subFactCheck": "Hallucinations & Ethics",
   "subProfilerAnalysis": "Biases & Psycho-profile",
   "subArchivistCheck": "Compliance & Precedents",
-  "lblCognitiveLevel": "Cognitive Level",
-  "lblStrategicDepth": "Strategic Depth",
-  "lblArguments": "Arguments",
-  "lblBloomScore": "Bloom Score",
-  "lblToulminScore": "Toulmin Score",
-  "lblLogicMatrix": "Logic Matrix",
   "lblWordCount": "Word Count",
   "lblSentenceCount": "Sentence Count",
   "lblAvgSentence": "Avg Sentence",
@@ -477,13 +459,17 @@
   "lblAutomationBiasValue": "Automation Bias: {value}",
   "@lblAutomationBiasValue": {
     "placeholders": {
-        "value": {"type": "String"}
+      "value": {
+        "type": "String"
+      }
     }
   },
   "lblSayDoGapValue": "Say-Do Gap: {value}",
   "@lblSayDoGapValue": {
     "placeholders": {
-        "value": {"type": "String"}
+      "value": {
+        "type": "String"
+      }
     }
   },
   "plausibility_desc": "Plausibility measures scenario realism and consistency.",
@@ -499,11 +485,8 @@
   "stratVisionary": "Visionary",
   "helpLogicMatrix": "The Logic Matrix visualizes the relationship between argumentation quality and cognitive depth. NEW: Bubble size represents Strategic Depth (Agency). Large bubble implies visionary approach.",
   "helpStrategicDepth": "Drawing on Systems Thinking and Foresight methodologies, Strategic Depth measures the temporal and systemic scope of the response. It contrasts 'Tactical' (immediate, reactive) thinking with 'Visionary' (long-term, systemic) thinking, evaluating the agent's ability to model second- and third-order consequences.",
-  "helpPerformativity": "Performativity analysis evaluates whether the response is authentic and organic or artificial and staged. It detects 'purple prose', excessive humility, and other inauthentic traits.",
   "helpAuthenticity": "Authenticity measures the naturalness of the response on a scale of 1-3. 3 = Organic, 2 = Mixed, 1 = Performative.",
-  "helpFactCheck": "Fact Check compares claims against a known knowledge base and scans for ethical risks.",
   "helpWordCount": "Total word count of the response.",
-  
   "secThreatDetected": "THREAT DETECTED",
   "secThreatNone": "No Threats",
   "secAnonymized": "ANONYMIZED",
@@ -512,12 +495,6 @@
   "riskMedium": "Medium Risk",
   "riskLow": "Low Risk",
   "riskUnknown": "Unknown Risk",
-  
-  "biasDetected": "BIAS DETECTED",
-  "biasNone": "No Bias",
-  "gapDetected": "GAP DETECTED",
-  "gapNone": "Consistent",
-  
   "lblDriver": "Driver",
   "lblPassenger": "Passenger",
   "lblRiskLevel": "Risk Level",
@@ -560,8 +537,6 @@
     }
   },
   "processingStatus": "Processing...",
-  "selectFile": "Select a file to upload",
-  "submissionFailed": "Submission failed: {error}",
   "@submissionFailed": {
     "placeholders": {
       "error": {
@@ -569,11 +544,9 @@
       }
     }
   },
-  "errorUnknown": "Unknown error",
   "errorKnowledgeIngestionFailed": "Knowledge ingestion failed. Check file and try again.",
   "errorKnowledgeResetFailed": "Knowledge base reset failed. Contact support.",
   "errorKnowledgeRetrievalFailed": "Knowledge retrieval failed. Server unresponsive.",
-
   "errValidationFailed": "Validation Failed",
   "errInternalServerError": "Internal Server Error",
   "errResourceNotFound": "Resource Not Found",
@@ -597,7 +570,6 @@
       }
     }
   },
-
   "addReflectionIntent": "Add reflection (Intent)",
   "reflectionDescription": "Describe your own reasoning and how you guided the AI during the process. This is the most critical phase for evaluation.",
   "guidedReflectionRecommended": "Guided reflection (Recommended)",
@@ -608,5 +580,67 @@
   "q3SynthesisTitle": "Own contribution and creativity (Architect)",
   "q3SynthesisHint": "What is genuinely your own human contribution in the final product?",
   "q4ArgumentationTitle": "Quality assurance and metacognition (Judge)",
-  "q4ArgumentationHint": "On what grounds do you trust the outcome? What would you do differently?"
+  "q4ArgumentationHint": "On what grounds do you trust the outcome? What would you do differently?",
+  "minCharsRequired": "Text must be at least 100 characters long.",
+  "charsRemainingLength": "Answer must be at least 100 characters ({len}/100).",
+  "@charsRemainingLength": {
+    "placeholders": {
+      "len": {
+        "type": "int"
+      }
+    }
+  },
+  "expandArgumentationHint": "It is recommended to expand your reasoning ({len}/100 chars)",
+  "@expandArgumentationHint": {
+    "placeholders": {
+      "len": {
+        "type": "int"
+      }
+    }
+  },
+  "dataUnavailable": "Data unavailable",
+  "noDetailedData": "No detailed dimension data available.",
+  "detailedBreakdown": "Detailed Breakdown",
+  "scaleInfo": "(Scale: {min}-{max})",
+  "@scaleInfo": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "lblClaim": "Claim",
+  "lblData": "Data",
+  "lblWarrant": "Warrant",
+  "lblBacking": "Backing",
+  "lblRebuttal": "Rebuttal",
+  "lblQualifier": "Qualifier",
+  "lblFindings": "Findings",
+  "lblNoSignificantFindings": "No significant findings.",
+  "lblPostHocRationalization": "Post-Hoc Rationalization",
+  "lblReasoning": "Reasoning",
+  "lblAvgSentenceLength": "Average Sentence Length",
+  "lblPsychologicalProfile": "Psychological Profile",
+  "lblAuthorIntent": "Author Intent",
+  "lblNoAnalysis": "No analysis.",
+  "errNetworkOrTimeout": "Network error or timeout. Please try again. Reason: {reason}",
+  "@errNetworkOrTimeout": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "errSystemError": "System error: {error}",
+  "@errSystemError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errInvalidWorkflow": "Error: Invalid Workflow Selection. Please refresh."
 }

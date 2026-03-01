@@ -23,9 +23,9 @@ from backend.models.domain.profiler import ProfilerOutput
 from backend.models.domain.xai import XAIOutput
 from backend.models.dtos.pdf_context import ReportContext
 from backend.models.state import WorkflowState
+from backend.models.view.sdui import ReferenceIntent, ReferenceItem
 from backend.settings import get_settings
 from backend.utils.pydantic_utils import inflate
-from backend.models.view.sdui import ReferenceItem, ReferenceIntent
 
 logger = logging.getLogger(__name__)
 
@@ -239,7 +239,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             url = getattr(item, "link", None)
         else:
             snippet = str(item)
-            
+
         if snippet and snippet.strip():
             references.append(ReferenceItem(
                 id=f"[H-{counters['SEARCH']}]",
@@ -297,7 +297,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                         url=url,
                     ))
                     counters["INTERNAL_KB"] += 1
-    
+
     context["references"] = references
 
     # 4. PASS THROUGH SPECIALIST DATA (For Template deep dives)

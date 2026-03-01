@@ -12,7 +12,7 @@
   "configureInputs": "Määritä syötteet: {workflowId}",
   "generalInput": "Yleinen syöte",
   "fileInputLabel": "Tiedosto: {fileName} ({size} tavua)",
-  "selectFile": "Valitse tiedosto...",
+  "selectFile": "Valitse ladattava tiedosto",
   "fieldRequired": "Tämä kenttä on pakollinen.",
   "fileRequired": "Tämä tiedosto on pakollinen.",
   "dashboardTitle": "Viimeisimmät ajot",
@@ -131,7 +131,7 @@
   "stepContext": "Konteksti (Retrieval)",
   "validationMissingEvidence": "Puuttuvat todisteet: {fields}",
   "validationInputEmpty": "Syötteet eivät voi olla tyhjiä.",
-  "errorUnknown": "Tuntematon virhe.",
+  "errorUnknown": "Tuntematon virhe",
   "errorNetwork": "Verkkovirhe. Tarkista yhteytesi.",
   "errorServer": "Palvelinvirhe. Yritä myöhemmin uudelleen.",
   "errorUnauthorized": "Luvaton pääsy. Kirjaudu uudelleen.",
@@ -142,7 +142,6 @@
   "errorLoadingData": "Virhe tietojen latauksessa. Yritä uudelleen.",
   "createOrganization": "Luo organisaatio",
   "editOrganization": "Muokkaa organisaatiota",
-  "deleteOrganization": "Poista organisaatio",
   "deleteOrganization": "Poista organisaatio",
   "errorDeleteBlockedByExecutions": "Ei voi poistaa: Kohteella on suorituksia.",
   "errorDeleteBlockedByMatrix": "Ei voi poistaa: Ulottuvuus on käytössä matriisissa.",
@@ -187,51 +186,45 @@
   "roleArchitect": "Arkkitehti",
   "lblCognitiveLevel": "Kognitiivinen Taso",
   "lblStrategicDepth": "Strateginen Syvyys",
-  "lblArguments": "Argumentaatio (Toulmin)",
+  "lblArguments": "Argumentit",
   "lblWaltonScheme": "Walton-skeema",
   "lblCriticalQuestions": "Kriittiset Kysymykset",
   "lblRoleAndPosition": "Käyttäjän Rooli & Positio",
   "lblControlRatio": "Kontrollisuhde",
-  "biasDetected": "Vinouma Havaittu",
+  "biasDetected": "VINOUMA HAVAITTU",
   "biasNone": "Ei Vinoumaa",
-  "gapDetected": "Toimintakuilu",
-  "gapNone": "Linjassa",
+  "gapDetected": "RISTIRIITA",
+  "gapNone": "Johdonmukainen",
   "lblBloomScore": "Bloom-pisteet",
   "lblToulminScore": "Toulmin-pisteet",
   "lblMethodologicalLog": "Metodologinen Loki",
   "lblLogicMatrix": "Logiikkamatriisi",
   "lblMatrixSubtitle": "Visuaalinen analyysi päättelyn laadusta.",
-  
-  "lblFidelity": "Päättelyketjun Uskollisuus",
+  "lblFidelity": "Uskollisuus",
   "lblPostHocWarning": "⚠️ Post-Hoc Rationalisointia havaittu!",
   "lblNoRationalization": "✅ Ei rationalisointia.",
   "lblHeuristics": "Heuristiikat",
   "plausibility_desc": "Uskottavuus mittaa skenaarion realismia ja johdonmukaisuutta.",
-  "lblHeuristics": "Heuristiikat",
-  "plausibility_desc": "Uskottavuus mittaa skenaarion realismia ja johdonmukaisuutta.",
-  "lblAbductiveReasoning": "Abduktiivinen Päätelmä",
-  "lblScenarioActual": "Toteutunut",
-  "lblScenarioSimulation": "Simulaatio",
+  "lblAbductiveReasoning": "Abduktiivinen Päättely",
+  "lblScenarioActual": "Skenaario A (Toteutunut)",
+  "lblScenarioSimulation": "Skenaario B (Simulaatio)",
   "lblCredibility": "Uskottavuus",
   "lblTextMetrics": "Tekstimetriikka",
   "lblBias": "Tunnistetut Vinoumat",
-  "lblIntent": "Intentio",
+  "lblIntent": "Kirjoittajan Intentio",
   "lblPsychProfile": "Psykologinen Profiili",
   "lblFactCheck": "Faktantarkistus",
   "lblEthicalObservation": "Eettinen Huomio",
   "lblAuthenticity": "Aitousarvio",
-  "lblHeuristics": "Heuristiikat",
   "lblComplianceAnalysis": "Compliance-analyysi",
-
   "helpComplianceAnalysis": "Compliance-analyysi",
-
   "helpFidelity": "Uskollisuus (Fidelity) mittaa päättelyn loogista eheyttä. Se tarkistaa, seuraako johtopäätös tiukasti annetuista premisseistä, ilman keksittyä tietoa (Hallusinaatio) tai ennalta päätetyn lopputuloksen oikeuttamista (Post-Hoc Rationalisointi).",
   "helpAbductive": "Abduktiivinen Päättely (Paras Selitys) arvioi, onko tekoälyn johtopäätös uskottavin selitys havainnoille, hyläten epätodennäköisemmät vaihtoehdot.",
   "helpStressTest": "Waltonin stressitesti auditoi päättelyn uskollisuutta. Se paljastaa 'Post-Hoc rationalisoinnilla', jos tekoäly on vain keksinyt perustelut jälkikäteen eikä oikeasti johtanut tulosta niistä.",
   "helpCausal": "Pohjautuu C.S. Peircen logiikkaan ja Judea Pearlin kontrafaktuaaleihin. Abduktio ('Päättely parhaaseen selitykseen') arvioi todennäköisyyksiä. Uskottavuus testaa syy-ymmärrystä simuloimalla 'Mitä jos?' -skenaarion ja tarkistamalla, seuraako lopputulos loogisesti maailman säännöistä.",
   "helpProfiler": "Profilointi analysoi tekstin sävyä, sanastoa ja piileviä vinoumia (biases). Se auttaa tunnistamaan, yrittääkö tekoäly manipuloida tai onko se puolueellinen.",
-  "helpFactCheck": "Faktantarkistus vertaa väitteitä tunnettuihin lähteisiin ja tarkistaa eettiset riskit (esim. vihapuhe, syrjintä).",
-  "helpPerformativity": "Saa inspiraationsa Erving Goffmanin dramaturgisesta sosiologiasta ja J.L. Austinin performatiivisuudesta. Metriikka erottaa 'Orgaanisen' vuorovaikutuksen (aito, johdonmukainen persoona) 'Performatiivisesta' näyttelemisestä (esim. liiallinen mielistely tai robottimaisuus).",
+  "helpFactCheck": "Faktantarkistus vertaa väitteitä tunnettuun tietopohjaan ja etsii eettisiä riskejä.",
+  "helpPerformativity": "Performatiivisuuden analyysi arvioi, onko vastaus aito ja orgaaninen vai keinotekoinen ja näytelty. Se tunnistaa 'korulauseet', liioitellun nöyryyden ja muut epäaidot piirteet.",
   "helpArchivist": "Tekoälyn kohdistamisen (Alignment) ja Constitutional AI -periaatteiden mukaisesti tämä mittaa, noudattaako agentti sille asetettuja käyttäytymisrajoja ja organisaation normeja, riippumatta käyttäjän kehotteesta. Se varmistaa turvallisuuden ja tavoitteiden mukaisuuden.",
   "studioStepsTitle": "Vaiheet",
   "studioConfigurationTitle": "Asetukset",
@@ -260,7 +253,6 @@
   "matrixLevel": "Taso {level}",
   "studioSelectMatrix": "Valitse Arviointimatriisi",
   "update": "Päivitä",
-  "cancel": "Peruuta",
   "editDimension": "Muokkaa Ulottuvuutta",
   "systemSettingsTitle": "Järjestelmän asetukset",
   "createUser": "Luo käyttäjä",
@@ -346,20 +338,6 @@
   "lblObservation": "Havainto",
   "lblCausalAudit": "Kausaalinen Auditointi",
   "lblCounterfactualTest": "Kontrafaktuaalinen Testi",
-  "lblAbductiveReasoning": "Abduktiivinen Päättely",
-  "lblScenarioActual": "Skenaario A (Toteutunut)",
-  "lblScenarioSimulation": "Skenaario B (Simulaatio)",
-  "lblCredibility": "Uskottavuus",
-  "lblTextMetrics": "Tekstimetriikka",
-  "lblBias": "Tunnistetut Vinoumat",
-  "lblIntent": "Kirjoittajan Intentio",
-  "lblPsychProfile": "Psykologinen Profiili",
-  "lblFactCheck": "Faktantarkistus",
-  "lblEthicalObservation": "Eettinen Huomio",
-  "lblComplianceAnalysis": "Compliance-analyysi",
-  "lblAuthenticity": "Aitousarvio",
-  "lblHeuristics": "Heuristiikat",
-  "lblMethodologicalLog": "Metodologinen Loki",
   "btnHideRawData": "Piilota Raaka-Data",
   "btnShowJson": "JSON",
   "msgJsonCopied": "JSON kopioitu leikepöydälle",
@@ -371,22 +349,11 @@
   "subFactCheck": "Hallusinaatiot & Etiikka",
   "subProfilerAnalysis": "Vinoumat & Psyko-profiili",
   "subArchivistCheck": "Compliance & Ennakkotapaukset",
-  "lblCognitiveLevel": "Kognitiivinen Taso",
-  "lblStrategicDepth": "Strateginen Syvyys",
-  "lblArguments": "Argumentit",
-  "lblBloomScore": "Bloom-pisteet",
-  "lblToulminScore": "Toulmin-pisteet",
-  "lblLogicMatrix": "Logiikkamatriisi",
-  "lblMatrixSubtitle": "Visuaalinen analyysi päättelyn laadusta.",
-  "lblFidelity": "Uskollisuus",
-  "lblPostHocWarning": "⚠️ Post-Hoc Rationalisointia havaittu!",
-  "lblNoRationalization": "✅ Ei rationalisointia.",
-  "lblHeuristics": "Heuristiikat",
   "helpLogicMatrix": "Logiikkamatriisi visualisoi argumentaation laadun ja kognitiivisen syvyyden suhdetta. UUSI: Pallon koko kuvaa strategista syvyyttä (Agentuuri). Suuri pallo tarkoittaa visionääristä otetta.",
   "lblWordCount": "Sanamäärä",
   "lblSentenceCount": "Lausemäärä",
   "lblAvgSentence": "Keskim. Lausepituus",
-  "lblLexicalDiversity": "Sanaston Monipuolisuus",
+  "lblLexicalDiversity": "Sanaston kirjavuus",
   "lblCapitalsRatio": "Suuraakkosten Suhde",
   "lblAutomationBias": "Automaatiovinouma",
   "lblSayDoGap": "Puhe-Teko Kuilu",
@@ -394,7 +361,6 @@
   "lblAutomationBiasValue": "Automaatioharha: {value}",
   "lblSayDoGapValue": "Sanojen ja tekojen ristiriita: {value}",
   "helpStrategicDepth": "Pohjautuu systems thinking -ajatteluun ja ennakointimenetelmiin. Strateginen syvyys mittaa vastauksen ajallista ja systeemistä ulottuvuutta. Se erottaa 'Taktisen' (välitön, reaktiivinen) ja 'Visionäärisen' (kaukonäköinen, systeeminen) ajattelun. Korkea syvyys tarkoittaa kykyä mallintaa toisen ja kolmannen asteen seurauksia.",
-  "plausibility_desc": "Uskottavuus mittaa skenaarion realismia ja johdonmukaisuutta.",
   "bloomRemembering": "Muistaminen",
   "bloomUnderstanding": "Ymmärtäminen",
   "bloomApplying": "Soveltaminen",
@@ -405,11 +371,8 @@
   "stratMedium": "Operatiivinen",
   "stratHigh": "Strateginen",
   "stratVisionary": "Visionäärinen",
-  "helpPerformativity": "Performatiivisuuden analyysi arvioi, onko vastaus aito ja orgaaninen vai keinotekoinen ja näytelty. Se tunnistaa 'korulauseet', liioitellun nöyryyden ja muut epäaidot piirteet.",
   "helpAuthenticity": "Aitous (Authenticity) mittaa vastauksen luonnollisuutta asteikolla 1-3. 3 = Orgaaninen, 2 = Sekoitettu, 1 = Performatiivinen.",
-  "helpFactCheck": "Faktantarkistus vertaa väitteitä tunnettuun tietopohjaan ja etsii eettisiä riskejä.",
   "helpWordCount": "Vastauksen kokonaissanamäärä.",
-  
   "secThreatDetected": "UHKA HAVAITTU",
   "secThreatNone": "Ei Uhkia",
   "secAnonymized": "ANONYMISOITU",
@@ -418,12 +381,6 @@
   "riskMedium": "Keskitaso",
   "riskLow": "Matala",
   "riskUnknown": "Tuntematon",
-  
-  "biasDetected": "VINOUMA HAVAITTU",
-  "biasNone": "Ei Vinoumaa",
-  "gapDetected": "RISTIRIITA",
-  "gapNone": "Johdonmukainen",
-  
   "lblDriver": "Kuljettaja",
   "lblPassenger": "Matkustaja",
   "lblRiskLevel": "Riskitaso",
@@ -445,13 +402,9 @@
   "analysisLevelNone": "Ei mitään (Vain jäsennys)",
   "strategiesLoadError": "Strategioiden lataus epäonnistui: {error}",
   "processingStatus": "Käsitellään...",
-  "selectFile": "Valitse ladattava tiedosto",
-  "submissionFailed": "Lähetys epäonnistui: {error}",
-  "errorUnknown": "Tuntematon virhe",
   "errorKnowledgeIngestionFailed": "Tiedon ingestointi epäonnistui. Tarkista tiedosto ja yritä uudelleen.",
   "errorKnowledgeResetFailed": "Tietokannan nollaus epäonnistui. Ota yhteys tukeen.",
   "errorKnowledgeRetrievalFailed": "Tiedon haku epäonnistui. Palvelin ei vastaa.",
-
   "errValidationFailed": "Validointivirhe",
   "errInternalServerError": "Palvelinvirhe",
   "errResourceNotFound": "Resurssia ei löydy",
@@ -465,12 +418,9 @@
   "actionGoToIngestion": "Siirry Ingestointiin",
   "knowledgeActive": "Tietokanta Aktiivinen",
   "knowledgeStats": "Dokumentit: {docCount} | Ennakkotapaukset: {precCount}",
-
   "addReflectionIntent": "Lisää reflektio (Intentio)",
   "reflectionDescription": "Kuvaa omaa ajatteluasi ja tekoälyn ohjaamista prosessin aikana. Tämä on arvioinnin kannalta kriittisin vaihe.",
   "guidedReflectionRecommended": "Ohjattu reflektio (Suositeltu)",
-  "pasteText": "Liitä teksti",
-  "uploadFile": "Lataa tiedosto",
   "q1GoalTitle": "Tavoite ja strateginen suunnittelu (Arkkitehti)",
   "q1GoalHint": "Mikä oli alunperin tavoitteesi ja miten pilkoit tehtävän?",
   "q2FalsificationTitle": "Tekoälyn ohjaus ja kriittinen iterointi (Falsifioija)",
@@ -478,5 +428,67 @@
   "q3SynthesisTitle": "Oma panos ja luovuus (Arkkitehti)",
   "q3SynthesisHint": "Mikä on lopputuloksessa aitoa omaa panostasi?",
   "q4ArgumentationTitle": "Laadunvarmistus ja metakognitio (Tuomari)",
-  "q4ArgumentationHint": "Millä perusteilla luotat lopputulokseen? Mitä tekisit toisin?"
+  "q4ArgumentationHint": "Millä perusteilla luotat lopputulokseen? Mitä tekisit toisin?",
+  "minCharsRequired": "Tekstin tulee olla vähintään 100 merkkiä pitkä.",
+  "charsRemainingLength": "Vastauksen tulee olla vähintään 100 merkkiä pitkä ({len}/100).",
+  "@charsRemainingLength": {
+    "placeholders": {
+      "len": {
+        "type": "int"
+      }
+    }
+  },
+  "expandArgumentationHint": "Suositellaan laajentamaan perusteluita ({len}/100 merkkiä)",
+  "@expandArgumentationHint": {
+    "placeholders": {
+      "len": {
+        "type": "int"
+      }
+    }
+  },
+  "dataUnavailable": "Tietoja ei saatavilla",
+  "noDetailedData": "Tarkempia ulottuvuustietoja ei saatavilla.",
+  "detailedBreakdown": "Tarkempi erittely",
+  "scaleInfo": "(Asteikko: {min}-{max})",
+  "@scaleInfo": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "lblClaim": "Väite",
+  "lblData": "Perusteet",
+  "lblWarrant": "Oikeutus",
+  "lblBacking": "Tuki",
+  "lblRebuttal": "Vasta-argumentti",
+  "lblQualifier": "Tarkennin",
+  "lblFindings": "Löydökset",
+  "lblNoSignificantFindings": "Ei merkittäviä löydöksiä.",
+  "lblPostHocRationalization": "Jälkikäteisrationalisointi",
+  "lblReasoning": "Perustelu",
+  "lblAvgSentenceLength": "Lauseen keskipituus",
+  "lblPsychologicalProfile": "Psykologinen Profiili",
+  "lblAuthorIntent": "Tekijän Intentio",
+  "lblNoAnalysis": "Ei analyysiä.",
+  "errNetworkOrTimeout": "Verkkovirhe tai aikakatkaisu (Timeout). Kokeile uudelleen. Tarkempi syy: {reason}",
+  "@errNetworkOrTimeout": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "errSystemError": "Järjestelmävirhe: {error}",
+  "@errSystemError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errInvalidWorkflow": "Virhe: Virheellinen työnkulun valinta. Päivitä sivu."
 }

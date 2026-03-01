@@ -206,9 +206,9 @@ class AnalysisWizardScreen extends ConsumerWidget {
           'AnalysisWizard',
           'Workflow not found for ID: ${wizardState.selectedWorkflowId}',
         );
-        ScaffoldMessenger.of(ref.context).showSnackBar(
-          const SnackBar(
-            content: Text('Error: Invalid Workflow Selection. Please refresh.'),
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(
+            content: Text(AppLocalizations.of(context)!.errInvalidWorkflow),
           ),
         );
         return;
@@ -285,9 +285,10 @@ class AnalysisWizardScreen extends ConsumerWidget {
       logger.error('AnalysisWizard', 'Error in _submit', e, stack);
       // Ensure specific errors are rethrown or handled if not by ref.listen
       if (context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
         final errorMessage = e is AppError
-            ? 'Verkkovirhe tai aikakatkaisu (Timeout). Kokeile uudelleen. Tarkempi syy: ${e.mapOrNull(api: (err) => err.detail, server: (err) => err.message) ?? e.toString()}'
-            : 'Järjestelmävirhe: $e';
+            ? l10n.errNetworkOrTimeout(e.mapOrNull(api: (err) => err.detail, server: (err) => err.message) ?? e.toString())
+            : l10n.errSystemError(e.toString());
             
         ScaffoldMessenger.of(
           context,

@@ -81,7 +81,7 @@ class ScoreCardRadar extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "(Scale: ${card.minScore ?? 1}-${card.maxScore ?? 5})",
+                        l10n.scaleInfo(card.minScore?.toInt() ?? 1, card.maxScore?.toInt() ?? 5),
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onPrimaryContainer.withOpacity(
                             0.7,
@@ -142,10 +142,10 @@ class ScoreCardRadar extends StatelessWidget {
                 ),
               )
             else if (!hasData)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Text("No detailed dimension data available."),
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(l10n.noDetailedData),
                 ),
               ),
 
@@ -155,7 +155,7 @@ class ScoreCardRadar extends StatelessWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  "Detailed Breakdown",
+                  l10n.detailedBreakdown,
                   style: textTheme.titleSmall!.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

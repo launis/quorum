@@ -56,4 +56,4 @@ async def test_lite_llm_provider_fail_fast_parsing():
 
              # Verify it's translated to our standard AppException
              assert excinfo.value.details["error_code"] == ErrorCodes.AGENT_RESPONSE_PARSING_FAILED
-             assert "Tekoälymalli palautti tyhjän tai virheellisesti muotoillun vastauksen" in excinfo.value.message
+             assert "LLM returned an empty or malformed structured response" in excinfo.value.message

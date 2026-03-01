@@ -9,7 +9,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.models.domain.base import ReasoningTrace
-from backend.models.domain.judge import JudgeScoreCard, JudgeOutput
+from backend.models.domain.judge import JudgeOutput, JudgeScoreCard
 from backend.models.dtos.pdf_context import ReportContext
 from backend.models.dtos.report import XAIFlatReportDTO
 
@@ -24,7 +24,7 @@ class XAIReporterInput(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     @model_validator(mode="after")
-    def check_judges(self) -> 'XAIReporterInput':
+    def check_judges(self) -> XAIReporterInput:
         # The Agent execute still has Fail Fast, but we can do a quick check here too if desired.
         return self
 

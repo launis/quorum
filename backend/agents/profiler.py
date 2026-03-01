@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 # 2. Third Party
 from pydantic import BaseModel
@@ -13,7 +13,6 @@ from backend.agents.base import BaseAgent
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import ProfilerDTO, ProfilerInput, ProfilerOutput
-
 
 logger = logging.getLogger(__name__)
 

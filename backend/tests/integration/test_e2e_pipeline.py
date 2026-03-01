@@ -4,17 +4,13 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+# Import application tasks so the TaskRegistry gets populated during the test
 from backend.dependencies import get_arq_pool, get_async_repository, get_current_user_from_header
 from backend.main import app
 from backend.models.auth import TokenData, UserRole
 from backend.models.workflow import WorkflowDefinition, WorkflowStep
 
-# Import application tasks so the TaskRegistry gets populated during the test
-import backend.agents.analyst
-import backend.agents.critics
-import backend.agents.logician
-import backend.agents.retrieval
-import backend.agents.xai
+
 async def mock_get_current_user() -> TokenData:
     return TokenData(id=str(uuid4()), role=UserRole.ADMIN, email="admin@example.com", organization_id="test_org")
 
@@ -47,8 +43,8 @@ async def test_full_pipeline_ingestion_to_bff():
     deps._engine_instance = None
 
     from backend.agents.analyst import AnalystAgent
-    from backend.models.domain import AnalystOutput
     from backend.core.registry import TaskRegistry
+    from backend.models.domain import AnalystOutput
     TaskRegistry.register_agent(task_keys=["analyst"], agent_cls=AnalystAgent, output_model=AnalystOutput)
 
     app.dependency_overrides[get_db_client_dep] = lambda: test_db
@@ -102,17 +98,17 @@ async def test_full_pipeline_ingestion_to_bff():
     }
     await repository.driver.upsert("system_config", model_registry_data, "model_registry")
 
-    from backend.models.llm import LLMResponse
     from backend.models.dtos.chat_history import ChatHistoryDTO, ChatMessageDTO, ChatRole
+    from backend.models.llm import LLMResponse
 
     with patch("backend.llm.provider.LiteLLMProvider.generate", new_callable=AsyncMock) as mock_agent, \
          patch("backend.services.chat_parser.parse_pasted_chat", new_callable=AsyncMock) as mock_chat_parser:
-         
+
         # Mock chat parsing response
         mock_chat_parser.return_value = ChatHistoryDTO(
             conversation=[ChatMessageDTO(order=1, role=ChatRole.USER, text="Mocked history")]
         )
-        
+
         # Provide a valid mock response representing an Agent's parsed output
         mock_agent.return_value = LLMResponse(
             content='{"thought_process": "Mocked", "conclusion": "Mocked conclusion", "confidence_score": 0.9, "hypotheses": [{"id": "HYP-001", "claim_text": "The system is robust.", "evidence_found": true, "quotes": ["Testing passed explicitly."], "search_query": "robustness testing"}]}',

@@ -91,7 +91,6 @@ def test_get_execution_view_fi():
     """Verify that Execution View (Report) is localized."""
     mock_repo = AsyncMock()
     from backend.models.domain.execution import ExecutionRecord
-
     from backend.models.state import WorkflowState
 
     mock_execution = ExecutionRecord(

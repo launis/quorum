@@ -2,10 +2,10 @@ import json
 import logging
 from typing import Any
 
-from fastapi import status
 import pydantic
+from fastapi import status
 
-from backend.exceptions import AppException, ErrorCodes, ConfigurationError
+from backend.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend.llm.client import LLMClient
 from backend.models.dtos.chat_history import ChatHistoryDTO
 

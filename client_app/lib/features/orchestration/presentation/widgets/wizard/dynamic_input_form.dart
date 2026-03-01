@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/orchestration/presentation/providers/wizard_provider.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/file_input_field.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/omni_input_box.dart';
-import 'package:client_app/features/orchestration/domain/models/workflow.dart';
 import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/reflection_mode_selector.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/guided_reflection_form.dart';

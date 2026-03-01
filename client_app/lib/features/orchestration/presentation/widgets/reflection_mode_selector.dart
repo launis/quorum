@@ -51,7 +51,7 @@ class ReflectionModeSelector extends ConsumerWidget {
                 mode: ReflectionInputMode.text,
                 currentMode: state.inputMode,
                 icon: Icons.notes,
-                label: '📝 Liitä teksti', // Need to add these to l10n ideally, but using string for now if not present, wait I'll use L10n if available. App doesn't have it yet.
+                label: '📝 ${l10n.pasteText}',
               ),
             ),
             const SizedBox(width: 8),
@@ -62,7 +62,7 @@ class ReflectionModeSelector extends ConsumerWidget {
                 mode: ReflectionInputMode.file,
                 currentMode: state.inputMode,
                 icon: Icons.attach_file,
-                label: '📎 Lataa tiedosto',
+                label: '📎 ${l10n.uploadFile}',
               ),
             ),
           ],

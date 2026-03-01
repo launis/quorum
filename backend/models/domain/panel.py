@@ -6,8 +6,6 @@ aggregating results from other specialist agents.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.models.domain.analyst import AnalystOutput

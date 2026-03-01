@@ -3,6 +3,7 @@ import pytest
 from backend.exceptions import AppException, ErrorCodes
 from backend.utils.math_utils import normalize_score_to_100
 
+
 def test_normalize_score_standard_1_to_5():
     # 3.0 out of 1-5 scale -> 50%
     assert normalize_score_to_100(3.0, 1.0, 5.0) == 50.0
@@ -25,12 +26,12 @@ def test_normalize_score_invalid_scale():
     # min >= max should raise AppException (Fail Fast)
     with pytest.raises(AppException) as exc:
         normalize_score_to_100(3.0, 5.0, 1.0)
-    
+
     assert exc.value.status_code == 500
     assert exc.value.details["error_code"] == ErrorCodes.INVALID_OUTPUT_SCHEMA.value
 
     # min == max should also raise
     with pytest.raises(AppException) as exc2:
         normalize_score_to_100(3.0, 5.0, 5.0)
-    
+
     assert exc2.value.details["error_code"] == ErrorCodes.INVALID_OUTPUT_SCHEMA.value

@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
 from backend.exceptions import AppException, ErrorCodes, SecurityViolationError
 from backend.models.domain.guard import SanitizationResult
 from backend.models.domain.inputs import WorkflowInputs
 from backend.models.state import WorkflowState
 from backend.utils.pydantic_utils import inflate
-
 
 logger = logging.getLogger(__name__)
 

@@ -396,7 +396,7 @@ class LiteLLMProvider(LLMProvider):
                     if "ResponseParsingError" in type(e).__name__ or "No completion choices found" in error_str:
                         logger.error(f"[LiteLLMProvider] Instructor JSON Parsing Failure: {error_str}")
                         raise AppException(
-                            message="Tekoälymalli palautti tyhjän tai virheellisesti muotoillun vastauksen. Tämä johtuu usein liian suuresta promptista (Search-data) tai JSON-formaatin asetusvirheestä.",
+                            message="LLM returned an empty or malformed structured response. This is often caused by a prompt that is too large (Search Data) or a JSON format configuration error.",
                             status_code=500,
                             details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED, "raw_error": error_str}
                         )

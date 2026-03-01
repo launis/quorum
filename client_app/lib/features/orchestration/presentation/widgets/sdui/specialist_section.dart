@@ -200,11 +200,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
   Widget _buildSummaryView(BuildContext context) {
     if (widget.data.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(8.0),
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
         child: Text(
-          "Ei dataa saatavilla.",
-          style: TextStyle(fontStyle: FontStyle.italic),
+          AppLocalizations.of(context)!.dataUnavailable,
+          style: const TextStyle(fontStyle: FontStyle.italic),
         ),
       );
     }
@@ -352,15 +352,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       case 'STRAT_VISIONARY':
         return l10n.stratVisionary;
 
-      // Profiler Enums
-      case 'BIAS_DETECTED':
-        return l10n.biasDetected;
-      case 'BIAS_NONE':
-        return l10n.biasNone;
-      case 'GAP_DETECTED':
-        return l10n.gapDetected;
-      case 'GAP_NONE':
-        return l10n.gapNone;
+
 
       default:
         return key;
@@ -407,8 +399,6 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     children.add(
       LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth > 800;
-
           // Enhanced Bloom Widget (Report Style)
           final bloomWidget = Card(
             color: Colors.teal[50], // Distinct color for Cognitive
@@ -482,30 +472,30 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabelValue("Väite (Claim)", t['claim']),
+                      _buildLabelValue(l10n.lblClaim, t['claim']),
                       const SizedBox(height: 4),
                       const Divider(),
                       const SizedBox(height: 4),
                       if (t['data'] != null) ...[
-                        _buildLabelValue("Perusteet / Fakta (Data)", t['data']),
+                        _buildLabelValue(l10n.lblData, t['data']),
                         const SizedBox(height: 4),
                       ],
-                      _buildLabelValue("Oikeutus (Warrant)", t['warrant']),
+                      _buildLabelValue(l10n.lblWarrant, t['warrant']),
                       if (t['backing'] != null) ...[
                         const SizedBox(height: 4),
-                        _buildLabelValue("Tuki (Backing)", t['backing']),
+                        _buildLabelValue(l10n.lblBacking, t['backing']),
                       ],
                       if (t['rebuttal'] != null) ...[
                         const SizedBox(height: 4),
                         _buildLabelValue(
-                          "Vasta-argumentti (Rebuttal)",
+                          l10n.lblRebuttal,
                           t['rebuttal'],
                         ),
                       ],
                       if (t['qualifier'] != null) ...[
                         const SizedBox(height: 4),
                         _buildLabelValue(
-                          "Tarkennin (Qualifier)",
+                          l10n.lblQualifier,
                           t['qualifier'],
                         ),
                       ],
@@ -579,7 +569,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             displayValue:
                 "${((widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}/6.0",
             color: Colors.indigo,
-            axisLabels: const ['Väite', '', 'Peruste', '', 'Tuki', 'Vahva'],
+            axisLabels: [l10n.lblClaim, '', l10n.lblData, '', l10n.lblBacking, ''],
           );
 
           // Responsive Layout handling Matrix right, Text left (mobile: Matrix top)
@@ -733,9 +723,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
         // Findings List (Compact)
         if (findings.isNotEmpty) ...[
-          const Text(
-            "Löydökset:",
-            style: TextStyle(
+          Text(
+            "${AppLocalizations.of(context)!.lblFindings}:",
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
               color: Colors.grey,
@@ -764,9 +754,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             ),
           ),
         ] else
-          const Text(
-            "Ei merkittäviä löydöksiä.",
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.lblNoSignificantFindings,
+            style: const TextStyle(
               fontStyle: FontStyle.italic,
               fontSize: 13,
               color: Colors.grey,
@@ -860,11 +850,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               ),
               const SizedBox(height: 12),
               _buildLabelValue(
-                "Post-Hoc Rationalization",
+                AppLocalizations.of(context)!.lblPostHocRationalization,
                 fidelity['post_hoc_rationalization_suspected'].toString(),
               ),
               const SizedBox(height: 4),
-              _buildLabelValue("Perustelu", fidelity['reasoning'] ?? '-'),
+              _buildLabelValue(AppLocalizations.of(context)!.lblReasoning, fidelity['reasoning'] ?? '-'),
             ],
           ),
         ),
@@ -1127,8 +1117,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             AppLocalizations.of(context)!.lblWordCount,
             wordCount,
           ),
-          _buildMetricBlock("Lauseen keskipituus", avgLength),
-          _buildMetricBlock("Sanaston kirjavuus", lexicalDiv),
+          _buildMetricBlock(AppLocalizations.of(context)!.lblAvgSentenceLength, avgLength),
+          _buildMetricBlock(AppLocalizations.of(context)!.lblLexicalDiversity, lexicalDiv),
         ],
       ),
     );
@@ -1137,13 +1127,13 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     if (profile != null) {
       rightChildren.add(
-        _buildInfoCard("Psykologinen Profiili", profile, Icons.psychology),
+        _buildInfoCard(AppLocalizations.of(context)!.lblPsychologicalProfile, profile, Icons.psychology),
       );
       rightChildren.add(const SizedBox(height: 8));
     }
     if (intent != null) {
       rightChildren.add(
-        _buildInfoCard("Tekijän Intentio", intent, Icons.track_changes),
+        _buildInfoCard(AppLocalizations.of(context)!.lblAuthorIntent, intent, Icons.track_changes),
       );
     }
 
@@ -1522,7 +1512,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             Text(
               analysis != null && analysis.isNotEmpty
                   ? analysis
-                  : "Ei analyysiä.",
+                  : AppLocalizations.of(context)!.lblNoAnalysis,
             ),
           ],
         ),

@@ -86,7 +86,7 @@ class CounterfactualTest(BaseModel):
                 try:
                     enum_val = val if isinstance(val, PlausibilityLevel) else PlausibilityLevel(val)
                     data["plausibility_score"] = enum_val
-                    
+
                     if data.get("plausibility_numeric") is None and enum_val in mapping:
                         data["plausibility_numeric"] = mapping[enum_val]
                 except ValueError as e:
@@ -143,7 +143,7 @@ class CausalAnalysis(BaseModel):
                 try:
                     enum_val = val if isinstance(val, AbductiveConclusion) else AbductiveConclusion(val)
                     data["abductive_conclusion"] = enum_val
-                    
+
                     if data.get("abductive_score") is None and enum_val in mapping:
                         data["abductive_score"] = mapping[enum_val]
                 except ValueError as e:

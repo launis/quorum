@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 # 2. Third Party
 from pydantic import BaseModel
@@ -144,7 +144,7 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
         focus_keywords = set()
 
         judge_inputs = []
-        
+
         if input_data.step_judge:
             judge_inputs.append(("step_judge", input_data.step_judge))
         if input_data.step_judge_cognitive:

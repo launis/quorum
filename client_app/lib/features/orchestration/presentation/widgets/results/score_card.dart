@@ -63,7 +63,7 @@ class ScoreCard extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
               Text(
-                "Tietoja ei saatavilla (Data unavailable)",
+                AppLocalizations.of(context)!.dataUnavailable,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant.withValues(
                     alpha: 0.5,

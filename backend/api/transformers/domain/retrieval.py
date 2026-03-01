@@ -1,8 +1,5 @@
 import logging
 
-from pydantic import ValidationError
-
-from backend.exceptions import AppException
 from backend.models.domain import ContextData
 from backend.models.enums import TitleKey
 
@@ -16,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class RetrievalDomainTransformer(BaseTransformer):
-    def _extract_context_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_context_section(self, state: WorkflowState) -> UiSection | None:
         model = state.get_context("step_context", ContextData)
         if not model:
             return None

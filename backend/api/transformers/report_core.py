@@ -8,9 +8,9 @@ from backend.models.view import (
     DimensionDisplay,
     EvidenceItem,
     EvidenceList,
-    ReportView,
-    ReferenceItem,
     ReferenceIntent,
+    ReferenceItem,
+    ReportView,
     ScoreCardDisplay,
     SectionType,
     SystemNotification,
@@ -89,7 +89,7 @@ class ReportTransformer(
             # Use type-safe property dynamically from WorkflowState
             # Returns JudgeOutput or None
             step_output = getattr(state, key) if hasattr(state, key) else None
-            
+
             if step_output:
                 # Determine base title and agent name
                 base_title = (
@@ -260,7 +260,7 @@ class ReportTransformer(
             references=references_list,
         )
 
-    def _compile_references(self, state: 'WorkflowState' | None) -> list[ReferenceItem]:
+    def _compile_references(self, state: WorkflowState | None) -> list[ReferenceItem]:
         """Kokoaa yhteen kaikki kontekstuaaliset lähdeviitteet."""
         if not state:
             return []
@@ -275,7 +275,7 @@ class ReportTransformer(
             rag = getattr(state.step_analyst, "rag_evidence", [])
             if rag:
                 search_items.extend(rag)
-        
+
         # Oletetaan SearchHook palauttaa context_variables["search_result"]
         sr_obj = state.context_variables.get("search_result")
         if sr_obj:
@@ -312,13 +312,13 @@ class ReportTransformer(
                 counters["SEARCH"] += 1
 
         # 2. Vertex Grounding (Fact-checking/Web URIs) -> [F-X]
-        # Grounding data is usually intercepted into LLMResponse model_extra. 
+        # Grounding data is usually intercepted into LLMResponse model_extra.
         # Safest way without schema coupling is finding grounding metadata across steps' LLM traces if they exist
         for key, val in state.context_variables.items():
              if "grounding" in key.lower() and isinstance(val, (list, dict)):
                  # Very simplified generic mapper, actual integration requires provider-specific schema
                  pass
-        
+
         # Note: If Judge provides critical_findings, we could also map them as [F-X] here in the future.
         # Until then, we extract from provider metadata directly if we see it.
         # Fallback to searching step_metadata:
@@ -499,7 +499,7 @@ class ReportTransformer(
             dimensions=mapped_dimensions,
         )
 
-    def _build_xai_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _build_xai_section(self, state: WorkflowState) -> UiSection | None:
         xai = state.step_xai
         if not xai:
             logger.warning("Missing data for step_xai in XAI Report layout")
@@ -521,7 +521,7 @@ class ReportTransformer(
             data={"content": content},
         )
 
-    def _build_timeline(self, state: 'WorkflowState', step_names: dict[str, str] | None = None) -> list[dict]:
+    def _build_timeline(self, state: WorkflowState, step_names: dict[str, str] | None = None) -> list[dict]:
         events = []
         agent_names = {
             "step_guard": f"🛡️ {self._get_label(LabelKey.AGENT_GUARD)}",
@@ -552,7 +552,7 @@ class ReportTransformer(
             meta = getattr(model, "metadata", None)
             if not meta:
                 continue
-                
+
             timestamp = getattr(meta, "luontiaika", None)
             if timestamp:
                 timestamp = timestamp.isoformat()
@@ -612,7 +612,7 @@ class ReportTransformer(
 
         return sorted(events, key=lambda x: x.get("timestamp") or "")
 
-    def _extract_analyst_table(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_analyst_table(self, state: WorkflowState) -> UiSection | None:
         step = state.step_analyst
         if not step:
             logger.warning("Missing data for step_analyst in Analyst Table layout")
@@ -659,7 +659,7 @@ class ReportTransformer(
             },
         )
 
-    def _extract_analyst_evidence(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_analyst_evidence(self, state: WorkflowState) -> UiSection | None:
         """Helper to extract RAG evidence as a separate section if needed."""
         step = state.step_analyst
         if not step:
@@ -735,7 +735,7 @@ class ReportTransformer(
             id="usage-stats", type=SectionType.USAGE_STATS, title=self._get_title(TitleKey.USAGE), data=data
         )
 
-    def _extract_critical_findings(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_critical_findings(self, state: WorkflowState) -> UiSection | None:
         """Extracts Truth Protocol findings (Critical Findings) from Judge step."""
         findings = []
 

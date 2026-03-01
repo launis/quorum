@@ -1,8 +1,6 @@
 import logging
 
-from pydantic import ValidationError
-
-from backend.models.domain import ArchivistOutput, CoachingPlan, GuardOutput
+from backend.models.domain import ArchivistOutput
 from backend.models.enums import LabelKey, RiskLevel, TitleKey
 
 # UVM: Use strict extensions
@@ -24,7 +22,7 @@ class ComplianceDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_guard_grid(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_guard_grid(self, state: WorkflowState) -> UiSection | None:
         model = state.step_guard
         if not model:
             return None
@@ -77,7 +75,7 @@ class ComplianceDomainTransformer(BaseTransformer):
             data={"security_display": s_display.model_dump()},
         )
 
-    def _extract_archivist_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_archivist_section(self, state: WorkflowState) -> UiSection | None:
         model = state.step_archivist
         if not model:
             return None
@@ -112,7 +110,7 @@ class ComplianceDomainTransformer(BaseTransformer):
             recommendations=recs,
         )
 
-    def _extract_coach_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_coach_section(self, state: WorkflowState) -> UiSection | None:
         model = state.step_coach
         if not model:
             return None
