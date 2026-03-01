@@ -61,7 +61,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     size: 16,
                   ),
                   label: Text(
-                    _showRaw ? AppLocalizations.of(context)!.btnHideRawData : AppLocalizations.of(context)!.btnShowJson,
+                    _showRaw
+                        ? AppLocalizations.of(context)!.btnHideRawData
+                        : AppLocalizations.of(context)!.btnShowJson,
                     style: const TextStyle(fontSize: 12),
                   ),
                 ),
@@ -74,7 +76,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     Clipboard.setData(ClipboardData(text: jsonStr));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(AppLocalizations.of(context)!.msgJsonCopied),
+                        content: Text(
+                          AppLocalizations.of(context)!.msgJsonCopied,
+                        ),
                         duration: const Duration(seconds: 1),
                       ),
                     );
@@ -493,11 +497,17 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                       ],
                       if (t['rebuttal'] != null) ...[
                         const SizedBox(height: 4),
-                        _buildLabelValue("Vasta-argumentti (Rebuttal)", t['rebuttal']),
+                        _buildLabelValue(
+                          "Vasta-argumentti (Rebuttal)",
+                          t['rebuttal'],
+                        ),
                       ],
                       if (t['qualifier'] != null) ...[
                         const SizedBox(height: 4),
-                        _buildLabelValue("Tarkennin (Qualifier)", t['qualifier']),
+                        _buildLabelValue(
+                          "Tarkennin (Qualifier)",
+                          t['qualifier'],
+                        ),
                       ],
                     ],
                   ),
@@ -1166,7 +1176,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             if (autoBiasLabel != null)
               _buildStatusChip(
                 context,
-                label: l10n.lblAutomationBiasValue(_getLocalizedEnum(autoBiasLabel)),
+                label: l10n.lblAutomationBiasValue(
+                  _getLocalizedEnum(autoBiasLabel),
+                ),
                 color: autoBiasColor,
                 icon: autoBiasColor == Colors.red ? Icons.warning : Icons.check,
               ),
@@ -1833,7 +1845,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children:
                       roles.map((r) {
-                        final isActive = translatedRole.toLowerCase() == r.toLowerCase();
+                        final isActive =
+                            translatedRole.toLowerCase() == r.toLowerCase();
                         return Expanded(
                           child: Column(
                             children: [
@@ -1892,10 +1905,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           runSpacing: 4,
           children: [
             for (final s in strategies)
-              Chip(
-                label: Text(s.toString()),
-                backgroundColor: Colors.blue[50],
-              )
+              Chip(label: Text(s.toString()), backgroundColor: Colors.blue[50]),
           ],
         ),
       );

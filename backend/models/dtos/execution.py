@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, RootModel
 
+from backend.models.dtos.reflection import GuidedReflectionDTO
+
 
 class PDFDownloadCheckResponse(BaseModel):
     """Response when checking for local PDF existence."""
@@ -39,7 +41,8 @@ class ExecutionRequestDTO(BaseModel):
 
     workflow_id: str
     organization_id: str | None = None
-    inputs: dict[str, str | Base64FileDTO] = {}
+    inputs: dict[str, Base64FileDTO | str] = {}
+    guided_reflection: GuidedReflectionDTO | None = None
 
 
 class ExecutionResponse(BaseModel):

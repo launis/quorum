@@ -596,5 +596,17 @@
         "type": "int"
       }
     }
-  }
+  },
+
+  "addReflectionIntent": "Add reflection (Intent)",
+  "reflectionDescription": "Describe your own reasoning and how you guided the AI during the process. This is the most critical phase for evaluation.",
+  "guidedReflectionRecommended": "Guided reflection (Recommended)",
+  "q1GoalTitle": "Goal and strategic planning (Architect)",
+  "q1GoalHint": "What was your original goal and how did you break down the task?",
+  "q2FalsificationTitle": "AI steering and critical iteration (Falsifier)",
+  "q2FalsificationHint": "What shortcomings or errors did you notice in the AI's response and how did you correct them?",
+  "q3SynthesisTitle": "Own contribution and creativity (Architect)",
+  "q3SynthesisHint": "What is genuinely your own human contribution in the final product?",
+  "q4ArgumentationTitle": "Quality assurance and metacognition (Judge)",
+  "q4ArgumentationHint": "On what grounds do you trust the outcome? What would you do differently?"
 }

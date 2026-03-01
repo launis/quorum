@@ -464,5 +464,19 @@
   "errKnowledgeNotIngested": "Tietokanta on tyhjä. Lataa dokumentteja Ingestointi-näkymässä ennen analyysia.",
   "actionGoToIngestion": "Siirry Ingestointiin",
   "knowledgeActive": "Tietokanta Aktiivinen",
-  "knowledgeStats": "Dokumentit: {docCount} | Ennakkotapaukset: {precCount}"
+  "knowledgeStats": "Dokumentit: {docCount} | Ennakkotapaukset: {precCount}",
+
+  "addReflectionIntent": "Lisää reflektio (Intentio)",
+  "reflectionDescription": "Kuvaa omaa ajatteluasi ja tekoälyn ohjaamista prosessin aikana. Tämä on arvioinnin kannalta kriittisin vaihe.",
+  "guidedReflectionRecommended": "Ohjattu reflektio (Suositeltu)",
+  "pasteText": "Liitä teksti",
+  "uploadFile": "Lataa tiedosto",
+  "q1GoalTitle": "Tavoite ja strateginen suunnittelu (Arkkitehti)",
+  "q1GoalHint": "Mikä oli alunperin tavoitteesi ja miten pilkoit tehtävän?",
+  "q2FalsificationTitle": "Tekoälyn ohjaus ja kriittinen iterointi (Falsifioija)",
+  "q2FalsificationHint": "Mitä puutteita tai virheitä huomasit tekoälyn toiminnassa ja miten korjasit ne?",
+  "q3SynthesisTitle": "Oma panos ja luovuus (Arkkitehti)",
+  "q3SynthesisHint": "Mikä on lopputuloksessa aitoa omaa panostasi?",
+  "q4ArgumentationTitle": "Laadunvarmistus ja metakognitio (Tuomari)",
+  "q4ArgumentationHint": "Millä perusteilla luotat lopputulokseen? Mitä tekisit toisin?"
 }

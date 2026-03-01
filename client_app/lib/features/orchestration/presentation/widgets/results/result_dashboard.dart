@@ -120,12 +120,13 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     // 1. SDUI Protocol: We respect backend signals without string parsing
     final bool isHitlRequired = view.metrics?['hitl_required'] == true;
     final bool hasWarning = view.metrics?['has_warning'] == true;
-    
+
     final bool showWarning = isHitlRequired || hasWarning;
-    
+
     // We only display feedback exactly as given by backend
-    final String? feedback = view.metrics?['coach_feedback']?.toString() 
-                          ?? view.metrics?['warning_message']?.toString();
+    final String? feedback =
+        view.metrics?['coach_feedback']?.toString() ??
+        view.metrics?['warning_message']?.toString();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -153,28 +154,56 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     );
   }
 
-  Widget _buildReferencesSection(BuildContext context, List<ReferenceItem> references) {
+  Widget _buildReferencesSection(
+    BuildContext context,
+    List<ReferenceItem> references,
+  ) {
     // Group by intent
-    final searchRefs = references.where((r) => r.intent == ReferenceIntent.search).toList();
-    final groundRefs = references.where((r) => r.intent == ReferenceIntent.grounding).toList();
-    final kbRefs = references.where((r) => r.intent == ReferenceIntent.internalKb).toList();
+    final searchRefs =
+        references.where((r) => r.intent == ReferenceIntent.search).toList();
+    final groundRefs =
+        references.where((r) => r.intent == ReferenceIntent.grounding).toList();
+    final kbRefs =
+        references
+            .where((r) => r.intent == ReferenceIntent.internalKb)
+            .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           'Lähdeluettelo & Viitteet',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        if (searchRefs.isNotEmpty) _buildRefGroup(context, 'Analytiikan Haut', Icons.search, searchRefs),
-        if (groundRefs.isNotEmpty) _buildRefGroup(context, 'Faktantarkistus (Vertex AI Grounding)', Icons.public, groundRefs),
-        if (kbRefs.isNotEmpty) _buildRefGroup(context, 'Organisaation Linjaukset & Tietopankki', Icons.library_books, kbRefs),
+        if (searchRefs.isNotEmpty)
+          _buildRefGroup(context, 'Analytiikan Haut', Icons.search, searchRefs),
+        if (groundRefs.isNotEmpty)
+          _buildRefGroup(
+            context,
+            'Faktantarkistus (Vertex AI Grounding)',
+            Icons.public,
+            groundRefs,
+          ),
+        if (kbRefs.isNotEmpty)
+          _buildRefGroup(
+            context,
+            'Organisaation Linjaukset & Tietopankki',
+            Icons.library_books,
+            kbRefs,
+          ),
       ],
     );
   }
 
-  Widget _buildRefGroup(BuildContext context, String title, IconData icon, List<ReferenceItem> refs) {
+  Widget _buildRefGroup(
+    BuildContext context,
+    String title,
+    IconData icon,
+    List<ReferenceItem> refs,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Card(
@@ -182,48 +211,69 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
         child: ExpansionTile(
           initiallyExpanded: true,
           leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          children: refs.map((ref) {
-            return ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              title: Text(
-                (ref.title != null && ref.title!.isNotEmpty) 
-                    ? '${ref.id} - ${ref.title}' 
-                    : ref.id, 
-                style: const TextStyle(fontWeight: FontWeight.w600)
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (ref.snippet.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(ref.snippet, maxLines: 3, overflow: TextOverflow.ellipsis),
-                  ],
-                  if (ref.url != null && ref.url!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      ref.url!,
-                      style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            );
-          }).toList(),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          children:
+              refs.map((ref) {
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  title: Text(
+                    (ref.title != null && ref.title!.isNotEmpty)
+                        ? '${ref.id} - ${ref.title}'
+                        : ref.id,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (ref.snippet.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          ref.snippet,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      if (ref.url != null && ref.url!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          ref.url!,
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
         ),
       ),
     );
   }
 
-  Widget _buildWarningBanner(BuildContext context, bool hitl, bool backendWarning, String? feedback) {
+  Widget _buildWarningBanner(
+    BuildContext context,
+    bool hitl,
+    bool backendWarning,
+    String? feedback,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     String title = "Huomioitavaa";
-    if (hitl) title = "Ihmisen tarkistus vaaditaan (HITL)";
-    else if (backendWarning) title = "Järjestelmän varoitus";
+    if (hitl)
+      title = "Ihmisen tarkistus vaaditaan (HITL)";
+    else if (backendWarning)
+      title = "Järjestelmän varoitus";
 
     return Container(
       decoration: BoxDecoration(
@@ -253,7 +303,9 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
                   Text(
                     feedback,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onErrorContainer.withValues(alpha: 0.9),
+                      color: colorScheme.onErrorContainer.withValues(
+                        alpha: 0.9,
+                      ),
                     ),
                   ),
                 ] else ...[
@@ -261,7 +313,9 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
                   Text(
                     "Järjestelmä suosittelee tulosten manuaalista tarkistamista rakenteellisten tai loogisten poikkeamien vuoksi.",
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onErrorContainer.withValues(alpha: 0.8),
+                      color: colorScheme.onErrorContainer.withValues(
+                        alpha: 0.8,
+                      ),
                     ),
                   ),
                 ],
@@ -272,7 +326,6 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
       ),
     );
   }
-
 
   Widget _buildHeader(BuildContext context, ReportView view) {
     Color statusColor = Colors.grey;

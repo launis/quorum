@@ -15,6 +15,8 @@ import 'package:client_app/features/knowledge/presentation/providers/knowledge_s
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/features/orchestration/presentation/providers/reflection_form_controller.dart';
+import 'package:client_app/features/orchestration/domain/models/guided_reflection.dart';
 
 class AnalysisWizardScreen extends ConsumerWidget {
   const AnalysisWizardScreen({super.key});
@@ -241,12 +243,36 @@ class AnalysisWizardScreen extends ConsumerWidget {
       // Validation is handled inside startAnalysis (Fail-fast).
       // Navigation is now handled explicitly here using the returned ID.
 
+      final reflectionState = ref.read(reflectionFormControllerProvider).value;
+      GuidedReflectionDTO? guidedReflection;
+      Map<String, dynamic> finalInputs = Map.from(wizardState.inputs);
+      List<String> finalRequiredInputs = List.from(requiredInputs);
+
+      final bool hasReflectionField = requiredInputs.contains('reflection_text') || 
+                                     (workflow.uiSchema?.keys.contains('reflection_text') ?? false);
+
+      if (hasReflectionField && reflectionState != null) {
+        if (reflectionState.inputMode == ReflectionInputMode.guided) {
+          guidedReflection = GuidedReflectionDTO(
+            q1Goal: reflectionState.q1Goal,
+            q2Falsification: reflectionState.q2Falsification,
+            q3Synthesis: reflectionState.q3Synthesis,
+            q4Argumentation: reflectionState.q4Argumentation,
+          );
+          finalInputs.remove('reflection_text'); // Clear if guided
+          finalRequiredInputs.remove('reflection_text'); // Satisfied by GuidedReflectionDTO
+        } else if (reflectionState.inputMode == ReflectionInputMode.text) {
+          finalInputs['reflection_text'] = reflectionState.freeText;
+        }
+      }
+
       final executionId = await ref
           .read(executionControllerProvider.notifier)
           .startAnalysis(
             workflowId: wizardState.selectedWorkflowId,
-            inputs: wizardState.inputs,
-            requiredInputs: requiredInputs,
+            inputs: finalInputs,
+            guidedReflection: guidedReflection,
+            requiredInputs: finalRequiredInputs,
           );
 
       logger.info('AnalysisWizard', 'StartAnalysis returned ID: $executionId');
@@ -259,9 +285,17 @@ class AnalysisWizardScreen extends ConsumerWidget {
       logger.error('AnalysisWizard', 'Error in _submit', e, stack);
       // Ensure specific errors are rethrown or handled if not by ref.listen
       if (context.mounted) {
+        final errorMessage = e is AppError
+            ? 'Verkkovirhe tai aikakatkaisu (Timeout). Kokeile uudelleen. Tarkempi syy: ${e.mapOrNull(api: (err) => err.detail, server: (err) => err.message) ?? e.toString()}'
+            : 'Järjestelmävirhe: $e';
+            
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Submission Error: $e')));
+        ).showSnackBar(SnackBar(
+          content: Text(errorMessage),
+          duration: const Duration(seconds: 8),
+          behavior: SnackBarBehavior.floating,
+        ));
       }
     }
   }

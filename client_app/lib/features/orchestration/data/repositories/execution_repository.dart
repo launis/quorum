@@ -88,9 +88,7 @@ class ExecutionRepository {
   TaskEither<AppError, String> createExecution(ExecutionInput input) {
     return TaskEither.tryCatch(() async {
       // 1. Resolve inputs and encode files to Base64
-      final resolvedInputs = <String, dynamic>{
-        ...input.inputs,
-      };
+      final resolvedInputs = <String, dynamic>{...input.inputs};
 
       for (final entry in input.files.entries) {
         final file = entry.value;
@@ -119,6 +117,8 @@ class ExecutionRepository {
         'workflow_id': input.workflowId,
         'organization_id': null, // Organization injected by backend optionally
         'inputs': resolvedInputs,
+        if (input.guidedReflection != null)
+          'guided_reflection': input.guidedReflection!.toJson(),
       };
 
       // 3. Send as standard application/json

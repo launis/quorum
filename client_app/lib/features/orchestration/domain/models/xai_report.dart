@@ -36,10 +36,8 @@ abstract class XAIReport with _$XAIReport {
     @JsonKey(name: 'executive_summary') String? executiveSummary,
     @JsonKey(name: 'analysis_strengths') String? analysisStrengths,
     @JsonKey(name: 'analysis_weaknesses') String? analysisWeaknesses,
-    @JsonKey(name: 'analysis_opportunities')
-    String? analysisOpportunities,
-    @JsonKey(name: 'analysis_recommendations')
-    String? analysisRecommendations,
+    @JsonKey(name: 'analysis_opportunities') String? analysisOpportunities,
+    @JsonKey(name: 'analysis_recommendations') String? analysisRecommendations,
     @JsonKey(name: 'final_verdict') String? finalVerdict,
     @JsonKey(name: 'confidence_score') double? confidenceScore,
 

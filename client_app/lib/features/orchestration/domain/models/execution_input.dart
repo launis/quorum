@@ -1,4 +1,5 @@
 import 'package:client_app/features/orchestration/domain/models/execution_file.dart';
+import 'package:client_app/features/orchestration/domain/models/guided_reflection.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'execution_input.freezed.dart';
@@ -21,6 +22,9 @@ sealed class ExecutionInput with _$ExecutionInput {
     @Default({})
     @JsonKey(includeToJson: false)
     Map<String, ExecutionFile> files,
+
+    /// Optional structured guided reflection form data
+    @JsonKey(name: 'guided_reflection') GuidedReflectionDTO? guidedReflection,
   }) = _ExecutionInput;
 
   factory ExecutionInput.fromJson(Map<String, dynamic> json) =>

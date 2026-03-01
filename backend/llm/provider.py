@@ -251,8 +251,8 @@ class LiteLLMProvider(LLMProvider):
                 "response_format": response_format,
                 "api_key": self.api_key,
                 "drop_params": True,
-                # STRICT NETWORK TIMEOUT: Fail fast (120s) instead of hanging forever.
-                "timeout": 120,
+                # STRICT NETWORK TIMEOUT: Fail fast (300s) instead of hanging forever.
+                "timeout": 300,
                 # SAFETY FILTERS (Auditing Requirement):
                 # We must be able to process "unsafe" content (e.g. Hate Speech in logs) without blocking.
                 # Therefore, we disable safety filters for the Analyzer.

@@ -103,7 +103,16 @@ async def test_full_pipeline_ingestion_to_bff():
     await repository.driver.upsert("system_config", model_registry_data, "model_registry")
 
     from backend.models.llm import LLMResponse
-    with patch("backend.llm.provider.LiteLLMProvider.generate", new_callable=AsyncMock) as mock_agent:
+    from backend.models.dtos.chat_history import ChatHistoryDTO, ChatMessageDTO, ChatRole
+
+    with patch("backend.llm.provider.LiteLLMProvider.generate", new_callable=AsyncMock) as mock_agent, \
+         patch("backend.services.chat_parser.parse_pasted_chat", new_callable=AsyncMock) as mock_chat_parser:
+         
+        # Mock chat parsing response
+        mock_chat_parser.return_value = ChatHistoryDTO(
+            conversation=[ChatMessageDTO(order=1, role=ChatRole.USER, text="Mocked history")]
+        )
+        
         # Provide a valid mock response representing an Agent's parsed output
         mock_agent.return_value = LLMResponse(
             content='{"thought_process": "Mocked", "conclusion": "Mocked conclusion", "confidence_score": 0.9, "hypotheses": [{"id": "HYP-001", "claim_text": "The system is robust.", "evidence_found": true, "quotes": ["Testing passed explicitly."], "search_query": "robustness testing"}]}',
@@ -128,26 +137,18 @@ async def test_full_pipeline_ingestion_to_bff():
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            # 3. Simulate file ingestion via Multipart Post
-            # In standard API, we send json_payload and file(s)
-            import json
-            meta_json = json.dumps({
-                "workflowId": wf_id,
-                "organizationId": "test_org",
-                "settings": {
+            # Construct the strict JSON payload matching ExecutionRequestDTO
+            json_payload = {
+                "workflow_id": wf_id,
+                "organization_id": "test_org",
+                "inputs": {
                     "history_text": "Simulated chat history content.",
                     "target_audience": "stakeholders"
-                }
-            })
-
-            files = [
-                ("file_1", ("document.txt", b"Mock plain text content.", "text/plain")),
-            ]
-            data = {
-                "json_payload": meta_json
+                },
+                "guided_reflection": None
             }
 
-            response = await ac.post("/v1/execute/", data=data, files=files)
+            response = await ac.post("/v1/execute/", json=json_payload)
             assert response.status_code == 201, f"Execution creation failed: {response.text}"
             exec_data = response.json()
             execution_id = exec_data["id"]

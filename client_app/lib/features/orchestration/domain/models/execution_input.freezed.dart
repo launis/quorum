@@ -19,7 +19,8 @@ mixin _$ExecutionInput {
 @JsonKey(name: 'workflow_id') String get workflowId;/// Key-value pairs representing the initial input state (e.g. source text).
  Map<String, dynamic> get inputs;/// File attachments to be uploaded via Multipart request.
 /// Not serialized to JSON as the repository handles FormData construction manually.
-@JsonKey(includeToJson: false) Map<String, ExecutionFile> get files;
+@JsonKey(includeToJson: false) Map<String, ExecutionFile> get files;/// Optional structured guided reflection form data
+@JsonKey(name: 'guided_reflection') GuidedReflectionDTO? get guidedReflection;
 /// Create a copy of ExecutionInput
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,16 +33,16 @@ $ExecutionInputCopyWith<ExecutionInput> get copyWith => _$ExecutionInputCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionInput&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&const DeepCollectionEquality().equals(other.inputs, inputs)&&const DeepCollectionEquality().equals(other.files, files));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionInput&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&const DeepCollectionEquality().equals(other.inputs, inputs)&&const DeepCollectionEquality().equals(other.files, files)&&(identical(other.guidedReflection, guidedReflection) || other.guidedReflection == guidedReflection));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,workflowId,const DeepCollectionEquality().hash(inputs),const DeepCollectionEquality().hash(files));
+int get hashCode => Object.hash(runtimeType,workflowId,const DeepCollectionEquality().hash(inputs),const DeepCollectionEquality().hash(files),guidedReflection);
 
 @override
 String toString() {
-  return 'ExecutionInput(workflowId: $workflowId, inputs: $inputs, files: $files)';
+  return 'ExecutionInput(workflowId: $workflowId, inputs: $inputs, files: $files, guidedReflection: $guidedReflection)';
 }
 
 
@@ -52,11 +53,11 @@ abstract mixin class $ExecutionInputCopyWith<$Res>  {
   factory $ExecutionInputCopyWith(ExecutionInput value, $Res Function(ExecutionInput) _then) = _$ExecutionInputCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'workflow_id') String workflowId, Map<String, dynamic> inputs,@JsonKey(includeToJson: false) Map<String, ExecutionFile> files
+@JsonKey(name: 'workflow_id') String workflowId, Map<String, dynamic> inputs,@JsonKey(includeToJson: false) Map<String, ExecutionFile> files,@JsonKey(name: 'guided_reflection') GuidedReflectionDTO? guidedReflection
 });
 
 
-
+$GuidedReflectionDTOCopyWith<$Res>? get guidedReflection;
 
 }
 /// @nodoc
@@ -69,15 +70,28 @@ class _$ExecutionInputCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionInput
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? workflowId = null,Object? inputs = null,Object? files = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? workflowId = null,Object? inputs = null,Object? files = null,Object? guidedReflection = freezed,}) {
   return _then(_self.copyWith(
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,inputs: null == inputs ? _self.inputs : inputs // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,files: null == files ? _self.files : files // ignore: cast_nullable_to_non_nullable
-as Map<String, ExecutionFile>,
+as Map<String, ExecutionFile>,guidedReflection: freezed == guidedReflection ? _self.guidedReflection : guidedReflection // ignore: cast_nullable_to_non_nullable
+as GuidedReflectionDTO?,
   ));
 }
+/// Create a copy of ExecutionInput
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GuidedReflectionDTOCopyWith<$Res>? get guidedReflection {
+    if (_self.guidedReflection == null) {
+    return null;
+  }
 
+  return $GuidedReflectionDTOCopyWith<$Res>(_self.guidedReflection!, (value) {
+    return _then(_self.copyWith(guidedReflection: value));
+  });
+}
 }
 
 
@@ -156,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId,  Map<String, dynamic> inputs, @JsonKey(includeToJson: false)  Map<String, ExecutionFile> files)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId,  Map<String, dynamic> inputs, @JsonKey(includeToJson: false)  Map<String, ExecutionFile> files, @JsonKey(name: 'guided_reflection')  GuidedReflectionDTO? guidedReflection)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionInput() when $default != null:
-return $default(_that.workflowId,_that.inputs,_that.files);case _:
+return $default(_that.workflowId,_that.inputs,_that.files,_that.guidedReflection);case _:
   return orElse();
 
 }
@@ -177,10 +191,10 @@ return $default(_that.workflowId,_that.inputs,_that.files);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId,  Map<String, dynamic> inputs, @JsonKey(includeToJson: false)  Map<String, ExecutionFile> files)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId,  Map<String, dynamic> inputs, @JsonKey(includeToJson: false)  Map<String, ExecutionFile> files, @JsonKey(name: 'guided_reflection')  GuidedReflectionDTO? guidedReflection)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionInput():
-return $default(_that.workflowId,_that.inputs,_that.files);}
+return $default(_that.workflowId,_that.inputs,_that.files,_that.guidedReflection);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -194,10 +208,10 @@ return $default(_that.workflowId,_that.inputs,_that.files);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')  String workflowId,  Map<String, dynamic> inputs, @JsonKey(includeToJson: false)  Map<String, ExecutionFile> files)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')  String workflowId,  Map<String, dynamic> inputs, @JsonKey(includeToJson: false)  Map<String, ExecutionFile> files, @JsonKey(name: 'guided_reflection')  GuidedReflectionDTO? guidedReflection)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionInput() when $default != null:
-return $default(_that.workflowId,_that.inputs,_that.files);case _:
+return $default(_that.workflowId,_that.inputs,_that.files,_that.guidedReflection);case _:
   return null;
 
 }
@@ -209,7 +223,7 @@ return $default(_that.workflowId,_that.inputs,_that.files);case _:
 @JsonSerializable()
 
 class _ExecutionInput implements ExecutionInput {
-  const _ExecutionInput({@JsonKey(name: 'workflow_id') required this.workflowId, final  Map<String, dynamic> inputs = const {}, @JsonKey(includeToJson: false) final  Map<String, ExecutionFile> files = const {}}): _inputs = inputs,_files = files;
+  const _ExecutionInput({@JsonKey(name: 'workflow_id') required this.workflowId, final  Map<String, dynamic> inputs = const {}, @JsonKey(includeToJson: false) final  Map<String, ExecutionFile> files = const {}, @JsonKey(name: 'guided_reflection') this.guidedReflection}): _inputs = inputs,_files = files;
   factory _ExecutionInput.fromJson(Map<String, dynamic> json) => _$ExecutionInputFromJson(json);
 
 /// The UUID of the workflow definition to instantiate.
@@ -234,6 +248,8 @@ class _ExecutionInput implements ExecutionInput {
   return EqualUnmodifiableMapView(_files);
 }
 
+/// Optional structured guided reflection form data
+@override@JsonKey(name: 'guided_reflection') final  GuidedReflectionDTO? guidedReflection;
 
 /// Create a copy of ExecutionInput
 /// with the given fields replaced by the non-null parameter values.
@@ -248,16 +264,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionInput&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&const DeepCollectionEquality().equals(other._inputs, _inputs)&&const DeepCollectionEquality().equals(other._files, _files));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionInput&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&const DeepCollectionEquality().equals(other._inputs, _inputs)&&const DeepCollectionEquality().equals(other._files, _files)&&(identical(other.guidedReflection, guidedReflection) || other.guidedReflection == guidedReflection));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,workflowId,const DeepCollectionEquality().hash(_inputs),const DeepCollectionEquality().hash(_files));
+int get hashCode => Object.hash(runtimeType,workflowId,const DeepCollectionEquality().hash(_inputs),const DeepCollectionEquality().hash(_files),guidedReflection);
 
 @override
 String toString() {
-  return 'ExecutionInput(workflowId: $workflowId, inputs: $inputs, files: $files)';
+  return 'ExecutionInput(workflowId: $workflowId, inputs: $inputs, files: $files, guidedReflection: $guidedReflection)';
 }
 
 
@@ -268,11 +284,11 @@ abstract mixin class _$ExecutionInputCopyWith<$Res> implements $ExecutionInputCo
   factory _$ExecutionInputCopyWith(_ExecutionInput value, $Res Function(_ExecutionInput) _then) = __$ExecutionInputCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'workflow_id') String workflowId, Map<String, dynamic> inputs,@JsonKey(includeToJson: false) Map<String, ExecutionFile> files
+@JsonKey(name: 'workflow_id') String workflowId, Map<String, dynamic> inputs,@JsonKey(includeToJson: false) Map<String, ExecutionFile> files,@JsonKey(name: 'guided_reflection') GuidedReflectionDTO? guidedReflection
 });
 
 
-
+@override $GuidedReflectionDTOCopyWith<$Res>? get guidedReflection;
 
 }
 /// @nodoc
@@ -285,16 +301,29 @@ class __$ExecutionInputCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionInput
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? workflowId = null,Object? inputs = null,Object? files = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? workflowId = null,Object? inputs = null,Object? files = null,Object? guidedReflection = freezed,}) {
   return _then(_ExecutionInput(
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,inputs: null == inputs ? _self._inputs : inputs // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,files: null == files ? _self._files : files // ignore: cast_nullable_to_non_nullable
-as Map<String, ExecutionFile>,
+as Map<String, ExecutionFile>,guidedReflection: freezed == guidedReflection ? _self.guidedReflection : guidedReflection // ignore: cast_nullable_to_non_nullable
+as GuidedReflectionDTO?,
   ));
 }
 
+/// Create a copy of ExecutionInput
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GuidedReflectionDTOCopyWith<$Res>? get guidedReflection {
+    if (_self.guidedReflection == null) {
+    return null;
+  }
 
+  return $GuidedReflectionDTOCopyWith<$Res>(_self.guidedReflection!, (value) {
+    return _then(_self.copyWith(guidedReflection: value));
+  });
+}
 }
 
 // dart format on

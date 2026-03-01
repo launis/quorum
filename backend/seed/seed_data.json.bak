@@ -76,8 +76,7 @@
                     "ArchivistAgent": "fast",
                     "RetrievalAgent": "fast",
                     "PanelAgent": "deep",
-                    "SearchHook": "search",
-                    "ChatParser": "fast"
+                    "SearchHook": "search"
                 }
             }
         },

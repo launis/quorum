@@ -6,6 +6,9 @@ import 'package:client_app/features/orchestration/presentation/widgets/wizard/fi
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/omni_input_box.dart';
 import 'package:client_app/features/orchestration/domain/models/workflow.dart';
 import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/reflection_mode_selector.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/guided_reflection_form.dart';
+import 'package:client_app/features/orchestration/presentation/providers/reflection_form_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class DynamicInputForm extends ConsumerStatefulWidget {
@@ -67,10 +70,40 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
                   final minLines = val['minLines'] as int? ?? 1;
 
                   // Check if it's one of the main Omni fields
-                  final isOmniField = ['INPUT_HISTORY_TEXT', 'INPUT_PRODUCT_TEXT', 'INPUT_REFLECTION_TEXT'].contains(val['label']) || key == 'history_text' || key == 'product_text' || key == 'reflection_text';
+                  final isOmniField =
+                      [
+                        'INPUT_HISTORY_TEXT',
+                        'INPUT_PRODUCT_TEXT',
+                        'INPUT_REFLECTION_TEXT',
+                      ].contains(val['label']) ||
+                      key == 'history_text' ||
+                      key == 'product_text' ||
+                      key == 'reflection_text';
 
                   if (isOmniField) {
-                     return Padding(
+                    if (key == 'reflection_text' || val['label'] == 'INPUT_REFLECTION_TEXT') {
+                      final reflectionMode = ref.watch(reflectionFormControllerProvider.select((s) => s.value?.inputMode));
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const ReflectionModeSelector(),
+                            const SizedBox(height: 16),
+                            if (reflectionMode == ReflectionInputMode.file)
+                              _buildFileInput(
+                                label: label,
+                                keyName: key,
+                                icon: iconData,
+                                currentValue: inputs[key] as PlatformFile?,
+                              )
+                            else
+                              const GuidedReflectionForm(),
+                          ],
+                        ),
+                      );
+                    }
+                    return Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: OmniInputBox(
                         label: label,
@@ -79,7 +112,9 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
                         minLines: minLines,
                         currentValue: inputs[key],
                         onChanged: (value) {
-                          ref.read(wizardStateProvider.notifier).updateInput(key, value);
+                          ref
+                              .read(wizardStateProvider.notifier)
+                              .updateInput(key, value);
                         },
                       ),
                     );

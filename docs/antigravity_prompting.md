@@ -62,11 +62,12 @@ REFERENCE MATERIAL:
 
 INSTRUCTIONS (EXECUTION MODE):
 Create a sequential execution plan (Implementation Plan) to implement this Goal, and then execute it strictly. Do not start coding before the plan is approved.
-1. ANTI-HALLUCINATION PROTOCOL: Use your file search/read tools to read existing code BEFORE proposing changes. Never guess a function signature or imports. Every prompt/plan MUST explicitly list files in two strict categories: `TARGET (Modify)` and `CONTEXT (Read-Only)`.
-2. EXPLICIT SCOPING: Your response MUST explicitly define which files are `TARGET (Modify)` and which are `CONTEXT (Read-Only)`.
-3. FAIL-FAST ENFORCEMENT: Explicitly state where `AppException` (RFC 7807) will be raised if data is missing or invalid.
-4. QUALITY LOOP: Before marking this step as done, you MUST verify the code (e.g., mentally trace types, ensure no raw dicts are returned, check Riverpod generators).
-5. UX & L10N: Ensure Optimistic UI logic & Fail Fast Retries. Do NOT hardcode strings for UI; use `LocalizationService.translate("KEY")` tied to Pydantic `x-ui-label` defaults and Frontend `app_{lang}.arb` localized responses.
+1. PLAN & PAUSE: Create a sequential execution plan (Implementation Plan) to implement this Goal. STOP AND WAIT FOR APPROVAL. Do NOT generate any code blocks until I explicitly reply with "LUPA MYÖNNETTY".
+2. ANTI-HALLUCINATION PROTOCOL: Use your file search/read tools to read existing code BEFORE proposing changes. Never guess a function signature or imports. Every prompt/plan MUST explicitly list files in two strict categories: `TARGET (Modify)` and `CONTEXT (Read-Only)`.
+3. EXPLICIT SCOPING: Your response MUST explicitly define which files are `TARGET (Modify)` and which are `CONTEXT (Read-Only)`.
+4. FAIL-FAST ENFORCEMENT: Explicitly state where `AppException` (RFC 7807) will be raised if data is missing or invalid.
+5. QUALITY LOOP: Before marking this step as done, you MUST verify the code (e.g., mentally trace types, ensure no raw dicts are returned, check Riverpod generators).
+6. UX & L10N: Ensure Optimistic UI logic & Fail Fast Retries. Do NOT hardcode strings for UI; use `LocalizationService.translate("KEY")` tied to Pydantic `x-ui-label` defaults and Frontend `app_{lang}.arb` localized responses.
 
 VERIFICATION CHECK:
 Before outputting any code, start your response with: 
@@ -172,6 +173,7 @@ Then explicitly list the 5 CRITICAL VIOLATIONS mentioned above to prove you are 
 
 4. THE ZERO-COMPROMISE PLEDGE (Fail Fast):
    - If data is invalid or missing, crash immediately at the Service boundary. Do not return `None` or `{}` to silently bypass errors. Fix the root cause. No implicit default values in domain models.
+   - Exception: The BFF (Backend-For-Frontend) mapping layer MUST use graceful degradation (e.g., returning {} or empty lists) for missing specialist data to prevent total UI crashes, but must log a warning.
 
 5. EDITING SAFETY (Anti-Duplication Protocol):
    - When modifying a function/class, explicitly DELETE or OVERWRITE the old version. NEVER append the new version to the end of the file while leaving the old one intact. Ensure strict string replacement.
@@ -182,4 +184,10 @@ Then explicitly list the 5 CRITICAL VIOLATIONS mentioned above to prove you are 
 7. OUTPUT FORMAT REQUIREMENTS:
    - Language Strategy: Antigravity Prompts (Code Blocks) MUST be in English. Your Explanations/Context MUST be in Finnish (Suomi).
    - Granularity (Atomic Strikes): Break the task into small, isolated prompts (approx. 5-10 mins of AI work each). Standard Sequence: Backend Dependencies -> Backend Core/Models -> Backend L10n -> Backend Repositories -> Backend API/Router -> Frontend Models -> Frontend Controller -> Frontend UI.
+
+8. QUALITY LOOP & TOOL USAGE (MANDATORY):
+   - You have access to a bash terminal. USE IT to verify your code physically.
+   - Python: Run `ruff check <files> --fix` -> `mypy <files> --strict` -> `pytest`.
+   - Flutter: Run `dart format` -> `dart analyze` -> `flutter test`.
+   - Resolve ALL syntax and typing errors before declaring the step complete. Do not just "mentally verify".
 ```

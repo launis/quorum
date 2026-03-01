@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, status
 
 from backend.core.engine import GraphEngine
 from backend.database.repository import AbstractWorkflowRepository
@@ -30,6 +30,7 @@ from backend.models.dtos.execution import (
 )
 from backend.models.workflow import WorkflowDefinition
 from backend.services.auth import AuthService
+from backend.services.reflection_service import ReflectionService
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +75,10 @@ async def create_execution(
         execution_id = str(uuid.uuid4())
         workflow_id = request.workflow_id
         organization_id = request.organization_id
-        
+
         inputs = {}
         files_to_process = {}
-        
+
         import base64
 
         # 1. Y-Funnel: Separate explicit string inputs from Base64 File DTOs
@@ -129,7 +130,7 @@ async def create_execution(
                     # Smart Mapping: UI often sends UUIDs or filenames like "keskusteluhistoria SITRA.pdf"
                     lower_key = raw_key.lower()
                     target_key = raw_key
-                    
+
                     if "historia" in lower_key or "history" in lower_key or "chat" in lower_key:
                         target_key = "history_text"
                     elif "lopputuote" in lower_key or "product" in lower_key or "output" in lower_key:
@@ -138,20 +139,28 @@ async def create_execution(
                         target_key = "reflection_text"
 
                     inputs[target_key] = text_content
-                    logger.info(f"[Lifecycle] Mapped uploaded file '{raw_key}' to input '{target_key}' ({len(text_content)} chars)")
+                    logger.info(
+                        f"[Lifecycle] Mapped uploaded file '{raw_key}' "
+                        f"to input '{target_key}' ({len(text_content)} chars)"
+                    )
             except Exception as e:
                 logger.error(f"DocumentService failed: {e}")
-                raise AppException(message=f"File processing failed: {e}", status_code=500, details={"error_code": "FILE_PROCESSING_FAILED"}) from e
+                raise AppException(
+                    message=f"File processing failed: {e}",
+                    status_code=500,
+                    details={"error_code": "FILE_PROCESSING_FAILED"}
+                ) from e
 
         # 4. Y-Funnel Parse: Extract specific features
         if "history_text" in inputs:
             from backend.services.chat_parser import parse_pasted_chat
             try:
                 logger.info("[Lifecycle] Y-Funnel: Parsing history_text with LLM ChatParser")
-                # Pass repository if context is needed (None for now)
-                chat_dto = await parse_pasted_chat(inputs["history_text"])
-                # Store the structured DTO back into inputs as a pure dict
-                inputs["history_text"] = chat_dto.model_dump()
+                # Pass repository for LLM Client Strategy resolving
+                chat_dto = await parse_pasted_chat(inputs["history_text"], repository=repository)
+                # Store the structured DTO back into inputs as a pure dict under a new key
+                # This preserves the original 'history_text' string for agents that expect a string schema.
+                inputs["parsed_history"] = chat_dto.model_dump()
             except Exception as e:
                 logger.error(f"[Lifecycle] Chat parsing failed in Y-Funnel: {e}")
                 # Re-raise AppException directly if it already is one
@@ -161,6 +170,20 @@ async def create_execution(
                     message="Failed to parse chat history",
                     status_code=400,
                     details={"error_code": "CHAT_PARSING_FAILED"}
+                ) from e
+
+        if request.guided_reflection:
+            logger.info("[Lifecycle] Y-Funnel: Generating markdown from GuidedReflectionDTO")
+            try:
+                reflection_markdown = ReflectionService.generate_markdown_document(request.guided_reflection)
+                inputs["reflection_text"] = reflection_markdown
+                logger.info("[Lifecycle] Mapped GuidedReflection to 'reflection_text' input.")
+            except Exception as e:
+                logger.error(f"[Lifecycle] Reflection generation failed in Y-Funnel: {e}")
+                raise AppException(
+                    message="Failed to generate reflection document",
+                    status_code=500,
+                    details={"error_code": "REFLECTION_GENERATION_FAILED"}
                 ) from e
 
         # DIAGNOSTIC LOG (Requested by User to trace what goes in)

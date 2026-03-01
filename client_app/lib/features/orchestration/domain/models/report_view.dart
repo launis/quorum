@@ -1,16 +1,15 @@
-enum ReferenceIntent {
-  search,
-  grounding,
-  internalKb,
-  unknown
-}
+enum ReferenceIntent { search, grounding, internalKb, unknown }
 
 ReferenceIntent _parseIntent(String? value) {
   switch (value) {
-    case 'SEARCH': return ReferenceIntent.search;
-    case 'GROUNDING': return ReferenceIntent.grounding;
-    case 'INTERNAL_KB': return ReferenceIntent.internalKb;
-    default: return ReferenceIntent.unknown;
+    case 'SEARCH':
+      return ReferenceIntent.search;
+    case 'GROUNDING':
+      return ReferenceIntent.grounding;
+    case 'INTERNAL_KB':
+      return ReferenceIntent.internalKb;
+    default:
+      return ReferenceIntent.unknown;
   }
 }
 

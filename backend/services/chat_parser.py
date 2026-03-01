@@ -38,8 +38,9 @@ async def parse_pasted_chat(raw_paste: str, repository: Any = None) -> ChatHisto
 
     # Initialize LLM Client via Strategy Pattern
     try:
-        # Use "fast" strategy for high-throughput, low-latency parsing tasks
-        llm_client = await LLMClient.from_strategy("fast", repository=repository)
+        # Request the 'ChatParser' strategy from the registry.
+        # This allows dynamic configuration in DB (e.g. mapping to 'fast' or 'strict').
+        llm_client = await LLMClient.from_strategy("ChatParser", repository=repository)
     except ConfigurationError as e:
         error_code = ErrorCodes.CONFIGURATION_ERROR
         msg = f"Failed to initialize LLMClient for ChatParser: {e.message}"
@@ -69,32 +70,11 @@ async def parse_pasted_chat(raw_paste: str, repository: Any = None) -> ChatHisto
 
     try:
         # Require strict structured output as defined by the DTO model
-        response_text = await llm_client.generate_content(
+        parsed_data = await llm_client.run_structured_task(
             messages=messages,
             temperature=0.0,
-            response_format=ChatHistoryDTO
+            response_model=ChatHistoryDTO
         )
-    except Exception as e:
-        error_code = ErrorCodes.EXTERNAL_API_ERROR
-        msg = f"LLM generation failed: {e}"
-        logger.error(f"[ChatParser] {error_code.name}: {msg}", exc_info=True)
-        raise AppException(
-            message=msg, status_code=status.HTTP_502_BAD_GATEWAY, details={"error_code": error_code.value}
-        ) from e
-
-    try:
-        # Validate the response strictly against our DTO Model
-        # Expected response text might be JSON depending on litellm underlying structured output formatting
-        if isinstance(response_text, str):
-             parsed_data = ChatHistoryDTO.model_validate_json(response_text)
-        elif isinstance(response_text, dict):
-             parsed_data = ChatHistoryDTO.model_validate(response_text)
-        elif isinstance(response_text, ChatHistoryDTO):
-             parsed_data = response_text
-        else:
-             # Fallback JSON load attempt if litellm returns weird nested string content wrapped in object
-             parsed_data = ChatHistoryDTO.model_validate_json(str(response_text))
-             
         # Log success diagnostically without exposing sensitive logs
         logger.info(f"[ChatParser] Parsing successful. Extracted {len(parsed_data.conversation)} messages.")
         return parsed_data
@@ -110,10 +90,20 @@ async def parse_pasted_chat(raw_paste: str, repository: Any = None) -> ChatHisto
         ) from e
     except json.JSONDecodeError as e:
         error_code = ErrorCodes.VALIDATION_FAILED
-        msg = f"LLM generated invalid JSON string: {e}"
+        msg = f"LLM returned invalid JSON: {e}"
         logger.error(f"[ChatParser] {error_code.name}: {msg}", exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": error_code.value, "original_error": str(e)},
+        ) from e
+    except Exception as e:
+        if isinstance(e, AppException):
+            raise e
+
+        error_code = ErrorCodes.INTERNAL_SERVER_ERROR
+        msg = f"LLM generation failed: {e}"
+        logger.error(f"[ChatParser] {error_code.name}: {msg}", exc_info=True)
+        raise AppException(
+            message=msg, status_code=status.HTTP_502_BAD_GATEWAY, details={"error_code": error_code.value}
         ) from e

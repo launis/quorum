@@ -58,9 +58,8 @@ class LLMClient:
         from backend.utils.pydantic_utils import inflate
 
         if not repository:
-            # Fallback to Unified singleton if not passed
-            from backend.database.repository import UnifiedWorkflowRepository
-            repository = UnifiedWorkflowRepository()
+            # Fail Fast: Enforce strict dependency injection (Zero-Fallback)
+            raise ConfigurationError("Repository dependency must be provided to LLMClient.from_strategy.")
 
         # 1. Fetch Raw Registry
         raw_registry = await repository.driver.get("system_config", "model_registry")
@@ -185,7 +184,11 @@ class LLMClient:
             target_provider_type = "litellm"
 
         # 3. Create Provider via Factory
-        provider = LLMFactory.create_provider(provider_type=target_provider_type, model_name=target_model_name)
+        provider = LLMFactory.create_provider(
+            provider_type=target_provider_type, 
+            model_name=target_model_name,
+            config=self._config
+        )
 
         try:
             # 3. Generate with Structured Output

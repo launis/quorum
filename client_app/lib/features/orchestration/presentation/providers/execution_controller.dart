@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:client_app/features/orchestration/data/repositories/execution_repository.dart';
 import 'package:client_app/features/orchestration/domain/models/execution_file.dart';
 import 'package:client_app/features/orchestration/domain/models/execution_input.dart';
+import 'package:client_app/features/orchestration/domain/models/guided_reflection.dart';
 import 'package:client_app/features/orchestration/domain/models/assessment_view.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/presentation/providers/execution_providers.dart';
@@ -79,6 +80,7 @@ class ExecutionController extends _$ExecutionController {
   Future<String?> startAnalysis({
     required String workflowId,
     required Map<String, dynamic> inputs,
+    GuidedReflectionDTO? guidedReflection,
     required List<String> requiredInputs,
   }) async {
     // 1. Validate Inputs
@@ -121,6 +123,7 @@ class ExecutionController extends _$ExecutionController {
     final input = ExecutionInput(
       workflowId: workflowId,
       inputs: jsonInputs,
+      guidedReflection: guidedReflection,
       files: files,
     );
 

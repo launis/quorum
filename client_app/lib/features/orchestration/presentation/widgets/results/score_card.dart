@@ -20,13 +20,17 @@ class ScoreCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (value == null) {
-      debugPrint("🔴 UI GRACEFUL DEGRADATION: Rendered ScoreCard '\$label' with null value -> fallback 'Data unavailable'");
+      debugPrint(
+        "🔴 UI GRACEFUL DEGRADATION: Rendered ScoreCard '\$label' with null value -> fallback 'Data unavailable'",
+      );
       return Card(
         elevation: 0,
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+          side: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(12.0),
@@ -37,7 +41,9 @@ class ScoreCard extends StatelessWidget {
                 label,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -47,7 +53,9 @@ class ScoreCard extends StatelessWidget {
                 Text(
                   description!,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.5,
+                    ),
                   ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
@@ -57,7 +65,9 @@ class ScoreCard extends StatelessWidget {
               Text(
                 "Tietoja ei saatavilla (Data unavailable)",
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
                   fontStyle: FontStyle.italic,
                 ),
               ),

@@ -40,7 +40,7 @@ async def test_parse_empty_input_fails_fast():
 async def test_parse_success(mock_llm_client, valid_llm_response):
     # Arrange
     raw_text = "User: Hello there\nAI: Hi! How can I help?"
-    mock_llm_client.generate_content.return_value = valid_llm_response
+    mock_llm_client.run_structured_task.return_value = valid_llm_response
 
     # Act
     result = await parse_pasted_chat(raw_text)
@@ -52,18 +52,29 @@ async def test_parse_success(mock_llm_client, valid_llm_response):
     assert result.conversation[1].text == "Hi! How can I help?"
     
     # Verify LLM call
-    mock_llm_client.generate_content.assert_called_once()
-    kwargs = mock_llm_client.generate_content.call_args.kwargs
-    assert kwargs["response_format"] == ChatHistoryDTO
+    mock_llm_client.run_structured_task.assert_called_once()
+    kwargs = mock_llm_client.run_structured_task.call_args.kwargs
+    assert kwargs["response_model"] == ChatHistoryDTO
     assert kwargs["temperature"] == 0.0
 
 @pytest.mark.asyncio
 async def test_parse_invalid_schema_fails_fast(mock_llm_client):
     # Arrange
     raw_text = "Some random text"
-    # Mocking what Litellm might return if response_format fails or it returns raw weird string
-    invalid_response = '{"conversation": [{"wrong_key": "User"}]}'
-    mock_llm_client.generate_content.return_value = invalid_response
+    
+    # Mocking a Pydantic Validation Error since run_structured_task now raises it
+    from pydantic import ValidationError
+    
+    # To properly simulate ValidationError, we inject an error side effect 
+    class MockErrorModel(ChatHistoryDTO):
+        pass
+        
+    try:
+        MockErrorModel.model_validate({"conversation": [{"wrong_key": "User"}]})
+    except ValidationError as e:
+        validation_error = e
+
+    mock_llm_client.run_structured_task.side_effect = validation_error
 
     # Act & Assert
     with pytest.raises(AppException) as exc_info:
