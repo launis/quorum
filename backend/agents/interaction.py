@@ -14,9 +14,6 @@ from backend.agents.base import BaseAgent
 from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import InteractionAnalysis, InteractionInput
 
-if TYPE_CHECKING:
-    pass
-
 logger = logging.getLogger(__name__)
 
 

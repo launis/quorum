@@ -245,8 +245,8 @@ class AuthService:
             raise AuthenticationError(
                 message="Token expired", details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED}
             ) from None
-        except jwt.PyJWTError:
-            pass
+        except jwt.PyJWTError as jwt_err:
+            logger.debug(f"PyJWT decoding failed, falling back: {jwt_err}")
 
         # 2. Mock/Dev Mode check
         if not self.use_firebase or token.startswith("mock-token:"):
@@ -556,8 +556,8 @@ class AuthService:
                 if self.use_firebase:
                     try:
                         await asyncio.to_thread(self.firebase_auth.delete_user, user.id)
-                    except Exception:
-                        pass
+                    except Exception as fb_err:
+                        logger.warning(f"Failed to cascade delete user {user.id} in Firebase: {fb_err}")
 
                 await asyncio.to_thread(self.repo.delete, user.id)
 

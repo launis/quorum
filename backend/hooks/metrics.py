@@ -238,7 +238,7 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
 
     if not text.strip():
         # Fail Fast (Part 18.1): If no text to analyze, this is likely an error in a text processing pipeline.
-        pass
+        logger.warning("[MetricsHook] No valid text found. Both history and product text are empty.")
 
     # STRICT INPUT CHECK
     if not inputs.history_text and not inputs.product_text:

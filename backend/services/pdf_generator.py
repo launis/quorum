@@ -115,12 +115,8 @@ class PdfReportService:
             matrix_map = {}
             try:
                 # 4.1 Attempt to find matrix_id from the first score card or root result
+                # (Skipped: We check the raw execution data instead)
                 matrix_id = None
-                for section in report_view.sections:
-                    if section.type == SectionType.SCORE_CARD and section.data:
-                        # Assuming the data dict (from _extract_score_data) might carry matrix_id if we added it,
-                        # OR we check the raw execution data.
-                        pass
 
                 # Better: Check raw execution data first
                 step_judge = ex_data.get("results", {}).get("step_results", {}).get("step_judge", {})
@@ -278,19 +274,15 @@ class PdfReportService:
             raise
 
         except Exception as e:
-            error_code = ErrorCodes.PDF_GENERATION_FAILED
-            error_message = "PDF generation failed"
+            logger.error(f"{ErrorCodes.PDF_GENERATION_FAILED}: PDF generation failed for {execution_id}: {e}", exc_info=True)
 
-            logger.error(f"{error_code}: {error_message} for {execution_id}: {e}", exc_info=True)
-
-            # Attempt to emit failure progress
             try:
-                await self.progress.emit_progress(execution_id, task_key, f"Error: {str(e)}", 0.0)
-            except Exception:
-                pass  # Swallow progress error to ensure the main error is raised
+                await self.progress.emit_progress(execution_id, task_key, f"Error: {e}", 0.0)
+            except Exception as prog_e:
+                logger.warning(f"Failed to emit progress error for {execution_id}: {prog_e}")
 
             raise AppException(
-                message=f"{error_message}: {str(e)}",
+                message=f"PDF generation failed: {e}",
                 status_code=500,
-                details={"error_code": error_code, "original_error": str(e)},
+                details={"error_code": ErrorCodes.PDF_GENERATION_FAILED, "original_error": str(e)},
             ) from e

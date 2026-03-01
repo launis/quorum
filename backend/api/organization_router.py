@@ -674,7 +674,6 @@ async def delete_organization_user(
             )
         except Exception as audit_err:
             logger.warning(f"Failed to log audit event 'USER_DELETED': {audit_err}")
-            pass
 
     except Exception as e:
         from backend.exceptions import AppException

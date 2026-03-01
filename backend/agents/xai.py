@@ -13,8 +13,6 @@ from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import JudgeScoreCard, XAIOutput, XAIReporterInput
 from backend.utils.math_utils import normalize_score_to_100
 
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 

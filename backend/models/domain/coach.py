@@ -14,8 +14,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.domain.judge import JudgeOutput
 
-if TYPE_CHECKING:
-    pass
 
 
 class CoachInput(BaseModel):

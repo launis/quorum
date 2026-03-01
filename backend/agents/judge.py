@@ -69,8 +69,6 @@ except Exception as e:
     # Log warning but don't crash at import time if possible, though strict means crash.
     logging.getLogger(__name__).warning(f"JudgeInput rebuild failed: {e}")
 
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 

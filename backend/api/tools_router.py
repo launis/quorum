@@ -86,8 +86,7 @@ async def extract_text(
                     try:
                         os.remove(temp_path)
                     except Exception as clean_err:
-                        logger.debug(f"Failed to cleanup temp file {temp_path}: {clean_err}")
-                        pass
+                        logger.warning(f"Failed to cleanup temp file {temp_path}: {clean_err}")
 
     if not content:
         from backend.exceptions import AppException
@@ -139,8 +138,7 @@ async def extract_concepts_from_file_or_text(
                 try:
                     os.remove(temp_path)
                 except Exception as clean_err:
-                    logger.debug(f"Failed to cleanup temp file {temp_path}: {clean_err}")
-                    pass
+                    logger.warning(f"Failed to cleanup temp file {temp_path}: {clean_err}")
 
     if not content:
         from backend.exceptions import AppException

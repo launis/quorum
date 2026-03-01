@@ -46,7 +46,7 @@ async def test_lite_llm_provider_fail_fast_parsing():
             pass
 
         # Environment mocking for vertex_location
-        with patch('os.getenv', return_value="us-central1"):
+        with patch.dict('os.environ', {"VERTEX_LOCATION": "us-central1"}, clear=False):
              # Execute generate. We expect it to raise AppException with AGENT_RESPONSE_PARSING_FAILED
              with pytest.raises(AppException) as excinfo:
                  # Remove the retry so the Exception bubbles up immediately

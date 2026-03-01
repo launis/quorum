@@ -32,7 +32,7 @@ class ProgressTracker(ABC):
             details (Dict[str, Any], optional): Initial metadata.
 
         """
-        pass
+        ...
 
     @abstractmethod
     async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None):
@@ -44,7 +44,7 @@ class ProgressTracker(ABC):
             details (Dict[str, Any], optional): Metadata updates.
 
         """
-        pass
+        ...
 
     @abstractmethod
     async def complete(self, result: dict[str, Any] | None = None):
@@ -54,7 +54,7 @@ class ProgressTracker(ABC):
             result (Dict[str, Any], optional): Final result data.
 
         """
-        pass
+        ...
 
     @abstractmethod
     async def fail(self, error: str, details: dict[str, Any] | None = None):
@@ -65,7 +65,7 @@ class ProgressTracker(ABC):
             details (Dict[str, Any], optional): Error context.
 
         """
-        pass
+        ...
 
 
 class DatabaseProgressTracker(ProgressTracker):

@@ -506,8 +506,8 @@ class GraphEngine:
                 )
                 try:
                     execution_state = execution_state.add_event(error_event)
-                except Exception:
-                    pass  # Fallback if adding event fails
+                except Exception as event_err:
+                    logger.warning(f"[GraphEngine] Failed to append error event to trace: {event_err}")
 
                 # Check if we should re-raise or wrap?
                 # If it's already an AppException, re-raising preserves the code.
@@ -527,8 +527,8 @@ class GraphEngine:
                 )
                 try:
                     execution_state = execution_state.add_event(error_event)
-                except Exception:
-                    pass
+                except Exception as event_err:
+                    logger.warning(f"[GraphEngine] Failed to append error event to trace: {event_err}")
 
                 failed_state_dump = execution_state.model_dump(mode="json")
                 safe_task_key = step.task_key if "step" in locals() else "unknown"

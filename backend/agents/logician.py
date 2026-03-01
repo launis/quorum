@@ -15,8 +15,6 @@ from backend.agents.base import BaseAgent
 from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import LogicianInput, LogicianOutput, LogicianOutputDTO
 
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 

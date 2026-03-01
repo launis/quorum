@@ -14,8 +14,6 @@ from backend.agents.base import BaseAgent
 from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import ProfilerDTO, ProfilerInput, ProfilerOutput
 
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 

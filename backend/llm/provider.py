@@ -220,8 +220,8 @@ class LiteLLMProvider(LLMProvider):
 
                 logger.info(f"[LiteLLM] Enabling Structured Output for schema: {schema_name}")
                 response_format = response_schema
-            except Exception:
-                pass
+            except Exception as schema_err:
+                logger.debug(f"[LiteLLM] Could not resolve schema name: {schema_err}")
 
         try:
             # --- LOGGING ---

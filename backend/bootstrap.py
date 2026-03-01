@@ -77,7 +77,6 @@ async def bootstrap_application():
         #     logger.warning(f"   [WARNING] Failed to fetch models on startup (will verify lazily): {e}")
     else:
         logger.info("   [INFO] Using Mock Models list.")
-        pass
 
     # 5. Warmup Engine Singleton & Dependencies
     try:

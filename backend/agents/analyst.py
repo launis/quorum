@@ -15,9 +15,6 @@ from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import AnalystDTO, AnalystInput, AnalystOutput
 from backend.models.state import WorkflowState
 
-if TYPE_CHECKING:
-    pass
-
 logger = logging.getLogger(__name__)
 
 

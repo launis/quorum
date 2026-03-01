@@ -14,9 +14,6 @@ from backend.agents.base import BaseAgent
 from backend.exceptions import AgentExecutionError, ErrorCodes, FatalInterruption
 from backend.models.domain import GuardInput, GuardOutput
 
-if TYPE_CHECKING:
-    pass
-
 logger = logging.getLogger(__name__)
 
 

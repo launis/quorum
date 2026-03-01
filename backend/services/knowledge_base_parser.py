@@ -609,10 +609,8 @@ class KnowledgeBaseParser:
                             anchor_id=anchor_id,
                         )
                     )
-                else:
                     # Continuation of previous reference? Or just ignore?
                     # For now, ignore non-bullet lines in bibliography unless strictly needed.
-                    pass
             else:
                 # Concepts Processing
                 header_match = concept_header_pattern.match(line)

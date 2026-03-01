@@ -954,8 +954,8 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             try:
                 dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
                 period = dt.strftime("%Y-%m")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Virheellinen päivämäärämuoto '{since}', palataan all-time -näkymään: {e}")
 
         mapped_scope = "organization" if scope == "org" else scope
         agg = await self.get_usage_aggregate(mapped_scope, target_id, period)

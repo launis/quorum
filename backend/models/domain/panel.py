@@ -20,9 +20,6 @@ from backend.models.domain.performativity import PerformativityAnalysis
 from backend.models.domain.profiler import ProfilerOutput
 from backend.models.domain.retrieval import ContextData
 
-if TYPE_CHECKING:
-    pass
-
 
 class PanelInput(BaseModel):
     """Strict input schema for PanelAgent."""

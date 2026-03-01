@@ -124,8 +124,8 @@ def get_schemas() -> SchemaListResponse:
                 json_schema = localize_schema(json_schema)
                 # SchemaInfo has alias="schema", so we use that key in dict construction
                 schema_data[name] = SchemaInfo(schema=json_schema)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to generate schema for '{name}' in MODEL_REGISTRY: {e}")
 
         # 2. Legacy Module Scans
         modules = [schemas, auth_schemas, setting_schemas]
@@ -147,8 +147,8 @@ def get_schemas() -> SchemaListResponse:
                                     example = extra["examples"][0]
 
                         schema_data[name] = SchemaInfo(schema=json_schema, example=example)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning(f"Failed to generate schema for legacy module '{name}': {e}")
 
         return SchemaListResponse(items=schema_data)
 

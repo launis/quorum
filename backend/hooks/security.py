@@ -11,8 +11,6 @@ from backend.models.domain.inputs import WorkflowInputs
 from backend.models.state import WorkflowState
 from backend.utils.pydantic_utils import inflate
 
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 

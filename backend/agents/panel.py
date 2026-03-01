@@ -13,8 +13,6 @@ from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain.panel import PanelInput, PanelOutput, PanelOutputDTO
 from backend.utils.json_utils import flexible_json_dump
 
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
