@@ -55,6 +55,16 @@ For a deep dive, see **[System Architecture](docs/architecture.md)**.
 
 ## 📚 Documentation Index
 
+The `docs/` directory serves as the central repository for the platform's detailed architectural, theoretical, and operational documentation.
+
+### Theoretical Foundation
+Cognitive Quorum is built upon a hybrid evaluation framework designed to address the psychometric paradox of reliability and validity in assessing AI-era cognitive skills. It employs a bipartite architecture: an analytical tier that maximizes reliability via structured rubrics anchored in established cognitive taxonomies, and a holistic tier that maximizes validity by utilizing an ensemble-based multi-agent system. By deliberately balancing strict systematic analysis with dynamic adversarial debate, this framework moves beyond mere rule-following to effectively identify context-dependent, human-directed strategic mastery and critical agency in human-AI collaborative processes.
+
+### Technical Architecture
+At its core, Cognitive Quorum operates as a "Zero-Magic" Modular Async Monolith that fundamentally decouples cognitive logic from execution mechanics. The system is compartmentalized into "The Spine," a deterministic Python-based orchestrator (FastAPI and Arq) enforcing strict data integrity via Pydantic V2 and a Fail-Fast protocol, and "The Mind," where all agent behaviors, scoring matrices, and workflows are dynamically governed as configuration data within a Single Source of Truth architecture. To ensure performance without sacrificing deep analysis, the execution layer leverages "Panel Fusion" to handle multiple specialized cognitive roles concurrently within single inference steps, while delivering real-time state updates to a robust Server-Driven UI (SDUI) Client.
+
+To combat LLM hallucinations and ensure epistemic integrity, the architecture implements a rigorous "3-Tier Grounding" mechanism. Large Language Models are actively utilized not just for text generation, but as autonomous retrieval agents: they proactively formulate search hypotheses to scour the web via search hooks, perform real-time fact-checking with deep integration into Vertex AI Grounding for precise URL citations, and cross-reference all reasoning against an internal vector database of organizational knowledge.
+
 ### Core Architecture
 *   **[Master Architecture](docs/index.md)**: The authoritative system reference.
 *   **[Management Architecture](docs/management_architecture.md)**: System Config, Tenants, and RBAC.
