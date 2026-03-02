@@ -70,11 +70,11 @@ class KnowledgeItem(BaseModel):
         return v.strip()
 
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
-class ContextData(ReasoningTrace):
-    """Output schema for the Retrieval Agent."""
+class ContextDataDTO(ReasoningTraceDTO):
+    """Data Transfer Object for ContextData (Content Only)."""
 
     precedents: str = Field(..., description="Summary text of precedents.")
     precedent_list: list[Precedent] = Field(default_factory=list, description="Structured list of precedents.")
@@ -83,6 +83,12 @@ class ContextData(ReasoningTrace):
         description="Structured list of knowledge items.",
         json_schema_extra={"reader_mode": "hidden"},
     )
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
+class ContextData(ContextDataDTO, ReasoningTrace):
+    """Output schema for the Retrieval Agent."""
+
     model_config = ConfigDict(frozen=True, strict=True)
 
     @field_validator("precedents")

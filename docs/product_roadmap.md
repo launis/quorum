@@ -73,6 +73,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Config SSOT**: Refactor `docker-compose.yml` to use `.env` interpolation.
 - [x] **Worker Environment Parity**: Worker successfully verified in Local (TinyDB), Local (Firestore), and Docker (Firestore) environments.
 - [x] **LiteLLM Usage Extraction**: Refactored `LiteLLMProvider` to correctly extract token usage from Instructor's structured responses (Fixes "0 tokens" visibility issue).
+- [ ] **Firestore Seed Parity**: Add missing collections (`executions`, `usage`, `usage_aggregates`, `audit_logs`) to `seeder.py`'s `_seed_firestore()` deletion loop so old token usage resets identically to TinyDB.
 
 ### 1.4 Cognitive Configuration Studio (Server-Driven UI)
 **Objective:** Build a Flutter UI that adapts to backend changes without app updates.
@@ -341,7 +342,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ---
 
 ## 📉 Technical Debt & Optimization (Backlog)
-- [ ] **DAG Workflow Engine (NetworkX)**: Refactor linear engine to support complex dependencies.
+- [ ] **Dynamic Agent Orchestration (Workflow Engine)**: Refactor the current linear/static execution pipeline into a dynamic system (e.g., DAG or Router/Supervisor Agent pattern) to allow dynamic agent ordering and execution paths. This is a recognized future infrastructure need to optimize Python-heavy asynchronous logic.
 - [ ] **Banned Phrases Seed Restoration**: Re-merge `banned_phrases` into `seed_data.json`.
 - [ ] **Dynamic Hook Orchestration**: Refactor architecture to allow runtime selection of Hook Implementations via UI (e.g., swapping `SearchHook` vs `VertexSearchHook`).
 - [ ] **Rate Limiting**: Implement `slowapi` on key endpoints.

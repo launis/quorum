@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 from backend.database.factory import get_repository
 from backend.database.wrapper import get_db_client
 from backend.exceptions import AgentExecutionError, AppException, ErrorCodes
-from backend.models.domain import ContextData, Precedent, RetrievalInput
+from backend.models.domain import ContextData, ContextDataDTO, Precedent, RetrievalInput
 
 # 3. Local Imports
 from backend.settings import get_settings
@@ -30,11 +30,8 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
     state_field = "step_context"
 
     INPUT_SCHEMA = RetrievalInput
+    DTO_SCHEMA = ContextDataDTO
     OUTPUT_SCHEMA = ContextData
-
-    def get_response_schema(self) -> type[BaseModel] | None:
-        """Returns the expected response schema for the Retrieval agent."""
-        return ContextData
 
     async def execute(
         self,
@@ -68,12 +65,13 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
         # 1. Access Inputs (Fail Fast)
         org_id = input_data.organization_id
 
-        # Validation moved to GuardAgent (Port of Entry)
-        # Trust that if we are running, the ID exists or Guard failed.
-        # However, for type safety, we still need the variable.
         if not org_id:
-            logger.warning(
-                f"[{self.__class__.__name__}] organization_id missing. Guard should have caught this. Trace consistency risk."
+            msg = "[RetrievalAgent] organization_id missing. Tenant isolation violated."
+            logger.error(f"{ErrorCodes.AGENT_EXECUTION_CRITICAL}: {msg}")
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                original_error=ValueError(msg),
+                agent_name="RetrievalAgent"
             )
 
         logger.info(f"[{self.__class__.__name__}] Running for Org: {org_id}...")
@@ -246,11 +244,11 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
                 if isinstance(e, AppException) and e.error_code == ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED:
                     # Known partial failure (e.g. Pinecone down). Log warning, allow degraded UI.
                     logger.warning(f"[RetrievalAgent] KB Partial Failure: {e}")
-                    kb_text_summary = "Knowledge Base retrieval unavailable."
+                    kb_text_summary = ""
                 elif isinstance(e, AppException) and e.error_code == ErrorCodes.KNOWLEDGE_NOT_INGESTED:
                     # Expected state for new orgs. Log info.
                     logger.info(f"[RetrievalAgent] KB Empty: {e}")
-                    kb_text_summary = "No Knowledge Base found."
+                    kb_text_summary = ""
                 else:
                     # CRITICAL: Unexpected error (Code bug, Network, etc).
                     # "Fail Fast" implies we should crash, BUT...
@@ -282,14 +280,28 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
                     original_error=ValueError("No precedents or knowledge base items found."),
                 )
 
-            # 6. Construct Output
-            result_data = ContextData(
+            # 6. Construct Output DTO
+            dto_data = ContextDataDTO(
                 thought_process="Retrieved relevant precedents.",
                 conclusion="Context gathering complete.",
                 confidence_score=1.0,
                 precedents=final_summary_text,
                 precedent_list=selected_precedents,
                 knowledge_items=kb_items,
+            )
+
+            context_dict = execution_context or {}
+            
+            # Promote to full Domain Model and apply metadata authority
+            result_data = self._apply_python_authority(
+                self.OUTPUT_SCHEMA(**dto_data.model_dump()),
+                organization_id=context_dict.get("organization_id") or input_data.organization_id,
+                workflow=context_dict.get("workflow") or kwargs.get("workflow"),
+                user_id=context_dict.get("user_id") or kwargs.get("user_id"),
+                execution_id=context_dict.get("execution_id") or kwargs.get("execution_id"),
+                step_id=context_dict.get("step_id") or kwargs.get("step_id"),
+                model="RetrievalEngine",
+                provider="Database"
             )
 
             # IMPORTANT: Return ContextData model. Engine handles storage.

@@ -354,12 +354,8 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
         3. INTEGRITY: Ensures critical fields are present.
         """
         # 1. Access ScoreCard
-        # response_data is JudgeDTO (Pydantic) or dict
-        score_card = None
-        if isinstance(response_data, dict):
-            score_card = response_data.get("score_card")
-        else:
-            score_card = getattr(response_data, "score_card", None)
+        # response_data is expected to be JudgeDTO or JudgeOutput
+        score_card = getattr(response_data, "score_card", None)
 
         if not score_card:
             # Let strict pydantic validation catch this later if missing,
@@ -369,11 +365,7 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
             return response_data
 
         # 2. Access Dimensions
-        dimensions = None
-        if isinstance(score_card, dict):
-            dimensions = score_card.get("dimensions", [])
-        else:
-            dimensions = getattr(score_card, "dimensions", [])
+        dimensions = getattr(score_card, "dimensions", [])
 
         # FAIL FAST: Empty Dimensions
         if not dimensions:
@@ -392,17 +384,8 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
         count = 0
 
         # We need scale info for validation.
-        # CAUTION: scale_min/max might be in response_data or score_card.
-        # If response_data is DTO, it has scale_min/max.
-        scale_min = None
-        scale_max = None
-
-        if isinstance(response_data, dict):
-            scale_min = response_data.get("scale_min")
-            scale_max = response_data.get("scale_max")
-        else:
-            scale_min = getattr(response_data, "scale_min", None)
-            scale_max = getattr(response_data, "scale_max", None)
+        scale_min = getattr(response_data, "scale_min", None)
+        scale_max = getattr(response_data, "scale_max", None)
 
         # FAIL FAST: Missing Scale (Part 18.2 No Default Values)
         if scale_min is None or scale_max is None:
@@ -416,17 +399,7 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
 
         # Validate Iterator
         for dim in dimensions:
-            score = 0.0
-            if isinstance(dim, dict):
-                score = float(dim.get("score") or 0.0)
-                if score == 0.0 and dim.get("score") is None:
-                    raise AgentExecutionError(
-                        detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
-                        original_error=ValueError(f"Dimension {dim.get('dimension_id')} missing 'score'."),
-                        agent_name="JudgeAgent",
-                    )
-            else:
-                score = dim.score
+            score = dim.score
 
             # STRICT BOUNDS CHECK
             # Part 14.1/14.2: If value is out of bounds, CRASH.
@@ -449,10 +422,5 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
             f"[JudgeAgent] Recalculating Score: LLM says {getattr(score_card, 'total_score', 'N/A')} -> Python says {calculated_average}"
         )
 
-        if isinstance(score_card, dict):
-            score_card["total_score"] = calculated_average
-            return response_data
-        else:
-            # Pydantic is immutable-ish
-            new_card = score_card.model_copy(update={"total_score": calculated_average})
-            return response_data.model_copy(update={"score_card": new_card})
+        new_card = score_card.model_copy(update={"total_score": calculated_average})
+        return response_data.model_copy(update={"score_card": new_card})

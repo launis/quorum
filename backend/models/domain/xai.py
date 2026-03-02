@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.domain.judge import JudgeOutput, JudgeScoreCard
 from backend.models.dtos.pdf_context import ReportContext
 from backend.models.dtos.report import XAIFlatReportDTO
@@ -47,8 +47,8 @@ class XAIScoreItem(BaseModel):
         return v.strip()
 
 
-class XAIOutput(ReasoningTrace):
-    """Output schema for the XAI Reporter Agent."""
+class XAIOutputDTO(ReasoningTraceDTO):
+    """Data Transfer Object for XAI Reporter Agent (Content Only)."""
 
     executive_summary: str = Field(
         ...,
@@ -95,18 +95,8 @@ class XAIOutput(ReasoningTrace):
         description="Structured comparison data.",
         json_schema_extra={"x-ui-label": "Comparison Data"},
     )
-    score_cards: list[JudgeScoreCard] = Field(
-        default_factory=list,
-        description="Aggregated scores from all judges.",
-        json_schema_extra={"x-ui-label": "Scorecards"},
-    )
-    flat_report: XAIFlatReportDTO | None = Field(
-        default=None,
-        description="Flattened, machine-readable report summary.",
-        json_schema_extra={"x-ui-label": "Flat Report"},
-    )
-
-    model_config = ConfigDict(frozen=True, strict=True)
+    
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     @field_validator(
         "executive_summary",
@@ -128,6 +118,25 @@ class XAIOutput(ReasoningTrace):
         if not (0.0 <= v <= 1.0):
             raise ValueError("Confidence score must be between 0.0 and 1.0.")
         return v
+
+
+class XAIOutput(XAIOutputDTO, ReasoningTrace):
+    """Output schema for the XAI Reporter Agent."""
+
+    score_cards: list[JudgeScoreCard] = Field(
+        default_factory=list,
+        description="Aggregated scores from all judges.",
+        json_schema_extra={"x-ui-label": "Scorecards"},
+    )
+    flat_report: XAIFlatReportDTO | None = Field(
+        default=None,
+        description="Flattened, machine-readable report summary.",
+        json_schema_extra={"x-ui-label": "Flat Report"},
+    )
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+
 
 
 class ReportResult(BaseModel):

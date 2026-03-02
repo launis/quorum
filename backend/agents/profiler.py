@@ -79,23 +79,22 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerOutput]):
             hook_metrics = input_data.profiler_metrics
             logger.info("[ProfilerAgent] Metrics found in input model.")
 
-            # FAIL FAST: Output Control relies on 'control_ratio'
+            # Strict Validation: Output Control relies on 'control_ratio'
             if "control_ratio" not in hook_metrics_dict:
                 logger.warning(
                     "[ProfilerAgent] 'control_ratio' missing in hook_metrics. Output Control may default to unsafe."
                 )
-
-            # Force clamp logic for dict
-            if "control_ratio" in hook_metrics_dict:
+            else:
                 val = hook_metrics_dict["control_ratio"]
                 if isinstance(val, (int, float)) and val > 1.0:
-                    logger.warning(f"[ProfilerAgent] Anomaly detected: control_ratio {val} > 1.0. Clamping to 1.0.")
+                    error_msg = f"[ProfilerAgent] Anomaly detected: control_ratio {val} > 1.0. Upstream calculation bug."
+                    logger.error(f"{ErrorCodes.VALIDATION_FAILED}: {error_msg}")
+                    raise AgentExecutionError(
+                        detail=ErrorCodes.VALIDATION_FAILED,
+                        original_error=ValueError(error_msg),
+                        agent_name="ProfilerAgent",
+                    )
 
-                # Update the pydantic model via model_copy
-                if hasattr(hook_metrics, "model_copy"):
-                    hook_metrics = hook_metrics.model_copy(update={"control_ratio": min(val, 1.0)})
-                else:
-                    hook_metrics["control_ratio"] = min(val, 1.0)
 
         # 2. EXECUTION (LLM)
         try:

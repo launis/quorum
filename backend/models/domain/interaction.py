@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 class InteractionInput(BaseModel):
@@ -29,8 +29,8 @@ class InteractionInput(BaseModel):
         return v.strip()
 
 
-class InteractionAnalysis(ReasoningTrace):
-    """Output schema for the Interaction Agent."""
+class InteractionAnalysisDTO(ReasoningTraceDTO):
+    """Data Transfer Object for Interaction Agent (Content Only)."""
 
     role_classification: Literal["Passenger", "Navigator", "Driver", "Architect"] = Field(
         ...,
@@ -53,3 +53,9 @@ class InteractionAnalysis(ReasoningTrace):
         json_schema_extra={"x-ui-label": "Strategy"},
     )
     model_config = ConfigDict(frozen=True)
+
+
+class InteractionAnalysis(InteractionAnalysisDTO, ReasoningTrace):
+    """Output schema for the Interaction Agent (Domain Model with Metadata)."""
+
+    model_config = ConfigDict(frozen=True, strict=True)

@@ -56,13 +56,18 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
             CoachingPlan: The generated actionable plan with bibliography.
         """
         # 1. Run Standard Execution (LLM Generation)
-        # This triggers prepare_context (loading KB)
-        result = await super().execute(input_data, execution_context, system_instruction, **kwargs)
+        # This triggers prepare_context (loading KB) and actual LLM generation
+        result = await super().execute(
+            input_data=input_data,
+            execution_context=execution_context,
+            system_instruction=system_instruction,
+            **kwargs,
+        )
 
-        # 2. Enrichment (Bibliography)
         if not hasattr(self, "knowledge_base") or self.knowledge_base is None:
-            # If prepare_context failed or didn't run? (Should be caught in super)
-            logger.warning("[CoachAgent] Knowledge Base missing during enrichment. Bibliography will be empty.")
+            # BUSINESS LOGIC: If a new organization has no knowledge base or precedents yet,
+            # it is a valid state. The Coach will provide general guidance without a bibliography.
+            logger.info("[CoachAgent] Knowledge Base intentionally empty (New Domain). Proceeding without bibliography.")
 
             # Early return (BaseAgent ensures it's CoachingPlan)
             return result
@@ -272,17 +277,8 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
         2. FAIL FAST: Ensures actionable_steps is not empty.
         """
         # 1. Access Data
-        is_dict = isinstance(response_data, dict)
-
-        actionable_steps = []
-        bibliography = []
-
-        if is_dict:
-            actionable_steps = response_data.get("actionable_steps", [])
-            bibliography = response_data.get("bibliography", [])
-        else:
-            actionable_steps = getattr(response_data, "actionable_steps", [])
-            bibliography = getattr(response_data, "bibliography", [])
+        actionable_steps = getattr(response_data, "actionable_steps", [])
+        bibliography = getattr(response_data, "bibliography", [])
 
         # 2. FAIL FAST: Empty Steps (Coach MUST advise)
         if not actionable_steps:
@@ -311,16 +307,9 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
         seen_bib = set()
 
         for item in bibliography:
-            # Hash by Title (or URL if robust)
-            title = ""
-            url = ""
-
-            if isinstance(item, dict):
-                title = item.get("title", "")
-                url = item.get("url", "")
-            else:
-                title = getattr(item, "title", "")
-                url = getattr(item, "url", "")
+            # Hash by Title
+            title = getattr(item, "title", "")
+            url = getattr(item, "url", "")
 
             # Key: Title + URL (Handle variants?)
             # Just Title is often enough for duplicate suppression
@@ -338,12 +327,7 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
                 f"[CoachAgent] Dedup Complete: Steps {len(actionable_steps)}->{len(unique_steps)}, Bib {len(bibliography)}->{len(unique_bib)}"
             )
 
-            if is_dict:
-                response_data["actionable_steps"] = unique_steps
-                response_data["bibliography"] = unique_bib
-                return response_data
-            else:
-                # Pydantic Copy
-                return response_data.model_copy(update={"actionable_steps": unique_steps, "bibliography": unique_bib})
+            # Pydantic Copy
+            return response_data.model_copy(update={"actionable_steps": unique_steps, "bibliography": unique_bib})
 
         return response_data

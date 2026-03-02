@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.enums import RiskLevel, SimulationType
 
 
@@ -159,20 +159,26 @@ class SecurityCheck(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
 
-class GuardOutput(ReasoningTrace):
-    """Output schema for the Guard Agent."""
+class GuardDTO(ReasoningTraceDTO):
+    """Data Transfer Object for Guard Agent (Content Only)."""
 
     security_check: SecurityCheck = Field(
         ...,
         description="Security scan results.",
         json_schema_extra={"x-ui-label": "Security Check"},
     )
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
+class GuardOutput(GuardDTO, ReasoningTrace):
+    """Output schema for the Guard Agent."""
+
     tainted_data: TaintedDataContent = Field(
         ...,
         description="Raw input data (tainted).",
         json_schema_extra={"x-ui-label": "Input Data"},
     )
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True)
 
 
 class SanitizationResult(BaseModel):

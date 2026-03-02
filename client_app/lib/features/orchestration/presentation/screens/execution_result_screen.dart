@@ -11,7 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/app_config.dart';
 import 'package:http/http.dart' as http;
 // Still imported just in case, or remove if unused? Keep for safety.
-import 'package:file_saver/file_saver.dart'; // Added import
+import 'package:file_picker/file_picker.dart'; // Added import for native save dialog
 import 'package:url_launcher/url_launcher.dart'; // Added import for opening local files
 import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
 import 'package:client_app/features/auth/presentation/providers/mock_auth_provider.dart';
@@ -82,21 +82,28 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
         final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
         final filename = 'AUDIT_REPORT_${widget.executionId}_$timestamp.pdf';
 
-        // Save file
-        final String path = await FileSaver.instance.saveFile(
-          name: filename,
-          bytes: _pdfBytes!,
-          mimeType: MimeType.pdf,
+        // Ask user for save location with a native Save As dialog
+        final String? path = await FilePicker.platform.saveFile(
+          dialogTitle: 'Tallenna pdf-raportti',
+          fileName: filename,
+          type: FileType.custom,
+          allowedExtensions: ['pdf'],
         );
 
+        if (path != null) {
+          // Write the bytes explicitly to the chosen path
+          final file = File(path);
+          await file.writeAsBytes(_pdfBytes!);
+
         // Cache the path
-        if (path.isNotEmpty) {
+        if (path != null && path.isNotEmpty) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('pdf_path_${widget.executionId}', path);
 
           // Open it
           await _openSavedFile(path);
         }
+        } // Close if (path != null)
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

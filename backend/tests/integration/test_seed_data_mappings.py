@@ -1,7 +1,16 @@
 import json
 import os
 
-# Import all agent modules so they register themselves
+# Import all task modules so they register themselves
+import backend.tasks.analysis  # noqa: F401
+import backend.tasks.coaching  # noqa: F401
+import backend.tasks.critique  # noqa: F401
+import backend.tasks.interaction  # noqa: F401
+import backend.tasks.judgment  # noqa: F401
+import backend.tasks.panel  # noqa: F401
+import backend.tasks.reporting  # noqa: F401
+import backend.tasks.retrieval  # noqa: F401
+import backend.tasks.security  # noqa: F401
 from backend.core.registry import TaskRegistry
 
 SEED_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "seed", "seed_data.json")

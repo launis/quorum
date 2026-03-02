@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes, FatalInterruption
-from backend.models.domain import GuardInput, GuardOutput
+from backend.models.domain import GuardDTO, GuardInput, GuardOutput
 
 logger = logging.getLogger(__name__)
 
@@ -33,16 +33,8 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
     PRODUCES_KEYS = ["step_guard"]
 
     INPUT_SCHEMA = GuardInput
+    DTO_SCHEMA = GuardDTO
     OUTPUT_SCHEMA = GuardOutput
-
-    def get_response_schema(self) -> type[BaseModel] | None:
-        """Returns the GuardOutput schema definition.
-
-        Returns:
-            Type[GuardOutput]: The schema class.
-
-        """
-        return GuardOutput
 
     async def execute(
         self,
@@ -84,8 +76,24 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
             input_data=input_data, execution_context=execution_context, system_instruction=system_instruction, **kwargs
         )
 
+        from backend.models.domain.guard import TaintedDataContent
+
+        tainted_data = TaintedDataContent(
+            chat_history=input_data.history_text,
+            product_text=input_data.product_text,
+            reflection_text=input_data.reflection_text or "Ei erillistä reflektiota",
+            safe_data="Unsanitized raw input"
+        )
+
         if isinstance(result_obj, GuardOutput):
             return result_obj
+        elif isinstance(result_obj, self.DTO_SCHEMA):
+            # Promote DTO -> Domain Model
+            promoted = self.OUTPUT_SCHEMA(
+                **result_obj.model_dump(),
+                tainted_data=tainted_data
+            )
+            return self._apply_python_authority(promoted)
         else:
             # Should be unreachable due to BaseAgent strictness
             raise AgentExecutionError(
@@ -219,10 +227,8 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
 
             return data
 
-        elif isinstance(data, dict):
-            # Fallback for dict (should be rare in strict mode but possible during partial inflation)
-            return data
-
+        # Default fallback should not be reached due to strict mode
+        logger.warning(f"[GuardAgent] ensure_tainted_data received unexpected type {type(data)}. Returning as-is.")
         return data
 
     def sanitize_input(self, input_data: GuardInput) -> None:

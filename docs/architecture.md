@@ -8,6 +8,7 @@ Cognitive Quorum V5.1 is a deterministic, highly verifiable AI orchestration pla
 ## 0. Key Architectural Upgrades (Phase 9 Hardening)
 * **The Strict DTO Pattern (Type Safety)**: Pydantic V2 models (`ConfigDict(strict=True, extra="ignore")`) are the absolute source of truth for all data entering or leaving the system. No loose dictionaries are passed internally.
 * **Fail-Fast Protocol (RFC 7807)**: The system never uses `try-except pass` to silence errors. If an entity is missing or relations are violated, the Service layer immediately raises an `AppException`, which the global exception handler formats as RFC 7807 problem details.
+* **Database-to-Agent Schema Synchronization**: The `inputs` bindings configured in the SSOT JSON database are statically validated against Python Pydantic Models via CI/CD test gates. This guarantees runtime engine hydration will never encounter drift-induced structural mismatch errors.
 * **BFF Transformers (SDUI)**: The frontend is strictly a rendering layer. Complex domain models are mapped into exact View Models (`ToulminDisplay`, `DriverProfileDisplay`) via dedicated Transformers (e.g., `LogicDomainTransformer`, `ProfilingTransformer`).
 * **I18N No-String Mandate**: No translated strings are ever passed from the backend, except native LLM free-text. All UI texts use backend-provided Enums/Keys, mapped to ICU-formatted strings in Flutter `.arb` files.
 

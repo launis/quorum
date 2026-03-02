@@ -5,23 +5,35 @@ from pydantic import BaseModel
 
 from backend.core.registry import TaskRegistry
 from backend.exceptions import AppException, ErrorCodes, status
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
+class MockDTO(ReasoningTraceDTO):
+    thought_process: str = "mock thought process"
+    conclusion: str = "mock conclusion"
+    confidence_score: float = 0.99
+    result: str = "success"
+
+class MockOutput(ReasoningTrace, MockDTO):
+    pass
 
 # Mock BaseAgent for testing
 class MockAgent:
+    DTO_SCHEMA = MockDTO
+    OUTPUT_SCHEMA = MockOutput
+
     def __init__(self):
         pass
 
     async def execute(self, **kwargs):
-        return {"result": "success"}
-
+        return {
+            "thought_process": "mock thought process",
+            "conclusion": "mock conclusion",
+            "confidence_score": 0.99,
+            "result": "success"
+        }
 
 class MockInput(BaseModel):
     data: str
-
-
-class MockOutput(BaseModel):
-    result: str
 
 
 def test_register_agent_instantiation_failure():

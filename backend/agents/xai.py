@@ -10,7 +10,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import XAIOutput, XAIReporterInput
+from backend.models.domain import XAIOutput, XAIOutputDTO, XAIReporterInput
 from backend.utils.math_utils import normalize_score_to_100
 
 logger = logging.getLogger(__name__)
@@ -26,18 +26,8 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
     REQUIRES_KEYS = []  # Dynamic validation in execute() supports step_judge OR step_judge_cognitive
 
     INPUT_SCHEMA = XAIReporterInput
+    DTO_SCHEMA = XAIOutputDTO
     OUTPUT_SCHEMA = XAIOutput
-
-    def get_response_schema(self) -> type[BaseModel] | None:
-        """Returns the expected output schema.
-
-        Use the Domain Model directly to ensure strict validation.
-        The dynamic generation was causing issues with Optional fields and Type mismatches.
-
-        Returns:
-            type[BaseModel] | None: XAIOutput schema.
-        """
-        return XAIOutput
 
     async def prepare_context(
         self, input_data: XAIReporterInput, execution_context: dict[str, Any] | None, **kwargs: Any
@@ -225,7 +215,23 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
             flattened_scores=flattened_scores,
         )
 
-        # 4. Inject into Result (XAIOutput)
-        result = result.model_copy(update={"score_cards": score_cards, "flat_report": flat_report})
-
-        return result
+        # 4. Promote DTO to Domain Model and Inject Python fields
+        # Fallback if already an XAIOutput (e.g. from tests avoiding LLM)
+        if isinstance(result, self.OUTPUT_SCHEMA):
+            # This must be checked first because OUTPUT_SCHEMA inherits from DTO_SCHEMA
+            return result.model_copy(update={"score_cards": score_cards, "flat_report": flat_report})
+            
+        if isinstance(result, self.DTO_SCHEMA):
+            output = self.OUTPUT_SCHEMA(
+                **result.model_dump(),
+                score_cards=score_cards,
+                flat_report=flat_report
+            )
+            # Re-apply authority to ensure checksums and metadata are updated properly
+            return self._apply_python_authority(output)
+            
+        raise AgentExecutionError(
+            detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+            original_error=TypeError(f"Expected DTO but got {type(result)}"),
+            agent_name="XAIReporterAgent"
+        )

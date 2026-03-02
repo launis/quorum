@@ -6,26 +6,43 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 from backend.core.registry import TaskRegistry
 from backend.models.domain.agent import ModelConfig
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
+class MockDTO(ReasoningTraceDTO):
+    model_config = {"extra": "allow"}
+    thought_process: str = "mock thought process"
+    conclusion: str = "mock conclusion"
+    confidence_score: float = 0.99
+    result: str = "success"
 
 # Add mock output model
-class MockOutput(BaseModel):
-    model_config = {"extra": "allow"}
-    result: str = "success"
+class MockOutput(ReasoningTrace, MockDTO):
+    pass
 
 
 # Mock Agent for Testing
 class MockGuardAgent(BaseAgent):
     """A mock agent that mirrors the real GuardAgent but reports its config."""
 
+    DTO_SCHEMA = MockDTO
+    OUTPUT_SCHEMA = MockOutput
+
     async def execute(
         self, input_data: dict, execution_context: dict | None = None, system_instruction: str | None = None, **kwargs
     ) -> dict:
+        import uuid
         # Return the kwargs so we can inspect what was passed
         combined_kwargs = kwargs.copy()
         combined_kwargs["system_instruction"] = system_instruction
         combined_kwargs["input_data"] = input_data
-        return {"received_kwargs": combined_kwargs, "status": "success"}
+        return {
+            "thought_process": "mock thought process",
+            "conclusion": "mock conclusion",
+            "confidence_score": 0.99,
+            "received_kwargs": combined_kwargs,
+            "status": "success",
+            "result": "success"
+        }
 
 
 @pytest.mark.asyncio

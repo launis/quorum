@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import InteractionAnalysis, InteractionInput
+from backend.models.domain import InteractionAnalysis, InteractionAnalysisDTO, InteractionInput
 
 logger = logging.getLogger(__name__)
 
@@ -30,16 +30,8 @@ class InteractionAnalystAgent(BaseAgent[InteractionInput, InteractionAnalysis]):
     REQUIRES_KEYS = ["history_text"]
 
     INPUT_SCHEMA = InteractionInput
+    DTO_SCHEMA = InteractionAnalysisDTO
     OUTPUT_SCHEMA = InteractionAnalysis
-
-    def get_response_schema(self) -> type[BaseModel] | None:
-        """Returns the expected output schema.
-
-        Returns:
-            Optional[Type[BaseModel]]: InteractionAnalysis schema.
-
-        """
-        return InteractionAnalysis
 
     async def execute(
         self,

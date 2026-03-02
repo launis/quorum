@@ -114,6 +114,14 @@ class PdfReportGenerator {
         return _buildDriverProfile(section.data);
       case 'ARCHIVIST_CHECK':
         return _buildArchivistCheck(section.data);
+      case 'STRESS_TEST':
+        return _buildStressTest(section.data);
+      case 'CAUSAL_ANALYSIS':
+      case 'FACT_CHECK':
+        return _buildFindingsAnalysis(section.data);
+      case 'PROFILER':
+      case 'AGENCY_ANALYSIS':
+        return _buildClassificationAnalysis(section.data);
       // Fallback for others
       default:
         return _buildGenericMap(section.data);
@@ -267,13 +275,102 @@ class PdfReportGenerator {
     );
   }
 
+  pw.Widget _buildStressTest(Map<String, dynamic> data) {
+    final fidelity = data['fidelity_audit'] as Map<String, dynamic>? ?? {};
+    final findings = (data['findings'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        if (fidelity.isNotEmpty) ...[
+          pw.Text("Fidelity Audit:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text("Score: ${fidelity['fidelity_score_display'] ?? '0.0/3.0'}", style: const pw.TextStyle(fontSize: 10)),
+          pw.Text("Post-Hoc Rationalization: ${fidelity['post_hoc_rationalization_suspected'] == true ? 'Yes' : 'No'}", style: const pw.TextStyle(fontSize: 10)),
+          pw.Text("Reasoning: ${fidelity['reasoning'] ?? '-'}", style: const pw.TextStyle(fontSize: 10)),
+          pw.SizedBox(height: 12),
+        ],
+        if (findings.isNotEmpty) ...[
+          pw.Text("Findings:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          ...findings.map((f) => pw.Container(
+            margin: const pw.EdgeInsets.only(bottom: 8),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text("Kysymys: ${f['question'] ?? ''}", style: const pw.TextStyle(fontSize: 10)),
+                pw.Text("Näyttö validi: ${f['is_held'] == true ? 'Kyllä' : 'Ei'}", style: const pw.TextStyle(fontSize: 10)),
+                pw.Text("Havainto: ${f['observation'] ?? ''}", style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+              ],
+            )
+          )).toList(),
+        ]
+      ]
+    );
+  }
+
+  pw.Widget _buildFindingsAnalysis(Map<String, dynamic> data) {
+    final verdict = data['verdict'] ?? 'Keskeneräinen';
+    final findings = (data['findings'] ?? data['loydokset'] as List?)?.cast<dynamic>() ?? [];
+    
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text("Tulos: $verdict", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 8),
+        if (findings.isNotEmpty) ...[
+          pw.Text("Havainnot:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          ...findings.map((f) {
+            if (f is String) {
+               return pw.Text("- $f", style: const pw.TextStyle(fontSize: 10));
+            } else if (f is Map) {
+               return pw.Container(
+                 margin: const pw.EdgeInsets.only(bottom: 4),
+                 child: pw.Column(
+                   crossAxisAlignment: pw.CrossAxisAlignment.start,
+                   children: [
+                     if (f['question'] != null) pw.Text("Kysymys: ${f['question']}", style: const pw.TextStyle(fontSize: 10)),
+                     if (f['observation'] != null) pw.Text("Havainto: ${f['observation']}", style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                   ]
+                 )
+               );
+            }
+            return pw.Container();
+          }).toList(),
+        ]
+      ]
+    );
+  }
+
+  pw.Widget _buildClassificationAnalysis(Map<String, dynamic> data) {
+    final classification = data['classification_verdict'] ?? data['verdict'] ?? 'N/A';
+    final insights = (data['key_insights'] as List?)?.cast<dynamic>() ?? [];
+    
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text("Luokittelu: $classification", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+        pw.SizedBox(height: 8),
+        if (insights.isNotEmpty) ...[
+          pw.Text("Keskeiset huomiot:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          ...insights.map((i) {
+             if (i is String) {
+                return pw.Text("- $i", style: const pw.TextStyle(fontSize: 10));
+             } else if (i is Map) {
+                return pw.Text("- ${i['label'] ?? ''}: ${i['content'] ?? ''}", style: const pw.TextStyle(fontSize: 10));
+             }
+             return pw.Container();
+          }).toList(),
+        ]
+      ]
+    );
+  }
+
   pw.Widget _buildGenericMap(Map<String, dynamic> data) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children:
           data.entries.map((e) {
-            // Skip complex nested objects in generic view for PDF safety
-            if (e.value is Map || e.value is List) return pw.Container();
+            // Skip complex nested objects in generic view for PDF safety, and entirely skip raw json payload dumps
+            if (e.value is Map || e.value is List || e.key == 'raw_response' || e.key == 'system_logs') return pw.Container();
             return pw.Text(
               "${e.key}: ${e.value}",
               style: const pw.TextStyle(fontSize: 10),

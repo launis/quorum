@@ -146,38 +146,22 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
             Any: Healed data ready for validation.
         """
         # 1. Access hypotheses
-        hypotheses = []
-        is_dict = isinstance(response_data, dict)
-
-        if is_dict:
-            hypotheses = response_data.get("hypotheses", [])
-        else:
-            # Strict Pydantic Access
-            hypotheses = response_data.hypotheses or []
+        # Strict Pydantic Access
+        hypotheses = getattr(response_data, "hypotheses", [])
 
         if not hypotheses:
             return response_data
 
         logger.info(f"[AnalystAgent] Enforcing Hypothesis Order & IDs (Count: {len(hypotheses)})")
 
-        # --- SORTING AUTHORITY (Deterministic) ---
         # 1. Sort by Evidence Found (True first)
         # 2. Sort by Original ID (Stable tie-breaker)
         def sort_key(h):
-            # Access fields safely whether dict or object
-            evidence = False
-            orig_id = ""
-            if isinstance(h, dict):
-                evidence = h.get("evidence_found", False)
-                orig_id = h.get("id", "")
-            else:
-                evidence = getattr(h, "evidence_found", False)
-                orig_id = getattr(h, "id", "")
+            # Access fields safely
+            evidence = getattr(h, "evidence_found", False)
+            orig_id = getattr(h, "id", "")
 
             # Tuple: (Has Evidence DESC, Original ID ASC)
-            # False < True, so reverse boolean? Or use -1 for True?
-            # evidence is boolean. True=1, False=0.
-            # We want True first. So sort by (not evidence, orig_id)
             return (not evidence, orig_id)
 
         # Sort the list
@@ -190,29 +174,16 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
             new_id = f"HYP-{idx}"  # Match the regex ^HYP-\d+$ and integer exact match
 
             # Access ID
-            current_id = None
-            if isinstance(hyp, dict):
-                current_id = hyp.get("id")
-            else:
-                current_id = hyp.id
+            current_id = getattr(hyp, "id", None)
 
             if current_id != new_id:
-                # Update ID
-                if isinstance(hyp, dict):
-                    new_hyp = hyp.copy()
-                    new_hyp["id"] = new_id
-                    updated_hypotheses.append(new_hyp)
-                else:
-                    new_hyp = hyp.model_copy(update={"id": new_id})
-                    updated_hypotheses.append(new_hyp)
+                # Update ID using Pydantic copy
+                new_hyp = hyp.model_copy(update={"id": new_id})
+                updated_hypotheses.append(new_hyp)
             else:
                 updated_hypotheses.append(hyp)
 
         if changes_made:
-            if is_dict:
-                response_data["hypotheses"] = updated_hypotheses
-                return response_data
-            else:
-                return response_data.model_copy(update={"hypotheses": updated_hypotheses})
+            return response_data.model_copy(update={"hypotheses": updated_hypotheses})
 
         return response_data

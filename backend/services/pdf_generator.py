@@ -211,34 +211,10 @@ class PdfReportService:
                         )
                         sec_data["logic_chart_image"] = chart_b64
 
-                elif section.type == SectionType.FACT_CHECK:
-                    # 1. Facts
-                    raw_facts = sec_data.get("fact_checks", [])
-                    processed_facts = []
-                    for item in raw_facts:
-                        processed_facts.append(
-                            {
-                                "claim": item.get("claim"),
-                                "verification_result": item.get("verification_result"),
-                                "source_or_reasoning": item.get("source_or_reasoning"),
-                                "is_verified": item.get("is_verified"),
-                            }
-                        )
-                    sec_data["processed_facts"] = processed_facts
-
-                    # 2. Ethics
-                    raw_ethics = sec_data.get("ethical_issues", [])
-                    processed_ethics = []
-                    for item in raw_ethics:
-                        processed_ethics.append(
-                            {
-                                "issue_type": item.get("issue_type"),
-                                "severity": item.get("severity"),
-                                "description": item.get("description"),
-                                "is_critical": item.get("is_critical"),
-                            }
-                        )
-                    sec_data["processed_ethics"] = processed_ethics
+                if hasattr(sec_data, "model_dump"):
+                    sec_data = sec_data.model_dump(mode="json")
+                elif hasattr(sec_data, "dict"):
+                    sec_data = sec_data.dict()
 
                 new_sections.append(section.model_copy(update={"data": sec_data}))
 
@@ -248,7 +224,7 @@ class PdfReportService:
             await self.progress.emit_progress(execution_id, task_key, "Preparing report layout...", 0.20)
 
             template = self.env.get_template("dashboard_pdf.html")
-            html_content = template.render(view=report_view)
+            html_content = template.render(view=report_view.model_dump(mode="json"))
 
             # 6. Generate PDF
             # WeasyPrint is CPU intensive and blocking.

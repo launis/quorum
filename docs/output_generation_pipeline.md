@@ -20,7 +20,8 @@ This document details the complete lifecycle of data execution in the Cognitive 
 * **Function**:
     1. **Hydration**: Loads workflows from the Service layer (SSOT: `seed_data.json`).
     2. **Execution**: Runs `BaseAgent` implementations.
-    3. **Standardization**: Pydantic V2 strictly enforces schemas (`extra="ignore"`). If an LLM hallucinates an unexpected field, it is silently dropped or causes a Fail-Fast crash if a required field is missing.
+    3. **Standardization & Python Authority**: Agents accept raw LLM outputs (DTOs) and promote them to strictly typed **Domain Models** by injecting metadata (checksums, usage, etc.) before handing them back to the Engine.
+    4. **Persistence Boundary**: The engine strictly persists these **Domain Models** into the database, never the raw LLM DTOs. If an LLM hallucinates an unexpected field in the DTO, it is silently dropped (`extra="ignore"`). If a required field is missing, it causes a Fail-Fast crash.
 
 ---
 

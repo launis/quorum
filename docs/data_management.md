@@ -13,6 +13,7 @@ The engine is **data-driven**: logic definitions are stored in JSON (the "Mind")
 The system treats `backend/seed/seed_data.json` as the absolute **Single Source of Truth** for all configuration, organizations, users, and cognitive templates.
 
 *   **Zero-Fallback Mandate**: Hardcoded defaults in code are strictly forbidden. If data is missing from the database, the system must **raise an error** rather than guessing.
+*   **Static Schema Synchronization**: The `inputs` definitions in the Seed JSON are continuously verified against the strict Pydantic Agent Domains via `test_seed_schema_alignment.py` to prevent configuration drift and ensure flawless hydration by the `GraphEngine`.
 *   **Directionality**:
     *   **Source**: `seed_data.json`
     *   **Target**: Runtime Databases (Mock, Local, Cloud).
@@ -100,21 +101,21 @@ The system utilizes **Pydantic V2** for all internal state management.
     *   **Reasoning (The Healing Pattern)**: LLMs often return JSON with minor structural defects (e.g., missing IDs). By keeping data as a `dict` until the late validation phase, the agent's `post_process` hook can sanitize and fix the data before strict Pydantic enforcement kicks in.
     *   **Testing**: This simplifies testing by allowing developers to pass simple dicts instead of constructing complex nested objects.
 
-### 3.1. The Domain-DTO Dual Architecture
+### 3.1. The Domain-DTO Dual Architecture (Phase 9 Hardening)
 To strictly separate "Content" from "System Authority", the system employs a **Domain(DTO)** inheritance pattern.
 
-1.  **DTOs (`backend/models/dtos/`)**:
-    *   **Role**: The **Content Contract**.
-    *   **Definition**: Represents data in transit (LLM Input/Output, API Requests).
-    *   **Constraint**: MUST NOT contain system-managed fields (e.g., `id`, `timestamp`, `cost`, `metadata`). This prevents the LLM from hallucinating authoritative data.
-    *   **Example**: `AnalystDTO` contains only `hypotheses` and `rag_evidence`.
+1.  **DTOs (Data Transfer Objects)**:
+    *   **Role**: The **Content Contract** (Read-Only from LLM perspective).
+    *   **Definition**: Represents data in transit (LLM Input/Output). Pydantic uses `extra="ignore"` to drop LLM hallucinations.
+    *   **Constraint**: MUST NOT contain system-managed fields (e.g., `metadata`, `execution_id`, `token_usage`, `tainted_data`). This prevents the LLM from hallucinating authoritative data or bypassing security hooks.
+    *   **Example**: `GuardDTO` contains only the LLM's `security_check` analysis.
 
-2.  **Domain Models (`backend/models/domain/`)**:
+2.  **Domain Models (The SSOT)**:
     *   **Role**: The **System Authority** (Single Source of Truth).
-    *   **Definition**: Represents the full, persisted state of an entity.
-    *   **Inheritance**: `class AnalystOutput(AnalystDTO, ReasoningTrace): ...`
-    *   **Mechanism**: The Backend accepts a DTO (Content), validates it, generating necessary Metadata (Authority), and fuses them into a Domain Object.
-    *   **Usage**: The Pipeline *only* reads Domain Models. DTOs are never persisted directly as state.
+    *   **Definition**: Represents the full, persisted, strictly-typed state of an entity.
+    *   **Inheritance**: `class GuardOutput(GuardDTO, ReasoningTrace): ...`
+    *   **Mechanism (Python Authority)**: The `BaseAgent` accepts a DTO from the LLM. It then runs `_apply_python_authority()`, which acts as a strict gateway to inject system metadata (timestamp, model, provider, checksum) and deterministic Python logic (e.g., aggregating `score_cards` or adding raw `tainted_data`) before promoting it to a Domain Model.
+    *   **Usage**: The Pipeline *only* persists and reads Domain Models. DTOs are **never** persisted to the DB or passed to async Event Hooks.
 
 ### 3.2. Uniform Input Processing (The Y-Funnel)
 To strictly adhere to the "No-ORM" Pydantic Architecture, the backend API **does not accept `multipart/form-data`**. All data, including file uploads, must be transmitted as Strict JSON.

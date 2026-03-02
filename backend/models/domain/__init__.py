@@ -49,13 +49,14 @@ from backend.models.domain.falsifier import (
 
 # 2. Agent Modules
 from backend.models.domain.guard import (
+    GuardDTO,
     GuardInput,
     GuardOutput,
     SanitizationResult,
     SecurityCheck,
     TaintedDataContent,
 )
-from backend.models.domain.interaction import InteractionAnalysis, InteractionInput
+from backend.models.domain.interaction import InteractionAnalysis, InteractionAnalysisDTO, InteractionInput
 from backend.models.domain.judge import (
     DimensionResultItem,
     JudgeDTO,
@@ -93,10 +94,11 @@ from backend.models.domain.performativity import (
     PreMortemAnalysis,
 )
 from backend.models.domain.profiler import ProfilerDTO, ProfilerInput, ProfilerOutput, TextMetrics
-from backend.models.domain.retrieval import ContextData, Precedent, RetrievalInput
+from backend.models.domain.retrieval import ContextData, ContextDataDTO, Precedent, RetrievalInput
 from backend.models.domain.xai import (
     ReportResult,
     XAIOutput,
+    XAIOutputDTO,
     XAIReporterInput,
     XAIScoreItem,
 )
@@ -192,6 +194,7 @@ __all__ = [
     "FactCheckRFI",
     "EthicalObservation",
     "InteractionAnalysis",
+    "InteractionAnalysisDTO",
     "ArchivistInput",
     "ArchivistOutput",
     "ArchivistOutputDTO",
