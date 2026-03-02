@@ -8,16 +8,25 @@ The engine is **data-driven**: logic definitions are stored in JSON (the "Mind")
 
 ---
 
-## 1. The Blueprint Authority Pattern
+## 1. The Blueprint Authority Pattern & Data as Logic
 
-The system treats `backend/seed/seed_data.json` as the absolute **Single Source of Truth** for all configuration, organizations, users, and cognitive templates.
+The engine is fundamentally **data-driven**. In a traditional application, business logic is written in code (Python/Dart). In Cognitive Quorum, the core "reasoning logic" is abstracted into data.
+
+### Data as Software Logic (LLM Definitions)
+The system treats the database not just as a storage medium for user records, but as the actual **source code for the AI's behavior**. 
+* **LLM Definitions are Data**: The prompts, instructions, behavioral rubrics (Matrices), and rules that constrain the LLM's reasoning are stored entirely as database records (e.g., in the `components` collection).
+* **Dynamic Programming**: Changing a database record instantly alters how the system "thinks" and evaluates inputs, without needing to modify or redeploy any Python code. The database holds the AI's "Mind".
+* **Single Source of Truth (SSOT)**: `backend/seed/seed_data.json` acts as the master blueprint for this logic.
+
+### Database Data Flow
+1. **Seeding (Blueprint to Database)**: `seed_data.json` is ingested into the Runtime Database (TinyDB or Firestore). This step "compiles" the JSON blueprint into active database records.
+2. **Execution Hydration (Database to Engine)**: When a workflow execution starts, the `GraphEngine` queries the database to fetch the necessary components (Prompts, Matrices, Settings).
+3. **Prompt Assembly (Data to Output)**: The `PromptBuilder` merges this database-sourced logic with the user's input data to form the final LLM prompt.
+4. **State Persistence (Engine to Database)**: As the agents process the data, the intermediate and final results (strictly validated via Pydantic) are written back to the database as event traces within the `WorkflowState`.
+5. **Reverse Sync (Database to Blueprint)**: Modified logic (e.g., tweaked prompts via a future admin UI) residing in the runtime database can be exported back to `seed_data.json` using migration scripts (`migrate_to_seed.py`).
 
 *   **Zero-Fallback Mandate**: Hardcoded defaults in code are strictly forbidden. If data is missing from the database, the system must **raise an error** rather than guessing.
 *   **Static Schema Synchronization**: The `inputs` definitions in the Seed JSON are continuously verified against the strict Pydantic Agent Domains via `test_seed_schema_alignment.py` to prevent configuration drift and ensure flawless hydration by the `GraphEngine`.
-*   **Directionality**:
-    *   **Source**: `seed_data.json`
-    *   **Target**: Runtime Databases (Mock, Local, Cloud).
-    *   **Reverse Sync**: Use `scripts/migrate_to_seed.py` to promote high-fidelity runtime data (`db.json`) back to the blueprint structure properly. This script handles the complex transformation from flat lists to the seeded `components` structure.
 
 ---
 

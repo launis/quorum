@@ -18,10 +18,11 @@ The V5.1 iteration enforces a **Unidirectional Data Flow** where the "DNA" of th
 ### B. The "Mind" (Cognitive Layer)
 * **Role**: Reasoning Strategy and Criteria.
 * **Implementation**: `seed_data.json` -> Database -> Configuration Service.
-* **Components**:
-  * **System Config**: Defines Agent Strategies (e.g., `PanelAgent` -> `deep`).
-  * **Matrices (BARS)**: Behaviorally Anchored Rating Scales ("What is a score of 4 vs 1?").
-  * **Prompts**: Directives ("You are a ruthless prosecutor.").
+* **The Role of the Database**: The database acts as the single source of truth (SSOT) for the system's cognitive configuration. Hardcoded Python logic is strictly avoided for cognitive parameters; instead, the Engine reads these values from the database at the start of each execution. This allows Administrators to tune the system's behavior (e.g., scoring strictness, penalized phrases) via the UI without requiring code deployments.
+* **Components in DB**:
+  * **System Config**: Defines Global Evaluation Penalties (e.g., `scoring_security_penalty`, `scoring_passivity_multiplier`) and Agent Strategies (e.g., `PanelAgent` -> `deep`).
+  * **Matrices (BARS)**: Behaviorally Anchored Rating Scales ("What is a score of 4 vs 1?"), defining the exact criteria the JudgeAgent must use.
+  * **Prompts**: Directives ("You are a ruthless prosecutor."), injected dynamically during prompt building.
 
 ### C. Strict DTO Pattern (The "Air Gap")
 To prevent LLM hallucinations of system metadata (timestamps, IDs) and guarantee relational integrity, we use a strict DTO Pattern combined with Prefixed NewTypes:
@@ -120,9 +121,9 @@ All steps operate on the Hybrid State Architecture, reading inputs from the Blac
 Prompt engineering is an architectural discipline in V5.1. The `PromptBuilder` (`backend/services/prompt_builder.py`) dynamically assembles prompts from database components, schemas, and runtime state.
 
 ### The "Sandwich" Composition Model
-1. **Directives Layer**: System Mandates (e.g., "Mandaatti 1: Hidas ajattelu") and Agent Identity.
+1. **Directives Layer**: System Mandates (e.g., "Mandaatti 1: Hidas ajattelu") and Agent Identity, fetched directly from the database's component library via slug names mapping to specific DB records.
 2. **Context Layer**: Injected State (`{{HISTORY_TEXT}}`), Upstream Evidence (`{{PREVIOUS_STEP_OUTPUTS}}`), and External Data (`{{GOOGLE_SEARCH_RESULTS}}`).
-3. **Cognitive Layer**: Evaluation Matrices transformed by `MatrixFormatter` into formatted Markdown rubrics, plus task instructions.
+3. **Cognitive Layer**: Evaluation Matrices retrieved from the DB, transformed by `MatrixFormatter` into formatted Markdown rubrics, plus task instructions.
 4. **Output Layer**: Strict JSON Schema (`{{SCHEMA_EXAMPLE}}`) automatically generated from the agent's DTO models.
 
 ### Strict Type-Driven Prompting
