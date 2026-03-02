@@ -144,6 +144,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Dashboard UI**: Grid view of System Workflows.
 - [x] **Report Viewer**: Render final HTML/Markdown results.
 - [x] **PDF Download (One Truth)**: Implemented using `FileSaver`.
+- [ ] **My Tasks View (Omat tehtävät)**: UI for individual executors to track and manage their assigned tasks.
 
 ### 2.4 Workflow Data Layer (Foundation)
 - [x] **Models**: Dart models match Pydantic schemas.
@@ -167,6 +168,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Advanced User Management**: Access granting/revoking, Role Matrix.
 - [x] **Organization Governance**: CRUD for Organizations, RBAC enforcement.
 - [ ] **Live Operations Dashboard**: Concurrent execution monitoring.
+- [ ] **Task Management (Tehtävien hallinta)**: Admin-level CRUD interface for creating, assigning, and tracking tasks across the organization.
 
 ### 2.8 Knowledge & Retrieval (The Second Brain) (✅ Completed)
 - [x] **Knowledge Base Service**: Async ingestion pipeline (`text-embedding-3-small` ready).
