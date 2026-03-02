@@ -319,6 +319,7 @@ class WorkflowConfigCreate(BaseModel):
     sequence: Annotated[list[str], Field(description="List of Step IDs")] = []
     description: Annotated[str | None, Field(description="Description")] = None
     default_model_mapping: Annotated[dict[str, str] | None, Field(description="Step-Model map")] = {}
+    ui_schema: Annotated[dict[str, Any] | None, Field(description="Dynamic UI Schema")] = {}
 
 
 class WorkflowConfigUpdate(BaseModel):
@@ -330,6 +331,7 @@ class WorkflowConfigUpdate(BaseModel):
     default_model_mapping: Annotated[dict[str, str] | None, Field(description="Map of StepID -> ModelStrategyKey.")] = (
         None
     )
+    ui_schema: Annotated[dict[str, Any] | None, Field(description="Dynamic UI Schema.")] = None
 
 
 class ConfigWorkflowDeleteResponse(BaseModel):

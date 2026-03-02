@@ -128,7 +128,7 @@ class TaskRegistry:
                         model_name=model_config.model_name,
                         provider=model_config.provider,
                         usage_service=usage_service,
-                        config=model_config
+                        config=model_config,
                     )
             except Exception as e:
                 logger.error(f"Failed to configure agent {agent_cls.__name__}: {e}")
@@ -211,8 +211,9 @@ class TaskRegistry:
 
                             if replaced:
                                 diff = len(system_instruction) - old_len
-                                logger.info(f"[DEBUG-INJECTION] Replaced {key}: {old_len} -> {len(system_instruction)} chars")
-
+                                logger.info(
+                                    f"[DEBUG-INJECTION] Replaced {key}: {old_len} -> {len(system_instruction)} chars"
+                                )
 
             # 4. Execute using New Signature (Strict Model Pass-Through)
             # Do NOT downcast to dict unless it's GenericInput
@@ -249,6 +250,10 @@ class TaskRegistry:
             # CALL EXECUTE
             # logic to handle missing kwargs if strict signature
             # But BaseAgent allows **kwargs.
+
+            # Prevent duplicate repository arg if injected into execution_kwargs
+            exec_kwargs.pop("repository", None)
+
             result_dict = await agent.execute(
                 input_data=final_input,
                 execution_context=execution_config,

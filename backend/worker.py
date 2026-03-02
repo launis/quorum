@@ -287,6 +287,7 @@ async def startup(ctx: Any) -> None:
         import backend.tasks.coaching  # noqa
         import backend.tasks.reporting  # noqa
         import backend.tasks.panel  # noqa
+        import backend.tasks.preprocessing  # noqa
 
         logger.info(f"TaskRegistry initialized. Registered tasks: {list(TaskRegistry._tasks.keys())}")
     except Exception as e:

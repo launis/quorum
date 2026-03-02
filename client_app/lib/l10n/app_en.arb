@@ -194,6 +194,7 @@
   "stepOverseer": "Overseer (Fact)",
   "stepJudgeCognitive": "Judge (Cognitive)",
   "stepContext": "Context Retrieval",
+  "stepInputProcessor": "Input Processing",
   "validationMissingEvidence": "Missing required evidence: {fields}",
   "@validationMissingEvidence": {
     "description": "Validation error for missing evidence fields",

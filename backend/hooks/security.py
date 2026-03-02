@@ -62,6 +62,8 @@ def sanitize_text_hook(state: WorkflowState) -> WorkflowState:
     for field in ["history_text", "product_text", "reflection_text"]:
         # Strict Access: Field MUST exist on WorkflowInputs schema
         val = getattr(inputs, field)
+
+        # If the user didn't provide this optional text field, just skip sanitization for it
         if not val:
             # Fail Fast: Mandatory inputs
             error_code = ErrorCodes.EMPTY_INPUT

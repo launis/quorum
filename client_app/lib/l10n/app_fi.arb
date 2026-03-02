@@ -129,6 +129,7 @@
   "stepOverseer": "Valvoja (Overseer)",
   "stepJudgeCognitive": "Tuomari (Kognitiivinen)",
   "stepContext": "Konteksti (Retrieval)",
+  "stepInputProcessor": "Tietojen käsittely (Input Processing)",
   "validationMissingEvidence": "Puuttuvat todisteet: {fields}",
   "validationInputEmpty": "Syötteet eivät voi olla tyhjiä.",
   "errorUnknown": "Tuntematon virhe",

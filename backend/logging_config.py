@@ -140,7 +140,9 @@ def setup_logging(log_level=logging.INFO):
         root_logger.handlers = []
 
     root_logger.addHandler(file_handler)
-    # Console handler removed to ensure absolute silence in console as requested
+    
+    # Re-enable Console Logging for Debugging Worker Crashes
+    root_logger.addHandler(console_handler)
 
     if logfire and _LOGFIRE_CONFIGURED:
         try:

@@ -107,8 +107,9 @@ To strictly separate "Content" from "System Authority", the system employs a **D
 1.  **DTOs (Data Transfer Objects)**:
     *   **Role**: The **Content Contract** (Read-Only from LLM perspective).
     *   **Definition**: Represents data in transit (LLM Input/Output). Pydantic uses `extra="ignore"` to drop LLM hallucinations.
-    *   **Constraint**: MUST NOT contain system-managed fields (e.g., `metadata`, `execution_id`, `token_usage`, `tainted_data`). This prevents the LLM from hallucinating authoritative data or bypassing security hooks.
-    *   **Example**: `GuardDTO` contains only the LLM's `security_check` analysis.
+    *   **Inheritance Constraint**: EVERY Agent DTO MUST inherit from `ReasoningTraceDTO` (`backend.models.domain.base`). This ensures a unified standard for capturing reasoning traces across all agents.
+    *   **Field Constraint**: MUST NOT contain system-managed fields (e.g., `metadata`, `execution_id`, `token_usage`, `tainted_data`). This prevents the LLM from hallucinating authoritative data or bypassing security hooks.
+    *   **Example**: `class GuardDTO(ReasoningTraceDTO):` contains only the LLM's `security_check` analysis.
 
 2.  **Domain Models (The SSOT)**:
     *   **Role**: The **System Authority** (Single Source of Truth).
@@ -117,13 +118,35 @@ To strictly separate "Content" from "System Authority", the system employs a **D
     *   **Mechanism (Python Authority)**: The `BaseAgent` accepts a DTO from the LLM. It then runs `_apply_python_authority()`, which acts as a strict gateway to inject system metadata (timestamp, model, provider, checksum) and deterministic Python logic (e.g., aggregating `score_cards` or adding raw `tainted_data`) before promoting it to a Domain Model.
     *   **Usage**: The Pipeline *only* persists and reads Domain Models. DTOs are **never** persisted to the DB or passed to async Event Hooks.
 
-### 3.2. Uniform Input Processing (The Y-Funnel)
-To strictly adhere to the "No-ORM" Pydantic Architecture, the backend API **does not accept `multipart/form-data`**. All data, including file uploads, must be transmitted as Strict JSON.
+### 3.2. Uniform Input Processing & The Y-Funnel Functional Transformer (Phase 10)
+To strictly adhere to the "No-ORM" Pydantic Architecture and handle messy frontend inputs (Base64 files, raw strings, JSON dicts), the backend API **does not accept `multipart/form-data`**. All data must be transmitted as Strict JSON.
 
-1.  **Omni-Input Parsing**: Frontend interfaces (like `OmniInputBox`) allow users to either paste text or drop a file (`.pdf`, `.docx`).
-2.  **Base64 Encoding**: If a file is provided, the frontend encodes the bytes as Base64 and assigns it to a strict `Base64FileDTO` within the JSON body.
-3.  **The Y-Funnel**: The `create_execution` router catches this JSON payload. It routes `Base64FileDTO` payloads through `document_service.py` to extract raw text, and merges the result back to raw string fields (`*_text`). 
-4.  **Purpose**: This guarantees that Agents downstream never need to worry about *how* the data was ingested—they only ever interface with completely normalized, cleaned Domain objects and text strings.
+**1. The Gateway Problem (Heterogeneous Inputs):**
+Frontend interfaces (like `OmniInputBox`) allow users to either paste text or drop a file (`.pdf`, `.docx`). If a file is provided, it is Base64 encoded. This raw, mixed data cannot be fed directly to standard LLM Agents which expect strict Pydantic inputs.
+
+**2. The `InputProcessorAgent` (Y-Funnel / Adapter Pattern):**
+To solve this, `InputProcessorAgent` acts as a **Functional Transformer** at the very beginning of the workflow (Step 0). 
+- It intentionally **breaks the standard Pydantic LLM mold**. Instead of generating LLM prompts, it completely overrides the `async def execute(...)` method to run pure Python extraction logic.
+- If it detects Base64, it calls `DocumentService` (instantiating it with `storage_client` if needed) to extract text via OCR/PyMuPDF.
+- If it detects a `guided_reflection` JSON dict, it routes it to `ReflectionService` to generate standard Markdown.
+
+**3. Return to Strict Pydantic (Domain Model Enforcement):**
+After extraction, the `InputProcessorAgent` constructs an `InputProcessorDTO` containing clean, standardized Markdown strings (`history_text`, `product_text`, `reflection_text`). It injects mandatory confidence metadata and promotes this to an `InputProcessorOutput` Domain Model.
+
+**4. Dynamic Data Hydration (`hydrate_global_inputs`):**
+To prevent downstream blueprint corruption (where hundreds of agents expect `history_text` to be available globally at `$inputs.history_text`), the system uses a Post-Hook pattern:
+- The `hydrate_global_inputs` hook runs immediately after the `InputProcessorAgent`.
+- It takes the clean DTO outputs and injects them back into the Engine's execution context (the global `$inputs` variable).
+- By the time the next agent (e.g., `GuardAgent`) runs, it operates in a 100% strict Pydantic bubble, completely unaware of whether the input originally came from a PDF, a Word file, or raw pasted text.
+
+### 3.3. Event Sourcing and the WorkflowState (Phase 9)
+The core architecture for tracking a workflow in progress is built around the **`WorkflowState`** model, which acts as the aggregate root for the execution. It utilizes an **Event Sourcing** pattern.
+
+*   **What comes before:** When a user triggers an execution via the API, the `GraphEngine` initializes a fresh `WorkflowState`. The prepared `WorkflowInputs` (user payloads) are injected immediately into the state.
+*   **What it is:** The `WorkflowState` is an immutable, forward-only ledger. It consists of two primary components:
+    1.  **`execution_trace`**: An append-only list of `TraceEvent` objects. Every time an agent finishes reasoning, a new event is minted and appended here.
+    2.  **`context_variables`**: A dynamic dictionary (`dict[str, Any]`) that holds the current snapshot of the world. Because the system is built on strict Pydantic V2, direct access to `context_variables` is heavily discouraged. Instead, `WorkflowState` provides **Type-Safe Accessors** (e.g., `state.get_context("step_analyst", AnalystOutput)` or `state.step_guard`) which perform "Lazy Inflation" to parse the raw dictionary into strict Domain Models when accessed.
+*   **What comes after:** Whenever an Agent or a Hook finishes its discrete logic, it must return a *new* (mutated) `WorkflowState` object back to the `GraphEngine`. The Engine then persists this state to the database (saving the progress) and routes the updated `context_variables` to the next configured Agent in the blueprint.
 
 ---
 

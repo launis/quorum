@@ -1,3 +1,0 @@
-My name is John Doe and my social security number is 123-45-6789.
-I live at 123 Main St, Springfield.
-Please verify my identity.

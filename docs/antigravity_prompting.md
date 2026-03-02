@@ -58,13 +58,13 @@ INSTRUCTIONS (LEVEL 2):
 ```text
 Goal: [KIRJOITA TAVOITE TÄHÄN. Esim: "Tee uusi välilehti asetuksiin" TAI "Refaktoroi tiedosto X vastaamaan moderneja DTO-sääntöjä"]
 
-ROLE: Senior Developer (2026 Context).
+OLE: Senior Developer (2026 Context).
 INSTRUCTIONS (LEVEL 3A):
 1. PLAN: Read related files. Create a quick execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files.
 2. FAIL-FAST: State where `AppException` will be raised if data is missing. Do not use fallbacks.
 3. UI/UX: Output localized keys only via the API. Do not hardcode frontend strings.
 4. EXECUTE & PAUSE: Present the root cause or execution plan, get confirmation ("LUPA MYÖNNETTY"), and write the code adhering strictly to `flutterpromptohje.md`.
-```
+>>>>```
 
 #### 3B. BUG HUNTING & ROOT CAUSE ANALYSIS (Virheiden selvitys)
 ```text
@@ -94,12 +94,18 @@ Goal: [KIRJOITA SIEMENDATAMUUTOS TÄHÄN. Esim: "Muuta mallin strategia 'precise
 
 ROLE: Registry Administrator (2026 Context).
 INSTRUCTIONS (LEVEL 3D):
-Modifying `backend/seed/seed_data.json` autonomously is STRICTLY BLOCKED without a safety net.
+Modifying `backend/seed/seed_data.json` autonomously is STRICTLY BLOCKED without a safety net. You MUST follow these exact steps to prevent catastrophic ID corruption:
 1. PROPOSE: Show me the exact JSON snippet you intend to modify. Wait for "LUPA MYÖNNETTY".
 2. BACKUP: Run `cp backend/seed/seed_data.json backend/seed/seed_data.backup.json`.
-3. MODIFY: Use CLI tools to safely swap or inject the data.
-4. VERIFY: Run `diff backend/seed/seed_data.backup.json backend/seed/seed_data.json`.
-5. REPORT: Show me the exact output of the diff to confirm no other definitions were unintentionally corrupted.
+3. SCRIPT: Create a dedicated Python script file (e.g. `modify_seed.py`) to perform the changes. 
+   - 🚫 NEVER use inline terminal commands (like `python -c`) because PowerShell/Bash will silently expand variables like `$c1f...` and destroy the UUIDs.
+   - 🚫 NEVER use string replacement or regex on the JSON file. 
+   - ✅ ALWAYS use `json.load()` to parse the dict, mutate the Python dictionary intelligently, and `json.dump()` to save it.
+   - 🚫 NEVER add undocumented "extra keys" or hallucinated data structures. Only add exactly what the Pydantic domain models define.
+4. EXECUTE: Run your script: `python modify_seed.py`.
+5. MATH VERIFY: Run a script that recursively counts all objects, lists, and keys in `seed_data.backup.json` vs `seed_data.json` and prints the exact mathematical difference. If the delta is larger than the exact number of keys you explicitly added, STOP. You hallucinated data.
+6. DOMAIN VERIFY: You MUST run `pytest backend/tests/unit/test_seed_schema_alignment.py -v`. This test suite is the sovereign architectural guard. If it fails, your mutation corrupted the graph. Fix your script and try again.
+7. REPORT: Confirm the mathematical delta matches expectations and tests pass.
 ```
 
 ---

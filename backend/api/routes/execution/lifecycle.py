@@ -10,7 +10,6 @@ from fastapi import APIRouter, Depends, status
 from backend.core.engine import GraphEngine
 from backend.database.repository import AbstractWorkflowRepository
 from backend.dependencies import (
-    DocumentServiceDep,
     EngineDep,
     RepositoryDep,
     get_arq_pool,
@@ -62,7 +61,6 @@ async def create_execution(
     request: ExecutionRequestDTO,
     engine: EngineDep,
     repository: RepositoryDep,
-    document_service: DocumentServiceDep,
     current_user: Any = Depends(AuthService.get_current_user()),
     arq_pool: Any = Depends(get_arq_pool),
 ):
@@ -82,7 +80,7 @@ async def create_execution(
             execution_id=execution_id,
             organization_id=organization_id,
             current_user=current_user,
-            document_service=document_service,
+            document_service=None, # Deprecated in V5.1 worker shift
             repository=repository,
         )
 

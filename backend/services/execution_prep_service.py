@@ -1,21 +1,20 @@
-import base64
 import logging
 from typing import Any
 
-from fastapi import status
-
 from backend.database.repository import AbstractWorkflowRepository
-from backend.exceptions import AppException
 from backend.models.dtos.execution import Base64FileDTO, ExecutionRequestDTO
 from backend.services.document_service import DocumentService
-from backend.services.reflection_service import ReflectionService
 
 logger = logging.getLogger(__name__)
 
 
 class ExecutionPrepService:
-    """Service responsible for data preparation, extraction, and validation
-    before workflow execution begins (Y-Funnel Architecture).
+    """Service responsible for data preparation before workflow execution begins.
+    
+    Refactored in V5.1 (Phase 9): This service no longer does the heavy lifting of
+    Base64 decoding or Y-Funnel LLM parsing. All raw payloads (images, dicts) are passed
+    directly to the 'step_input_processor' agent via the graph engine to ensure standard
+    fail-fast observability and worker process isolation.
     """
 
     @staticmethod
@@ -27,35 +26,17 @@ class ExecutionPrepService:
         document_service: DocumentService,
         repository: AbstractWorkflowRepository,
     ) -> dict[str, Any]:
-        """Validates and prepares the inputs for the workflow engine.
-        Handles base64 decoding, specific file mapping, and LLM chat log parsing.
+        """Validates and prepares the inputs for the workflow engine by mapping 
+        Base64 payload models to raw dictionaries for the InputProcessorAgent.
         """
         inputs: dict[str, Any] = {}
-        files_to_process: dict[str, tuple[str, bytes]] = {}
 
-        # 1. Separate explicit string inputs from Base64 File DTOs
+        # 1. Pass explicit string inputs and Base64 File DTOs cleanly
         for key, value in request.inputs.items():
             if isinstance(value, Base64FileDTO):
-                try:
-                    content_bytes = base64.b64decode(value.content_base64)
-                    files_to_process[key] = (value.filename, content_bytes)
-                except Exception as e:
-                    logger.error(f"INVALID_BASE64_FILE: {e} for key {key}")
-                    raise AppException(
-                        message=f"Failed to decode base64 file for {key}",
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": "INVALID_BASE64_FILE"}
-                    ) from e
+                inputs[key] = value.model_dump()
             elif isinstance(value, dict) and "content_base64" in value:
-                try:
-                    content_bytes = base64.b64decode(value["content_base64"])
-                    files_to_process[key] = (value.get("filename", "unknown"), content_bytes)
-                except Exception as e:
-                    raise AppException(
-                        message=f"Failed to decode file {key}",
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": "INVALID_BASE64_FILE"}
-                    ) from e
+                inputs[key] = value
             else:
                 inputs[key] = str(value)
 
@@ -67,68 +48,10 @@ class ExecutionPrepService:
             elif current_user and getattr(current_user, "organization_id", None):
                 inputs["organization_id"] = current_user.organization_id
 
-        # 3. Process Evidence Files via DocumentService
-        if files_to_process:
-            try:
-                extracted_texts = await document_service.process_evidence_files(execution_id, files_to_process)
-
-                for raw_key, text_content in extracted_texts.items():
-                    # Smart Mapping targeting core system keys
-                    lower_key = raw_key.lower()
-                    target_key = raw_key
-
-                    if "historia" in lower_key or "history" in lower_key or "chat" in lower_key:
-                        target_key = "history_text"
-                    elif "lopputuote" in lower_key or "product" in lower_key or "output" in lower_key:
-                        target_key = "product_text"
-                    elif "reflektio" in lower_key or "reflection" in lower_key or "self" in lower_key:
-                        target_key = "reflection_text"
-
-                    inputs[target_key] = text_content
-                    logger.info(
-                        f"[ExecutionPrep] Mapped uploaded file '{raw_key}' "
-                        f"to input '{target_key}' ({len(text_content)} chars)"
-                    )
-            except Exception as e:
-                logger.error(f"[ExecutionPrep] DocumentService failed: {e}")
-                raise AppException(
-                    message=f"File processing failed: {e}",
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": "FILE_PROCESSING_FAILED"}
-                ) from e
-
-        # 4. Y-Funnel Parse: Extract specific features
-        if "history_text" in inputs:
-            from backend.services.chat_parser import parse_pasted_chat
-            try:
-                logger.info("[ExecutionPrep] Y-Funnel: Parsing history_text with LLM ChatParser")
-                chat_dto = await parse_pasted_chat(inputs["history_text"], repository=repository)
-                # Store structured DTO as dict
-                inputs["parsed_history"] = chat_dto.model_dump()
-            except Exception as e:
-                logger.error(f"[ExecutionPrep] Chat parsing failed in Y-Funnel: {e}")
-                if isinstance(e, AppException):
-                    raise e
-                raise AppException(
-                    message="Failed to parse chat history",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": "CHAT_PARSING_FAILED"}
-                ) from e
-
-        # 5. Guided Reflection Markdown Generation
+        # 3. Y-Funnel Part 1: Pass GuidedReflection structure natively
         if request.guided_reflection:
-            logger.info("[ExecutionPrep] Y-Funnel: Generating markdown from GuidedReflectionDTO")
-            try:
-                reflection_markdown = ReflectionService.generate_markdown_document(request.guided_reflection)
-                inputs["reflection_text"] = reflection_markdown
-                logger.info("[ExecutionPrep] Mapped GuidedReflection to 'reflection_text' input.")
-            except Exception as e:
-                logger.error(f"[ExecutionPrep] Reflection generation failed: {e}")
-                raise AppException(
-                    message="Failed to generate reflection document",
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": "REFLECTION_GENERATION_FAILED"}
-                ) from e
+            logger.info("[ExecutionPrep] Passing GuidedReflection directly to inputs.")
+            inputs["guided_reflection"] = request.guided_reflection.model_dump(exclude_none=True)
 
-        logger.info(f"[ExecutionPrep] FINAL Resolved Execution Inputs Keys: {list(inputs.keys())}")
+        logger.info(f"[ExecutionPrep] FINAL Prepared Execution Inputs Keys: {list(inputs.keys())}")
         return inputs

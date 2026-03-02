@@ -1,4 +1,0 @@
-This is not a valid file format.
-%PDF-1.4
-...truncated...
-[Corrupted Binary Data]

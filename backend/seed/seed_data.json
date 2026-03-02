@@ -77,7 +77,8 @@
                     "RetrievalAgent": "fast",
                     "PanelAgent": "deep",
                     "SearchHook": "search",
-                    "ChatParser": "fast"
+                    "ChatParser": "fast",
+                    "InputProcessorAgent": "fast"
                 }
             }
         },
@@ -98,6 +99,28 @@
         }
     ],
     "steps": [
+        {
+            "id": "c1f8d4e9-0b7a-4c2d-8e8f-9a9b0c1d2e3f",
+            "slug": "step_input_processor",
+            "name": "Input Processing",
+            "description": "Parses files and raw text into standard variables.",
+            "task_key": "input_processor",
+            "config": {
+                "output_schema": "InputProcessorDTO",
+                "llm_prompts": [],
+                "pre_hooks": [],
+                "post_hooks": [
+                    "hydrate_global_inputs"
+                ]
+            },
+            "inputs": {
+                "history_text": "$inputs.history_text",
+                "product_text": "$inputs.product_text",
+                "reflection_text": "$inputs.reflection_text",
+                "guided_reflection": "$inputs.guided_reflection"
+            },
+            "is_missing_registry": false
+        },
         {
             "id": "683eb4b9-147c-4f5d-89a7-7b18d75c4202",
             "slug": "step_analyst",
@@ -330,6 +353,24 @@
                 "product_text": "$inputs.product_text",
                 "reflection_text": "$inputs.reflection_text",
                 "step_analyst": "$683eb4b9-147c-4f5d-89a7-7b18d75c4202"
+            },
+            "is_missing_registry": false
+        },
+        {
+            "id": "e75aac78-4d78-4b68-9cb2-f0d59112242a",
+            "slug": "step_input_processor",
+            "name": "Input Processor",
+            "description": "Pre-processes raw data before analysis",
+            "task_key": "input_processor",
+            "config": {
+                "output_schema": "InputProcessorOutput",
+                "llm_prompts": [],
+                "post_hooks": [
+                    "hydrate_global_inputs"
+                ]
+            },
+            "inputs": {
+                "raw_inputs": "$inputs.raw_inputs"
             },
             "is_missing_registry": false
         },
@@ -724,6 +765,7 @@
             "slug": "sequential_audit_chain",
             "name": "Courtroom 2.0 (Full Audit)",
             "steps": [
+                "c1f8d4e9-0b7a-4c2d-8e8f-9a9b0c1d2e3f",
                 "9e027b2a-c471-4e97-8d13-787767fda5e4",
                 "779e75fc-9d1d-4b6b-b9d4-3fa9b4c34608",
                 "683eb4b9-147c-4f5d-89a7-7b18d75c4202",
@@ -1505,7 +1547,7 @@
             "class_name": null,
             "registered_at": null,
             "type": "task",
-            "content": "VAIHE 3: VUOROVAIKUTUS (Driver Metrics)\nTEHTÄVÄT:\n1. ARVIOI Riippuvuussuhdetta (Dependency). (Huom: Järjestelmä laskee tarkan Input-Control Ration erikseen). Jos vaikuttaa, että käyttäjä on täysin riippuvainen, liputa 'High Dependency'.\n2. Laske 'imperative_command_count': Montako kertaa käyttäjä antaa suoran käskyn (esim. 'Tee', 'Korjaa', 'Analysoi')?\n3. TUNNISTA Strategia (pakollinen englanninkielinen arvo!): 'Zero-shot', 'Few-shot', 'Chain-of-Thought'.\n4. LUOKITTELE Arkkityyppi (pakollinen englanninkielinen arvo!): 'Passenger' (Tilaa), 'Navigator' (Korjaa), 'Driver' (Ohjaa), 'Architect' (Suunnittelee).\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (InteractionAnalysis). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'role_classification' -kentän:\n{{SCHEMA_EXAMPLE}}"
+            "content": "VAIHE 3: VUOROVAIKUTUS (Driver Metrics)\nTEHT\u00c4V\u00c4T:\n1. ARVIOI Riippuvuussuhdetta (Dependency). (Huom: J\u00e4rjestelm\u00e4 laskee tarkan Input-Control Ration erikseen). Jos vaikuttaa, ett\u00e4 k\u00e4ytt\u00e4j\u00e4 on t\u00e4ysin riippuvainen, liputa 'High Dependency'.\n2. Laske 'imperative_command_count': Montako kertaa k\u00e4ytt\u00e4j\u00e4 antaa suoran k\u00e4skyn (esim. 'Tee', 'Korjaa', 'Analysoi')?\n3. TUNNISTA Strategia (pakollinen englanninkielinen arvo!): 'Zero-shot', 'Few-shot', 'Chain-of-Thought'.\n4. LUOKITTELE Arkkityyppi (pakollinen englanninkielinen arvo!): 'Passenger' (Tilaa), 'Navigator' (Korjaa), 'Driver' (Ohjaa), 'Architect' (Suunnittelee).\n\nK\u00c4SKE: Tulosta vastauksesi T\u00c4SM\u00c4LLEEN seuraavan JSON-skeeman mukaisesti (InteractionAnalysis). Varmista, ett\u00e4 vastaus sis\u00e4lt\u00e4\u00e4 'reasoning_trace' -merkkijonon ja 'role_classification' -kent\u00e4n:\n{{SCHEMA_EXAMPLE}}"
         },
         {
             "id": "576f131c-7564-481b-806c-c46be09c2918",

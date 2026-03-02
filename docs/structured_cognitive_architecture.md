@@ -40,8 +40,9 @@ The primary production workflow, **Courtroom 3.0 (Fused)**, utilizes a **Fused P
 ```mermaid
 graph TD
     %% Nodes
-    UserInput[User Input Files]
-    Guard[Step 1: Guard Agent]
+    UserInput[User Input Files & JSON]
+    InputProcessor[Step 0: Input Processor]
+    Guard[Step 1: Guard Agent (Safety)]
     Context[Step 1b: Context Retrieval]
     Analyst[Step 2: Analyst Agent]
     Interaction[Step 3: Interaction Agent]
@@ -79,7 +80,8 @@ graph TD
     XAI[Step 7: XAI Reporter]
     
     %% Flows
-    UserInput -->|Raw Strings| Guard
+    UserInput -->|Raw File JSON / Base64| InputProcessor
+    InputProcessor -->|Processed Text| Guard
     Guard -->|SafeData| Context
     Context -.->|Sidebar Context| Panel
     Context -.->|Sidebar Context| JudgeStandard
@@ -103,6 +105,7 @@ graph TD
 ### Step-by-Step Data Contracts
 All steps operate on the Hybrid State Architecture, reading inputs from the Blackboard (`WorkflowState.context_variables`) and writing outputs to the Event Log (`TraceEvent`) and projecting back to the Blackboard.
 
+0. **Step 0: Input Processor (`step_input_processor`)**: Translates Raw `Base64FileDTO` payloads asynchronously into normalized strings (e.g., `history_text`). Outputs `InputProcessorOutput`.
 1. **Step 1: Guard (`step_guard`)**: Input hygiene and PII redaction. Outputs `TaintedData` containing `safe_data` (Critical). Halts execution if `banned_phrases` detected.
 2. **Step 1b: Context Retrieval (`step_context`)**: Fetches external knowledge (RAG). Outputs `RetrievalOutput`.
 3. **Step 2: Analyst (`step_analyst`)**: Establishes ground truth. Outputs `AnalystOutput` with `provenance_map`.

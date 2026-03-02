@@ -43,6 +43,8 @@ HOOK_MAPPING = {
     # Integrity & Linking
     "verify_citation_integrity": ("backend.hooks.integrity", "verify_citation_integrity"),
     "enforce_hypothesis_linking": ("backend.hooks.integrity", "enforce_hypothesis_linking"),
+    # Input Hydration (Step 0)
+    "hydrate_global_inputs": ("backend.hooks.hydration", "hydrate_global_inputs"),
 }
 
 
@@ -76,8 +78,6 @@ class GraphEngine:
         Returns:
             The final execution state model dump.
         """
-        from backend.services.chat_log_parser import ChatLogParser
-
         # 1. Initialize State Object
         # "Strict Mode" means we align data to the Schema, not just dump it.
 
@@ -146,8 +146,10 @@ class GraphEngine:
         inputs_data = execution_state.context_variables.get("inputs")
 
         # 1. Inflate to Model (Fail Fast)
+        logger.info(f"[GraphEngine] Raw inputs_data before Pydantic inflation: {inputs_data}")
         if inputs_data:
             from pydantic import ValidationError
+
             try:
                 inputs_model = WorkflowInputs.model_validate(inputs_data)
             except ValidationError as ve:
@@ -160,7 +162,7 @@ class GraphEngine:
                 raise AppException(
                     message=exact_message,
                     status_code=400,
-                    details={"error_code": error_code, "original_error": str(ve)}
+                    details={"error_code": error_code, "original_error": str(ve)},
                 )
             except Exception as e:
                 # Fallback for non-Pydantic errors
@@ -169,39 +171,9 @@ class GraphEngine:
                 logger.error(f"[GraphEngine] {error_code}: {msg}")
                 raise AppException(message=msg, status_code=400, details={"error_code": error_code})
 
-            # 2. Chat Parsing / Sanitization (on Model Fields)
-            updates = {}
-            for field in ["history_text", "product_text", "reflection_text"]:
-                val = getattr(inputs_model, field, None)
-                if val and isinstance(val, str) and ("chat" in field or "history" in field):
-                    # Strict: No Fallback for invalid chat logs.
-                    try:
-                        original_len = len(val)
-                        parsed_value = ChatLogParser.parse(val)
-
-                        if parsed_value != val:
-                            updates[field] = parsed_value
-                            if len(parsed_value) != original_len:
-                                logger.info(
-                                    f"[GraphEngine] ChatLogParser optimized '{field}': "
-                                    f"{original_len} -> {len(parsed_value)} chars"
-                                )
-                    except Exception as e:
-                        # Fail Fast: Invalid Chat Log is a data integrity error.
-                        logger.error(f"[GraphEngine] ChatLogParser failed for '{field}': {e}")
-                        raise AppException(
-                            message=f"Chat Log Parsing failed for field '{field}': {e}",
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            details={
-                                "error_code": ErrorCodes.INVALID_JSON_PAYLOAD,
-                                "field": field,
-                                "original_error": str(e),
-                            },
-                        ) from e
-
-            # 3. Apply Updates & Store Model
-            if updates:
-                inputs_model = inputs_model.model_copy(update=updates)
+            # Note: Phase 10 Refactor removed legacy `ChatLogParser` execution from here.
+            # All Y-Funnel generation (Base64 decoding, format parsing, reflection compilation)
+            # is now strictly handled asynchronously by the `InputProcessorAgent` at Step 0.
 
             execution_state.context_variables["inputs"] = inputs_model
 
@@ -334,6 +306,7 @@ class GraphEngine:
                 if "user_id" not in runtime_config and execution_state.user_id:
                     runtime_config["user_id"] = execution_state.user_id
 
+                runtime_config["repository"] = repository
                 runtime_config["workflow"] = execution_state.workflow_id
                 runtime_config["execution_id"] = execution_id
                 runtime_config["step_id"] = step.id
@@ -414,7 +387,9 @@ class GraphEngine:
 
                 # Global Usage Accumulation using STRICT typed TokenUsage
                 global_usage_raw = execution_state.context_variables.get("usage", {})
-                global_usage = global_usage_raw if isinstance(global_usage_raw, TokenUsage) else TokenUsage(**global_usage_raw)
+                global_usage = (
+                    global_usage_raw if isinstance(global_usage_raw, TokenUsage) else TokenUsage(**global_usage_raw)
+                )
 
                 step_usage_obj = TokenUsage(**step_usage)
                 new_usage = global_usage + step_usage_obj
@@ -436,10 +411,10 @@ class GraphEngine:
                 # 8. Update Context Variables (Snapshot for next steps)
                 # STORE STRICTLY TYPED OBJECT (if available) instead of dict
                 typed_payload = result if hasattr(result, "model_dump") else content_payload
-
                 execution_state.context_variables[step.id] = typed_payload
-                if getattr(step, "slug", None):
-                    execution_state.context_variables[step.slug] = typed_payload
+                step_slug = getattr(step, "slug", None)
+                if isinstance(step_slug, str) and step_slug:
+                    execution_state.context_variables[step_slug] = typed_payload
 
                 logger.debug(f"Step '{step.id}' event added to trace.")
 
@@ -701,7 +676,7 @@ class GraphEngine:
                         message=f"Resolution failed for path '{source_path}': {e}",
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         details={"error_code": ErrorCodes.INPUT_RESOLUTION_FAILED, "original_error": str(e)},
-                    )
+                    ) from e
             else:
                 # Static value
                 resolved[target_field] = source_path
