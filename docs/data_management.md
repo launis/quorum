@@ -312,3 +312,22 @@ Unlike polymorphic data units, Core Entities (like `users` and `organizations`) 
 Previously, the system utilized a polymorphic "One Big Table" approach (`knowledge_base`) to store concepts, references, and claims. To align with the strict Domain-DTO isolation and ensure higher query performance, this was forcefully decoupled.
 *   **Separation of Concerns**: The monolithic `knowledge_base` array is entirely deleted. It has been replaced by three completely independent, strict SSOT physical collections: `concepts`, `references`, and `claims`.
 *   **Metadata Stripping**: During this transition, unauthorized data bags (`metadata`, `hoist_keys`) were stripped completely out of the domain models and the underlying database documents. The NoSQL backend now guarantees type-pure collections without any ghost data fields.
+
+---
+
+## 12. API Payload & Schema Standardization (V5.1 Updates)
+
+To guarantee flawless synchronization between the Frontend (Flutter/Dart) and Backend (Python/FastAPI) clients, the system enforces strict payload naming and specification generation rules.
+
+### 12.1. The `id` vs `uid` Standardization
+*   **The Rule**: All unique identifiers in Pydantic models MUST be named exactly `id`. The legacy use of `uid` or `user_id` inside core models is strictly **BANNED** to ensure generic JSON deserialization compatibility on the Flutter side.
+*   **Exception**: Foreign keys or relation references may be named `organization_id` or `step_id`, but the primary primary key is always `id`.
+
+### 12.2. Payload Keys (`slug`)
+*   Dictionaries containing dynamic mappings (like evaluation results) MUST use the exact key `slug` rather than generic iterators like `key` or `name` when serialized for the API, allowing the frontend explicitly typed references for UI components.
+
+### 12.3. OpenAPI Specification Sync
+*   **Mandate**: The OpenAPI specification (`docs/swagger/openapi.json`) is the SSOT for the Frontend's generated `ApiClient`. 
+*   **Validation**: Every time Pydantic models or FastAPI routes are modified, developers MUST run the synchronization script locally before committing:
+    `uv run backend/scripts/generate_openapi.py`
+*   **CI/CD**: The GitHub Actions pipeline verifies that `openapi.json` is perfectly in sync with the current Python code. If the developer forgot to run the generator, the build will fail immediately via `git diff --exit-code`. This guarantees type-safety across the entire monorepo.
