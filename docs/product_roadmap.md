@@ -342,6 +342,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ---
 
 ## 📉 Technical Debt & Optimization (Backlog)
+- [ ] **Logic-to-Code Module Integration**: Integrate a "Logic-to-Code" module (Prolog/Python) to translate textual arguments into formal code. Secure, isolated execution of this code will provide an unambiguous method to verify logical integrity, bridging the gap between rhetorical plausibility and truth (Chi et al. 2024, Turpin et al. 2025).
 - [ ] **Dynamic Agent Orchestration (Workflow Engine)**: Refactor the current linear/static execution pipeline into a dynamic system (e.g., DAG or Router/Supervisor Agent pattern) to allow dynamic agent ordering and execution paths. This is a recognized future infrastructure need to optimize Python-heavy asynchronous logic.
 - [ ] **Banned Phrases Seed Restoration**: Re-merge `banned_phrases` into `seed_data.json`.
 - [ ] **Dynamic Hook Orchestration**: Refactor architecture to allow runtime selection of Hook Implementations via UI (e.g., swapping `SearchHook` vs `VertexSearchHook`).
