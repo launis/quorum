@@ -53,7 +53,7 @@
           "Authentication & Users"
         ],
         "summary": "Impersonate User",
-        "description": "Generates an impersonation token for the target user. Requires ROOT.\n\nArgs:\n    request (ImpersonationRequest): Payload containing target_uid.\n    current_user (CurrentUserDep): The requesting user (must be ROOT).\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    ImpersonationResponse: The access token.\n\nRaises:\n    HTTPException: If permission denied (403) or target not found (404).",
+        "description": "Generates an impersonation token for the target user. Requires ROOT.\n\nArgs:\n    request (ImpersonationRequest): Payload containing target_id.\n    current_user (CurrentUserDep): The requesting user (must be ROOT).\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    ImpersonationResponse: The access token.\n\nRaises:\n    HTTPException: If permission denied (403) or target not found (404).",
         "operationId": "impersonate_user_auth_impersonate_post",
         "parameters": [
           {
@@ -245,82 +245,22 @@
         }
       }
     },
-    "/auth/organizations": {
-      "post": {
-        "tags": [
-          "Authentication & Users"
-        ],
-        "summary": "Create Organization",
-        "description": "Create a new Tenant Organization.\n\nArgs:\n    org_data (OrganizationCreate): Payload for the new organization.\n    current_user (CurrentUserDep): The requesting user (must be ROOT).\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    Organization: The created organization.\n\nRaises:\n    HTTPException: If user is not ROOT (403).",
-        "operationId": "create_organization_auth_organizations_post",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationCreate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Organization"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/users/{uid}": {
+    "/auth/users/{id}": {
       "delete": {
         "tags": [
           "Authentication & Users"
         ],
         "summary": "Delete User",
-        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    uid (str): The UID of the user to delete.\n    current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    UserDeleteResponse: Status confirmation.\n\nRaises:\n    HTTPException: Permission denied (403) or business logic error (400).",
-        "operationId": "delete_user_auth_users__uid__delete",
+        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    id (str): The UID of the user to delete.\n    current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).\n    auth_service (AuthServiceDep): Authorization service.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    UserDeleteResponse: Status confirmation.\n\nRaises:\n    HTTPException: Permission denied (403) or business logic error (400).",
+        "operationId": "delete_user_auth_users__id__delete",
         "parameters": [
           {
-            "name": "uid",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Uid"
+              "title": "Id"
             }
           },
           {
@@ -368,16 +308,16 @@
           "Authentication & Users"
         ],
         "summary": "Update User",
-        "description": "Update a user (Role, Display Name, etc).\n\nArgs:\n    uid (str): The UID of the user to update.\n    user_update (UserUpdate): Fields to update.\n    current_user (CurrentUserDep): Requesting user.\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    User: The updated user profile.",
-        "operationId": "update_user_auth_users__uid__patch",
+        "description": "Update a user (Role, Display Name, etc).\n\nArgs:\n    id (str): The UID of the user to update.\n    user_update (UserUpdate): Fields to update.\n    current_user (CurrentUserDep): Requesting user.\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    User: The updated user profile.",
+        "operationId": "update_user_auth_users__id__patch",
         "parameters": [
           {
-            "name": "uid",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Uid"
+              "title": "Id"
             }
           },
           {
@@ -1390,6 +1330,66 @@
         }
       }
     },
+    "/admin/organizations": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create Organization",
+        "description": "Creates a new Tenant Organization.\n\nArgs:\n    request (OrganizationCreate): Payload for the new organization.\n    user (CurrentUserDep): The requesting user (must be ROOT).\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    Organization: The created organization.\n\nRaises:\n    HTTPException: If user is not ROOT (403) or creation fails.",
+        "operationId": "create_organization_admin_organizations_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/org/{organization_id}/users": {
       "get": {
         "tags": [
@@ -1583,7 +1583,7 @@
           "Configuration"
         ],
         "summary": "List Components",
-        "description": "Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).\n\nArgs:\n    repo (RepositoryDep): Repository dependency.\n    type (str | None): Optional filter by component type.\n    exclude_type (list[str] | None): Optional types to exclude.\n\nReturns:\n    list[ComponentResponse]: List of configuration components.",
+        "description": "Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).\n\nArgs:\n    repo (RepositoryDep): Repository dependency.\n    type (str | None): Optional filter by component type.\n    exclude_type (list[str] | None): Optional types to exclude (defaults to agents/processors).\n\nReturns:\n    list[ComponentResponse]: List of configuration components.",
         "operationId": "get_components_v1_config_components_get",
         "parameters": [
           {
@@ -1617,6 +1617,10 @@
                 {
                   "type": "null"
                 }
+              ],
+              "default": [
+                "agent",
+                "processor"
               ],
               "title": "Exclude Type"
             }
@@ -3574,6 +3578,78 @@
         }
       }
     },
+    "/v1/config/models/mappings": {
+      "get": {
+        "tags": [
+          "Models",
+          "Config: Models"
+        ],
+        "summary": "Get Agent Mappings",
+        "description": "Fetch the global registry mappings between Agent IDs (task_key) and Model Strategies.\n\nReturns:\n    list[AgentMappingResponse]: A list of objects containing agent_id, name, type, and strategy_id.",
+        "operationId": "get_agent_mappings_v1_config_models_mappings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentMappingResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Agent Mappings V1 Config Models Mappings Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Models",
+          "Config: Models"
+        ],
+        "summary": "Update Agent Mapping",
+        "description": "Update a specific global agent-to-strategy mapping.\n\nArgs:\n    update_data (AgentMappingUpdate): The agent ID and new strategy ID.",
+        "operationId": "update_agent_mapping_v1_config_models_mappings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentMappingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Update Agent Mapping V1 Config Models Mappings Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/config/models/test": {
       "post": {
         "tags": [
@@ -3854,6 +3930,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionRequestDTO"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Successful Response",
@@ -4018,6 +4104,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionRequestDTO"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Successful Response",
@@ -4307,6 +4403,23 @@
               "type": "string",
               "default": "assessment",
               "title": "View"
+            }
+          },
+          {
+            "name": "accept-language",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "en",
+              "title": "Accept-Language"
             }
           }
         ],
@@ -6689,6 +6802,80 @@
         }
       }
     },
+    "/organizations/{org_id}/usage/detailed": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Get Detailed Organization Usage",
+        "description": "Get detailed usage metrics based on role and requested scope.",
+        "operationId": "get_detailed_organization_usage_organizations__org_id__usage_detailed_get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "user",
+                "org",
+                "system"
+              ],
+              "type": "string",
+              "default": "org",
+              "title": "Scope"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedUsageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/organizations/{org_id}/users": {
       "post": {
         "tags": [
@@ -6756,14 +6943,14 @@
         }
       }
     },
-    "/organizations/{org_id}/users/{target_uid}": {
+    "/organizations/{org_id}/users/{target_id}": {
       "delete": {
         "tags": [
           "Organizations"
         ],
         "summary": "Delete Organization User",
         "description": "Delete a user from an organization.",
-        "operationId": "delete_organization_user_organizations__org_id__users__target_uid__delete",
+        "operationId": "delete_organization_user_organizations__org_id__users__target_id__delete",
         "parameters": [
           {
             "name": "org_id",
@@ -6775,12 +6962,12 @@
             }
           },
           {
-            "name": "target_uid",
+            "name": "target_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Target Uid"
+              "title": "Target Id"
             }
           },
           {
@@ -7011,7 +7198,7 @@
             "description": "Filter by Organization ID"
           },
           {
-            "name": "actor_uid",
+            "name": "actor_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -7024,7 +7211,7 @@
                 }
               ],
               "description": "Filter by Actor UID",
-              "title": "Actor Uid"
+              "title": "Actor Id"
             },
             "description": "Filter by Actor UID"
           },
@@ -7086,6 +7273,228 @@
                     "$ref": "#/components/schemas/AuditEvent"
                   },
                   "title": "Response Get Audit Logs Audit Logs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/usage/system": {
+      "get": {
+        "tags": [
+          "usage"
+        ],
+        "summary": "Get System Usage",
+        "description": "Get system-wide usage statistics (Root only).",
+        "operationId": "get_system_usage_v1_usage_system_get",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO timestamp to filter from (e.g., '2026-02-01T00:00:00Z')",
+              "title": "Since"
+            },
+            "description": "ISO timestamp to filter from (e.g., '2026-02-01T00:00:00Z')"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/usage/organization/{org_id}": {
+      "get": {
+        "tags": [
+          "usage"
+        ],
+        "summary": "Get Organization Usage",
+        "description": "Get usage statistics for a specific organization.",
+        "operationId": "get_organization_usage_v1_usage_organization__org_id__get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO timestamp to filter from",
+              "title": "Since"
+            },
+            "description": "ISO timestamp to filter from"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/usage/user/{user_id}": {
+      "get": {
+        "tags": [
+          "usage"
+        ],
+        "summary": "Get User Usage",
+        "description": "Get usage statistics for a specific user.",
+        "operationId": "get_user_usage_v1_usage_user__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO timestamp to filter from",
+              "title": "Since"
+            },
+            "description": "ISO timestamp to filter from"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageReport"
                 }
               }
             }
@@ -7224,6 +7633,17 @@
             "type": "string",
             "title": "Id"
           },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
           "name": {
             "anyOf": [
               {
@@ -7328,7 +7748,6 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id",
           "type"
         ],
         "title": "AgentComponentResponse",
@@ -7386,6 +7805,72 @@
         ],
         "title": "AgentDefinition",
         "description": "Schema for agent metadata exposed by discovery endpoint."
+      },
+      "AgentMappingResponse": {
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "strategy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategy Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_id"
+        ],
+        "title": "AgentMappingResponse",
+        "description": "Payload for listing agent mappings in the UI."
+      },
+      "AgentMappingUpdate": {
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "strategy_id": {
+            "type": "string",
+            "title": "Strategy Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_id",
+          "strategy_id"
+        ],
+        "title": "AgentMappingUpdate",
+        "description": "Payload for updating an agent mapping."
       },
       "AgentMetadataDTO": {
         "properties": {
@@ -7487,9 +7972,9 @@
             "format": "date-time",
             "title": "Timestamp"
           },
-          "actor_uid": {
+          "actor_id": {
             "type": "string",
-            "title": "Actor Uid"
+            "title": "Actor Id"
           },
           "action": {
             "type": "string",
@@ -7506,7 +7991,7 @@
             ],
             "title": "Organization Id"
           },
-          "target_uid": {
+          "target_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -7515,7 +8000,7 @@
                 "type": "null"
               }
             ],
-            "title": "Target Uid"
+            "title": "Target Id"
           },
           "details": {
             "additionalProperties": true,
@@ -7527,7 +8012,7 @@
         "required": [
           "id",
           "timestamp",
-          "actor_uid",
+          "actor_id",
           "action"
         ],
         "title": "AuditEvent",
@@ -7567,6 +8052,30 @@
         ],
         "title": "BannedPhraseResponse",
         "description": "Response model for banned phrase operations."
+      },
+      "Base64FileDTO": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type",
+            "default": "application/octet-stream"
+          },
+          "content_base64": {
+            "type": "string",
+            "title": "Content Base64"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "content_base64"
+        ],
+        "title": "Base64FileDTO",
+        "description": "Represents a file uploaded as Base64."
       },
       "BatchCompletionRequest": {
         "properties": {
@@ -8041,7 +8550,6 @@
         },
         "type": "object",
         "required": [
-          "id",
           "name",
           "type",
           "content"
@@ -8133,6 +8641,17 @@
           "id": {
             "type": "string",
             "title": "Id"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
           },
           "name": {
             "anyOf": [
@@ -8252,7 +8771,6 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id",
           "type",
           "content"
         ],
@@ -8321,12 +8839,114 @@
         "title": "CustomStepCreateRequest",
         "description": "Payload for creating a custom step."
       },
+      "DetailedUsageResponse": {
+        "properties": {
+          "total_cost_usd": {
+            "type": "number",
+            "title": "Total Cost Usd"
+          },
+          "quota_limit_usd": {
+            "type": "number",
+            "title": "Quota Limit Usd"
+          },
+          "tpm_limit": {
+            "type": "integer",
+            "title": "Tpm Limit"
+          },
+          "rpm_limit": {
+            "type": "integer",
+            "title": "Rpm Limit"
+          },
+          "percentage_used": {
+            "type": "number",
+            "title": "Percentage Used"
+          },
+          "period": {
+            "type": "string",
+            "title": "Period"
+          },
+          "total_runs": {
+            "type": "integer",
+            "title": "Total Runs",
+            "default": 0
+          },
+          "total_processing_time_ms": {
+            "type": "integer",
+            "title": "Total Processing Time Ms",
+            "default": 0
+          },
+          "models_used": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Models Used",
+            "default": {}
+          },
+          "workflows_used": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Workflows Used",
+            "default": {}
+          },
+          "prompt_tokens": {
+            "type": "integer",
+            "title": "Prompt Tokens",
+            "default": 0
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "title": "Completion Tokens",
+            "default": 0
+          },
+          "total_tokens": {
+            "type": "integer",
+            "title": "Total Tokens",
+            "default": 0
+          },
+          "cached_tokens": {
+            "type": "integer",
+            "title": "Cached Tokens",
+            "default": 0
+          },
+          "reasoning_tokens": {
+            "type": "integer",
+            "title": "Reasoning Tokens",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_cost_usd",
+          "quota_limit_usd",
+          "tpm_limit",
+          "rpm_limit",
+          "percentage_used",
+          "period"
+        ],
+        "title": "DetailedUsageResponse",
+        "description": "Expanded usage statistics including telemetry metrics."
+      },
       "DimensionDefinition": {
         "properties": {
           "id": {
             "type": "string",
             "title": "Id",
             "description": "Unique dimension ID (e.g. 'analyysi')."
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Legacy human-readable identifier"
           },
           "label": {
             "type": "string",
@@ -8354,7 +8974,6 @@
         },
         "type": "object",
         "required": [
-          "id",
           "label"
         ],
         "title": "DimensionDefinition",
@@ -8556,6 +9175,56 @@
         "title": "ExecutionRawResponse",
         "description": "Response for raw execution data dump."
       },
+      "ExecutionRequestDTO": {
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          },
+          "inputs": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Base64FileDTO"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Inputs",
+            "default": {}
+          },
+          "guided_reflection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuidedReflectionDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "workflow_id"
+        ],
+        "title": "ExecutionRequestDTO",
+        "description": "Request payload for creating an execution (Strict Pydantic JSON)."
+      },
       "ExecutionResponse": {
         "properties": {
           "id": {
@@ -8741,7 +9410,7 @@
             "type": "string",
             "title": "Status"
           },
-          "uid": {
+          "id": {
             "anyOf": [
               {
                 "type": "string"
@@ -8750,7 +9419,7 @@
                 "type": "null"
               }
             ],
-            "title": "Uid"
+            "title": "Id"
           }
         },
         "type": "object",
@@ -8759,6 +9428,61 @@
         ],
         "title": "GenericActionResponse",
         "description": "Response model for generic admin actions."
+      },
+      "GuidedReflectionDTO": {
+        "properties": {
+          "q1_goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q1 Goal",
+            "description": "Goal and strategic planning: What was your original goal, and how did you break down the broad problem into smaller parts before giving the first prompt to the AI?"
+          },
+          "q2_falsification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q2 Falsification",
+            "description": "Directing the AI and critical iteration: What flaws, errors, or hallucinations did you notice in the AI's responses during the process, and how did you direct the AI to correct them?"
+          },
+          "q3_synthesis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q3 Synthesis",
+            "description": "Personal contribution and creativity: What in the final work is purely your own, human added value?"
+          },
+          "q4_argumentation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q4 Argumentation",
+            "description": "Quality assurance and metacognition: On what grounds do you judge the final result to be high quality and reliable? If you were to do the task again, what would you do differently?"
+          }
+        },
+        "type": "object",
+        "title": "GuidedReflectionDTO",
+        "description": "Data Transfer Object for Guided Reflection form inputs."
       },
       "HTTPValidationError": {
         "properties": {
@@ -8775,14 +9499,14 @@
       },
       "ImpersonationRequest": {
         "properties": {
-          "target_uid": {
+          "target_id": {
             "type": "string",
-            "title": "Target Uid"
+            "title": "Target Id"
           }
         },
         "type": "object",
         "required": [
-          "target_uid"
+          "target_id"
         ],
         "title": "ImpersonationRequest",
         "description": "Request payload for impersonation."
@@ -9038,6 +9762,19 @@
             "description": "Default max output tokens.",
             "x-ui-label": "Max Tokens"
           },
+          "parsing_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parsing Mode",
+            "description": "Instructor parsing mode (e.g. 'GEMINI_JSON', 'JSON').",
+            "x-ui-label": "Parsing Mode"
+          },
           "vertex_location": {
             "anyOf": [
               {
@@ -9142,6 +9879,17 @@
             "type": "string",
             "title": "Id"
           },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
           "name": {
             "anyOf": [
               {
@@ -9242,7 +9990,6 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id",
           "type",
           "content"
         ],
@@ -9372,6 +10119,18 @@
             "title": "Id",
             "description": "Unique Organization ID (e.g. 'nokia-v1')"
           },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Legacy human-readable identifier"
+          },
           "name": {
             "type": "string",
             "title": "Name",
@@ -9455,7 +10214,6 @@
         },
         "type": "object",
         "required": [
-          "id",
           "name"
         ],
         "title": "Organization",
@@ -9922,11 +10680,11 @@
             "title": "Variables",
             "description": "Variables to inject into system prompt."
           },
-          "model_params": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Model Params",
-            "description": "Optional LLM parameters."
+          "strategy": {
+            "type": "string",
+            "title": "Strategy",
+            "description": "The SSOT execution strategy to use (e.g. 'playground_test').",
+            "default": "playground_test"
           }
         },
         "type": "object",
@@ -10093,6 +10851,65 @@
         "title": "QueueStats",
         "description": "Statistics for the Async Job Queue (ArQ)."
       },
+      "ReferenceIntent": {
+        "type": "string",
+        "enum": [
+          "SEARCH",
+          "GROUNDING",
+          "INTERNAL_KB"
+        ],
+        "title": "ReferenceIntent"
+      },
+      "ReferenceItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Citation ID, e.g., H-1, F-1"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/ReferenceIntent",
+            "description": "Type of the reference source"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "Title of the source"
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet",
+            "description": "Extracted content, relevance, or reasoning"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Link to the source if available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "intent",
+          "snippet"
+        ],
+        "title": "ReferenceItem",
+        "description": "Strict View Model for a single Contextual Citation."
+      },
       "RegistryComponentItem": {
         "properties": {
           "id": {
@@ -10100,6 +10917,18 @@
             "title": "Id",
             "description": "Component ID",
             "x-ui-label": "ID"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Legacy human-readable identifier"
           },
           "name": {
             "type": "string",
@@ -10147,7 +10976,6 @@
         },
         "type": "object",
         "required": [
-          "id",
           "name",
           "type"
         ],
@@ -10204,6 +11032,14 @@
               }
             ],
             "description": "Global notification/warning"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceItem"
+            },
+            "type": "array",
+            "title": "References",
+            "description": "Global bibliography and references"
           }
         },
         "type": "object",
@@ -10430,6 +11266,18 @@
             "description": "Unique step identifier",
             "x-ui-label": "Step ID"
           },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Legacy human-readable identifier"
+          },
           "name": {
             "type": "string",
             "title": "Name",
@@ -10473,12 +11321,17 @@
             "description": "Default Input Mapping",
             "default": {},
             "x-ui-label": "Oletussy\u00f6tteet"
+          },
+          "is_missing_registry": {
+            "type": "boolean",
+            "title": "Is Missing Registry",
+            "description": "Missing registry marker",
+            "default": false
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id",
           "name"
         ],
         "title": "StepDefinition",
@@ -10701,6 +11554,17 @@
             "type": "string",
             "title": "Id"
           },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
           "name": {
             "anyOf": [
               {
@@ -10801,7 +11665,6 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id",
           "type",
           "content"
         ],
@@ -10849,6 +11712,51 @@
         "title": "TokenPayload",
         "description": "Payload for token verification.\n\nAttributes:\n    token (str): The Firebase or Mock ID Token."
       },
+      "TokenUsage": {
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "title": "Prompt Tokens",
+            "description": "Tokens used in the prompt.",
+            "default": 0
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "title": "Completion Tokens",
+            "description": "Tokens generated by the model.",
+            "default": 0
+          },
+          "total_tokens": {
+            "type": "integer",
+            "title": "Total Tokens",
+            "description": "Total tokens used.",
+            "default": 0
+          },
+          "cached_tokens": {
+            "type": "integer",
+            "title": "Cached Tokens",
+            "description": "Tokens retrieved from cache.",
+            "default": 0,
+            "x-ui-label": "Cached Tokens"
+          },
+          "reasoning_tokens": {
+            "type": "integer",
+            "title": "Reasoning Tokens",
+            "description": "Tokens used for reasoning/thought generation.",
+            "default": 0,
+            "x-ui-label": "Reasoning Tokens"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd",
+            "description": "Estimated cost in USD.",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "title": "TokenUsage",
+        "description": "Strictly typed token usage statistics."
+      },
       "UiSection": {
         "properties": {
           "id": {
@@ -10891,6 +11799,67 @@
         ],
         "title": "UpdateRoleRequest",
         "description": "Request model for updating a user's role."
+      },
+      "UsageReport": {
+        "properties": {
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "description": "Scope of the report (system, organization, user)."
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id",
+            "description": "ID of the entity (if not system)."
+          },
+          "period": {
+            "type": "string",
+            "title": "Period",
+            "description": "Reporting period (e.g., '2026-02', 'all-time')."
+          },
+          "usage": {
+            "$ref": "#/components/schemas/TokenUsage",
+            "description": "Aggregated token and cost statistics."
+          },
+          "quota_limit_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quota Limit Usd",
+            "description": "Quota limit in USD, if applicable."
+          },
+          "percentage_used": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentage Used",
+            "description": "Percentage of quota used, if applicable."
+          }
+        },
+        "type": "object",
+        "required": [
+          "scope",
+          "period"
+        ],
+        "title": "UsageReport",
+        "description": "Report for aggregated usage statistics across different scopes."
       },
       "User": {
         "properties": {
@@ -10957,10 +11926,22 @@
             "description": "Preferred Theme Mode",
             "default": "system"
           },
-          "uid": {
+          "id": {
             "type": "string",
-            "title": "Uid",
+            "title": "Id",
             "description": "Unique ID (matches Firebase UID if used)"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Legacy human-readable identifier"
           },
           "created_at": {
             "type": "string",
@@ -10984,11 +11965,10 @@
         "type": "object",
         "required": [
           "email",
-          "uid",
           "created_at"
         ],
         "title": "User",
-        "description": "Full User model representing a persisted user record.\n\nAttributes:\n    uid (str): Unique ID (matches Firebase UID if used).\n    created_at (str): ISO 8601 Timestamp.\n    created_by (Optional[str]): UID of the creator."
+        "description": "Full User model representing a persisted user record.\n\nAttributes:\n    id (str): Unique ID (matches Firebase UID if used).\n    slug (Optional[str]): Legacy human-readable identifier.\n    created_at (str): ISO 8601 Timestamp.\n    created_by (Optional[str]): UID of the creator."
       },
       "UserAdminView": {
         "properties": {
@@ -11055,9 +12035,20 @@
             "description": "Preferred Theme Mode",
             "default": "system"
           },
-          "uid": {
+          "id": {
             "type": "string",
-            "title": "Uid"
+            "title": "Id"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
           },
           "created_at": {
             "type": "string",
@@ -11096,11 +12087,11 @@
         "type": "object",
         "required": [
           "email",
-          "uid",
+          "id",
           "created_at"
         ],
         "title": "UserAdminView",
-        "description": "Extended User model for admin views with statistics and raw datetime objects.\n\nAttributes:\n    uid (str): Unique ID.\n    created_at (datetime): Timestamp as datetime object.\n    created_by (Optional[str]): UID of the creator.\n    last_login_at (Optional[datetime]): Timestamp of last login.\n    execution_count (int): Total number of executions/audits run."
+        "description": "Extended User model for admin views with statistics and raw datetime objects.\n\nAttributes:\n    id (str): Unique ID.\n    slug (Optional[str]): Legacy human-readable identifier.\n    created_at (datetime): Timestamp as datetime object.\n    created_by (Optional[str]): UID of the creator.\n    last_login_at (Optional[datetime]): Timestamp of last login.\n    execution_count (int): Total number of executions/audits run."
       },
       "UserCreate": {
         "properties": {
@@ -11206,15 +12197,15 @@
             "type": "string",
             "title": "Status"
           },
-          "uid": {
+          "id": {
             "type": "string",
-            "title": "Uid"
+            "title": "Id"
           }
         },
         "type": "object",
         "required": [
           "status",
-          "uid"
+          "id"
         ],
         "title": "UserDeleteResponse",
         "description": "Response after deleting a user."
@@ -11459,7 +12450,19 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "New Workflow UUID/Slug"
+            "description": "New Workflow UUID"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Legacy human-readable identifier"
           },
           "name": {
             "type": "string",
@@ -11506,7 +12509,6 @@
         },
         "type": "object",
         "required": [
-          "id",
           "name"
         ],
         "title": "WorkflowConfigCreate",
@@ -11517,7 +12519,19 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Workflow UUID/Slug"
+            "description": "Workflow UUID"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Legacy human-readable identifier"
           },
           "name": {
             "type": "string",
@@ -11597,7 +12611,6 @@
         },
         "type": "object",
         "required": [
-          "id",
           "name"
         ],
         "title": "WorkflowConfigDefinition",
@@ -11770,6 +12783,19 @@
             "description": "Unique step identifier, e.g., 'safety_check'",
             "x-ui-label": "ID"
           },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "Legacy human-readable identifier",
+            "x-ui-label": "Slug"
+          },
           "name": {
             "type": "string",
             "title": "Name",
@@ -11821,7 +12847,6 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id",
           "name",
           "task_key"
         ],
