@@ -59,10 +59,18 @@ class UnifiedMetricGauge extends StatelessWidget {
           // 1. Label
           SizedBox(
             width: 140,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              overflow: TextOverflow.ellipsis,
+            child: Tooltip(
+              message: description,
+              waitDuration: const Duration(milliseconds: 500),
+              showDuration: const Duration(seconds: 3),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
 

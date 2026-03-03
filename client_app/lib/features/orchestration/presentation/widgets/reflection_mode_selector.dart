@@ -27,8 +27,8 @@ class ReflectionModeSelector extends ConsumerWidget {
           child: Text(
             l10n.reflectionDescription,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         Row(
@@ -91,19 +91,24 @@ class ReflectionModeSelector extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isSelected ? colorScheme.primary : colorScheme.outlineVariant,
+            color:
+                isSelected ? colorScheme.primary : colorScheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
-          color: isSelected
-              ? colorScheme.primaryContainer.withAlpha(50)
-              : colorScheme.surface,
+          color:
+              isSelected
+                  ? colorScheme.primaryContainer.withAlpha(50)
+                  : colorScheme.surface,
         ),
         child: Column(
           children: [
             Icon(
               icon,
-              color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+              color:
+                  isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 8),
             Text(

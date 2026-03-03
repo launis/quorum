@@ -207,7 +207,7 @@ class AnalysisWizardScreen extends ConsumerWidget {
           'Workflow not found for ID: ${wizardState.selectedWorkflowId}',
         );
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
+          SnackBar(
             content: Text(AppLocalizations.of(context)!.errInvalidWorkflow),
           ),
         );
@@ -248,8 +248,9 @@ class AnalysisWizardScreen extends ConsumerWidget {
       Map<String, dynamic> finalInputs = Map.from(wizardState.inputs);
       List<String> finalRequiredInputs = List.from(requiredInputs);
 
-      final bool hasReflectionField = requiredInputs.contains('reflection_text') || 
-                                     (workflow.uiSchema?.keys.contains('reflection_text') ?? false);
+      final bool hasReflectionField =
+          requiredInputs.contains('reflection_text') ||
+          (workflow.uiSchema?.keys.contains('reflection_text') ?? false);
 
       if (hasReflectionField && reflectionState != null) {
         if (reflectionState.inputMode == ReflectionInputMode.guided) {
@@ -260,7 +261,9 @@ class AnalysisWizardScreen extends ConsumerWidget {
             q4Argumentation: reflectionState.q4Argumentation,
           );
           finalInputs.remove('reflection_text'); // Clear if guided
-          finalRequiredInputs.remove('reflection_text'); // Satisfied by GuidedReflectionDTO
+          finalRequiredInputs.remove(
+            'reflection_text',
+          ); // Satisfied by GuidedReflectionDTO
         } else if (reflectionState.inputMode == ReflectionInputMode.text) {
           finalInputs['reflection_text'] = reflectionState.freeText;
         }
@@ -286,17 +289,24 @@ class AnalysisWizardScreen extends ConsumerWidget {
       // Ensure specific errors are rethrown or handled if not by ref.listen
       if (context.mounted) {
         final l10n = AppLocalizations.of(context)!;
-        final errorMessage = e is AppError
-            ? l10n.errNetworkOrTimeout(e.mapOrNull(api: (err) => err.detail, server: (err) => err.message) ?? e.toString())
-            : l10n.errSystemError(e.toString());
-            
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(
-          content: Text(errorMessage),
-          duration: const Duration(seconds: 8),
-          behavior: SnackBarBehavior.floating,
-        ));
+        final errorMessage =
+            e is AppError
+                ? l10n.errNetworkOrTimeout(
+                  e.mapOrNull(
+                        api: (err) => err.detail,
+                        server: (err) => err.message,
+                      ) ??
+                      e.toString(),
+                )
+                : l10n.errSystemError(e.toString());
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 8),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }

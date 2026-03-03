@@ -178,8 +178,8 @@ class TaskRegistry:
                     # System Context
                     from datetime import UTC, datetime
 
-                    vars_to_inject["CURRENT_DATE"] = datetime.now(UTC).strftime("%Y-%m-%d")
-                    vars_to_inject["DYNAMIC_TIME"] = datetime.now(UTC).strftime("%H:%M:%S")
+                    vars_to_inject["CURRENT_DATE"] = datetime.now().astimezone().strftime("%Y-%m-%d")
+                    vars_to_inject["DYNAMIC_TIME"] = datetime.now().astimezone().strftime("%H:%M:%S")
                     vars_to_inject["DYNAMIC_LOCATION"] = "Sijainti: VIRTUAL_ENCLAVE"
 
                     if system_instruction:

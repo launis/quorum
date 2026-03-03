@@ -8,6 +8,7 @@ class EvidenceDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Extract sections
     final hypos = report['analyysi_hypoteesit'] as List? ?? [];
     final evidence = report['analyysi_todisteet'] as List? ?? []; // RAG results
@@ -122,14 +123,31 @@ class EvidenceDashboard extends StatelessWidget {
               ...facts.map((f) {
                 final map = f as Map<String, dynamic>;
                 final res = map['verifiointi_tulos'] as String? ?? 'Unknown';
-                final isVerified = res.toLowerCase().contains('vahvistettu');
+                final resLower = res.toLowerCase();
+                final isVerified =
+                    resLower.contains('vahvistettu') ||
+                    resLower.contains('verified');
+
+                String localizedRes = res;
+                if (isVerified) {
+                  localizedRes = l10n.verVerified;
+                } else if (resLower.contains('kumottu') ||
+                    resLower.contains('debunked')) {
+                  localizedRes = l10n.verDebunked;
+                } else if (resLower.contains('epävarma') ||
+                    resLower.contains('uncertain')) {
+                  localizedRes = l10n.verUncertain;
+                }
+
                 return ListTile(
                   leading: Icon(
                     isVerified ? Icons.verified : Icons.verified_user_outlined,
                     color: isVerified ? Colors.green : Colors.orange,
                   ),
                   title: Text(map['vaite'] as String? ?? ''),
-                  subtitle: Text('$res (${map['lahde_tai_paattely']})'),
+                  subtitle: Text(
+                    '$localizedRes (${map['lahde_tai_paattely']})',
+                  ),
                   dense: true,
                 );
               }),

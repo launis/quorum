@@ -158,12 +158,12 @@ class PromptBuilder:
             str: Content with global variables injected.
         """
         if "{{CURRENT_DATE}}" in content:
-            now_str = datetime.now().strftime("%d.%m.%Y")
+            now_str = datetime.now().astimezone().strftime("%d.%m.%Y")
             content = content.replace("{{CURRENT_DATE}}", now_str)
 
         if "{{DYNAMIC_TIME}}" in content:
             # Simple server time, e.g. 14:30
-            time_str = datetime.now().strftime("%H:%M")
+            time_str = datetime.now().astimezone().strftime("%H:%M")
             content = content.replace("{{DYNAMIC_TIME}}", time_str)
 
         if "{{DYNAMIC_LOCATION}}" in content:

@@ -64,7 +64,10 @@ class VertexAISearchTool:
         """
         if not VERTEX_AVAILABLE:
             error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
-            msg = f"Python package 'google-cloud-aiplatform' (vertexai) is not installed or failed to load: {_IMPORT_ERROR}"
+            msg = (
+                "Python package 'google-cloud-aiplatform' (vertexai) "
+                f"is not installed or failed to load: {_IMPORT_ERROR}"
+            )
             logger.error(f"[VertexAISearchTool] {error_code}: {msg}")
             raise ConfigurationError(
                 message=msg,
@@ -166,9 +169,16 @@ class VertexAISearchTool:
             for attempt in range(max_retries):
                 try:
                     # Construct Prompt
-                    prompt_text = f"Search for the following topic and provide key findings with sources: '{query}'"
+                    prompt_text = (
+                        "Search for the following topic and provide key findings with sources. "
+                        f"Reject any low-relevance findings and return ONLY undeniable hits: '{query}'"
+                    )
                     if language == "fi":
-                        prompt_text = f"Etsi tietoa seuraavasta aiheesta ja listaa lähteet: '{query}'"
+                        prompt_text = (
+                            "Etsi tietoa seuraavasta aiheesta ja listaa lähteet. "
+                            "Hylkää löydökset, joiden relevanssi on matala, "
+                            f"ja palauta vain kiistattomia osumia: '{query}'"
+                        )
 
                     response = model.generate_content(
                         prompt_text,
@@ -224,15 +234,22 @@ class VertexAISearchTool:
 
                 except Exception as e:
                     error_msg = str(e)
-                    is_quota_error = "429" in error_msg or "Quota exceeded" in error_msg or "RESOURCE_EXHAUSTED" in error_msg
+                    is_quota_error = (
+                        "429" in error_msg
+                        or "Quota exceeded" in error_msg
+                        or "RESOURCE_EXHAUSTED" in error_msg
+                    )
 
                     if is_quota_error and attempt < max_retries - 1:
                         # Exponential backoff: 2s, 4s, 8s
                         delay = base_delay * (2 ** attempt)
                         logger.warning(
-                            f"[VertexAISearchTool] Vertex AI Quota Exceeded (429). Retrying query '{query}' in {delay}s (Attempt {attempt + 1}/{max_retries})."
+                            f"[VertexAISearchTool] Vertex AI Quota Exceeded (429). "
+                            f"Retrying query '{query}' in {delay}s (Attempt {attempt + 1}/{max_retries})."
                         )
-                        time.sleep(delay)  # We are in sync context, but inside async runner it might block. Time.sleep is safe enough for hook wrap.
+                        # We are in sync context, but inside async runner it might block.
+                        # Time.sleep is safe enough for hook wrap.
+                        time.sleep(delay)
                         continue
 
                     # If out of retries or other error
@@ -244,7 +261,10 @@ class VertexAISearchTool:
                         ) from e
 
                     error_code = ErrorCodes.SEARCH_EXECUTION_FAILED
-                    logger.error(f"[VertexAISearchTool] {error_code}: Grounding failed for '{query}': {e}", exc_info=True)
+                    logger.error(
+                        f"[VertexAISearchTool] {error_code}: Grounding failed for '{query}': {e}",
+                        exc_info=True
+                    )
 
                     # Fail Fast: Raise exception immediately on critical failure
                     raise AppException(

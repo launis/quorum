@@ -71,11 +71,18 @@ class ComplianceDomainTransformer(BaseTransformer):
         except Exception as e:
             raise AppException(f"Failed to create SecurityDisplay: {e}", 500) from e
 
-        return SemanticBlock(id="security-grid",
-            type=BlockType.DATA_GRID,
-            label=self._get_title(TitleKey.SECURITY),
-            value={"security_display": s_display.model_dump()},
-        )
+        try:
+            display_dict = s_display.model_dump()
+            display_dict["findings_label"] = self._t("lblFindings", "Löydökset")
+            display_dict["no_findings_label"] = self._t("lblNoSignificantFindings", "Ei merkittäviä löydöksiä.")
+            
+            return SemanticBlock(id="security-grid",
+                type=BlockType.DATA_GRID,
+                label=self._get_title(TitleKey.SECURITY),
+                value={"security_display": display_dict},
+            )
+        except Exception as e:
+            raise AppException(f"Failed to create SecurityGrid block: {e}", 500) from e
 
     def _extract_archivist_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_archivist

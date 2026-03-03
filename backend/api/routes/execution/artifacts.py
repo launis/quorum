@@ -84,12 +84,12 @@ async def download_execution_pdf(
         rel_path = f"executions/{execution_id}/report.pdf"
 
         # Construct a custom filename
-        from datetime import datetime
+        from datetime import datetime, timezone
         created_dt = exec_data.get("created_at")
         if isinstance(created_dt, str):
             created_dt = datetime.fromisoformat(created_dt.replace("Z", "+00:00"))
         if not created_dt:
-            created_dt = datetime.now()
+            created_dt = datetime.now(timezone.utc)
         date_str = created_dt.strftime("%d%m%Y")
 
         # Look for a workflow name or title

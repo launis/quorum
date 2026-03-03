@@ -29,7 +29,10 @@ class GuidedReflectionForm extends ConsumerWidget {
           hint: l10n.q1GoalHint,
           value: state.q1Goal,
           icon: Icons.flag,
-          onChanged: (val) => ref.read(reflectionFormControllerProvider.notifier).setQ1Goal(val),
+          onChanged:
+              (val) => ref
+                  .read(reflectionFormControllerProvider.notifier)
+                  .setQ1Goal(val),
         ),
         const SizedBox(height: 16),
         _buildSection(
@@ -39,7 +42,10 @@ class GuidedReflectionForm extends ConsumerWidget {
           hint: l10n.q2FalsificationHint,
           value: state.q2Falsification,
           icon: Icons.bug_report,
-          onChanged: (val) => ref.read(reflectionFormControllerProvider.notifier).setQ2Falsification(val),
+          onChanged:
+              (val) => ref
+                  .read(reflectionFormControllerProvider.notifier)
+                  .setQ2Falsification(val),
         ),
         const SizedBox(height: 16),
         _buildSection(
@@ -49,7 +55,10 @@ class GuidedReflectionForm extends ConsumerWidget {
           hint: l10n.q3SynthesisHint,
           value: state.q3Synthesis,
           icon: Icons.create,
-          onChanged: (val) => ref.read(reflectionFormControllerProvider.notifier).setQ3Synthesis(val),
+          onChanged:
+              (val) => ref
+                  .read(reflectionFormControllerProvider.notifier)
+                  .setQ3Synthesis(val),
         ),
         const SizedBox(height: 16),
         _buildSection(
@@ -59,13 +68,20 @@ class GuidedReflectionForm extends ConsumerWidget {
           hint: l10n.q4ArgumentationHint,
           value: state.q4Argumentation,
           icon: Icons.gavel,
-          onChanged: (val) => ref.read(reflectionFormControllerProvider.notifier).setQ4Argumentation(val),
+          onChanged:
+              (val) => ref
+                  .read(reflectionFormControllerProvider.notifier)
+                  .setQ4Argumentation(val),
         ),
       ],
     );
   }
 
-  Widget _buildFreeTextForm(BuildContext context, WidgetRef ref, String initialValue) {
+  Widget _buildFreeTextForm(
+    BuildContext context,
+    WidgetRef ref,
+    String initialValue,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     return TextFormField(
       initialValue: initialValue,
@@ -76,7 +92,10 @@ class GuidedReflectionForm extends ConsumerWidget {
         alignLabelWithHint: true,
         border: const OutlineInputBorder(),
       ),
-      onChanged: (val) => ref.read(reflectionFormControllerProvider.notifier).setFreeText(val),
+      onChanged:
+          (val) => ref
+              .read(reflectionFormControllerProvider.notifier)
+              .setFreeText(val),
       validator: (value) {
         if (value == null || value.trim().length < 100) {
           return l10n.minCharsRequired;
@@ -98,7 +117,7 @@ class GuidedReflectionForm extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final length = value.trim().length;
     final isWarning = length > 0 && length < 100;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -109,9 +128,9 @@ class GuidedReflectionForm extends ConsumerWidget {
             Expanded(
               child: Text(
                 title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -119,9 +138,9 @@ class GuidedReflectionForm extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           hint,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -151,7 +170,7 @@ class GuidedReflectionForm extends ConsumerWidget {
               AppLocalizations.of(context)!.expandArgumentationHint(length),
               style: TextStyle(color: colorScheme.error, fontSize: 12),
             ),
-          )
+          ),
       ],
     );
   }

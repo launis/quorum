@@ -1,7 +1,6 @@
 import pytest
 
 from backend.api.transformers.assessment import AssessmentTransformer
-from backend.models.view import AssessmentView
 
 
 @pytest.fixture

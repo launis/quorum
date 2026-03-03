@@ -47,8 +47,15 @@ async def get_execution_view(
         # Transform logic
         transformer = ReportTransformer(language=accept_language or "en")
 
+        # Fetch workflow to get actual name, not ID
+        wf_name = None
+        if execution.workflow_id:
+            wf = await repository.get_workflow(execution.workflow_id)
+            if wf:
+                wf_name = wf.name
+
         # STRICT TYPING MANDATE: Pass Pydantic Model.
-        view = transformer.transform(execution)
+        view = transformer.transform(execution, workflow_name=wf_name)
         return view
 
     except ResourceNotFoundError as e:
@@ -221,8 +228,14 @@ async def get_execution_json_export(
         # My impl assumes static transform.
         transformer = ReportTransformer()
 
+        wf_name = None
+        if execution.workflow_id:
+            wf = await repository.get_workflow(execution.workflow_id)
+            if wf:
+                wf_name = wf.name
+
         # STRICT TYPING MANDATE (Part 2.4): Pass Pydantic Model, NOT dict.
-        view = transformer.transform(execution)
+        view = transformer.transform(execution, workflow_name=wf_name)
 
         # 3. Return View Model
         # FastAPI handles serialization (including dates/enum values) based on response_model

@@ -58,11 +58,14 @@ class WorkflowExecution extends _$WorkflowExecution {
     // Simply update state as data arrives.
 
     // ignore: avoid_types_on_closure_parameters
-    final subscription = stream.listen((execution) {
-      state = AsyncValue.data(execution);
-    }, onError: (Object error, StackTrace stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
-    });
+    final subscription = stream.listen(
+      (execution) {
+        state = AsyncValue.data(execution);
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        state = AsyncValue.error(error, stackTrace);
+      },
+    );
 
     // Ensure subscription is cancelled if the provider is disposed or rebuilt
     ref.onDispose(() {

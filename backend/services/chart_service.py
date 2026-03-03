@@ -58,24 +58,12 @@ class ChartService:
 
             # --- POLYGON GRID (Spider Web Style) ---
             ax.yaxis.grid(False)
-
-            # Dynamic Grid Calculation
-            grid_levels: list[float] = []
-            if max_val <= 5:
-                grid_levels = list(range(1, max_val + 1))
-            elif max_val <= 10:
-                grid_levels = list(range(2, max_val + 1, 2))
-            elif max_val == 50:
-                grid_levels = [10, 20, 30, 40, 50]
-            elif max_val == 100:
-                grid_levels = [20, 40, 60, 80, 100]
-            else:
-                step = max_val / 4
-                levels = [step, step * 2, step * 3, float(max_val)]
-                grid_levels = [int(l) if l.is_integer() else l for l in levels]
+            
+            # Dynamic Grid Calculation - match Flutter (only 1 tick or very minimal)
+            grid_levels: list[float] = [float(max_val)]
 
             for level in grid_levels:
-                ax.plot(angles, [level] * len(angles), color="grey", linewidth=0.5, linestyle=":")
+                ax.plot(angles, [level] * len(angles), color="lightgrey", linewidth=0.5, linestyle="solid")
 
             # Draw labels
             label_angle = 0.0
@@ -84,20 +72,15 @@ class ChartService:
 
             ax.set_rlabel_position(np.degrees(label_angle))  # type: ignore
             ax.set_yticks(grid_levels)
-            ax.set_yticklabels([str(l) for l in grid_levels], color="grey", size=7)
+            # Remove text labels for the grid to match Flutter UI
+            ax.set_yticklabels([])
 
             # Ensure 0 is center
-            ax.set_ylim(0, max_val)
+            ax.set_ylim(0, float(max_val))
 
-            # Plot data
-            ax.plot(angles, values, linewidth=1, linestyle="solid", color="#1A73E8", marker="o", markersize=4)
-            ax.fill(angles, values, color="#1A73E8", alpha=0.25)
-
-            # Annotate values
-            for angle, val, _label in zip(angles[:-1], values[:-1], categories, strict=False):
-                ax.text(
-                    angle, val + 0.3, f"{val:.1f}", ha="center", va="center", size=8, color="#1A73E8", weight="bold"
-                )
+            # Plot data - using Material 3 Purple to match the UI screenshot
+            ax.plot(angles, values, linewidth=2, linestyle="solid", color="#6750A4", marker="o", markersize=3)
+            ax.fill(angles, values, color="#6750A4", alpha=0.15)
 
             # Output to base64
             buf = io.BytesIO()

@@ -1,4 +1,5 @@
 import logging
+import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
@@ -35,6 +36,12 @@ class BaseTransformer:
         try:
             # Parse ISO string (e.g. "2026-02-12T10:00:00")
             dt = datetime.fromisoformat(str(timestamp_str).replace("Z", "+00:00"))
+
+            try:
+                # Convert to local time based on system location (or user settings later)
+                dt = dt.astimezone()
+            except Exception as tz_e:
+                logger.debug(f"Timezone conversion skipped or failed: {tz_e}")
 
             if self.language == "fi":
                 return dt.strftime("%d.%m.%Y %H:%M")

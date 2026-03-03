@@ -122,8 +122,8 @@ class Settings(BaseSettings):
     )
 
     # --- Retrieval / Precedents ---
-    max_precedent_scan_depth: Annotated[int, Field(description="Max executions to scan for precedents")] = 5
-    max_precedent_return_count: Annotated[int, Field(description="Max precedents to return")] = 3
+    max_precedent_scan_depth: Annotated[int, Field(description="Max executions to scan for precedents")] = 3
+    max_precedent_return_count: Annotated[int, Field(description="Max precedents to return")] = 2
 
     # --- Redis & Arq ---
     redis_host: Annotated[str, Field(description="Redis Host")] = "localhost"
@@ -265,7 +265,10 @@ class Settings(BaseSettings):
             return StorageBackend.LOCAL
 
         raise AppException(
-            message=f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True).",
+            message=(
+                f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. "
+                "Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True)."
+            ),
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
         )

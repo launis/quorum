@@ -114,7 +114,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         return const Icon(Icons.compare_arrows, color: Colors.teal);
       case 'PERFORMATIVITY_CHECK':
         return const Icon(Icons.theater_comedy, color: Colors.purple);
+      case 'fact-check':
       case 'FACT_CHECK':
+      case 'fact-check-grid':
+      case 'FACT_CHECK_GRID':
         return const Icon(Icons.fact_check, color: Colors.blue);
       case 'PROFILER_ANALYSIS':
         return const Icon(Icons.face, color: Colors.pinkAccent);
@@ -135,7 +138,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         return AppLocalizations.of(context)!.subCausalAnalysis;
       case 'PERFORMATIVITY_CHECK':
         return AppLocalizations.of(context)!.subPerformativityCheck;
+      case 'fact-check':
       case 'FACT_CHECK':
+      case 'fact-check-grid':
+      case 'FACT_CHECK_GRID':
         return AppLocalizations.of(context)!.subFactCheck;
       case 'PROFILER_ANALYSIS':
         return AppLocalizations.of(context)!.subProfilerAnalysis;
@@ -211,36 +217,40 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     try {
       // Switch on type to provide RICH custom visualization
-    switch (widget.type) {
-      case 'logic-analysis':
-      case 'LOGIC_ANALYSIS':
-        return _buildLogicAnalysis(context);
-      case 'stress-test':
-      case 'STRESS_TEST':
-        return _buildStressTest(context);
-      case 'causal-analysis':
-      case 'CAUSAL_ANALYSIS':
-        return _buildCausalAnalysis(context);
-      case 'profiler-analysis':
-      case 'PROFILER_ANALYSIS':
-        return _buildProfilerAnalysis(context);
-      case 'fact-check':
-      case 'FACT_CHECK':
-        return _buildFactCheck(context);
-      case 'performativity-check':
-      case 'PERFORMATIVITY_CHECK':
-        return _buildPerformativityCheck(context);
-      case 'archivist-check':
-      case 'ARCHIVIST_CHECK':
-        return _buildArchivistCheck(context);
+      switch (widget.type) {
+        case 'logic-analysis':
+        case 'LOGIC_ANALYSIS':
+          return _buildLogicAnalysis(context);
+        case 'stress-test':
+        case 'STRESS_TEST':
+          return _buildStressTest(context);
+        case 'causal-analysis':
+        case 'CAUSAL_ANALYSIS':
+          return _buildCausalAnalysis(context);
+        case 'profiler-analysis':
+        case 'PROFILER_ANALYSIS':
+          return _buildProfilerAnalysis(context);
+        case 'fact-check':
+        case 'FACT_CHECK':
+        case 'fact-check-grid':
+        case 'FACT_CHECK_GRID':
+          return _buildFactCheck(context);
+        case 'performativity-check':
+        case 'PERFORMATIVITY_CHECK':
+          return _buildPerformativityCheck(context);
+        case 'archivist-check':
+        case 'ARCHIVIST_CHECK':
+          return _buildArchivistCheck(context);
 
-      case 'driver-profile':
-      case 'DRIVER_PROFILE':
-        return _buildDriverProfile(context);
-      case 'security-check':
-      case 'SECURITY_CHECK':
-        return _buildSecurityCheck(context);
-      default:
+        case 'driver-profile':
+        case 'DRIVER_PROFILE':
+        case 'interaction-grid':
+        case 'INTERACTION_GRID':
+          return _buildDriverProfile(context);
+        case 'security-check':
+        case 'SECURITY_CHECK':
+          return _buildSecurityCheck(context);
+        default:
           // Fallback to generic map renderer if type is barely supported
           return _buildGenericMap(widget.data);
       }
@@ -360,8 +370,6 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         return l10n.stratHigh;
       case 'STRAT_VISIONARY':
         return l10n.stratVisionary;
-
-
 
       default:
         return key;
@@ -496,17 +504,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                       ],
                       if (t['rebuttal'] != null) ...[
                         const SizedBox(height: 4),
-                        _buildLabelValue(
-                          l10n.lblRebuttal,
-                          t['rebuttal'],
-                        ),
+                        _buildLabelValue(l10n.lblRebuttal, t['rebuttal']),
                       ],
                       if (t['qualifier'] != null) ...[
                         const SizedBox(height: 4),
-                        _buildLabelValue(
-                          l10n.lblQualifier,
-                          t['qualifier'],
-                        ),
+                        _buildLabelValue(l10n.lblQualifier, t['qualifier']),
                       ],
                     ],
                   ),
@@ -578,7 +580,14 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             displayValue:
                 "${((widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}/6.0",
             color: Colors.indigo,
-            axisLabels: [l10n.lblClaim, '', l10n.lblData, '', l10n.lblBacking, ''],
+            axisLabels: [
+              l10n.lblClaim,
+              '',
+              l10n.lblData,
+              '',
+              l10n.lblBacking,
+              '',
+            ],
           );
 
           // Responsive Layout handling Matrix right, Text left (mobile: Matrix top)
@@ -601,18 +610,19 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               border: Border.all(color: Colors.grey[200]!),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: arguments.isNotEmpty
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: toulminChildren,
-                  )
-                : Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      l10n.dataUnavailable,
-                      style: const TextStyle(fontStyle: FontStyle.italic),
+            child:
+                arguments.isNotEmpty
+                    ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: toulminChildren,
+                    )
+                    : Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        l10n.dataUnavailable,
+                        style: const TextStyle(fontStyle: FontStyle.italic),
+                      ),
                     ),
-                  ),
           );
 
           return _buildResponsiveLayout(
@@ -844,7 +854,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 fidelity['post_hoc_rationalization_suspected'].toString(),
               ),
               const SizedBox(height: 4),
-              _buildLabelValue(AppLocalizations.of(context)!.lblReasoning, fidelity['reasoning'] ?? '-'),
+              _buildLabelValue(
+                AppLocalizations.of(context)!.lblReasoning,
+                fidelity['reasoning'] ?? '-',
+              ),
             ],
           ),
         ),
@@ -947,7 +960,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     widget.data['abductive_score_display'] ??
                     "${abductiveScore}/3.0",
                 color: Colors.teal,
-                axisLabels: const ['Heikko', 'Kohtalainen', 'Vahva'],
+                axisLabels: [
+                  AppLocalizations.of(context)!.lblWeak,
+                  AppLocalizations.of(context)!.lblModerate,
+                  AppLocalizations.of(context)!.lblStrong
+                ],
               ),
               const SizedBox(height: 8),
               Text(abductive, style: const TextStyle(fontSize: 14)),
@@ -1107,8 +1124,14 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             AppLocalizations.of(context)!.lblWordCount,
             wordCount,
           ),
-          _buildMetricBlock(AppLocalizations.of(context)!.lblAvgSentenceLength, avgLength),
-          _buildMetricBlock(AppLocalizations.of(context)!.lblLexicalDiversity, lexicalDiv),
+          _buildMetricBlock(
+            AppLocalizations.of(context)!.lblAvgSentenceLength,
+            avgLength,
+          ),
+          _buildMetricBlock(
+            AppLocalizations.of(context)!.lblLexicalDiversity,
+            lexicalDiv,
+          ),
         ],
       ),
     );
@@ -1117,13 +1140,21 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     if (profile != null) {
       rightChildren.add(
-        _buildInfoCard(AppLocalizations.of(context)!.lblPsychologicalProfile, profile, Icons.psychology),
+        _buildInfoCard(
+          AppLocalizations.of(context)!.lblPsychologicalProfile,
+          profile,
+          Icons.psychology,
+        ),
       );
       rightChildren.add(const SizedBox(height: 8));
     }
     if (intent != null) {
       rightChildren.add(
-        _buildInfoCard(AppLocalizations.of(context)!.lblAuthorIntent, intent, Icons.track_changes),
+        _buildInfoCard(
+          AppLocalizations.of(context)!.lblAuthorIntent,
+          intent,
+          Icons.track_changes,
+        ),
       );
     }
 
@@ -1496,7 +1527,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               displayValue:
                   "${(score as num?)?.toDouble() ?? (normalizedScore * 5.0).toStringAsFixed(1)}/5.0",
               color: Colors.brown,
-              axisLabels: const ['Heikko', '', '', '', '', 'Vahva'],
+              axisLabels: [AppLocalizations.of(context)!.lblWeak, '', '', '', '', AppLocalizations.of(context)!.lblStrong],
             ),
             const SizedBox(height: 8),
             Text(
@@ -1828,10 +1859,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                       left: 30, // Padding from edges
                       right: 30,
                       top: 10,
-                      child: Container(
-                        height: 4,
-                        color: Colors.grey[300],
-                      ),
+                      child: Container(height: 4, color: Colors.grey[300]),
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1846,9 +1874,15 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                                     width: 24,
                                     height: 24,
                                     decoration: BoxDecoration(
-                                      color: isActive ? Colors.blue : Colors.grey[300],
+                                      color:
+                                          isActive
+                                              ? Colors.blue
+                                              : Colors.grey[300],
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 3),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 3,
+                                      ),
                                       boxShadow: [
                                         if (isActive)
                                           BoxShadow(

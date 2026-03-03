@@ -29,9 +29,9 @@ class GenericGrid extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2, // Responsive? For now fixed 2
-                childAspectRatio: 3.0,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 8,
+                childAspectRatio: 3.5,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 4,
               ),
               itemCount: items.length,
               itemBuilder: (context, index) {
@@ -48,19 +48,20 @@ class GenericGrid extends StatelessWidget {
                       label,
                       style: Theme.of(
                         context,
-                      ).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
+                      ).textTheme.labelSmall?.copyWith(color: Colors.grey[600], fontSize: 10),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       value,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 12,
                         fontWeight:
-                            highlight ? FontWeight.bold : FontWeight.normal,
+                            highlight ? FontWeight.bold : FontWeight.w600,
                         color:
                             highlight
                                 ? Theme.of(context).colorScheme.primary
-                                : null,
+                                : Colors.grey[800],
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),

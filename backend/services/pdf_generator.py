@@ -97,12 +97,22 @@ class PdfReportService:
                     details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND},
                 )
 
+            # 2.5 Fetch Workflow Name
+            workflow_name = None
+            if execution.workflow_id:
+                try:
+                    wf_def = await self.repository.get_workflow_definition(execution.workflow_id)
+                    if wf_def and hasattr(wf_def, "name"):
+                        workflow_name = wf_def.name
+                except Exception as e:
+                    logger.warning(f"Failed to fetch workflow name for {execution.workflow_id}: {e}")
+
             # 3. Transform
             await self.progress.emit_progress(execution_id, task_key, "Analyzing results...", 0.10)
 
             from pydantic import BaseModel
             # Helper for explicit typing if needed, but transformer expects ExecutionRecord
-            report_view = self.transformer.transform(execution)
+            report_view = self.transformer.transform(execution, workflow_name=workflow_name)
             ex_data: dict[str, Any] = execution.model_dump(mode="json") if isinstance(execution, BaseModel) else execution
 
             # 4. Generate Visualizations (Radar Charts)
@@ -223,7 +233,20 @@ class PdfReportService:
             await self.progress.emit_progress(execution_id, task_key, "Preparing report layout...", 0.20)
 
             template = self.env.get_template("dashboard_pdf.html")
-            html_content = template.render(view=report_view.model_dump(mode="json"))
+            
+            import zoneinfo
+            from datetime import datetime
+            
+            printed_at = ""
+            try:
+                printed_at = datetime.now().astimezone().strftime("%d.%m.%Y %H:%M")
+            except Exception:
+                printed_at = datetime.now().strftime("%d.%m.%Y %H:%M")
+
+            html_content = template.render(
+                view=report_view.model_dump(mode="json"),
+                printed_at=printed_at
+            )
 
             # 6. Generate PDF
             # WeasyPrint is CPU intensive and blocking.

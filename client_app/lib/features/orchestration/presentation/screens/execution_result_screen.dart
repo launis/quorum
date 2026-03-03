@@ -80,10 +80,16 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
   Future<void> _saveAndOpenPdf() async {
     if (_pdfBytes != null) {
       try {
-        final fallbackTimestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-        final fallbackFilename = 'AUDIT_REPORT_${widget.executionId}_$fallbackTimestamp.pdf';
-        var suggestedFilename = _downloadedFilename.isNotEmpty ? _downloadedFilename : fallbackFilename;
-        
+        final fallbackTimestamp = DateFormat(
+          'yyyyMMdd_HHmm',
+        ).format(DateTime.now());
+        final fallbackFilename =
+            'AUDIT_REPORT_${widget.executionId}_$fallbackTimestamp.pdf';
+        var suggestedFilename =
+            _downloadedFilename.isNotEmpty
+                ? _downloadedFilename
+                : fallbackFilename;
+
         if (!suggestedFilename.toLowerCase().endsWith('.pdf')) {
           suggestedFilename += '.pdf';
         }
@@ -148,7 +154,9 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
     final contentDisposition = response.headers['content-disposition'];
     if (contentDisposition != null) {
       // Parses both `filename="name.pdf"` and `filename=name.pdf`
-      final match = RegExp(r'filename="?([^";]+)"?').firstMatch(contentDisposition);
+      final match = RegExp(
+        r'filename="?([^";]+)"?',
+      ).firstMatch(contentDisposition);
       if (match != null && match.groupCount >= 1) {
         return match.group(1)!.trim();
       }

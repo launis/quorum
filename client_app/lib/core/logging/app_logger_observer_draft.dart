@@ -9,10 +9,7 @@ final class AppLoggerObserver extends ProviderObserver {
   AppLoggerObserver(this._logger);
 
   @override
-  void didAddProvider(
-    ProviderObserverContext context,
-    Object? value,
-  ) {
+  void didAddProvider(ProviderObserverContext context, Object? value) {
     // Wait, user says "signatue changed to pass single ProviderObserverContext object".
     // BUT I cannot verify this signature without docs or trial.
     // User text: "Nyt metodeille välitetään yksi ProviderObserverContext-objekti"

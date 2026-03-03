@@ -116,11 +116,10 @@ class StepConfigPanel extends ConsumerWidget {
                         onChanged: (val) => updateConfig('matrix_id', val),
                         availableMatrices:
                             (ref
-                                        .watch(
-                                          availableMatricesControllerProvider,
-                                        )
-                                        .value as List<StudioComponentDef>?) ??
-                                [],
+                                    .watch(availableMatricesControllerProvider)
+                                    .value
+                                as List<StudioComponentDef>?) ??
+                            [],
                       ),
                       const SizedBox(height: 24),
                     ],

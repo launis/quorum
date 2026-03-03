@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// A 2D Scatter Plot visualizing Logic Quality.
 /// X-Axis: Cognitive Level (Bloom's Taxonomy) - Depth of Thought
@@ -31,9 +32,9 @@ class LogicMatrixChart extends StatelessWidget {
     else if (x < 3.0 && y >= 3.0)
       quadrantLabel = "Faktapohjainen (Matala Bloom + Vahva Toulmin)";
     else if (x >= 3.0 && y < 3.0)
-      quadrantLabel = "Abstrakti (Korkea Bloom + Heikko Toulmin)";
+      quadrantLabel = AppLocalizations.of(context)?.lblAbstractQuadrant ?? "Abstrakti";
     else
-      quadrantLabel = "Pinnallinen (Matala Bloom + Heikko Toulmin)";
+      quadrantLabel = AppLocalizations.of(context)?.lblSuperficialQuadrant ?? "Pinnallinen";
 
     // Bubble Size Calculation (Z-Axis)
     // Scale 0-4 -> Radius 8-24

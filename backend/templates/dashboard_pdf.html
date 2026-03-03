@@ -75,7 +75,7 @@
         .gauge-container { margin-bottom: 10px; }
         .gauge-header { display: flex; justify-content: space-between; margin-bottom: 3px; }
         .gauge-track { background: #E0E0E0; height: 8px; border-radius: 4px; overflow: hidden; display: flex; }
-        .gauge-bar { height: 100%; border-radius: 4px; }
+        .gauge-bar { height: 100%; border-radius: 4px; width: calc(var(--percent, 0) * 1%); }
         .gauge-labels { display: flex; justify-content: space-between; margin-top: 2px; font-size: 8px; color: #757575; }
         
         /* Chips */
@@ -166,8 +166,13 @@
     {% else %}
     <div class="header-card header-danger">
     {% endif %}
-        <h1>{{ view.title }}</h1>
-        <div style="font-size: 10px; color: #666;">ID: {{ view.view_id }}</div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <div>
+                <h1 style="margin: 0;">{{ view.title }}</h1>
+                <div style="font-size: 11px; color: #444; margin-top: 5px;">Tulostettu: {{ printed_at }}</div>
+            </div>
+            <div style="font-size: 10px; color: #666; margin-left: 15px; white-space: nowrap; text-align: right;">ID: {{ view.view_id }}</div>
+        </div>
     </div>
 
     {# --- SYSTEM NOTIFICATION BANNER --- #}
@@ -209,6 +214,12 @@
                     <span style="font-size: 16px; margin-right: 8px;">📊</span>
                     <div class="label" style="color: #00695C;">{{ 'TEXT_METRICS_LABEL' | translate }}</div>
                 </div>
+                    <!-- Positioned using inline left% by WeasyPrint - Linter warning bypassed via dynamic attribute -->
+                    {% set conf_style = "position: absolute; left: " ~ (d.confidence_percent | round(1)) ~ "%; transform: translateX(-50%); text-align: center; margin-top: 15px;" %}
+                    <div {{ 'style' }}="{{ conf_style }}">
+                        <div style="font-size: 16px; margin-bottom: 2px;">▼</div>
+                        <div style="font-size: 11px; font-weight: 700; color: #E65100;">{{ d.confidence_percent | round(1) }}%</div>
+                    </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                     <div style="text-align: center; background: rgba(0, 150, 136, 0.1); padding: 5px; border-radius: 4px;">
                         <div style="font-size: 10px; color: #00796B;">{{ 'WORDS_LABEL' | translate }}</div>
@@ -244,9 +255,9 @@
                         <span class="value" style="color: #00796B;">{{ d.bloom_score_display }} / 6.0</span>
                     </div>
                     <div class="gauge-track">
-                        <div class="gauge-bar" style="--v: {{ d.bloom_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #009688;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.bloom_percent | round(1) }}; background-color: #009688;"></div>
                     </div>
-                    <div class="gauge-labels" style="justify-content: space-between;">
+                    <div class="gauge-labels" style="display: flex; justify-content: space-between;">
                         <span>{{ 'BLOOM_REMEMBERING' | translate }}</span>
                         <span>{{ 'BLOOM_UNDERSTANDING' | translate }}</span>
                         <span>{{ 'BLOOM_APPLYING' | translate }}</span>
@@ -265,9 +276,9 @@
                         <span class="value" style="color: #00796B;">{{ d.strategic_score_display }} / 4.0</span>
                     </div>
                     <div class="gauge-track">
-                        <div class="gauge-bar" style="--v: {{ d.strategic_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #00796B;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.strategic_percent | round(1) }}; background-color: #00796B;"></div>
                     </div>
-                    <div class="gauge-labels" style="justify-content: space-between;">
+                    <div class="gauge-labels" style="display: flex; justify-content: space-between;">
                         <span>{{ 'STRAT_LOW' | translate }}</span>
                         <span>{{ 'STRAT_MEDIUM' | translate }}</span>
                         <span>{{ 'STRAT_HIGH' | translate }}</span>
@@ -309,7 +320,7 @@
                     <span class="value" style="color: #283593;">{{ d.toulmin_score_display }} / 6.0</span>
                 </div>
                 <div class="gauge-track" style="background: #C5CAE9;">
-                    <div class="gauge-bar" style="--v: {{ d.toulmin_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #3F51B5;"></div>
+                    <div class="gauge-bar" style="--percent: {{ d.toulmin_percent | round(1) }}; background-color: #3F51B5;"></div>
                 </div>
             </div>
             {% endif %}
@@ -348,8 +359,8 @@
                             {# Use strategic score for size, default to 0 if missing for safe math, though strict mode implies we have it #}
                             {% set strat = d.strategic_score if d.strategic_score is not none else 2.0 %}
                             {% set bubble_size = 20 + (strat * 5) %}
-
-                            <div class="matrix-bubble" style="--x: {{ x_pos|round(1) }}; --y: {{ y_pos|round(1) }}; --sz: {{ bubble_size|round(0) }}; left: calc(var(--x) * 1%); bottom: calc(var(--y) * 1%); width: calc(var(--sz) * 1px); height: calc(var(--sz) * 1px);"></div>
+                            {% set bubble_style = "position: absolute; border-radius: 50%; background-color: rgba(63, 81, 181, 0.6); border: 1px solid #3F51B5; transform: translate(-50%, 50%); left: " ~ (x_pos|round(1)) ~ "%; bottom: " ~ (y_pos|round(1)) ~ "%; width: " ~ (bubble_size|round(0)) ~ "px; height: " ~ (bubble_size|round(0)) ~ "px;" %}
+                            <div {{ 'style' }}="{{ bubble_style }}"></div>
                         {% endif %}
                     </div>
                 </div>
@@ -385,9 +396,9 @@
                         <span class="value" style="color: #EF6C00;">{{ d.fidelity_audit.fidelity_score_display }} / 3.0</span>
                     </div>
                     <div class="gauge-track" style="background: #FFE0B2;">
-                        <div class="gauge-bar" style="--v: {{ d.fidelity_audit.fidelity_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #FF9800;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.fidelity_audit.fidelity_percent | round(1) }}; background-color: #FF9800;"></div>
                     </div>
-                    <div class="gauge-labels">
+                    <div class="gauge-labels" style="display: flex; justify-content: space-between;">
                          <span>{{ 'WEAK_LABEL' | translate }}</span>
                          <span>{{ 'STRONG_LABEL' | translate }}</span>
                     </div>
@@ -445,10 +456,10 @@
                         <span class="value" style="color: #00838F;">{{ d.abductive_score_display }} / 3.0</span>
                     </div>
                     <div class="gauge-track" style="background: #B2EBF2;">
-                        <div class="gauge-bar" style="--v: {{ d.abductive_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #00BCD4;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.abductive_percent | round(1) }}; background-color: #00BCD4;"></div>
                     </div>
-                    <div class="gauge-labels">
-                        <span>{{ 'WEAK_LABEL' | translate }}</span>
+                    <div class="gauge-labels" style="display: flex; justify-content: space-between;">
+                        <span>{{ 'LOW_CAPACITY' | translate }}</span>
                         <span>{{ 'STRONG_LABEL' | translate }}</span>
                     </div>
                 </div>
@@ -484,7 +495,7 @@
                         <span class="value">{{ d.plausibility_score_display }} / 3.0</span>
                     </div>
                     <div class="gauge-track">
-                            <div class="gauge-bar" style="--v: {{ d.plausibility_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #00ACC1;"></div>
+                            <div class="gauge-bar" style="--percent: {{ d.plausibility_percent | round(1) }}; background-color: #00ACC1;"></div>
                     </div>
                 </div>
                 {% endif %}
@@ -507,9 +518,9 @@
                         <span class="value" style="color: #7B1FA2;">{{ d.authenticity_score | round(1) }} / 3.0</span>
                     </div>
                     <div class="gauge-track" style="background: #E1BEE7;">
-                        <div class="gauge-bar" style="--v: {{ d.authenticity_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #9C27B0;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.authenticity_percent | round(1) }}; background-color: #9C27B0;"></div>
                     </div>
-                    <div class="gauge-labels">
+                    <div class="gauge-labels" style="display: flex; justify-content: space-between;">
                         <span>{{ 'PERFORMATIVE_LABEL' | translate }}</span>
                         <span>{{ 'AUTHENTIC_LABEL' | translate }}</span>
                     </div>
@@ -570,43 +581,52 @@
                 <h2 style="color: #455A64;">{{ section.label }}</h2>
                 {% set d = section.value %}
 
-                {% if section.id == 'security-grid' and d %}
+                {% if section.id == 'security-grid' and d and d.get('security_display') %}
+                    {% set sec = d.get('security_display') %}
                     {# Hoisted SDUI Display #}
                     <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                         {# Threat Chip #}
-                         <div class="chip {{ d.threat_color }}">
-                            {{ d.threat_label }}
+                         <div class="chip {{ sec.threat_color }}">
+                            {{ sec.threat_label }}
                          </div>
     
                          {# Risk Chip #}
-                         <div class="chip {{ d.risk_color }}">
-                            RISKI: {{ d.risk_label }}
+                         <div class="chip {{ sec.risk_color }}">
+                            {{ sec.risk_label }}
                          </div>
     
                          {# Anonymized Chip #}
-                         <div class="chip {{ d.anonymized_color }}">
-                            {{ d.anonymized_label }}
+                         <div class="chip {{ sec.anonymized_color }}">
+                            {{ sec.anonymized_label }}
                          </div>
                     </div>
     
                     {# Findings #}
-                    {% if d.findings %}
-                        <div class="label">Löydökset</div>
+                    {% if sec.findings %}
+                        <div class="label">{{ sec.findings_label }}</div>
                         <ul style="margin-top: 4px; padding-left: 15px; margin-bottom: 0;">
-                            {% for f in d.findings %}
+                            {% for f in sec.findings %}
                             <li style="font-size: 10px; color: #333;">{{ f }}</li>
                             {% endfor %}
                         </ul>
                     {% else %}
-                        <div style="font-size: 10px; color: #777; font-style: italic;">Ei merkittäviä löydöksiä.</div>
+                        <div style="font-size: 10px; color: #777; font-style: italic;">{{ sec.no_findings_label }}</div>
                     {% endif %}
                 {% else %}
-                    {# Fallback to old Key-Value Grid for non-security data (e.g. Usage Stats) #}
-                    <div class="grid-container">
+                    {# Custom Layout for Usage Stats to match UI - Dynamic for Translations #}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 4px;">
                         {% for item in section.value.get('items', []) %}
-                        <div class="grid-item" {% if item.get('highlight') %}style="background-color: #FFEBEE; border-color: #FFCDD2;"{% endif %}>
-                            <div class="label" {% if item.get('highlight') %}style="color: #C62828;"{% endif %}>{{ item.get('label') }}</div>
-                            <div class="value" {% if item.get('highlight') %}style="color: #B71C1C;"{% endif %}>{{ item.get('value') }}</div>
+                        {% set bg_color = '#F8F9FA' if loop.index <= 2 else '#FFF' %}
+                        {% set border_style = 'border: 1px solid #EEEEEE;' if loop.index <= 2 else '' %}
+                        {% set is_high = item.get('highlight') %}
+                        {% set text_color = '#512DA8' if is_high else '#212121' %}
+                        {% set font_weight = '700' if is_high else '600' %}
+                        {% set grid_bg_style = "background: " ~ bg_color ~ "; padding: 8px; border-radius: 6px; " ~ border_style %}
+                        {% set grid_text_style = "font-size: 10px; font-weight: " ~ font_weight ~ "; color: " ~ text_color ~ "; margin-top: 2px;" %}
+                        <!-- Inline style string generated by Jinja -->
+                        <div {{ 'style' }}="{{ grid_bg_style }}">
+                            <div style="font-size: 8px; color: #757575; font-weight: 700; text-transform: uppercase;">{{ item.get('label') }}</div>
+                            <div {{ 'style' }}="{{ grid_text_style }}">{{ item.get('value') }}</div>
                         </div>
                         {% endfor %}
                     </div>
@@ -675,7 +695,7 @@
                             <span class="value" style="color: #C2185B;">{{ d.control_ratio_display }} {{ d.control_label }}</span>
                         </div>
                         <div class="gauge-track" style="background: #F8BBD0;">
-                            <div class="gauge-bar" style="--v: {{ d.control_ratio_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #E91E63;"></div>
+                            <div class="gauge-bar" style="--percent: {{ d.control_ratio_percent | round(1) }}; background-color: #E91E63;"></div>
                         </div>
                         <div class="gauge-labels">
                             <span>{{ 'PASSENGER_LABEL' | translate }}</span>
@@ -796,9 +816,17 @@
                     
                     {% for role_val, role_label in roles %}
                     {% set active = (d.role_classification == role_val) %}
+                    {% set role_bg = '#2196F3' if active else '#E0E0E0' %}
+                    {% set role_border = '#1565C0' if active else '#BDBDBD' %}
+                    {% set role_text = '#1565C0' if active else '#757575' %}
+                    {% set role_weight = 'bold' if active else 'normal' %}
+                    {% set role_icon_style = "width: 24px; height: 24px; background-color: " ~ role_bg ~ "; border-radius: 50%; margin: 0 auto 8px auto; border: 3px solid #FFF; box-shadow: 0 0 0 1px " ~ role_border ~ ";" %}
+                    {% set role_font_style = "font-size: 10px; font-weight: " ~ role_weight ~ "; color: " ~ role_text ~ ";" %}
+                    
+                    <!-- Dynamic inline bindings with Jinja -->
                     <div style="text-align: center; width: 25%;">
-                        <div style="width: 24px; height: 24px; background-color: {% if active %}#2196F3{% else %}#E0E0E0{% endif %}; border-radius: 50%; margin: 0 auto 8px auto; border: 3px solid #FFF; box-shadow: 0 0 0 1px {% if active %}#1565C0{% else %}#BDBDBD{% endif %};"></div>
-                        <div style="font-size: 10px; font-weight: {% if active %}bold{% else %}normal{% endif %}; color: {% if active %}#1565C0{% else %}#757575{% endif %};">
+                        <div {{ 'style' }}="{{ role_icon_style }}"></div>
+                        <div {{ 'style' }}="{{ role_font_style }}">
                             {{ role_label | translate }}
                         </div>
                     </div>
@@ -830,8 +858,8 @@
         </div>
 
         {# --- OTHER: TIMELINE --- #}
-        {% elif section.type == 'TIMELINE_FEED' %}
-        <div class="card">
+        {% elif section.id == 'unified-timeline' %}
+        <div class="card" style="border-left: 4px solid #9E9E9E;">
             <h2>{{ section.label }}</h2>
             {% for event in section.value.get('events', []) %}
             <div class="timeline-item">
@@ -903,7 +931,51 @@
             </div>
         </div>
 
-        {# --- MARKDOWN BLOCK (XAI/Coach) --- #}
+        {# --- CRITICAL FINDINGS --- #}
+        {% elif section.id == 'critical-findings' %}
+        <div class="card" style="border-left: 4px solid #F44336; background-color: #FFEBEE;">
+            <h2 style="color: #C62828;">{{ section.label }}</h2>
+            <ul style="padding-left: 20px; color: #B71C1C;">
+                {% for finding in section.value.get('findings', []) %}
+                <li style="margin-bottom: 5px; font-weight: 600;">{{ finding }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        {# --- CONTEXT / KNOWLEDGE BASE --- #}
+        {% elif section.id == 'context-display' %}
+        <div class="card" style="border-left: 4px solid #8D6E63;">
+            <h2 style="color: #4E342E;">{{ section.label }}</h2>
+            {% for item in section.value.get('items', []) %}
+            <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #D7CCC8;">
+                <div style="font-size: 9px; color: #795548; font-weight: 600; margin-bottom: 2px;">
+                    Lähde: {{ item.source }}
+                </div>
+                <div style="font-size: 11px; color: #3E2723;">
+                    {{ item.content }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {# --- XAI SUMMARY --- #}
+        {% elif section.id == 'xai-summary' %}
+        <div class="card" style="border-left: 4px solid #673AB7; background-color: #EDE7F6;">
+            <h2 style="color: #4527A0;">{{ section.label }}</h2>
+            <div style="font-family: inherit; font-size: 11px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; color: #311B92;">{{ section.value.get('content', '') }}</div>
+        </div>
+
+        {# --- COACH FEEDBACK BLOCK --- #}
+        {% elif section.id == 'coach-markdown' %}
+        <div class="card" style="background: linear-gradient(135deg, #E8F5E9, #E0F2F1); border: 2px solid #A5D6A7; padding: 20px;">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div style="background-color: #43A047; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; color: white; margin-right: 12px; font-weight: bold; font-family: sans-serif; font-size: 14px;">🧠</div>
+                <h2 style="color: #1B5E20; margin: 0; border: none; padding: 0;">{{ section.label if section.label else 'Ohjaajan Palaute' }}</h2>
+            </div>
+            <div style="background-color: #FFFFFF; border: 1px solid #C8E6C9; border-radius: 8px; padding: 16px; font-family: inherit; font-size: 11px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; color: #1B5E20;">{{ section.value.get('content', '') }}</div>
+        </div>
+
+        {# --- MARKDOWN BLOCK (GENERIC) --- #}
         {% elif section.type == 'MARKDOWN_BLOCK' %}
         <div class="card">
             <h2>{{ section.label }}</h2>
@@ -912,10 +984,12 @@
 
         {# --- GENERIC FALLBACK --- #}
         {% else %}
+        {% if section.id != 'context-items' %}
         <div class="card">
             <h2>{{ section.label }}</h2>
             <pre style="font-size: 9px; overflow: hidden;">{{ section.value | tojson(indent=2) }}</pre>
         </div>
+        {% endif %}
         {% endif %}
         
     </div>

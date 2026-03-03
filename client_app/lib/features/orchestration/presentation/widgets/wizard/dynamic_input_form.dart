@@ -80,8 +80,13 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
                       key == 'reflection_text';
 
                   if (isOmniField) {
-                    if (key == 'reflection_text' || val['label'] == 'INPUT_REFLECTION_TEXT') {
-                      final reflectionMode = ref.watch(reflectionFormControllerProvider.select((s) => s.value?.inputMode));
+                    if (key == 'reflection_text' ||
+                        val['label'] == 'INPUT_REFLECTION_TEXT') {
+                      final reflectionMode = ref.watch(
+                        reflectionFormControllerProvider.select(
+                          (s) => s.value?.inputMode,
+                        ),
+                      );
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16.0),
                         child: Column(

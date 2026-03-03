@@ -50,6 +50,7 @@ class ReportTransformer(
         raw_data: ExecutionRecord,
         valid_range: tuple[float, float] | None = None,
         step_names: dict[str, str] | None = None,
+        workflow_name: str | None = None,
     ) -> SemanticReport:
         """Transforms execution data (Pydantic Model) into a clean ReportView model.
 
@@ -261,8 +262,30 @@ class ReportTransformer(
         # --- E. Dynamic Theming & Notifications ---
         status_theme, notification = self._determine_report_status(metrics, guard_grid)
 
+        # --- F. Dynamic Title with Timestamp ---
+        base_title = self._t("lblTitleReport", "Raportti")
+        created_str = ""
+        
+        if isinstance(raw_data, ExecutionRecord):
+            ts = raw_data.started_at or raw_data.created_at
+            if ts:
+                created_str = self._format_date(str(ts))
+            
+            # Use injected workflow_name if provided, else fallback to formatted workflow_id
+            if not workflow_name and raw_data.workflow_id:
+                # e.g 'xai_audit' -> 'Xai Audit'
+                workflow_name = raw_data.workflow_id.replace("_", " ").title()
+
+        # Combine: "Xai Audit - 03.10.2023 15:30"
+        final_title = base_title
+        if workflow_name:
+            final_title = workflow_name
+        if created_str:
+            final_title = f"{final_title} - {created_str}"
+
         return SemanticReport(
             report_id=execution_id,
+            title=final_title,
             intent=SemanticIntent.SUCCESS
             if status_theme == "success"
             else (SemanticIntent.WARNING if status_theme == "warning" else SemanticIntent.DANGER),
@@ -417,8 +440,8 @@ class ReportTransformer(
             if risk == RiskLevel.HIGH.value:
                 theme = "danger"
                 notification = SystemNotification(
-                    title="TURVALLISUUSRISKI",
-                    message="Raportissa on havaittu kriittisiä tietoturvariskejä. Tarkista 'Turvallisuus & Tietosuoja' -osio välittömästi.",
+                    title=self._t("lblSecurityRisk", "TURVALLISUUSRISKI"),
+                    message=self._t("lblSecurityRiskText", "Raportissa on havaittu kriittisiä tietoturvariskejä. Tarkista 'Turvallisuus & Tietosuoja' -osio välittömästi."),
                     level="danger",
                 )
                 return theme, notification
@@ -431,8 +454,8 @@ class ReportTransformer(
             if isinstance(cr, (float, int)) and cr < 0.3:
                 theme = "warning"
                 notification = SystemNotification(
-                    title="ALHAINEN INTERAKTIO",
-                    message="Käyttäjän osuus sisällöstä on alle 30%. Raportti saattaa sisältää merkittävästi tekoälyn hallusinoimaa sisältöä.",
+                    title=self._t("lblLowInteraction", "ALHAINEN INTERAKTIO"),
+                    message=self._t("lblLowInteractionText", "Käyttäjän osuus sisällöstä on alle 30%. Raportti saattaa sisältää merkittävästi tekoälyn hallusinoimaa sisältöä."),
                     level="warning",
                 )
                 return theme, notification
@@ -845,14 +868,15 @@ class ReportTransformer(
                 unique_findings.append(f)
                 seen.add(f)
 
+        title = self._t("lblTruthProtocolFindings", "TOTUUSPROTOKOLLAN LÖYDÖKSET")
+        disclaimer = self._t("lblFindingsDisclaimer", "Nämä löydökset perustuvat Tietopankin (Laki), Hakutulosten (Faktat) ja Lokien (Teot) vertailuun.")
+        
         # Format as Markdown List for high visibility
-        content = "### ⚠️ TOTUUSPROTOKOLLAN LÖYDÖKSET\n\n"
+        content = f"### \u26a0\ufe0f {title.upper()}\n\n"
         for item in unique_findings:
             content += f"- {item}\n"
 
-        content += (
-            "\n*Nämä löydökset perustuvat Tietopankin (Laki), Hakutulosten (Faktat) ja Lokien (Teot) vertailuun.*"
-        )
+        content += f"\n*{disclaimer}*"
 
         return SemanticBlock(id="critical-findings",
             type=BlockType.PARAGRAPH,

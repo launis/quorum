@@ -94,8 +94,8 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         raise AppException(message=msg, status_code=status_code, details={"error_code": error_code})
 
     context["inputs"] = inputs
-    context["generated_at"] = datetime.now().strftime("%d.%m.%Y %H:%M")
-    context["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    context["generated_at"] = datetime.now().astimezone().strftime("%d.%m.%Y %H:%M")
+    context["timestamp"] = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
     # Helper to inflate safely
     def _get_agent_output(key: str, model_cls: Any) -> Any:

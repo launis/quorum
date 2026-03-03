@@ -109,9 +109,12 @@ class LocalizationService:
         # 2. Try Fallback to English
         if val is None and lang_simple != "en":
             val = cls._translations.get("en", {}).get(key)
+            if val is not None:
+                logger.warning(f"BFF Translation Fallback: Key '{key}' missing in '{lang_simple}', falling back to English.")
 
         # 3. Fallback to Key
         if val is None:
+            logger.error(f"BFF Translation Error: Missing key '{key}' entirely. Initiating bypass.")
             val = key
 
         # 4. Interpolation
@@ -140,6 +143,7 @@ class LocalizationService:
         """Class method alias for translate with custom default fallback."""
         val = cls.translate(key, lang, **kwargs)
         if val == key and default:
+            logger.warning(f"BFF Bypass: Using hardcoded default '{default}' for missing key '{key}'")
             return default
         return val
 

@@ -180,18 +180,16 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
             logger.warning(f"[XAIReporterAgent] Invalid execution_id format '{exec_id_str}', generated new UUID.")
 
         # Aggregate Flattened Scores
-        flattened_scores: dict[str, float] = {}
+        # Calculate Averages and Dimensions
+        flattened_scores = {}
         total_score_sum = 0.0
         count = 0
 
-        # We use the Aggregated Score Cards
-        for card in score_cards:
-            total_normalized = normalize_score_to_100(card.total_score, card.scale_min, card.scale_max)
-            total_score_sum += total_normalized
-            count += 1
+        for card in score_cards: # Changed from result.score_cards to score_cards
             for dim in card.dimensions:
-                # Use dimension_id as key
-                # Strict: normalize each dimension score individually according to its card's scale
+                count += 1
+                total_score_sum += dim.score
+                # Normalize all scales to 0-100 logic
                 normalized_dim = normalize_score_to_100(dim.score, card.scale_min, card.scale_max)
                 flattened_scores[dim.dimension_id] = normalized_dim
 
@@ -204,7 +202,7 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
 
         flat_report = XAIFlatReportDTO(
             execution_id=execution_id,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             verdict=result.final_verdict,
             score_total=round(final_avg_score, 2),
             confidence_score=result.confidence_score,

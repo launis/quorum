@@ -17,9 +17,9 @@ class ReportTransformer:
     def __init__(self, language: str = "en"):
         self.language = language
 
-    def transform(self, execution: ExecutionRecord) -> ExecutionReportView:
+    def transform(self, execution: ExecutionRecord, workflow_name: str | None = None) -> ExecutionReportView:
         """Transforms a raw ExecutionRecord into a fully populated Server-Driven UI
         ReportView by delegating entirely to the ReportCoreTransformer.
         """
         core_transformer = ReportCoreTransformer(language=self.language)
-        return core_transformer.transform(execution)
+        return core_transformer.transform(execution, workflow_name=workflow_name)

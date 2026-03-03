@@ -32,7 +32,16 @@ SemanticIntent _parseSemanticIntent(String? value) {
   }
 }
 
-enum BlockType { paragraph, metric, list, dataGrid, citation, quotation, card, unknown }
+enum BlockType {
+  paragraph,
+  metric,
+  list,
+  dataGrid,
+  citation,
+  quotation,
+  card,
+  unknown,
+}
 
 BlockType _parseBlockType(String? value) {
   switch (value) {
@@ -125,7 +134,10 @@ class SemanticBlock {
       intent: _parseSemanticIntent(json['intent']),
       label: json['label'],
       value: json['value'],
-      metadata: json['metadata'] != null ? Map<String, dynamic>.from(json['metadata']) : {},
+      metadata:
+          json['metadata'] != null
+              ? Map<String, dynamic>.from(json['metadata'])
+              : {},
     );
   }
 }
@@ -151,19 +163,27 @@ class SemanticReport {
 
   factory SemanticReport.fromJson(Map<String, dynamic> json) {
     return SemanticReport(
-      reportId: json['report_id'] ?? json['view_id'] ?? '', // Fallback to view_id just in case
+      reportId:
+          json['report_id'] ??
+          json['view_id'] ??
+          '', // Fallback to view_id just in case
       title: json['title'] ?? '',
-      intent: _parseSemanticIntent(json['intent'] ?? json['status_theme']), // Fallback
-      blocks: (json['blocks'] as List<dynamic>? ?? [])
-          .map((e) => SemanticBlock.fromJson(e))
-          .toList(),
-      references: (json['references'] as List<dynamic>? ?? [])
-          .map((e) => ReferenceItem.fromJson(e))
-          .toList(),
+      intent: _parseSemanticIntent(
+        json['intent'] ?? json['status_theme'],
+      ), // Fallback
+      blocks:
+          (json['blocks'] as List<dynamic>? ?? [])
+              .map((e) => SemanticBlock.fromJson(e))
+              .toList(),
+      references:
+          (json['references'] as List<dynamic>? ?? [])
+              .map((e) => ReferenceItem.fromJson(e))
+              .toList(),
       metrics: json['metrics'] as Map<String, dynamic>?,
-      systemNotification: json['system_notification'] != null
-          ? SystemNotification.fromJson(json['system_notification'])
-          : null,
+      systemNotification:
+          json['system_notification'] != null
+              ? SystemNotification.fromJson(json['system_notification'])
+              : null,
     );
   }
 }

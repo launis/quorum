@@ -93,3 +93,19 @@ Kun vertailemme useita eri kognitiivisia mittareita tai käyttäjän heikkouksia
 
 ### 4.4 Sentimentti- ja Roolivirtaukset (Sparklines)
 - **Käyttökohde:** Pienet, tekstiin upotetut "Sparkline"-viivagraafit, jotka osoittavat askeleittain esimerkiksi sen, tuntuiko käyttäjä alussa matkustajalta ja siirtyikö hän myöhemmin kuskin rooliin.
+
+### 4.5 Tutkamalli (Radar Chart / Hämähäkinverkko)
+Kun vertailemme useita eri kognitiivisia mittareita tai käyttäjän heikkouksia/vahvuuksia, Radar Chart on ylivoimainen:
+- **Käyttökohde:** "Flattened Scores" (Tiivistetty Data) kokonaisuuden havainnollistamiseen yhteenveto-välilehdellä, jossa käyttäjä voi yhdellä vilkaisulla nähdä "Agency", "Synteesi", "Falsification" jne. akselien painotukset.
+
+### 4.6 Lämmökartta (Heatmap) / Logiikkamatriisi
+- **Käyttökohde:** Aikaisemmin käytetty 3D-logiikkamatriisi voidaan korvata 2D "Heatmap" -ruudukkona, missä X-akselilla on strateginen syvyys ja Y-akselilla Bloomin taksonomia. Yksittäinen rasti ruudussa näyttää mihin kvadraanttiin vuorovaikutus sijoittuu (esim. Operatiivinen/Muistava vs. Systeeminen/Luova).
+
+### 4.7 Vuorovaikutteinen Aikajana (Interactive Timeline)
+- **Käyttökohde:** "Timeline" eli tapahtumaloki muutetaan visuaaliseksi "Step-by-Step" -jäljeksi, jossa näkyy vertikaalinen graafinen linja, ja hälytykset (esim. Overseerin pysäytys) korostuvat punaisina leikkauspisteinä.
+
+### 4.8 Sentimentti- ja Roolivirtaukset (Sparklines)
+- **Käyttökohde:** Pienet, tekstiin upotetut "Sparkline"-viivagraafit, jotka osoittavat askeleittain esimerkiksi sen, tuntuiko käyttäjä alussa matkustajalta ja siirtyikö hän myöhemmin kuskin rooliin.
+
+5 Tooltipit
+- **Käyttökohde:** Varmista, että kaikki mittarit ja graafit on varustettu tooltipilla, joka selittää mittarin merkityksen ja laskentatavan. Näiden tooltipien tulisi olla selkeitä ja ytimekkäitä, ja niiden tulisi olla helposti saatavilla klikkaamalla tai hiiren osoittimella mittarin tai graafin päälle. Tooltipien tulisi olla responsiivisia ja toimia sekä mobiili- että työpöytäympäristöissä. Tooltippie käännökset ja kieliversiot on toteutettava .arb lokalisaatioilla suomeksi ja englanniksi.

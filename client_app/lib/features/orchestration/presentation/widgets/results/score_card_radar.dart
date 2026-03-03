@@ -81,7 +81,10 @@ class ScoreCardRadar extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        l10n.scaleInfo(card.minScore?.toInt() ?? 1, card.maxScore?.toInt() ?? 5),
+                        l10n.scaleInfo(
+                          card.minScore?.toInt() ?? 1,
+                          card.maxScore?.toInt() ?? 5,
+                        ),
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onPrimaryContainer.withOpacity(
                             0.7,
