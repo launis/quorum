@@ -106,6 +106,7 @@ Modifying `backend/seed/seed_data.json` autonomously is STRICTLY BLOCKED without
 5. MATH VERIFY: Run a script that recursively counts all objects, lists, and keys in `seed_data.backup.json` vs `seed_data.json` and prints the exact mathematical difference. If the delta is larger than the exact number of keys you explicitly added, STOP. You hallucinated data.
 6. DOMAIN VERIFY: You MUST run `pytest backend/tests/unit/test_seed_schema_alignment.py -v`. This test suite is the sovereign architectural guard. If it fails, your mutation corrupted the graph. Fix your script and try again.
 7. REPORT: Confirm the mathematical delta matches expectations and tests pass.
+8. SEED DATABASE: Aja komento `python backend/seed/run_seed.py local`. Tämä poistaa vanhan lokaalin tietokannan (`data/db.json`) ja rakentaa sen uudestaan juuri muokkaamastasi `seed_data.json` -tiedostosta, varmistaen että uusi arkkitehtuuri on heti käytettävissä kehitysympäristössä.
 ```
 
 ---

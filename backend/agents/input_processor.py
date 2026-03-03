@@ -1,6 +1,5 @@
 """Agent responsible for raw input processing (Y-Funnel)."""
 
-import base64
 import logging
 from typing import Any
 
@@ -10,7 +9,6 @@ from backend.agents.base import BaseAgent
 from backend.exceptions import AppException
 from backend.models.domain.input_processor import InputProcessorDTO, InputProcessorOutput
 from backend.models.domain.inputs import WorkflowInputs
-from backend.services.document_service import DocumentService
 
 logger = logging.getLogger(__name__)
 
@@ -54,58 +52,24 @@ class InputProcessorAgent(BaseAgent[WorkflowInputs, InputProcessorOutput]):
         context_dict = execution_context or {}
         execution_id = context_dict.get("execution_id", "unknown")
 
-        # Determine DocumentService availability (must be injected or instantiated)
-        # For pure architecture alignment, agents shouldn't instantiate heavy services,
-        # but since this runs in the worker, we spin up what we need or fetch from context.
-        document_service = context_dict.get("document_service")
-        if not document_service:
-            from backend.services.storage import get_storage_driver
-
-            storage_client = get_storage_driver()
-            document_service = DocumentService(storage_client)
-
+        # (Document extraction and Base64 OCR is handled upstream by ExecutionPrepService)
         extracted_data: dict[str, str] = {}
-        files_to_process: dict[str, tuple[str, bytes]] = {}
 
-        # 1. Inspect raw inputs
-        # (Since we accept dicts or strings in WorkflowInputs for the payload fields)
-        fields_to_check = {
-            "history_text": input_data.history_text,
-            "product_text": input_data.product_text,
-            "reflection_text": input_data.reflection_text,
-        }
+        # 1. Map raw text inputs
+        if isinstance(input_data.history_text, str):
+            extracted_data["history_text"] = input_data.history_text
+        elif isinstance(input_data.history_text, dict) and "content_base64" in input_data.history_text:
+            logger.warning("Base64 dict received via history_text but should have been parsed upstream! Ignoring.")
 
-        for key, value in fields_to_check.items():
-            if isinstance(value, dict) and "content_base64" in value:
-                try:
-                    content_bytes = base64.b64decode(value["content_base64"])
-                    filename = value.get("filename", "unknown")
-                    files_to_process[key] = (filename, content_bytes)
-                except Exception as e:
-                    logger.error(f"INVALID_BASE64_FILE: {e} for key {key}")
-                    raise AppException(
-                        message=f"Failed to decode base64 file for {key}",
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": "INVALID_BASE64_FILE"},
-                    ) from e
-            elif isinstance(value, str):
-                extracted_data[key] = value
+        if isinstance(input_data.product_text, str):
+            extracted_data["product_text"] = input_data.product_text
+        elif isinstance(input_data.product_text, dict) and "content_base64" in input_data.product_text:
+            logger.warning("Base64 dict received via product_text but should have been parsed upstream! Ignoring.")
 
-        # 2. Process Evidence Files via DocumentService
-        if files_to_process:
-            try:
-                doc_texts = await document_service.process_evidence_files(execution_id, files_to_process)
-                for raw_key, text_content in doc_texts.items():
-                    # The raw_key matches the WorkflowInput key because we passed it as the dict key
-                    extracted_data[raw_key] = text_content
-                    logger.info(f"[{self.__class__.__name__}] Decoded and extracted text for '{raw_key}'")
-            except Exception as e:
-                logger.error(f"[{self.__class__.__name__}] DocumentService failed: {e}")
-                raise AppException(
-                    message=f"File processing failed: {e}",
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": "FILE_PROCESSING_FAILED"},
-                ) from e
+        if isinstance(input_data.reflection_text, str):
+            extracted_data["reflection_text"] = input_data.reflection_text
+        elif isinstance(input_data.reflection_text, dict) and "content_base64" in input_data.reflection_text:
+            logger.warning("Base64 dict received via reflection_text but should have been parsed upstream! Ignoring.")
 
         # 3. Y-Funnel Parse: Extract specific features via LLM ChatParser if history_text is present
         final_history_text = extracted_data.get("history_text")
@@ -142,7 +106,9 @@ class InputProcessorAgent(BaseAgent[WorkflowInputs, InputProcessorOutput]):
                 ) from e
 
         # 4. Guided Reflection Markdown Generation (If guided_reflection dict was passed)
-        logger.info(f"[{self.__class__.__name__}] Y-Funnel: Checking GuidedReflection input: {input_data.guided_reflection}")
+        logger.info(
+            f"[{self.__class__.__name__}] Y-Funnel: Checking GuidedReflection input: {input_data.guided_reflection}"
+        )
         if input_data.guided_reflection:
             from backend.models.dtos.reflection import GuidedReflectionDTO
             from backend.services.reflection_service import ReflectionService

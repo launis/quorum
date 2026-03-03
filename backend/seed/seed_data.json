@@ -810,6 +810,7 @@
             "slug": "fused_audit_chain",
             "name": "Courtroom 3.0 (Fused Critics)",
             "steps": [
+                "c1f8d4e9-0b7a-4c2d-8e8f-9a9b0c1d2e3f",
                 "9e027b2a-c471-4e97-8d13-787767fda5e4",
                 "779e75fc-9d1d-4b6b-b9d4-3fa9b4c34608",
                 "683eb4b9-147c-4f5d-89a7-7b18d75c4202",
@@ -850,6 +851,7 @@
             "slug": "sequential_audit_chain_cognitive",
             "name": "Courtroom 2.0 (Cognitive Audit)",
             "steps": [
+                "c1f8d4e9-0b7a-4c2d-8e8f-9a9b0c1d2e3f",
                 "9e027b2a-c471-4e97-8d13-787767fda5e4",
                 "779e75fc-9d1d-4b6b-b9d4-3fa9b4c34608",
                 "683eb4b9-147c-4f5d-89a7-7b18d75c4202",
@@ -894,6 +896,7 @@
             "slug": "fused_audit_chain_cognitive",
             "name": "Courtroom 3.0 (Fused Cognitive)",
             "steps": [
+                "c1f8d4e9-0b7a-4c2d-8e8f-9a9b0c1d2e3f",
                 "9e027b2a-c471-4e97-8d13-787767fda5e4",
                 "779e75fc-9d1d-4b6b-b9d4-3fa9b4c34608",
                 "683eb4b9-147c-4f5d-89a7-7b18d75c4202",
@@ -934,6 +937,7 @@
             "slug": "sequential_audit_chain_dual",
             "name": "Courtroom 2.0 (Dual Matrix)",
             "steps": [
+                "c1f8d4e9-0b7a-4c2d-8e8f-9a9b0c1d2e3f",
                 "9e027b2a-c471-4e97-8d13-787767fda5e4",
                 "779e75fc-9d1d-4b6b-b9d4-3fa9b4c34608",
                 "683eb4b9-147c-4f5d-89a7-7b18d75c4202",
@@ -979,6 +983,7 @@
             "slug": "fused_audit_chain_dual",
             "name": "Courtroom 3.0 (Fused Dual)",
             "steps": [
+                "c1f8d4e9-0b7a-4c2d-8e8f-9a9b0c1d2e3f",
                 "9e027b2a-c471-4e97-8d13-787767fda5e4",
                 "779e75fc-9d1d-4b6b-b9d4-3fa9b4c34608",
                 "683eb4b9-147c-4f5d-89a7-7b18d75c4202",

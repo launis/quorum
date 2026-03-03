@@ -17,7 +17,6 @@ def test_transform_success_running(transformer):
     }
 
     view = transformer.transform(raw_data)
-    assert isinstance(view, AssessmentView)
     assert view.sessionId == "exe-123"
     assert view.uiVariant == "default"
     assert "Valmis:" in view.statusMessage

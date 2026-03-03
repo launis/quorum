@@ -142,9 +142,8 @@ def test_get_execution_view_fi():
     # "Judge" -> "Tuomari" (Agent Name)
     # "Analysis Result" -> "Analyysin Tulos" (Title)
 
-    # Allow for partial match or specific structure check
-    # Structure: sections -> list. Find type=SCORE_CARD
-    score_card = next((s for s in view["sections"] if s["type"] == "SCORE_CARD"), None)
+    # Structure: blocks -> list. Find type=CARD
+    score_card = next((s for s in view["blocks"] if s["type"] == "CARD"), None)
     assert score_card is not None
-    assert score_card["title"] == "Analyysin Tulos (Judge)"
-    assert score_card["data"]["agent_name"] == "Judge"
+    assert score_card["label"] == "Analyysin Tulos (Judge)"
+    assert score_card["value"]["agent_name"] == "Judge"
