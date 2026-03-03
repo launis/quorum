@@ -4,8 +4,6 @@ import logging
 from typing import Any
 
 # 2. Third Party
-from pydantic import BaseModel
-
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
@@ -220,7 +218,7 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
         if isinstance(result, self.OUTPUT_SCHEMA):
             # This must be checked first because OUTPUT_SCHEMA inherits from DTO_SCHEMA
             return result.model_copy(update={"score_cards": score_cards, "flat_report": flat_report})
-            
+
         if isinstance(result, self.DTO_SCHEMA):
             output = self.OUTPUT_SCHEMA(
                 **result.model_dump(),
@@ -229,7 +227,7 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
             )
             # Re-apply authority to ensure checksums and metadata are updated properly
             return self._apply_python_authority(output)
-            
+
         raise AgentExecutionError(
             detail=ErrorCodes.INVALID_JSON_PAYLOAD,
             original_error=TypeError(f"Expected DTO but got {type(result)}"),

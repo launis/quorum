@@ -111,14 +111,14 @@ class BaseTransformer:
                     if isinstance(event, TraceEvent):
                         content = event.content.copy() if event.content else {}
                         reasoning = event.reasoning
-                        timestamp = event.timestamp
+                        ts_val: Any = event.timestamp
                     else:
                         content = event.get("content", {}) or {}
                         # Copy to avoid mutation if shared ref (though strict dict usually new)
                         if isinstance(content, dict):
                             content = content.copy()
                         reasoning = event.get("reasoning")
-                        timestamp = event.get("timestamp") or evt_meta.get("timestamp")
+                        ts_val = event.get("timestamp") or evt_meta.get("timestamp")
 
                     # Check for reasoning trace availability (optional optimization)
                     if reasoning:
@@ -128,16 +128,16 @@ class BaseTransformer:
                             content["reasoning_trace"] = reasoning.thought_process
 
                     # Timestamp to metadata
-                    if timestamp:
+                    if ts_val:
                         if content.get("metadata") is None:
                             content["metadata"] = {}
 
                         # Normalize Pydantic datetime to string for Dict compatibility (or keep object?)
 
                         # KEEP ORIGINAL for Pydantic Validation:
-                        content["metadata"]["luontiaika"] = timestamp
+                        content["metadata"]["luontiaika"] = ts_val
                         # Add formatted for UI:
-                        content["metadata"]["luontiaika_formatted"] = self._format_date(str(timestamp))
+                        content["metadata"]["luontiaika_formatted"] = self._format_date(str(ts_val))
 
                     reconstructed[step_name] = content
         except Exception as e:

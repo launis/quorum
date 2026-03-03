@@ -302,11 +302,11 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [ ] **Tenant Repository**: Enable saving modified JSON configurations linked to `organization_id` (Git-like versioning).
 - [ ] **Live Operations Dashboard**: Real-time visualization of concurrent workflow executions.
 - [ ] **Recovery UI**: "Factory Reset" button in Admin Dashboard for catastrophic state recovery.
-- [ ] **Semantic Document Model (SDUI Refactoring)**: Transition from a visual UI model to an agnostic content model. The backend must return semantic blocks (`type`, `label`, `value`, `intent`) instead of visual components, guaranteeing WYSIWYG parity between Flutter (Screen) and Jinja2 (PDF).
-    - *Action 1*: Strip UI/CSS references from Backend DTOs (`models/view/sdui.py` -> `semantic_models.py`).
-    - *Action 2*: Refactor `bff_transformer.py` to assemble semantic blocks instead of defining explicit UI views.
-    - *Action 3*: Refactor Frontend router (`schema_mapper.dart`) to act as a semantic interpreter mapping types to existing native widgets.
-    - *Action 4*: Unify PDF generation on the backend using `report_template.jinja2` driven by the identical semantic block list, removing the duplicated Flutter-side PDF generation.
+- [x] **Semantic Document Model (SDUI Refactoring)**: Transitioned from a visual UI model to an agnostic content model. The backend now returns semantic blocks (`type`, `label`, `value`, `intent`) instead of visual components, guaranteeing WYSIWYG parity between Flutter (Screen) and Jinja2 (PDF). Generative generic SDUI usage is restricted in favor of strict semantic domain modeling.
+    - *Action 1*: Stripped UI/CSS references from Backend DTOs (`models/view/sdui.py` -> `semantic_models.py`).
+    - *Action 2*: Refactored `bff_transformer.py` to assemble semantic blocks instead of defining explicit UI views.
+    - *Action 3*: Refactored Frontend router (`schema_mapper.dart`) to act as a semantic interpreter mapping types to existing native widgets.
+    - *Action 4*: Unified PDF generation on the backend driven by the identical semantic block list, removing the duplicated Flutter-side PDF generation.
 
 ---
 

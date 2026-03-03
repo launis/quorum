@@ -25,7 +25,7 @@ class ResultDashboard extends ConsumerStatefulWidget {
 }
 
 class _ResultDashboardState extends ConsumerState<ResultDashboard> {
-  late Future<ReportView> _reportViewFuture;
+  late Future<SemanticReport> _reportViewFuture;
 
   @override
   void initState() {
@@ -33,7 +33,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     _reportViewFuture = _fetchReportView();
   }
 
-  Future<ReportView> _fetchReportView() async {
+  Future<SemanticReport> _fetchReportView() async {
     final execId = widget.execution.id;
     debugPrint('Fetching ReportView for $execId via Repository (Auth)');
 
@@ -87,7 +87,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
             child: TabBarView(
               children: [
                 // Tab 1: Server-Driven Dashboard (BFF)
-                FutureBuilder<ReportView>(
+                FutureBuilder<SemanticReport>(
                   future: _reportViewFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -116,7 +116,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     );
   }
 
-  Widget _buildDynamicDashboard(BuildContext context, ReportView view) {
+  Widget _buildDynamicDashboard(BuildContext context, SemanticReport view) {
     // 1. SDUI Protocol: We respect backend signals without string parsing
     final bool isHitlRequired = view.metrics?['hitl_required'] == true;
     final bool hasWarning = view.metrics?['has_warning'] == true;
@@ -139,10 +139,10 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
             _buildWarningBanner(context, isHitlRequired, hasWarning, feedback),
             const SizedBox(height: 24),
           ],
-          ...view.sections.map((section) {
+          ...view.blocks.map((block) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 24.0),
-              child: _renderSection(context, section, view),
+              child: _renderBlock(context, block, view),
             );
           }),
           if (view.references.isNotEmpty) ...[
@@ -327,13 +327,13 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, ReportView view) {
+  Widget _buildHeader(BuildContext context, SemanticReport view) {
     Color statusColor = Colors.grey;
-    if (view.statusTheme == 'success')
+    if (view.intent == SemanticIntent.success)
       statusColor = Colors.green;
-    else if (view.statusTheme == 'warning')
+    else if (view.intent == SemanticIntent.warning)
       statusColor = Colors.orange;
-    else if (view.statusTheme == 'danger')
+    else if (view.intent == SemanticIntent.danger)
       statusColor = Colors.red;
 
     return Card(
@@ -361,45 +361,48 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     );
   }
 
-  Widget _renderSection(
+  Widget _renderBlock(
     BuildContext context,
-    UiSection section,
-    ReportView view,
+    SemanticBlock block,
+    SemanticReport view,
   ) {
-    switch (section.type) {
-      case 'SCORE_CARD':
-        // Fallback or specific renderer?
-        // BFF sends "data" which matches ScoreCard model structure mostly.
+    switch (block.type) {
+      case BlockType.card:
         try {
-          final card = ScoreCardItem.fromJson(
-            section.data,
-          ); // Use ScoreCardItem from xai_report.dart
-          return ScoreCardRadar(card: card);
+          if (block.value != null && block.value is Map && (block.value as Map).containsKey('dimensions')) {
+            final card = ScoreCardItem.fromJson(block.value as Map<String, dynamic>);
+            return ScoreCardRadar(card: card);
+          }
         } catch (e) {
           return ErrorView(
             error: "Error rendering ScoreCard: $e",
             compact: true,
           );
         }
+        return SpecialistSection(
+          title: block.label ?? '',
+          type: block.id,
+          data: block.value is Map<String, dynamic> ? block.value as Map<String, dynamic> : {},
+          metrics: view.metrics,
+        );
 
-      case 'KEY_VALUE_GRID':
-      case 'USAGE_STATS':
-        return GenericGrid(title: section.title, data: section.data);
+      case BlockType.metric:
+        return GenericGrid(title: block.label ?? '', data: block.value is Map<String, dynamic> ? block.value as Map<String, dynamic> : {});
 
-      case 'DATA_TABLE':
-        return GenericTable(title: section.title, data: section.data);
+      case BlockType.dataGrid:
+        return GenericTable(title: block.label ?? '', data: block.value is Map<String, dynamic> ? block.value as Map<String, dynamic> : {});
 
-      case 'MARKDOWN_BLOCK':
-        final content = section.data['content'] as String? ?? '';
+      case BlockType.paragraph:
+        final content = block.value is Map<String, dynamic> ? (block.value as Map<String, dynamic>)['content'] as String? ?? '' : block.value?.toString() ?? '';
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (section.title.isNotEmpty) ...[
+                if (block.label != null && block.label!.isNotEmpty) ...[
                   Text(
-                    section.title,
+                    block.label!,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const Divider(),
@@ -410,100 +413,79 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
           ),
         );
 
-      case 'TIMELINE_FEED':
-        // Reuse AuditTrail logic or simplified list?
-        // BFF Timeline is a list of events.
-        final events = section.data['events'] as List<dynamic>? ?? [];
-        return Card(
-          child: Semantics(
-            excludeSemantics: Platform.isWindows,
-            child: ExpansionTile(
-              title: Text(section.title),
-              children:
-                  events.map<Widget>((e) {
-                    final ts = e['timestamp'] as String? ?? '';
-                    String timeDisplay = ts;
-                    if (ts.length >= 16) {
-                      // Simple substring for HH:mm if ISO format (T12:34)
-                      final tIndex = ts.indexOf('T');
-                      if (tIndex != -1 && tIndex + 5 < ts.length) {
-                        timeDisplay = ts.substring(tIndex + 1, tIndex + 6);
-                      }
+      case BlockType.list:
+        if (block.id == 'timeline-feed') {
+          final events = block.value is Map<String, dynamic> ? (block.value as Map<String, dynamic>)['events'] as List<dynamic>? ?? [] : [];
+          return Card(
+            child: Semantics(
+              excludeSemantics: Platform.isWindows,
+              child: ExpansionTile(
+                title: Text(block.label ?? ''),
+                children: events.map<Widget>((e) {
+                  final ts = e['timestamp'] as String? ?? '';
+                  String timeDisplay = ts;
+                  if (ts.length >= 16) {
+                    final tIndex = ts.indexOf('T');
+                    if (tIndex != -1 && tIndex + 5 < ts.length) {
+                      timeDisplay = ts.substring(tIndex + 1, tIndex + 6);
                     }
+                  }
 
-                    return ListTile(
-                      leading: Container(
-                        width: 50, // Fixed width to prevent overlap
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          timeDisplay,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                  return ListTile(
+                    leading: Container(
+                      width: 50,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        timeDisplay,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
                       ),
-                      title: Text(
-                        e['label'] ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(e['content'] ?? ''),
-                      dense: true,
-                    );
-                  }).toList(),
+                    ),
+                    title: Text(
+                      e['label'] ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(e['content'] ?? ''),
+                    dense: true,
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-        );
+          );
+        }
 
-      case 'EVIDENCE_LIST':
-        final items = section.data['items'] as List<dynamic>? ?? [];
+        final items = block.value is Map<String, dynamic> ? (block.value as Map<String, dynamic>)['items'] as List<dynamic>? ?? [] : [];
         return Card(
           child: Semantics(
             excludeSemantics: Platform.isWindows,
             child: ExpansionTile(
-              title: Text(section.title),
-              children:
-                  items.map<Widget>((e) {
-                    return ListTile(
-                      leading: const Icon(
-                        Icons.source_outlined,
-                        color: Colors.blueGrey,
-                      ),
-                      title: Text(
-                        e['source']?.toString() ?? 'Lähdetieto',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(e['content']?.toString() ?? ''),
-                      dense: true,
-                    );
-                  }).toList(),
+              title: Text(block.label ?? ''),
+              children: items.map<Widget>((e) {
+                return ListTile(
+                  leading: const Icon(
+                    Icons.source_outlined,
+                    color: Colors.blueGrey,
+                  ),
+                  title: Text(
+                    e['source']?.toString() ?? 'Lähdetieto',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(e['content']?.toString() ?? ''),
+                  dense: true,
+                );
+              }).toList(),
             ),
           ),
-        );
-
-      // --- Specialist Sections (Backbone) ---
-      case 'LOGIC_ANALYSIS':
-      case 'STRESS_TEST':
-      case 'CAUSAL_ANALYSIS':
-      case 'PERFORMATIVITY_CHECK':
-      case 'FACT_CHECK':
-      case 'PROFILER_ANALYSIS':
-      case 'ARCHIVIST_CHECK':
-      case 'DRIVER_PROFILE':
-      case 'SECURITY_CHECK':
-        return SpecialistSection(
-          title: section.title,
-          type: section.type,
-          data: section.data,
-          metrics: view.metrics, // Pass global metrics
         );
 
       default:
         debugPrint(
-          'UI FALLBACK ACTIVATED: Unknown Section Type: ${section.type}',
+          'UI FALLBACK ACTIVATED: Unknown Block Type: ${block.type}',
         );
         return ErrorView(
-          error: "Unknown Section Type: ${section.type}",
+          error: "Unknown Block Type: ${block.type}",
           compact: true,
         );
     }

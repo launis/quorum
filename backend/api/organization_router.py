@@ -643,6 +643,7 @@ async def delete_organization_user(
     import asyncio
     target = await asyncio.to_thread(repo.get_by_id, target_id)
     if not target:
+        from backend.exceptions import ResourceNotFoundError
         raise ResourceNotFoundError("User", target_id)
 
     if target.display_name == "System Root":
@@ -650,7 +651,6 @@ async def delete_organization_user(
         raise PermissionDeniedError("The primary Root account cannot be deleted.")
 
     # 4. LAST ADMIN PROTECTION
-    from backend.models.auth import UserRole
     if target.role == UserRole.ADMIN and target.organization_id:
         admin_count = await asyncio.to_thread(auth_service._count_org_admins, target.organization_id)
         if admin_count <= 1:

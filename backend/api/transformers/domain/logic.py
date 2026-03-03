@@ -1,11 +1,10 @@
 import logging
 
 # UVM: Use strict extensions
-from pydantic import ValidationError
-
-from backend.models.domain import LogicianData, LogicianOutput
+from backend.models.domain import LogicianOutput
 from backend.models.enums import StrategicDepth, TitleKey
-from backend.models.view import LogicAnalysisDisplay, SectionType, ToulminDisplay, UiSection
+from backend.models.state import WorkflowState
+from backend.models.view.semantic_models import BlockType, LogicAnalysisDisplay, SemanticBlock, ToulminDisplay
 
 from ..base import BaseTransformer
 
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class LogicDomainTransformer(BaseTransformer):
-    def _extract_logician_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_logician_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_logician
         # Fallback to Panel data (inner data only)
         if not model:
@@ -31,11 +30,10 @@ class LogicDomainTransformer(BaseTransformer):
 
         try:
             display_model = self._transform_logician_data(model)
-            return UiSection(
-                id="logic-analysis",
-                type=SectionType.LOGIC_ANALYSIS,
-                title=self._get_title(TitleKey.LOGICIAN),
-                data=display_model,
+            return SemanticBlock(id="logic-analysis",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.LOGICIAN),
+                value=display_model,
             )
         except Exception as e:
             # Graceful fallback for transformation errors too
@@ -74,7 +72,7 @@ class LogicDomainTransformer(BaseTransformer):
         arguments = []
         for arg in data.toulmin_analysis:
             arguments.append(ToulminDisplay(
-                claim=arg.claim, 
+                claim=arg.claim,
                 data=arg.data,
                 warrant=arg.warrant,
                 backing=arg.backing,
@@ -109,3 +107,5 @@ class LogicDomainTransformer(BaseTransformer):
             # Data
             arguments=arguments,
         )
+
+

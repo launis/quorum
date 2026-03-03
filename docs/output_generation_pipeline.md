@@ -55,12 +55,12 @@ Because `WorkflowState` contains massive amounts of raw internal event logs, it 
     * **Simulations / Debugging**: Allows developers to view the exact raw state without UI formatting.
     * **Data Integrations**: Sending execution webhooks to external business tools.
 
-### 3.2 The BFF Transformers (Backend-for-Frontend)
+### 3.2 The BFF Transformers (Semantic Transformers)
 * **Location**: `backend/api/transformers/domain/*.py`
-* **Role**: Maps heavy Domain models to strictly typed **View Models** for the SDUI (Server-Driven UI).
+* **Role**: Maps heavy Domain models to strictly typed **Semantic Models** for the UI. *Note: We have strictly moved away from generic Server-Driven UI (SDUI) (like sending UI components/colors from the backend) and restricted its usage. We now send agnostic Semantic Blocks.*
 * **Examples**:
     * `LogicDomainTransformer`: Maps `ToulminComponent` to `ToulminDisplay`.
-    * `ProfilingTransformer`: Maps `InteractionAnalysis` and `ProfilerMetrics` into `DriverProfileDisplay` and resolves the boolean states into I18N Enum keys (`BIAS_DETECTED`, `GAP_NONE`).
+    * `ReportTransformer`: Maps execution results into a `SemanticReport` containing `SemanticSection` and `SemanticBlock`.
 
 ---
 
@@ -90,7 +90,7 @@ sequenceDiagram
     participant E as GraphEngine
     participant SP as StatePresenter
     participant BFF as BFF Transformers
-    participant UI as Flutter (SDUI)
+    participant UI as Flutter (Semantic UI)
     participant EXT as External Tools
 
     note right of E: Step execution phase
@@ -103,10 +103,10 @@ sequenceDiagram
     SP->>EXT: Return structured integration JSON
 
     note right of BFF: Rendering phase
-    UI->>BFF: Get Profiler View
+    UI->>BFF: Get Semantic Profiler Report
     DB-->>BFF: raw state
-    BFF->>BFF: Map Domain Model -> View Model
-    BFF->>UI: Return Display DTO (w/ Enum Keys)
-    UI->>UI: Translate via app_fi.arb
+    BFF->>BFF: Map Domain Model -> Semantic Model
+    BFF->>UI: Return SemanticReport DTO
+    UI->>UI: Interpret Semantic Blocks & Translate via app_fi.arb
     UI->>UI: Render Widget
 ```

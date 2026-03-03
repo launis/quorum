@@ -1,12 +1,12 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import BaseModel
 
 from backend.agents.base import BaseAgent
 from backend.core.registry import TaskRegistry
 from backend.models.domain.agent import ModelConfig
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+
 
 class MockDTO(ReasoningTraceDTO):
     model_config = {"extra": "allow"}
@@ -30,7 +30,6 @@ class MockGuardAgent(BaseAgent):
     async def execute(
         self, input_data: dict, execution_context: dict | None = None, system_instruction: str | None = None, **kwargs
     ) -> dict:
-        import uuid
         # Return the kwargs so we can inspect what was passed
         combined_kwargs = kwargs.copy()
         combined_kwargs["system_instruction"] = system_instruction

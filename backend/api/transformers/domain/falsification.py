@@ -1,12 +1,18 @@
 import logging
+from typing import Any
 
-from pydantic import ValidationError
-
-from backend.models.domain import FalsifierData, FalsifierOutput
+from backend.models.domain import FalsifierOutput
 from backend.models.enums import TitleKey
+from backend.models.state import WorkflowState
 
 # UVM: Use strict extensions
-from backend.models.view import FidelityAudit, SectionType, StressFindingDisplay, StressTestDisplay, UiSection
+from backend.models.view.semantic_models import (
+    BlockType,
+    FidelityAudit,
+    SemanticBlock,
+    StressFindingDisplay,
+    StressTestDisplay,
+)
 
 from ..base import BaseTransformer
 
@@ -14,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class FalsificationDomainTransformer(BaseTransformer):
-    def _adapt_legacy_trace(self, data: dict) -> dict:
+    def _adapt_legacy_trace(self, data: dict[str, Any]) -> dict[str, Any]:
         """Helper to adapt legacy reasoning_trace string to strict ReasoningTraceDTO."""
         if "reasoning_trace" in data and "thought_process" not in data:
             data = data.copy()
@@ -23,7 +29,7 @@ class FalsificationDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_falsifier_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_falsifier_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_falsifier
 
         # Fallback to Panel
@@ -42,11 +48,10 @@ class FalsificationDomainTransformer(BaseTransformer):
 
         try:
             display_model = self._transform_falsifier_data(model)
-            return UiSection(
-                id="stress-test",
-                type=SectionType.STRESS_TEST,
-                title=self._get_title(TitleKey.FALSIFIER),
-                data=display_model,  # Return model directly
+            return SemanticBlock(id="stress-test",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.FALSIFIER),
+                value=display_model,  # Return model directly
             )
         except Exception as e:
             logger.warning(f"Failed to transform Stress display: {e}")
@@ -103,3 +108,5 @@ class FalsificationDomainTransformer(BaseTransformer):
             plausibility_percent=None,
             plausibility_help=None,
         )
+
+

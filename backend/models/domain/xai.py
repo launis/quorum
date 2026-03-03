@@ -95,7 +95,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
         description="Structured comparison data.",
         json_schema_extra={"x-ui-label": "Comparison Data"},
     )
-    
+
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     @field_validator(

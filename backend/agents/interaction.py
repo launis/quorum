@@ -6,8 +6,6 @@ import logging
 from typing import Any
 
 # 2. Third Party
-from pydantic import BaseModel
-
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports

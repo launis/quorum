@@ -1,33 +1,30 @@
 import logging
 
-from pydantic import ValidationError
-
-from backend.exceptions import AppException
 from backend.models.domain import ContextData
 from backend.models.enums import TitleKey
+from backend.models.state import WorkflowState
 
 # UVM Refactor: Use strict extensions
-from backend.models.view import EvidenceItem, EvidenceList, SectionType, UiSection
+from backend.models.view.semantic_models import BlockType, EvidenceItem, EvidenceList, SemanticBlock
 
-# Deprecated: from backend.models.view_extensions import EvidenceList, EvidenceItem
+# Deprecated: from backend.models.view.semantic_models_extensions import EvidenceList, EvidenceItem
 from ..base import BaseTransformer
 
 logger = logging.getLogger(__name__)
 
 
 class RetrievalDomainTransformer(BaseTransformer):
-    def _extract_context_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_context_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.get_context("step_context", ContextData)
         if not model:
             return None
 
         try:
             display_model = self._transform_context_data(model)
-            return UiSection(
-                id="context-display",
-                type=SectionType.EVIDENCE_LIST,
-                title=self._get_title(TitleKey.CONTEXT),
-                data=display_model,
+            return SemanticBlock(id="context-display",
+                type=BlockType.LIST,
+                label=self._get_title(TitleKey.CONTEXT),
+                value=display_model,
             )
         except Exception as e:
             from backend.exceptions import AppException
@@ -64,3 +61,5 @@ class RetrievalDomainTransformer(BaseTransformer):
             )
 
         return EvidenceList(items=items, total_count=len(items))
+
+

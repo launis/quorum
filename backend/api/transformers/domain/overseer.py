@@ -1,21 +1,27 @@
 import logging
+from typing import Any
 
-from pydantic import ValidationError
-
-from backend.models.domain import OverseerData, OverseerOutput
+from backend.models.domain import OverseerOutput
 from backend.models.enums import TitleKey
+from backend.models.state import WorkflowState
 
 # UVM Refactor: Use strict extensions
-from backend.models.view import EthicalIssueDisplay, FactCheckDisplay, SectionType, UiSection, VerifiedFactDisplay
+from backend.models.view.semantic_models import (
+    BlockType,
+    EthicalIssueDisplay,
+    FactCheckDisplay,
+    SemanticBlock,
+    VerifiedFactDisplay,
+)
 
-# Deprecated: from backend.models.view_extensions import FactCheckDisplay, VerifiedFact, EthicalIssue
+# Deprecated: from backend.models.view.semantic_models_extensions import FactCheckDisplay, VerifiedFact, EthicalIssue
 from ..base import BaseTransformer
 
 logger = logging.getLogger(__name__)
 
 
 class OverseerDomainTransformer(BaseTransformer):
-    def _adapt_legacy_trace(self, data: dict) -> dict:
+    def _adapt_legacy_trace(self, data: dict[str, Any]) -> dict[str, Any]:
         """Helper to adapt legacy reasoning_trace string to strict ReasoningTraceDTO."""
         if "reasoning_trace" in data and "thought_process" not in data:
             data = data.copy()
@@ -24,7 +30,7 @@ class OverseerDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_overseer_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_overseer_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_overseer
 
         # Fallback to Panel
@@ -43,14 +49,13 @@ class OverseerDomainTransformer(BaseTransformer):
 
         try:
             # UVM: Return strict model directly
-            # Note: We return UiSection with data=FactCheckDisplay
+            # Note: We return SemanticBlock with data=FactCheckDisplay
             display_model = self._transform_overseer_data(model)
 
-            return UiSection(
-                id="fact-check-grid",
-                type=SectionType.FACT_CHECK,
-                title=self._get_title(TitleKey.OVERSEER),
-                data=display_model,
+            return SemanticBlock(id="fact-check-grid",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.OVERSEER),
+                value=display_model,
             )
         except Exception as e:
             from backend.exceptions import AppException
@@ -111,3 +116,5 @@ class OverseerDomainTransformer(BaseTransformer):
             )
 
         return FactCheckDisplay(fact_checks=facts, ethical_issues=ethical_issues)
+
+

@@ -6,13 +6,13 @@ from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 # Optional imports handled gracefully could be considered, but dependencies are mandated in task.
-import weasyprint  # type: ignore
+import weasyprint
 from jinja2 import Environment, FileSystemLoader
 
 from backend.api.transformers import ReportTransformer
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import AppException, ErrorCodes
-from backend.models.view import SectionType
+from backend.models.view.semantic_models import BlockType
 from backend.services.chart_service import ChartService
 
 logger = logging.getLogger(__name__)
@@ -59,17 +59,16 @@ class PdfReportService:
             self.translations = {}
 
         # Register translate filter
-        def translate_filter(key):
+        def translate_filter(key: Any) -> str:
             if not key:
                 return ""
-            # Try exact match first, then string match
-            return self.translations.get(str(key), key)
+            return str(self.translations.get(str(key), key))
 
         self.env.filters["translate"] = translate_filter
 
     def _noop_progress(self) -> ProgressServiceProtocol:
         class NoOpProgress:
-            async def emit_progress(self, *args, **kwargs):
+            async def emit_progress(self, *args: Any, **kwargs: Any) -> None:
                 pass
 
         return NoOpProgress()
@@ -139,23 +138,23 @@ class PdfReportService:
             except Exception as e:
                 logger.warning(f"Failed to load matrix labels: {e}")
 
-            new_sections = []
-            for section in report_view.sections:
-                if not section.data:
-                    new_sections.append(section)
+            new_blocks = []
+            for block in report_view.blocks:
+                if not block.value:
+                    new_blocks.append(block)
                     continue
 
-                # Ensure section.data is strictly a dictionary so Jinja and .get() work
-                if hasattr(section.data, "model_dump"):
-                    sec_data = section.data.model_dump(mode="json")
-                elif hasattr(section.data, "dict"):
-                    sec_data = section.data.dict()
-                elif not isinstance(section.data, dict):
-                    sec_data = vars(section.data)
+                # Ensure block.value is strictly a dictionary so Jinja and .get() work
+                if hasattr(block.value, "model_dump"):
+                    sec_data = block.value.model_dump(mode="json")
+                elif hasattr(block.value, "dict"):
+                    sec_data = block.value.dict()
+                elif not isinstance(block.value, dict):
+                    sec_data = vars(block.value)
                 else:
-                    sec_data = dict(section.data)
+                    sec_data = dict(block.value)
 
-                if section.type == SectionType.SCORE_CARD:
+                if block.type == BlockType.CARD:
                     # Check if dimensions exist and we can plot
                     dims = sec_data.get("dimensions", [])
                     if dims:
@@ -199,7 +198,7 @@ class PdfReportService:
                         chart_b64 = ChartService.generate_radar_chart(scores, max_val=max_score)
                         sec_data["chart_image"] = chart_b64
 
-                elif section.type == SectionType.LOGIC_ANALYSIS:
+                elif block.id == "logic-analysis":
                     # Extract scores
                     bloom = float(sec_data.get("bloom_score", 0.0) or 0.0)
                     strat = float(sec_data.get("strategic_score", 0.0) or 0.0)
@@ -216,9 +215,9 @@ class PdfReportService:
                 elif hasattr(sec_data, "dict"):
                     sec_data = sec_data.dict()
 
-                new_sections.append(section.model_copy(update={"data": sec_data}))
+                new_blocks.append(block.model_copy(update={"value": sec_data}))
 
-            report_view = report_view.model_copy(update={"sections": new_sections})
+            report_view = report_view.model_copy(update={"blocks": new_blocks})
 
             # 5. Render Template
             await self.progress.emit_progress(execution_id, task_key, "Preparing report layout...", 0.20)
@@ -235,8 +234,10 @@ class PdfReportService:
             loop = asyncio.get_running_loop()
 
             # Run blocking PDF generation in a thread pool
-            def _render_pdf():
-                return weasyprint.HTML(string=html_content).write_pdf()
+            def _render_pdf() -> bytes:
+                # Type safe cast since write_pdf returns bytes but may return Optional[bytes] or Any in stubs
+                pdf_data = weasyprint.HTML(string=html_content).write_pdf()
+                return bytes(pdf_data) if pdf_data else b""
 
             pdf_bytes = await loop.run_in_executor(None, _render_pdf)
 

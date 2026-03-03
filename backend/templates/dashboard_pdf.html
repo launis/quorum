@@ -193,14 +193,14 @@
     {% endif %}
     {% endif %}
 
-    {% for section in view.sections %}
+    {% for section in view.blocks %}
     <div class="section-wrapper">
         
         {# --- 1. LOGIC ANALYSIS (Teal) --- #}
-        {% if section.type == 'LOGIC_ANALYSIS' %}
+        {% if section.id == 'logic-analysis' %}
         <div class="card" style="border-left: 4px solid #009688;">
-            <h2 style="color: #00796B;">{{ section.title }}</h2>
-            {% set d = section.data %}
+            <h2 style="color: #00796B;">{{ section.label }}</h2>
+            {% set d = section.value %}
             
             {# Cognitive Level Box #}
             {% if view.metrics %}
@@ -367,10 +367,10 @@
         </div>
 
         {# --- 2. STRESS TEST (Orange) --- #}
-        {% elif section.type == 'STRESS_TEST' %}
+        {% elif section.id == 'stress-test' %}
         <div class="card" style="border-left: 4px solid #FF9800;">
-            <h2 style="color: #E65100;">{{ section.title }}</h2>
-            {% set d = section.data %}
+            <h2 style="color: #E65100;">{{ section.label }}</h2>
+            {% set d = section.value %}
 
             {# Fidelity Audit Box #}
             {% if d.fidelity_audit %}
@@ -428,10 +428,10 @@
         </div>
 
         {# --- 3. CAUSAL ANALYSIS (Teal/Cyan) --- #}
-        {% elif section.type == 'CAUSAL_ANALYSIS' %}
+        {% elif section.id == 'causal-analysis' %}
         <div class="card" style="border-left: 4px solid #00BCD4;">
-            <h2 style="color: #00838F;">{{ section.title }}</h2>
-            {% set d = section.data %}
+            <h2 style="color: #00838F;">{{ section.label }}</h2>
+            {% set d = section.value %}
 
             {# Abductive Reasoning Box #}
             {# Falsifier / Stress Test SDUI #}
@@ -493,10 +493,10 @@
         </div>
 
         {# --- 4. PERFORMATIVITY CHECK (Purple) --- #}
-        {% elif section.type == 'PERFORMATIVITY_CHECK' %}
+        {% elif section.id == 'performativity-check' %}
         <div class="card" style="border-left: 4px solid #9C27B0;">
-            <h2 style="color: #6A1B9A;">{{ section.title }}</h2>
-            {% set d = section.data %}
+            <h2 style="color: #6A1B9A;">{{ section.label }}</h2>
+            {% set d = section.value %}
 
             {% if d %}
             <div class="box-purple">
@@ -532,10 +532,10 @@
         </div>
 
         {# --- 5. FACTS & ETHICS (Blue) --- #}
-        {% elif section.type == 'FACT_CHECK' %}
+        {% elif section.id == 'fact-check-grid' %}
         <div class="card" style="border-left: 4px solid #2196F3;">
-            <h2 style="color: #0D47A1;">{{ section.title }}</h2>
-            {% set d = section.data %}
+            <h2 style="color: #0D47A1;">{{ section.label }}</h2>
+            {% set d = section.value %}
 
             {% if d %}
             <div class="label" style="margin-bottom: 5px;">{{ 'VERIFIED_FACTS_LABEL' | translate }}</div>
@@ -565,12 +565,12 @@
         </div>
 
             {# --- 5b. SECURITY CHECK & KEY-VALUE GRIDS --- #}
-            {% elif section.type == 'SECURITY_CHECK' or section.type == 'KEY_VALUE_GRID' or section.type == 'USAGE_STATS' %}
+            {% elif section.id == 'security-grid' or section.id == 'usage-stats' or section.type == 'USAGE_STATS' %}
             <div class="card" style="border-left: 4px solid #607D8B;">
-                <h2 style="color: #455A64;">{{ section.title }}</h2>
-                {% set d = section.data %}
+                <h2 style="color: #455A64;">{{ section.label }}</h2>
+                {% set d = section.value %}
 
-                {% if section.type == 'SECURITY_CHECK' and d %}
+                {% if section.id == 'security-grid' and d %}
                     {# Hoisted SDUI Display #}
                     <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                         {# Threat Chip #}
@@ -603,7 +603,7 @@
                 {% else %}
                     {# Fallback to old Key-Value Grid for non-security data (e.g. Usage Stats) #}
                     <div class="grid-container">
-                        {% for item in section.data.get('items', []) %}
+                        {% for item in section.value.get('items', []) %}
                         <div class="grid-item" {% if item.get('highlight') %}style="background-color: #FFEBEE; border-color: #FFCDD2;"{% endif %}>
                             <div class="label" {% if item.get('highlight') %}style="color: #C62828;"{% endif %}>{{ item.get('label') }}</div>
                             <div class="value" {% if item.get('highlight') %}style="color: #B71C1C;"{% endif %}>{{ item.get('value') }}</div>
@@ -614,21 +614,21 @@
             </div>
 
         {# --- 5c. DATA TABLE (Analyst/Generic) --- #}
-        {% elif section.type == 'DATA_TABLE' %}
+        {% elif section.id == 'hypotheses-table' %}
         <div class="card" style="border-left: 4px solid #3F51B5;">
-            <h2 style="color: #283593;">{{ section.title }}</h2>
+            <h2 style="color: #283593;">{{ section.label }}</h2>
             <table>
                 <thead>
                     <tr>
-                        {% for col in section.data.columns %}
+                        {% for col in section.value.columns %}
                         <th>{{ col.label }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in section.data.rows %}
+                    {% for row in section.value.rows %}
                     <tr>
-                        {% for col in section.data.columns %}
+                        {% for col in section.value.columns %}
                         <td>{{ row[col.key] }}</td>
                         {% endfor %}
                     </tr>
@@ -638,10 +638,10 @@
         </div>
 
         {# --- 5d. EVIDENCE LIST --- #}
-        {% elif section.type == 'EVIDENCE_LIST' %}
+        {% elif section.id == 'analyst-evidence' %}
         <div class="card" style="border-left: 4px solid #009688;">
-            <h2 style="color: #00796B;">{{ section.title }}</h2>
-            {% for ev in section.data.get('items', []) %}
+            <h2 style="color: #00796B;">{{ section.label }}</h2>
+            {% for ev in section.value.get('items', []) %}
             <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #eee;">
                 <div style="font-size: 9px; color: #666; font-weight: 600; margin-bottom: 2px;">
                     {{ ev.type | upper }} | Lähde: {{ ev.source }}
@@ -652,15 +652,15 @@
             </div>
             {% endfor %}
             <div style="font-size: 9px; color: #999; text-align: right; margin-top: 4px;">
-                Yhteensä löydöksiä: {{ section.data.get('total_count', 0) }}
+                Yhteensä löydöksiä: {{ section.value.get('total_count', 0) }}
             </div>
         </div>
 
         {# --- 6. PROFILER ANALYSIS (Pink) --- #}
-        {% elif section.type == 'PROFILER_ANALYSIS' %}
+        {% elif section.id == 'profiler-analysis' %}
         <div class="card" style="border-left: 4px solid #E91E63;">
-            <h2 style="color: #880E4F;">{{ section.title }}</h2>
-            {% set d = section.data %}
+            <h2 style="color: #880E4F;">{{ section.label }}</h2>
+            {% set d = section.value %}
 
             {# Control Ratio Gauge #}
             {# Support Multiple Key Paths for pass-through #}
@@ -745,10 +745,10 @@
         </div>
 
         {# --- 7. ARCHIVIST CHECK (Brown) --- #}
-        {% elif section.type == 'ARCHIVIST_CHECK' %}
+        {% elif section.id == 'archivist-check' %}
         <div class="card" style="border-left: 4px solid #795548;">
-            <h2 style="color: #3E2723;">{{ section.title }}</h2>
-            {% set d = section.data %}
+            <h2 style="color: #3E2723;">{{ section.label }}</h2>
+            {% set d = section.value %}
              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                  <div>
                      <div class="label">{{ 'COMPLIANCE_SCORE_LABEL' | translate }}</div>
@@ -777,10 +777,10 @@
         </div>
 
         {# --- 8. DRIVER PROFILE (Interaction) --- #}
-        {% elif section.type == 'DRIVER_PROFILE' %}
+        {% elif section.id == 'interaction-grid' %}
         <div class="card" style="border-left: 4px solid #2196F3;">
-            <h2 style="color: #1565C0;">{{ section.title }}</h2>
-            {% set d = section.data %}
+            <h2 style="color: #1565C0;">{{ section.label }}</h2>
+            {% set d = section.value %}
             
             <div class="grid-container">
                  <div class="grid-item">
@@ -804,8 +804,8 @@
         {# --- OTHER: TIMELINE --- #}
         {% elif section.type == 'TIMELINE_FEED' %}
         <div class="card">
-            <h2>{{ section.title }}</h2>
-            {% for event in section.data.get('events', []) %}
+            <h2>{{ section.label }}</h2>
+            {% for event in section.value.get('events', []) %}
             <div class="timeline-item">
                 <div class="timestamp">{{ event.timestamp[11:19] if event.timestamp|length > 18 else event.timestamp }}</div>
                 <div class="content">
@@ -817,25 +817,25 @@
         </div>
 
         {# --- SCORE CARD --- #}
-        {% elif section.type == 'SCORE_CARD' %}
+        {% elif section.type == 'CARD' %}
         <div class="card">
-            <h2>{{ section.title }}</h2>
+            <h2>{{ section.label }}</h2>
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
                 <div>
                     <div class="label">Total Score</div>
                     <div style="font-size: 28px; font-weight: 700; color: #1976D2; line-height: 1;">
-                        {{ section.data.get('total_score', '0') }}
-                        <span style="font-size: 12px; color: #999; font-weight: 400;">/ {{ section.data.get('max_score', '100') }}</span>
+                        {{ section.value.get('total_score', '0') }}
+                        <span style="font-size: 12px; color: #999; font-weight: 400;">/ {{ section.value.get('max_score', '100') }}</span>
                     </div>
                 </div>
                 <div style="text-align: right;">
                     <div class="label">Verdict</div>
-                    <div class="value" style="font-size: 14px;">{{ section.data.get('verdict', 'Pending') }}</div>
+                    <div class="value" style="font-size: 14px;">{{ section.value.get('verdict', 'Pending') }}</div>
                 </div>
             </div>
             
             <div class="grid-container">
-            {% for dim in section.data.get('dimensions', []) %}
+            {% for dim in section.value.get('dimensions', []) %}
                 <div class="grid-item">
                     <div class="label">{{ dim.get('dimension_label') or dim.get('label') }}</div>
                     <div class="value">{{ dim.get('score') }}</div>
@@ -848,15 +848,15 @@
         {# --- MARKDOWN BLOCK (XAI/Coach) --- #}
         {% elif section.type == 'MARKDOWN_BLOCK' %}
         <div class="card">
-            <h2>{{ section.title }}</h2>
-            <div style="font-family: inherit; font-size: 11px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">{{ section.data.get('content', '') }}</div>
+            <h2>{{ section.label }}</h2>
+            <div style="font-family: inherit; font-size: 11px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">{{ section.value.get('content', '') }}</div>
         </div>
 
         {# --- GENERIC FALLBACK --- #}
         {% else %}
         <div class="card">
-            <h2>{{ section.title }}</h2>
-            <pre style="font-size: 9px; overflow: hidden;">{{ section.data | tojson(indent=2) }}</pre>
+            <h2>{{ section.label }}</h2>
+            <pre style="font-size: 9px; overflow: hidden;">{{ section.value | tojson(indent=2) }}</pre>
         </div>
         {% endif %}
         

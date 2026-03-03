@@ -1,18 +1,18 @@
 import logging
-
-from pydantic import ValidationError
+from typing import Any
 
 from backend.models.domain import InteractionAnalysis, PerformativityOutput, ProfilerOutput
 from backend.models.enums import TitleKey
+from backend.models.state import WorkflowState
 
 # UVM Refactor: Use strict extensions
-from backend.models.view import (
+from backend.models.view.semantic_models import (
+    BlockType,
     DriverProfileDisplay,
     HeuristicDisplay,
     PerformativityDisplay,
     ProfilerDisplay,
-    SectionType,
-    UiSection,
+    SemanticBlock,
 )
 
 from ..base import BaseTransformer
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProfilingDomainTransformer(BaseTransformer):
-    def _adapt_legacy_trace(self, data: dict) -> dict:
+    def _adapt_legacy_trace(self, data: dict[str, Any]) -> dict[str, Any]:
         """Helper to adapt legacy reasoning_trace string to strict ReasoningTraceDTO."""
         if "reasoning_trace" in data and "thought_process" not in data:
             data = data.copy()
@@ -30,7 +30,7 @@ class ProfilingDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_profiler_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_profiler_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_profiler
         if not model:
             return None
@@ -39,14 +39,15 @@ class ProfilingDomainTransformer(BaseTransformer):
             # UVM: Return strict model directly
             display_model = self._transform_profiler_data(model)
 
-            return UiSection(
-                id="profiler-analysis",
-                type=SectionType.PROFILER_ANALYSIS,
-                title=self._get_title(TitleKey.PROFILER),
-                data=display_model,
+            return SemanticBlock(id="profiler-analysis",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.PROFILER),
+                value=display_model,
             )
         except Exception as e:
-            from backend.exceptions import AppException, ErrorCodes, status
+            from fastapi import status
+
+            from backend.exceptions import AppException, ErrorCodes
             raise AppException(
                 message=f"Failed to transform Profiler display: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -105,13 +106,13 @@ class ProfilingDomainTransformer(BaseTransformer):
             intent_analysis=str(model.author_intent),
         )
 
-    def _extract_interaction_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_interaction_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_interaction
         if not model:
             # Try fallback to step_driver
             from backend.models.domain.interaction import InteractionAnalysis
             model = state.get_context("step_driver", InteractionAnalysis)
-            
+
         if not model:
             return None
 
@@ -119,15 +120,16 @@ class ProfilingDomainTransformer(BaseTransformer):
             # UVM: Return strict DriverProfileDisplay
             ratio = state.get_context("input_control_ratio")
             display_model = self._transform_interaction_data(model, ratio)
-            return UiSection(
-                id="interaction-grid",
-                type=SectionType.DRIVER_PROFILE,
-                title=self._get_title(TitleKey.INTERACTION),
-                data=display_model,
+            return SemanticBlock(id="interaction-grid",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.INTERACTION),
+                value=display_model,
             )
         except Exception as e:
+            from fastapi import status
+
             from backend.exceptions import AppException
-            raise AppException(f"Failed to transform Driver display: {e}", 500) from e
+            raise AppException(f"Failed to transform Driver display: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) from e
 
     def _transform_interaction_data(self, model: InteractionAnalysis, input_control_ratio: float | None = None) -> DriverProfileDisplay:
         """Flattens InteractionOutput to strict DriverProfileDisplay."""
@@ -149,9 +151,9 @@ class ProfilingDomainTransformer(BaseTransformer):
             input_control_ratio=input_control_ratio
         )
 
-    def _extract_detector_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_detector_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_detector
-        
+
         # Fallback to Panel if not in root steps (though usually root)
         if not model:
             panel = state.step_panel
@@ -168,15 +170,16 @@ class ProfilingDomainTransformer(BaseTransformer):
 
         try:
             display_model = self._transform_detector_data(model)
-            return UiSection(
-                id="performativity-check",
-                type=SectionType.PERFORMATIVITY_CHECK,
-                title=self._get_title(TitleKey.PERFORMATIVITY),
-                data=display_model,
+            return SemanticBlock(id="performativity-check",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.PERFORMATIVITY),
+                value=display_model,
             )
         except Exception as e:
+            from fastapi import status
+
             from backend.exceptions import AppException
-            raise AppException(f"Failed to transform Performativity display: {e}", 500) from e
+            raise AppException(f"Failed to transform Performativity display: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) from e
 
     def _transform_detector_data(self, model: PerformativityOutput) -> PerformativityDisplay:
         """Flattens DetectorOutput to strict PerformativityDisplay."""
@@ -199,3 +202,5 @@ class ProfilingDomainTransformer(BaseTransformer):
             authenticity_help=self._t("help.authenticity", "Autenttisuus arvioi tekstin aitoutta."),
             heuristics=heuristics,
         )
+
+

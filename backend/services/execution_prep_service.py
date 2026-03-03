@@ -26,7 +26,7 @@ class ExecutionPrepService:
         document_service: DocumentService,
         repository: AbstractWorkflowRepository,
     ) -> dict[str, Any]:
-        """Validates and prepares the inputs for the workflow engine by mapping 
+        """Validates and prepares the inputs for the workflow engine by mapping
         Base64 payload models to raw dictionaries for the InputProcessorAgent.
         """
         inputs: dict[str, Any] = {}

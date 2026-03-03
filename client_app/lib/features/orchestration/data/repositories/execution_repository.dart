@@ -249,7 +249,7 @@ class ExecutionRepository {
   /// Fetches the UI View Report (BFF) for an execution.
   ///
   /// Endpoint: `GET /executions/{id}/view`
-  TaskEither<AppError, ReportView> getReportView(String id) {
+  TaskEither<AppError, SemanticReport> getReportView(String id) {
     return TaskEither.tryCatch(() async {
       final response = await _client.get<Map<String, dynamic>>(
         '/executions/$id/view',
@@ -257,7 +257,7 @@ class ExecutionRepository {
       debugPrint(
         '[ExecutionRepository] getReportView($id) SUCCESS: ${response.statusCode}',
       );
-      return ReportView.fromJson(response.data!);
+      return SemanticReport.fromJson(response.data!);
     }, (error, stackTrace) => _mapError(error));
   }
 }

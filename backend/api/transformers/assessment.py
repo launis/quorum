@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from backend.exceptions import AppException
-from backend.models.view import AssessmentView, StepProgressItem
+from backend.models.view.semantic_models import AssessmentView, StepProgressItem
 
 from .base import BaseTransformer
 
@@ -11,7 +11,12 @@ logger = logging.getLogger(__name__)
 
 class AssessmentTransformer(BaseTransformer):
     def _get_workflow_steps(
-        self, workflow_id: str, current_data: dict, workflow_definition: Any | None = None, step_names: dict[str, str] | None = None, step_slugs: dict[str, str] | None = None
+        self,
+        workflow_id: str,
+        current_data: dict[str, Any],
+        workflow_definition: Any | None = None,
+        step_names: dict[str, str] | None = None,
+        step_slugs: dict[str, str] | None = None,
     ) -> list[StepProgressItem]:
         """Determines the steps for the workflow and their status dynamically."""
         chain = []
@@ -68,7 +73,7 @@ class AssessmentTransformer(BaseTransformer):
                     step_status = "failed"
 
             if step_id not in step_id_to_name:
-                 raise ValueError(f"Execution step_id '{step_id}' has no corresponding WorkflowDefinition mapping.")
+                raise ValueError(f"Execution step_id '{step_id}' has no corresponding WorkflowDefinition mapping.")
 
             display_name = step_id_to_name[step_id]
             # Use the provided display name (from mapping) directly if it differs from the step_id.
@@ -125,7 +130,9 @@ class AssessmentTransformer(BaseTransformer):
                 steps_data = self._reconstruct_state_from_trace(raw_data["results"]["execution_trace"])
 
             # GENERATE STEPS LIST
-            steps_list = self._get_workflow_steps(str(workflow_id), steps_data, workflow_definition, step_names, step_slugs)
+            steps_list = self._get_workflow_steps(
+                str(workflow_id), steps_data, workflow_definition, step_names, step_slugs
+            )
 
             # Filter out pending steps if the execution is completed or failed
             if status in ("completed", "finished", "failed", "rejected"):
@@ -140,9 +147,12 @@ class AssessmentTransformer(BaseTransformer):
                         status_message = self._t(
                             "error.llm_retry", "Kielimallin vastaus epäonnistui (Yhteys- tai muotoiluvirhe)."
                         )
-                    elif "rate limit exceeded" in error_details.lower() or "resource exhausted" in error_details.lower():
+                    elif (
+                        "rate limit exceeded" in error_details.lower() or "resource exhausted" in error_details.lower()
+                    ):
                         status_message = self._t(
-                            "error.rate_limit", "Tekstityökalun kapasiteettiraja (Rate Limit) ylittyi. Yritä hetken kuluttua uudelleen."
+                            "error.rate_limit",
+                            "Tekstityökalun kapasiteettiraja (Rate Limit) ylittyi. Yritä hetken kuluttua uudelleen.",
                         )
                     else:
                         status_message = self._t(
@@ -167,9 +177,9 @@ class AssessmentTransformer(BaseTransformer):
 
                         # Use mapped name if available
                         if last_key in s_map:
-                             last_step = s_map[last_key]
+                            last_step = s_map[last_key]
                         else:
-                             last_step = last_key.replace("step_", "").capitalize()
+                            last_step = last_key.replace("step_", "").capitalize()
 
                         # FIX: Last step is COMPLETED, so label it 'Valmis'
                         status_message = f"{self._t('status.completed', 'Valmis')}: {last_step} ({count})"

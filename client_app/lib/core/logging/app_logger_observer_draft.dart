@@ -10,9 +10,8 @@ final class AppLoggerObserver extends ProviderObserver {
 
   @override
   void didAddProvider(
-    ProviderBase provider,
+    ProviderObserverContext context,
     Object? value,
-    ProviderContainer container,
   ) {
     // Wait, user says "signatue changed to pass single ProviderObserverContext object".
     // BUT I cannot verify this signature without docs or trial.

@@ -1,20 +1,22 @@
 import logging
+from typing import Any
 
 from backend.exceptions import AppException
 from backend.models.domain.execution import ExecutionRecord
 from backend.models.enums import HelpTextKey, LabelKey, RiskLevel, TitleKey
 from backend.models.state import WorkflowState
-from backend.models.view import (
+from backend.models.view.semantic_models import (
+    BlockType,
     DimensionDisplay,
     EvidenceItem,
     EvidenceList,
     ReferenceIntent,
     ReferenceItem,
-    ReportView,
     ScoreCardDisplay,
-    SectionType,
+    SemanticBlock,
+    SemanticIntent,
+    SemanticReport,
     SystemNotification,
-    UiSection,
 )
 
 from .base import BaseTransformer
@@ -44,8 +46,11 @@ class ReportTransformer(
     BaseTransformer,
 ):
     def transform(
-        self, raw_data: ExecutionRecord, valid_range: tuple[float, float] | None = None, step_names: dict[str, str] | None = None
-    ) -> ReportView:
+        self,
+        raw_data: ExecutionRecord,
+        valid_range: tuple[float, float] | None = None,
+        step_names: dict[str, str] | None = None,
+    ) -> SemanticReport:
         """Transforms execution data (Pydantic Model) into a clean ReportView model.
 
         Args:
@@ -68,10 +73,12 @@ class ReportTransformer(
             elif isinstance(raw_data.results, dict):
                 # We attempt to reconstruct State
                 raw_res = raw_data.results
-                ctx_vars = raw_res.get('context_variables', raw_res.get('step_results', raw_res))
+                ctx_vars: dict[str, Any] = raw_res.get("context_variables", raw_res.get("step_results", raw_res)) or {}
                 state = WorkflowState(workflow_id=raw_data.workflow_id or "legacy_fallback", context_variables=ctx_vars)
             else:
-                logger.warning(f"Unrecognized results type {type(raw_data.results)}, defaulting to empty WorkflowState.")
+                logger.warning(
+                    f"Unrecognized results type {type(raw_data.results)}, defaulting to empty WorkflowState."
+                )
                 state = WorkflowState(workflow_id="unknown")
         else:
             # FAIL FAST: Strict Schema Requirement
@@ -101,7 +108,7 @@ class ReportTransformer(
                 # Use step name if provided, else fallback to hardcoded
                 base_agent_name = ""
                 if step_names and key in step_names:
-                     base_agent_name = step_names[key]
+                    base_agent_name = step_names[key]
                 else:
                     base_agent_name = (
                         self._get_label(LabelKey.AGENT_JUDGE)
@@ -140,11 +147,15 @@ class ReportTransformer(
                             section_id += f"-{idx}"
 
                         sections.append(
-                            UiSection(id=section_id, type=SectionType.SCORE_CARD, title=card_title, data=score_data)
+                            SemanticBlock(id=section_id, type=BlockType.CARD, label=card_title, value=score_data)
                         )
                     except ValueError as e:
                         logger.error(f"Score validation failed for {key} (card {idx}): {e}")
-                        raise AppException(f"Score validation failed for {key}: {e}", 500) from e
+                        raise AppException(
+                            status_code=400,
+                            message=f"Score validation failed for {key} (card {idx}): {e}",
+                            details={"error_code": "SCORE_VALIDATION_FAILED"},
+                        ) from e
                     except Exception as e:
                         raise AppException(f"Unexpected error in score card processing: {e}", 500) from e
             else:
@@ -234,11 +245,10 @@ class ReportTransformer(
         timeline_events = self._build_timeline(state, step_names)
 
         sections.append(
-            UiSection(
-                id="unified-timeline",
-                type=SectionType.TIMELINE_FEED,
-                title=self._get_title(TitleKey.TIMELINE),
-                data={"events": timeline_events},
+            SemanticBlock(id="unified-timeline",
+                type=BlockType.LIST,
+                label=self._get_title(TitleKey.TIMELINE),
+                value={"events": timeline_events},
             )
         )
 
@@ -251,10 +261,12 @@ class ReportTransformer(
         # --- E. Dynamic Theming & Notifications ---
         status_theme, notification = self._determine_report_status(metrics, guard_grid)
 
-        return ReportView(
-            view_id=execution_id,
-            status_theme=status_theme,
-            sections=sections,
+        return SemanticReport(
+            report_id=execution_id,
+            intent=SemanticIntent.SUCCESS
+            if status_theme == "success"
+            else (SemanticIntent.WARNING if status_theme == "warning" else SemanticIntent.DANGER),
+            blocks=sections,
             metrics=metrics,
             system_notification=notification,
             references=references_list,
@@ -270,7 +282,7 @@ class ReportTransformer(
 
         # 1. Analyst Search (Web / Snippets) -> [H-X]
         # Haetaan sekä rag_evidencestä että hakutuloksista, koska arkitehtuuri oli siirtymävaiheessa
-        search_items = []
+        search_items: list[Any] = []
         if getattr(state, "step_analyst", None):
             rag = getattr(state.step_analyst, "rag_evidence", [])
             if rag:
@@ -279,8 +291,10 @@ class ReportTransformer(
         # Oletetaan SearchHook palauttaa context_variables["search_result"]
         sr_obj = state.context_variables.get("search_result")
         if sr_obj:
-            results = getattr(sr_obj, "results", []) if hasattr(sr_obj, "results") else (
-                sr_obj.get("results", []) if isinstance(sr_obj, dict) else sr_obj
+            results = (
+                getattr(sr_obj, "results", [])
+                if hasattr(sr_obj, "results")
+                else (sr_obj.get("results", []) if isinstance(sr_obj, dict) else sr_obj)
             )
             if isinstance(results, list):
                 search_items.extend(results)
@@ -302,80 +316,87 @@ class ReportTransformer(
                 snippet = str(item)
 
             if snippet and snippet.strip():
-                references.append(ReferenceItem(
-                    id=f"[H-{counters['SEARCH']}]",
-                    intent=ReferenceIntent.SEARCH,
-                    title=title,
-                    snippet=snippet,
-                    url=url,
-                ))
+                references.append(
+                    ReferenceItem(
+                        id=f"[H-{counters['SEARCH']}]",
+                        intent=ReferenceIntent.SEARCH,
+                        title=title,
+                        snippet=snippet,
+                        url=url,
+                    )
+                )
                 counters["SEARCH"] += 1
 
         # 2. Vertex Grounding (Fact-checking/Web URIs) -> [F-X]
         # Grounding data is usually intercepted into LLMResponse model_extra.
         # Safest way without schema coupling is finding grounding metadata across steps' LLM traces if they exist
         for key, val in state.context_variables.items():
-             if "grounding" in key.lower() and isinstance(val, (list, dict)):
-                 # Very simplified generic mapper, actual integration requires provider-specific schema
-                 pass
+            if "grounding" in key.lower() and isinstance(val, (list, dict)):
+                # Very simplified generic mapper, actual integration requires provider-specific schema
+                pass
 
         # Note: If Judge provides critical_findings, we could also map them as [F-X] here in the future.
         # Until then, we extract from provider metadata directly if we see it.
         # Fallback to searching step_metadata:
         for step_key in [k for k in dir(state) if k.startswith("step_")]:
-             model = getattr(state, step_key, None)
-             if model:
-                  p_meta = getattr(model, "metadata", None)
-                  p_prov = getattr(p_meta, "provider_metadata", {}) if p_meta else {}
-                  g_urls = p_prov.get("grounding_urls", []) if isinstance(p_prov, dict) else []
-                  for url in g_urls:
-                       references.append(ReferenceItem(
+            model = getattr(state, step_key, None)
+            if model:
+                p_meta = getattr(model, "metadata", None)
+                p_prov = getattr(p_meta, "provider_metadata", {}) if p_meta else {}
+                g_urls: list[str] = p_prov.get("grounding_urls", []) if isinstance(p_prov, dict) else []
+                for url in g_urls:
+                    references.append(
+                        ReferenceItem(
                             id=f"[F-{counters['GROUNDING']}]",
                             intent=ReferenceIntent.GROUNDING,
                             title="Faktantarkistus (Google)",
                             snippet=f"Vertex AI Grounding lähde: {url}",
-                            url=url
-                       ))
-                       counters["GROUNDING"] += 1
+                            url=url,
+                        )
+                    )
+                    counters["GROUNDING"] += 1
 
         # 3. Internal KB (ReferencesHook) -> [O-X]
         # ReferenceHook tallentaa 'bibliography_result' tilaobjektiin
         bib_obj = state.context_variables.get("bibliography_result")
         if bib_obj:
+            items: list[Any] = []
             if isinstance(bib_obj, dict):
-                items = bib_obj.get("references", bib_obj.get("items", []))
+                items = bib_obj.get("references", bib_obj.get("items", [])) or []
             else:
-                items = getattr(bib_obj, "references", getattr(bib_obj, "items", []))
+                items = getattr(bib_obj, "references", getattr(bib_obj, "items", [])) or []
             if isinstance(items, list):
                 for item in items:
                     title = "Organisaation Linjaus"
                     snippet = ""
                     url = None
                     if isinstance(item, dict):
-                         title = item.get("title", title)
-                         snippet = item.get("snippet", str(item))
-                         url = item.get("url") or item.get("source_id")
+                        title = item.get("title", title)
+                        snippet = item.get("snippet", str(item))
+                        url = item.get("url") or item.get("source_id")
                     elif hasattr(item, "snippet"):
-                         title = getattr(item, "title", title)
-                         snippet = getattr(item, "snippet", str(item))
-                         url = getattr(item, "url", getattr(item, "source_id", None))
+                        title = getattr(item, "title", title)
+                        snippet = getattr(item, "snippet", str(item))
+                        url = getattr(item, "url", getattr(item, "source_id", None))
                     else:
-                         snippet = str(item)
+                        snippet = str(item)
 
                     if snippet and snippet.strip():
-                        references.append(ReferenceItem(
-                            id=f"[O-{counters['INTERNAL_KB']}]",
-                            intent=ReferenceIntent.INTERNAL_KB,
-                            title=title,
-                            snippet=snippet,
-                            url=url,
-                        ))
+                        references.append(
+                            ReferenceItem(
+                                id=f"[O-{counters['INTERNAL_KB']}]",
+                                intent=ReferenceIntent.INTERNAL_KB,
+                                title=title,
+                                snippet=snippet,
+                                url=url,
+                            )
+                        )
                         counters["INTERNAL_KB"] += 1
 
         return references
 
     def _determine_report_status(
-        self, metrics: dict | None, guard_section: UiSection | None
+        self, metrics: dict[str, Any] | None, guard_section: SemanticBlock | None
     ) -> tuple[str, SystemNotification | None]:
         """Calculates the Report Theme (Success/Warning/Danger) based on heuristics."""
         theme = "success"
@@ -383,9 +404,14 @@ class ReportTransformer(
 
         # 1. Security Check (Danger)
         if guard_section:
-            # We need to peek into the data. UiSection.data is a dict.
+            # We need to peek into the data. SemanticBlock.value is a dict or Object.
             # SecurityDisplay was dumped into 'security_display' key.
-            sec_data = guard_section.data.get("security_display", {})
+            sec_val: dict[str, Any] = (
+                guard_section.value
+                if isinstance(guard_section.value, dict)
+                else getattr(guard_section.value, "security_display", {})
+            )
+            sec_data: dict[str, Any] = sec_val.get("security_display", {}) if "security_display" in sec_val else sec_val
             risk = sec_data.get("risk_level")
 
             if risk == RiskLevel.HIGH.value:
@@ -425,39 +451,75 @@ class ReportTransformer(
         score = None
         raw_score = None
         verdict = None
-        dimensions_list = []
+        judge_step_dict: dict[str, Any] = (
+            getattr(judge_step, "model_dump", lambda: {})()
+            if hasattr(judge_step, "model_dump")
+            else (judge_step if isinstance(judge_step, dict) else {})
+        )
+        if not judge_step_dict and hasattr(judge_step, "dict"):
+            judge_step_dict = getattr(judge_step, "dict", lambda: {})()
 
         # 1. Primary Source: 'score_cards' (V3 Standard)
-        if "score_cards" in judge_step and isinstance(judge_step["score_cards"], list) and judge_step["score_cards"]:
-            card = judge_step["score_cards"][0]
-            raw_score = card.get("total_score")
-            verdict = card.get("verdict")
-            dimensions_list = card.get("dimensions", [])
-        elif "score_card" in judge_step:
-            # Legacy/Fallback if card inside 'score_card' key
-            card = judge_step["score_card"]
-            raw_score = card.get("total_score")
-            verdict = card.get("final_verdict")
-            dimensions_list = card.get("dimensions", [])
-        else:
-            # V3 Fallback
-            raw_score = judge_step.get("total_score")
-            verdict = judge_step.get("final_verdict")
-            dimensions_list = judge_step.get("dimensions", [])
+        if (
+            "score_cards" in judge_step_dict
+            and isinstance(judge_step_dict["score_cards"], list)
+            and judge_step_dict["score_cards"]
+        ):
+            card = judge_step_dict["score_cards"][0]
+            score = card.get("total_score") if isinstance(card, dict) else getattr(card, "total_score", None)
+            verdict = card.get("verdict") if isinstance(card, dict) else getattr(card, "verdict", None)
+            dimensions_list = card.get("dimensions", []) if isinstance(card, dict) else getattr(card, "dimensions", [])
+
+            raw_score = (
+                card.get("total_score_raw") if isinstance(card, dict) else getattr(card, "total_score_raw", None)
+            )
+            if raw_score is None:
+                raw_score = score
+
+            if raw_score is not None and score is None:
+                score = raw_score
+
+        # 2. Legacy 'judge' struct fallbacks
+        elif judge_step_dict:  # If judge_step_dict is not empty, try legacy keys
+            if "score_card" in judge_step_dict:  # Legacy/Fallback if card inside 'score_card' key
+                card2: dict[str, Any] = (
+                    getattr(judge_step_dict["score_card"], "model_dump", lambda: {})()
+                    if hasattr(judge_step_dict["score_card"], "model_dump")
+                    else (
+                        judge_step_dict["score_card"]
+                        if isinstance(judge_step_dict["score_card"], dict)
+                        else getattr(judge_step_dict["score_card"], "__dict__", {})
+                    )
+                )
+                score = card2.get("total_score")
+                raw_score = score
+                verdict = card2.get("final_verdict")
+                dimensions_list = card2.get("dimensions", [])
+            else:  # V3 Fallback (direct attributes)
+                score = judge_step_dict.get("total_score")
+                raw_score = score
+                verdict = judge_step_dict.get("final_verdict")
+                dimensions_list = judge_step_dict.get("dimensions", [])
 
         # 2. Validation
         if raw_score is None:
-            raise ValueError(f"Score is missing from Judge step ({agent_name}). Expected 'total_score'.")
+            raise AppException(
+                status_code=400,
+                message=f"Score is missing from Judge step ({agent_name}). Expected 'total_score'.",
+                details={"error_code": "MISSING_SCORE"},
+            )
 
         try:
             score = float(raw_score)
         except (TypeError, ValueError):
-            raise ValueError(f"Score '{raw_score}' is not a valid number.") from None
+            raise AppException(
+                status_code=400, message=f"Score '{raw_score}' is not a valid number.", details={"error_code": "INVALID_SCORE"}
+            ) from None
 
         # STRICT SCALE AUTHORITY CHECK
         if valid_range is None:
-            s_min = judge_step.get("scale_min")
-            s_max = judge_step.get("scale_max")
+            s_min = judge_step_dict.get("scale_min")
+            s_max = judge_step_dict.get("scale_max")
 
             if s_min is not None and s_max is not None:
                 valid_range = (float(s_min), float(s_max))
@@ -465,17 +527,25 @@ class ReportTransformer(
                 # If no scale found, default to 1-4 (Legacy Standard) but WARN or FAIL?
                 # For migration safety, we should stick to Fail Fast if unknown.
                 # However, let's look for known scales in dimensions if absent.
-                raise ValueError(f"Score validation failed for {agent_name}: No scale definition found.")
+                raise AppException(
+                    status_code=400,
+                    message=f"Score validation failed for {agent_name}: No scale definition found.",
+                    details={"error_code": "MISSING_SCALE"},
+                )
 
         scale_min, scale_max = valid_range
         if not (scale_min <= score <= scale_max):
-            raise ValueError(f"Score {score} is out of valid range [{scale_min}, {scale_max}].")
+            raise AppException(
+                status_code=400,
+                message=f"Score {score} is out of valid range [{scale_min}, {scale_max}].",
+                details={"error_code": "OUT_OF_RANGE"},
+            )
 
         if not verdict:
             verdict = ""
 
         # Map dimensions to proper model
-        mapped_dimensions = []
+        mapped_dimensions: list[DimensionDisplay] = []
         for d in dimensions_list:
             # Handle potential dict vs object
             d_data = d if isinstance(d, dict) else d.model_dump()
@@ -499,7 +569,7 @@ class ReportTransformer(
             dimensions=mapped_dimensions,
         )
 
-    def _build_xai_section(self, state: WorkflowState) -> UiSection | None:
+    def _build_xai_section(self, state: WorkflowState) -> SemanticBlock | None:
         xai = state.step_xai
         if not xai:
             logger.warning("Missing data for step_xai in XAI Report layout")
@@ -514,16 +584,15 @@ class ReportTransformer(
             logger.warning("step_xai exists but missing both 'xai_report_formatted' and 'final_verdict'")
             return None
 
-        return UiSection(
-            id="xai-summary",
-            type=SectionType.MARKDOWN_BLOCK,
-            title=self._get_label(LabelKey.AI_REASONING),
-            data={"content": content},
+        return SemanticBlock(id="xai-summary",
+            type=BlockType.PARAGRAPH,
+            label=self._get_label(LabelKey.AI_REASONING),
+            value={"content": content},
         )
 
-    def _build_timeline(self, state: WorkflowState, step_names: dict[str, str] | None = None) -> list[dict]:
-        events = []
-        agent_names = {
+    def _build_timeline(self, state: WorkflowState, step_names: dict[str, str] | None = None) -> list[dict[str, Any]]:
+        events: list[dict[str, Any]] = []
+        agent_names: dict[str, str] = {
             "step_guard": f"🛡️ {self._get_label(LabelKey.AGENT_GUARD)}",
             "step_analyst": f"🔎 {self._get_label(LabelKey.AGENT_ANALYST)}",
             "step_interaction": f"🤝 {self._get_label(LabelKey.AGENT_INTERACTION)}",
@@ -546,7 +615,9 @@ class ReportTransformer(
             # Load typed Pydantic model using WorkflowState's intelligent accessor properties
             model = getattr(state, step_key, None)
             if not model:
-                logger.warning(f"Timeline extraction: no typed property found in WorkflowState for {step_key}, skipping.")
+                logger.warning(
+                    f"Timeline extraction: no typed property found in WorkflowState for {step_key}, skipping."
+                )
                 continue
 
             meta = getattr(model, "metadata", None)
@@ -612,18 +683,18 @@ class ReportTransformer(
 
         return sorted(events, key=lambda x: x.get("timestamp") or "")
 
-    def _extract_analyst_table(self, state: WorkflowState) -> UiSection | None:
+    def _extract_analyst_table(self, state: WorkflowState) -> SemanticBlock | None:
         step = state.step_analyst
         if not step:
             logger.warning("Missing data for step_analyst in Analyst Table layout")
             return None
 
-        hypotheses = getattr(step, "hypotheses", None) or getattr(step, "hypoteesit", [])
+        hypotheses: list[Any] = getattr(step, "hypotheses", None) or getattr(step, "hypoteesit", [])
         if not hypotheses:
             logger.warning("step_analyst exists but 'hypotheses' data is missing or empty")
             return None
 
-        rows = []
+        rows: list[dict[str, Any]] = []
         for h in hypotheses:
             h_data = h if isinstance(h, dict) else h.model_dump()
             rows.append(
@@ -643,11 +714,10 @@ class ReportTransformer(
             for item in rag_evidence:
                 evidence_content += f"- {item}\n"
 
-        return UiSection(
-            id="hypotheses-table",
-            type=SectionType.DATA_TABLE,
-            title=self._get_title(TitleKey.HYPOTHESES),
-            data={
+        return SemanticBlock(id="hypotheses-table",
+            type=BlockType.DATA_GRID,
+            label=self._get_title(TitleKey.HYPOTHESES),
+            value={
                 "columns": [
                     {"key": "id", "label": self._get_label(LabelKey.ID)},
                     {"key": "claim", "label": self._get_label(LabelKey.CLAIM)},
@@ -659,7 +729,7 @@ class ReportTransformer(
             },
         )
 
-    def _extract_analyst_evidence(self, state: WorkflowState) -> UiSection | None:
+    def _extract_analyst_evidence(self, state: WorkflowState) -> SemanticBlock | None:
         """Helper to extract RAG evidence as a separate section if needed."""
         step = state.step_analyst
         if not step:
@@ -671,18 +741,19 @@ class ReportTransformer(
             logger.warning("step_analyst exists but 'rag_evidence' data is missing or empty")
             return None
 
-        items = []
+        items: list[EvidenceItem] = []
         for i, item in enumerate(rag_evidence):
-            items.append(EvidenceItem(id=f"evidence-{i}", source="RAG Search", content=str(item), score=1.0, type="concept"))
+            items.append(
+                EvidenceItem(id=f"evidence-{i}", source="RAG Search", content=str(item), score=1.0, type="concept")
+            )
 
-        return UiSection(
-            id="analyst-evidence",
-            type=SectionType.EVIDENCE_LIST,
-            title=self._get_label(LabelKey.EVIDENCE_FOUND),
-            data=EvidenceList(items=items, total_count=len(items)),
+        return SemanticBlock(id="analyst-evidence",
+            type=BlockType.LIST,
+            label=self._get_label(LabelKey.EVIDENCE_FOUND),
+            value={"evidence": EvidenceList(items=items, total_count=len(items))},
         )
 
-    def _extract_usage_section(self, record: ExecutionRecord) -> UiSection | None:
+    def _extract_usage_section(self, record: ExecutionRecord) -> SemanticBlock | None:
         """Extracts usage and cost metrics from strictly typed ExecutionRecord."""
         # Cost is top-level in ExecutionRecord
         cost = record.cost_estimate or 0.0
@@ -694,14 +765,15 @@ class ReportTransformer(
         completion_tokens = 0
 
         # Access results safely
+        usage: dict[str, Any] | None = None
         if isinstance(record.results, WorkflowState):
             usage = record.results.context_variables.get("usage")
             if not usage:
                 # Fallback to total audit_metrics if usage object is absent
-                metrics = record.results.context_variables.get("audit_metrics", {})
+                metrics = (record.results.context_variables or {}).get("audit_metrics", {})
                 usage = metrics.get("usage")
         elif isinstance(record.results, dict):
-            res_data = record.results
+            res_data: dict[str, Any] = record.results
             usage = res_data.get("usage")
             if not usage and "result" in res_data:
                 usage = res_data["result"].get("usage")
@@ -718,7 +790,7 @@ class ReportTransformer(
         else:
             logger.warning("Missing usage stats in ExecutionRecord results")
 
-        items = [
+        items: list[dict[str, Any]] = [
             {"label": self._t("lblTotalTokens", "Kokonaistokenit"), "value": str(total_tokens)},
             {"label": self._t("lblPromptTokens", "Syötetokenit"), "value": str(prompt_tokens)},
             {"label": self._t("lblCompletionTokens", "Vastaustokenit"), "value": str(completion_tokens)},
@@ -729,15 +801,13 @@ class ReportTransformer(
             },
         ]
 
-        data = {"items": items}
+        data: dict[str, Any] = {"items": items}
 
-        return UiSection(
-            id="usage-stats", type=SectionType.USAGE_STATS, title=self._get_title(TitleKey.USAGE), data=data
-        )
+        return SemanticBlock(id="usage-stats", type=BlockType.METRIC, label=self._get_title(TitleKey.USAGE), value=data)
 
-    def _extract_critical_findings(self, state: WorkflowState) -> UiSection | None:
+    def _extract_critical_findings(self, state: WorkflowState) -> SemanticBlock | None:
         """Extracts Truth Protocol findings (Critical Findings) from Judge step."""
-        findings = []
+        findings: list[str] = []
 
         # Check both judges
         for key in ["step_judge", "step_judge_cognitive"]:
@@ -753,10 +823,10 @@ class ReportTransformer(
             if not f_list and hasattr(step, "score_card") and step.score_card:
                 f_list = getattr(step.score_card, "critical_findings", [])
             elif not f_list and hasattr(step, "score_cards") and step.score_cards:
-                 for card in step.score_cards:
-                     card_findings = getattr(card, "critical_findings", [])
-                     if card_findings:
-                         f_list.extend(card_findings)
+                for card in step.score_cards:
+                    card_findings = getattr(card, "critical_findings", [])
+                    if card_findings:
+                        f_list.extend(card_findings)
 
             if f_list:
                 findings.extend(f_list)
@@ -781,9 +851,9 @@ class ReportTransformer(
             "\n*Nämä löydökset perustuvat Tietopankin (Laki), Hakutulosten (Faktat) ja Lokien (Teot) vertailuun.*"
         )
 
-        return UiSection(
-            id="critical-findings",
-            type=SectionType.MARKDOWN_BLOCK,
-            title="TOTUUSPROTOKOLLA",  # Hardcoded or use TitleKey if exists
-            data={"content": content},
+        return SemanticBlock(id="critical-findings",
+            type=BlockType.PARAGRAPH,
+            intent=SemanticIntent.WARNING,
+            label="TOTUUSPROTOKOLLA",  # Hardcoded or use TitleKey if exists
+            value={"content": content},
         )

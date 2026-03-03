@@ -39,5 +39,5 @@ When acknowledging these instructions, you must explicitly mention and confirm t
 6. **No-String Mandate & SDUI BFF**: I understand that the Backend only returns unified UI keys and enumerations (I18N Keys) to the UI and PDF builders, and that the UI's localization is fully managed on the Frontend side via `.arb` files.
 
 **CONFIRMATION:**
-Before you begin, read `docs/structured_cognitive_architecture.md`, `docs/architecture.md`, and `docs/components.md` carefully.
+Before you begin, read `docs/structured_cognitive_architecture.md`, `docs/data_management.md`, `docs/architecture.md`, `docs/components.md` and `docs/flutterpromptohje.md` carefully.
 Then, reply by acknowledging the 6 safety and rule pillars above, and ask: "Understood. Antigravity V5.1 rules loaded. What is the objective of this session?"

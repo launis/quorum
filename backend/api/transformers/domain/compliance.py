@@ -1,12 +1,13 @@
 import logging
+from typing import Any
 
-from pydantic import ValidationError
-
-from backend.models.domain import ArchivistOutput, CoachingPlan, GuardOutput
+from backend.exceptions import AppException
+from backend.models.domain import ArchivistOutput
 from backend.models.enums import LabelKey, RiskLevel, TitleKey
+from backend.models.state import WorkflowState
 
 # UVM: Use strict extensions
-from backend.models.view import ArchivistDisplay, SectionType, SecurityDisplay, UiSection
+from backend.models.view.semantic_models import ArchivistDisplay, BlockType, SecurityDisplay, SemanticBlock
 
 # Deprecated: Legacy imports removed
 from ..base import BaseTransformer
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class ComplianceDomainTransformer(BaseTransformer):
-    def _adapt_legacy_trace(self, data: dict) -> dict:
+    def _adapt_legacy_trace(self, data: dict[str, Any]) -> dict[str, Any]:
         """Helper to adapt legacy reasoning_trace string to strict ReasoningTraceDTO."""
         if "reasoning_trace" in data and "thought_process" not in data:
             data = data.copy()
@@ -24,7 +25,7 @@ class ComplianceDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_guard_grid(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_guard_grid(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_guard
         if not model:
             return None
@@ -70,25 +71,23 @@ class ComplianceDomainTransformer(BaseTransformer):
         except Exception as e:
             raise AppException(f"Failed to create SecurityDisplay: {e}", 500) from e
 
-        return UiSection(
-            id="security-grid",
-            type=SectionType.KEY_VALUE_GRID,
-            title=self._get_title(TitleKey.SECURITY),
-            data={"security_display": s_display.model_dump()},
+        return SemanticBlock(id="security-grid",
+            type=BlockType.DATA_GRID,
+            label=self._get_title(TitleKey.SECURITY),
+            value={"security_display": s_display.model_dump()},
         )
 
-    def _extract_archivist_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_archivist_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_archivist
         if not model:
             return None
 
         try:
             display_model = self._transform_archivist_data(model)
-            return UiSection(
-                id="archivist-check",
-                type=SectionType.ARCHIVIST_CHECK,
-                title=self._get_title(TitleKey.ARCHIVIST),
-                data=display_model,
+            return SemanticBlock(id="archivist-check",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.ARCHIVIST),
+                value=display_model,
             )
         except Exception as e:
             raise AppException(f"Failed to transform Archivist display: {e}", 500) from e
@@ -107,12 +106,11 @@ class ComplianceDomainTransformer(BaseTransformer):
             compliance_score=comp_score,
             compliance_score_display=f"{comp_score:.1f}" if comp_score is not None else "N/A",
             compliance_analysis=comp_desc or comp_analysis,
-            consistency_analysis=model.consistency_analysis,
             compliance_help=self._t("help.compliance", "Säädöstenmukaisuus arvioi tekstin lakiteknistä pätevyyttä."),
             recommendations=recs,
         )
 
-    def _extract_coach_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_coach_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_coach
         if not model:
             return None
@@ -137,9 +135,10 @@ class ComplianceDomainTransformer(BaseTransformer):
                 cit = f"{author} {year}. {title}."
                 content += f"- {cit}\n"
 
-        return UiSection(
-            id="coach-markdown",
-            type=SectionType.MARKDOWN_BLOCK,
-            title=self._get_title(TitleKey.COACH),
-            data={"content": content},
+        return SemanticBlock(id="coach-markdown",
+            type=BlockType.PARAGRAPH,
+            label=self._get_title(TitleKey.COACH),
+            value={"content": content},
         )
+
+

@@ -1,21 +1,22 @@
 import logging
+from typing import Any
 
-from pydantic import ValidationError
-
-from backend.models.domain import CausalAnalysis, CausalOutput
+from backend.exceptions import AppException
+from backend.models.domain import CausalOutput
 from backend.models.enums import TitleKey
+from backend.models.state import WorkflowState
 
 # UVM: Use strict extensions
-from backend.models.view import CausalDisplay, SectionType, UiSection
+from backend.models.view.semantic_models import BlockType, CausalDisplay, SemanticBlock
 
-# Deprecated: from backend.models.view_extensions import CausalDisplay as LegacyCausalDisplay
+# Deprecated: from backend.models.view.semantic_models_extensions import CausalDisplay as LegacyCausalDisplay
 from ..base import BaseTransformer
 
 logger = logging.getLogger(__name__)
 
 
 class CausalDomainTransformer(BaseTransformer):
-    def _adapt_legacy_trace(self, data: dict) -> dict:
+    def _adapt_legacy_trace(self, data: dict[str, Any]) -> dict[str, Any]:
         """Helper to adapt legacy reasoning_trace string to strict ReasoningTraceDTO."""
         if "reasoning_trace" in data and "thought_process" not in data:
             data = data.copy()
@@ -24,7 +25,7 @@ class CausalDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_causal_section(self, state: 'WorkflowState') -> UiSection | None:
+    def _extract_causal_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_causal
 
         # Fallback to Panel
@@ -43,11 +44,10 @@ class CausalDomainTransformer(BaseTransformer):
 
         try:
             display_model = self._transform_causal_data(model)
-            return UiSection(
-                id="causal-analysis",
-                type=SectionType.CAUSAL_ANALYSIS,
-                title=self._get_title(TitleKey.CAUSAL),
-                data=display_model,  # Return model directly
+            return SemanticBlock(id="causal-analysis",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.CAUSAL),
+                value=display_model,  # Return model directly
             )
         except Exception as e:
             raise AppException(f"Failed to transform Causal display: {e}", 500) from e
@@ -89,3 +89,5 @@ class CausalDomainTransformer(BaseTransformer):
             score=abd_score,  # Use abductive as main score?
             verdict=self._t(data.abductive_conclusion.value, data.abductive_conclusion.name.title().replace("_", " ")),
         )
+
+

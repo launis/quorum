@@ -7,6 +7,7 @@ from backend.core.registry import TaskRegistry
 from backend.exceptions import AppException, ErrorCodes, status
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
+
 class MockDTO(ReasoningTraceDTO):
     thought_process: str = "mock thought process"
     conclusion: str = "mock conclusion"

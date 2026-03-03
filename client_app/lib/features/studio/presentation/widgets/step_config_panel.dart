@@ -115,10 +115,12 @@ class StepConfigPanel extends ConsumerWidget {
                         currentMatrixId: step!.config['matrix_id'],
                         onChanged: (val) => updateConfig('matrix_id', val),
                         availableMatrices:
-                            ref
-                                .watch(availableMatricesControllerProvider)
-                                .value ??
-                            [],
+                            (ref
+                                        .watch(
+                                          availableMatricesControllerProvider,
+                                        )
+                                        .value as List<StudioComponentDef>?) ??
+                                [],
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -218,7 +220,7 @@ class _MatrixSelectionField extends StatelessWidget {
     // But for now, we just match what we can.
     final l10n = AppLocalizations.of(context)!;
 
-    return DropdownButtonFormField<String>(
+    return DropdownButtonFormField<String?>(
       value:
           availableMatrices.any((m) => m.id == currentMatrixId)
               ? currentMatrixId
@@ -236,9 +238,9 @@ class _MatrixSelectionField extends StatelessWidget {
       items: [
         const DropdownMenuItem(value: null, child: Text('None')),
         ...availableMatrices.map((m) {
-          return DropdownMenuItem(
+          return DropdownMenuItem<String?>(
             value: m.id,
-            child: Text(m.name, overflow: TextOverflow.ellipsis),
+            child: Text(m.name ?? m.id, overflow: TextOverflow.ellipsis),
           );
         }),
       ],

@@ -395,12 +395,12 @@ class LiteLLMProvider(LLMProvider):
                     error_str = str(e)
                     if "ResponseParsingError" in type(e).__name__ or "No completion choices found" in error_str:
                         logger.error(f"[LiteLLMProvider] Instructor JSON Parsing Failure: {error_str}")
-                        
+
                         # Extract safety trigger context if possible
                         safety_hint = ""
                         if "safety_ratings" in error_str or "finish_reason: safety" in error_str.lower():
                             safety_hint = " Additionally, Vertex AI Safety Filters may have blocked the response."
-                            
+
                         raise AppException(
                             message=f"LLM returned an empty or malformed structured response. This is often caused by a prompt that is too large (Search Data) or a JSON format configuration error.{safety_hint}",
                             status_code=500,

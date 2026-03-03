@@ -212,7 +212,7 @@ The Panel Agent represents a "Fusion" of multiple critical roles (`Logician`, `F
 3.  **Template Injection**: These models are serialized and injected into the `PANEL_PROMPT_TEMPLATE`.
 
 ### 7.2. The "Wrapped vs. Unwrapped" Dual Standard
-The BFF Layer (`bff_transformer.py` / SDUI Domain Transformers) must structurally support two distinct payload formats without relaxing the strict Pydantic validation:
+The BFF Layer (`bff_transformer.py` / Semantic Domain Transformers) must structurally support two distinct payload formats without relaxing the strict Pydantic validation. Generic visual SDUI is deprecated in favor of agnostic Semantic Blocks (`SemanticReport`):
 
 1.  **Wrapped (Standalone Output - e.g. `PerformativityOutput`)**:
     *   **Source**: A standalone specialist agent (e.g., LogicianAgent natively running).
@@ -222,7 +222,7 @@ The BFF Layer (`bff_transformer.py` / SDUI Domain Transformers) must structurall
 2.  **Unwrapped (Panel Consolidation - e.g. `PerformativityAnalysis`)**:
     *   **Source**: The `PanelAgent`, which strips away external metadata and only outputs the deeply nested *core domain object* for maximum LLM context efficiency.
     *   **Structure**: Contains *only* the inner data (e.g., `LogicianData`, `PerformativityAnalysis`).
-    *   **Pipeline Action (Dynamic Reconstruction)**: Custom Transformer logic (e.g., within `_extract_detector_section`) MUST actively detect if it only received the inner data. If so, it must construct the outer shell (e.g., `PerformativityOutput(...)`) *on the fly*, injecting default reasoning traces to satisfy strict schema requirements before continuing the SDUI translation.
+    *   **Pipeline Action (Dynamic Reconstruction)**: Custom Transformer logic (e.g., within `_extract_detector_section`) MUST actively detect if it only received the inner data. If so, it must construct the outer shell (e.g., `PerformativityOutput(...)`) *on the fly*, injecting default reasoning traces to satisfy strict schema requirements before continuing the Semantic Block translation.
 
 ### 7.3. UI Safety Mandate (UiSection)
 *   The `UiSection.data` field is strictly typed as `dict[str, Any]`.

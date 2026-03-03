@@ -1,9 +1,9 @@
 // ignore_for_file: argument_type_not_assignable
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:client_app/core/network/sse_client.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:printing/printing.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -81,7 +81,7 @@ class PdfExportController extends _$PdfExportController {
       // we might want to check if it's done or just failed silently?
       // Requirement says: "When stream closes (or progress == 1.0), verify file availability"
       // So we generally proceed to final download check.
-      if (state.valueOrNull != 1.0) {
+      if (state.value != 1.0) {
         await _performFinalDownload(executionId);
       }
     } catch (e, st) {

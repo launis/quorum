@@ -288,6 +288,7 @@ async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthS
             raise PermissionDeniedError("The primary Root account cannot be deleted.")
 
         if target.role == UserRole.ADMIN and target.organization_id:
+            import asyncio
             admin_count = await asyncio.to_thread(auth_service._count_org_admins, target.organization_id)
             if admin_count <= 1:
                 from backend.exceptions import ConflictError

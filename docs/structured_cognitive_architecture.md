@@ -112,7 +112,7 @@ All steps operate on the Hybrid State Architecture, reading inputs from the Blac
 3. **Step 2: Analyst (`step_analyst`)**: Establishes ground truth. Outputs `AnalystOutput` with `provenance_map`.
 4. **Step 3: Panel (`step_panel`)**: Parallel execution of specialized critics (Logician, Falsifier, Causal, Performativity, Overseer) wrapped in `PanelOutputDTO`. The Engine performs a **Fan-Out**, splitting this object into individual state keys (e.g., `step_logician`) to simulate independent agents.
 5. **Step 4: Judge (`step_judge`)**: Authoritative scoring using a Matrix. Outputs `EvaluationResult`.
-6. **Step 5: XAI Reporter (`step_xai`)**: Synthesizes final output into `XAIFlatReportDTO` (for external BI) and `ReportView` (SDUI pipeline for Flutter and PDF export).
+6. **Step 5: XAI Reporter (`step_xai`)**: Synthesizes final output into `XAIFlatReportDTO` (for external BI) and `SemanticReport` (Agnostic Semantic Report pipeline for Flutter and unified Server-Side PDF export, actively moving away from generic SDUI components).
 
 ---
 

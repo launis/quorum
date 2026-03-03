@@ -11,7 +11,7 @@ from backend.dependencies import get_async_repository
 from backend.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend.models.dtos.execution import ExecutionRawResponse
 from backend.models.dtos.report import XAIFlatReportDTO
-from backend.models.view.sdui import ReportView
+from backend.models.view.semantic_models import SemanticReport
 from backend.schemas.error import APIError
 from backend.services.auth import AuthService
 
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/executions", tags=["Executions"])
 
 @router.get(
     "/{execution_id}/view",
-    response_model=ReportView,
+    response_model=SemanticReport,
     summary="Get Execution Report View (BFF)",
     description="Returns the SDUI-optimized view model for the Report UI.",
     responses={
@@ -197,7 +197,7 @@ async def get_pdf_report(
     "/{execution_id}/json",
     summary="Export Execution JSON",
     description="Returns the execution report as a raw JSON dump (Common Intermediate Representation).",
-    response_model=ReportView,
+    response_model=SemanticReport,
     responses={
         404: {"model": APIError, "description": "Execution not found"},
         500: {"model": APIError, "description": "Export failed"},

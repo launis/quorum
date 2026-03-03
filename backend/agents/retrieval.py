@@ -6,8 +6,6 @@ from typing import Any
 from fastapi import status
 
 # 2. Third Party
-from pydantic import BaseModel
-
 from backend.agents.base import BaseAgent
 from backend.database.factory import get_repository
 from backend.database.wrapper import get_db_client
@@ -291,7 +289,7 @@ class RetrievalAgent(BaseAgent[RetrievalInput, ContextData]):
             )
 
             context_dict = execution_context or {}
-            
+
             # Promote to full Domain Model and apply metadata authority
             result_data = self._apply_python_authority(
                 self.OUTPUT_SCHEMA(**dto_data.model_dump()),

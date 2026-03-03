@@ -1,6 +1,6 @@
 """Domain model for the Input Processor Agent output."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
