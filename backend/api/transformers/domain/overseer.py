@@ -1,6 +1,8 @@
 import logging
 
-from backend.models.domain import OverseerOutput
+from pydantic import ValidationError
+
+from backend.models.domain import OverseerData, OverseerOutput
 from backend.models.enums import TitleKey
 
 # UVM Refactor: Use strict extensions
@@ -22,7 +24,7 @@ class OverseerDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_overseer_section(self, state: WorkflowState) -> UiSection | None:
+    def _extract_overseer_section(self, state: 'WorkflowState') -> UiSection | None:
         model = state.step_overseer
 
         # Fallback to Panel

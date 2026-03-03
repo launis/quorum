@@ -1,6 +1,8 @@
 import logging
 
-from backend.models.domain import FalsifierOutput
+from pydantic import ValidationError
+
+from backend.models.domain import FalsifierData, FalsifierOutput
 from backend.models.enums import TitleKey
 
 # UVM: Use strict extensions
@@ -21,7 +23,7 @@ class FalsificationDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_falsifier_section(self, state: WorkflowState) -> UiSection | None:
+    def _extract_falsifier_section(self, state: 'WorkflowState') -> UiSection | None:
         model = state.step_falsifier
 
         # Fallback to Panel

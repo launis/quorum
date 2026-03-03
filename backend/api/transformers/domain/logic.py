@@ -1,7 +1,9 @@
 import logging
 
 # UVM: Use strict extensions
-from backend.models.domain import LogicianOutput
+from pydantic import ValidationError
+
+from backend.models.domain import LogicianData, LogicianOutput
 from backend.models.enums import StrategicDepth, TitleKey
 from backend.models.view import LogicAnalysisDisplay, SectionType, ToulminDisplay, UiSection
 
@@ -11,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class LogicDomainTransformer(BaseTransformer):
-    def _extract_logician_section(self, state: WorkflowState) -> UiSection | None:
+    def _extract_logician_section(self, state: 'WorkflowState') -> UiSection | None:
         model = state.step_logician
         # Fallback to Panel data (inner data only)
         if not model:
@@ -72,7 +74,7 @@ class LogicDomainTransformer(BaseTransformer):
         arguments = []
         for arg in data.toulmin_analysis:
             arguments.append(ToulminDisplay(
-                claim=arg.claim,
+                claim=arg.claim, 
                 data=arg.data,
                 warrant=arg.warrant,
                 backing=arg.backing,

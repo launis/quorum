@@ -1,5 +1,7 @@
 import logging
 
+from pydantic import ValidationError
+
 from backend.models.domain import InteractionAnalysis, PerformativityOutput, ProfilerOutput
 from backend.models.enums import TitleKey
 
@@ -28,7 +30,7 @@ class ProfilingDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_profiler_section(self, state: WorkflowState) -> UiSection | None:
+    def _extract_profiler_section(self, state: 'WorkflowState') -> UiSection | None:
         model = state.step_profiler
         if not model:
             return None
@@ -103,13 +105,13 @@ class ProfilingDomainTransformer(BaseTransformer):
             intent_analysis=str(model.author_intent),
         )
 
-    def _extract_interaction_section(self, state: WorkflowState) -> UiSection | None:
+    def _extract_interaction_section(self, state: 'WorkflowState') -> UiSection | None:
         model = state.step_interaction
         if not model:
             # Try fallback to step_driver
             from backend.models.domain.interaction import InteractionAnalysis
             model = state.get_context("step_driver", InteractionAnalysis)
-
+            
         if not model:
             return None
 
@@ -147,9 +149,9 @@ class ProfilingDomainTransformer(BaseTransformer):
             input_control_ratio=input_control_ratio
         )
 
-    def _extract_detector_section(self, state: WorkflowState) -> UiSection | None:
+    def _extract_detector_section(self, state: 'WorkflowState') -> UiSection | None:
         model = state.step_detector
-
+        
         # Fallback to Panel if not in root steps (though usually root)
         if not model:
             panel = state.step_panel

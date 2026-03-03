@@ -1,6 +1,8 @@
 import logging
 
-from backend.models.domain import CausalOutput
+from pydantic import ValidationError
+
+from backend.models.domain import CausalAnalysis, CausalOutput
 from backend.models.enums import TitleKey
 
 # UVM: Use strict extensions
@@ -22,7 +24,7 @@ class CausalDomainTransformer(BaseTransformer):
             data["confidence_score"] = 1.0
         return data
 
-    def _extract_causal_section(self, state: WorkflowState) -> UiSection | None:
+    def _extract_causal_section(self, state: 'WorkflowState') -> UiSection | None:
         model = state.step_causal
 
         # Fallback to Panel
