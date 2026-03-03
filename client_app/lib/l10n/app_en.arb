@@ -307,6 +307,8 @@
   "lblCredibility": "Credibility",
   "lblTextMetrics": "Text Metrics",
   "lblBias": "Identified Biases",
+  "lblAuthors": "Authors",
+  "lblControlRatio": "Control Ratio",
   "lblIntent": "Author Intent",
   "lblPsychProfile": "Psychological Profile",
   "lblFactCheck": "Fact Check",

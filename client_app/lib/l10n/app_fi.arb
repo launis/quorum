@@ -212,6 +212,8 @@
   "lblCredibility": "Uskottavuus",
   "lblTextMetrics": "Tekstimetriikka",
   "lblBias": "Tunnistetut Vinoumat",
+  "lblAuthors": "Kirjoittajat",
+  "lblControlRatio": "Hallintasuhde (Control Ratio)",
   "lblIntent": "Kirjoittajan Intentio",
   "lblPsychProfile": "Psykologinen Profiili",
   "lblFactCheck": "Faktantarkistus",

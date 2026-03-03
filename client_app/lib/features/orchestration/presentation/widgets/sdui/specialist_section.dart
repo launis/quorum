@@ -211,27 +211,36 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     try {
       // Switch on type to provide RICH custom visualization
-      switch (widget.type) {
-        case 'LOGIC_ANALYSIS':
-          return _buildLogicAnalysis(context);
-        case 'STRESS_TEST':
-          return _buildStressTest(context);
-        case 'CAUSAL_ANALYSIS':
-          return _buildCausalAnalysis(context);
-        case 'PROFILER_ANALYSIS':
-          return _buildProfilerAnalysis(context);
-        case 'FACT_CHECK':
-          return _buildFactCheck(context);
-        case 'PERFORMATIVITY_CHECK':
-          return _buildPerformativityCheck(context);
-        case 'ARCHIVIST_CHECK':
-          return _buildArchivistCheck(context);
+    switch (widget.type) {
+      case 'logic-analysis':
+      case 'LOGIC_ANALYSIS':
+        return _buildLogicAnalysis(context);
+      case 'stress-test':
+      case 'STRESS_TEST':
+        return _buildStressTest(context);
+      case 'causal-analysis':
+      case 'CAUSAL_ANALYSIS':
+        return _buildCausalAnalysis(context);
+      case 'profiler-analysis':
+      case 'PROFILER_ANALYSIS':
+        return _buildProfilerAnalysis(context);
+      case 'fact-check':
+      case 'FACT_CHECK':
+        return _buildFactCheck(context);
+      case 'performativity-check':
+      case 'PERFORMATIVITY_CHECK':
+        return _buildPerformativityCheck(context);
+      case 'archivist-check':
+      case 'ARCHIVIST_CHECK':
+        return _buildArchivistCheck(context);
 
-        case 'DRIVER_PROFILE':
-          return _buildDriverProfile(context);
-        case 'SECURITY_CHECK':
-          return _buildSecurityCheck(context);
-        default:
+      case 'driver-profile':
+      case 'DRIVER_PROFILE':
+        return _buildDriverProfile(context);
+      case 'security-check':
+      case 'SECURITY_CHECK':
+        return _buildSecurityCheck(context);
+      default:
           // Fallback to generic map renderer if type is barely supported
           return _buildGenericMap(widget.data);
       }
@@ -577,19 +586,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               bloomWidget,
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               bloomGauge,
-              const SizedBox(height: 4),
+              const SizedBox(height: 16),
               stratGauge,
               const SizedBox(height: 16),
-              if (arguments.isNotEmpty) ...[
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: toulminChildren,
-                ),
-                const SizedBox(height: 8),
-                toulminGauge,
-              ],
+              toulminGauge,
             ],
           );
 
@@ -599,30 +601,18 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               border: Border.all(color: Colors.grey[200]!),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      l10n.lblLogicMatrix,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+            child: arguments.isNotEmpty
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: toulminChildren,
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      l10n.dataUnavailable,
+                      style: const TextStyle(fontStyle: FontStyle.italic),
                     ),
-                    const SizedBox(width: 8),
-                    _buildHelpButton(context, "matrix"),
-                  ],
-                ),
-                Text(
-                  l10n.lblMatrixSubtitle,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                Center(child: matrixChart),
-              ],
-            ),
+                  ),
           );
 
           return _buildResponsiveLayout(
@@ -631,7 +621,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             rightContent: rightContent,
             leftFlex: 4,
             rightFlex: 6,
-            mobileReverse: true, // Matrix goes top on mobile
+            mobileReverse: false,
           );
         },
       ),
@@ -1831,47 +1821,71 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             LayoutBuilder(
               builder: (context, constraints) {
                 final translatedRole = _getLocalizedEnum(role);
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children:
-                      roles.map((r) {
-                        final isActive =
-                            translatedRole.toLowerCase() == r.toLowerCase();
-                        return Expanded(
-                          child: Column(
-                            children: [
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                height: isActive ? 12 : 8,
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      isActive ? Colors.blue : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Positioned(
+                      left: 30, // Padding from edges
+                      right: 30,
+                      top: 10,
+                      child: Container(
+                        height: 4,
+                        color: Colors.grey[300],
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children:
+                          roles.map((r) {
+                            final isActive =
+                                translatedRole.toLowerCase() == r.toLowerCase();
+                            return Expanded(
+                              child: Column(
+                                children: [
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: isActive ? Colors.blue : Colors.grey[300],
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 3),
+                                      boxShadow: [
+                                        if (isActive)
+                                          BoxShadow(
+                                            color: Colors.blue.withOpacity(0.4),
+                                            spreadRadius: 2,
+                                            blurRadius: 4,
+                                          ),
+                                        if (!isActive)
+                                          BoxShadow(
+                                            color: Colors.grey[400]!,
+                                            spreadRadius: 1,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    r,
+                                    style: TextStyle(
+                                      fontSize: isActive ? 12 : 10,
+                                      fontWeight:
+                                          isActive
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                      color:
+                                          isActive
+                                              ? Colors.blue[800]
+                                              : Colors.grey[500],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                r,
-                                style: TextStyle(
-                                  fontSize: isActive ? 12 : 10,
-                                  fontWeight:
-                                      isActive
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                  color:
-                                      isActive
-                                          ? Colors.blue[800]
-                                          : Colors.grey[500],
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                            );
+                          }).toList(),
+                    ),
+                  ],
                 );
               },
             ),

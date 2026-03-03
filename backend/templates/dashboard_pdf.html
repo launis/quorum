@@ -709,11 +709,11 @@
                      <div class="label">{{ 'AUTOMATION_BIAS_LABEL' | translate }}</div>
                      <div class="value">
                         {% if d.automation_bias_color == '#4CAF50' %}
-                            <span style="color: #4CAF50;">{{ d.automation_bias_label }}</span>
+                            <span style="color: #4CAF50;">{{ d.automation_bias_label | translate }}</span>
                         {% elif d.automation_bias_color == '#F44336' %}
-                            <span style="color: #F44336;">{{ d.automation_bias_label }}</span>
+                            <span style="color: #F44336;">{{ d.automation_bias_label | translate }}</span>
                         {% else %}
-                            <span style="color: #000000;">{{ d.automation_bias_label }}</span>
+                            <span style="color: #000000;">{{ d.automation_bias_label | translate }}</span>
                         {% endif %}
                      </div>
                  </div>
@@ -721,11 +721,11 @@
                      <div class="label">{{ 'SAY_DO_GAP_LABEL' | translate }}</div>
                       <div class="value">
                         {% if d.say_do_gap_color == '#4CAF50' %}
-                            <span style="color: #4CAF50;">{{ d.say_do_gap_label }}</span>
+                            <span style="color: #4CAF50;">{{ d.say_do_gap_label | translate }}</span>
                         {% elif d.say_do_gap_color == '#F44336' %}
-                            <span style="color: #F44336;">{{ d.say_do_gap_label }}</span>
+                            <span style="color: #F44336;">{{ d.say_do_gap_label | translate }}</span>
                         {% else %}
-                            <span style="color: #000000;">{{ d.say_do_gap_label }}</span>
+                            <span style="color: #000000;">{{ d.say_do_gap_label | translate }}</span>
                         {% endif %}
                      </div>
                  </div>
@@ -782,22 +782,50 @@
             <h2 style="color: #1565C0;">{{ section.label }}</h2>
             {% set d = section.value %}
             
-            <div class="grid-container">
+            <div style="margin: 20px 0; position: relative;">
+                <!-- Gray track line -->
+                <div style="position: absolute; top: 12px; left: 10%; right: 10%; height: 4px; background-color: #E0E0E0; z-index: 1;"></div>
+                
+                <div style="display: flex; justify-content: space-between; position: relative; z-index: 2;">
+                    {% set roles = [
+                        ('ROLE_PASSENGER', 'ROLE_PASSENGER'),
+                        ('ROLE_NAVIGATOR', 'ROLE_NAVIGATOR'), 
+                        ('ROLE_DRIVER', 'ROLE_DRIVER'), 
+                        ('ROLE_ARCHITECT', 'ROLE_ARCHITECT')
+                    ] %}
+                    
+                    {% for role_val, role_label in roles %}
+                    {% set active = (d.role_classification == role_val) %}
+                    <div style="text-align: center; width: 25%;">
+                        <div style="width: 24px; height: 24px; background-color: {% if active %}#2196F3{% else %}#E0E0E0{% endif %}; border-radius: 50%; margin: 0 auto 8px auto; border: 3px solid #FFF; box-shadow: 0 0 0 1px {% if active %}#1565C0{% else %}#BDBDBD{% endif %};"></div>
+                        <div style="font-size: 10px; font-weight: {% if active %}bold{% else %}normal{% endif %}; color: {% if active %}#1565C0{% else %}#757575{% endif %};">
+                            {{ role_label | translate }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="grid-container" style="margin-top: 15px;">
                  <div class="grid-item">
-                     <div class="label">{{ 'DRIVER_CLASSIFICATION_LABEL' | translate }}</div>
-                     <div class="value" style="font-size: 14px; color: #1565C0;">{{ d.classification | translate }}</div>
+                     <div class="label">{{ 'CONTROL_RATIO_LABEL' | translate }}</div>
+                     <div class="value" style="font-size: 14px; color: #1565C0;">
+                        {% if d.input_control_ratio is not none %}
+                            {{ (d.input_control_ratio * 100) | round(0) }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                     </div>
                  </div>
                  <div class="grid-item">
-                     <div class="label">{{ 'INPUT_QUALITY_LABEL' | translate }}</div>
-                     <div class="value">{{ d.input_quality_label | translate }}</div>
+                     <div class="label">Suoria käskyjä (Imperative)</div>
+                     <div class="value">{{ d.imperative_command_count }}</div>
                  </div>
             </div>
 
-            {% if d.strategies %}
+            {% if d.strategy %}
             <div class="label" style="margin-top: 10px;">{{ 'STRATEGIES_LABEL' | translate }}</div>
-            {% for s in d.strategies %}
-            <div class="strategy-box">{{ s }}</div>
-            {% endfor %}
+            <div class="strategy-box">{{ d.strategy }}</div>
             {% endif %}
         </div>
 
@@ -818,28 +846,58 @@
 
         {# --- SCORE CARD --- #}
         {% elif section.type == 'CARD' %}
-        <div class="card">
-            <h2>{{ section.label }}</h2>
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
-                <div>
-                    <div class="label">Total Score</div>
-                    <div style="font-size: 28px; font-weight: 700; color: #1976D2; line-height: 1;">
-                        {{ section.value.get('total_score', '0') }}
-                        <span style="font-size: 12px; color: #999; font-weight: 400;">/ {{ section.value.get('max_score', '100') }}</span>
+        <div class="card" style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <h2 style="color: #039BE5; border-bottom: none; margin-top: 0; padding-bottom: 0;">{{ section.label }}</h2>
+                <div style="background-color: #D1C4E9; border-radius: 50%; min-width: 48px; height: 48px; padding: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px solid #512DA8;">
+                    <div style="font-size: 15px; font-weight: 700; color: #000; text-align: center; margin-top: 4px;">
+                        {% set ts = section.value.get('total_score', 0) %}
+                        {% if ts is number or ts is string %}
+                            {% set ts_f = ts|float %}
+                            {% if ts_f == ts_f|round(0, 'floor') %}
+                                {{ '%d' | format(ts_f) }}
+                            {% else %}
+                                {{ '%0.1f' | format(ts_f) }}
+                            {% endif %}
+                        {% else %}
+                            0
+                        {% endif %}
                     </div>
-                </div>
-                <div style="text-align: right;">
-                    <div class="label">Verdict</div>
-                    <div class="value" style="font-size: 14px;">{{ section.value.get('verdict', 'Pending') }}</div>
+                    <div style="font-size: 6px; color: #555; text-align: center; line-height: 1;">
+                        (Asteikko:<br/>{{ section.value.get('max_score', '100') }})
+                    </div>
                 </div>
             </div>
             
-            <div class="grid-container">
+            {% if section.value.get('chart_image') %}
+            <div style="text-align: center; margin-top: -15px; margin-bottom: 20px;">
+                <img src="data:image/png;base64,{{ section.value.chart_image }}" style="max-width: 100%; max-height: 220px; object-fit: contain;" alt="Radar Chart"/>
+            </div>
+            {% endif %}
+
+            <h3 style="margin-top: 10px; margin-bottom: 10px; font-size: 11px; color: #333; font-weight: 700;">Tarkempi erittely</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
             {% for dim in section.value.get('dimensions', []) %}
-                <div class="grid-item">
-                    <div class="label">{{ dim.get('dimension_label') or dim.get('label') }}</div>
-                    <div class="value">{{ dim.get('score') }}</div>
-                    <div style="font-size: 9px; color: #666; margin-top: 3px;">{{ dim.get('reasoning') }}</div>
+                <div style="background-color: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 6px; padding: 12px; display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="background-color: #E1BEE7; border-radius: 50%; width: 34px; height: 34px; min-width: 34px; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
+                        <span style="font-size: 13px; font-weight: 700; color: #311B92;">
+                            {% set ds = dim.get('score', 0) %}
+                            {% if ds is number or ds is string %}
+                                {% set ds_f = ds|float %}
+                                {% if ds_f == ds_f|round(0, 'floor') %}
+                                    {{ '%d' | format(ds_f) }}
+                                {% else %}
+                                    {{ '%0.1f' | format(ds_f) }}
+                                {% endif %}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 10px; font-weight: 700; color: #212121; margin-bottom: 4px;">{{ dim.get('dimension_label') or dim.get('label') }}</div>
+                        <div style="font-size: 10px; color: #616161; line-height: 1.4;">{{ dim.get('reasoning') }}</div>
+                    </div>
                 </div>
             {% endfor %}
             </div>

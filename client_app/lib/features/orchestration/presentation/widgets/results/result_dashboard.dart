@@ -139,6 +139,10 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
             _buildWarningBanner(context, isHitlRequired, hasWarning, feedback),
             const SizedBox(height: 24),
           ],
+          if (view.systemNotification != null) ...[
+            _buildSystemNotificationBanner(context, view.systemNotification!),
+            const SizedBox(height: 24),
+          ],
           ...view.blocks.map((block) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 24.0),
@@ -205,57 +209,121 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     List<ReferenceItem> refs,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Card(
-        elevation: 1,
-        child: ExpansionTile(
-          initiallyExpanded: true,
-          leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          children:
-              refs.map((ref) {
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
-                  ),
-                  title: Text(
-                    (ref.title != null && ref.title!.isNotEmpty)
-                        ? '${ref.id} - ${ref.title}'
-                        : ref.id,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (ref.snippet.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          ref.snippet,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      if (ref.url != null && ref.url!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(8.0),
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
+                const SizedBox(width: 8.0),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16.0),
+            ...refs.map((ref) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (ref.title != null && ref.title!.isNotEmpty)
+                          ? '${ref.id} - ${ref.title}'
+                          : ref.id,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.0, height: 1.4),
+                    ),
+                    if (ref.snippet.isNotEmpty) ...[
+                      const SizedBox(height: 6.0),
+                      Text(
+                        ref.snippet,
+                        style: const TextStyle(fontSize: 13.0, color: Colors.black87, height: 1.5),
+                        softWrap: true,
+                        overflow: TextOverflow.visible,
+                      ),
+                    ],
+                    if (ref.url != null && ref.url!.isNotEmpty) ...[
+                      const SizedBox(height: 6.0),
+                      InkWell(
+                        onTap: () {
+                          // Allow copying URL in a real app or use url_launcher
+                        },
+                        child: Text(
                           ref.url!,
                           style: const TextStyle(
                             color: Colors.blue,
                             decoration: TextDecoration.underline,
+                            fontSize: 12.0,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
                         ),
-                      ],
+                      ),
                     ],
-                  ),
-                );
-              }).toList(),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSystemNotificationBanner(
+    BuildContext context,
+    SystemNotification notification,
+  ) {
+    final isDanger = notification.level == 'danger';
+    final bgColor = isDanger ? Colors.red[50] : Colors.orange[50];
+    final borderColor = isDanger ? Colors.red : Colors.orange;
+    final iconColor = isDanger ? Colors.red[800] : Colors.orange[800];
+    final textColor = isDanger ? Colors.red[900] : Colors.deepOrange[900];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: Border(left: BorderSide(color: borderColor!, width: 4)),
+        borderRadius: const BorderRadius.only(
+          topRight: Radius.circular(8),
+          bottomRight: Radius.circular(8),
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: iconColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  notification.title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: iconColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            notification.message,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: textColor),
+          ),
+        ],
       ),
     );
   }
@@ -393,25 +461,77 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
         return GenericTable(title: block.label ?? '', data: block.value is Map<String, dynamic> ? block.value as Map<String, dynamic> : {});
 
       case BlockType.paragraph:
-        final content = block.value is Map<String, dynamic> ? (block.value as Map<String, dynamic>)['content'] as String? ?? '' : block.value?.toString() ?? '';
+      final content = block.value is Map<String, dynamic> ? (block.value as Map<String, dynamic>)['content'] as String? ?? '' : block.value?.toString() ?? '';
+
+      if (block.id == 'coach-markdown') {
         return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: 16.0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.green[50]!, Colors.teal[50]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green[200]!, width: 2),
+            ),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (block.label != null && block.label!.isNotEmpty) ...[
-                  Text(
-                    block.label!,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Divider(),
-                ],
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green[600],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.psychology_alt, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        block.label ?? 'Ohjaajan Palaute',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[900],
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.green),
+                const SizedBox(height: 16),
                 OutputRenderer(markdownContent: content),
               ],
             ),
           ),
         );
+      }
+
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (block.label != null && block.label!.isNotEmpty) ...[
+                Text(
+                  block.label!,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Divider(),
+              ],
+              OutputRenderer(markdownContent: content),
+            ],
+          ),
+        ),
+      );
 
       case BlockType.list:
         if (block.id == 'timeline-feed') {
@@ -472,7 +592,12 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
                     e['source']?.toString() ?? 'Lähdetieto',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text(e['content']?.toString() ?? ''),
+                  subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    e['content']?.toString() ?? '',
+                  ),
+                ),
                   dense: true,
                 );
               }).toList(),
@@ -519,7 +644,21 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     }
 
     final dataToShow =
-        flatReport ?? {'_info': 'Flat Report dataa ei löytynyt tästä ajosta.'};
+        flatReport != null ? Map<String, dynamic>.from(flatReport) : {'_info': 'Flat Report dataa ei löytynyt tästä ajosta.'};
+
+    // Pura 'flattened_scores' juuritasolle, jotta rakenne on aidosti flat
+    if (dataToShow.containsKey('flattened_scores') && dataToShow['flattened_scores'] is Map) {
+      final scores = dataToShow['flattened_scores'] as Map;
+      for (final key in scores.keys) {
+        // Estetään ylikirjoittamasta olemassa olevia avaimia (kuten 'execution_id')
+        if (!dataToShow.containsKey(key)) {
+          dataToShow[key] = scores[key];
+        } else {
+          dataToShow['score_$key'] = scores[key];
+        }
+      }
+      dataToShow.remove('flattened_scores');
+    }
 
     const encoder = JsonEncoder.withIndent('  ');
     final jsonString = encoder.convert(dataToShow);

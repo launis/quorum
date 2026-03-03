@@ -35,8 +35,9 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
   _PdfStatus _status = _PdfStatus.idle;
   double _progress = 0.0;
   String _message = '';
-  Uint8List? _pdfBytes;
+  String _downloadedFilename = '';
   http.Client? _activeClient;
+  Uint8List? _pdfBytes;
 
   @override
   void dispose() {
@@ -79,31 +80,40 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
   Future<void> _saveAndOpenPdf() async {
     if (_pdfBytes != null) {
       try {
-        final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-        final filename = 'AUDIT_REPORT_${widget.executionId}_$timestamp.pdf';
+        final fallbackTimestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+        final fallbackFilename = 'AUDIT_REPORT_${widget.executionId}_$fallbackTimestamp.pdf';
+        var suggestedFilename = _downloadedFilename.isNotEmpty ? _downloadedFilename : fallbackFilename;
+        
+        if (!suggestedFilename.toLowerCase().endsWith('.pdf')) {
+          suggestedFilename += '.pdf';
+        }
 
         // Ask user for save location with a native Save As dialog
         final String? path = await FilePicker.platform.saveFile(
           dialogTitle: 'Tallenna pdf-raportti',
-          fileName: filename,
+          fileName: suggestedFilename,
           type: FileType.custom,
           allowedExtensions: ['pdf'],
         );
 
-        if (path != null) {
+        if (path != null && path.isNotEmpty) {
+          String finalPath = path;
+          // Pakotetaan .pdf pääte, jos Windowsin FilePicker on poistanut sen
+          if (!finalPath.toLowerCase().endsWith('.pdf')) {
+            finalPath += '.pdf';
+          }
+
           // Write the bytes explicitly to the chosen path
-          final file = File(path);
+          final file = File(finalPath);
           await file.writeAsBytes(_pdfBytes!);
 
-        // Cache the path
-        if (path != null && path.isNotEmpty) {
+          // Cache the path
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('pdf_path_${widget.executionId}', path);
+          await prefs.setString('pdf_path_${widget.executionId}', finalPath);
 
           // Open it
-          await _openSavedFile(path);
+          await _openSavedFile(finalPath);
         }
-        } // Close if (path != null)
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -134,12 +144,25 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
     await _startDownload();
   }
 
+  String _extractFilenameFromHeader(http.Response response) {
+    final contentDisposition = response.headers['content-disposition'];
+    if (contentDisposition != null) {
+      // Parses both `filename="name.pdf"` and `filename=name.pdf`
+      final match = RegExp(r'filename="?([^";]+)"?').firstMatch(contentDisposition);
+      if (match != null && match.groupCount >= 1) {
+        return match.group(1)!.trim();
+      }
+    }
+    return '';
+  }
+
   Future<void> _startDownload() async {
     setState(() {
       _status = _PdfStatus.downloading;
       _progress = 0.0;
       _message = 'Tarkistetaan...';
       _pdfBytes = null;
+      _downloadedFilename = '';
     });
 
     try {
@@ -166,12 +189,14 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
 
       if (response.statusCode == 200) {
         // Ready immediately (Cached)
+        final filename = _extractFilenameFromHeader(response);
         if (mounted) {
           setState(() {
             _pdfBytes = response.bodyBytes;
             _status = _PdfStatus.ready;
             _message = 'Valmis';
             _progress = 1.0;
+            _downloadedFilename = filename;
           });
           // Manual Open
         }
@@ -222,9 +247,11 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
                       headers: {'Authorization': 'Bearer $token'},
                     );
                     if (finalResp.statusCode == 200 && mounted) {
+                      final filename = _extractFilenameFromHeader(finalResp);
                       setState(() {
                         _pdfBytes = finalResp.bodyBytes;
                         _status = _PdfStatus.ready;
+                        _downloadedFilename = filename;
                       });
                       // Auto-save on first generation?
                       // User aid: "ekalla kerralla lataa itse omalle koneelle"

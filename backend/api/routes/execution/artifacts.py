@@ -83,6 +83,25 @@ async def download_execution_pdf(
         # 2. Check File
         rel_path = f"executions/{execution_id}/report.pdf"
 
+        # Construct a custom filename
+        from datetime import datetime
+        created_dt = exec_data.get("created_at")
+        if isinstance(created_dt, str):
+            created_dt = datetime.fromisoformat(created_dt.replace("Z", "+00:00"))
+        if not created_dt:
+            created_dt = datetime.now()
+        date_str = created_dt.strftime("%d%m%Y")
+
+        # Look for a workflow name or title
+        settings_dict = exec_data.get("settings") or {}
+        step_names = settings_dict.get("step_names") or {}
+        wf_name = step_names.get("workflow_name", "")
+        if not wf_name or wf_name.lower().startswith("execution") or len(wf_name) > 30:
+            wf_name = "Väliraportti"
+
+        safe_wf_name = "".join(c if c.isalnum() else "_" for c in wf_name)
+        suggested_filename = f"{safe_wf_name}_{date_str}.pdf"
+
         if await storage.exists(rel_path):
             if check_local:
                 # Return JSON with local path if available
@@ -97,7 +116,7 @@ async def download_execution_pdf(
                 full_path = storage.base_path / rel_path
                 return FileResponse(
                     path=full_path,
-                    filename=f"report_{execution_id}.pdf",
+                    filename=suggested_filename,
                     media_type="application/pdf",
                     content_disposition_type="attachment",
                 )
@@ -108,7 +127,7 @@ async def download_execution_pdf(
                 return Response(
                     content=content,
                     media_type="application/pdf",
-                    headers={"Content-Disposition": f'attachment; filename="report_{execution_id}.pdf"'},
+                    headers={"Content-Disposition": f'attachment; filename="{suggested_filename}"'},
                 )
 
         # If check_local is true but file missing

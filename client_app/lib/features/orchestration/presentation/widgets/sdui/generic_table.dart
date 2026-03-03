@@ -32,7 +32,15 @@ class GenericTable extends StatelessWidget {
               columns.map((col) {
                 final key = col['key'];
                 final val = row[key]?.toString() ?? '';
-                return DataCell(Text(val));
+                return DataCell(
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 300),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(val, softWrap: true),
+                    ),
+                  ),
+                );
               }).toList();
           return DataRow(cells: cells);
         }).toList();
@@ -59,7 +67,8 @@ class GenericTable extends StatelessWidget {
                   columns: dataColumns,
                   rows: dataRows,
                   headingRowHeight: 40,
-                  dataRowMinHeight: 30, // Tighter
+                  dataRowMinHeight: 40,
+                  dataRowMaxHeight: double.infinity,
                   columnSpacing: 24,
                 ),
               ),

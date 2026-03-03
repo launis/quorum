@@ -1,1 +1,303 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="4" time="6.976" timestamp="2026-03-03T07:39:18.146303+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.unit.test_execution_creation_pipeline" name="test_execution_creation_pipeline_files" time="0.021" /><testcase classname="backend.tests.unit.test_execution_creation_pipeline" name="test_execution_creation_reflection_formats" time="0.019" /><testcase classname="backend.tests.unit.test_execution_creation_pipeline" name="test_input_processor_history_formatting" time="0.007" /><testcase classname="backend.tests.unit.test_execution_creation_pipeline" name="test_execution_creation_invalid_base64" time="0.016" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="14" time="17.811" timestamp="2026-03-03T08:53:20.433368+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_success_running" time="0.003" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_success_completed" time="0.001" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_success_failed" time="0.001" /><testcase classname="backend.tests.api.transformers.test_assessment" name="test_transform_missing_data" time="0.001" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_logic_transformer_extracts_display_model" time="0.004"><failure message="AssertionError: assert False&#10; +  where False = isinstance(SemanticBlock(id='logic-analysis', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Logic Analysis', value=LogicAnalysisDisplay(bloom_score=5.8, bloom_percent=96.66666666666667, bloom_label_key=None, bloom_help='Bloomin taksonomia arvioi kognitiivista tasoa.', strategic_score=3.5, strategic_score_display='3.5', strategic_percent=87.5, strategic_percent_display='87%', strategic_label_key=None, strategic_help='Strateginen syvyys arvioi ajattelun kokonaisvaltaisuutta.', toulmin_score=5.0, toulmin_percent=83.33333333333334, toulmin_help='Toulmin-argumentaatio arvioi perustelujen rakennetta.', quadrant_key=None, quadrant_label_key='QUADRANT_UNKNOWN', position_label='B5.8 / S3.5', bloom_level_raw='BLOOM_EVALUATING', strategic_depth_raw='STRAT_HIGH', arguments=[ToulminDisplay(claim='C1', data='D1', warrant='W1', backing=None, rebuttal=None, qualifier=None)]), metadata={}), UiSection)">def test_logic_transformer_extracts_display_model():
+        transformer = LogicDomainTransformer()
+        mock_step_data = {
+            "logician_data": {
+                "cognitive_level": {
+                    "strategic_depth": "STRAT_HIGH",
+                    "strategic_score": 3.5,
+                    "bloom_level": "BLOOM_EVALUATING",
+                    "bloom_score": 5.8,
+                },
+                "toulmin_score": 5.0,
+                "toulmin_analysis": [{"id": "T1", "claim": "C1", "data": "D1", "warrant": "W1"}],
+                "walton_scheme": {"identified_scheme": "Expert Opinion", "critical_questions": ["Q1"]},
+            },
+            "thought_process": "Thinking...",
+            "conclusion": "Conclusion",
+            "confidence_score": 0.9,
+        }
+    
+        mock_state = WorkflowState(workflow_id="test_wf")
+        mock_state.context_variables["step_logician"] = mock_step_data
+    
+        section = transformer._extract_logician_section(mock_state)
+&gt;       assert isinstance(section, UiSection)
+E       AssertionError: assert False
+E        +  where False = isinstance(SemanticBlock(id='logic-analysis', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Logic Analysis', value=LogicAnalysisDisplay(bloom_score=5.8, bloom_percent=96.66666666666667, bloom_label_key=None, bloom_help='Bloomin taksonomia arvioi kognitiivista tasoa.', strategic_score=3.5, strategic_score_display='3.5', strategic_percent=87.5, strategic_percent_display='87%', strategic_label_key=None, strategic_help='Strateginen syvyys arvioi ajattelun kokonaisvaltaisuutta.', toulmin_score=5.0, toulmin_percent=83.33333333333334, toulmin_help='Toulmin-argumentaatio arvioi perustelujen rakennetta.', quadrant_key=None, quadrant_label_key='QUADRANT_UNKNOWN', position_label='B5.8 / S3.5', bloom_level_raw='BLOOM_EVALUATING', strategic_depth_raw='STRAT_HIGH', arguments=[ToulminDisplay(claim='C1', data='D1', warrant='W1', backing=None, rebuttal=None, qualifier=None)]), metadata={}), UiSection)
+
+backend\tests\api\transformers\test_domain_transformers.py:46: AssertionError</failure></testcase><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_logic_transformer_handles_missing_step" time="0.001" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_stress_transformer_extracts_display_model" time="0.001"><failure message="AssertionError: assert False&#10; +  where False = isinstance(SemanticBlock(id='stress-test', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Stress Test', value=StressTestDisplay(fidelity_audit=FidelityAudit(fidelity_score_display='2.9', fidelity_percent=96.66666666666667, fidelity_label='FIDELITY_HIGH', post_hoc_rationalization_suspected=False, reasoning='Solid'), fidelity_help='Uskottavuus arvioi päättelyn laatua.', abductive_score=None, abductive_percent=None, abductive_conclusion=None, abductive_help=None, counterfactual_actual=None, counterfactual_simulated=None, plausibility_score=None, plausibility_percent=None, plausibility_display=None, plausibility_help=None, findings=[StressFindingDisplay(question='Q1', result_label='VER_HELD', is_held=True, color_class='finding-held', text_class='text-held', observation='Obs1')]), metadata={}), UiSection)">def test_stress_transformer_extracts_display_model():
+        transformer = FalsificationDomainTransformer()
+        mock_step_data = {
+            "falsifier_data": {
+                "fidelity_audit": {
+                    "fidelity_score": "FIDELITY_HIGH",
+                    "fidelity_numeric": 2.9,
+                    "justification": "Solid",
+                    "post_hoc_rationalization": False,
+                },
+                "stress_test_findings": [{"question": "Q1", "evidence_held": True, "observation": "Obs1"}],
+            },
+            "thought_process": "Thinking...",
+            "conclusion": "Conclusion",
+            "confidence_score": 0.9,
+        }
+    
+        mock_state = WorkflowState(workflow_id="test_wf")
+        mock_state.context_variables["step_falsifier"] = mock_step_data
+    
+        section = transformer._extract_falsifier_section(mock_state)
+&gt;       assert isinstance(section, UiSection)
+E       AssertionError: assert False
+E        +  where False = isinstance(SemanticBlock(id='stress-test', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Stress Test', value=StressTestDisplay(fidelity_audit=FidelityAudit(fidelity_score_display='2.9', fidelity_percent=96.66666666666667, fidelity_label='FIDELITY_HIGH', post_hoc_rationalization_suspected=False, reasoning='Solid'), fidelity_help='Uskottavuus arvioi päättelyn laatua.', abductive_score=None, abductive_percent=None, abductive_conclusion=None, abductive_help=None, counterfactual_actual=None, counterfactual_simulated=None, plausibility_score=None, plausibility_percent=None, plausibility_display=None, plausibility_help=None, findings=[StressFindingDisplay(question='Q1', result_label='VER_HELD', is_held=True, color_class='finding-held', text_class='text-held', observation='Obs1')]), metadata={}), UiSection)
+
+backend\tests\api\transformers\test_domain_transformers.py:83: AssertionError</failure></testcase><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_causal_transformer_extracts_display_model" time="0.001"><failure message="AssertionError: assert False&#10; +  where False = isinstance(SemanticBlock(id='causal-analysis', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Causal Analysis', value=CausalDisplay(abductive_score=3.0, abductive_score_display='3.0', abductive_percent=100.0, abductive_percent_display='100%', abductive_conclusion='Genuine Insight', abductive_help='Abduktiivinen päättely arvioi selityksen voimaa.', plausibility_score=2.0, plausibility_score_display='2.0', plausibility_percent=66.66666666666666, plausibility_percent_display='66%', plausibility_label='Plausible', counterfactual_actual='A1', counterfactual_simulated='SimResult', observation='Obs1', hypothesis='Hyp1', score=3.0, verdict='Genuine Insight'), metadata={}), UiSection)">def test_causal_transformer_extracts_display_model():
+        transformer = CausalDomainTransformer()
+        mock_step_data = {
+            "causal_analysis": {
+                "abductive_reasoning": {"verdict": "OK", "confidence_score": 0.9, "conclusion": "Conc1"},
+                "abductive_conclusion": "GENUINE",
+                "abductive_score": 3.0,
+                "counterfactual_test": {
+                    "plausibility": "PLAUSIBLE",
+                    "confidence_score": 0.8,
+                    "actual_scenario": "A1",
+                    "simulated_scenario": "S1",
+                    "plausibility_score": "PLAUSIBLE",
+                    "plausibility_numeric": 2.0,
+                    "simulation_result": "SimResult",
+                },
+                "plausibility_check": {"score": 2.5},
+                "observation": "Obs1",
+                "hypothesis": "Hyp1",
+            },
+            "thought_process": "Thinking...",
+            "conclusion": "Conclusion",
+            "confidence_score": 0.9,
+        }
+    
+        mock_state = WorkflowState(workflow_id="test_wf")
+        mock_state.context_variables["step_causal"] = mock_step_data
+    
+        section = transformer._extract_causal_section(mock_state)
+&gt;       assert isinstance(section, UiSection)
+E       AssertionError: assert False
+E        +  where False = isinstance(SemanticBlock(id='causal-analysis', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Causal Analysis', value=CausalDisplay(abductive_score=3.0, abductive_score_display='3.0', abductive_percent=100.0, abductive_percent_display='100%', abductive_conclusion='Genuine Insight', abductive_help='Abduktiivinen päättely arvioi selityksen voimaa.', plausibility_score=2.0, plausibility_score_display='2.0', plausibility_percent=66.66666666666666, plausibility_percent_display='66%', plausibility_label='Plausible', counterfactual_actual='A1', counterfactual_simulated='SimResult', observation='Obs1', hypothesis='Hyp1', score=3.0, verdict='Genuine Insight'), metadata={}), UiSection)
+
+backend\tests\api\transformers\test_domain_transformers.py:122: AssertionError</failure></testcase><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_profiler_transformer_extracts_display_model" time="0.001"><failure message="AssertionError: assert False&#10; +  where False = isinstance(SemanticBlock(id='profiler-analysis', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Profiler Analysis', value=ProfilerDisplay(control_ratio_percent=60.0, control_label_key=None, control_help='Kontrollisuhde mittaa kuljettajan osuutta vuorovaikutuksessa.', word_count=100, word_count_display='100', word_count_help='Sanamäärä kertoo vastauksen pituuden.', avg_sentence_length=10.0, avg_sentence_length_display='10.0', lexical_diversity=0.5, lexical_diversity_display='0.50', capitalization_ratio_percent=10, capitalization_ratio_display='10.0%', automation_bias_label='BIAS_NONE', automation_bias_color='green', say_do_gap_label='GAP_DETECTED', say_do_gap_color='red', psychological_profile='Tone: Neutral. Biases: Bias1', intent_analysis='Info'), metadata={}), UiSection)">def test_profiler_transformer_extracts_display_model():
+        transformer = ProfilingDomainTransformer()
+        mock_step_data = {
+            "metrics": {
+                "control_ratio": 0.6,
+                "word_count": 100,
+                "avg_sentence_length": 10.0,
+                "sentence_count": 10,
+                "lexical_diversity": 0.5,
+                "capitalization_ratio": 0.1,
+                "automation_bias": 0.1,
+                "say_do_gap": 0.9,
+            },
+            "author_intent": "Info",
+            "emotional_tone": "Neutral",
+            "cognitive_biases": ["Bias1"],
+            "thought_process": "Thinking...",
+            "conclusion": "Conclusion",
+            "confidence_score": 0.9,
+        }
+    
+        mock_state = WorkflowState(workflow_id="test_wf")
+        mock_state.context_variables["step_profiler"] = mock_step_data
+    
+        section = transformer._extract_profiler_section(mock_state)
+&gt;       assert isinstance(section, UiSection)
+E       AssertionError: assert False
+E        +  where False = isinstance(SemanticBlock(id='profiler-analysis', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Profiler Analysis', value=ProfilerDisplay(control_ratio_percent=60.0, control_label_key=None, control_help='Kontrollisuhde mittaa kuljettajan osuutta vuorovaikutuksessa.', word_count=100, word_count_display='100', word_count_help='Sanamäärä kertoo vastauksen pituuden.', avg_sentence_length=10.0, avg_sentence_length_display='10.0', lexical_diversity=0.5, lexical_diversity_display='0.50', capitalization_ratio_percent=10, capitalization_ratio_display='10.0%', automation_bias_label='BIAS_NONE', automation_bias_color='green', say_do_gap_label='GAP_DETECTED', say_do_gap_color='red', psychological_profile='Tone: Neutral. Biases: Bias1', intent_analysis='Info'), metadata={}), UiSection)
+
+backend\tests\api\transformers\test_domain_transformers.py:155: AssertionError</failure></testcase><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_detector_transformer_extracts_display_model" time="0.002"><failure message="AssertionError: assert False&#10; +  where False = isinstance(SemanticBlock(id='performativity-check', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Performativity Analysis', value=PerformativityDisplay(authenticity_score=2.5, authenticity_percent=83.33333333333334, authenticity_assessment='AUTH_ORGANIC', authenticity_help='Autenttisuus arvioi tekstin aitoutta.', heuristics=[HeuristicDisplay(name='H1', flag=True, color='red')]), metadata={}), UiSection)">def test_detector_transformer_extracts_display_model():
+        transformer = ProfilingDomainTransformer()
+        mock_step_data = {
+            "performativity_analysis": {
+                "authenticity_score": 2.5,
+                "authenticity_assessment": "AUTH_ORGANIC",
+                "performativity_heuristics": [{"heuristic_name": "H1", "flag_raised": True, "description": "Desc1"}],
+                "pre_mortem_analysis": {"performed": True, "weak_signals": ["Signal1"]},
+            },
+            "thought_process": "Thinking...",
+            "conclusion": "Conclusion",
+            "confidence_score": 0.9,
+        }
+    
+        mock_state = WorkflowState(workflow_id="test_wf")
+        mock_state.context_variables["step_detector"] = mock_step_data
+    
+        section = transformer._extract_detector_section(mock_state)
+&gt;       assert isinstance(section, UiSection)
+E       AssertionError: assert False
+E        +  where False = isinstance(SemanticBlock(id='performativity-check', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Performativity Analysis', value=PerformativityDisplay(authenticity_score=2.5, authenticity_percent=83.33333333333334, authenticity_assessment='AUTH_ORGANIC', authenticity_help='Autenttisuus arvioi tekstin aitoutta.', heuristics=[HeuristicDisplay(name='H1', flag=True, color='red')]), metadata={}), UiSection)
+
+backend\tests\api\transformers\test_domain_transformers.py:182: AssertionError</failure></testcase><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_driver_transformer_extracts_display_model" time="0.001"><failure message="AssertionError: assert False&#10; +  where False = isinstance(SemanticBlock(id='interaction-grid', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Interaction &amp; Roles', value=DriverProfileDisplay(role_classification='ROLE_DRIVER', high_dependency=False, imperative_command_count=2, strategy='Zero-shot', input_control_ratio=None), metadata={}), UiSection)">def test_driver_transformer_extracts_display_model():
+        transformer = ProfilingDomainTransformer()
+        mock_step_data = {
+            "role_classification": "Driver",
+            "high_dependency": False,
+            "imperative_command_count": 2,
+            "strategy": "Zero-shot",
+            "thought_process": "Thinking...",
+            "conclusion": "Conclusion",
+            "confidence_score": 0.9,
+        }
+    
+        mock_state = WorkflowState(workflow_id="test_wf")
+        mock_state.context_variables["step_interaction"] = mock_step_data
+    
+        section = transformer._extract_interaction_section(mock_state)
+&gt;       assert isinstance(section, UiSection)
+E       AssertionError: assert False
+E        +  where False = isinstance(SemanticBlock(id='interaction-grid', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Interaction &amp; Roles', value=DriverProfileDisplay(role_classification='ROLE_DRIVER', high_dependency=False, imperative_command_count=2, strategy='Zero-shot', input_control_ratio=None), metadata={}), UiSection)
+
+backend\tests\api\transformers\test_domain_transformers.py:207: AssertionError</failure></testcase><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_archivist_transformer_extracts_display_model" time="0.001"><failure message="AssertionError: assert False&#10; +  where False = isinstance(SemanticBlock(id='archivist-check', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Archivist Check', value=ArchivistDisplay(compliance_score=4.0, compliance_score_display='4.0', compliance_analysis='Good', compliance_help='Säädöstenmukaisuus arvioi tekstin lakiteknistä pätevyyttä.', recommendations=['Sum1']), metadata={}), UiSection)">def test_archivist_transformer_extracts_display_model():
+        transformer = ComplianceDomainTransformer()
+        mock_step_data = {
+            "compliance_score": 4.0,
+            "compliance_analysis": "Aligned",
+            "description": "Good",
+            "relevant_cases": [{"case_id": "C1", "summary": "Sum1", "similarity_score": 0.9, "verdict": "V1"}],
+            "stare_decisis_adherence": True,
+            "consistency_analysis": "Consistent",
+            "thought_process": "Thinking...",
+            "conclusion": "Conclusion",
+            "confidence_score": 0.9,
+        }
+    
+        mock_state = WorkflowState(workflow_id="test_wf")
+        mock_state.context_variables["step_archivist"] = mock_step_data
+    
+        section = transformer._extract_archivist_section(mock_state)
+&gt;       assert isinstance(section, UiSection)
+E       AssertionError: assert False
+E        +  where False = isinstance(SemanticBlock(id='archivist-check', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Archivist Check', value=ArchivistDisplay(compliance_score=4.0, compliance_score_display='4.0', compliance_analysis='Good', compliance_help='Säädöstenmukaisuus arvioi tekstin lakiteknistä pätevyyttä.', recommendations=['Sum1']), metadata={}), UiSection)
+
+backend\tests\api\transformers\test_domain_transformers.py:232: AssertionError</failure></testcase><testcase classname="backend.tests.api.transformers.test_report_transformer" name="test_report_transformer_process_all_stages" time="0.003"><failure message="AssertionError: assert False&#10; +  where False = isinstance(SemanticReport(report_id='test-integration-001', title='TITLE_REPORT', intent=&lt;SemanticIntent.SUCCESS: 'SUCCESS'&gt;, blocks=[SemanticBlock(id='usage-stats', type=&lt;BlockType.METRIC: 'METRIC'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Usage', value={'items': [{'label': 'Kokonaistokenit', 'value': '0'}, {'label': 'Syötetokenit', 'value': '0'}, {'label': 'Vastaustokenit', 'value': '0'}, {'label': 'Kustannusarvio ($)', 'value': 'N/A', 'highlight': True}]}, metadata={}), SemanticBlock(id='profiler-analysis', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Profiler Analysis', value=ProfilerDisplay(control_ratio_percent=60.0, control_label_key=None, control_help='Kontrollisuhde mittaa kuljettajan osuutta vuorovaikutuksessa.', word_count=100, word_count_display='100', word_count_help='Sanamäärä kertoo vastauksen pituuden.', avg_sentence_length=10.0, avg_sentence_length_display='10.0', lexical_diversity=0.5, lexical_diversity_display='0.50', capitalization_ratio_percent=10, capitalization_ratio_display='10.0%', automation_bias_label='BIAS_NONE', automation_bias_color='green', say_do_gap_label='GAP_DETECTED', say_do_gap_color='red', psychological_pr...e=2.0, plausibility_score_display='2.0', plausibility_percent=66.66666666666666, plausibility_percent_display='66%', plausibility_label='Plausible', counterfactual_actual='A1', counterfactual_simulated='SimResult', observation='Obs1', hypothesis='Hyp1', score=3.0, verdict='Genuine Insight'), metadata={}), SemanticBlock(id='interaction-grid', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Interaction &amp; Roles', value=DriverProfileDisplay(role_classification='ROLE_DRIVER', high_dependency=False, imperative_command_count=2, strategy='Zero-shot', input_control_ratio=None), metadata={}), SemanticBlock(id='archivist-check', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Archivist Check', value=ArchivistDisplay(compliance_score=9.5, compliance_score_display='9.5', compliance_analysis='Good', compliance_help='Säädöstenmukaisuus arvioi tekstin lakiteknistä pätevyyttä.', recommendations=[]), metadata={}), SemanticBlock(id='unified-timeline', type=&lt;BlockType.LIST: 'LIST'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Timeline', value={'events': []}, metadata={})], metrics=None, system_notification=None, references=[]), ReportView)">def test_report_transformer_process_all_stages():
+        """Verify ReportTransformer handles a full workflow execution correctly."""
+        # Extensive mock data mirroring debug_report_uvm.py structure
+        mock_execution = {
+            "id": "test-integration-001",
+            "status": "completed",
+            "results": {
+                "step_results": {
+                    # Context
+                    "step_context": {
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                        "precedents": "Prec",
+                        "knowledge_items": [],
+                    },
+                    # Logic
+                    "step_logician": {
+                        "logician_data": {
+                            "cognitive_level": {
+                                "strategic_depth": "STRAT_HIGH",
+                                "strategic_score": 3.5,
+                                "bloom_level": "BLOOM_EVALUATING",
+                                "bloom_score": 5.8,
+                            },
+                            "toulmin_score": 5.0,
+                            "toulmin_analysis": [{"id": "T1", "claim": "C1", "data": "D1", "warrant": "W1"}],
+                            "walton_scheme": {"identified_scheme": "Expert Opinion", "critical_questions": ["Q1"]},
+                        },
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                    },
+                    # Stress
+                    "step_falsifier": {
+                        "falsifier_data": {
+                            "fidelity_audit": {
+                                "fidelity_score": "FIDELITY_HIGH",
+                                "fidelity_numeric": 3.0,
+                                "justification": "Solid",
+                                "post_hoc_rationalization": False,
+                            },
+                            "stress_test_findings": [{"question": "Q1", "evidence_held": True, "observation": "Obs1"}],
+                        },
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                    },
+                    # Causal
+                    "step_causal": {
+                        "causal_analysis": {
+                            "abductive_reasoning": {"verdict": "OK", "confidence_score": 0.9, "conclusion": "Conc1"},
+                            "abductive_conclusion": "GENUINE",
+                            "abductive_score": 3.0,
+                            "counterfactual_test": {
+                                "plausibility": "PLAUSIBLE",
+                                "confidence_score": 0.8,
+                                "actual_scenario": "A1",
+                                "simulated_scenario": "S1",
+                                "plausibility_score": "PLAUSIBLE",
+                                "plausibility_numeric": 2.0,
+                                "simulation_result": "SimResult",
+                            },
+                            "plausibility_check": {"score": 2.5},
+                            "observation": "Obs1",
+                            "hypothesis": "Hyp1",
+                        },
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                    },
+                    # Profiler
+                    "step_profiler": {
+                        "metrics": {
+                            "control_ratio": 0.6,
+                            "word_count": 100,
+                            "avg_sentence_length": 10.0,
+                            "sentence_count": 10,
+                            "lexical_diversity": 0.5,
+                            "capitalization_ratio": 0.1,
+                            "automation_bias": 0.1,
+                            "say_do_gap": 0.9,
+                        },
+                        "author_intent": "Info",
+                        "emotional_tone": "Neutral",
+                        "cognitive_biases": ["Bias1"],
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                    },
+                    # Driver
+                    "step_driver": {
+                        "role_classification": "Driver",
+                        "high_dependency": False,
+                        "imperative_command_count": 2,
+                        "strategy": "Zero-shot",
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                    },
+                    # Archivist
+                    "step_archivist": {
+                        "compliance_score": 9.5,
+                        "compliance_analysis": "Aligned",
+                        "description": "Good",
+                        "relevant_cases": [],
+                        "stare_decisis_adherence": True,
+                        "thought_process": "Thinking...",
+                        "conclusion": "Conclusion",
+                        "confidence_score": 0.9,
+                        "consistency_analysis": "Consistent",
+                    },
+                }
+            },
+        }
+    
+        record = ExecutionRecord.model_validate(mock_execution)
+        transformer = ReportTransformer()
+        report = transformer.transform(record)
+    
+&gt;       assert isinstance(report, ReportView)
+E       AssertionError: assert False
+E        +  where False = isinstance(SemanticReport(report_id='test-integration-001', title='TITLE_REPORT', intent=&lt;SemanticIntent.SUCCESS: 'SUCCESS'&gt;, blocks=[SemanticBlock(id='usage-stats', type=&lt;BlockType.METRIC: 'METRIC'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Usage', value={'items': [{'label': 'Kokonaistokenit', 'value': '0'}, {'label': 'Syötetokenit', 'value': '0'}, {'label': 'Vastaustokenit', 'value': '0'}, {'label': 'Kustannusarvio ($)', 'value': 'N/A', 'highlight': True}]}, metadata={}), SemanticBlock(id='profiler-analysis', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Profiler Analysis', value=ProfilerDisplay(control_ratio_percent=60.0, control_label_key=None, control_help='Kontrollisuhde mittaa kuljettajan osuutta vuorovaikutuksessa.', word_count=100, word_count_display='100', word_count_help='Sanamäärä kertoo vastauksen pituuden.', avg_sentence_length=10.0, avg_sentence_length_display='10.0', lexical_diversity=0.5, lexical_diversity_display='0.50', capitalization_ratio_percent=10, capitalization_ratio_display='10.0%', automation_bias_label='BIAS_NONE', automation_bias_color='green', say_do_gap_label='GAP_DETECTED', say_do_gap_color='red', psychological_pr...e=2.0, plausibility_score_display='2.0', plausibility_percent=66.66666666666666, plausibility_percent_display='66%', plausibility_label='Plausible', counterfactual_actual='A1', counterfactual_simulated='SimResult', observation='Obs1', hypothesis='Hyp1', score=3.0, verdict='Genuine Insight'), metadata={}), SemanticBlock(id='interaction-grid', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Interaction &amp; Roles', value=DriverProfileDisplay(role_classification='ROLE_DRIVER', high_dependency=False, imperative_command_count=2, strategy='Zero-shot', input_control_ratio=None), metadata={}), SemanticBlock(id='archivist-check', type=&lt;BlockType.CARD: 'CARD'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Archivist Check', value=ArchivistDisplay(compliance_score=9.5, compliance_score_display='9.5', compliance_analysis='Good', compliance_help='Säädöstenmukaisuus arvioi tekstin lakiteknistä pätevyyttä.', recommendations=[]), metadata={}), SemanticBlock(id='unified-timeline', type=&lt;BlockType.LIST: 'LIST'&gt;, intent=&lt;SemanticIntent.NEUTRAL: 'NEUTRAL'&gt;, label='Timeline', value={'events': []}, metadata={})], metrics=None, system_notification=None, references=[]), ReportView)
+
+backend\tests\api\transformers\test_report_transformer.py:135: AssertionError</failure></testcase><testcase classname="backend.tests.api.transformers.test_report_transformer" name="test_report_transformer_references" time="0.003" /></testsuite></testsuites>

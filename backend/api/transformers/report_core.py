@@ -747,6 +747,9 @@ class ReportTransformer(
                 EvidenceItem(id=f"evidence-{i}", source="RAG Search", content=str(item), score=1.0, type="concept")
             )
 
+        if not items:
+            return None
+
         return SemanticBlock(id="analyst-evidence",
             type=BlockType.LIST,
             label=self._get_label(LabelKey.EVIDENCE_FOUND),
