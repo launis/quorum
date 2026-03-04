@@ -1,15 +1,18 @@
 from backend.api.transformers.report_core import ReportTransformer
 from backend.models.domain.execution import ExecutionRecord
 from backend.models.view import (
+    ReportView,
+    SectionType,
+)
+from backend.models.view.semantic_models import (
     ArchivistDisplay,
     CausalDisplay,
     DriverProfileDisplay,
     LogicAnalysisDisplay,
     ProfilerDisplay,
-    ReportView,
-    SectionType,
     StressTestDisplay,
 )
+from backend.models.view.semantic_models import SemanticReport, SemanticBlock
 
 
 def test_report_transformer_process_all_stages():
@@ -132,29 +135,29 @@ def test_report_transformer_process_all_stages():
     transformer = ReportTransformer()
     report = transformer.transform(record)
 
-    assert isinstance(report, ReportView)
-    assert report.view_id == "test-integration-001"
+    assert isinstance(report, SemanticReport)
+    assert report.report_id == "test-integration-001"
 
     # Check Sections Exist
-    sec_types = {s.type: s.data for s in report.sections}
+    sec_ids = {s.id: s.value for s in report.blocks}
 
-    assert SectionType.LOGIC_ANALYSIS in sec_types
-    assert isinstance(sec_types[SectionType.LOGIC_ANALYSIS], LogicAnalysisDisplay)
+    assert "logic-analysis" in sec_ids
+    assert isinstance(sec_ids["logic-analysis"], LogicAnalysisDisplay)
 
-    assert SectionType.STRESS_TEST in sec_types
-    assert isinstance(sec_types[SectionType.STRESS_TEST], StressTestDisplay)
+    assert "stress-test" in sec_ids
+    assert isinstance(sec_ids["stress-test"], StressTestDisplay)
 
-    assert SectionType.CAUSAL_ANALYSIS in sec_types
-    assert isinstance(sec_types[SectionType.CAUSAL_ANALYSIS], CausalDisplay)
+    assert "causal-analysis" in sec_ids
+    assert isinstance(sec_ids["causal-analysis"], CausalDisplay)
 
-    assert SectionType.PROFILER_ANALYSIS in sec_types
-    assert isinstance(sec_types[SectionType.PROFILER_ANALYSIS], ProfilerDisplay)
+    assert "profiler-analysis" in sec_ids
+    assert isinstance(sec_ids["profiler-analysis"], ProfilerDisplay)
 
-    assert SectionType.DRIVER_PROFILE in sec_types
-    assert isinstance(sec_types[SectionType.DRIVER_PROFILE], DriverProfileDisplay)
+    assert "interaction-grid" in sec_ids
+    assert isinstance(sec_ids["interaction-grid"], DriverProfileDisplay)
 
-    assert SectionType.ARCHIVIST_CHECK in sec_types
-    assert isinstance(sec_types[SectionType.ARCHIVIST_CHECK], ArchivistDisplay)
+    assert "archivist-check" in sec_ids
+    assert isinstance(sec_ids["archivist-check"], ArchivistDisplay)
 
 def test_report_transformer_references():
     """Verify ReportTransformer extracts contextual citations correctly."""

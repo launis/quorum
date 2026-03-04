@@ -344,6 +344,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ---
 
 ## 📉 Technical Debt & Optimization (Backlog)
+- [ ] **BaseAgent DTO Promotion Refactor**: Refactor `_apply_python_authority` in `BaseAgent` to validate raw dictionaries against `DTO_SCHEMA` *before* attempting promotion to `OUTPUT_SCHEMA`. Currently, the engine attempts to force "incomplete" dictionaries into strict Domain Models too early, causing expected but misleading `WARNING` logs before the `post_process` Healing phase can inject required fields (like `tainted_data`).
 - [ ] **Logic-to-Code Module Integration**: Integrate a "Logic-to-Code" module (Prolog/Python) to translate textual arguments into formal code. Secure, isolated execution of this code will provide an unambiguous method to verify logical integrity, bridging the gap between rhetorical plausibility and truth (Chi et al. 2024, Turpin et al. 2025).
 - [ ] **Dynamic Agent Orchestration (Workflow Engine)**: Refactor the current linear/static execution pipeline into a dynamic system (e.g., DAG or Router/Supervisor Agent pattern) to allow dynamic agent ordering and execution paths. This is a recognized future infrastructure need to optimize Python-heavy asynchronous logic.
 - [ ] **Banned Phrases Seed Restoration**: Re-merge `banned_phrases` into `seed_data.json`.

@@ -154,6 +154,7 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
         # 2. Input Sanitization (Local Effect Only)
         # We sanitize locally to log threats.
         self.sanitize_input(input_data)
+        self._current_input = input_data  # Store for healing in ensure_tainted_data
 
         return None
 
@@ -180,6 +181,35 @@ class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
             Any: Validated data.
         """
         logger.info("[GuardAgent] Running ensure_tainted_data...")
+
+        # 0. Dict Healing (Late Validation support)
+        if isinstance(data, dict):
+            logger.info("[GuardAgent] ensure_tainted_data healing dict...")
+            
+            # Inject tainted_data if missing
+            if "tainted_data" not in data:
+                input_data = getattr(self, "_current_input", None)
+                data["tainted_data"] = {
+                    "chat_history": getattr(input_data, "history_text", "") if input_data else "",
+                    "product_text": getattr(input_data, "product_text", "") if input_data else "",
+                    "reflection_text": getattr(input_data, "reflection_text", "Ei erillistä reflektiota") if input_data else "Ei erillistä reflektiota",
+                    "safe_data": "Unsanitized raw input"
+                }
+
+            # Inject PII Sanitization Reporting into dict
+            if hasattr(self, "_sanitization_threats") and self._sanitization_threats:
+                if "security_check" not in data:
+                    data["security_check"] = {}
+                
+                sec = data["security_check"]
+                if isinstance(sec, dict):
+                    sec["anonymized"] = True
+                    threats = getattr(self, "_sanitization_threats", [])
+                    current_findings = sec.get("pii_findings") or []
+                    new_findings = list(current_findings) + [t for t in threats if t not in current_findings]
+                    sec["pii_findings"] = new_findings
+                    
+            return data
 
         # Strict Pydantic Enforcement
         if isinstance(data, GuardOutput):

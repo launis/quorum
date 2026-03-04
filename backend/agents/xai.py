@@ -160,7 +160,7 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
         # 3. Generate Flat Report (Phase 3)
         # We need execution_id and timestamp from context or generate them
         import uuid
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         from backend.models.dtos.report import XAIFlatReportDTO
 
@@ -188,9 +188,9 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
         for card in score_cards: # Changed from result.score_cards to score_cards
             for dim in card.dimensions:
                 count += 1
-                total_score_sum += dim.score
                 # Normalize all scales to 0-100 logic
                 normalized_dim = normalize_score_to_100(dim.score, card.scale_min, card.scale_max)
+                total_score_sum += normalized_dim
                 flattened_scores[dim.dimension_id] = normalized_dim
 
         final_avg_score = (total_score_sum / count) if count > 0 else 0.0

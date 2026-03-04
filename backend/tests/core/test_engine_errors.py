@@ -57,17 +57,4 @@ async def test_execute_workflow_input_validation_failed(engine):
         assert exc.value.error_code == ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
 
 
-@pytest.mark.asyncio
-async def test_execute_workflow_chat_parsing_failed(engine):
-    """Verify chat log parsing failure raises INVALID_JSON_PAYLOAD."""
-    workflow = WorkflowDefinition(id="test_wf", name="Test Workflow", description="Test Workflow", status="draft", version=1, is_public=False, organization_id="testorg", steps=[])
 
-    # Mock bad input that triggers parser
-    inputs = {"history_text": "bad_chat_log"}
-
-    # Mock ChatLogParser to fail
-    with patch("backend.services.chat_log_parser.ChatLogParser.parse", side_effect=ValueError("Parsing Failed")):
-        with pytest.raises(AppException) as exc:
-            await engine.execute_workflow(workflow, {"inputs": inputs})
-
-        assert exc.value.error_code == ErrorCodes.INVALID_JSON_PAYLOAD

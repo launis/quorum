@@ -16,13 +16,15 @@ import pytest
 from backend.exceptions import AppException
 from backend.models.domain.execution import ExecutionRecord
 from backend.models.state import TraceEvent, WorkflowState
-from backend.models.view.sdui import ReportView, SectionType, UiSection
+from backend.models.view.semantic_models import BlockType, SemanticBlock, SemanticIntent, SemanticReport
 from backend.services.pdf_generator import PdfReportService, ProgressServiceProtocol
 
 
 @pytest.fixture
 def mock_repo():
-    return AsyncMock()
+    repo = AsyncMock()
+    repo.get_workflow.return_value = None
+    return repo
 
 
 @pytest.fixture
@@ -65,18 +67,18 @@ async def test_generate_execution_pdf_success(mock_repo, mock_progress, mock_wea
 
     # MOCK TRANSFORMER to bypass complex validation logic
     service.transformer = MagicMock()
-    # Create a mock ReportView with a Score Card section
-    mock_section = UiSection(
+    # Create a mock SemanticBlock with a Score Card section
+    mock_section = SemanticBlock(
         id="score-card-1",
-        type=SectionType.SCORE_CARD,
-        title="Test Score Card",
-        data={
+        type=BlockType.CARD,
+        label="Test Score Card",
+        value={
             "dimensions": [{"dimension_label": "Logic", "score": 4.0, "dimension_id": "logic"}],
             "max_score": 4,
         },  # chart_image will be injected by service
     )
-    service.transformer.transform.return_value = ReportView(
-        view_id=execution_id, status_theme="success", sections=[mock_section]
+    service.transformer.transform.return_value = SemanticReport(
+        report_id=execution_id, title="Test", intent=SemanticIntent.SUCCESS, blocks=[mock_section]
     )
 
     # Execute
@@ -123,14 +125,14 @@ async def test_generate_execution_pdf_error_handling(mock_repo, mock_progress):
 
     # MOCK TRANSFORMER
     service.transformer = MagicMock()
-    mock_section = UiSection(
+    mock_section = SemanticBlock(
         id="score-card-1",
-        type=SectionType.SCORE_CARD,
-        title="Test Score Card",
-        data={"max_score": 5, "dimensions": [{"dimension_label": "Logic", "score": 4.0, "dimension_id": "logic"}]},
+        type=BlockType.CARD,
+        label="Test Score Card",
+        value={"max_score": 5, "dimensions": [{"dimension_label": "Logic", "score": 4.0, "dimension_id": "logic"}]},
     )
-    service.transformer.transform.return_value = ReportView(
-        view_id="exec-123", status_theme="success", sections=[mock_section]
+    service.transformer.transform.return_value = SemanticReport(
+        report_id="exec-123", title="Test", intent=SemanticIntent.SUCCESS, blocks=[mock_section]
     )
 
     # Force error during chart generation

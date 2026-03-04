@@ -19,7 +19,7 @@ from pydantic import BaseModel, ValidationError
 from backend.core.component import BaseComponent
 
 # 3. Local Imports
-from backend.exceptions import AgentExecutionError, ErrorCodes
+from backend.exceptions import AgentExecutionError, ErrorCodes, ServiceUnavailableError
 
 # Use string forward reference to avoid circular import if needed, or if Provider is defined there.
 # But LLMFactory is imported.
@@ -746,7 +746,10 @@ class BaseAgent[InputT, OutputT: ReasoningTrace](BaseComponent):
             logger.error(f"{error_code}: {friendly_msg} - Cause: {e}", exc_info=True)
 
             # Raise with clean message for UI but original error preserved
-            raise AgentExecutionError(detail=error_code, original_error=e, agent_name=self.__class__.__name__) from e
+            raise ServiceUnavailableError(
+                message=friendly_msg,
+                details={"error_code": error_code, "agent_name": self.__class__.__name__, "original_error": str(e)}
+            ) from e
 
         except ValidationError as e:
             # ECHO PROTOCOL: Log First, Then Raise

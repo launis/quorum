@@ -164,11 +164,11 @@ async def test_full_pipeline_ingestion_to_bff():
 
             sdui_payload = view_response.json()
             assert "title" in sdui_payload
-            assert "sections" in sdui_payload
+            assert "blocks" in sdui_payload
 
             # Check that SDUI generated sections for us
-            assert len(sdui_payload["sections"]) > 0, "BFF did not produce any UI sections"
-            assert sdui_payload["sections"][0]["type"] in ["markdown_block", "score_card", "data_grid", "USAGE_STATS"]
+            assert len(sdui_payload["blocks"]) > 0, "BFF did not produce any UI blocks"
+            assert sdui_payload["blocks"][0]["type"] in ["CARD", "DATA_GRID", "LIST", "PARAGRAPH", "USAGE_STATS", "METRIC"]
 
     # Cleanup
     app.dependency_overrides.clear()

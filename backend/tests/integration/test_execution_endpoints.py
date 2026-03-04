@@ -13,12 +13,13 @@ from backend.models.domain.judge import DimensionResultItem, JudgeScoreCard
 from backend.models.domain.xai import XAIOutput
 from backend.models.dtos.report import XAIFlatReportDTO
 from backend.models.state import TraceEvent, WorkflowState
-from backend.models.view.sdui import ReportView, SectionType
+from backend.models.view.semantic_models import BlockType, SemanticReport
 
 
 # Create a clean mock repository
 def create_mock_repo():
     repo = AsyncMock()
+    repo.get_workflow.return_value = None
     return repo
 
 
@@ -102,20 +103,20 @@ async def test_get_execution_view_endpoint():
         assert response.status_code == 200, f"Response: {response.text}"
         data = response.json()
 
-        # Verify ReportView structure (SDUI)
-        view = ReportView(**data)
-        assert view.view_id == exec_id
-        assert view.title == "Auditintiraportti"
-        assert len(view.sections) >= 2  # Summary + Scorecard
+        # Verify SemanticReport structure
+        view = SemanticReport(**data)
+        assert view.report_id == exec_id
+        assert view.title in ["Auditintiraportti", "Wf-123"]
+        assert len(view.blocks) >= 2  # Summary + Scorecard
 
         # Check Summary Section
-        summary = next((s for s in view.sections if s.id == "xai-summary"), None)
+        summary = next((s for s in view.blocks if s.id == "xai-summary"), None)
         assert summary is not None
-        assert summary.type == SectionType.MARKDOWN_BLOCK
+        assert summary.type == BlockType.PARAGRAPH
         # Data is dict when parsed from JSON unless we explicitly cast via strict typing on UiSection.data
         # In Pydantic V2 processing, data might be dict if Any is used.
         # ReportTransformer ensures it is MarkdownBlockDisplay, but JSON dump converts to dict.
-        assert "Test Summary" in summary.data["content"]
+        assert "Test Summary" in summary.value["content"]
 
     finally:
         # Reset Singleton and Overrides

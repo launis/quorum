@@ -654,6 +654,15 @@ class LiteLLMProvider(LLMProvider):
             error_msg = str(e)
             error_type = type(e).__name__
 
+            # 0. DIRECT PASS-THROUGH (Network Errors for BaseAgent)
+            if (
+                "APIConnectionError" in error_type
+                or "NameResolutionError" in error_type
+                or "ConnectTimeout" in error_type
+                or "gaierror" in error_type
+            ):
+                raise e
+
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
                 logger.error(f"[LiteLLM] RESOURCE EXHAUSTED (Rate Limit): {error_msg}")
