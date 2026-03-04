@@ -171,6 +171,7 @@ class LogicAnalysisDisplay(BaseModel):
 
     bloom_score: float | None
     bloom_percent: float | None
+    bloom_percent_display: str | None = None
     bloom_label_key: str | None
     bloom_help: str | None  # Localized help text
 
@@ -185,11 +186,16 @@ class LogicAnalysisDisplay(BaseModel):
     # Toulmin
     toulmin_score: float | None
     toulmin_percent: float | None
+    toulmin_percent_display: str | None = None
     toulmin_help: str | None
 
     quadrant_key: str | None
     quadrant_label_key: str | None  # e.g. "QUADRANT_VISIONARY"
     position_label: str | None  # Pre-formatted "Bloom X / Toulmin Y"
+    
+    # Pre-computed Visual HINTS (BFF No-String / Logic-less Presentation)
+    bubble_size: float | None = None
+    bubble_style: str | None = None
 
     # Raw Data (for detail views if needed)
     bloom_level_raw: str | None
@@ -220,7 +226,9 @@ class PerformativityDisplay(BaseModel):
     """Server-Driven UI Data for Performativity Check."""
 
     authenticity_score: float | None
+    authenticity_score_display: str | None = None
     authenticity_percent: float | None
+    authenticity_percent_display: str | None = None
     authenticity_assessment: str | None
     authenticity_help: str | None
 
@@ -349,6 +357,7 @@ class FidelityAudit(BaseModel):
 
     fidelity_score_display: str
     fidelity_percent: float | None
+    fidelity_percent_display: str | None = None
     fidelity_label: str
     post_hoc_rationalization_suspected: bool
     reasoning: str
@@ -435,6 +444,7 @@ class DimensionDisplay(BaseModel):
     dimension_id: str
     dimension_label: str  # Localization key
     score: float
+    score_display: str | None = None
     max_score: float
     weight: float
     reasoning: str
@@ -447,6 +457,7 @@ class ScoreCardDisplay(BaseModel):
 
     agent_name: str
     total_score: float
+    total_score_display: str | None = None
     min_score: int
     max_score: int
     verdict: str
@@ -463,6 +474,10 @@ class DriverProfileDisplay(BaseModel):
     imperative_command_count: int
     strategy: str
     input_control_ratio: float | None = None
+    input_control_ratio_display: str | None = None
+    control_ratio_percent: float | None = None
+    control_ratio_display: str | None = None
+    control_label: str | None = None
 
     model_config = ConfigDict(frozen=True, strict=True)
 

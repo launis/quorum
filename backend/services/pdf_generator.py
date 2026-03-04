@@ -43,7 +43,7 @@ class PdfReportService:
         # Suppress verbose fontTools logs (used by WeasyPrint)
         logging.getLogger("fontTools.subset").setLevel(logging.WARNING)
         logging.getLogger("fontTools.ttLib").setLevel(logging.WARNING)
-        self.transformer = ReportTransformer()
+        self.transformer = ReportTransformer(language="fi")
 
         # Setup Jinja2 env
         template_dir = Path(__file__).parent.parent / "templates"
@@ -101,9 +101,11 @@ class PdfReportService:
             workflow_name = None
             if execution.workflow_id:
                 try:
-                    wf_def = await self.repository.get_workflow_definition(execution.workflow_id)
+                    wf_def = await self.repository.get_workflow(execution.workflow_id)
                     if wf_def and hasattr(wf_def, "name"):
                         workflow_name = wf_def.name
+                    elif wf_def and isinstance(wf_def, dict) and "name" in wf_def:
+                        workflow_name = wf_def["name"]
                 except Exception as e:
                     logger.warning(f"Failed to fetch workflow name for {execution.workflow_id}: {e}")
 

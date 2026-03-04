@@ -20,9 +20,9 @@ class LogicDomainTransformer(BaseTransformer):
             if panel and getattr(panel, "logician_data", None):
                 model = LogicianOutput(
                     logician_data=panel.logician_data,
-                    thought_process="[Aggregated Panel Analysis]",
-                    conclusion="N/A",
-                    confidence_score=1.0,
+                    thought_process=panel.thought_process,
+                    conclusion=panel.conclusion,
+                    confidence_score=panel.confidence_score,
                 )
 
         if not model:
@@ -36,9 +36,17 @@ class LogicDomainTransformer(BaseTransformer):
                 value=display_model,
             )
         except Exception as e:
-            # Graceful fallback for transformation errors too
-            logger.warning(f"Failed to transform Logic display: {e}")
-            return None
+            from fastapi import status
+            from backend.exceptions import AppException, ErrorCodes
+            import logging
+            logger = logging.getLogger(__name__)
+
+            logger.error(f"[LogicDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
+            ) from e
 
     def _transform_logician_data(self, model: LogicianOutput) -> LogicAnalysisDisplay:
         """Flattens LogicianOutput and calculates Server-Driven UI properties (Strict UVM)."""
@@ -48,11 +56,11 @@ class LogicDomainTransformer(BaseTransformer):
 
         # --- STRATEGIC ---
         s_score = cog.strategic_score
-        s_pct = (s_score / 4.0) * 100.0 if s_score else 0.0
+        s_pct: float | None = (s_score / 4.0) * 100.0 if s_score is not None else None
         s_enum = cog.strategic_depth
 
         # Robust Enum Handling (matches original logic)
-        s_label = "Unknown"
+        s_label: str | None = None
         if isinstance(s_enum, StrategicDepth):
             s_label = s_enum.value
         elif s_enum:
@@ -60,13 +68,13 @@ class LogicDomainTransformer(BaseTransformer):
 
         # --- BLOOM ---
         b_score = cog.bloom_score
-        b_pct = (b_score / 6.0) * 100.0 if b_score else 0.0
+        b_pct: float | None = (b_score / 6.0) * 100.0 if b_score is not None else None
         b_enum = cog.bloom_level
-        b_label = str(b_enum.value) if hasattr(b_enum, "value") else str(b_enum)
+        b_label = str(b_enum.value) if hasattr(b_enum, "value") else (str(b_enum) if b_enum else None)
 
         # --- TOULMIN ---
         t_score = data.toulmin_score
-        t_pct = (t_score / 6.0) * 100.0 if t_score else 0.0
+        t_pct: float | None = (t_score / 6.0) * 100.0 if t_score is not None else None
 
         # --- ARGUMENTS ---
         arguments = []
@@ -80,30 +88,42 @@ class LogicDomainTransformer(BaseTransformer):
                 qualifier=arg.qualifier
             ))
 
+        # --- DISPLAY HINTS ---
+        # No defaults. If score is missing, bubble properties are skipped.
+        b_size: float | None = None
+        b_style: str | None = None
+        if s_score is not None and b_pct is not None and t_pct is not None:
+            b_size = 20.0 + (s_score * 5.0)
+            b_style = f"position: absolute; border-radius: 50%; background-color: rgba(63, 81, 181, 0.6); border: 1px solid #3F51B5; transform: translate(-50%, 50%); left: {b_pct:.1f}%; bottom: {t_pct:.1f}%; width: {int(b_size)}px; height: {int(b_size)}px;"
+        
         # --- DISPLAY OBJECT ---
         return LogicAnalysisDisplay(
             # Bloom
             bloom_score=b_score,
             bloom_percent=b_pct,
+            bloom_percent_display=f"{b_pct:.1f}" if b_pct is not None else None,
             bloom_level_raw=b_label,
             bloom_label_key=None,  # e.g. "BLOOM_EVALUATION"
             bloom_help=self._t("help.bloom", "Bloomin taksonomia arvioi kognitiivista tasoa."),
             # Strategic
             strategic_score=s_score,
-            strategic_score_display=f"{s_score:.1f}" if s_score is not None else "N/A",
+            strategic_score_display=f"{s_score:.1f}" if s_score is not None else None,
             strategic_percent=s_pct,
-            strategic_percent_display=f"{int(s_pct)}%",
+            strategic_percent_display=f"{s_pct:.1f}%" if s_pct is not None else None,
             strategic_depth_raw=s_label,
             strategic_label_key=None,
             strategic_help=self._t("help.strategic", "Strateginen syvyys arvioi ajattelun kokonaisvaltaisuutta."),
             # Toulmin
             toulmin_score=t_score,
             toulmin_percent=t_pct,
+            toulmin_percent_display=f"{t_pct:.1f}" if t_pct is not None else None,
             toulmin_help=self._t("help.toulmin", "Toulmin-argumentaatio arvioi perustelujen rakennetta."),
             # Layout
             quadrant_key=None,
             quadrant_label_key="QUADRANT_UNKNOWN",
             position_label=f"B{b_score:.1f} / S{s_score:.1f}" if b_score and s_score else "N/A",
+            bubble_size=b_size,
+            bubble_style=b_style,
             # Data
             arguments=arguments,
         )

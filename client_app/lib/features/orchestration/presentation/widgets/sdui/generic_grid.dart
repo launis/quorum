@@ -12,7 +12,14 @@ class GenericGrid extends StatelessWidget {
 
     return Card(
       elevation: 2,
-      child: Padding(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(left: BorderSide(color: Colors.blueGrey, width: 4)),
+        ),
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -21,53 +28,62 @@ class GenericGrid extends StatelessWidget {
               title,
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.blueGrey[800]),
             ),
             const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // Responsive? For now fixed 2
-                childAspectRatio: 3.5,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 4,
-              ),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index] as Map<String, dynamic>;
-                final label = item['label'] ?? '';
-                final value = item['value']?.toString() ?? 'N/A';
-                final highlight = item['highlight'] == true;
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final double itemWidth = (constraints.maxWidth - 16) / 2;
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 12,
+                  children: items.map((item) {
+                    final itemMap = item as Map<String, dynamic>;
+                    final label = itemMap['label'] ?? '';
+                    final value = itemMap['value']?.toString() ?? 'N/A';
+                    final highlight = itemMap['highlight'] == true;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.labelSmall?.copyWith(color: Colors.grey[600], fontSize: 10),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      value,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 12,
-                        fontWeight:
-                            highlight ? FontWeight.bold : FontWeight.w600,
-                        color:
-                            highlight
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.grey[800],
+                    return SizedBox(
+                      width: itemWidth,
+                      child: Container(
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          color: highlight ? Colors.deepPurple.withOpacity(0.05) : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: highlight ? Colors.deepPurple.shade100 : Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              label,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelSmall?.copyWith(color: Colors.grey[600], fontSize: 10, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              value,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontSize: 14,
+                                fontWeight:
+                                    highlight ? FontWeight.bold : FontWeight.w600,
+                                color:
+                                    highlight
+                                        ? Colors.deepPurple[700]
+                                        : Colors.grey[800],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    );
+                  }).toList(),
                 );
-              },
+              }
             ),
           ],
         ),

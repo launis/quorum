@@ -39,9 +39,9 @@ class OverseerDomainTransformer(BaseTransformer):
             if panel and getattr(panel, "overseer_data", None):
                 model = OverseerOutput(
                     overseer_data=panel.overseer_data,
-                    thought_process="[Aggregated Panel Analysis]",
-                    conclusion="N/A",
-                    confidence_score=1.0,
+                    thought_process=panel.thought_process,
+                    conclusion=panel.conclusion,
+                    confidence_score=panel.confidence_score,
                 )
 
         if not model:
@@ -58,8 +58,17 @@ class OverseerDomainTransformer(BaseTransformer):
                 value=display_model,
             )
         except Exception as e:
-            from backend.exceptions import AppException
-            raise AppException(f"Failed to transform Overseer display: {e}", 500) from e
+            from fastapi import status
+            from backend.exceptions import AppException, ErrorCodes
+            import logging
+            logger = logging.getLogger(__name__)
+
+            logger.error(f"[OverseerDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
+            ) from e
 
     def _transform_overseer_data(self, model: OverseerOutput) -> FactCheckDisplay:
         """Flattens OverseerOutput for SDUI (Strict UVM)."""

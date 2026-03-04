@@ -40,11 +40,12 @@ Each step produces a specific **Domain Model** persisted in the `WorkflowState`.
 | **06** | `CoachAgent` | `CoachingPlan` | `step_coach` |
 | **07** | `XAIReporterAgent`| `XAIOutput` | `step_xai` |
 
-> *Note: Agents operate in a Vacuum. They do not know about Flutter, PDFs, or translations.*
+> *Note: Agents operate in a Vacuum. They do not know about Flutter, PDFs, or translations.* 
+> 🚫 **Forbidden in Workflow/Agents**: Agents MUST NOT perform string formatting for UI (e.g., adding `%` signs), compute layout coordinates, or inject localization strings. They only produce raw data values (e.g., `score: 0.78`).
 
 ---
 
-## 3. Phase II: State Presentation & Transformation
+## 3. Phase II: State Presentation & Transformation (BFF Layer)
 
 Because `WorkflowState` contains massive amounts of raw internal event logs, it cannot be sent to the frontend. It must be transformed.
 
@@ -55,11 +56,13 @@ Because `WorkflowState` contains massive amounts of raw internal event logs, it 
     * **Simulations / Debugging**: Allows developers to view the exact raw state without UI formatting.
     * **Data Integrations**: Sending execution webhooks to external business tools.
 
-### 3.2 The BFF Transformers (Semantic Transformers)
+### 3.2 The BFF Transformers (Semantic Transformers & SDUI Hub)
 * **Location**: `backend/api/transformers/domain/*.py`
 * **Role**: Maps heavy Domain models to strictly typed **Semantic Models** for the UI. *Note: We have strictly moved away from generic Server-Driven UI (SDUI) (like sending UI components/colors from the backend) and restricted its usage. We now send agnostic Semantic Blocks.*
+* **Architectural Responsibility (Mathematical & Visu-Logical Formatting)**: This layer is explicitly responsible for transforming raw metrics (e.g. `score: 3.0`) into pre-calculated view-ready strings (e.g. `score_display: "3.0"`, `bubble_style: "left: 50%..."`) to ensure absolute **Parity** across renderers (Flutter vs HTML). 
+    * 🚫 **Forbidden in Transformers**: Calling LLMs or mutating database state.
 * **Examples**:
-    * `LogicDomainTransformer`: Maps `ToulminComponent` to `ToulminDisplay`.
+    * `LogicDomainTransformer`: Maps `ToulminComponent` to `ToulminDisplay` (adds `bubble_size` calculations for the quadrant radar).
     * `ReportTransformer`: Maps execution results into a `SemanticReport` containing `SemanticSection` and `SemanticBlock`.
 
 ---
@@ -74,6 +77,7 @@ Because `WorkflowState` contains massive amounts of raw internal event logs, it 
     3. The Frontend receives lean `Display` models containing **Enum Keys** (Not translated strings).
     4. **I18N No-String Mandate**: Flutter translates the keys dynamically using `.arb` files and ICU plurals/formatting.
     5. **Graceful Degradation**: If the backend fails to extract a view, or the view is partially missing, Flutter uses `SizedBox.shrink()` to prevent white screens but logs `🔴 UI GRACEFUL DEGRADATION` for the developer.
+    * 🚫 **Forbidden in Renderers**: Renderers MUST NOT perform inline mathematical combinations or conditional formatting (e.g. `{{ value | round(1) }}` or `(score * 100).toStringAsFixed(1)`). They must use the pre-calculated `_display` strings provided by the BFF to guarantee parity.
 
 ### 4.2 PDF Generation (Server-Side)
 * **Mechanism**:

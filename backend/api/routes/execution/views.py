@@ -178,10 +178,20 @@ async def get_pdf_report(
                 details={"error_code": ErrorCodes.PDF_GENERATION_FAILED},
             )
 
+        # Fetch workflow name for a better filename
+        safe_name = "analyysi"
+        if execution.workflow_id:
+            wf = await repository.get_workflow(execution.workflow_id)
+            if wf:
+                import re
+                safe_name = re.sub(r'[^a-zA-Z0-9_\-]', '_', wf.name).lower()
+
+        filename = f"{safe_name}_{execution_id[:8]}.pdf"
+
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=report_{execution_id}.pdf"},
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
     except ResourceNotFoundError as e:

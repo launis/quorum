@@ -38,9 +38,9 @@ class FalsificationDomainTransformer(BaseTransformer):
             if panel and getattr(panel, "falsifier_data", None):
                 model = FalsifierOutput(
                     falsifier_data=panel.falsifier_data,
-                    thought_process="[Aggregated Panel Analysis]",
-                    conclusion="N/A",
-                    confidence_score=1.0,
+                    thought_process=panel.thought_process,
+                    conclusion=panel.conclusion,
+                    confidence_score=panel.confidence_score,
                 )
 
         if not model:
@@ -54,8 +54,17 @@ class FalsificationDomainTransformer(BaseTransformer):
                 value=display_model,  # Return model directly
             )
         except Exception as e:
-            logger.warning(f"Failed to transform Stress display: {e}")
-            return None
+            from fastapi import status
+            from backend.exceptions import AppException, ErrorCodes
+            import logging
+            logger = logging.getLogger(__name__)
+
+            logger.error(f"[FalsificationDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
+            ) from e
 
     def _transform_falsifier_data(self, model: FalsifierOutput) -> StressTestDisplay:
         """Flattens FalsifierOutput for SDUI (Strict UVM)."""
@@ -80,12 +89,17 @@ class FalsificationDomainTransformer(BaseTransformer):
         fid_audit = data.fidelity_audit
         fidelity_dict = None
         if fid_audit:
+            # Format percentage as string beforehand to comply with No-Math logic
+            fid_pct = (fid_audit.fidelity_numeric / 3.0 * 100) if fid_audit.fidelity_numeric else None
+            fid_pct_display = f"{fid_pct:.1f}" if fid_pct is not None else None
+
             # Use the View Model FidelityAudit to structure the dict
             fid_view = FidelityAudit(
                 fidelity_score_display=f"{fid_audit.fidelity_numeric:.1f}"
                 if fid_audit.fidelity_numeric is not None
-                else "N/A",
-                fidelity_percent=((fid_audit.fidelity_numeric / 3.0 * 100) if fid_audit.fidelity_numeric else None),
+                else None,
+                fidelity_percent=fid_pct,
+                fidelity_percent_display=fid_pct_display,
                 fidelity_label=str(fid_audit.fidelity_score.value),
                 post_hoc_rationalization_suspected=fid_audit.post_hoc_rationalization,
                 reasoning=fid_audit.justification,

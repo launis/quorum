@@ -151,16 +151,21 @@ class ReportTransformer(
                             SemanticBlock(id=section_id, type=BlockType.CARD, label=card_title, value=score_data)
                         )
                     except ValueError as e:
-                        logger.error(f"Score validation failed for {key} (card {idx}): {e}")
+                        logger.error(f"[ReportTransformer] {ErrorCodes.VALIDATION_FAILED.name}: Error: {e}", exc_info=True)
                         raise AppException(
+                            message=str(e),
                             status_code=400,
-                            message=f"Score validation failed for {key} (card {idx}): {e}",
-                            details={"error_code": "SCORE_VALIDATION_FAILED"},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.name},
                         ) from e
                     except Exception as e:
-                        raise AppException(f"Unexpected error in score card processing: {e}", 500) from e
+                        logger.error(f"[ReportTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
+                        raise AppException(
+                            message=str(e),
+                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name}
+                        ) from e
             else:
-                logger.warning(f"Missing data for {key} in Score Cards layout")
+                logger.debug(f"Missing data for {key} in Score Cards layout")
 
         # --- A2. Key Metrics (Usage & Cost) ---
         usage_section = self._extract_usage_section(raw_data)
@@ -572,20 +577,30 @@ class ReportTransformer(
         for d in dimensions_list:
             # Handle potential dict vs object
             d_data = d if isinstance(d, dict) else d.model_dump()
+            
+            dim_score = float(d_data.get("score", 0.0))
+            # Format dimension score
+            dim_score_display = f"{dim_score:.0f}" if dim_score.is_integer() else f"{dim_score:.1f}"
+            
             mapped_dimensions.append(
                 DimensionDisplay(
                     dimension_id=d_data.get("dimension_id", "dim_unknown"),
                     dimension_label=d_data.get("dimension_label") or d_data.get("dimension_id", "dim_unknown"),
-                    score=float(d_data.get("score", 0.0)),
+                    score=dim_score,
+                    score_display=dim_score_display,
                     max_score=float(d_data.get("max_score", scale_max)),
                     weight=float(d_data.get("weight", 1.0)),
                     reasoning=d_data.get("reasoning", ""),
                 )
             )
 
+        # Format total score
+        total_score_display = f"{score:.0f}" if float(score).is_integer() else f"{score:.1f}"
+
         return ScoreCardDisplay(
             agent_name=agent_name,
             total_score=score,
+            total_score_display=total_score_display,
             min_score=int(scale_min),
             max_score=int(scale_max),
             verdict=verdict,
@@ -638,7 +653,7 @@ class ReportTransformer(
             # Load typed Pydantic model using WorkflowState's intelligent accessor properties
             model = getattr(state, step_key, None)
             if not model:
-                logger.warning(
+                logger.debug(
                     f"Timeline extraction: no typed property found in WorkflowState for {step_key}, skipping."
                 )
                 continue
@@ -786,9 +801,9 @@ class ReportTransformer(
 
         # Token usage is usually inside 'results' -> 'usage' or 'metadata' -> 'usage'
         # Since ExecutionRecord doesn't strictly define usage breakdown, we look in results.
-        total_tokens = 0
-        prompt_tokens = 0
-        completion_tokens = 0
+        total_tokens: int | None = None
+        prompt_tokens: int | None = None
+        completion_tokens: int | None = None
 
         # Access results safely
         usage: dict[str, Any] | None = None
@@ -809,20 +824,20 @@ class ReportTransformer(
             usage = None
 
         if usage:
-            total_tokens = usage.get("total_tokens", 0)
-            prompt_tokens = usage.get("prompt_tokens", 0)
-            completion_tokens = usage.get("completion_tokens", 0)
+            total_tokens = usage.get("total_tokens")
+            prompt_tokens = usage.get("prompt_tokens")
+            completion_tokens = usage.get("completion_tokens")
             # Prefer top-level cost, but fallback if needed? No, top level is authoritive.
         else:
             logger.warning("Missing usage stats in ExecutionRecord results")
 
         items: list[dict[str, Any]] = [
-            {"label": self._t("lblTotalTokens", "Kokonaistokenit"), "value": str(total_tokens)},
-            {"label": self._t("lblPromptTokens", "Syötetokenit"), "value": str(prompt_tokens)},
-            {"label": self._t("lblCompletionTokens", "Vastaustokenit"), "value": str(completion_tokens)},
+            {"label": self._t("lblTotalTokens", "Kokonaistokenit"), "value": str(total_tokens) if total_tokens is not None else None},
+            {"label": self._t("lblPromptTokens", "Syötetokenit"), "value": str(prompt_tokens) if prompt_tokens is not None else None},
+            {"label": self._t("lblCompletionTokens", "Vastaustokenit"), "value": str(completion_tokens) if completion_tokens is not None else None},
             {
                 "label": self._t("lblCostEstimate", "Kustannusarvio ($)"),
-                "value": f"${cost:.4f}" if cost > 0 else "N/A",
+                "value": f"${cost:.4f}" if cost is not None else None,
                 "highlight": True,
             },
         ]
@@ -840,7 +855,7 @@ class ReportTransformer(
             # Returns typed JudgeOutput
             step = getattr(state, key, None)
             if not step:
-                logger.warning(f"Missing data for {key} in Critical Findings layout")
+                logger.debug(f"Missing data for {key} in Critical Findings layout")
                 continue
 
             f_list = getattr(step, "critical_findings", [])

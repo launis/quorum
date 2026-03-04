@@ -159,9 +159,9 @@
 <body>
 
     {# Header matches Flutter Card logic #}
-    {% if view.status_theme == 'success' %}
+    {% if view.intent == 'success' %}
     <div class="header-card header-success">
-    {% elif view.status_theme == 'warning' %}
+    {% elif view.intent == 'warning' %}
     <div class="header-card header-warning">
     {% else %}
     <div class="header-card header-danger">
@@ -171,7 +171,7 @@
                 <h1 style="margin: 0;">{{ view.title }}</h1>
                 <div style="font-size: 11px; color: #444; margin-top: 5px;">Tulostettu: {{ printed_at }}</div>
             </div>
-            <div style="font-size: 10px; color: #666; margin-left: 15px; white-space: nowrap; text-align: right;">ID: {{ view.view_id }}</div>
+            <div style="font-size: 10px; color: #666; margin-left: 15px; white-space: nowrap; text-align: right;">ID: {{ view.report_id }}</div>
         </div>
     </div>
 
@@ -214,12 +214,6 @@
                     <span style="font-size: 16px; margin-right: 8px;">📊</span>
                     <div class="label" style="color: #00695C;">{{ 'TEXT_METRICS_LABEL' | translate }}</div>
                 </div>
-                    <!-- Positioned using inline left% by WeasyPrint - Linter warning bypassed via dynamic attribute -->
-                    {% set conf_style = "position: absolute; left: " ~ (d.confidence_percent | round(1)) ~ "%; transform: translateX(-50%); text-align: center; margin-top: 15px;" %}
-                    <div {{ 'style' }}="{{ conf_style }}">
-                        <div style="font-size: 16px; margin-bottom: 2px;">▼</div>
-                        <div style="font-size: 11px; font-weight: 700; color: #E65100;">{{ d.confidence_percent | round(1) }}%</div>
-                    </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                     <div style="text-align: center; background: rgba(0, 150, 136, 0.1); padding: 5px; border-radius: 4px;">
                         <div style="font-size: 10px; color: #00796B;">{{ 'WORDS_LABEL' | translate }}</div>
@@ -255,7 +249,7 @@
                         <span class="value" style="color: #00796B;">{{ d.bloom_score_display }} / 6.0</span>
                     </div>
                     <div class="gauge-track">
-                        <div class="gauge-bar" style="--percent: {{ d.bloom_percent | round(1) }}; background-color: #009688;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.bloom_percent_display }}; background-color: #009688;"></div>
                     </div>
                     <div class="gauge-labels" style="display: flex; justify-content: space-between;">
                         <span>{{ 'BLOOM_REMEMBERING' | translate }}</span>
@@ -276,7 +270,7 @@
                         <span class="value" style="color: #00796B;">{{ d.strategic_score_display }} / 4.0</span>
                     </div>
                     <div class="gauge-track">
-                        <div class="gauge-bar" style="--percent: {{ d.strategic_percent | round(1) }}; background-color: #00796B;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.strategic_percent_display }}; background-color: #00796B;"></div>
                     </div>
                     <div class="gauge-labels" style="display: flex; justify-content: space-between;">
                         <span>{{ 'STRAT_LOW' | translate }}</span>
@@ -312,18 +306,17 @@
             </div>
             
             {# Toulmin Integrity Gauge (Index 3.0 equivalent) #}
-            {% if d %}
-            {% if d.toulmin_percent is not none %}
+            {# Toulmin Score Gauge #}
+            {% if d.toulmin_percent_display is not none and d.toulmin_percent_display|string|trim != '' %}
             <div class="gauge-container" style="margin-top: 12px; padding: 10px; background: #E8EAF6; border-radius: 6px;">
                 <div class="gauge-header">
-                    <span class="label" style="color: #3949AB;">{{ 'ARGUMENT_INTEGRITY_LABEL' | translate }}</span>
-                    <span class="value" style="color: #283593;">{{ d.toulmin_score_display }} / 6.0</span>
+                    <span class="label" style="color: #303F9F; font-size: 11px;">{{ 'TOULMIN_ARGUMENTATION_LABEL' | translate }}</span>
+                    <span class="value" style="color: #3F51B5; font-size: 11px;">{{ d.toulmin_score }} / 6.0</span>
                 </div>
                 <div class="gauge-track" style="background: #C5CAE9;">
-                    <div class="gauge-bar" style="--percent: {{ d.toulmin_percent | round(1) }}; background-color: #3F51B5;"></div>
+                    <div class="gauge-bar" style="--percent: {{ d.toulmin_percent_display }}; background-color: #3F51B5;"></div>
                 </div>
             </div>
-            {% endif %}
             {% endif %}
             {% endif %}
 
@@ -353,14 +346,8 @@
                         <div style="position: absolute; bottom: 5px; left: 5px; font-size: 8px; color: #9E9E9E;">{{ 'WEAK_LABEL' | translate }}</div>
 
                         {# The Bubble - Only render if we have coordinates #}
-                        {% if d.bloom_percent is not none and d.toulmin_percent is not none %}
-                            {% set x_pos = d.bloom_percent %}
-                            {% set y_pos = d.toulmin_percent %}
-                            {# Use strategic score for size, default to 0 if missing for safe math, though strict mode implies we have it #}
-                            {% set strat = d.strategic_score if d.strategic_score is not none else 2.0 %}
-                            {% set bubble_size = 20 + (strat * 5) %}
-                            {% set bubble_style = "position: absolute; border-radius: 50%; background-color: rgba(63, 81, 181, 0.6); border: 1px solid #3F51B5; transform: translate(-50%, 50%); left: " ~ (x_pos|round(1)) ~ "%; bottom: " ~ (y_pos|round(1)) ~ "%; width: " ~ (bubble_size|round(0)) ~ "px; height: " ~ (bubble_size|round(0)) ~ "px;" %}
-                            <div {{ 'style' }}="{{ bubble_style }}"></div>
+                        {% if d.bubble_style is not none %}
+                            <div {{ 'style' }}="{{ d.bubble_style }}"></div>
                         {% endif %}
                     </div>
                 </div>
@@ -389,14 +376,14 @@
                 <div class="label" style="color: #E65100;">{{ 'FIDELITY_AUDIT_LABEL' | translate }}</div>
                 
                 {# Fidelity Score Gauge #}
-                {% if d.fidelity_audit.fidelity_percent is not none %}
+                {% if d.fidelity_audit.fidelity_percent_display is not none and d.fidelity_audit.fidelity_percent_display|string|trim != '' %}
                 <div class="gauge-container" style="margin-bottom: 8px;">
                     <div class="gauge-header">
                         <span class="label" style="color: #E65100;">{{ 'FIDELITY_SCORE_LABEL' | translate }}</span>
                         <span class="value" style="color: #EF6C00;">{{ d.fidelity_audit.fidelity_score_display }} / 3.0</span>
                     </div>
                     <div class="gauge-track" style="background: #FFE0B2;">
-                        <div class="gauge-bar" style="--percent: {{ d.fidelity_audit.fidelity_percent | round(1) }}; background-color: #FF9800;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.fidelity_audit.fidelity_percent_display }}; background-color: #FF9800;"></div>
                     </div>
                     <div class="gauge-labels" style="display: flex; justify-content: space-between;">
                          <span>{{ 'WEAK_LABEL' | translate }}</span>
@@ -448,6 +435,18 @@
             {# Falsifier / Stress Test SDUI #}
             {% if d %}
             <div class="box-teal" style="border-color: #80DEEA; background: #E0F7FA;">
+                {# Bloom Score Gauge #}
+                {% if d.bloom_percent_display is not none and d.bloom_percent_display|string|trim != '' %}
+                <div class="gauge-container">
+                    <div class="gauge-header">
+                        <span class="label" style="color: #00796B;">{{ 'BLOOM_TAXONOMY_LABEL' | translate }}</span>
+                        <span class="value" style="color: #00796B;">{{ d.bloom_score }} / 6.0</span>
+                    </div>
+                    <div class="gauge-track" style="background: #B2DFDB;">
+                        <div class="gauge-bar" style="--percent: {{ d.bloom_percent_display }}; background-color: #009688;"></div>
+                    </div>
+                </div>
+                {% endif %}
                 {# Abductive Logic Gauge #}
                 {% if d.abductive_percent is not none %}
                 <div class="gauge-container">
@@ -456,7 +455,7 @@
                         <span class="value" style="color: #00838F;">{{ d.abductive_score_display }} / 3.0</span>
                     </div>
                     <div class="gauge-track" style="background: #B2EBF2;">
-                        <div class="gauge-bar" style="--percent: {{ d.abductive_percent | round(1) }}; background-color: #00BCD4;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.abductive_percent_display }}; background-color: #00BCD4;"></div>
                     </div>
                     <div class="gauge-labels" style="display: flex; justify-content: space-between;">
                         <span>{{ 'LOW_CAPACITY' | translate }}</span>
@@ -495,7 +494,7 @@
                         <span class="value">{{ d.plausibility_score_display }} / 3.0</span>
                     </div>
                     <div class="gauge-track">
-                            <div class="gauge-bar" style="--percent: {{ d.plausibility_percent | round(1) }}; background-color: #00ACC1;"></div>
+                            <div class="gauge-bar" style="--percent: {{ d.plausibility_percent_display }}; background-color: #00ACC1;"></div>
                     </div>
                 </div>
                 {% endif %}
@@ -515,10 +514,10 @@
                  <div class="gauge-container">
                     <div class="gauge-header">
                         <span class="label" style="color: #4A148C;">{{ 'AUTHENTICITY_SCORE_LABEL' | translate }}</span>
-                        <span class="value" style="color: #7B1FA2;">{{ d.authenticity_score | round(1) }} / 3.0</span>
+                        <span class="value" style="color: #7B1FA2;">{{ d.authenticity_score_display }} / 3.0</span>
                     </div>
                     <div class="gauge-track" style="background: #E1BEE7;">
-                        <div class="gauge-bar" style="--percent: {{ d.authenticity_percent | round(1) }}; background-color: #9C27B0;"></div>
+                        <div class="gauge-bar" style="--percent: {{ d.authenticity_percent_display }}; background-color: #9C27B0;"></div>
                     </div>
                     <div class="gauge-labels" style="display: flex; justify-content: space-between;">
                         <span>{{ 'PERFORMATIVE_LABEL' | translate }}</span>
@@ -695,7 +694,9 @@
                             <span class="value" style="color: #C2185B;">{{ d.control_ratio_display }} {{ d.control_label }}</span>
                         </div>
                         <div class="gauge-track" style="background: #F8BBD0;">
-                            <div class="gauge-bar" style="--percent: {{ d.control_ratio_percent | round(1) }}; background-color: #E91E63;"></div>
+                            {% if d.control_ratio_display is defined %}
+                            <div class="gauge-bar" style="--percent: {{ d.control_ratio_display }}; background-color: #E91E63;"></div>
+                            {% endif %}
                         </div>
                         <div class="gauge-labels">
                             <span>{{ 'PASSENGER_LABEL' | translate }}</span>
@@ -838,11 +839,7 @@
                  <div class="grid-item">
                      <div class="label">{{ 'CONTROL_RATIO_LABEL' | translate }}</div>
                      <div class="value" style="font-size: 14px; color: #1565C0;">
-                        {% if d.input_control_ratio is not none %}
-                            {{ (d.input_control_ratio * 100) | round(0) }}%
-                        {% else %}
-                            N/A
-                        {% endif %}
+                        {{ d.input_control_ratio_display | default('N/A') }}
                      </div>
                  </div>
                  <div class="grid-item">
@@ -879,14 +876,9 @@
                 <h2 style="color: #039BE5; border-bottom: none; margin-top: 0; padding-bottom: 0;">{{ section.label }}</h2>
                 <div style="background-color: #D1C4E9; border-radius: 50%; min-width: 48px; height: 48px; padding: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px solid #512DA8;">
                     <div style="font-size: 15px; font-weight: 700; color: #000; text-align: center; margin-top: 4px;">
-                        {% set ts = section.value.get('total_score', 0) %}
-                        {% if ts is number or ts is string %}
-                            {% set ts_f = ts|float %}
-                            {% if ts_f == ts_f|round(0, 'floor') %}
-                                {{ '%d' | format(ts_f) }}
-                            {% else %}
-                                {{ '%0.1f' | format(ts_f) }}
-                            {% endif %}
+                        {% set ts = section.value.get('total_score_display', '0') %}
+                        {% if ts is not none and ts|string|trim != '' %}
+                            {{ ts }}
                         {% else %}
                             0
                         {% endif %}
@@ -899,7 +891,7 @@
             
             {% if section.value.get('chart_image') %}
             <div style="text-align: center; margin-top: -15px; margin-bottom: 20px;">
-                <img src="data:image/png;base64,{{ section.value.chart_image }}" style="max-width: 100%; max-height: 220px; object-fit: contain;" alt="Radar Chart"/>
+                <img src="{{ section.value.get('chart_image') }}" style="max-width: 100%; max-height: 220px; object-fit: contain;" alt="Radar Chart"/>
             </div>
             {% endif %}
 
@@ -909,14 +901,9 @@
                 <div style="background-color: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 6px; padding: 12px; display: flex; align-items: flex-start; gap: 15px;">
                     <div style="background-color: #E1BEE7; border-radius: 50%; width: 34px; height: 34px; min-width: 34px; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
                         <span style="font-size: 13px; font-weight: 700; color: #311B92;">
-                            {% set ds = dim.get('score', 0) %}
-                            {% if ds is number or ds is string %}
-                                {% set ds_f = ds|float %}
-                                {% if ds_f == ds_f|round(0, 'floor') %}
-                                    {{ '%d' | format(ds_f) }}
-                                {% else %}
-                                    {{ '%0.1f' | format(ds_f) }}
-                                {% endif %}
+                            {% set ds = dim.get('score_display', '0') %}
+                            {% if ds is not none and ds|string|trim != '' %}
+                                {{ ds }}
                             {% else %}
                                 0
                             {% endif %}

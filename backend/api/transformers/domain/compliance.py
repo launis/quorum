@@ -69,7 +69,17 @@ class ComplianceDomainTransformer(BaseTransformer):
                 findings=findings,
             )
         except Exception as e:
-            raise AppException(f"Failed to create SecurityDisplay: {e}", 500) from e
+            from fastapi import status
+            from backend.exceptions import AppException, ErrorCodes
+            import logging
+            logger = logging.getLogger(__name__)
+
+            logger.error(f"[ComplianceDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
+            ) from e
 
         try:
             display_dict = s_display.model_dump()
@@ -82,7 +92,17 @@ class ComplianceDomainTransformer(BaseTransformer):
                 value={"security_display": display_dict},
             )
         except Exception as e:
-            raise AppException(f"Failed to create SecurityGrid block: {e}", 500) from e
+            from fastapi import status
+            from backend.exceptions import AppException, ErrorCodes
+            import logging
+            logger = logging.getLogger(__name__)
+
+            logger.error(f"[ComplianceDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
+            ) from e
 
     def _extract_archivist_section(self, state: WorkflowState) -> SemanticBlock | None:
         model = state.step_archivist
@@ -97,7 +117,17 @@ class ComplianceDomainTransformer(BaseTransformer):
                 value=display_model,
             )
         except Exception as e:
-            raise AppException(f"Failed to transform Archivist display: {e}", 500) from e
+            from fastapi import status
+            from backend.exceptions import AppException, ErrorCodes
+            import logging
+            logger = logging.getLogger(__name__)
+
+            logger.error(f"[ComplianceDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
+            ) from e
 
     def _transform_archivist_data(self, model: ArchivistOutput) -> ArchivistDisplay:
         """Flattens ArchivistOutput and calculates SDUI properties."""
@@ -111,8 +141,8 @@ class ComplianceDomainTransformer(BaseTransformer):
 
         return ArchivistDisplay(
             compliance_score=comp_score,
-            compliance_score_display=f"{comp_score:.1f}" if comp_score is not None else "N/A",
-            compliance_analysis=comp_desc or comp_analysis,
+            compliance_score_display=f"{comp_score:.1f}" if comp_score is not None else None,
+            compliance_analysis=model.compliance_analysis,
             compliance_help=self._t("help.compliance", "Säädöstenmukaisuus arvioi tekstin lakiteknistä pätevyyttä."),
             recommendations=recs,
         )

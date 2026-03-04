@@ -46,12 +46,15 @@ class ProfilingDomainTransformer(BaseTransformer):
             )
         except Exception as e:
             from fastapi import status
-
             from backend.exceptions import AppException, ErrorCodes
+            import logging
+            logger = logging.getLogger(__name__)
+
+            logger.error(f"[ProfilerDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
             raise AppException(
-                message=f"Failed to transform Profiler display: {e}",
+                message=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED, "original_error": str(e)},
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
             ) from e
 
     def _transform_profiler_data(self, model: ProfilerOutput) -> ProfilerDisplay:
@@ -127,9 +130,16 @@ class ProfilingDomainTransformer(BaseTransformer):
             )
         except Exception as e:
             from fastapi import status
+            from backend.exceptions import AppException, ErrorCodes
+            import logging
+            logger = logging.getLogger(__name__)
 
-            from backend.exceptions import AppException
-            raise AppException(f"Failed to transform Driver display: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) from e
+            logger.error(f"[ProfilerDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
+            ) from e
 
     def _transform_interaction_data(self, model: InteractionAnalysis, input_control_ratio: float | None = None) -> DriverProfileDisplay:
         """Flattens InteractionOutput to strict DriverProfileDisplay."""
@@ -142,13 +152,22 @@ class ProfilingDomainTransformer(BaseTransformer):
         cmd_count = model.imperative_command_count
         strategy = model.strategy
 
+        # Calculate visual hints
+        control_pct = input_control_ratio * 100.0 if input_control_ratio is not None else None
+        control_pct_display = f"{control_pct:.1f}" if control_pct is not None else None
+        input_control_display = f"{int(round(control_pct))}%" if control_pct is not None else None
+
         # Construct Strict View Model
         return DriverProfileDisplay(
             role_classification=role_key,
             high_dependency=high_dependency,
             imperative_command_count=cmd_count,
             strategy=strategy,
-            input_control_ratio=input_control_ratio
+            input_control_ratio=input_control_ratio,
+            input_control_ratio_display=input_control_display,
+            control_ratio_percent=control_pct,
+            control_ratio_display=control_pct_display,
+            control_label=self._t("help.control_ratio", "Ohjausaste")
         )
 
     def _extract_detector_section(self, state: WorkflowState) -> SemanticBlock | None:
@@ -160,9 +179,9 @@ class ProfilingDomainTransformer(BaseTransformer):
             if panel and getattr(panel, "performativity_analysis", None):
                 model = PerformativityOutput(
                     performativity_analysis=panel.performativity_analysis,
-                    thought_process="[Aggregated Panel Analysis]",
-                    conclusion="N/A",
-                    confidence_score=1.0,
+                    thought_process=panel.thought_process,
+                    conclusion=panel.conclusion,
+                    confidence_score=panel.confidence_score,
                 )
 
         if not model:
@@ -177,9 +196,16 @@ class ProfilingDomainTransformer(BaseTransformer):
             )
         except Exception as e:
             from fastapi import status
+            from backend.exceptions import AppException, ErrorCodes
+            import logging
+            logger = logging.getLogger(__name__)
 
-            from backend.exceptions import AppException
-            raise AppException(f"Failed to transform Performativity display: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) from e
+            logger.error(f"[ProfilerDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
+            ) from e
 
     def _transform_detector_data(self, model: PerformativityOutput) -> PerformativityDisplay:
         """Flattens DetectorOutput to strict PerformativityDisplay."""
@@ -193,14 +219,15 @@ class ProfilingDomainTransformer(BaseTransformer):
                 HeuristicDisplay(name=h.heuristic_name, flag=h.flag_raised, color="red" if h.flag_raised else "green")
             )
 
+        score = check.authenticity_score
+        pct = (score / 3.0) * 100.0 if score is not None else None
+
         return PerformativityDisplay(
-            authenticity_score=check.authenticity_score,
-            # Fix: Scale is 1-3, so divide by 3.0
-            authenticity_percent=(check.authenticity_score / 3.0) * 100.0 if check.authenticity_score else 0.0,
-            # Fix: access 'authenticity_assessment'
-            authenticity_assessment=check.authenticity_assessment,
-            authenticity_help=self._t("help.authenticity", "Autenttisuus arvioi tekstin aitoutta."),
+            authenticity_score=score,
+            authenticity_score_display=f"{score:.1f}" if score is not None else None,
+            authenticity_percent=pct,
+            authenticity_percent_display=f"{pct:.1f}" if pct is not None else None,
+            authenticity_assessment=check.authenticity_assessment.value,
+            authenticity_help=self._t("help.authenticity", "Autenttisuus arvioi onko sisältö aitoa vai tekoälymalleille ominaista performatiivista roolipeliä."),
             heuristics=heuristics,
         )
-
-
