@@ -136,6 +136,6 @@ To combat LLM hallucinations and ensure epistemic integrity, the architecture im
 
 ## 🛡️ License
 
-**Proprietary / Confidential.**
-(C) 2024-2026 Risto Launis / Cognitive Quorum Team.
-All rights reserved.
+**Proprietary and Closed-Source.**
+Copyright (c) 2026 Risto Launis. All Rights Reserved.
+No permission is granted to use, copy, modify, or distribute this software under any circumstances.
