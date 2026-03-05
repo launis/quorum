@@ -58,17 +58,13 @@ class OverseerDomainTransformer(BaseTransformer):
                 value=display_model,
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
-            import logging
-            logger = logging.getLogger(__name__)
-
-            logger.error(f"[OverseerDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
-            raise AppException(
-                message=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
-            ) from e
+            logger.warning(f"BFF Graceful degradation [OverseerDomainTransformer]: {e}", exc_info=True)
+            return SemanticBlock(
+                id="fact-check-grid",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.OVERSEER),
+                value={},
+            )
 
     def _transform_overseer_data(self, model: OverseerOutput) -> FactCheckDisplay:
         """Flattens OverseerOutput for SDUI (Strict UVM)."""

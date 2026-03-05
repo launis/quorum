@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-from backend.exceptions import AppException
 from backend.models.domain import CausalOutput
 from backend.models.enums import TitleKey
 from backend.models.state import WorkflowState
@@ -50,9 +49,11 @@ class CausalDomainTransformer(BaseTransformer):
                 value=display_model,  # Return model directly
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
             import logging
+
+            from fastapi import status
+
+            from backend.exceptions import AppException, ErrorCodes
             logger = logging.getLogger(__name__)
 
             logger.error(f"[CausalDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)

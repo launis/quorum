@@ -44,7 +44,12 @@ class FalsificationDomainTransformer(BaseTransformer):
                 )
 
         if not model:
-            return None
+            return SemanticBlock(
+                id="stress-test",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.FALSIFIER),
+                value={},
+            )
 
         try:
             display_model = self._transform_falsifier_data(model)
@@ -54,17 +59,13 @@ class FalsificationDomainTransformer(BaseTransformer):
                 value=display_model,  # Return model directly
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
-            import logging
-            logger = logging.getLogger(__name__)
-
-            logger.error(f"[FalsificationDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
-            raise AppException(
-                message=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
-            ) from e
+            logger.warning(f"BFF Graceful degradation [FalsificationDomainTransformer]: {e}", exc_info=True)
+            return SemanticBlock(
+                id="stress-test",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.FALSIFIER),
+                value={},
+            )
 
     def _transform_falsifier_data(self, model: FalsifierOutput) -> StressTestDisplay:
         """Flattens FalsifierOutput for SDUI (Strict UVM)."""
@@ -112,15 +113,15 @@ class FalsificationDomainTransformer(BaseTransformer):
             findings=findings,
             # Explicitly set missing fields to None (as this transformer doesn't know about them)
             # They might be merged later or remain None
-            abductive_score=None,
-            abductive_percent=None,
+            abductive_score=fid_audit.abductive_score if fid_audit else None,
+            abductive_percent=(fid_audit.abductive_score / 3.0 * 100) if fid_audit and fid_audit.abductive_score else None,
             abductive_conclusion=None,
-            abductive_help=None,
+            abductive_help=self._t("help.abductive", "Abduktiivinen päättely..."),
             counterfactual_actual=None,
             counterfactual_simulated=None,
-            plausibility_score=None,
-            plausibility_percent=None,
-            plausibility_help=None,
+            plausibility_score=fid_audit.plausibility_score if fid_audit else None,
+            plausibility_percent=(fid_audit.plausibility_score / 3.0 * 100) if fid_audit and fid_audit.plausibility_score else None,
+            plausibility_help=self._t("help.plausibility", "Uskottavuus..."),
         )
 
 

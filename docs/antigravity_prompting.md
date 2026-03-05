@@ -148,4 +148,7 @@ Modifying `backend/seed/seed_data.json` autonomously is STRICTLY BLOCKED without
    - Python: Run `ruff check <files> --fix` -> `mypy <files> --strict` -> `pytest`.
    - Flutter: Run `dart format` -> `dart analyze` -> `flutter test`.
    - Resolve ALL syntax and typing errors before declaring the step or ticket complete.
+
+8. DATABASE:
+   - If changing database execute it according to `docs/antigravity_prompting.md` / `3D. SEED DATA VAULT PROTOCOL (C-tason konfiguraatiomuutokset)` rules.
 ```

@@ -12,58 +12,40 @@ import 'package:client_app/features/orchestration/domain/models/xai_report.dart'
 import 'package:client_app/features/orchestration/data/repositories/execution_repository.dart';
 
 import 'package:client_app/features/orchestration/presentation/widgets/output_renderer.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/validation_timeline_widget.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/specialist_section.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 
-class ResultDashboard extends ConsumerStatefulWidget {
+final reportViewProvider = FutureProvider.autoDispose.family<SemanticReport, String>((ref, execId) async {
+  debugPrint('Fetching ReportView for $execId via Repository (Auth)');
+  final task = ref.watch(executionRepositoryProvider).getReportView(execId);
+  final result = await task.run().timeout(
+    const Duration(seconds: 15),
+    onTimeout: () => throw Exception('Aikakatkaisu: Palvelin ei vastannut 15 sekuntiin.'),
+  );
+  return result.fold(
+    (error) {
+      debugPrint('Error fetching report view: $error');
+      throw Exception(error.toString());
+    },
+    (view) => view,
+  );
+});
+
+class ResultDashboard extends ConsumerWidget {
   final Execution execution;
 
   const ResultDashboard({super.key, required this.execution});
 
   @override
-  ConsumerState<ResultDashboard> createState() => _ResultDashboardState();
-}
-
-class _ResultDashboardState extends ConsumerState<ResultDashboard> {
-  late Future<SemanticReport> _reportViewFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _reportViewFuture = _fetchReportView();
-  }
-
-  Future<SemanticReport> _fetchReportView() async {
-    final execId = widget.execution.id;
-    debugPrint('Fetching ReportView for $execId via Repository (Auth)');
-
-    // Use the Authenticated Repository via Riverpod
-    final task = ref.read(executionRepositoryProvider).getReportView(execId);
-
-    // Run with 15s timeout to prevent infinite spinner
-    final result = await task.run().timeout(
-      const Duration(seconds: 15),
-      onTimeout:
-          () =>
-              throw Exception(
-                'Aikakatkaisu: Palvelin ei vastannut 15 sekuntiin.',
-              ),
-    );
-
-    return result.fold((error) {
-      debugPrint('Error fetching report view: $error');
-      throw Exception(error.toString());
-    }, (view) => view);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.execution is! ExecutionCompleted) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (execution is! ExecutionCompleted) {
       return const Center(child: Text('Analysis not completed.'));
     }
 
-    final rawResult = (widget.execution as ExecutionCompleted).result;
+    final rawResult = (execution as ExecutionCompleted).result;
+    final reportAsync = ref.watch(reportViewProvider(execution.id));
 
     return DefaultTabController(
       length: 3,
@@ -88,20 +70,10 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
             child: TabBarView(
               children: [
                 // Tab 1: Server-Driven Dashboard (BFF)
-                FutureBuilder<SemanticReport>(
-                  future: _reportViewFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Center(child: Text("Virhe: ${snapshot.error}"));
-                    } else if (!snapshot.hasData) {
-                      return const Center(
-                        child: Text("Raporttia ei löytynyt."),
-                      );
-                    }
-                    return _buildDynamicDashboard(context, snapshot.data!);
-                  },
+                reportAsync.when(
+                  data: (view) => _buildDynamicDashboard(context, view),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => Center(child: Text("Virhe: $error")),
                 ),
 
                 // Tab 2: Flat Report JSON
@@ -605,44 +577,9 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
                           as List<dynamic>? ??
                       []
                   : [];
-          return Card(
-            child: Semantics(
-              excludeSemantics: Platform.isWindows,
-              child: ExpansionTile(
-                title: Text(block.label ?? ''),
-                children:
-                    events.map<Widget>((e) {
-                      final ts = e['timestamp'] as String? ?? '';
-                      String timeDisplay = ts;
-                      if (ts.length >= 16) {
-                        final tIndex = ts.indexOf('T');
-                        if (tIndex != -1 && tIndex + 5 < ts.length) {
-                          timeDisplay = ts.substring(tIndex + 1, tIndex + 6);
-                        }
-                      }
-
-                      return ListTile(
-                        leading: Container(
-                          width: 50,
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            timeDisplay,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          e['label'] ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(e['content'] ?? ''),
-                        dense: true,
-                      );
-                    }).toList(),
-              ),
-            ),
+          return ValidationTimelineWidget(
+            title: block.label ?? '',
+            events: events,
           );
         }
 

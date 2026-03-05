@@ -26,7 +26,12 @@ class LogicDomainTransformer(BaseTransformer):
                 )
 
         if not model:
-            return None
+            return SemanticBlock(
+                id="logic-analysis",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.LOGICIAN),
+                value={},
+            )
 
         try:
             display_model = self._transform_logician_data(model)
@@ -36,17 +41,14 @@ class LogicDomainTransformer(BaseTransformer):
                 value=display_model,
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
-            import logging
-            logger = logging.getLogger(__name__)
-
-            logger.error(f"[LogicDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
-            raise AppException(
-                message=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
-            ) from e
+            logger.warning(f"BFF Graceful degradation [LogicDomainTransformer]: {e}", exc_info=True)
+            # Return an empty agnostic block so the frontend knows to shed the component gracefully
+            return SemanticBlock(
+                id="logic-analysis",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.LOGICIAN),
+                value={},
+            )
 
     def _transform_logician_data(self, model: LogicianOutput) -> LogicAnalysisDisplay:
         """Flattens LogicianOutput and calculates Server-Driven UI properties (Strict UVM)."""
@@ -95,7 +97,7 @@ class LogicDomainTransformer(BaseTransformer):
         if s_score is not None and b_pct is not None and t_pct is not None:
             b_size = 20.0 + (s_score * 5.0)
             b_style = f"position: absolute; border-radius: 50%; background-color: rgba(63, 81, 181, 0.6); border: 1px solid #3F51B5; transform: translate(-50%, 50%); left: {b_pct:.1f}%; bottom: {t_pct:.1f}%; width: {int(b_size)}px; height: {int(b_size)}px;"
-        
+
         # --- DISPLAY OBJECT ---
         return LogicAnalysisDisplay(
             # Bloom

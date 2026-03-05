@@ -100,7 +100,7 @@ def test_cognitive_level_string_casting():
 
 
 def test_reasoning_fidelity():
-    data = {"fidelity_score": "FIDELITY_HIGH", "justification": "Test", "quote": "Quote"}
+    data = {"fidelity_score": "FIDELITY_HIGH", "justification": "Test", "quote": "Quote", "abductive_score": 2.0, "plausibility_score": 2.0}
     obj = ReasoningFidelity.model_validate(data)
     assert obj.fidelity_numeric == 3.0
     assert obj.fidelity_score == FidelityLevel.HIGH

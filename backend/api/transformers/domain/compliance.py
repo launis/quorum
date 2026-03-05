@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-from backend.exceptions import AppException
 from backend.models.domain import ArchivistOutput
 from backend.models.enums import LabelKey, RiskLevel, TitleKey
 from backend.models.state import WorkflowState
@@ -69,9 +68,11 @@ class ComplianceDomainTransformer(BaseTransformer):
                 findings=findings,
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
             import logging
+
+            from fastapi import status
+
+            from backend.exceptions import AppException, ErrorCodes
             logger = logging.getLogger(__name__)
 
             logger.error(f"[ComplianceDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
@@ -85,16 +86,18 @@ class ComplianceDomainTransformer(BaseTransformer):
             display_dict = s_display.model_dump()
             display_dict["findings_label"] = self._t("lblFindings", "Löydökset")
             display_dict["no_findings_label"] = self._t("lblNoSignificantFindings", "Ei merkittäviä löydöksiä.")
-            
+
             return SemanticBlock(id="security-grid",
                 type=BlockType.DATA_GRID,
                 label=self._get_title(TitleKey.SECURITY),
                 value={"security_display": display_dict},
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
             import logging
+
+            from fastapi import status
+
+            from backend.exceptions import AppException, ErrorCodes
             logger = logging.getLogger(__name__)
 
             logger.error(f"[ComplianceDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
@@ -117,9 +120,11 @@ class ComplianceDomainTransformer(BaseTransformer):
                 value=display_model,
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
             import logging
+
+            from fastapi import status
+
+            from backend.exceptions import AppException, ErrorCodes
             logger = logging.getLogger(__name__)
 
             logger.error(f"[ComplianceDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)

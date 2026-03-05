@@ -62,8 +62,24 @@ class ReasoningFidelity(BaseModel):
     )
     fidelity_numeric: float = Field(
         ...,
-        description="Numeric fidelity score (1-3).",
+        ge=1.0,
+        le=3.0,
+        description="Numeric fidelity score (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
         json_schema_extra={"x-ui-label": "Fidelity Numeric"},
+    )
+    abductive_score: float = Field(
+        ...,
+        ge=1.0,
+        le=3.0,
+        description="Numeric abductive score (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
+        json_schema_extra={"x-ui-label": "Abductive Score"},
+    )
+    plausibility_score: float = Field(
+        ...,
+        ge=1.0,
+        le=3.0,
+        description="Numeric plausibility score (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
+        json_schema_extra={"x-ui-label": "Plausibility Score"},
     )
     justification: str = Field(..., description="Justification.", json_schema_extra={"x-ui-label": "Justification"})
     quote: str | None = Field(default=None, description="Direct quote.", json_schema_extra={"x-ui-label": "Quote"})
@@ -80,6 +96,13 @@ class ReasoningFidelity(BaseModel):
     @field_validator("justification", mode="before")
     @classmethod
     def validate_non_empty(cls, v: Any) -> Any:
+        return v
+
+    @field_validator("fidelity_numeric", "abductive_score", "plausibility_score")
+    @classmethod
+    def validate_falsifier_scores(cls, v: float) -> float:
+        if not (1.0 <= v <= 3.0):
+            raise ValueError("Score must be between 1.0 and 3.0.")
         return v
 
     @field_validator("quote", mode="before")

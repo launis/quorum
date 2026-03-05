@@ -66,7 +66,7 @@ async def test_agent_execution_mock():
             "is_falsifiable": True,
             "falsification_attempts": [],
             "stress_test_findings": [{"question": "Q", "evidence_held": False, "observation": "O"}],
-            "fidelity_audit": {"fidelity_score": "High", "justification": "Mock fidelity audit"},
+            "fidelity_audit": {"fidelity_score": "High", "justification": "Mock fidelity audit", "abductive_score": 2.0, "plausibility_score": 2.0},
             "stress_test": {"resilience_score": 0.5, "weak_points": []},
             "fidelity": {"score": 0.8, "assessment": "Good"},
         },

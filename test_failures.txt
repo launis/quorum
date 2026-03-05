@@ -1,0 +1,156 @@
+FAILURES ===================================
+__________________________ test_agent_execution_mock __________________________
+
+    async def test_agent_execution_mock():
+        print("\n--- Testing Agent Execution (Mock) ---")
+    
+        # MOCK DATA
+        falsifier_dto_mock = {
+            "thought_process": "Thinking...",
+            "conclusion": "Conclusion.",
+            "confidence_score": 0.9,
+            "falsifier_data": {
+                "is_falsifiable": True,
+                "falsification_attempts": [],
+                "stress_test_findings": [{"question": "Q", "evidence_held": False, "observation": "O"}],
+                "fidelity_audit": {"fidelity_score": "High", "justification": "Mock fidelity audit"},
+                "stress_test": {"resilience_score": 0.5, "weak_points": []},
+                "fidelity": {"score": 0.8, "assessment": "Good"},
+            },
+        }
+    
+        # Helper to test an agent
+        async def run_agent_test(agent, input_data, mock_response_dict):
+            print(f"Testing execution of {agent.__class__.__name__}...")
+    
+            # Mock the LLM Client within the agent
+            # We need to patch the generate method or similar.
+            # BaseAgent.execute calls self.llm.generate(...)
+    
+            mock_llm = AsyncMock()
+            # The agent expects the LLM to return a Pydantic model (DTO) if strict mode is on?
+            # Actually BaseAgent.execute logic:
+            # result = await self.llm.generate(..., response_model=self.DTO_SCHEMA)
+            # So we mock generate to return the DTO instance.
+    
+            dto_instance = agent.DTO_SCHEMA(**mock_response_dict)
+            mock_response = MagicMock()
+            mock_response.parsed_content = dto_instance
+            mock_response.token_usage = {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15, "total_cost": 0.002}
+            mock_response.system_fingerprint = "mock_fingerprint_123"
+            mock_response.provider_metadata = {"test_metric": 1.0}
+            mock_llm.generate.return_value = mock_response
+    
+            # Inject mock llm
+            agent.llm_provider = mock_llm
+    
+            # ACT
+            result = await agent.execute(input_data)
+    
+            # ASSERT
+            assert isinstance(result, agent.OUTPUT_SCHEMA)
+            assert isinstance(result, agent.DTO_SCHEMA)  # Should inherit
+            assert result.metadata is not None  # System injected
+            assert result.thought_process == mock_response_dict["thought_process"]
+            print(f"\u2705 {agent.__class__.__name__} execution successful. Output type: {type(result)}")
+    
+        # 1. LogicalFalsifierAgent
+        falsifier = LogicalFalsifierAgent()
+        falsifier_input = FalsifierInput(
+            history_text="Foo",
+            step_analyst=AnalystOutput(**{"thought_process": "tp", "conclusion": "c", "confidence_score": 0.9, "hypotheses": [{"id": "h1", "claim_text": "Test claim", "evidence_found": False, "search_query": "test query", "quotes": []}]})  # type: ignore
+        )
+>       await run_agent_test(falsifier, falsifier_input, falsifier_dto_mock)
+
+backend\tests\manual\test_agents_strict_dto.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+agent = <backend.agents.critics.LogicalFalsifierAgent object at 0x000001430834E0D0>
+input_data = FalsifierInput(history_text='Foo', step_analyst=AnalystOutput(thought_process='tp', conclusion='c', confidence_score=0...d=False, search_query='test query', quotes=[])], rag_evidence=[], critical_violation=False), last_reasoning_trace=None)
+mock_response_dict = {'conclusion': 'Conclusion.', 'confidence_score': 0.9, 'falsifier_data': {'falsification_attempts': [], 'fidelity': {'...DELITY_HIGH'>, 'justification': 'Mock fidelity audit'}, 'is_falsifiable': True, ...}, 'thought_process': 'Thinking...'}
+
+    async def run_agent_test(agent, input_data, mock_response_dict):
+        print(f"Testing execution of {agent.__class__.__name__}...")
+    
+        # Mock the LLM Client within the agent
+        # We need to patch the generate method or similar.
+        # BaseAgent.execute calls self.llm.generate(...)
+    
+        mock_llm = AsyncMock()
+        # The agent expects the LLM to return a Pydantic model (DTO) if strict mode is on?
+        # Actually BaseAgent.execute logic:
+        # result = await self.llm.generate(..., response_model=self.DTO_SCHEMA)
+        # So we mock generate to return the DTO instance.
+    
+>       dto_instance = agent.DTO_SCHEMA(**mock_response_dict)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 2 validation errors for FalsifierDTO
+E       falsifier_data.fidelity_audit.abductive_score
+E         Field required [type=missing, input_value={'fidelity_score': <Fidel...'fidelity_numeric': 3.0}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.12/v/missing
+E       falsifier_data.fidelity_audit.plausibility_score
+E         Field required [type=missing, input_value={'fidelity_score': <Fidel...'fidelity_numeric': 3.0}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+backend\tests\manual\test_agents_strict_dto.py:89: ValidationError
+---------------------------- Captured stdout call -----------------------------
+
+--- Testing Agent Execution (Mock) ---
+Testing execution of LogicalFalsifierAgent...
+___________________________ test_reasoning_fidelity ___________________________
+
+    def test_reasoning_fidelity():
+        data = {"fidelity_score": "FIDELITY_HIGH", "justification": "Test", "quote": "Quote"}
+>       obj = ReasoningFidelity.model_validate(data)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 2 validation errors for ReasoningFidelity
+E       abductive_score
+E         Field required [type=missing, input_value={'fidelity_score': 'FIDEL...'fidelity_numeric': 3.0}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.12/v/missing
+E       plausibility_score
+E         Field required [type=missing, input_value={'fidelity_score': 'FIDEL...'fidelity_numeric': 3.0}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+backend\tests\test_domain_enums.py:104: ValidationError
+============================== warnings summary ===============================
+..\..\Python314\Lib\site-packages\google\genai\types.py:43
+  C:\Python314\Lib\site-packages\google\genai\types.py:43: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+..\..\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: 15 warnings
+  C:\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+  C:\Python314\Lib\site-packages\slowapi\extension.py:717: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+backend\tests\api\test_auth_router.py:40
+  C:\src\quorum\backend\tests\api\test_auth_router.py:40: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+backend\tests\api\test_auth_router.py:47
+  C:\src\quorum\backend\tests\api\test_auth_router.py:47: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+backend/tests/api/test_auth_router.py::test_list_users_scoping
+  C:\src\quorum\backend\tests\api\test_auth_router.py:126: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+backend/tests/api/test_auth_router.py::test_list_users_scoping
+  C:\src\quorum\backend\tests\api\test_auth_router.py:133: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+backend/tests/api/test_organization_router.py::test_create_organization_user_strict_types
+  C:\src\quorum\backend\tests\api\test_organization_router.py:147: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+backend/tests/integration/test_e2e_pipeline.py::test_full_pipeline_ingestion_to_bff
+backend/tests/integration/test_e2e_pipeline.py::test_full_pipeline_ingestion_to_bff
+backend/tests/integration/test_e2e_pipeline.py::test_full_pipeline_ingestion_to_bff
+backend/tests/integration/test_e2e_pipeline.py::test_full_pipeline_ingestion_to_bff
+  C:\src\quorum\backend\agents\base.py:866: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    for name, _field_info in data.model_fields.items():
+
+backend/tests/test_search_leakage_workflow.

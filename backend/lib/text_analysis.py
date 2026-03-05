@@ -77,7 +77,7 @@ def calculate_control_ratio(text: str) -> float:
 
     # Normalize to lines
     lines = text.split("\n")
-    current_speaker = None  # 'user' or 'ai'
+    current_speaker = "user"  # Default to 'user' for single unheadered prompts
 
     user_headers = ["user:", "human:", "k:", "käyttäjä:", "me:", "minä:"]
     ai_headers = ["ai:", "assistant:", "t:", "tekoäly:", "gpt:", "bot:"]

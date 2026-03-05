@@ -45,17 +45,13 @@ class ProfilingDomainTransformer(BaseTransformer):
                 value=display_model,
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
-            import logging
-            logger = logging.getLogger(__name__)
-
-            logger.error(f"[ProfilerDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
-            raise AppException(
-                message=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
-            ) from e
+            logger.warning(f"BFF Graceful degradation [ProfilerDomainTransformer]: {e}", exc_info=True)
+            return SemanticBlock(
+                id="profiler-analysis",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.PROFILER),
+                value={},
+            )
 
     def _transform_profiler_data(self, model: ProfilerOutput) -> ProfilerDisplay:
         """Flattens ProfilerOutput and calculates SDUI properties (Strict UVM)."""
@@ -105,6 +101,8 @@ class ProfilingDomainTransformer(BaseTransformer):
             automation_bias_color="red" if ab_detected else "green",
             say_do_gap_label=sd_label_str,
             say_do_gap_color="red" if sd_detected else "green",
+            imperative_command_count=getattr(metrics, "imperative_command_count", None),
+            role_classification=str(metrics.role_classification.value) if getattr(metrics, "role_classification", None) else None,
             psychological_profile=f"{self._t('Tone', 'Tone')}: {model.emotional_tone}. {self._t('Biases', 'Biases')}: {', '.join(model.cognitive_biases)}",
             intent_analysis=str(model.author_intent),
         )
@@ -129,17 +127,13 @@ class ProfilingDomainTransformer(BaseTransformer):
                 value=display_model,
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
-            import logging
-            logger = logging.getLogger(__name__)
-
-            logger.error(f"[ProfilerDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
-            raise AppException(
-                message=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
-            ) from e
+            logger.warning(f"BFF Graceful degradation [ProfilerDomainTransformer - Interaction]: {e}", exc_info=True)
+            return SemanticBlock(
+                id="interaction-grid",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.INTERACTION),
+                value={},
+            )
 
     def _transform_interaction_data(self, model: InteractionAnalysis, input_control_ratio: float | None = None) -> DriverProfileDisplay:
         """Flattens InteractionOutput to strict DriverProfileDisplay."""
@@ -195,17 +189,13 @@ class ProfilingDomainTransformer(BaseTransformer):
                 value=display_model,
             )
         except Exception as e:
-            from fastapi import status
-            from backend.exceptions import AppException, ErrorCodes
-            import logging
-            logger = logging.getLogger(__name__)
-
-            logger.error(f"[ProfilerDomainTransformer] {ErrorCodes.REPORT_GENERATION_FAILED.name}: Error: {e}", exc_info=True)
-            raise AppException(
-                message=str(e),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.REPORT_GENERATION_FAILED.name},
-            ) from e
+            logger.warning(f"BFF Graceful degradation [ProfilerDomainTransformer - Detector]: {e}", exc_info=True)
+            return SemanticBlock(
+                id="performativity-check",
+                type=BlockType.CARD,
+                label=self._get_title(TitleKey.PERFORMATIVITY),
+                value={},
+            )
 
     def _transform_detector_data(self, model: PerformativityOutput) -> PerformativityDisplay:
         """Flattens DetectorOutput to strict PerformativityDisplay."""

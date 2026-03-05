@@ -8,6 +8,7 @@ import re
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain.inputs import WorkflowInputs
 from backend.models.domain.profiler import BehavioralMetrics, ProfilerMetrics, TextMetrics
+from backend.models.enums import RoleClassification
 from backend.models.state import WorkflowState
 from backend.settings import get_settings
 
@@ -90,7 +91,7 @@ def calculate_control_ratio(text: str) -> float:
 
     # Normalize to lines
     lines = text.split("\n")
-    current_speaker = None  # 'user' or 'ai'
+    current_speaker = "user"  # Default to 'user' for single unheadered prompts
 
     user_headers = ["user:", "human:", "k:", "käyttäjä:", "me:", "minä:"]
     ai_headers = ["ai:", "assistant:", "t:", "tekoäly:", "gpt:", "bot:"]
@@ -141,9 +142,17 @@ def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> Beh
     say_do_gap = 0.0
     automation_bias = 0.0
     illusion_of_competence = 0.0
+    imperative_command_count = 0
+    role_classification = RoleClassification.PASSENGER
 
     if not history_text:
-        return BehavioralMetrics()
+        return BehavioralMetrics(
+            say_do_gap=say_do_gap,
+            automation_bias=automation_bias,
+            illusion_of_competence=illusion_of_competence,
+            imperative_command_count=imperative_command_count,
+            role_classification=role_classification
+        )
 
     # 1. Automation Bias (Heuristic: Short, affirmative user messages)
     # If user messages are consistently short (< 5 words) and frequent.
@@ -163,27 +172,31 @@ def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> Beh
     # 2. Say-Do Gap / Illusion of Competence
     # If Reflection exists (Claims) but History is purely mechanical (Do).
     # Heuristic: Reflection has content, but History is dominated by "Execute" commands or short confirmations.
+    mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyllä", "jatka"]
+    mechanical_count = 0
+    total_words = 0
+
+    for line in user_lines:
+        words = line.split()
+        total_words += len(words)
+        for w in words:
+            if any(mk in w for mk in mechanical_keywords):
+                mechanical_count += 1
+
+    imperative_command_count = mechanical_count
+
     if reflection_text and len(reflection_text) > get_settings().metrics_reflection_min_length:
-        # Check if history is "rich" or "mechanical"
-        # Mechanical keywords
-        mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyllä", "jatka"]
-        mechanical_count = 0
-        total_words = 0
-
-        for line in user_lines:
-            words = line.split()
-            total_words += len(words)
-            for w in words:
-                if any(mk in w for mk in mechanical_keywords):
-                    mechanical_count += 1
-
         # If > 50% of user words are mechanical commands, assume Gap.
         if total_words > 0 and (mechanical_count / total_words > get_settings().metrics_mechanical_ratio):
             say_do_gap = 1.0
             illusion_of_competence = 1.0
 
     return BehavioralMetrics(
-        say_do_gap=say_do_gap, automation_bias=automation_bias, illusion_of_competence=illusion_of_competence
+        say_do_gap=say_do_gap, 
+        automation_bias=automation_bias, 
+        illusion_of_competence=illusion_of_competence,
+        imperative_command_count=imperative_command_count,
+        role_classification=role_classification
     )
 
 

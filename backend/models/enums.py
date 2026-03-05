@@ -53,6 +53,13 @@ class AuthenticityLevel(str, Enum):
     UNKNOWN = "AUTH_UNKNOWN"
 
 
+class RoleClassification(str, Enum):
+    PASSENGER = "ROLE_PASSENGER"
+    NAVIGATOR = "ROLE_NAVIGATOR"
+    DRIVER = "ROLE_DRIVER"
+    ARCHITECT = "ROLE_ARCHITECT"
+
+
 class ScoringPenalty(str, Enum):
     """Enumerated Penalty Keys for Multilingual Support (Zero-String API)."""
 

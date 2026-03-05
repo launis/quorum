@@ -96,7 +96,9 @@ class PerformativityAnalysis(BaseModel):
     )
     authenticity_score: float = Field(
         ...,
-        description="Numeric authenticity score (1-3).",
+        ge=1.0,
+        le=3.0,
+        description="Numeric authenticity score (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
         json_schema_extra={"x-ui-label": "Authenticity Score"},
     )
     description_key: str = Field(

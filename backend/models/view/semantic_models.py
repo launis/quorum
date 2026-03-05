@@ -192,7 +192,7 @@ class LogicAnalysisDisplay(BaseModel):
     quadrant_key: str | None
     quadrant_label_key: str | None  # e.g. "QUADRANT_VISIONARY"
     position_label: str | None  # Pre-formatted "Bloom X / Toulmin Y"
-    
+
     # Pre-computed Visual HINTS (BFF No-String / Logic-less Presentation)
     bubble_size: float | None = None
     bubble_style: str | None = None
@@ -419,6 +419,9 @@ class ProfilerDisplay(BaseModel):
 
     say_do_gap_label: str
     say_do_gap_color: str  # "red" | "black"
+
+    imperative_command_count: int | None = None
+    role_classification: str | None = None
 
     psychological_profile: str | None
     intent_analysis: str | None

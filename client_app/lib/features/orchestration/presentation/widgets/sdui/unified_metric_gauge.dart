@@ -10,6 +10,7 @@ class UnifiedMetricGauge extends StatelessWidget {
   final String displayValue; // e.g. "4/6" or "High"
   final Color? color;
   final List<String>? axisLabels;
+  final bool isOrdinal; // If true, only highlights the current segment instead of all segments up to it.
 
   const UnifiedMetricGauge({
     super.key,
@@ -21,6 +22,7 @@ class UnifiedMetricGauge extends StatelessWidget {
     required this.displayValue,
     this.color,
     this.axisLabels,
+    this.isOrdinal = false,
   });
 
   @override
@@ -80,7 +82,7 @@ class UnifiedMetricGauge extends StatelessWidget {
               height: 12, // Compact height
               child: Row(
                 children: List.generate(totalSegments, (index) {
-                  final isFilled = index < filledSegments;
+                  final isFilled = isOrdinal ? (index == filledSegments - 1) : (index < filledSegments);
                   return Expanded(
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 1.0),
@@ -98,7 +100,7 @@ class UnifiedMetricGauge extends StatelessWidget {
 
           // 3. Display Value
           SizedBox(
-            width: 40,
+            width: 60,
             child: Text(
               displayValue,
               textAlign: TextAlign.end,
@@ -135,8 +137,8 @@ class UnifiedMetricGauge extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Spacer for DisplayValue (width 40)
-            const SizedBox(width: 40),
+            // Spacer for DisplayValue (width 60)
+            const SizedBox(width: 60),
             const SizedBox(width: 8),
             // Spacer for Icon (approx 24)
             const SizedBox(width: 24),

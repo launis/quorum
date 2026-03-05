@@ -87,12 +87,12 @@ class CognitiveLevel(BaseModel):
     )
     bloom_score: float = Field(
         ...,
-        description="Numeric Bloom score (1-6).",
+        description="Numeric Bloom score (0.0 to 6.0), required 1-decimal precision. USE DECIMALS (e.g., 4.5) to reflect nuance.",
         json_schema_extra={"x-ui-label": "Bloom Score"},
     )
     strategic_score: float = Field(
         ...,
-        description="Numeric Strategic score (1-4).",
+        description="Numeric Strategic score (1.0 to 4.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
         json_schema_extra={"x-ui-label": "Strategic Score"},
     )
     description_key: str = Field(
@@ -106,8 +106,8 @@ class CognitiveLevel(BaseModel):
     @field_validator("bloom_score")
     @classmethod
     def validate_bloom_score(cls, v: float) -> float:
-        if not (1.0 <= v <= 6.0):
-            raise ValueError("Bloom score must be between 1.0 and 6.0.")
+        if not (0.0 <= v <= 6.0):
+            raise ValueError("Bloom score must be between 0.0 and 6.0.")
         return v
 
     @field_validator("strategic_score")
@@ -246,7 +246,7 @@ class LogicianData(BaseModel):
         ...,
         ge=0.0,
         le=6.0,
-        description="Calculated score based on components.",
+        description="Calculated score based on components (0.0 to 6.0), required 1-decimal precision. USE DECIMALS (e.g., 5.5) to reflect nuance.",
         json_schema_extra={"x-ui-label": "Toulmin Score"},
     )
     description_key: str = Field(

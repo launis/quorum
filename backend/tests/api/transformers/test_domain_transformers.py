@@ -58,7 +58,8 @@ def test_logic_transformer_handles_missing_step():
     transformer = LogicDomainTransformer()
     mock_state = WorkflowState(workflow_id="test_wf")
     section = transformer._extract_logician_section(mock_state)
-    assert section is None
+    assert isinstance(section, SemanticBlock)
+    assert section.value == {}
 
 
 # --- Stress Transformer Tests ---
@@ -71,6 +72,8 @@ def test_stress_transformer_extracts_display_model():
                 "fidelity_numeric": 2.9,
                 "justification": "Solid",
                 "post_hoc_rationalization": False,
+                "abductive_score": 2.0,
+                "plausibility_score": 2.0,
             },
             "stress_test_findings": [{"question": "Q1", "evidence_held": True, "observation": "Obs1"}],
         },
@@ -142,6 +145,8 @@ def test_profiler_transformer_extracts_display_model():
             "capitalization_ratio": 0.1,
             "automation_bias": 0.1,
             "say_do_gap": 0.9,
+            "imperative_command_count": 2,
+            "role_classification": "ROLE_DRIVER",
         },
         "author_intent": "Info",
         "emotional_tone": "Neutral",

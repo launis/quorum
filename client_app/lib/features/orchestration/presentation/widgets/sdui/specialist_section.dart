@@ -376,6 +376,141 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     }
   }
 
+  Widget _buildLogicMatrix(BuildContext context, double toulmin, double bloom, double strat, AppLocalizations l10n) {
+    // Determine active quadrant
+    // X: Toulmin (<= 3 vs > 3)
+    // Y: Bloom (<= 3 vs > 3)
+    final bool isStrongToulmin = toulmin >= 3.0; // >= to be safe
+    final bool isHighBloom = bloom >= 3.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.grid_view, color: Colors.teal),
+            const SizedBox(width: 8),
+            Text(
+              l10n.logicMatrixTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const Spacer(),
+            _buildHelpButton(context, "logicMatrix"),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // 2x2 Grid
+        Column(
+          children: [
+            // Top Row
+            Row(
+              children: [
+                Expanded(
+                  child: _buildQuadrant(
+                    l10n.logicMatrixQ2Title,
+                    l10n.logicMatrixQ2Desc,
+                    !isStrongToulmin && isHighBloom,
+                    strat,
+                    Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildQuadrant(
+                    l10n.logicMatrixQ1Title,
+                    l10n.logicMatrixQ1Desc,
+                    isStrongToulmin && isHighBloom,
+                    strat,
+                    Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Bottom Row
+            Row(
+              children: [
+                Expanded(
+                  child: _buildQuadrant(
+                    l10n.logicMatrixQ4Title,
+                    l10n.logicMatrixQ4Desc,
+                    !isStrongToulmin && !isHighBloom,
+                    strat,
+                    Colors.red,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildQuadrant(
+                    l10n.logicMatrixQ3Title,
+                    l10n.logicMatrixQ3Desc,
+                    isStrongToulmin && !isHighBloom,
+                    strat,
+                    Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuadrant(String title, String desc, bool isActive, double strat, MaterialColor baseColor) {
+    // If active, bubble size responds to strat (1-4 -> 12px-24px)
+    final double bubbleSize = isActive ? 12.0 + (strat * 4.0) : 0.0;
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isActive ? baseColor.shade50 : Colors.grey.shade50,
+        border: Border.all(
+          color: isActive ? baseColor.shade400 : Colors.grey.shade200,
+          width: isActive ? 2.0 : 1.0,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                    color: isActive ? baseColor.shade800 : Colors.grey.shade600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              if (isActive)
+                Container(
+                  width: bubbleSize,
+                  height: bubbleSize,
+                  decoration: BoxDecoration(
+                    color: baseColor.shade400,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            desc,
+            style: TextStyle(
+              fontSize: 11,
+              color: isActive ? baseColor.shade900 : Colors.grey.shade500,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // --- 1. LOGIC ANALYSIS (Toulmin & Cognitive) ---
   Widget _buildLogicAnalysis(BuildContext context) {
     _validateRequiredKeys([
@@ -413,229 +548,190 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       children.add(const SizedBox(height: 16));
     }
 
+    // Strategic Depth Gauge
+    final stratScore = (widget.data['strategic_score'] as num?)?.toDouble() ?? 2.0;
+    final stratDisplay = "${stratScore.toStringAsFixed(1)}/4.0";
+    final stratGauge = UnifiedMetricGauge(
+      label: l10n.lblStrategicDepth,
+      value: stratScore,
+      max: 4.0,
+      description: widget.data['strategic_help'] ?? "Strategic Depth Help",
+      displayValue: stratDisplay,
+      color: Colors.teal[700],
+      axisLabels: [
+        l10n.stratLow,
+        l10n.stratMedium,
+        l10n.stratHigh,
+        l10n.stratVisionary,
+      ],
+      isOrdinal: true,
+    );
+
+    // Enhanced Bloom Gauge
+    final bloomScore = (widget.data['bloom_score'] as num?)?.toDouble() ?? 0.0;
+    final bloomLabelRaw = widget.data['bloom_level_raw'] ?? '';
+    final bloomDisplay = "${bloomScore.toStringAsFixed(1)}/6.0";
+    
+    final bloomGauge = UnifiedMetricGauge(
+      label: l10n.lblBloomScore,
+      value: bloomScore,
+      max: 6.0,
+      description: widget.data['bloom_help'] ?? "Bloom Help",
+      displayValue: bloomDisplay,
+      color: Colors.teal,
+      axisLabels: [
+        l10n.bloomRemembering,
+        l10n.bloomUnderstanding,
+        l10n.bloomApplying,
+        l10n.bloomAnalyzing,
+        l10n.bloomEvaluating,
+        l10n.bloomCreating,
+      ],
+      isOrdinal: true,
+    );
+
+    // Toulmin Gauge
+    final toulminScore = (widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0;
+    final toulminGauge = UnifiedMetricGauge(
+      label: l10n.lblToulminScore,
+      value: toulminScore,
+      max: 6.0,
+      description: widget.data['toulmin_help'] ?? "Toulmin Help",
+      displayValue: "${toulminScore.toStringAsFixed(1)}/6.0",
+      color: Colors.indigo,
+      axisLabels: [
+        l10n.lblClaim,
+        '',
+        l10n.lblData,
+        '',
+        l10n.lblBacking,
+        '',
+      ],
+      isOrdinal: true,
+    );
+
+    // Render Logic Matrix (2x2)
     children.add(
-      LayoutBuilder(
-        builder: (context, constraints) {
-          // Enhanced Bloom Widget (Report Style)
-          final bloomWidget = Card(
-            color: Colors.teal[50], // Distinct color for Cognitive
+      _buildLogicMatrix(context, toulminScore, bloomScore, stratScore, l10n),
+    );
+    children.add(const SizedBox(height: 24));
+
+    // Render as equal full-width fields
+    children.add(
+      Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: Colors.teal.withOpacity(0.3)),
+        ),
+        color: Colors.teal[50],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              bloomGauge,
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.0),
+                child: Divider(height: 1),
+              ),
+              stratGauge,
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.0),
+                child: Divider(height: 1),
+              ),
+              toulminGauge,
+            ],
+          ),
+        ),
+      ),
+    );
+
+    children.add(const SizedBox(height: 24));
+    
+    // Arguments section (was previously in rightContent)
+    if (arguments.isNotEmpty) {
+      final List<Widget> toulminChildren = [];
+      toulminChildren.add(
+        Row(
+          children: [
+            Text(
+              l10n.lblArguments,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            _buildHelpButton(context, "toulmin"),
+          ],
+        ),
+      );
+      toulminChildren.add(const SizedBox(height: 8));
+
+      toulminChildren.addAll(
+        arguments.map<Widget>(
+          (t) => Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            color: Colors.indigo[50],
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+              side: BorderSide(color: Colors.indigo.withOpacity(0.2)),
+            ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.psychology, color: Colors.teal),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "${l10n.lblCognitiveLevel}: ${widget.data['bloom_level_raw'] ?? 'Bloom Unknown'} (${widget.data['bloom_score'] ?? '?'})",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.teal,
-                          ),
-                        ),
-                      ),
-                      _buildHelpButton(context, "bloom"),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.lblStrategicDepth,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  _buildLabelValue(l10n.lblClaim, t['claim']),
                   const SizedBox(height: 4),
-                  SelectableText(
-                    (widget.data['strategic_depth_raw'] ?? 'Strategic Unknown')
-                        .toString(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Divider(),
+                  const SizedBox(height: 4),
+                  if (t['data'] != null) ...[
+                    _buildLabelValue(l10n.lblData, t['data']),
+                    const SizedBox(height: 4),
+                  ],
+                  _buildLabelValue(l10n.lblWarrant, t['warrant']),
+                  if (t['backing'] != null) ...[
+                    const SizedBox(height: 4),
+                    _buildLabelValue(l10n.lblBacking, t['backing']),
+                  ],
+                  if (t['rebuttal'] != null) ...[
+                    const SizedBox(height: 4),
+                    _buildLabelValue(l10n.lblRebuttal, t['rebuttal']),
+                  ],
+                  if (t['qualifier'] != null) ...[
+                    const SizedBox(height: 4),
+                    _buildLabelValue(l10n.lblQualifier, t['qualifier']),
+                  ],
                 ],
               ),
             ),
-          );
-
-          final List<Widget> toulminChildren = [];
-          toulminChildren.add(
-            Row(
-              children: [
-                Text(
-                  l10n.lblArguments,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                _buildHelpButton(context, "toulmin"),
-              ],
-            ),
-          );
-          toulminChildren.add(const SizedBox(height: 8));
-
-          toulminChildren.addAll(
-            arguments.map<Widget>(
-              (t) => Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                color: Colors.indigo[50],
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabelValue(l10n.lblClaim, t['claim']),
-                      const SizedBox(height: 4),
-                      const Divider(),
-                      const SizedBox(height: 4),
-                      if (t['data'] != null) ...[
-                        _buildLabelValue(l10n.lblData, t['data']),
-                        const SizedBox(height: 4),
-                      ],
-                      _buildLabelValue(l10n.lblWarrant, t['warrant']),
-                      if (t['backing'] != null) ...[
-                        const SizedBox(height: 4),
-                        _buildLabelValue(l10n.lblBacking, t['backing']),
-                      ],
-                      if (t['rebuttal'] != null) ...[
-                        const SizedBox(height: 4),
-                        _buildLabelValue(l10n.lblRebuttal, t['rebuttal']),
-                      ],
-                      if (t['qualifier'] != null) ...[
-                        const SizedBox(height: 4),
-                        _buildLabelValue(l10n.lblQualifier, t['qualifier']),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-
-          // Strategic Depth Gauge (New)
-          final stratScore =
-              (widget.data['strategic_score'] as num?)?.toDouble() ?? 2.0;
-          final stratDisplay =
-              widget.data['strategic_score_display'] ??
-              "$stratScore/4.0"; // Use formatted if available
-          final stratGauge = UnifiedMetricGauge(
-            label: l10n.lblStrategicDepth,
-            value: stratScore,
-            max: 4.0,
-            description:
-                widget.data['strategic_help'] ?? "Strategic Depth Help",
-            displayValue: stratDisplay,
-            color: Colors.teal[700],
-            // FULL LABELS as requested
-            axisLabels: [
-              l10n.stratLow,
-              l10n.stratMedium,
-              l10n.stratHigh,
-              l10n.stratVisionary,
-            ],
-          );
-
-          // New Visualization Widget (3D Bubble Chart)
-          final matrixChart = LogicMatrixChart(
-            bloomScore: (widget.data['bloom_score'] as num?)?.toDouble() ?? 0.0,
-            toulminScore:
-                (widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0,
-            strategicScore: stratScore,
-          );
-
-          // Enhanced Bloom & Toulmin using UnifiedMetricGauge
-
-          final bloomGauge = UnifiedMetricGauge(
-            label: l10n.lblBloomScore,
-            value: (widget.data['bloom_score'] as num?)?.toDouble() ?? 0.0,
-            max: 6.0,
-            description:
-                widget.data['bloom_help'] ??
-                "Bloom Help", // Use key if available
-
-            displayValue:
-                "${((widget.data['bloom_score'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}/6.0",
-            color: Colors.teal,
-            // FULL LABELS as requested
-            axisLabels: [
-              l10n.bloomRemembering,
-              l10n.bloomUnderstanding,
-              l10n.bloomApplying,
-              l10n.bloomAnalyzing,
-              l10n.bloomEvaluating,
-              l10n.bloomCreating,
-            ],
-          );
-
-          final toulminGauge = UnifiedMetricGauge(
-            label: l10n.lblToulminScore,
-            value: (widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0,
-            max: 6.0,
-            description: widget.data['toulmin_help'] ?? "Toulmin Help",
-            displayValue:
-                "${((widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}/6.0",
-            color: Colors.indigo,
-            axisLabels: [
-              l10n.lblClaim,
-              '',
-              l10n.lblData,
-              '',
-              l10n.lblBacking,
-              '',
-            ],
-          );
-
-          // Responsive Layout handling Matrix right, Text left (mobile: Matrix top)
-          Widget leftContent = Column(
+          ),
+        ),
+      );
+      children.add(
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[200]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              bloomWidget,
-              const SizedBox(height: 16),
-              bloomGauge,
-              const SizedBox(height: 16),
-              stratGauge,
-              const SizedBox(height: 16),
-              toulminGauge,
-            ],
-          );
-
-          Widget rightContent = Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[200]!),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child:
-                arguments.isNotEmpty
-                    ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: toulminChildren,
-                    )
-                    : Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        l10n.dataUnavailable,
-                        style: const TextStyle(fontStyle: FontStyle.italic),
-                      ),
-                    ),
-          );
-
-          return _buildResponsiveLayout(
-            context,
-            leftContent: leftContent,
-            rightContent: rightContent,
-            leftFlex: 4,
-            rightFlex: 6,
-            mobileReverse: false,
-          );
-        },
-      ),
-    );
+            children: toulminChildren,
+          ),
+        ),
+      );
+    } else {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            l10n.dataUnavailable,
+            style: const TextStyle(fontStyle: FontStyle.italic),
+          ),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -831,7 +927,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 value: scoreVal,
                 max: 3.0,
                 description: widget.data['fidelity_help'] ?? "Fidelity Help",
-                displayValue: fidelity['fidelity_score_display'] ?? "0.0/3.0",
+                displayValue: fidelity['fidelity_score_display'] != null
+                    ? "${fidelity['fidelity_score_display']}/3.0"
+                    : "0.0/3.0",
                 color: Colors.orange,
                 axisLabels: const ['Matala', 'Keski', 'Korkea'],
               ),
@@ -957,8 +1055,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 max: 3.0,
                 description: widget.data['abductive_help'] ?? "Abductive Help",
                 displayValue:
-                    widget.data['abductive_score_display'] ??
-                    "${abductiveScore}/3.0",
+                    widget.data['abductive_score_display'] != null
+                        ? "${widget.data['abductive_score_display']}/3.0"
+                        : "${abductiveScore.toStringAsFixed(1)}/3.0",
                 color: Colors.teal,
                 axisLabels: [
                   AppLocalizations.of(context)!.lblWeak,
@@ -1416,7 +1515,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 description:
                     widget.data['authenticity_help'] ?? "Authenticity Help",
                 displayValue:
-                    "${(widget.data['authenticity_score'] as num?)?.toDouble() ?? '?'}/3.0",
+                    "${(widget.data['authenticity_score'] as num?)?.toDouble()?.toStringAsFixed(1) ?? '?'}/3.0",
                 color: Colors.purple,
                 axisLabels: [
                   AppLocalizations.of(context)!.authPerformative,

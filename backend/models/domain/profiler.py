@@ -5,9 +5,12 @@ including intent analysis and text metrics.
 """
 
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+from backend.models.enums import RoleClassification
 
 
 class ProfilerInput(BaseModel):
@@ -73,6 +76,42 @@ class BehavioralMetrics(BaseModel):
     illusion_of_competence: float = Field(
         default=0.0, description="False sense of mastery.", json_schema_extra={"x-ui-label": "Illusion of Competence"}
     )
+    imperative_command_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of imperative commands.",
+        json_schema_extra={"x-ui-label": "Command Count"},
+    )
+    role_classification: RoleClassification = Field(
+        ...,
+        description="Role classification (Passenger, Navigator, Driver, Architect).",
+        json_schema_extra={"x-ui-label": "Role Classification"},
+    )
+
+    @field_validator("imperative_command_count")
+    @classmethod
+    def validate_non_negative_int(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Count cannot be negative.")
+        return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def cast_role(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            # Strict mapping cast from str to RoleClassification for fail-fast
+            val = data.get("role_classification")
+            if val is not None and not isinstance(val, RoleClassification):
+                try:
+                    data["role_classification"] = RoleClassification(val)
+                except ValueError:
+                    val_upper = val.upper()
+                    if not val_upper.startswith("ROLE_"):
+                        for member in RoleClassification:
+                            if member.value.replace("ROLE_", "") == val_upper:
+                                data["role_classification"] = member
+                                break
+        return data
 
     model_config = ConfigDict(frozen=True, strict=False)
 
