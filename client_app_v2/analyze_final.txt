@@ -1,0 +1,24 @@
+Analyzing client_app_v2...
+
+warning - lib\api\auth_interceptor.dart:26:22 - The receiver can't be null, so the null-aware operator '?.' is unnecessary. Try replacing the operator '?.' with '.'. - invalid_null_aware_operator
+warning - lib\app.dart:9:8 - Unused import: 'package:client_app/features/auth/presentation/auth_controller.dart'. Try removing the import directive. - unused_import
+warning - lib\core\error\app_error_ext.dart:66:27 - This case is covered by the previous cases. Try removing the case clause, or restructuring the preceding patterns. - unreachable_switch_case
+warning - lib\core\error\app_error_ext.dart:69:35 - This case is covered by the previous cases. Try removing the case clause, or restructuring the preceding patterns. - unreachable_switch_case
+warning - lib\core\logging\app_logger_observer_draft.dart:7:23 - The value of the field '_logger' isn't used. Try removing the field, or using it. - unused_field
+warning - lib\core\logging\logger_service.dart:5:8 - Unused import: 'package:path_provider/path_provider.dart'. Try removing the import directive. - unused_import
+warning - lib\core\logging\logger_service.dart:15:9 - The value of the field '_logFile' isn't used. Try removing the field, or using it. - unused_field
+warning - lib\core\logging\logger_service.dart:105:13 - The value of the local variable 'errorStr' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\router\router.dart:15:6 - The declaration '_isUuid' isn't referenced. Try removing the declaration of '_isUuid'. - unused_element
+warning - lib\shared\widgets\result_dashboard.dart:273:59 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - lib\shared\widgets\specialist_section.dart:571:11 - The value of the local variable 'bloomLabelRaw' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\shared\widgets\specialist_section.dart:1517:79 - The receiver can't be 'null' because of short-circuiting, so the null-aware operator '?.' can't be used. Try replacing the operator '?.' with '.'. - invalid_null_aware_operator
+           - The operator '?.' is causing the short circuiting at lib\shared\widgets\specialist_section.dart:1517:67.
+   info - lib\main.dart:2:8 - The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart'. Try removing the import directive. - unnecessary_import
+   info - lib\shared\widgets\generic_grid.dart:51:64 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\shared\widgets\result_dashboard.dart:173:49 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\shared\widgets\score_card_radar.dart:86:65 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\shared\widgets\specialist_section.dart:625:47 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\shared\widgets\specialist_section.dart:676:53 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\shared\widgets\specialist_section.dart:1987:64 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+19 issues found.

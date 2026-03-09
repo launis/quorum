@@ -1,0 +1,84 @@
+﻿backend_v2\api\auth_router.py:7:1: I001 [*] Import block is un-sorted or un-formatted
+backend_v2\api\auth_router.py:121:121: E501 Line too long (143 > 120)
+backend_v2\api\auth_router.py:264:121: E501 Line too long (134 > 120)
+backend_v2\api\auth_router.py:337:121: E501 Line too long (124 > 120)
+backend_v2\api\dependencies.py:2:1: I001 [*] Import block is un-sorted or un-formatted
+backend_v2\hooks\scoring.py:51:121: E501 Line too long (123 > 120)
+backend_v2\hooks\scoring.py:250:121: E501 Line too long (149 > 120)
+backend_v2\models\auth.py:62:121: E501 Line too long (128 > 120)
+backend_v2\models\auth.py:159:121: E501 Line too long (128 > 120)
+backend_v2\models\domain\__init__.py:52:5: F401 `backend_v2.models.domain.guard.GuardDTO` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+backend_v2\models\domain\__init__.py:97:61: F401 `backend_v2.models.domain.retrieval.ContextDataDTO` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+backend_v2\models\domain\__init__.py:101:5: F401 `backend_v2.models.domain.xai.XAIOutputDTO` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+backend_v2\models\domain\base.py:63:121: E501 Line too long (122 > 120)
+backend_v2\models\domain\base.py:73:121: E501 Line too long (148 > 120)
+backend_v2\models\domain\base.py:76:121: E501 Line too long (168 > 120)
+backend_v2\models\domain\base.py:164:121: E501 Line too long (148 > 120)
+backend_v2\models\domain\base.py:172:121: E501 Line too long (122 > 120)
+backend_v2\models\domain\base.py:173:121: E501 Line too long (131 > 120)
+backend_v2\models\domain\base.py:174:121: E501 Line too long (136 > 120)
+backend_v2\models\domain\base.py:175:121: E501 Line too long (132 > 120)
+backend_v2\models\domain\base.py:176:121: E501 Line too long (147 > 120)
+backend_v2\models\domain\causal.py:64:121: E501 Line too long (131 > 120)
+backend_v2\models\domain\causal.py:96:21: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+backend_v2\models\domain\causal.py:118:121: E501 Line too long (134 > 120)
+backend_v2\models\domain\causal.py:155:21: B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+backend_v2\models\domain\coach.py:27:121: E501 Line too long (130 > 120)
+backend_v2\models\domain\falsifier.py:67:121: E501 Line too long (133 > 120)
+backend_v2\models\domain\falsifier.py:74:121: E501 Line too long (134 > 120)
+backend_v2\models\domain\falsifier.py:81:121: E501 Line too long (137 > 120)
+backend_v2\models\domain\logician.py:90:121: E501 Line too long (130 > 120)
+backend_v2\models\domain\logician.py:95:121: E501 Line too long (134 > 120)
+backend_v2\models\domain\logician.py:249:121: E501 Line too long (147 > 120)
+backend_v2\models\domain\performativity.py:101:121: E501 Line too long (137 > 120)
+backend_v2\models\domain\usage.py:9:121: E501 Line too long (136 > 120)
+backend_v2\models\domain\usage.py:10:121: E501 Line too long (159 > 120)
+backend_v2\models\enums.py:100:1: W293 [*] Blank line contains whitespace
+backend_v2\models\llm.py:267:121: E501 Line too long (121 > 120)
+backend_v2\models\llm.py:269:121: E501 Line too long (130 > 120)
+backend_v2\models\v2_core.py:57:121: E501 Line too long (122 > 120)
+backend_v2\models\v2_core.py:88:30: W291 [*] Trailing whitespace
+backend_v2\models\v2_core.py:92:22: W291 [*] Trailing whitespace
+backend_v2\models\v2_core.py:96:22: W291 [*] Trailing whitespace
+backend_v2\scripts\migrate_v1_to_v2.py:10:1: I001 [*] Import block is un-sorted or un-formatted
+backend_v2\scripts\migrate_v1_to_v2.py:56:121: E501 Line too long (133 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:62:121: E501 Line too long (166 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:64:121: E501 Line too long (288 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:65:121: E501 Line too long (316 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:66:121: E501 Line too long (351 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:74:121: E501 Line too long (142 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:80:121: E501 Line too long (173 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:82:121: E501 Line too long (230 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:83:121: E501 Line too long (233 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:84:121: E501 Line too long (237 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:85:121: E501 Line too long (238 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:86:121: E501 Line too long (243 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:87:121: E501 Line too long (340 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:95:121: E501 Line too long (142 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:101:121: E501 Line too long (145 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:103:121: E501 Line too long (361 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:104:121: E501 Line too long (266 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:105:121: E501 Line too long (391 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:113:121: E501 Line too long (122 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:119:121: E501 Line too long (161 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:121:121: E501 Line too long (375 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:122:121: E501 Line too long (363 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:123:121: E501 Line too long (430 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:196:121: E501 Line too long (155 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:199:121: E501 Line too long (137 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:255:121: E501 Line too long (155 > 120)
+backend_v2\scripts\migrate_v1_to_v2.py:258:121: E501 Line too long (137 > 120)
+backend_v2\services\auth.py:3:1: I001 [*] Import block is un-sorted or un-formatted
+backend_v2\services\auth.py:648:121: E501 Line too long (149 > 120)
+backend_v2\services\auth.py:669:121: E501 Line too long (134 > 120)
+backend_v2\services\localization.py:113:121: E501 Line too long (125 > 120)
+backend_v2\services\orchestrator\dag_executor.py:25:1: W293 Blank line contains whitespace
+backend_v2\services\orchestrator\dag_executor.py:26:83: W291 Trailing whitespace
+backend_v2\services\orchestrator\dag_executor.py:47:1: W293 Blank line contains whitespace
+backend_v2\services\orchestrator\dag_executor.py:79:9: F841 Local variable `completed` is assigned to but never used
+backend_v2\services\orchestrator\dag_executor.py:80:9: F841 Local variable `running` is assigned to but never used
+backend_v2\services\orchestrator\dag_executor.py:81:9: F841 Local variable `ready_queue` is assigned to but never used
+backend_v2\services\usage_service.py:200:121: E501 Line too long (129 > 120)
+backend_v2\settings.py:3:1: I001 [*] Import block is un-sorted or un-formatted
+Found 82 errors.
+[*] 9 fixable with the `--fix` option (6 hidden fixes can be enabled with the `--unsafe-fixes` option).

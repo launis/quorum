@@ -1,0 +1,10 @@
+Analyzing client_app_v2...
+
+  error - lib\core\logging\logger_service.dart:14:15 - The name '_logger' is already defined. Try renaming one of the declarations. - duplicate_definition
+           - The first definition of this name at lib\core\logging\logger_service.dart:13:15.
+warning - lib\core\error\app_error_ext.dart:63:27 - This case is covered by the previous cases. Try removing the case clause, or restructuring the preceding patterns. - unreachable_switch_case
+warning - lib\core\error\app_error_ext.dart:66:35 - This case is covered by the previous cases. Try removing the case clause, or restructuring the preceding patterns. - unreachable_switch_case
+warning - lib\core\logging\app_logger_observer_draft.dart:2:8 - Unused import: 'package:client_app/core/logging/logger_service.dart'. Try removing the import directive. - unused_import
+warning - lib\core\logging\logger_service.dart:13:15 - The value of the field '_logger' isn't used. Try removing the field, or using it. - unused_field
+
+5 issues found.

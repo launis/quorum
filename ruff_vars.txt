@@ -1,0 +1,5 @@
+backend_v2\services\orchestrator\dag_executor.py:79:9: F841 Local variable `completed` is assigned to but never used
+backend_v2\services\orchestrator\dag_executor.py:80:9: F841 Local variable `running` is assigned to but never used
+backend_v2\services\orchestrator\dag_executor.py:81:9: F841 Local variable `ready_queue` is assigned to but never used
+Found 3 errors.
+No fixes available (3 hidden fixes can be enabled with the `--unsafe-fixes` option).

@@ -1,0 +1,38 @@
+﻿--- Instruction Audit ---
+L÷ytyi 12 instruction-blokkia joilla ei ole sisõlt÷õ/kõskyõ!
+- [agent_role] Analyst (matrix_analyst)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [system_rule] Archivist (matrix_archivist)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [agent_role] Causal Analyst (matrix_causal_analyst)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [agent_role] Coach (matrix_coach)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [system_rule] Input Processor (matrix_input_processor)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [system_rule] Guard (matrix_guard)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [agent_role] Interaction Analyst (matrix_interaction_analyst)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [agent_role] Judge (matrix_judge)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [system_rule] Logician (matrix_logician)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [agent_role] Overseer (matrix_overseer)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [system_rule] Panel (matrix_panel)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+
+- [agent_role] Profiler (matrix_profiler)
+  V1 alkuperõisteksti oli: KOKONAAN TYHJ─ MYÍS V1
+

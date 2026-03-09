@@ -1,0 +1,335 @@
+"""Prompt Compiler for generating dynamic Pydantic schemas and LLM prompts.
+
+Transforms abstract workflow state and domain models into executable
+LLM payloads with RAG context, strictness calibration, and format enforcement.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from pydantic import BaseModel, Field, create_model
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
+
+
+class PromptCompiler:
+    """Core translation engine for workflow execution.
+
+    Converts static DB models into runtime execution contexts.
+    """
+
+    def __init__(self) -> None:
+        """Initialize PromptCompiler."""
+        pass
+
+    def resolve_i18n(self, text_obj: dict[str, Any] | str | None, target_locale: str) -> str:
+        """Resolve an I18n JSON object to a string based on locale fallback rules.
+
+        Args:
+            text_obj: The I18n object (dict with default_locale and translations),
+                      or a raw string (legacy fallback), or None.
+            target_locale: The requested language code (e.g., 'fi' or 'en').
+
+        Returns:
+            Resolved text string, or empty string if None.
+        """
+        if not text_obj:
+            return ""
+
+        if isinstance(text_obj, str):
+            return text_obj
+
+        if not isinstance(text_obj, dict):
+            return str(text_obj)
+
+        translations = text_obj.get("translations", {})
+        if not isinstance(translations, dict):
+            translations = {}
+
+        # 1. Try Target Locale
+        if target_locale in translations and translations[target_locale]:
+            return str(translations[target_locale])
+
+        # 2. Try Default Locale
+        default_locale = text_obj.get("default_locale")
+        if default_locale and default_locale in translations and translations[default_locale]:
+            return str(translations[default_locale])
+
+        # 3. Fallback to first available translation
+        if translations:
+            first_key = next(iter(translations))
+            return str(translations[first_key])
+
+        return ""
+
+    def build_xml_context(self, input_mappings: dict[str, str], state_data: dict[str, Any], target_locale: str) -> str:
+        """Build XML semantic blocks from raw input mappings for LLM context.
+
+        Args:
+            input_mappings: Dict mapping logical names to value paths/keys.
+            state_data: The current workflow execution state containing values.
+
+        Returns:
+            A single string containing XML-wrapped elements.
+        """
+        xml_blocks = []
+
+        for logical_name, source_path in input_mappings.items():
+            value = self._extract_value_from_state(source_path, state_data)
+            if value:
+                # E.g. <target_conversation> value </target_conversation>
+                xml_blocks.append(f"<{logical_name}>\n{value}\n</{logical_name}>")
+
+        compiled = "\n\n".join(xml_blocks)
+
+        # Add the CRITICAL MANDATE required by the architecture
+        compiled += (
+            f"\n\nCRITICAL MANDATE: You must process the input and generate all your output text, reasoning, "
+            f"and source justifications exclusively in the '{target_locale}' language, regardless of the language "
+            f"used in the instructions or source materials."
+        )
+
+        return compiled
+
+    def _extract_value_from_state(self, path: str, state_data: dict[str, Any]) -> str:
+        """Extract a value from workflow state using a path like '$inputs.history_text'."""
+        if not isinstance(path, str):
+            return ""
+
+        # Removing '$' prefix if present
+        if path.startswith("$"):
+            path = path[1:]
+
+        parts = path.split(".")
+        current: Any = state_data
+
+        for part in parts:
+            if isinstance(current, dict) and part in current:
+                current = current[part]
+            elif hasattr(current, part):
+                current = getattr(current, part)
+            else:
+                return ""
+
+        if isinstance(current, str):
+            return current
+
+        # For Pydantic models in state, use model_dump_json or dict string
+        if hasattr(current, "model_dump_json") and callable(getattr(current, "model_dump_json", None)):
+            dump_fn: Any = current.model_dump_json
+            return str(dump_fn())
+
+        return str(current)
+
+    def inject_theory_grounding(self, base_prompt: str, url: str | None) -> str:
+        """Fetch and inject external theoretical context into the prompt.
+
+        Args:
+            base_prompt: The original system prompt or instructions.
+            url: The source URL for theory grounding (if any).
+
+        Returns:
+            The augmented prompt containing <theory_context> if successful,
+            or the original prompt if no URL provides.
+        """
+        if not url:
+            return base_prompt
+
+        from backend_v2.services.web_fetcher import WebFetcher
+
+        try:
+            logger.info(f"[PromptCompiler] Fetching theory grounding from {url}")
+            # WebFetcher raises AppException locally on failure, satisfying Fail-Fast rules
+            theory_text = WebFetcher.fetch_text(url)
+
+            if not theory_text:
+                logger.warning(f"[PromptCompiler] Fetched text from {url} was empty.")
+                return base_prompt
+
+            augmented = base_prompt + f"\n\n<theory_context>\n{theory_text}\n</theory_context>\n"
+            return augmented
+
+        except Exception as e:
+            # Re-raise AppExceptions from WebFetcher to crash fast properly
+            if isinstance(e, AppException):
+                raise e
+
+            logger.error(f"[PromptCompiler] Failed to inject theory grounding: {e}", exc_info=True)
+            raise AppException(
+                message=f"System failed to fetch required theoretical grounding from url: {url}",
+                status_code=502,
+                details={"error_code": ErrorCodes.FETCH_FAILED.value, "url": url}
+            ) from e
+
+    def calibrate_strictness(self, level: int | float | None) -> str:
+        """Convert a numeric strictness level (0-100) into a semantic directive.
+
+        Args:
+            level: The strictness integer, 0 (Lenient) to 100 (Unforgiving).
+
+        Returns:
+            A semantic prompt string commanding the LLM of the desired strictness behavior.
+        """
+        if level is None:
+            return ""
+
+        try:
+            val = int(level)
+        except (ValueError, TypeError):
+            return ""
+
+        # Clamp between 0 and 100
+        val = max(0, min(100, val))
+
+        if val == 0:
+            return (
+                "STRICTNESS CALIBRATION (0/100): Absolute Leniency. You must be extremely generous and forgiving. "
+                "Assume the best possible intent and assign the highest possible score unless there is a "
+                "catastrophic flaw."
+            )
+        elif val < 30:
+            return (
+                f"STRICTNESS CALIBRATION ({val}/100): Lenient. Be generally forgiving of minor errors and "
+                "focus on the positive aspects of the input. Do not penalize heavily for small formatting issues."
+            )
+        elif val < 70:
+            return (
+                f"STRICTNESS CALIBRATION ({val}/100): Balanced. Evaluate fairly and neutrally. "
+                "Penalize errors proportionally and reward good qualities objectively."
+            )
+        elif val < 100:
+            return (
+                f"STRICTNESS CALIBRATION ({val}/100): Strict. You must be highly critical and demanding. "
+                "Penalize flaws, inconsistencies, and lack of detail. High scores require exceptional quality."
+            )
+        else:
+            return (
+                "STRICTNESS CALIBRATION (100/100): Absolute Strictness. You are an unforgiving auditor. "
+                "Any deviation from perfection, logical inconsistency, or lack of rigorous justification "
+                "MUST be heavily penalized. "
+                "Assign minimum scores unless the input is mathematically and theoretically flawless."
+            )
+
+    def build_dynamic_schema(
+        self,
+        schema_name: str,
+        criteria: list[dict[str, Any]],
+        require_justification: bool = False
+    ) -> type[BaseModel]:
+        """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
+
+        Transforms generic evaluation criteria into a strict validation schema.
+        If require_justification is True, XAI fields (_justification & _citation) are added.
+
+        Args:
+            schema_name: The name of the generated dynamic model class.
+            criteria: List of dicts representing criteria (needs 'id', 'label', 'description').
+            require_justification: Whether to inject XAI explanation fields.
+
+        Returns:
+            A strictly typed dynamic Pydantic BaseModel subclass.
+        """
+        # Dictionary of fields to define for create_model
+        # Format: field_name: (type, Field(...))
+        fields: dict[str, Any] = {}
+
+        for crit in criteria:
+            if crit.get("type") == "instruction":
+                continue
+
+            crit_id_raw = crit.get("id")
+            if not crit_id_raw or not isinstance(crit_id_raw, str):
+                logger.warning(f"[PromptCompiler] Found criterion without a valid string 'id': {crit}. Skipping.")
+                continue
+
+            # V2 Strict Fail-Fast: Rely on Pydantic to ensure valid identifiers.
+            crit_id = crit_id_raw
+
+            # Resolve I18n label and description
+            label_obj = crit.get("label")
+            label = self.resolve_i18n(label_obj, "en") if label_obj else crit_id_raw
+
+            desc_obj = crit.get("description")
+            base_desc = self.resolve_i18n(desc_obj, "en") if desc_obj else f"Evaluation for {label}"
+
+            # Determine type based on 'allow_decimals' flag in PromptBlock
+            value_type = float if crit.get("allow_decimals", False) else int
+
+            # The actual evaluation value.
+            fields[crit_id] = (
+                value_type,
+                Field(..., description=f"{label}: {base_desc}")
+            )
+
+            if require_justification or crit.get("require_justification", False):
+                # 1. Justification (XAI)
+                justification_key = f"{crit_id}_justification"
+                justification_desc = (
+                    f"Detailed reasoning for the assigned score for '{label}'. "
+                    "Must explicitly adhere to the active STRICTNESS CALIBRATION."
+                )
+                fields[justification_key] = (
+                    str,
+                    Field(..., description=justification_desc)
+                )
+
+                # 2. Citation (Grounded Theory Integration)
+                citation_key = f"{crit_id}_citation"
+                citation_desc = (
+                    f"Direct quote from the <theory_context> supporting your justification for '{label}'. "
+                    "If no direct quote is applicable, explain why based on the context."
+                )
+                fields[citation_key] = (
+                    str,
+                    Field(..., description=citation_desc)
+                )
+
+        if not fields:
+            # If all blocks were pure instructions with no actionable scales,
+            # we must still return a valid Pydantic model for LLM Structured Outputs.
+            fields["acknowledged_instruction"] = (
+                str,
+                Field(default="yes", description="Acknowledge completion of the instruction.")
+            )
+
+        try:
+            from typing import cast
+            DynamicModel = create_model(schema_name, **fields)
+            return cast(type[BaseModel], DynamicModel)
+        except Exception as e:
+            logger.error(
+                f"[PromptCompiler] Failed to compile dynamic Pydantic model '{schema_name}': {e}", exc_info=True
+            )
+            raise AppException(
+                message="Critical failure while dynamically compiling LLM execution schema.",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+            ) from e
+
+    def compile_instruction_blocks(self, blocks: list[dict[str, Any]], target_locale: str) -> str:
+        """Compile instruction-type V2 PromptBlocks into execution text.
+
+        Extracts the localized label and description from blocks where type == "instruction".
+
+        Args:
+            blocks: List of PromptBlock (PromptBlock) dictionaries.
+            target_locale: The requested language code.
+
+        Returns:
+            A formatted string of all instruction directives.
+        """
+        compiled_lines = []
+        for block in blocks:
+            if block.get("type") == "instruction":
+                label = self.resolve_i18n(block.get("label"), target_locale)
+                desc = self.resolve_i18n(block.get("description"), target_locale)
+                if label:
+                    compiled_lines.append(f"[Instruction {target_locale.upper()}]: ### {label}")
+                if desc:
+                    compiled_lines.append(f"{desc}")
+
+        return "\n".join(compiled_lines)

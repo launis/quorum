@@ -1,0 +1,112 @@
+[
+  {
+    "id": "1df5ae4b-d7e0-4dd0-9d5f-7c949bb2cd8a",
+    "slug": "matrix_standard_v1",
+    "name": "Kognitiivinen Quorum Unified Matrix",
+    "description": "Yhdistetty matriisi: Agency (Prosessi), Synteesi (Lopputulos), Falsification (Laatu).",
+    "citation": null,
+    "citation_full": null,
+    "module": null,
+    "component_class": null,
+    "class_name": null,
+    "registered_at": null,
+    "type": "evaluation_matrix",
+    "content": {
+      "scale": {
+        "max": 100,
+        "min": 1
+      },
+      "criteria": [
+        {
+          "anchors": {
+            "1": "Matkustaja (Tilaa): Passiivinen tilaaja. 'Tee essee aiheesta X'. Hyv\u00e4ksyy ensimm\u00e4isen version. Ulkoistaa ajattelun.",
+            "2": "Kartanlukija (Korjaa): Reaktiivinen toiminta. Ep\u00e4m\u00e4\u00e4r\u00e4inen aloitus, korjaa vasta j\u00e4lkik\u00e4teen ('Ei noin, vaan n\u00e4in').",
+            "3": "Kuski (Ohjaa): K\u00e4ytt\u00e4j\u00e4 tiet\u00e4\u00e4 mit\u00e4 haluaa ja asettaa reunaehdot. Korjaa suuntaa aktiivisesti, jos teko\u00e4ly poikkeaa.",
+            "4": "Arkkitehti (Suunnittelee): K\u00e4ytt\u00e4j\u00e4 on purkanut ongelman osiin (Decomposition) ENNEN ensimm\u00e4ist\u00e4 promptia. Prosessi on suunniteltu ketju."
+          },
+          "id": "agency",
+          "instruction": "Onko k\u00e4ytt\u00e4j\u00e4ll\u00e4 suunnitelma vai reagoiko h\u00e4n vain?",
+          "label": "Strateginen Ohjaus (Agency)"
+        },
+        {
+          "anchors": {
+            "1": "Ei uutta tietoa. Lopputuote on vain tiivistelm\u00e4 tai kopio l\u00e4hdemateriaalista ilman omaa panosta.",
+            "2": "Heikko synteesi. Yhdistelee asioita mekaanisesti. Ei uusia oivalluksia tai k\u00e4sitteit\u00e4.",
+            "3": "Vahva synteesi. Teko\u00e4ly on tuottanut uudenlaisen kokonaisuuden k\u00e4ytt\u00e4j\u00e4n ohjauksessa. Selke\u00e4 lis\u00e4arvo.",
+            "4": "Transformatiivinen. 'Supermegatrendi'-tason oivallus. Lopputulos on enemm\u00e4n kuin osiensa summa ja aidosti uutta tietoa."
+          },
+          "id": "synteesi",
+          "instruction": "Luoako k\u00e4ytt\u00e4j\u00e4 uutta tietoa teko\u00e4lyn avulla vai vain kierr\u00e4tt\u00e4\u00e4k\u00f6 vanhaa?",
+          "label": "Uuden Tiedon Luominen (Synteesi)"
+        },
+        {
+          "anchors": {
+            "1": "Sokea: Sokea luottamus. Kopioi hallusinaatiot suoraan lopputuotteeseen.",
+            "2": "Hyv\u00e4ksyv\u00e4: Kehuu teko\u00e4ly\u00e4 ('Hyv\u00e4!') vaikka vastauksessa olisi puutteita. Korjaukset vain tyylillisi\u00e4.",
+            "3": "Korjaava: Huomaa selke\u00e4t virheet ja pyyt\u00e4\u00e4 korjausta.",
+            "4": "Adversariaalinen: Testaa rajoja ('Etsi virheet'). Spottaa faktavirheet ja pakottaa korjaamaan l\u00e4hteisiin viitaten."
+          },
+          "id": "falsification",
+          "instruction": "Miten k\u00e4ytt\u00e4j\u00e4 reagoi virheisiin ja haastaako h\u00e4n teko\u00e4ly\u00e4?",
+          "label": "Kriittinen Iteraatio (Falsification)"
+        }
+      ],
+      "role_description": "Toimit J\u00e4rjestelm\u00e4n Tuomarina. Arvioi sek\u00e4 prosessia ett\u00e4 lopputulosta."
+    }
+  },
+  {
+    "id": "66e4943a-7084-464e-99ea-44f5b772c09b",
+    "slug": "matrix_cognitive_v2",
+    "name": "Kognitiivinen Quorum Unified Matrix",
+    "description": "Yhdistetty matriisi: Agency (Prosessi), Synteesi (Lopputulos), Falsification (Laatu).",
+    "citation": null,
+    "citation_full": null,
+    "module": null,
+    "component_class": null,
+    "class_name": null,
+    "registered_at": null,
+    "type": "evaluation_matrix",
+    "content": {
+      "scale": {
+        "max": 50,
+        "min": 10
+      },
+      "criteria": [
+        {
+          "anchors": {
+            "1": "Matkustaja (Tilaa): Passiivinen tilaaja. 'Tee essee aiheesta X'. Hyv\u00e4ksyy ensimm\u00e4isen version. Ulkoistaa ajattelun.",
+            "2": "Kartanlukija (Korjaa): Reaktiivinen toiminta. Ep\u00e4m\u00e4\u00e4r\u00e4inen aloitus, korjaa vasta j\u00e4lkik\u00e4teen ('Ei noin, vaan n\u00e4in').",
+            "3": "Kuski (Ohjaa): K\u00e4ytt\u00e4j\u00e4 tiet\u00e4\u00e4 mit\u00e4 haluaa ja asettaa reunaehdot. Korjaa suuntaa aktiivisesti, jos teko\u00e4ly poikkeaa.",
+            "4": "Arkkitehti (Suunnittelee): K\u00e4ytt\u00e4j\u00e4 on purkanut ongelman osiin (Decomposition) ENNEN ensimm\u00e4ist\u00e4 promptia. Prosessi on suunniteltu ketju."
+          },
+          "id": "agency",
+          "instruction": "Onko k\u00e4ytt\u00e4j\u00e4ll\u00e4 suunnitelma vai reagoiko h\u00e4n vain?",
+          "label": "Strateginen Ohjaus (Agency)"
+        },
+        {
+          "anchors": {
+            "1": "Ei uutta tietoa. Lopputuote on vain tiivistelm\u00e4 tai kopio l\u00e4hdemateriaalista ilman omaa panosta.",
+            "2": "Heikko synteesi. Yhdistelee asioita mekaanisesti. Ei uusia oivalluksia tai k\u00e4sitteit\u00e4.",
+            "3": "Vahva synteesi. Teko\u00e4ly on tuottanut uudenlaisen kokonaisuuden k\u00e4ytt\u00e4j\u00e4n ohjauksessa. Selke\u00e4 lis\u00e4arvo.",
+            "4": "Transformatiivinen. 'Supermegatrendi'-tason oivallus. Lopputulos on enemm\u00e4n kuin osiensa summa ja aidosti uutta tietoa."
+          },
+          "id": "synteesi",
+          "instruction": "Luoako k\u00e4ytt\u00e4j\u00e4 uutta tietoa teko\u00e4lyn avulla vai vain kierr\u00e4tt\u00e4\u00e4k\u00f6 vanhaa?",
+          "label": "Uuden Tiedon Luominen (Synteesi)"
+        },
+        {
+          "anchors": {
+            "1": "Sokea: Sokea luottamus. Kopioi hallusinaatiot suoraan lopputuotteeseen.",
+            "2": "Hyv\u00e4ksyv\u00e4: Kehuu teko\u00e4ly\u00e4 ('Hyv\u00e4!') vaikka vastauksessa olisi puutteita. Korjaukset vain tyylillisi\u00e4.",
+            "3": "Korjaava: Huomaa selke\u00e4t virheet ja pyyt\u00e4\u00e4 korjausta.",
+            "4": "Adversariaalinen: Testaa rajoja ('Etsi virheet'). Spottaa faktavirheet ja pakottaa korjaamaan l\u00e4hteisiin viitaten."
+          },
+          "id": "falsification",
+          "instruction": "Miten k\u00e4ytt\u00e4j\u00e4 reagoi virheisiin ja haastaako h\u00e4n teko\u00e4ly\u00e4?",
+          "label": "Kriittinen Iteraatio (Falsification)"
+        }
+      ],
+      "role_description": "Toimit Kognitiivisena P\u00e4\u00e4tuomarina."
+    }
+  }
+]

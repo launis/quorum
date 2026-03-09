@@ -1,0 +1,1663 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appTitle => 'Cognitive Quorum Client';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get loginBtn => 'Login';
+
+  @override
+  String get adminPanel => 'Admin Panel';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get themeMode => 'Theme Mode';
+
+  @override
+  String get system => 'System';
+
+  @override
+  String get light => 'Light';
+
+  @override
+  String get dark => 'Dark';
+
+  @override
+  String configureInputs(String workflowId) {
+    return 'Configure Inputs: $workflowId';
+  }
+
+  @override
+  String get generalInput => 'General Input';
+
+  @override
+  String fileInputLabel(String fileName, int size) {
+    return 'File: $fileName ($size bytes)';
+  }
+
+  @override
+  String get selectFile => 'Select a file to upload';
+
+  @override
+  String get fieldRequired => 'This field is required.';
+
+  @override
+  String get authOrganic => 'Organic (Authentic)';
+
+  @override
+  String get authPerformative => 'Performative (Staged)';
+
+  @override
+  String get authUnknown => 'Unknown';
+
+  @override
+  String get verVerified => 'Verified';
+
+  @override
+  String get verDebunked => 'Debunked';
+
+  @override
+  String get verUncertain => 'Uncertain';
+
+  @override
+  String get fileRequired => 'This file is required.';
+
+  @override
+  String workflowSubtitle(int steps, int inputs) {
+    return 'Steps: $steps | Inputs: $inputs';
+  }
+
+  @override
+  String matrixSubtitle(int strictness, int rules) {
+    return 'Strictness: $strictness | Rules: $rules';
+  }
+
+  @override
+  String get dashboardTitle => 'Recent Logic Executions';
+
+  @override
+  String get totalRuns => 'Total Runs';
+
+  @override
+  String get inProgress => 'In Progress';
+
+  @override
+  String get criticalFailures => 'Critical Failures';
+
+  @override
+  String get noExecutions => 'No executions found.';
+
+  @override
+  String failedToLoad(Object error) {
+    return 'Failed to load executions: $error';
+  }
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get newAnalysis => 'New Analysis';
+
+  @override
+  String get executionDetails => 'Execution Details';
+
+  @override
+  String get overview => 'Overview';
+
+  @override
+  String get report => 'Report';
+
+  @override
+  String get rawData => 'Raw Data';
+
+  @override
+  String get status => 'STATUS';
+
+  @override
+  String get timeline => 'Timeline';
+
+  @override
+  String get created => 'Created';
+
+  @override
+  String get workflowProgress => 'Workflow Progress';
+
+  @override
+  String get analysisInProgress => 'Analysis in progress...';
+
+  @override
+  String currentStep(Object step) {
+    return 'Current Step: $step';
+  }
+
+  @override
+  String get waitingToStart => 'Waiting to start...';
+
+  @override
+  String get executionStarted => 'Execution Started...';
+
+  @override
+  String executionFailed(Object error) {
+    return 'Execution Failed: $error';
+  }
+
+  @override
+  String executionRejected(Object error) {
+    return 'Execution Rejected: $error';
+  }
+
+  @override
+  String get unknownState => 'Unknown State';
+
+  @override
+  String get downloadNotImplemented => 'Download not implemented yet';
+
+  @override
+  String get detailsComingSoon => 'Details view coming soon...';
+
+  @override
+  String get viewChecklist => 'View Checklist';
+
+  @override
+  String get viewRawData => 'View Raw Data';
+
+  @override
+  String get analysisResults => 'Analysis Results';
+
+  @override
+  String get goToMonitor => 'Go to Monitor';
+
+  @override
+  String get analysisNotComplete => 'Analysis is not complete yet.';
+
+  @override
+  String get verdict => 'Verdict';
+
+  @override
+  String get score => 'Score';
+
+  @override
+  String get summary => 'Summary';
+
+  @override
+  String get type => 'Type';
+
+  @override
+  String get inputs => 'Inputs';
+
+  @override
+  String get startAnalysis => 'Start Analysis';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get analysisStarted => 'Analysis Started!';
+
+  @override
+  String submissionFailed(Object error) {
+    return 'Submission failed: $error';
+  }
+
+  @override
+  String get fillRequiredInputs => 'Please fill in required inputs.';
+
+  @override
+  String errorReadingFile(Object error) {
+    return 'Error reading file: $error';
+  }
+
+  @override
+  String get noWorkflowsAvailable => 'No workflows available for your account.';
+
+  @override
+  String get enterCustomWorkflowId => 'Or enter Custom Workflow ID';
+
+  @override
+  String get statusCompleted => 'COMPLETED';
+
+  @override
+  String get statusRunning => 'RUNNING';
+
+  @override
+  String get statusFailed => 'FAILED';
+
+  @override
+  String get statusRejected => 'REJECTED';
+
+  @override
+  String get cancelling => 'Cancelling';
+
+  @override
+  String get statusPending => 'PENDING';
+
+  @override
+  String get statusStarted => 'STARTED';
+
+  @override
+  String get inputChatHistory => '1. Chat History / Evidence (Chat Logs)';
+
+  @override
+  String get inputProductTarget =>
+      '2. Product / Evaluation Target (Final Product)';
+
+  @override
+  String get inputReflection => '3. Reflection / Self-Evaluation';
+
+  @override
+  String get pasteText => 'Paste Text';
+
+  @override
+  String get uploadFile => 'Upload File';
+
+  @override
+  String get pasteTextLabel => 'Paste text here...';
+
+  @override
+  String get unknownWorkflow => 'Unknown Workflow';
+
+  @override
+  String get navDashboard => 'Dashboard';
+
+  @override
+  String get navSettings => 'Settings';
+
+  @override
+  String get navAdmin => 'Admin';
+
+  @override
+  String get navStudio => 'Studio';
+
+  @override
+  String get navRegistry => 'Registry';
+
+  @override
+  String get navAnalytics => 'Analytics';
+
+  @override
+  String stepLabel(Object stepName) {
+    return 'Step: $stepName';
+  }
+
+  @override
+  String get defaultWorkflowTitle => 'Workflow Execution';
+
+  @override
+  String executionIdLabel(Object id) {
+    return 'Execution $id';
+  }
+
+  @override
+  String get resultsTitle => 'Analysis Results';
+
+  @override
+  String get viewLogTooltip => 'View Execution Log';
+
+  @override
+  String get downloadReportTooltip => 'Download Report';
+
+  @override
+  String get downloadNotImplementedPdf => 'Download PDF not implemented yet';
+
+  @override
+  String get chooseAnalysisType => 'Choose Analysis Type';
+
+  @override
+  String get usageCurrentMonth => 'Current Month Usage';
+
+  @override
+  String get usageQuota => 'Usage vs Quota';
+
+  @override
+  String tokensUsed(int count) {
+    final intl.NumberFormat countNumberFormat = intl
+        .NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString Tokens Used';
+  }
+
+  @override
+  String quotaLimit(int limit) {
+    final intl.NumberFormat limitNumberFormat = intl
+        .NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return '$limitString Limit';
+  }
+
+  @override
+  String get selectWorkflowRequired => 'Please select a workflow.';
+
+  @override
+  String get adminDashboardTitle => 'Admin Dashboard';
+
+  @override
+  String get welcomeAdmin => 'Welcome to Admin Dashboard';
+
+  @override
+  String get manageUsersButton => 'Manage Users';
+
+  @override
+  String get manageOrganizationsButton => 'Manage Organizations';
+
+  @override
+  String get userManagementTitle => 'User Management';
+
+  @override
+  String get organizationManagementTitle => 'Organization Management';
+
+  @override
+  String get userListPlaceholder => 'User Management List Placeholder';
+
+  @override
+  String get organizationListPlaceholder => 'Organization List Placeholder';
+
+  @override
+  String get systemSettingsTitle => 'System Settings';
+
+  @override
+  String monitorTitle(String id) {
+    return 'Monitor: $id';
+  }
+
+  @override
+  String get viewResults => 'View Results';
+
+  @override
+  String get analysisCompletedSuccess => 'Analysis Completed Successfully!';
+
+  @override
+  String get viewFullReport => 'View Full Report';
+
+  @override
+  String get viewRawDataComingSoon => 'View Raw Data (Coming Soon)';
+
+  @override
+  String get stepGuard => 'Guard Agent (Safety)';
+
+  @override
+  String get stepAnalyst => 'Analyst Agent (Research)';
+
+  @override
+  String get stepInteraction => 'Interaction Analyst';
+
+  @override
+  String get stepProfiler => 'Profiler Agent';
+
+  @override
+  String get stepPanel => 'Panel Audit (Parallel)';
+
+  @override
+  String get stepArchivist => 'Archivist (History)';
+
+  @override
+  String get stepJudge => 'Judge (Verdict)';
+
+  @override
+  String get stepCoach => 'Coach (Feedback)';
+
+  @override
+  String get stepXai => 'XAI Reporter (Final Report)';
+
+  @override
+  String get stepInitializing => 'Initializing...';
+
+  @override
+  String get stepLogician => 'Logic Audit (Logician)';
+
+  @override
+  String get stepFalsifier => 'Critical Audit (Falsifier)';
+
+  @override
+  String get stepCausal => 'Causal Audit (Causal)';
+
+  @override
+  String get stepDetector => 'Illusion Audit (Detector)';
+
+  @override
+  String get stepOverseer => 'Overseer (Fact)';
+
+  @override
+  String get stepJudgeCognitive => 'Judge (Cognitive)';
+
+  @override
+  String get stepContext => 'Context Retrieval';
+
+  @override
+  String get stepInputProcessor => 'Input Processing';
+
+  @override
+  String validationMissingEvidence(String fields) {
+    return 'Missing required evidence: $fields';
+  }
+
+  @override
+  String get validationInputEmpty => 'Inputs cannot be empty.';
+
+  @override
+  String get errorUnknown => 'Unknown error';
+
+  @override
+  String get errorNetwork => 'Network error. Please check your connection.';
+
+  @override
+  String get errorServer => 'Server error. Please try again later.';
+
+  @override
+  String get errorUnauthorized => 'Unauthorized. Please log in again.';
+
+  @override
+  String get errorNotFound => 'Resource not found.';
+
+  @override
+  String get errorValidation => 'Validation failed.';
+
+  @override
+  String get errorValidationEmpty => 'Inputs cannot be empty.';
+
+  @override
+  String errorValidationMissing(Object fields) {
+    return 'Missing required fields: $fields';
+  }
+
+  @override
+  String get errorLoadingData => 'Error loading data. Please try again.';
+
+  @override
+  String get createOrganization => 'Create Organization';
+
+  @override
+  String get editOrganization => 'Edit Organization';
+
+  @override
+  String get deleteOrganization => 'Delete Organization';
+
+  @override
+  String get errorDeleteBlockedByExecutions =>
+      'Cannot delete: Item has active executions.';
+
+  @override
+  String get errorDeleteBlockedByMatrix =>
+      'Cannot delete: Observation is bound to a PromptBlock.';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get orgNameLabel => 'Organization Name';
+
+  @override
+  String get orgTierLabel => 'Tier';
+
+  @override
+  String get basicTier => 'Basic';
+
+  @override
+  String get premiumTier => 'Premium';
+
+  @override
+  String get enterpriseTier => 'Enterprise';
+
+  @override
+  String deleteOrgConfirmation(String name) {
+    return 'Are you sure you want to delete $name?';
+  }
+
+  @override
+  String get deleteOrgHasUsersTitle => 'Organization has users';
+
+  @override
+  String get deleteOrgHasUsersMessage =>
+      'This organization contains users. Deleting it will also permanently delete all its users. This action cannot be undone.';
+
+  @override
+  String get deleteForceConfirm => 'Delete everything';
+
+  @override
+  String get contactEmailLabel => 'Contact Email';
+
+  @override
+  String get userManagement => 'User Management';
+
+  @override
+  String get roleManager => 'Role Manager';
+
+  @override
+  String get lastActive => 'Last Active';
+
+  @override
+  String get executionCount => 'Executions';
+
+  @override
+  String get roleUpdateSuccess => 'Role updated successfully.';
+
+  @override
+  String get demoteLastAdminError =>
+      'Cannot demote the last Admin. Promote another user first.';
+
+  @override
+  String get queueStatus => 'System Queue';
+
+  @override
+  String get queuedJobs => 'Queued';
+
+  @override
+  String get activeJobs => 'Active';
+
+  @override
+  String get roleLabel => 'Role';
+
+  @override
+  String get lastLogin => 'Last seen';
+
+  @override
+  String get lblWeak => 'Weak';
+
+  @override
+  String get lblModerate => 'Moderate';
+
+  @override
+  String get lblStrong => 'Strong';
+
+  @override
+  String get lblSource => 'Source';
+
+  @override
+  String get lblAbstractQuadrant => 'Abstract (High Bloom + Low Toulmin)';
+
+  @override
+  String get lblSuperficialQuadrant => 'Superficial (Low Bloom + Low Toulmin)';
+
+  @override
+  String get actions => 'Actions';
+
+  @override
+  String get editRole => 'Edit Role';
+
+  @override
+  String get confirmDemotion =>
+      'Warning: Demoting an Admin limits their access immediately.';
+
+  @override
+  String get organizationMembers => 'Organization Members';
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get noUsersFound => 'No users found.';
+
+  @override
+  String get loginRequired => 'Login Required';
+
+  @override
+  String get createUser => 'Create User';
+
+  @override
+  String get editUser => 'Edit User';
+
+  @override
+  String get deleteUser => 'Delete User';
+
+  @override
+  String get displayNameLabel => 'Display Name';
+
+  @override
+  String get emailLabel => 'Email';
+
+  @override
+  String get passwordLabel => 'Password';
+
+  @override
+  String deleteUserConfirmation(String name) {
+    return 'Are you sure you want to delete $name?';
+  }
+
+  @override
+  String get userCreatedSuccess => 'User created successfully.';
+
+  @override
+  String get userUpdatedSuccess => 'User updated successfully.';
+
+  @override
+  String get userDeletedSuccess => 'User deleted successfully.';
+
+  @override
+  String get organizationId => 'Organization ID';
+
+  @override
+  String get helpBloom =>
+      'Based on the Revised Bloom\'s Taxonomy (Anderson & Krathwohl, 2001), this metric evaluates the cognitive complexity of the output. It distinguishes between lower-order thinking (Remembering, Understanding) and higher-order skills (Applying, Analyzing, Evaluating, Creating). High scores indicate the agent is not just retrieving facts but synthesizing new information.';
+
+  @override
+  String get helpToulmin =>
+      'Derived from Stephen Toulmin\'s \'The Uses of Argument\' (1958), this model moves beyond formal logic to practical argumentation. It assesses whether the Claim is supported by Data and connected via a Warrant. This structure ensures that arguments are not just assertions but reasoned positions.';
+
+  @override
+  String get helpWalton =>
+      'Based on Douglas Walton\'s Argumentation Schemes, Fidelity measures dialectical consistency. It checks if the reasoning strictly adheres to the provided premises (Source Data) or if the agent engages in \'Post-Hoc Rationalization\'—inventing justifications after the fact to support a hallucinated or biased conclusion.';
+
+  @override
+  String get helpControlRatio =>
+      'Based on Discourse Analysis and Interaction Dynamics, this ratio measures the balance of initiative. A \'Passenger\' merely responds (reactive), while a \'Driver\' or \'Architect\' sets the frame and direction of the conversation (proactive). High control indicates the AI is leading the cognitive work.';
+
+  @override
+  String get helpMethodology =>
+      'The Methodological Log tells what analysis methods the AI has applied in this phase (e.g. \'Logic Audit\', \'Causality Testing\').';
+
+  @override
+  String get rolePassenger => 'Passenger';
+
+  @override
+  String get roleNavigator => 'Navigator';
+
+  @override
+  String get roleDriver => 'Driver';
+
+  @override
+  String get roleArchitect => 'Architect';
+
+  @override
+  String get lblCognitiveLevel => 'Cognitive Level';
+
+  @override
+  String get lblStrategicDepth => 'Strategic Depth';
+
+  @override
+  String get lblArguments => 'Arguments';
+
+  @override
+  String get lblWaltonScheme => 'Walton Scheme';
+
+  @override
+  String get lblCriticalQuestions => 'Critical Questions';
+
+  @override
+  String get lblRoleAndPosition => 'User Role & Position';
+
+  @override
+  String get lblControlRatio => 'Control Ratio';
+
+  @override
+  String get biasDetected => 'BIAS DETECTED';
+
+  @override
+  String get biasNone => 'No Bias';
+
+  @override
+  String get gapDetected => 'GAP DETECTED';
+
+  @override
+  String get gapNone => 'Consistent';
+
+  @override
+  String get lblBloomScore => 'Bloom Score';
+
+  @override
+  String get lblToulminScore => 'Toulmin Score';
+
+  @override
+  String get lblMethodologicalLog => 'Methodological Log';
+
+  @override
+  String get lblLogicMatrix => 'Logic Matrix';
+
+  @override
+  String get lblMatrixSubtitle => 'Visual analysis of reasoning quality.';
+
+  @override
+  String get lblFidelity => 'Reasoning Fidelity';
+
+  @override
+  String get lblPostHocWarning => '⚠️ Post-Hoc Rationalization detected!';
+
+  @override
+  String get lblNoRationalization => '✅ No rationalization.';
+
+  @override
+  String get lblAbductiveReasoning => 'Abductive Reasoning';
+
+  @override
+  String get lblScenarioActual => 'Scenario A (Actual)';
+
+  @override
+  String get lblScenarioSimulation => 'Scenario B (Simulation)';
+
+  @override
+  String get lblCredibility => 'Credibility';
+
+  @override
+  String get lblTextMetrics => 'Text Metrics';
+
+  @override
+  String get lblBias => 'Identified Biases';
+
+  @override
+  String get lblAuthors => 'Authors';
+
+  @override
+  String get lblIntent => 'Author Intent';
+
+  @override
+  String get lblPsychProfile => 'Psychological Profile';
+
+  @override
+  String get lblFactCheck => 'Fact Check';
+
+  @override
+  String get lblEthicalObservation => 'Ethical Observation';
+
+  @override
+  String get lblAuthenticity => 'Authenticity Assessment';
+
+  @override
+  String get lblHeuristics => 'Heuristics';
+
+  @override
+  String get lblComplianceAnalysis => 'Compliance Analysis';
+
+  @override
+  String get helpComplianceAnalysis => 'Compliance Analysis';
+
+  @override
+  String get helpFidelity =>
+      'Fidelity measures the logical consistency of the argument. It checks if the conclusion follows strictly from the premises, without inventing new information (Hallucination) or justifying a pre-decided conclusion (Post-Hoc Rationalization).';
+
+  @override
+  String get helpAbductive =>
+      'Abductive Reasoning (Inference to Best Explanation) evaluates if the AI\'s conclusion is the most plausible explanation for the observations, rejecting less likely alternatives.';
+
+  @override
+  String get helpStressTest =>
+      'Walton\'s stress test audits the fidelity of reasoning. It reveals \'Post-Hoc rationalization\' if the AI has merely invented justifications afterwards and did not actually derive the result from them.';
+
+  @override
+  String get helpCausal =>
+      'Rooted in C.S. Peirce\'s logic of \'Inference to the Best Explanation\', Abductive reasoning infers the most likely cause. Plausibility, grounded in Counterfactual theories (e.g. Judea Pearl), tests causal understanding by simulating \'What If?\' scenarios to check logical consistency.';
+
+  @override
+  String get helpProfiler =>
+      'Profiling analyzes text tone, vocabulary, and latent biases. It helps identify if the AI is attempting to manipulate or is biased.';
+
+  @override
+  String get helpFactCheck =>
+      'Fact Check compares claims against a known knowledge base and scans for ethical risks.';
+
+  @override
+  String get helpPerformativity =>
+      'Performativity analysis evaluates whether the response is authentic and organic or artificial and staged. It detects \'purple prose\', excessive humility, and other inauthentic traits.';
+
+  @override
+  String get helpArchivist =>
+      'In the context of AI Alignment and Constitutional AI, Compliance measures the agent\'s adherence to defined behavioral constraints (The Constitution) and organizational norms, ensuring safety and goal alignment regardless of the user\'s prompt.';
+
+  @override
+  String get studioStepsTitle => 'Steps';
+
+  @override
+  String get studioConfigurationTitle => 'Configuration';
+
+  @override
+  String get studioAddStepButton => 'Add Step';
+
+  @override
+  String get studioSaveButton => 'Save Changes';
+
+  @override
+  String get studioUnsavedChanges => 'Unsaved changes';
+
+  @override
+  String get studioSelectStepPrompt => 'Select a step to configure';
+
+  @override
+  String get studioStepsHeader => 'Steps';
+
+  @override
+  String get studioAddStep => 'Add Step';
+
+  @override
+  String get studioNoSteps => 'No steps defined';
+
+  @override
+  String get studioRunTest => 'Run Test';
+
+  @override
+  String get studioSaving => 'Saving...';
+
+  @override
+  String get studioChangesSaved => 'Changes saved';
+
+  @override
+  String get studioCreateNew => 'Create New';
+
+  @override
+  String get studioCopyWorkflow => 'Copy Workflow';
+
+  @override
+  String get studioNewNameLabel => 'New Name';
+
+  @override
+  String get studioTabWorkflows => 'Workflows';
+
+  @override
+  String get studioTabMatrices => 'PromptBlocks';
+
+  @override
+  String get studioCreateMatrix => 'Create PromptBlock';
+
+  @override
+  String get studioMatrixName => 'Block Name';
+
+  @override
+  String get studioMatrixDesc => 'Description';
+
+  @override
+  String get matrixRole => 'Role Persona (For Instructions)';
+
+  @override
+  String get matrixScale => 'Scale (Min - Max)';
+
+  @override
+  String get matrixCriteria => 'Criteria (Schema)';
+
+  @override
+  String get matrixAddCriterion => 'Add Observation';
+
+  @override
+  String matrixLevel(Object level) {
+    return 'Level $level';
+  }
+
+  @override
+  String get studioSelectMatrix => 'Select PromptBlock';
+
+  @override
+  String get update => 'Update';
+
+  @override
+  String get editDimension => 'Edit Observation';
+
+  @override
+  String get systemInspectorTitle => 'System Inspector';
+
+  @override
+  String get workflowConfig => 'Config';
+
+  @override
+  String get stepPreview => 'Preview';
+
+  @override
+  String get generateChain => 'Generate Chain';
+
+  @override
+  String get systemInstruction => 'System Instruction';
+
+  @override
+  String get userPrompt => 'User Prompt';
+
+  @override
+  String get exportTab => 'Export';
+
+  @override
+  String get selectStepPlaceholder => 'Select a step...';
+
+  @override
+  String get copyToClipboard => 'Copy to Clipboard';
+
+  @override
+  String get copiedToClipboard => 'Copied to Clipboard!';
+
+  @override
+  String get modelRegistryTitle => 'Model Registry';
+
+  @override
+  String get providerSettings => 'Provider Settings';
+
+  @override
+  String get testLab => 'Test Laboratory';
+
+  @override
+  String get runTest => 'Run Test';
+
+  @override
+  String get latency => 'Latency';
+
+  @override
+  String get providerLabel => 'Provider';
+
+  @override
+  String get apiKeyLabel => 'API Key';
+
+  @override
+  String get baseUrlLabel => 'Base URL';
+
+  @override
+  String get temperatureLabel => 'Temperature';
+
+  @override
+  String get modelNameLabel => 'Model Name';
+
+  @override
+  String get testConnection => 'Test Connection';
+
+  @override
+  String get adhocTest => 'Ad-Hoc Test';
+
+  @override
+  String get responseOutput => 'Response Output';
+
+  @override
+  String get studioDashboardWorkflowsTitle => 'Workflows';
+
+  @override
+  String get studioDashboardWorkflowsDesc =>
+      'Design and manage audit workflows.';
+
+  @override
+  String get studioDashboardStepsTitle => 'Steps';
+
+  @override
+  String get studioDashboardStepsDesc => 'Configure execution steps.';
+
+  @override
+  String get studioDashboardMatricesTitle => 'PromptBlocks';
+
+  @override
+  String get studioDashboardMatricesDesc =>
+      'Manage dynamic LLM evaluation schema and instructions.';
+
+  @override
+  String get studioDashboardComponentsTitle => 'V1 Components';
+
+  @override
+  String get studioDashboardComponentsDesc =>
+      'Manage legacy V1 rules (deprecation pending).';
+
+  @override
+  String get helperSelectProvider => 'Select from available providers';
+
+  @override
+  String get helperSelectModel => 'Select valid model for provider';
+
+  @override
+  String get helperApiKeyMasked => 'Leave as ******** to keep existing key';
+
+  @override
+  String get helperOptionalOverride => 'Optional override';
+
+  @override
+  String get errorMustBeNumber => 'Must be a number';
+
+  @override
+  String get errorRangeTemperature => 'Must be between 0.0 and 2.0';
+
+  @override
+  String get errorMustBeInteger => 'Must be an integer';
+
+  @override
+  String get selectProviderPlaceholder => 'Select a provider to configure.';
+
+  @override
+  String get searchSteps => 'Search Steps';
+
+  @override
+  String get stepSelectToEdit => 'Select a step to edit';
+
+  @override
+  String deleteWorkflowConfirmation(String name) {
+    return 'Are you sure you want to delete $name?';
+  }
+
+  @override
+  String get noMatricesFound => 'No PromptBlocks found. Create one!';
+
+  @override
+  String get stepCreateNew => 'Create New Step';
+
+  @override
+  String get stepEdit => 'Edit Step';
+
+  @override
+  String get stepIdLabel => 'Step ID';
+
+  @override
+  String get stepIdHelper => 'Unique identifier (e.g. \'step_analyst\')';
+
+  @override
+  String get stepNameLabel => 'Name';
+
+  @override
+  String get stepDescriptionLabel => 'Description';
+
+  @override
+  String get stepAgentLogicClass => 'Agent Logic Class';
+
+  @override
+  String get stepJudgeConfig => 'Judge Configuration';
+
+  @override
+  String get stepEvaluationMatrix => 'PromptBlock (Evaluation)';
+
+  @override
+  String get stepEvaluationMatrixHelper =>
+      'The criteria used for schema generation.';
+
+  @override
+  String get stepPromptAssembly => 'PromptBlock (Instructions)';
+
+  @override
+  String get stepAddPrompt => 'Attach PromptBlock';
+
+  @override
+  String get stepPromptAssemblyHelper =>
+      'Blocks that shape the step\'s system instruction.';
+
+  @override
+  String get stepSaveSuccess => 'Step saved!';
+
+  @override
+  String get stepDeleteConfirmTitle => 'Confirm Delete';
+
+  @override
+  String stepDeleteConfirmMessage(String id) {
+    return 'Delete step \'$id\'?';
+  }
+
+  @override
+  String get stepAddPromptTitle => 'Attach PromptBlock to Step';
+
+  @override
+  String get stepSearchPrompts => 'Search PromptBlocks';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get stepIdNameRequired => 'ID and Name are required.';
+
+  @override
+  String get executionNotFound => 'Execution Not Found';
+
+  @override
+  String get ontologyNameLabel => 'Name (e.g. \"Reasoning\")';
+
+  @override
+  String get ontologyDescriptionLabel => 'Description';
+
+  @override
+  String get registerDimension => 'Register Observation';
+
+  @override
+  String get newDimension => 'New Observation';
+
+  @override
+  String get lblQuestion => 'Question';
+
+  @override
+  String get lblEvidenceHeld => 'Evidence Held?';
+
+  @override
+  String get lblObservation => 'Observation';
+
+  @override
+  String get lblCausalAudit => 'Causal Audit';
+
+  @override
+  String get lblCounterfactualTest => 'Counterfactual Test';
+
+  @override
+  String get btnHideRawData => 'Hide Raw Data';
+
+  @override
+  String get btnShowJson => 'JSON';
+
+  @override
+  String get msgJsonCopied => 'JSON copied to clipboard';
+
+  @override
+  String get errDataIntegrity => 'Data Integrity Error (Fail Fast)';
+
+  @override
+  String get subLogicAnalysis => 'Toulmin & Cognitive Level';
+
+  @override
+  String get subStressTest => 'Walton Falsification';
+
+  @override
+  String get subCausalAnalysis => 'Causal & Counterfactual';
+
+  @override
+  String get subPerformativityCheck => 'Authenticity & Pre-Mortem';
+
+  @override
+  String get subFactCheck => 'Hallucinations & Ethics';
+
+  @override
+  String get subProfilerAnalysis => 'Biases & Psycho-profile';
+
+  @override
+  String get subArchivistCheck => 'Compliance & Precedents';
+
+  @override
+  String get lblWordCount => 'Word Count';
+
+  @override
+  String get lblSentenceCount => 'Sentence Count';
+
+  @override
+  String get lblAvgSentence => 'Avg Sentence';
+
+  @override
+  String get lblLexicalDiversity => 'Lexical Diversity';
+
+  @override
+  String get lblCapitalsRatio => 'Capitals Ratio';
+
+  @override
+  String get lblAutomationBias => 'Automation Bias';
+
+  @override
+  String get lblSayDoGap => 'Say-Do Gap';
+
+  @override
+  String get lblBehavioralIndicators => 'Behavioral Indicators:';
+
+  @override
+  String lblAutomationBiasValue(String value) {
+    return 'Automation Bias: $value';
+  }
+
+  @override
+  String lblSayDoGapValue(String value) {
+    return 'Say-Do Gap: $value';
+  }
+
+  @override
+  String get plausibility_desc =>
+      'Plausibility measures scenario realism and consistency.';
+
+  @override
+  String get bloomRemembering => 'Remembering';
+
+  @override
+  String get bloomUnderstanding => 'Understanding';
+
+  @override
+  String get bloomApplying => 'Applying';
+
+  @override
+  String get bloomAnalyzing => 'Analyzing';
+
+  @override
+  String get bloomEvaluating => 'Evaluating';
+
+  @override
+  String get bloomCreating => 'Creating';
+
+  @override
+  String get stratLow => 'Tactical';
+
+  @override
+  String get stratMedium => 'Operational';
+
+  @override
+  String get stratHigh => 'Strategic';
+
+  @override
+  String get stratVisionary => 'Visionary';
+
+  @override
+  String get logicMatrixTitle => 'Logic Matrix (Decision Profiling)';
+
+  @override
+  String get logicMatrixQ1Title => 'Grounded Synthesis';
+
+  @override
+  String get logicMatrixQ1Desc =>
+      'Strong argumentation and deep synthesis. Reliable and innovative.';
+
+  @override
+  String get logicMatrixQ2Title => 'Unwarranted Ideation';
+
+  @override
+  String get logicMatrixQ2Desc =>
+      'High-level thinking without sufficient warrants. Potential hallucination.';
+
+  @override
+  String get logicMatrixQ3Title => 'Pedantic Fact-telling';
+
+  @override
+  String get logicMatrixQ3Desc =>
+      'Strictly warranted, but limited to repeating existing knowledge.';
+
+  @override
+  String get logicMatrixQ4Title => 'Weak Assertions';
+
+  @override
+  String get logicMatrixQ4Desc =>
+      'Low cognitive level and weak warrants. Not actionable.';
+
+  @override
+  String get helpLogicMatrix =>
+      'The Logic Matrix visualizes the relationship between argumentation quality and cognitive depth. NEW: Bubble size represents Strategic Depth (Agency). Large bubble implies visionary approach.';
+
+  @override
+  String get helpStrategicDepth =>
+      'Drawing on Systems Thinking and Foresight methodologies, Strategic Depth measures the temporal and systemic scope of the response. It contrasts \'Tactical\' (immediate, reactive) thinking with \'Visionary\' (long-term, systemic) thinking, evaluating the agent\'s ability to model second- and third-order consequences.';
+
+  @override
+  String get helpAuthenticity =>
+      'Authenticity measures the naturalness of the response on a scale of 1-3. 3 = Organic, 2 = Mixed, 1 = Performative.';
+
+  @override
+  String get helpWordCount => 'Total word count of the response.';
+
+  @override
+  String get secThreatDetected => 'THREAT DETECTED';
+
+  @override
+  String get secThreatNone => 'No Threats';
+
+  @override
+  String get secAnonymized => 'ANONYMIZED';
+
+  @override
+  String get secNotAnonymized => 'NOT ANONYMIZED';
+
+  @override
+  String get riskHigh => 'HIGH RISK';
+
+  @override
+  String get riskMedium => 'Medium Risk';
+
+  @override
+  String get riskLow => 'Low Risk';
+
+  @override
+  String get riskUnknown => 'Unknown Risk';
+
+  @override
+  String get lblDriver => 'Driver';
+
+  @override
+  String get lblPassenger => 'Passenger';
+
+  @override
+  String get lblRiskLevel => 'Risk Level';
+
+  @override
+  String get lblEmotionalTone => 'Emotional Tone';
+
+  @override
+  String get lblNoFindings => 'No significant findings.';
+
+  @override
+  String get knowledgeBaseIngestionTitle => 'Knowledge Base Ingestion';
+
+  @override
+  String get uploadDocxMd => 'Upload DOCX / MD';
+
+  @override
+  String get ingestionComplete => 'Ingestion Complete!';
+
+  @override
+  String referencesCount(int count) {
+    return 'References: $count';
+  }
+
+  @override
+  String claimsCount(int count) {
+    return 'Claims: $count';
+  }
+
+  @override
+  String get studioDashboardKnowledgeTitle => 'Ingestion';
+
+  @override
+  String get studioDashboardKnowledgeDesc =>
+      'Upload documents to Knowledge Base.';
+
+  @override
+  String get addStrategyTooltip => 'Add Strategy';
+
+  @override
+  String get resetKnowledgeBaseTitle => 'Reset Knowledge Base?';
+
+  @override
+  String get resetKnowledgeBaseConfirmation =>
+      'This will adhere to the \"Clean Slate\" protocol and permanently delete all ingested documents. Continue?';
+
+  @override
+  String get resetButton => 'Reset';
+
+  @override
+  String get analysisLevelLabel => 'Analysis Level (Model Strategy)';
+
+  @override
+  String get analysisLevelHelper =>
+      'Select \"Deep\" for complex reasoning or \"Fast\" for speed.';
+
+  @override
+  String get analysisLevelNone => 'None (Parsing Only)';
+
+  @override
+  String strategiesLoadError(Object error) {
+    return 'Failed to load strategies: $error';
+  }
+
+  @override
+  String get processingStatus => 'Processing...';
+
+  @override
+  String get errorKnowledgeIngestionFailed =>
+      'Knowledge ingestion failed. Check file and try again.';
+
+  @override
+  String get errorKnowledgeResetFailed =>
+      'Knowledge base reset failed. Contact support.';
+
+  @override
+  String get errorKnowledgeRetrievalFailed =>
+      'Knowledge retrieval failed. Server unresponsive.';
+
+  @override
+  String get errValidationFailed => 'Validation Failed';
+
+  @override
+  String get errInternalServerError => 'Internal Server Error';
+
+  @override
+  String get errResourceNotFound => 'Resource Not Found';
+
+  @override
+  String get errAuthenticationFailed => 'Authentication Failed';
+
+  @override
+  String get errPermissionDenied => 'Permission Denied';
+
+  @override
+  String get errServiceUnavailable => 'Service Unavailable';
+
+  @override
+  String get errAgentExecutionCritical => 'Agent Execution Critical';
+
+  @override
+  String get errWorkflowExecutionFailed => 'Workflow Execution Failed';
+
+  @override
+  String get errKnowledgeNotIngestedTitle => 'Knowledge Base Empty';
+
+  @override
+  String get errKnowledgeNotIngested =>
+      'Knowledge Base is empty. Please upload documents in the Ingestion view before running analysis.';
+
+  @override
+  String get actionGoToIngestion => 'Go to Ingestion';
+
+  @override
+  String get knowledgeActive => 'Knowledge Base Active';
+
+  @override
+  String knowledgeStats(int docCount, int precCount) {
+    return 'Documents: $docCount | Precedents: $precCount';
+  }
+
+  @override
+  String get addReflectionIntent => 'Add reflection (Intent)';
+
+  @override
+  String get reflectionDescription =>
+      'Describe your own reasoning and how you guided the AI during the process. This is the most critical phase for evaluation.';
+
+  @override
+  String get guidedReflectionRecommended => 'Guided reflection (Recommended)';
+
+  @override
+  String get q1GoalTitle => 'Goal and strategic planning (Architect)';
+
+  @override
+  String get q1GoalHint =>
+      'What was your original goal and how did you break down the task?';
+
+  @override
+  String get q2FalsificationTitle =>
+      'AI steering and critical iteration (Falsifier)';
+
+  @override
+  String get q2FalsificationHint =>
+      'What shortcomings or errors did you notice in the AI\'s response and how did you correct them?';
+
+  @override
+  String get q3SynthesisTitle => 'Own contribution and creativity (Architect)';
+
+  @override
+  String get q3SynthesisHint =>
+      'What is genuinely your own human contribution in the final product?';
+
+  @override
+  String get q4ArgumentationTitle =>
+      'Quality assurance and metacognition (Judge)';
+
+  @override
+  String get q4ArgumentationHint =>
+      'On what grounds do you trust the outcome? What would you do differently?';
+
+  @override
+  String get minCharsRequired => 'Text must be at least 100 characters long.';
+
+  @override
+  String charsRemainingLength(int len) {
+    return 'Answer must be at least 100 characters ($len/100).';
+  }
+
+  @override
+  String expandArgumentationHint(int len) {
+    return 'It is recommended to expand your reasoning ($len/100 chars)';
+  }
+
+  @override
+  String get dataUnavailable => 'Data unavailable';
+
+  @override
+  String get noDetailedData => 'No detailed observation data available.';
+
+  @override
+  String get detailedBreakdown => 'Detailed Breakdown';
+
+  @override
+  String scaleInfo(int min, int max) {
+    return '(Scale: $min-$max)';
+  }
+
+  @override
+  String get lblClaim => 'Claim';
+
+  @override
+  String get lblData => 'Data';
+
+  @override
+  String get lblWarrant => 'Warrant';
+
+  @override
+  String get lblBacking => 'Backing';
+
+  @override
+  String get lblRebuttal => 'Rebuttal';
+
+  @override
+  String get lblQualifier => 'Qualifier';
+
+  @override
+  String get lblFindings => 'Findings';
+
+  @override
+  String get lblNoSignificantFindings => 'No significant findings.';
+
+  @override
+  String get lblImperativeCommands => 'Imperative Commands';
+
+  @override
+  String get helpImperativeCommands =>
+      'A metric that measures how many direct commands or demands (imperatives) the user made in their text. This indicates initiative and the need for control in the interaction.';
+
+  @override
+  String get lblPostHocRationalization => 'Post-Hoc Rationalization';
+
+  @override
+  String get lblReasoning => 'Reasoning';
+
+  @override
+  String get lblAvgSentenceLength => 'Average Sentence Length';
+
+  @override
+  String get lblPsychologicalProfile => 'Psychological Profile';
+
+  @override
+  String get lblAuthorIntent => 'Author Intent';
+
+  @override
+  String get lblNoAnalysis => 'No analysis.';
+
+  @override
+  String errNetworkOrTimeout(String reason) {
+    return 'Network error or timeout. Please try again. Reason: $reason';
+  }
+
+  @override
+  String errSystemError(String error) {
+    return 'System error: $error';
+  }
+
+  @override
+  String get errInvalidWorkflow =>
+      'Error: Invalid Workflow Selection. Please refresh.';
+
+  @override
+  String get systemConfigsTitle => 'System Configs';
+
+  @override
+  String get modelRegistryDesc =>
+      'Configure globally available models, LLM parameters and API overrides.';
+
+  @override
+  String get systemMetaTitle => 'System Meta';
+
+  @override
+  String get configIdLabel => 'Config ID';
+
+  @override
+  String get configTypeLabel => 'Config Type';
+
+  @override
+  String get maxTokensLabel => 'Max Tokens';
+
+  @override
+  String get topPLabel => 'Top-P (Nucleus Sampling)';
+
+  @override
+  String get tpmLimitLabel => 'TPM Limit (Tokens/Min)';
+
+  @override
+  String get rpmLimitLabel => 'RPM Limit (Requests/Min)';
+
+  @override
+  String get parsingModeLabel => 'Parsing Mode';
+
+  @override
+  String get isActiveLabel => 'Is Active';
+
+  @override
+  String get supportsGroundingLabel => 'Supports Grounding';
+
+  @override
+  String get strategyLabel => 'Strategy';
+
+  @override
+  String get noModelsDefined => 'No models defined in registry.';
+
+  @override
+  String get workflowEditTitle => 'Edit DAG Workflow';
+
+  @override
+  String get workflowConfigTitle => 'Workflow Configuration';
+
+  @override
+  String get workflowIdLabel => 'Workflow ID (e.g. analysis_pipeline)';
+
+  @override
+  String get workflowNameLabel => 'Workflow Name';
+
+  @override
+  String get workflowInputsTitle => 'Expected Inputs (Global Roles)';
+
+  @override
+  String get workflowAddInputBtn => 'Add Input';
+
+  @override
+  String get workflowStepsTitle => 'Execution Steps (DAG Graph)';
+
+  @override
+  String get workflowAddStepBtn => 'Add Step';
+
+  @override
+  String get workflowRoleKeyLabel => 'Role Key (e.g. source_text)';
+
+  @override
+  String get workflowDescLabel => 'Description';
+
+  @override
+  String get workflowTypeString => 'String (Text)';
+
+  @override
+  String get workflowTypeFile => 'File (PDF/Word)';
+
+  @override
+  String get workflowTypeJson => 'JSON Struct';
+
+  @override
+  String get workflowStepIdLabel => 'Step ID (e.g. initial_eval)';
+
+  @override
+  String get workflowAgentTypeLabel => 'Role (Cognitive Strategy)';
+
+  @override
+  String get workflowDependsOnLabel => 'Depends On (DAG Edges):';
+
+  @override
+  String get workflowNoPrevSteps => 'No previous steps available.';
+
+  @override
+  String get workflowInputMappingsLabel => 'Input Mappings (Semantic Routing):';
+
+  @override
+  String get workflowAgentInputKey => 'Agent Input Key (e.g. source_text)';
+
+  @override
+  String get workflowSourceVarLabel => 'Source Var (e.g. \$inputs.data)';
+
+  @override
+  String get workflowAddMappingBtn => 'Add Mapping';
+}

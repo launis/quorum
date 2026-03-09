@@ -1,0 +1,97 @@
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/api/execution_client.dart';
+import 'package:client_app/core/api/sse_client.dart';
+
+/// Provider for the abstract execution state, defaulting to null when idle.
+/// The state holds the latest raw execution JSON payload.
+final executionControllerProvider =
+    StreamNotifierProvider<ExecutionController, Map<String, dynamic>?>(
+      ExecutionController.new,
+    );
+
+/// Controller managing the lifecycle of a V2 DAG Execution.
+///
+/// Implements Riverpod 3.x optimal practices:
+/// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
+/// - Handles real-time backend updates efficiently without manual polling loops.
+/// - Uses raw `Map<String, dynamic>` strictly adhering to the De-Generator Policy.
+class ExecutionController extends StreamNotifier<Map<String, dynamic>?> {
+  StreamSubscription? _sseSubscription;
+
+  @override
+  Stream<Map<String, dynamic>?> build() async* {
+    // Initial state is idle (null)
+    ref.onDispose(() {
+      _sseSubscription?.cancel();
+    });
+    yield null;
+  }
+
+  /// Starts an execution, sets the state to loading, and connects to SSE.
+  Future<void> startExecution(
+    String workflowId,
+    Map<String, dynamic> inputs,
+  ) async {
+    state = const AsyncValue.loading();
+    await _sseSubscription?.cancel();
+
+    try {
+      final client = ref.read(executionClientProvider);
+      final initialRecord = await client.startExecution(
+        workflowId: workflowId,
+        rawInputs: inputs,
+      );
+
+      final executionId = initialRecord['id'] as String;
+
+      // Update with initial record before stream connects
+      state = AsyncValue.data(initialRecord);
+
+      // Connect to SSE stream
+      _connectToStream(executionId);
+    } catch (e, stack) {
+      // Automatic RFC 7807 AppError catch
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Reconnects to an existing execution stream by ID
+  void resumeExecution(String executionId) {
+    state = const AsyncValue.loading();
+    _connectToStream(executionId);
+  }
+
+  /// Manually refreshes the current status by reconnecting the stream
+  void refreshStatus() {
+    if (state.hasValue && state.value != null) {
+      final id = state.value!['id'] as String?;
+      if (id != null) {
+        resumeExecution(id);
+      }
+    }
+  }
+
+  void _connectToStream(String executionId) {
+    final sseClient = ref.read(sseClientProvider);
+
+    _sseSubscription = sseClient
+        .subscribeToExecution(executionId)
+        .listen(
+          (update) {
+            state = AsyncValue.data(update);
+
+            final status = update['status'] as String?;
+            if (status == 'completed' || status == 'failed') {
+              _sseSubscription?.cancel();
+            }
+          },
+          onError: (e, stack) {
+            state = AsyncValue.error(e, stack);
+          },
+          onDone: () {
+            // Stream closed naturally
+          },
+        );
+  }
+}

@@ -1,0 +1,76 @@
+name: client_app
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core State Management & Routing
+  flutter_riverpod:
+  riverpod:
+  go_router:
+  fpdart:
+
+  # Connectivity & Data
+  dio:
+  flutter_dotenv:
+
+  # Firebase
+  firebase_core:
+  firebase_auth:
+  firebase_ui_auth:
+  firebase_ui_localizations:
+
+  # UI & UX
+  flutter_localizations:
+    sdk: flutter
+  intl:
+  flex_color_scheme:
+  flutter_animate:
+  google_fonts:
+  shared_preferences:
+  flutter_markdown_plus:
+  file_picker: ^10.3.10
+  collection:
+  fl_chart:
+  pdf:
+  printing:
+  file_saver:
+  url_launcher:
+  flutter_hooks:
+  hooks_riverpod:
+  logger:
+  path_provider:
+  freezed_annotation: ^3.1.0
+  riverpod_annotation: ^4.0.0
+  json_annotation: ^4.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+  # Dev Tools & Code Generation
+  custom_lint:
+  riverpod_lint:
+  flutter_lints:
+  mocktail:
+  mockito:
+  build_runner: ^2.12.2
+  freezed: ^3.2.3
+  riverpod_generator: ^4.0.0+1
+  go_router_builder: ^4.2.0
+  json_serializable: ^6.11.2
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - .env

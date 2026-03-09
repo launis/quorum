@@ -1,0 +1,6 @@
+{
+  "history_text": "{\n  \"conversation\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Miten suunnittelen hyv\u00e4n muistipelin?\"\n    },\n    {\n      \"role\": \"ai\",\n      \"content\": \"Suosittelen spatiaalista oppimista ja kertausta.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Voiko siihen liitt\u00e4\u00e4 pisteytyksen?\"\n    },\n    {\n      \"role\": \"ai\",\n      \"content\": \"Kyll\u00e4, se lis\u00e4\u00e4 motivaatiota selv\u00e4sti Blooms-taksonomian mukaisesti.\"\n    }\n  ]\n}",
+  "product_text": "Opetusmateriaali: Muistipelin prototyyppi. Sis\u00e4lt\u00e4\u00e4 flashcard-ominaisuuden ja visuaaliset parit.",
+  "reflection_text": "Peli tuntuu hieman liian yksinkertaiselta lukiolaisille, mutta voisi toimia ala-asteella.\n\n---\n\n# Guided Reflection\n\n**A:** K\u00e4sitteiden mieleenpalautus\n\n**A:** Pelillist\u00e4misell\u00e4\n\n### Q: Mik\u00e4 on oppimistavoite?\n### Q: Miten sovellat teoriaa?",
+  "status": "Inputs processed deterministically (or structured via LLM if needed)."
+}

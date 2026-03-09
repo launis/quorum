@@ -1,0 +1,5 @@
+﻿Analyzing workflow_builder_view.dart...
+
+   info - workflow_builder_view.dart:362:21 - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+1 issue found.

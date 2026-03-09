@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Execution Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: 'Inter', sans-serif;
+                font-size: 9px;
+                color: #888;
+            }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #2c3e50;
+            line-height: 1.4;
+            font-size: 11px;
+            background-color: #fff;
+        }
+        h1, h2, h3, h4 { color: #2c3e50; margin-top: 0; }
+        h1 { font-size: 22px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; text-align: center; color: #1a237e; }
+        h2 { font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 15px; margin-bottom: 12px; font-weight: 700; }
+        
+        .header-card {
+            border: 2px solid #4CAF50;
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            background-color: #f8f9fa;
+        }
+
+        .card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background-color: #fff;
+            break-inside: avoid;
+        }
+
+        .label {
+            font-size: 9px;
+            color: #616161;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        .value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #212121;
+        }
+
+        .justify-box {
+            background-color: #E3F2FD;
+            border-left: 4px solid #1E88E5;
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 4px;
+        }
+        .citation-box {
+            background-color: #FFF3E0;
+            border: 1px solid #FFE0B2;
+            padding: 6px;
+            margin-top: 4px;
+            font-size: 9px;
+            border-radius: 4px;
+            color: #E65100;
+        }
+
+        .grid-container { display: flex; flex-wrap: wrap; gap: 8px; }
+        .grid-item { flex: 1; min-width: 140px; padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+    <div class="header-card">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <div>
+                <h1 style="margin: 0;">{{ workflow_name }}</h1>
+                <div style="font-size: 11px; color: #444; margin-top: 5px;">Printed: {{ printed_at }}</div>
+            </div>
+            <div style="font-size: 10px; color: #666; margin-left: 15px; text-align: right;">ID: {{ execution_id }}</div>
+        </div>
+    </div>
+
+    <!-- Dynamic SDUI Block Render -->
+    {% if frozen_context and frozen_context.get('ui_hints_snapshot') %}
+        {% for block_key, hint in frozen_context['ui_hints_snapshot'].items() %}
+        <div class="card">
+            <h2>{{ hint.get('label', block_key) }}</h2>
+            
+            {% set val = results.get(block_key) %}
+            
+            <!-- Handle Nested Objects or Primitives safely -->
+            {% if val is mapping %}
+                <div class="grid-container">
+                {% for k, v in val.items() %}
+                    <!-- Ignore XAI injected values here (they are rendered below) -->
+                    {% if not k.endswith('_justification') and not k.endswith('_citation') %}
+                    <div class="grid-item">
+                        <div class="label">{{ k }}</div>
+                        <div class="value">{{ v }}</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                </div>
+            {% else %}
+                <div class="value">{{ val if val is not none else 'N/A' }}</div>
+            {% endif %}
+
+            <!-- XAI Justification Resolution Logic (V2 Mandate) -->
+            {% set justification = results.get(block_key ~ '_justification') %}
+            {% set citation = results.get(block_key ~ '_citation') %}
+
+            {% if justification %}
+            <div class="justify-box">
+                <div class="label" style="color: #1565C0;">AI Reasoning</div>
+                <div>{{ justification }}</div>
+            </div>
+            {% endif %}
+
+            {% if citation %}
+            <div class="citation-box">
+                <strong style="color: #E65100;">Source Citation:</strong> {{ citation }}
+            </div>
+            {% endif %}
+
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card" style="border-left: 4px solid #F44336;">
+            <h2>RAW RESULTS (No UI Hints Available)</h2>
+            <pre style="font-size: 10px; white-space: pre-wrap;">{{ results | string }}</pre>
+        </div>
+    {% endif %}
+
+</body>
+</html>
