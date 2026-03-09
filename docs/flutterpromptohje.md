@@ -65,9 +65,9 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näi
 ## 💾 3. ARCHITECTURE & DATA LIFECYCLE
 
 ### 3.1 Single Source of Truth (SSOT) & Domain Service Layer (MANDATORY)
-* **API Routers MUST be "Anemic":** FastAPI reitittimet (esim. `users.py`, `executions.py`) saavat sisältää vain HTTP-pyynnön parsinnan (Pydantic) ja `CurrentUserDep` -injektion. 
-* **NO RAW CRUD IN ROUTERS:** Reititin ei koskaan saa kutsua suoraan `repository.create()` tai `repository.get()`. Kaikki tietokanta- ja liiketoimintalogiikka (etenkin Tenant Isolation, RBAC ja Last Admin Guard) **ON PAKKO** reitittää aina kerroksen 2 (Domain Service Layer, esim. `AuthServiceDep`, `ExecutionServiceDep`) kautta.
-* **Miksi?** Järjestelmää ajetaan myös ohjelmallisesti tausta-ajoilla (worker.py, seeder.py), jotka eivät saa API-reitittimeltä valmiita käyttöoikeustarkastuksia. Service Layer on backendin ydin ja Single Source of Truth tälle logiikalle. 
+* **API Routers MUST be "Anemic":** FastAPI reitittimet (esim. `users.py`, `studio.py`) saavat sisältää vain HTTP-pyynnön parsinnan (Pydantic). 
+* **NO RAW CRUD IN ROUTERS:** Reititin ei koskaan saa kutsua suoraan `repository.create()` tai `repository.get()`, eikä se saa sisältää käyttöoikeuslogiikkaa (esim. `if current_user.role == "ROOT"`). Kaikki tietokanta- ja liiketoimintalogiikka (etenkin Tenant Isolation, RBAC ja Last Admin Guard) **ON PAKKO** reitittää aina kerroksen 2 (Domain Service Layer, esim. `AuthServiceDep`, `StudioServiceDep`, `ExecutionServiceDep`) kautta.
+* **Miksi?** Järjestelmää ajetaan myös ohjelmallisesti tausta-ajoilla (esim. `worker.py`), jotka eivät reitity API:n kautta. Service Layer on backendin ainoa Single Source of Truth luvitukselle ja datan eheyksille.
 
 ### 3.2 Dual Backend Parity
 * Kaikki tietokantaa koskevat CRUD-muutokset on peilattava ja päivitettävä säännönmukaisesti kumpaankin ajuriin: `repository.py` (TinyDB) ja `firestore_repo.py` (Cloud).
