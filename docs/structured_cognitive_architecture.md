@@ -2,9 +2,9 @@
 
 ## Abstract
 
-**Cognitive Quorum V5.1** is a data-driven cognitive architecture designed to produce deterministic, high-fidelity reasoning from stochastic LLMs. It separates the **Cognitive Strategy** (JSON-defined logic) from the **Execution Spine** (Python-defined flow). 
+**Cognitive Quorum V2 (Enterprise Standard)** is a data-driven cognitive architecture designed to produce deterministic, high-fidelity reasoning from stochastic LLMs. It shifts the **Cognitive Strategy** (JSON-defined logic, UI rendering rules, and evaluation matrices) entirely into the database (Zero-Deploy philosophy), while the **Execution Spine** (Python) remains a "dumb" deterministic orchestrator.
 
-The V5.1 iteration enforces a **Unidirectional Data Flow** where the "DNA" of the system (Evaluation Matrices, Prompts, System Config) is immutable code, seeded into the database to drive execution.
+The V2 iteration enforces a **Unidirectional Data Flow** where the "DNA" of the system (Evaluation Matrices, Prompts, System Config, and SDUI Hints) is immutable code, seeded into the database to drive execution.
 
 ---
 
@@ -21,7 +21,7 @@ The V5.1 iteration enforces a **Unidirectional Data Flow** where the "DNA" of th
 * **The Role of the Database**: The database acts as the single source of truth (SSOT) for the system's cognitive configuration. Hardcoded Python logic is strictly avoided for cognitive parameters; instead, the Engine reads these values from the database at the start of each execution. This allows Administrators to tune the system's behavior (e.g., scoring strictness, penalized phrases) via the UI without requiring code deployments.
 * **Components in DB**:
   * **System Config**: Defines Global Evaluation Penalties (e.g., `scoring_security_penalty`, `scoring_passivity_multiplier`) and Agent Strategies (e.g., `PanelAgent` -> `deep`).
-  * **Matrices (BARS)**: Behaviorally Anchored Rating Scales ("What is a score of 4 vs 1?"), defining the exact criteria the JudgeAgent must use.
+  * **Matrices (BARS & Calibration)**: Behaviorally Anchored Rating Scales ("What is a score of 4 vs 1?"), defining the exact criteria the JudgeAgent must use. Now includes a mathematical **Strictness Level (0-100)** to dynamically calibrate AI attitude, and **Theory-Grounded URLs** to fetch external frameworks.
   * **Prompts**: Directives ("You are a ruthless prosecutor."), injected dynamically during prompt building.
 
 ### C. Strict DTO Pattern (The "Air Gap")
@@ -111,8 +111,8 @@ All steps operate on the Hybrid State Architecture, reading inputs from the Blac
 2. **Step 1b: Context Retrieval (`step_context`)**: Fetches external knowledge (RAG). Outputs `RetrievalOutput`.
 3. **Step 2: Analyst (`step_analyst`)**: Establishes ground truth. Outputs `AnalystOutput` with `provenance_map`.
 4. **Step 3: Panel (`step_panel`)**: Parallel execution of specialized critics (Logician, Falsifier, Causal, Performativity, Overseer) wrapped in `PanelOutputDTO`. The Engine performs a **Fan-Out**, splitting this object into individual state keys (e.g., `step_logician`) to simulate independent agents.
-5. **Step 4: Judge (`step_judge`)**: Authoritative scoring using a Matrix. Outputs `EvaluationResult`.
-6. **Step 5: XAI Reporter (`step_xai`)**: Synthesizes final output into `XAIFlatReportDTO` (for external BI) and `SemanticReport` (Agnostic Semantic Report pipeline for Flutter and unified Server-Side PDF export, actively moving away from generic SDUI components).
+5. **Step 4: Judge (`step_judge`)**: Authoritative scoring using a Matrix. The matrix injects dynamic strictness parameters and forces Theory-Grounded multilingual justifications. Outputs `EvaluationResult`.
+6. **Step 5: XAI Reporter (`step_xai`)**: Synthesizes final output into `XAIFlatReportDTO` (for external BI) and `SemanticReport`. Output strictly follows **Late-Binding Omni-Channel** logic, resolving into interactive Riverpod SDUI (with Compound Widgets for UI hints), static Backend Jinja2 PDF, and Flat File / CSV exports without changing the underlying JSON logic.
 
 ---
 

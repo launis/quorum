@@ -1,6 +1,6 @@
 import re
 
-with open("backend/services/auth.py", "r", encoding="utf-8") as f:
+with open("backend_v2/services/auth.py", "r", encoding="utf-8") as f:
     content = f.read()
 
 # 1. Imports
@@ -263,5 +263,5 @@ content = content.replace("self.org_repo.create(", "await self.org_repo.create("
 content = content.replace("root = self.repo.get_by_id(", "root = await self.repo.get_by_id(")
 content = content.replace('self.repo.update(root.id, UserUpdate(organization_id="436d84de-c526-43b7-93ef-634912be0d2f"))', 'await self.repo.update(root.id, UserUpdate(organization_id="436d84de-c526-43b7-93ef-634912be0d2f"))')
 
-with open("backend/services/auth.py", "w", encoding="utf-8") as f:
+with open("backend_v2/services/auth.py", "w", encoding="utf-8") as f:
     f.write(content)

@@ -1,9 +1,9 @@
 # System Architecture (V5.1 / Phase 9 Hardening)
 
-**Status:** V5.1 Production Standard (2026)
-**Core Philosophy:** "Zero-Magic" Modular Async Monolith with Clean Architecture
+**Status:** Enterprise V2 / V5.1 Production Standard (2026)
+**Core Philosophy:** Zero-Deploy, SDUI & "Zero-Magic" Modular Async Monolith
 
-Cognitive Quorum V5.1 is a deterministic, highly verifiable AI orchestration platform. Its fundamental objective is to solve the inherent unpredictability (stochasticity) of Large Language Models (LLMs) by constraining them within a strict, deterministic software straitjacket. It strictly enforces separation of concerns through Domain APIs, Service/Repository layers, and a "Dumb" Server-Driven UI (SDUI) frontend.
+Cognitive Quorum V2 is a deterministic, highly verifiable, and 100% auditable AI orchestration platform. It shifts cognitive business logic, data routing, and UI rendering rules entirely into the database (Zero-Deploy). Its fundamental objective is to solve the inherent unpredictability (stochasticity) of Large Language Models (LLMs) by constraining them within a strict, deterministic software straitjacket. It strictly enforces separation of concerns through Domain APIs, Service/Repository layers, and a "Dumb" Server-Driven UI (SDUI) frontend.
 
 ### The "Mind" vs. "The Spine" (Separation of Cognition and Execution)
 The system fundamentally separates "intelligence" from "muscle":
@@ -89,7 +89,8 @@ graph TD
 * **Pattern**: Subclasses of a unified `BaseAgent` with explicit `InputModels` (e.g., `JudgeInput`) validated before invocation to eliminate runtime `AttributeError`s.
 * **Instructor-Based Structured Output**: The system natively enforces schemas via three layers: `instructor` wraps LiteLLM to enforce Pydantic at the API level, `tenacity` handles transient network errors, and Strict Validation on the agent side fails fast if the schema is violated.
 * **Reasoning Token Continuity ("Memory")**: To prevent LLM amnesia between steps, "Hidden Thinking" tokens (e.g., Gemini 1.5 Thinking) are explicitly extracted and passed to downstream agents via `state.reasoning_context`.
-* **High-Fidelity Matrix Formatting**: `PromptBuilder` and `MatrixFormatter` enforce strict BARS (Behaviorally Anchored Rating Scales) formatting. Matrices are converted to detailed Markdown rubrics with explicit anchor-to-scale mapping logic to ensure precise LLM adherence to grading criteria.
+* **Dynamic Calibration & High-Fidelity Matrix Formatting**: Every matrix has a built-in strictness/leniency parameter (0-100) which dynamically calibrates the AI's cognitive attitude via system prompt injection. `PromptBuilder` and `MatrixFormatter` enforce strict BARS formatting.
+* **Theory-Grounded XAI**: Matrices strictly bind to external theory sources (URLs). The system fetches this via a Web Fetcher and injects it to the Prompt before generation, forcing the AI to provide a numeric score, a multilingual justification, and a precise citation to that exact source.
 
 ### D. Performance Optimization: Panel Fusion (Courtroom 3.0)
 To avoid the high latency and cost of running specialized agents (e.g., Logician, Falsifier, Profiler) in a sequential chain, V5.1 introduces Panel Fusion:
@@ -108,9 +109,10 @@ To avoid the high latency and cost of running specialized agents (e.g., Logician
 * **Timeout Decoupling**: Standard HTTP timeouts (60s) are bypassed. Workers can process massive reasoning chains without client connection drops.
 * **Diagnostics**: For critical debugging, workers can dump the full `WorkflowState` to a local file (`debug_output_*.json`) as a standalone "Black Box" recording.
 
-### F. The "Face" (Flutter Client)
+### F. The "Face" (Flutter Client - SDUI)
 * **Location**: `client_app/`
 * **Architecture**: Riverpod 3.0 `AsyncNotifier` Matrix pattern. No large `Future.wait` monoliths.
+* **Zero-CodeGen Domain**: The use of code generators (`build_runner`, `freezed`, `@riverpod` codegen, etc.) is strictly forbidden for API/Domain data. Data is held as pure dynamic Map structures with defensive `SafeCast` parsing.
 * **BFF/UI Resilience (Dual-Reporting)**: The frontend gracefully degrades (e.g., a missing widget gracefully collapses using `SizedBox.shrink()`) without crashing the screen, logging a `🔴 UI GRACEFUL DEGRADATION` warning for developer visibility.
 
 ---
@@ -146,10 +148,10 @@ To prevent LLM confirmation bias and fabricated facts, information retrieval is 
 * **Multi-Tenancy**: Operations are scoped by `organization_id`.
 * **Relational Integrity**: `root` users cannot be deleted. Resources in use cannot be soft-deleted without erroring explicitly.
 
-### I18N (Internationalization) & Reporting Parity
+### I18N (Internationalization) & Late-Binding Omni-Channel
 * Enforced No-String rule across the boundary. Translatable concepts are passed as Enum keys.
 * Frontend `.arb` files strictly own the presentation and ICU-formatted pluralizations.
-* **Reporting Parity**: The exact same BFF data transformer is used to feed both the UI display and the downloadable PDF report generator. This guarantees 100% visual and logical consistency between all presentation formats.
+* **Reporting Parity / Omni-Channel**: Output is resolved at the very end of the process (Late-Binding) into three formats: the interactive SDUI (Flutter), a visually laid-out PDF (Backend Jinja2), and a Flat File / CSV export (One-Liner). This guarantees 100% logical consistency between all presentation formats.
 
 ---
 
@@ -170,6 +172,6 @@ To prevent LLM confirmation bias and fabricated facts, information retrieval is 
 | **Validation** | Pydantic | 2.0+ | Strict Data parsing |
 | **Worker** | Arq | 0.26+ | Job Queue |
 | **Frontend** | Flutter | 3.27+ | UI / Client |
-| **State Mgmt** | Riverpod | 3.0+ | Generators & AsyncNotifiers |
+| **State Mgmt** | Riverpod | 3.0+ | AsyncNotifiers (No Domain Codegen) |
 | **Routing** | GoRouter | 14.0+ | GoRouteData strictly |
 | **LLM** | Vertex AI / LiteLLM | Gemini 1.5/2.5 | Cognitive Engine |

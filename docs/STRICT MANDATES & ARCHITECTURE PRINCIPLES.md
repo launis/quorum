@@ -2,12 +2,13 @@
 
 Tämä dokumentti määrittelee Cognitive Quorum -järjestelmän palvelinpään (Backend) ja arkkitehtuurin ehdottomat säännöt. Näistä säännöistä ei jousteta missään tilanteessa.
 
-## 1. THE ZERO-COMPROMISE PLEDGE (Quality Standard)
+## 1. THE ZERO-COMPROMISE PLEDGE (Quality Standard & Zero-Deploy)
+- **Zero-Deploy Philosophy:** Kaikki kognitiivinen liiketoimintalogiikka, datareititys ja SDUI-renderöintisäännöt siirretään tietokantaan. Järjestelmää ohjataan ilman koodipäivityksiä.
 - **Laadusta ei jousteta:** Ei "quick hackeja", ei teknistä velkaa, ei defensiivistä koodausta.
 - **Fail-Fast Boundary:** Ydinlogiikassa (Core Engine, Database, Domain) järjestelmän ON KAADUTTAVA VÄLITTÖMÄSTI virheellisen tilan tai puuttuvan datan kohdalla. `try-except pass` ja hiljainen tyhjän (`None`, `[]` tai `{}`) palauttaminen dataa odotettaessa ovat EHDOTTOMASTI KIELLETTYJÄ, koska ne piilottavat upstream-virheet.
 - **Juussyiden korjaaminen (Root Cause Mandate):** Oireita ei paikata pintapuolisesti (esim. `if x is None: return` tai `.get('field', default)`), vaan virheellisen datan alkulähde etsitään ja korjataan.
 - **Strict Typing & No Defaults:** Domain-malleissa ei saa olla implisiittisiä oletusarvoja pakollisille kentille (esim. `score: float = 0.0` on sallittu vain jos se on loogisesti oikea oletus).
-- **Python Authority (Determinism):** Deterministinen logiikka (matematiikka, lajittelu, deduplikointi, ID:n luonti) tehdään aina Pythonissa (`BaseAgent.post_process()`). Tekoälylle ei delegoida järjestelmäkriittistä determinististä logiikkaa.
+- **Python Authority (Determinism):** Deterministinen logiikka (matematiikka, lajittelu, deduplikointi, ID:n luonti) tehdään aina Pythonissa (`BaseAgent.post_process()`). Tekoälylle ei delegoida järjestelmäkriittistä determinististä logiikkaa. V2:ssa myös **Arvioinnin Kalibrointi (Tiukkuus/Armollisuus)** käännetään matemaattisesta parametrista (0-100) dynaamisesti injektoitavaksi kognitiiviseksi ohjeeksi prompt compilerissa.
 
 ## 2. DOCUMENTATION & HYGIENE
 - **English Only -sääntö (Koodi):** Koko koodipohja (muuttujat, funktiot, luokat, docstringit ja kommentit) on yksinomaan englanniksi. Suomenkieliset termit koodissa on siivottu paikalleen ainoastaan lokalisaatiotiedostoihin (`app_fi.arb`, `fi.json`).
@@ -25,7 +26,7 @@ Tämä dokumentti määrittelee Cognitive Quorum -järjestelmän palvelinpään 
 ## 4. PYTHON BACKEND MANDATES & SISÄINEN CRUD API (SSOT)
 - **Database SSOT & Seed Data:** `backend/seed/seed_data.json` toimii Single Source of Truthinä (SSOT) alkuperäiselle konfiguraatiolle, steppeille ja workfloweille. Konfiguraatioita ei kovakoodata Python-luokkiin.
 - **Sisäinen CRUD API (Service & Repository):** Järjestelmän ytimessä on vahva Service- ja Repository-kerros, joka on AINOA paikka, josta otetaan yhteys tietokanta-ajureihin. Ulkoinen HTTP API, asynkroniset Workerit ja Agentit käyttävät yksinomaan näitä Service/Repository CRUD -metodeja.
-- **Pydantic V2 (No-ORM):** Ainoa totuuden lähde datalle API-rajoilla ja logiikassa. Kaikki datansiirto käyttää tiukkoja Pydantic-malleja (`ConfigDict(strict=True, extra="ignore")`). Säännöttömien `dict`-objektien siirtely ydinlogiikassa on kielletty.
+- **Schema-Driven AI (Dynaaminen Pydantic):** Ainoa totuuden lähde datalle API-rajoilla ja logiikassa. Kaikki datansiirto käyttää tiukkoja Pydantic-malleja (`ConfigDict(strict=True, extra="ignore")`). LLM pakotetaan dynaamisesti luotuihin OpenAPI-skeemoihin `pydantic.create_model`-funktiolla. Säännöttömien `dict`-objektien siirtely ydinlogiikassa on kielletty.
 - **Dependency Injection (DI):** Riippuvuudet välitetään `Annotated[Type, Depends()]` -syntaksilla FastAPI-rajapinnoissa ja kytketyissä palveluissa.
 
 ## 5. ERROR HANDLING CONTRACT (RFC 7807 & Fail Fast)
@@ -34,10 +35,12 @@ Tämä dokumentti määrittelee Cognitive Quorum -järjestelmän palvelinpään 
 - **RFC 7807 Problem Details:** Backendin globaali Exception Handler palauttaa kaikki virheet standardoidussa RFC 7807 -muodossa. 
 - **Actionable Hints (Frontend):** Backend ei palauta lokalisoituja virheviestejä (`"Tapahtui virhe"`), vaan se palauttaa vain `ErrorCodes`-vakioita, jotka Frontend kääntää käyttäjälle ymmärrettäviksi `.arb`-käännöstiedostojen avulla.
 
-## 6. INTERNATIONALIZATION (I18N) STANDARDS
+## 6. INTERNATIONALIZATION (I18N) & LATE-BINDING OMNI-CHANNEL
 - **The "No-String" API Policy:** Backend toimittaa DATAA (avaimia, Enumeita, koodeja, tiloja). Front-end toimittaa ESITYKSEN (käännökset). Backend ei koskaan palauta hardkodattuja lokalisoituja UI-merkkijonoja API:n yli (Poikkeuksena LLM:n natiivisti generoima dynaaminen vapaa teksti).
-- **Backend I18N Rajoitus:** Backendin omaa lokalisointia (`backend/l10n/`) käytetään VAIN palvelinpään renderöintiin (esim. luotaessa PDF-dokumentteja dynaamisesti).
+- **Esityseristys (Late-Binding):** Datan prosessointi pidetään yhtenäisenä koneluettavana JSON-rakenteena. Rakenne purkautuu vasta aivan viimeisessä adapterikerroksessa kanavakohtaisiin muotoihin (Flutter SDUI, Jinja2 PDF, Litteä Flat File/CSV vienti). Muutos ei saa vaikuttaa yhteiseen dataan.
+- **Backend I18N Rajoitus:** Backendin omaa lokalisointia (`backend/l10n/`) käytetään VAIN palvelinpään renderöintiin (esim. luotaessa PDF-dokumentteja dynaamisesti "pimeällä puolella").
 
-## 7. SERVER-DRIVEN UI (SDUI) & "DUMB" FRONTEND
-- **SDUI & BFF Resilience:** Frontend delegointi on pidetty kevyenä. Backend Backend-for-Frontend (BFF) -muuntajat (esim. `domain/profiling.py`, `domain/logic.py`) kokoavat ja mappaavat laajat Domain-mallit tarkoiksi, tyyppiturvallisiksi View-malleiksi (esim. `DriverProfileDisplay`).
+## 7. THEORY-GROUNDED XAI & SERVER-DRIVEN UI (SDUI)
+- **SDUI & BFF Resilience:** Frontend delegointi on pidetty kevyenä. Backend Backend-for-Frontend (BFF) -muuntajat kokoavat ja mappaavat laajat Domain-mallit tarkoiksi View-malleiksi (esim. ui_hints_snapshot). Frontend muodostaa dynaamisia yhdistelmäkomponentteja näiden pohjalta.
+- **Teoriamaadoitettu XAI:** Backend sitoo arvioinnit teoriakriteereihin (URL). Järjestelmä hakee nämä automaattisesti, syöttää ne LLM:n kontekstiin XML-tageilla, ja pakottaa monikielisen perustelun tukeutumaan nimenomaisesti tähän lähteeseen (`_justification` & `_citation` attribuutit).
 - **UI Graceful Degradation:** Jos komponentin data on viallista, se hylätään mieluummin rakenteellisesti (Fail Fast Backendissä) tai pehmennetään paikalliseen "Error Componenttiin" Frontendissä. UI ei kaada koko näkymää yhden widgetin virheeseen.

@@ -3,8 +3,13 @@
 **PROJECT**: Google Antigravity (Monorepo: Python Backend + Flutter Client)
 **STATUS**: Phase 9 (Hardening & Standardization)
 
+> [!CAUTION]
+> **SUPREME ARCHITECTURE LAW (V2)**
+> Tämän dokumentin yläpuolella on yksi ylin, ohittamaton auktoriteetti: **`docs/Flutter Frontend V2 Suunnitelma.md`**.
+> Mahdollisissa ristiriitatilanteissa tämän manifestin, ohjeistuksien (KI) tai minkä tahansa muun dokumentin ja **V2 Suunnitelman** välillä, **V2 Suunnitelma määrää aina absoluuttisesti järjestelmän suunnan ja säännöt.**
+
 > [!IMPORTANT]
-> Tämä dokumentti on koko ohjelmistoprojektin perustuslaki. Kaikki tekoälyagentit (kuten Antigravity Assistant) ja ihmiskehittäjät on sidottu näihin absoluuttisiin sääntöihin.
+> Tämä dokumentti on koko ohjelmistoprojektin perustuslaki (V2 Suunnitelman alaisuudessa). Kaikki tekoälyagentit (kuten Antigravity Assistant) ja ihmiskehittäjät on sidottu näihin absoluuttisiin sääntöihin.
 
 ---
 
@@ -21,8 +26,8 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näi
 | **State** | Use `@riverpod` (Generator) + `ref.watch()` | `ChangeNotifier`, `StateProvider`, manual `Provider` |
 | **Routing** | Use `GoRouteData` (Type-safe classes) | Raw strings: `context.push('/home')` |
 | **API** | Use `Annotated[Dep, Depends()]` | `params: Dep = Depends()` (Old syntax) |
-| **Models** | Use `model_validate`, `model_dump` | `.parse_obj()`, `.dict()` |
-| **Data** | Use `@freezed` (Immutable Unions) | Mutable classes or plain `json_serializable` |
+| **Models (Backend)** | Use `model_validate`, `model_dump` | `.parse_obj()`, `.dict()` |
+| **Domain Data (Frontend)** | `Freezed`, `@riverpod` codegen (To speed up DEV & simplify data) | Pure `Map<String, dynamic>` (Too slow to type and parse) |
 
 ### 1.3 Routine Quality Gates (Verifications)
 Älä koskaan merkitse työtä valmiiksi tarkistamatta sitä manuaalisesti laadunvarmistustyökaluilla:
@@ -59,10 +64,10 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näi
 
 ## 💾 3. ARCHITECTURE & DATA LIFECYCLE
 
-### 3.1 Single Source of Truth (SSOT)
-* **`backend/seed/seed_data.json` on Absoluuttinen SSPT.** Järjestelmän konfiguraatiota (asennukset, tekoälymallit, stepit) ei kovakoodata Python-luokkiin.
-* **The Wiring Rule:** Steps-taulukko luokittelee osat. Workflows-taulukko **vain yhdistää ID:t**. Stepien rakennemäärittelyä (task_key, model_config) ei saa toistaa Workflown sisällä! Ilmiö rikkoo SSOT:n.
-* **Vahva Relaatiosuoja (Kooditasolla):** Järjestelmässä on rakennettu Service-tärso, joka estää aktiivisten (workflows) komponenttien ja steppien poistamisen asettaen `AppException` -suojan. Et saa poistaa ydinasetuksia tai admin-tason instansseja "pika-skripteillä" backendistä käsin.
+### 3.1 Single Source of Truth (SSOT) & Domain Service Layer (MANDATORY)
+* **API Routers MUST be "Anemic":** FastAPI reitittimet (esim. `users.py`, `executions.py`) saavat sisältää vain HTTP-pyynnön parsinnan (Pydantic) ja `CurrentUserDep` -injektion. 
+* **NO RAW CRUD IN ROUTERS:** Reititin ei koskaan saa kutsua suoraan `repository.create()` tai `repository.get()`. Kaikki tietokanta- ja liiketoimintalogiikka (etenkin Tenant Isolation, RBAC ja Last Admin Guard) **ON PAKKO** reitittää aina kerroksen 2 (Domain Service Layer, esim. `AuthServiceDep`, `ExecutionServiceDep`) kautta.
+* **Miksi?** Järjestelmää ajetaan myös ohjelmallisesti tausta-ajoilla (worker.py, seeder.py), jotka eivät saa API-reitittimeltä valmiita käyttöoikeustarkastuksia. Service Layer on backendin ydin ja Single Source of Truth tälle logiikalle. 
 
 ### 3.2 Dual Backend Parity
 * Kaikki tietokantaa koskevat CRUD-muutokset on peilattava ja päivitettävä säännönmukaisesti kumpaankin ajuriin: `repository.py` (TinyDB) ja `firestore_repo.py` (Cloud).
@@ -147,8 +152,9 @@ except Exception as e:
 
 ## 🖥️ 7. HYBRID SDUI & BFF (Backend-for-Frontend)
 
-### 7.1 SDUI (Server-Driven UI)
-Ohjelmisto kääntää isot epäsäännölliset rakenteet Frontendin (Flutter) nautittavaan dynaamiseen perusformaattiin. Backend lähettää rakennetta (Schema), ja Frontend osaa piirtää yleispätevän `DynamicFormWidget`in tai `UiSection`in näiden pohjalle.
+### 7.1 Zero-Deploy SDUI & Compound Widgets (Server-Driven UI)
+Kaikki kognitiivinen liiketoimintalogiikka ja käyttöliittymän piirtosäännöt konfiguroidaan tietokannassa. Frontend on "tyhmä" renderöintimoottori, joka kääntää isot epäsäännölliset rakenteet nautittavaan dynaamiseen perusformaattiin. 
+Käyttöliittymä piirtää UI-vihjeiden (esim. `slider`) pohjalta dynaamisia yhdistelmäkomponentteja (Compound Widgets), jotka näyttävät LLM:n teoriaperustelun ja virallisen lähdeviitteen automaattisesti laajennettavissa Markdown-laatikoissa.
 
 ### 7.2 The BFF Mapping layer
 Tässä kerroksessa isot domain mallit pienennetään spesifeihin View-malleihin (esimerkiksi `DriverProfileDisplay`).
@@ -168,8 +174,8 @@ Kaikki erikoisagenttien (kuten Logician tai Archivist) tuottamat erikoistulokset
 
 **"The No-String Mandate"**
 
-### 8.1 Backend Supplies Data, Frontend Supplies Presentation
-Backend **EI KOSKAAN** palauta API:ssa lokalisointia tai ydisteltyjä UI-merkkijonoja. Kaikki status- ja tyyppikentät esitetään yksinomaisin ja muuttumattomin Enum-koodein (`"status": "AUTH_ORGANIC"`). Backend tekee lokalisaatiota ainoastaan "pimeällä puolella" omissa PDF-renderöinneissään (`backend/l10n/fi.json`).
+### 8.1 Late-Binding Omni-Channel (Backend Supplies Data)
+Backend **EI KOSKAAN** palauta API:ssa lokalisointia tai yhdisteltyjä UI-merkkijonoja. Kaikki status- ja tyyppikentät esitetään yksinomaisin ja muuttumattomin Enum-koodein (`"status": "AUTH_ORGANIC"`). Tulosteiden lopullinen muoto (Flutter SDUI, taitettu Jinja2 PDF, litteä CSV/Flat-File export) purkautuu vasta aivan prosessin lopussa myöhäisellä sidonnalla (Late-Binding). Lokalisaatio ja esitysasu ratkaistaan aina kanavakohtaisesti.
 
 ### 8.2 Frontend ICU Formatting (Ei string-katenointia)
 Manuaalinen ohjelmallinen sanaliitto (`"Score: " + val.toString()`) on ehdottoman **KIELLETTYÄ**. Piste. 

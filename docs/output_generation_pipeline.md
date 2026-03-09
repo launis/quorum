@@ -4,7 +4,7 @@
 
 This document details the complete lifecycle of data execution in the Cognitive Quorum system. It traces the data flow from the initial user input, through the cognitive processing layers, database persistence, and finally to the rendering tier (SDUI & PDF).
 
-**Core Philosophy**: The system strictly separates **Cognition** (Thinking) from **Presentation** (Rendering). The "Brain" produces strict, unformatted data models; the "Renderer" reads BFF Transformers to translate them into human-readable visual layouts.
+**Core Philosophy**: The system enforces **Zero-Deploy** and **Late-Binding Omni-Channel** principles. It strictly separates **Cognition** (Thinking) from **Presentation** (Rendering). Kaikki kognitiivinen liiketoimintalogiikka ja arvioinnin kalibrointi on tietokannassa (Zero-Deploy). The "Brain" produces strict, unformatted data models; the "Renderer" reads BFF Transformers to translate them into human-readable visual layouts (Flutter SDUI, PDF, Flat File/CSV) based on late-binding logic.
 
 ---
 
@@ -56,10 +56,10 @@ Because `WorkflowState` contains massive amounts of raw internal event logs, it 
     * **Simulations / Debugging**: Allows developers to view the exact raw state without UI formatting.
     * **Data Integrations**: Sending execution webhooks to external business tools.
 
-### 3.2 The BFF Transformers (Semantic Transformers & SDUI Hub)
+### 3.2 The BFF Transformers (Semantic Transformers & Omni-Channel Hub)
 * **Location**: `backend/api/transformers/domain/*.py`
-* **Role**: Maps heavy Domain models to strictly typed **Semantic Models** for the UI. *Note: We have strictly moved away from generic Server-Driven UI (SDUI) (like sending UI components/colors from the backend) and restricted its usage. We now send agnostic Semantic Blocks.*
-* **Architectural Responsibility (Mathematical & Visu-Logical Formatting)**: This layer is explicitly responsible for transforming raw metrics (e.g. `score: 3.0`) into pre-calculated view-ready strings (e.g. `score_display: "3.0"`, `bubble_style: "left: 50%..."`) to ensure absolute **Parity** across renderers (Flutter vs HTML). 
+* **Role**: Maps heavy Domain models to strictly typed **Semantic Models** for the Omni-Channel output. This includes extracting **Theory-Grounded XAI justifications** into the semantic blocks. *Note: We have strictly moved away from generic Server-Driven UI (SDUI) (like sending raw UI components/colors from the backend). We now send agnostic Semantic Blocks containing UI hints.*
+* **Architectural Responsibility (Mathematical & Visu-Logical Formatting)**: This layer is explicitly responsible for transforming raw metrics (e.g. `score: 3.0`) into pre-calculated view-ready strings (e.g. `score_display: "3.0"`, `bubble_style: "left: 50%..."`) to ensure absolute **Parity** across all Late-Binding renderers (Flutter SDUI, Jinja2 PDF, CSV export). 
     * 🚫 **Forbidden in Transformers**: Calling LLMs or mutating database state.
 * **Examples**:
     * `LogicDomainTransformer`: Maps `ToulminComponent` to `ToulminDisplay` (adds `bubble_size` calculations for the quadrant radar).
@@ -67,9 +67,9 @@ Because `WorkflowState` contains massive amounts of raw internal event logs, it 
 
 ---
 
-## 4. Phase III: Rendering (The "Artist")
+## 4. Phase III: Rendering (Late-Binding Omni-Channel)
 
-### 4.1 Flutter UI (Client App)
+### 4.1 Flutter SDUI (Client App)
 * **Source**: `/api/v1/executions/{id}/views/...`
 * **Mechanism**:
     1. Frontend requests specific views (e.g. Profiler Analysis).
@@ -79,10 +79,11 @@ Because `WorkflowState` contains massive amounts of raw internal event logs, it 
     5. **Graceful Degradation**: If the backend fails to extract a view, or the view is partially missing, Flutter uses `SizedBox.shrink()` to prevent white screens but logs `🔴 UI GRACEFUL DEGRADATION` for the developer.
     * 🚫 **Forbidden in Renderers**: Renderers MUST NOT perform inline mathematical combinations or conditional formatting (e.g. `{{ value | round(1) }}` or `(score * 100).toStringAsFixed(1)`). They must use the pre-calculated `_display` strings provided by the BFF to guarantee parity.
 
-### 4.2 PDF Generation (Server-Side)
+### 4.2 PDF Generation & Flat File/CSV Export (Server-Side)
 * **Mechanism**:
     1. The PDF generator directly uses the same BFF Transformers and `ReportView` models as the frontend to maintain exact parity.
     2. Because PDF generation is server-side, it is the *only* place permitted to use the internal `backend/l10n` dictionary to resolve strings directly on the server before rendering to PDF.
+    3. **CSV/Flat-File Export**: Sama purkautuva yhtenäinen JSON-data voidaan reitittää litistettyyn muotoon yritysjärjestelmien integraatioita varten (One-Liner). Täysi datapariteetti säilyy.
 
 ---
 

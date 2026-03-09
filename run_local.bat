@@ -5,6 +5,15 @@ echo   (LOCAL DB: data\db.json)
 echo ===================================================
 echo.
 
+:: Aggressive cleanup: Kill lingering processes that might hold file locks
+echo [Cleaning orphaned processes...]
+taskkill /F /IM uvicorn.exe >nul 2>&1
+FOR /F "tokens=5" %%P IN ('netstat -a -n -o ^| findstr :8000 ^| findstr LISTENING') DO taskkill /F /PID %%P >nul 2>&1
+taskkill /F /FI "WINDOWTITLE eq CQ Backend V2*" >nul 2>&1
+taskkill /F /FI "WINDOWTITLE eq CQ Worker V2*" >nul 2>&1
+taskkill /F /FI "WINDOWTITLE eq CQ Client*" >nul 2>&1
+:: Note: Not killing brute python.exe to avoid killing the user's IDE terminal environments.
+
 :: Clear old logs to ensure clean debug session
 if exist backend_debug.log del backend_debug.log
 if exist client_debug.log del client_debug.log
@@ -41,14 +50,14 @@ echo       Notes:  Allows testing real logins ^& real LLM calls without touching
 set USE_FIREBASE_AUTH=true
 
 :: Backend
-start "CQ Backend (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=true&& uv run uvicorn backend.main:app --reload --reload-dir backend --port 8000 --log-config backend/uvicorn_logging.yaml"
+start "CQ Backend V2 (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=true&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --port 8000 --log-config backend_v2/uvicorn_logging.yaml"
 
 :: Worker
-start "CQ Worker (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend.run_worker"
+start "CQ Worker V2 (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend_v2.run_worker"
 
 echo [3/3] Launching Client (Flutter)...
 if "%USE_JSON_LOGGING%"=="" set USE_JSON_LOGGING=false
-start "CQ Client (LOCAL)" cmd /k "cd client_app && echo [Flutter] Resolving packages silently... && flutter pub get >nul 2>&1 && flutter run -d windows --no-pub --dart-define=USE_JSON_LOGGING=%USE_JSON_LOGGING%"
+start "CQ Client (LOCAL)" cmd /k "cd client_app_v2 && echo [Flutter] Resolving packages silently... && flutter pub get >nul 2>&1 && flutter run -d windows --no-pub --dart-define=USE_JSON_LOGGING=%USE_JSON_LOGGING%"
 
 echo.
 echo ---------------------------------------------------

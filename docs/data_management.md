@@ -3,8 +3,8 @@
 The engine is **data-driven**: logic definitions are stored in JSON (the "Mind"), but strict data contracts are enforced via Python/Dart code (the "Body").
 
 > [!IMPORTANT]
-> **V5.1 Standard (Strict Pydantic V2 & Zero-Compromise)**
-> All internal state management MUST use **Pydantic V2 Models**. Dictionary passing (`dict[str, Any]`) is strictly forbidden for inter-component communication. If a field is missing, the system **Fail Fasts** with `AppException`.
+> **Enterprise V2 Standard (Strict Pydantic V2 & Zero-Deploy)**
+> All internal state management MUST use **Pydantic V2 Models**. Dictionary passing (`dict[str, Any]`) is strictly forbidden for inter-component communication. If a field is missing, the system **Fail Fasts** with `AppException`. Järjestelmä siirtää kaiken kognitiivisen liiketoimintalogiikan, datareitityksen, arvioinnin kalibroinnin ja käyttöliittymän piirtosäännöt tietokantaan (Zero-Deploy).
 
 ---
 
@@ -16,14 +16,15 @@ The engine is fundamentally **data-driven**. In a traditional application, busin
 The system treats the database not just as a storage medium for user records, but as the actual **source code for the AI's behavior**. 
 * **LLM Definitions are Data**: The prompts, instructions, behavioral rubrics (Matrices), and rules that constrain the LLM's reasoning are stored entirely as database records (e.g., in the `components` collection).
 * **Dynamic Programming**: Changing a database record instantly alters how the system "thinks" and evaluates inputs, without needing to modify or redeploy any Python code. The database holds the AI's "Mind".
-* **Single Source of Truth (SSOT)**: `backend/seed/seed_data.json` acts as the master blueprint for this logic.
+* **Single Source of Truth (SSOT)**: `backend_v2/seed/seed_data.json` acts as the master blueprint for this logic.
 
 ### Database Data Flow
 1. **Seeding (Blueprint to Database)**: `seed_data.json` is ingested into the Runtime Database (TinyDB or Firestore). This step "compiles" the JSON blueprint into active database records.
 2. **Execution Hydration (Database to Engine)**: When a workflow execution starts, the `GraphEngine` queries the database to fetch the necessary components (Prompts, Matrices, Settings).
 3. **Prompt Assembly (Data to Output)**: The `PromptBuilder` merges this database-sourced logic with the user's input data to form the final LLM prompt.
 4. **State Persistence (Engine to Database)**: As the agents process the data, the intermediate and final results (strictly validated via Pydantic) are written back to the database as event traces within the `WorkflowState`.
-5. **Reverse Sync (Database to Blueprint)**: Modified logic (e.g., tweaked prompts via a future admin UI) residing in the runtime database can be exported back to `seed_data.json` using migration scripts (`migrate_to_seed.py`).
+5. **Dynaaminen Datan Reititys (Semantic Data Flow)**: Työnkulkuun tulevan datan määrä ja rooli ovat täysin dynaamisia. Järjestelmä reitittää alkuperäiset tiedostot ja aiempien agenttien tuotokset seuraaville agenteille XML-eristettyinä, semanttisina rooleina.
+6. **Reverse Sync (Database to Blueprint)**: Modified logic (e.g., tweaked prompts via a future admin UI) residing in the runtime database can be exported back to `seed_data.json` using migration scripts (`migrate_to_seed.py`).
 
 *   **Zero-Fallback Mandate**: Hardcoded defaults in code are strictly forbidden. If data is missing from the database, the system must **raise an error** rather than guessing.
 *   **Static Schema Synchronization**: The `inputs` definitions in the Seed JSON are continuously verified against the strict Pydantic Agent Domains via `test_seed_schema_alignment.py` to prevent configuration drift and ensure flawless hydration by the `GraphEngine`.
@@ -34,23 +35,23 @@ The system treats the database not just as a storage medium for user records, bu
 
 The system utilizes a 3-tier hierarchy to differentiate between development speeds and production fidelity.
 
-### Tier 1: Local Mock (`backend/database/db_mock.json`)
+### Tier 1: Local Mock (`backend_v2/database/db_mock_v2.json`)
 *   **Purpose**: Rapid offline development, unit tests, and "clean slate" logic verification.
 *   **Inference**: Uses `USE_MOCK_LLM=true` (Zero-Cost).
 *   **Storage**: `TinyDB`.
-*   **Seeding**: `python backend/seed/run_seed.py mock`
+*   **Seeding**: `uv run backend_v2/seed/run_seed.py mock`
 
-### Tier 2: Local Production (`data/db.json`)
+### Tier 2: Local Production (`data/db_v2.json`)
 *   **Purpose**: High-fidelity verification with **Live Vertex AI** models but local storage.
 *   **Inference**: Uses Real LLMs (Cost incurred). Perspectives persist across restarts.
 *   **Storage**: `TinyDB` (mimicking Firestore document structure).
-*   **Seeding**: `python backend/seed/run_seed.py local`
+*   **Seeding**: `uv run backend_v2/seed/run_seed.py local`
 
 ### Tier 3: Cloud Production (Firestore)
 *   **Purpose**: Multi-tenant SaaS operations in Google Cloud (`europe-north1`).
 *   **Inference**: Real LLMs.
 *   **Storage**: Google Cloud Firestore (Native).
-*   **Seeding**: `python backend/seed/run_seed.py firestore`
+*   **Seeding**: `uv run backend_v2/seed/run_seed.py firestore`
 
 ---
 
@@ -224,10 +225,11 @@ The BFF Layer (`bff_transformer.py` / Semantic Domain Transformers) must structu
     *   **Structure**: Contains *only* the inner data (e.g., `LogicianData`, `PerformativityAnalysis`).
     *   **Pipeline Action (Dynamic Reconstruction)**: Custom Transformer logic (e.g., within `_extract_detector_section`) MUST actively detect if it only received the inner data. If so, it must construct the outer shell (e.g., `PerformativityOutput(...)`) *on the fly*, injecting default reasoning traces to satisfy strict schema requirements before continuing the Semantic Block translation.
 
-### 7.3. UI Safety Mandate (UiSection)
+### 7.3. UI Safety Mandate & Late-Binding Omni-Channel
 *   The `UiSection.data` field is strictly typed as `dict[str, Any]`.
 *   **Prohibition**: Never pass `None`.
 *   **Requirement**: Data Transformers must return an empty dictionary `{}` if the input data is missing or invalid.
+*   **Late-Binding Omni-Channel**: Datan prosessointi pidetään yhtenäisenä koneluettavana JSON-rakenteena läpi koko prosessin. Rakenne purkautuu vasta aivan viimeisessä adapterikerroksessa kolmeen eri muotoon: interaktiivinen Flutter SDUI, Jinja2 PDF, tai litteä CSV/Flat-File vienti. Tämä varmistaa 100% loogisen yhdenmukaisuuden kanavien välillä, ja vaatii defensiivistä datamuotoilua ilman käyttöliittymäkohtaisia hardcode-tekstejä.
 
 ---
 
@@ -285,7 +287,7 @@ We strictly mandate that Python `Enum` values and UI Localization keys (`l10n/*.
 
 **The Migration Consequence (Database Destruction):**
 Because the system strictly casts strings to Enums during deserialization (`model_validate`), changing the fundamental Enum values in code (e.g., from `ABDUCT_GENUINE` to `GENUINE`) instantly invalidates all historical records in the database that hold the old strings. 
-Since this architecture intentionally avoids ORMs and database migration scripts for local development, **the only supported resolution for a schema-breaking Enum change is to completely wipe and re-seed the runtime database** using `python backend/seed/run_seed.py local`. Old execution data is inherently disposable and is intentionally destroyed to maintain strict type hygiene.
+Since this architecture intentionally avoids ORMs and database migration scripts for local development, **the only supported resolution for a schema-breaking Enum change is to completely wipe and re-seed the runtime database** using `uv run backend_v2/seed/run_seed.py local`. Old execution data is inherently disposable and is intentionally destroyed to maintain strict type hygiene.
 
 ---
 

@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="3" time="0.407" timestamp="2026-03-05T14:23:16.013650+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.test_domain_models" name="test_logician_cognitive_level_bloom_score_bounds" time="0.002" /><testcase classname="backend.tests.test_domain_models" name="test_falsifier_fidelity_abductive_score_bounds" time="0.001" /><testcase classname="backend.tests.test_domain_models" name="test_profiler_metrics_imperative_command_count" time="0.001"><failure message="Failed: DID NOT RAISE &lt;class 'pydantic_core._pydantic_core.ValidationError'&gt;">def test_profiler_metrics_imperative_command_count():
-&gt;       with pytest.raises(ValidationError):
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       Failed: DID NOT RAISE &lt;class 'pydantic_core._pydantic_core.ValidationError'&gt;
-
-backend\tests\test_domain_models.py:68: Failed</failure></testcase></testsuite></testsuites>

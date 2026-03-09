@@ -3,8 +3,8 @@
 The Cognitive Quorum system is a hybrid architecture composed of **Specialized Agents** (Python Classes), **Deterministic Hooks** (Helper Modules), a **Configuration-Driven Registry** (SSOT Components), and a strictly typed **Server-Driven UI (SDUI)** platform.
 
 > [!IMPORTANT]
-> **V5.1 Standard (Strict Pydantic V2 & Zero-Compromise)**
-> All components must adhere to **RFC 7807 Fail Fast** principles. Defensive coding (e.g., `getattr(obj, "field", default)`) to hide missing data is strictly forbidden. Agents, Services, and Hooks must trust the Pydantic Schema and raise `AppException` immediately upon data violation.
+> **Enterprise V2 Standard (Strict Pydantic V2 & Zero-Deploy)**
+> Järjestelmä siirtää kaiken kognitiivisen liiketoimintalogiikan, datareitityksen, arvioinnin kalibroinnin ja käyttöliittymän piirtosäännöt tietokantaan (Zero-Deploy). All components must adhere to **RFC 7807 Fail Fast** principles. Defensive coding (e.g., `getattr(obj, "field", default)`) to hide missing data is strictly forbidden. Agents, Services, and Hooks must trust the Pydantic Schema and raise `AppException` immediately upon data violation.
 
 ---
 
@@ -23,9 +23,9 @@ Agents in V5.1 are specialized classes inheriting from `BaseAgent`, designed to 
 | `CausalAgent` | `causal.py` | Impact verification (Did user input *cause* improvement?).| `CausalAnalysis` |
 | `OverseerAgent` | `overseer.py` | Protocol compliance and system logic monitoring. | `OverseerData` |
 | `PanelAgent` | `panel.py` | **Unified Parallel Critic**: Orchestrates sub-critics in parallel. | `PanelOutput` |
-| `JudgeAgent` | `judge.py` | **Polymorphic Scorer**: Final verdict using dynamic `matrix_id`. | `JudgeOutput` |
+| `JudgeAgent` | `judge.py` | **Polymorphic Scorer**: Final verdict using dynamic `matrix_id`, calibrated stricness (0-100), and forcing Theory-Grounded XAI justifications. | `JudgeOutput` |
 | `CoachAgent` | `coach.py` | Feedback generation based on Judge's verdict. | `CoachingPlan` |
-| `XAIReporterAgent`| `xai.py` | **Explanability Engine**: Final executive summary rendering. | `XAIOutput` |
+| `XAIReporterAgent`| `xai.py` | **Explanability Engine**: Final executive summary rendering. | `XAIFlatReportDTO` |
 
 ### 1.1 Python Authority Layer (`post_process`)
 The system enforces the **Deterministic Python** rule. LLMs are never trusted with Math, Formatting, or Deduplication. The Agent's wrapper class MUST override `post_process()` to perform these actions deterministically before promoting the raw LLM output to a Domain Model.
@@ -36,10 +36,10 @@ The system enforces the **Deterministic Python** rule. LLMs are never trusted wi
 
 The "Mind" of the system is decoupled from Python logic files. Reusable configuration blocks are stored and versioned in `seed_data.json`.
 
-### Component Types
-1. **`workflows`**: The Structural DAG (Directed Acyclic Graph) determining step sequences.
+### Component Types (Zero-Deploy)
+1. **`workflows`**: The Structural DAG (Directed Acyclic Graph) determining step sequences and Semantic Data Flow mapping.
 2. **`steps`**: The execution instructions mapped to a specific `Agent`.
-3. **`matrices`**: Scoring rubrics (e.g., `matrix_standard_v2`) containing heavily typed numerical constraints.
+3. **`matrices`**: Scoring rubrics (e.g., `matrix_standard_v2`) containing heavily typed numerical constraints, **Strictness parameters (0-100)**, and Theory URL groundings.
 4. **`components`**: Reusable generic text blocks like System Prompts.
 5. **`output_configs`**: SDUI rendering maps dictating the structure of final views. The *only* place `ui_hints` are permitted.
 
@@ -150,9 +150,10 @@ The Core execution path relies entirely on typed components.
 
 ---
 
-## 5. View Models (Frontend Mapping) & I18N
+## 5. View Models (Frontend Mapping), I18N, & Late-Binding Omni-Channel
 
 To adhere to the **No-String Mandate**, the backend strictly passes **Keys** rather than user-visible text. 
 * The `profiler.py` and `logician.py` output heavy nested reasoning data.
 * The `ReportTransformer` strips out internal LLM reasoning tokens and formats properties like `say_do_gap` into Enums like `GAP_NONE`.
-* **Flutter (`client_app`)** executes dynamic matching of these Enum labels against `app_fi.arb` dictionaries for robust UI presentation independent of backend deployments.
+* **Late-Binding Omni-Channel**: Datan prosessointi pidetään yhtenäisenä koneluettavana JSON-rakenteena läpi koko prosessin, ja se purkautuu vasta aivan viimeisessä adapterikerroksessa kolmeen eri muotoon (Flutter SDUI Compound Widgets, Backend Jinja2 PDF, ja litteä CSV/Flat-File vienti).
+* **Flutter (`client_app`) SDUI** executes dynamic matching of these Enum labels against `app_fi.arb` dictionaries for robust UI presentation independent of backend deployments.
