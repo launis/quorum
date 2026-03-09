@@ -25,7 +25,7 @@ class ChatParserService:
 
         Args:
             raw_paste (str): Raw unstructured text pasted from a chat UI.
-            repository (Any): Repository instance for tracing via LLMClient.
+            repository (Any): AbstractWorkflowRepository instance.
 
         Returns:
             ChatHistoryDTO: Strictly typed chat history object.

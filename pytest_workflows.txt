@@ -1,0 +1,92 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: c:\src\quorum
+configfile: pytest.ini
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 2 items
+
+backend_v2/tests/unit/test_api_workflows.py::test_workflow_rbac_save_member_forbidden FAILED [ 50%]
+backend_v2/tests/unit/test_api_workflows.py::test_workflow_rbac_delete_member_forbidden PASSED [100%]
+
+================================== FAILURES ===================================
+__________________ test_workflow_rbac_save_member_forbidden ___________________
+
+client_member = <starlette.testclient.TestClient object at 0x00000228F84FF230>
+
+    def test_workflow_rbac_save_member_forbidden(client_member):
+        payload = {
+            "id": "new_wf",
+            "label": {"default_locale": "en", "translations": {"en": "new"}},
+            "organization_id": "test_org"
+        }
+        response = client_member.put("/api/v2/studio/workflows/new_wf", json=payload)
+        if response.status_code == 404:
+            response = client_member.put("/studio/workflows/new_wf", json=payload)
+    
+>       assert response.status_code == 403
+E       assert 422 == 403
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+backend_v2\tests\unit\test_api_workflows.py:42: AssertionError
+---------------------------- Captured stdout setup ----------------------------
+2026-03-09 23:50:28 | INFO | [SYSTEM] | root | Logging configured. Writing to: c:\src\quorum\backend_v2_debug.log
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend.main | ======================================================================
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend.main |    COGNITIVE QUORUM BACKEND (V2.9) - STARTING UP
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend.main | ======================================================================
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: retrieve_precedent -> retrieve_precedent_hook
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: hydrate_global_inputs -> hydrate_global_inputs_hook
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: process_inputs -> process_inputs
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: verify_citation_integrity -> verify_citation_integrity_hook
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: enforce_hypothesis_linking -> enforce_hypothesis_linking_hook
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: detect_performative_patterns -> detect_performative_patterns
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: configure_llm_context -> configure_llm_context_hook
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: calculate_control_ratio -> calculate_control_ratio_hook
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: calculate_text_metrics -> text_metrics
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: generate_bibliography -> generate_bibliography_hook
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: generate_report -> generate_report_hook
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: apply_scoring_logic -> apply_scoring_logic_hook
+2026-03-09 23:50:28 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: enforce_passivity_penalty -> enforce_passivity_penalty_hook
+2026-03-09 23:50:39 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: execute_google_search -> execute_google_search_hook
+2026-03-09 23:50:39 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: sanitize_text -> sanitize_text_hook
+2026-03-09 23:50:39 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: check_banned_phrases -> check_banned_phrases_hook
+2026-03-09 23:50:39 | INFO | [SYSTEM] | backend_v2.core.hook_registry | Registering hook: verify_structure -> verify_structure
+---------------------------- Captured stdout call -----------------------------
+2026-03-09 23:50:39 | ERROR | [REQ:a068fd3c] | backend.main | VALIDATION ERROR: 2 validation errors:
+  {'type': 'missing', 'loc': ('body', 'name'), 'msg': 'Field required', 'input': {'id': 'new_wf', 'label': {'default_locale': 'en', 'translations': {'en': 'new'}}, 'organization_id': 'test_org'}}
+  {'type': 'missing', 'loc': ('body', 'description'), 'msg': 'Field required', 'input': {'id': 'new_wf', 'label': {'default_locale': 'en', 'translations': {'en': 'new'}}, 'organization_id': 'test_org'}}
+
+  File "c:\src\quorum\backend_v2\api\routers\studio\workflows.py", line 23, in save_workflow
+    PUT /api/v2/studio/workflows/{id}
+------------------------------ Captured log call ------------------------------
+ERROR    backend.main:main.py:183 VALIDATION ERROR: 2 validation errors:
+  {'type': 'missing', 'loc': ('body', 'name'), 'msg': 'Field required', 'input': {'id': 'new_wf', 'label': {'default_locale': 'en', 'translations': {'en': 'new'}}, 'organization_id': 'test_org'}}
+  {'type': 'missing', 'loc': ('body', 'description'), 'msg': 'Field required', 'input': {'id': 'new_wf', 'label': {'default_locale': 'en', 'translations': {'en': 'new'}}, 'organization_id': 'test_org'}}
+
+  File "c:\src\quorum\backend_v2\api\routers\studio\workflows.py", line 23, in save_workflow
+    PUT /api/v2/studio/workflows/{id}
+-------------------------- Captured stdout teardown ---------------------------
+2026-03-09 23:50:40 | INFO | [SYSTEM] | backend.main | Shutting down...
+---------------------------- Captured log teardown ----------------------------
+INFO     backend.main:main.py:81 Shutting down...
+============================== warnings summary ===============================
+..\..\Python314\Lib\site-packages\google\genai\types.py:43
+  C:\Python314\Lib\site-packages\google\genai\types.py:43: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+..\..\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: 15 warnings
+  C:\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+  C:\Python314\Lib\site-packages\slowapi\extension.py:717: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--------- generated xml file: C:\src\quorum\tests\output\results.xml ----------
+=========================== short test summary info ===========================
+FAILED backend_v2/tests/unit/test_api_workflows.py::test_workflow_rbac_save_member_forbidden - assert 422 == 403
+ +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+================== 1 failed, 1 passed, 18 warnings in 17.06s ==================

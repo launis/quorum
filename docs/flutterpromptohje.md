@@ -27,7 +27,7 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näi
 | **Routing** | Use `GoRouteData` (Type-safe classes) | Raw strings: `context.push('/home')` |
 | **API** | Use `Annotated[Dep, Depends()]` | `params: Dep = Depends()` (Old syntax) |
 | **Models (Backend)** | Use `model_validate`, `model_dump` | `.parse_obj()`, `.dict()` |
-| **Domain Data (Frontend)** | `Freezed`, `@riverpod` codegen (To speed up DEV & simplify data) | Pure `Map<String, dynamic>` (Too slow to type and parse) |
+| **Domain Data (Frontend)** | `Freezed` for Local UI State (User, Settings). Raw `Map<String, dynamic>` for Dynamic API Payloads (De-Generator Policy). | Pure `Map<String, dynamic>` for Local State (Too slow to type and parse) / Freezed for SDUI (Breaks Zero-Deploy). |
 
 ### 1.3 Routine Quality Gates (Verifications)
 Älä koskaan merkitse työtä valmiiksi tarkistamatta sitä manuaalisesti laadunvarmistustyökaluilla:

@@ -47,7 +47,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.read(matricesControllerProvider.notifier).refresh();
+              ref.read(promptBlocksControllerProvider.notifier).refresh();
               ref.read(workflowsControllerProvider.notifier).refresh();
             },
           ),
@@ -77,8 +77,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           // TAB 1: Workflows
           _buildWorkflowsTab(context, ref, l10n),
 
-          // TAB 2: Prompt Blocks (Matrices)
-          _buildMatricesTab(context, ref, l10n),
+          // TAB 2: Prompt Blocks
+          _buildPromptBlocksTab(context, ref, l10n),
 
           // TAB 3: Task Blueprints
           _buildTaskBlueprintsTab(context, ref, l10n),
@@ -146,12 +146,12 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     );
   }
 
-  Widget _buildMatricesTab(
+  Widget _buildPromptBlocksTab(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
   ) {
-    final matricesState = ref.watch(matricesControllerProvider);
+    final promptBlocksState = ref.watch(promptBlocksControllerProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -162,15 +162,15 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
             context.go('/admin/matrix/new');
           }),
           const SizedBox(height: 16),
-          matricesState.when(
-            data: (matrices) {
-              if (matrices.isEmpty) return const Text('No matrices defined.');
+          promptBlocksState.when(
+            data: (promptBlocks) {
+              if (promptBlocks.isEmpty) return const Text('No prompt blocks defined.');
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: matrices.length,
+                itemCount: promptBlocks.length,
                 itemBuilder: (context, index) {
-                  final matrix = matrices[index];
+                  final matrix = promptBlocks[index];
                   final strictness =
                       int.tryParse(
                         matrix['strictness_level']?.toString() ?? '50',
@@ -196,7 +196,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
             loading: () => const Center(child: CircularProgressIndicator()),
             error:
                 (e, _) => Text(
-                  'Error loading matrices: $e',
+                  'Error loading prompt blocks: $e',
                   style: const TextStyle(color: Colors.red),
                 ),
           ),

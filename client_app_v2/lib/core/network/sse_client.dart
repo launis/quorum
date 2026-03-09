@@ -1,13 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:isolate';
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/core/error/app_error.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-final sseClientProvider = Provider<SseClient>((ref) {
+part 'sse_client.g.dart';
+
+@riverpod
+SseClient sseClient(Ref ref) {
   return SseClient(ref.watch(apiClientProvider));
-});
+}
 
 /// **Server-Sent Events (SSE) Client**
 ///
@@ -65,7 +69,8 @@ class SseClient {
           if (jsonString.isEmpty) continue;
 
           try {
-            final decoded = jsonDecode(jsonString);
+            // Mandate 5.3: Concurrency & Performance via Isolate.run
+            final decoded = await Isolate.run(() => jsonDecode(jsonString));
             if (decoded is Map<String, dynamic>) {
               yield decoded;
             } else {

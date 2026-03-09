@@ -5,6 +5,8 @@ import 'package:client_app/core/network/interceptors/error_interceptor.dart';
 import 'package:client_app/core/network/interceptors/dio_logger_interceptor.dart';
 import 'package:client_app/core/network/interceptors/locale_interceptor.dart';
 import 'package:client_app/core/environment/env.dart';
+import 'dart:isolate';
+import 'dart:convert';
 
 /// **API Client Provider**
 ///
@@ -23,6 +25,20 @@ import 'package:client_app/core/environment/env.dart';
 ///
 /// **Returns**:
 /// A fully configured [Dio] instance ready for network requests.
+
+/// Parses JSON in a background isolate to prevent UI thread blocking
+dynamic _parseAndDecode(String response) {
+  return jsonDecode(response);
+}
+
+Future<dynamic> _parseJson(String text) {
+  return Isolate.run(() => _parseAndDecode(text));
+}
+
+class BackgroundTransformer extends SyncTransformer {
+  BackgroundTransformer() : super(jsonDecodeCallback: _parseJson);
+}
+
 final apiClientProvider = Provider<Dio>((ref) {
   // Watch envProvider to rebuild client if config changes
   ref.watch(envProvider);
@@ -38,6 +54,9 @@ final apiClientProvider = Provider<Dio>((ref) {
       },
     ),
   );
+
+  // Set BackgroundTransformer for Isolate JSON parsing
+  dio.transformer = BackgroundTransformer();
 
   // Add Auth Interceptor (must be first to add token)
   dio.interceptors.add(AuthInterceptor(ref));

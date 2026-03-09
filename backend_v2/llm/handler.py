@@ -48,14 +48,22 @@ class LLMHandler:
             # If it fails (404 or other error), we assume unavailable
             return False
 
-    def __init__(self, db_client: Any):
+    def __init__(self, repo: Any):
         """Initializes the handler.
 
         Args:
-            db_client (Any): Database client for accessing system config.
-
+            repo (Any): The AbstractWorkflowRepository instance (injected via dependencies.py).
         """
-        self.db_client = db_client
+        self.repo = repo
+        # Extract underlying tinydb instance for system_config access
+        # (TODO: Move system_config logic fully into AbstractWorkflowRepository in the future)
+        self.db_client = getattr(repo, "_db", None)
+        if not self.db_client:
+             raise ConfigurationError(
+                message="LLMHandler could not extract db_client from repository. Ensure repository is a TinyDBWorkflowRepository.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+             )
+
         self._cached_google_models: list[str] = []
         self._cached_openai_models: list[str] = []
 

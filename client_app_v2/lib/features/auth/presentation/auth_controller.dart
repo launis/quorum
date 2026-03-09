@@ -1,19 +1,18 @@
 import 'package:client_app/features/auth/data/auth_repository.dart';
 import 'package:client_app/features/auth/presentation/providers/mock_user_provider.dart';
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/features/auth/presentation/providers/mock_auth_provider.dart';
 import 'package:client_app/features/auth/data/repositories/user_repository.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-final authControllerProvider = AsyncNotifierProvider<AuthController, User?>(() {
-  return AuthController();
-});
+part 'auth_controller.g.dart';
 
 /// **Authentication Controller**
 ///
 /// Manages the global authentication state of the application.
-class AuthController extends AsyncNotifier<User?> {
+@riverpod
+class AuthController extends _$AuthController {
   @override
   FutureOr<User?> build() async {
     // 0. Check for Mock User (Priority)

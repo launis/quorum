@@ -1,5 +1,7 @@
-"""Dependencies for V2 API."""
-from typing import Annotated, Any
+from typing import Annotated, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from backend_v2.llm.handler import LLMHandler
 
 from fastapi import Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -30,6 +32,7 @@ def get_auth_service(
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 from backend_v2.exceptions import AuthenticationError
+
 
 async def get_current_user_from_header(
     auth_service: AuthService = Depends(get_auth_service),
@@ -70,3 +73,12 @@ async def get_studio_service(
     return StudioService(repo=repo)
 
 StudioServiceDep = Annotated[StudioService, Depends(get_studio_service)]
+
+def get_llm_handler(
+    repo: AbstractWorkflowRepository = Depends(get_repo)
+) -> LLMHandler:
+    from backend_v2.llm.handler import LLMHandler
+    return LLMHandler(repo=repo)
+
+LLMHandlerDep = Annotated[Any, Depends(get_llm_handler)]
+

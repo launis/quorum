@@ -1,7 +1,9 @@
+import 'package:client_app/core/ui/splash_screen.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/theme/app_theme.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/features/settings/presentation/settings_controller.dart';
 import 'package:firebase_ui_localizations/firebase_ui_localizations.dart';
 
 import 'package:flutter/material.dart';
@@ -23,9 +25,22 @@ class App extends ConsumerWidget {
     // 1. Watch Router
     final goRouter = ref.watch(routerProvider);
 
-    // 2. Default Configuration (V2 MVP)
-    const themeMode = ThemeMode.system;
-    const locale = Locale('fi');
+    // 2. Watch Settings (Locale & ThemeMode)
+    final settingsAsync = ref.watch(settingsControllerProvider);
+
+    // 3. Handle Loading State dynamically without .when nesting all the way down
+    // We can just use the previous/fallback state if still loading,
+    // or show a splash if there is no data at all yet.
+    if (!settingsAsync.hasValue && settingsAsync.isLoading) {
+      return const MaterialApp(
+        home: SplashScreen(),
+        debugShowCheckedModeBanner: false,
+      );
+    }
+
+    final settings = settingsAsync.value;
+    final themeMode = settings?.themeMode ?? ThemeMode.system;
+    final locale = settings?.locale ?? const Locale('fi');
 
     return MaterialApp.router(
       title: 'Cognitive Quorum',

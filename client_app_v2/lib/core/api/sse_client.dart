@@ -1,12 +1,16 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/network/api_client.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'sse_client.g.dart';
 
 /// SSE API Client Provider
-final sseClientProvider = Provider<SseClient>((ref) {
+@riverpod
+SseClient sseClient(Ref ref) {
   return SseClient(ref.watch(apiClientProvider));
-});
+}
 
 /// Client for interacting with Server-Sent Events (SSE).
 ///
@@ -44,7 +48,10 @@ class SseClient {
           final dataStr = line.substring(6).trim();
           if (dataStr.isNotEmpty) {
             try {
-              final Map<String, dynamic> payload = jsonDecode(dataStr);
+              // Mandate 5.3: Concurrency & Performance via Isolate.run
+              final Map<String, dynamic> payload = await Isolate.run(
+                () => jsonDecode(dataStr),
+              );
               yield payload;
             } catch (e) {
               // Log but graceful degradation: ignore malformed chunk

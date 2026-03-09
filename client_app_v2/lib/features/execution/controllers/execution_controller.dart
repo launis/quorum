@@ -2,13 +2,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-/// Provider for the abstract execution state, defaulting to null when idle.
-/// The state holds the latest raw execution JSON payload.
-final executionControllerProvider =
-    StreamNotifierProvider<ExecutionController, Map<String, dynamic>?>(
-      ExecutionController.new,
-    );
+part 'execution_controller.g.dart';
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
 ///
@@ -16,7 +12,8 @@ final executionControllerProvider =
 /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
 /// - Handles real-time backend updates efficiently without manual polling loops.
 /// - Uses raw `Map<String, dynamic>` strictly adhering to the De-Generator Policy.
-class ExecutionController extends StreamNotifier<Map<String, dynamic>?> {
+@riverpod
+class ExecutionController extends _$ExecutionController {
   StreamSubscription? _sseSubscription;
 
   @override

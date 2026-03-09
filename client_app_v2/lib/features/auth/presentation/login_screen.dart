@@ -55,7 +55,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Container(
+        child: SingleChildScrollView(
+          child: Container(
           constraints: const BoxConstraints(maxWidth: 400),
           padding: const EdgeInsets.all(24),
           child: Form(
@@ -163,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _isLoading
                               ? null
                               : () => _mockLogin(
-                                '10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b', // ROOT
+                                '1', // ROOT
                               ),
                       child: const Text('Mock Login (Root Master)'),
                     ),
@@ -175,7 +176,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _isLoading
                               ? null
                               : () => _mockLogin(
-                                '5aa54e11-e804-4100-8c61-0f45b9393f1f', // ADMIN
+                                '2', // ADMIN
                               ),
                       child: const Text('Mock Login (Admin)'),
                     ),
@@ -187,7 +188,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _isLoading
                               ? null
                               : () => _mockLogin(
-                                '3d081723-e062-4eeb-968e-070a100846b3', // MANAGER
+                                '3', // MANAGER
                               ),
                       child: const Text('Mock Login (Manager)'),
                     ),
@@ -197,6 +198,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

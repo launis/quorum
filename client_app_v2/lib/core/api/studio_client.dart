@@ -18,27 +18,32 @@ class StudioClient {
 
   // --- Matrices (Criteria & Scoring) ---
 
-  /// Retrieves all evaluation matrices.
-  Future<List<Map<String, dynamic>>> getMatrices() async {
-    final response = await _dio.get('/studio/matrices');
+  /// Retrieves all evaluation prompt blocks.
+  Future<List<Map<String, dynamic>>> getPromptBlocks() async {
+    final response = await _dio.get('studio/prompt-blocks');
     return List<Map<String, dynamic>>.from(response.data as List);
   }
 
-  /// Appends or updates a matrix.
-  /// In V2, matrices are append-only. This typically returns a new version ID.
-  Future<Map<String, dynamic>> saveMatrix(
+  /// Appends or updates a prompt block.
+  /// In V2, blocks are append-only. This typically returns a new version ID.
+  Future<Map<String, dynamic>> savePromptBlock(
     String id,
     Map<String, dynamic> data,
   ) async {
-    final response = await _dio.put('/studio/matrices/$id', data: data);
+    final response = await _dio.put('studio/prompt-blocks/$id', data: data);
     return response.data as Map<String, dynamic>;
+  }
+
+  /// Deletes a prompt block.
+  Future<void> deletePromptBlock(String id) async {
+    await _dio.delete('studio/prompt-blocks/$id');
   }
 
   // --- Workflows (DAG definitions) ---
 
   /// Retrieves all workflow definitions.
   Future<List<Map<String, dynamic>>> getWorkflows() async {
-    final response = await _dio.get('/studio/workflows');
+    final response = await _dio.get('studio/workflows');
     return List<Map<String, dynamic>>.from(response.data as List);
   }
 
@@ -47,15 +52,20 @@ class StudioClient {
     String id,
     Map<String, dynamic> data,
   ) async {
-    final response = await _dio.put('/studio/workflows/$id', data: data);
+    final response = await _dio.put('studio/workflows/$id', data: data);
     return response.data as Map<String, dynamic>;
+  }
+
+  /// Deletes a workflow definition.
+  Future<void> deleteWorkflow(String id) async {
+    await _dio.delete('studio/workflows/$id');
   }
 
   // --- Task Blueprints (Independent steps) ---
 
   /// Retrieves all task blueprints.
   Future<List<Map<String, dynamic>>> getTaskBlueprints() async {
-    final response = await _dio.get('/studio/task-blueprints');
+    final response = await _dio.get('studio/task-blueprints');
     return List<Map<String, dynamic>>.from(response.data as List);
   }
 
@@ -64,15 +74,20 @@ class StudioClient {
     String id,
     Map<String, dynamic> data,
   ) async {
-    final response = await _dio.put('/studio/task-blueprints/$id', data: data);
+    final response = await _dio.put('studio/task-blueprints/$id', data: data);
     return response.data as Map<String, dynamic>;
+  }
+
+  /// Deletes a task blueprint.
+  Future<void> deleteTaskBlueprint(String id) async {
+    await _dio.delete('studio/task-blueprints/$id');
   }
 
   // --- System Configs (e.g., model_registry) ---
 
   /// Retrieves a system config by ID.
   Future<Map<String, dynamic>> getSystemConfig(String id) async {
-    final response = await _dio.get('/studio/system-configs/$id');
+    final response = await _dio.get('studio/system-configs/$id');
     return response.data as Map<String, dynamic>;
   }
 
@@ -81,7 +96,7 @@ class StudioClient {
     String id,
     Map<String, dynamic> data,
   ) async {
-    final response = await _dio.put('/studio/system-configs/$id', data: data);
+    final response = await _dio.put('studio/system-configs/$id', data: data);
     return response.data as Map<String, dynamic>;
   }
 }

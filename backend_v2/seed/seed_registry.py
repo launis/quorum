@@ -22,7 +22,7 @@ STANDARD_REGISTRY = {
     "system_config": {"table": "system_config", "model": TypeAdapter(SystemConfigUnion), "id_field": "id"},
     "workflows": {"table": "workflows", "model": TypeAdapter(Workflow), "id_field": "id"},
     "agents": {"table": "agents", "model": TypeAdapter(Role), "id_field": "id"},
-    "matrices": {"table": "matrices", "model": TypeAdapter(PromptBlock), "id_field": "id"},
+    "prompt_blocks": {"table": "prompt_blocks", "model": TypeAdapter(PromptBlock), "id_field": "id"},
     "task_blueprints": {"table": "task_blueprints", "model": TypeAdapter(TaskBlueprint), "id_field": "id"},
 
     # Dynamic Raw V1 Collections Mapping to V2 Strict Types

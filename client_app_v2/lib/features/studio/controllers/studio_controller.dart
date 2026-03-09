@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/studio_client.dart';
+import 'package:client_app/core/error/app_error.dart';
+import 'package:dio/dio.dart';
 
 // --- Providers ---
 
-/// Manages the state of all Studio Matrices.
-final matricesControllerProvider =
-    AsyncNotifierProvider<MatricesController, List<Map<String, dynamic>>>(
-      MatricesController.new,
+/// Manages the state of all Studio PromptBlocks.
+final promptBlocksControllerProvider =
+    AsyncNotifierProvider<PromptBlocksController, List<Map<String, dynamic>>>(
+      PromptBlocksController.new,
     );
 
 /// Manages the state of all Studio Workflows (DAGs).
@@ -24,32 +26,32 @@ final taskBlueprintsControllerProvider =
 
 // --- Controllers ---
 
-/// Controller managing Studio Matrices strictly using `Map<String, dynamic>`.
+/// Controller managing Studio PromptBlocks strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
-class MatricesController extends AsyncNotifier<List<Map<String, dynamic>>> {
+class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
-    return _fetchMatrices();
+    return _fetchPromptBlocks();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchMatrices() async {
+  Future<List<Map<String, dynamic>>> _fetchPromptBlocks() async {
     final client = ref.read(studioClientProvider);
-    return client.getMatrices();
+    return client.getPromptBlocks();
   }
 
-  /// Refreshes the matrix list from the backend.
+  /// Refreshes the prompt blocks list from the backend.
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     try {
-      final newMatrices = await _fetchMatrices();
-      state = AsyncValue.data(newMatrices);
+      final newPromptBlocks = await _fetchPromptBlocks();
+      state = AsyncValue.data(newPromptBlocks);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
   }
 
-  /// Saves a matrix utilizing Optimistic Updates.
-  Future<void> saveMatrix(String id, Map<String, dynamic> payload) async {
+  /// Saves a prompt block utilizing Optimistic Updates.
+  Future<void> savePromptBlock(String id, Map<String, dynamic> payload) async {
     final previousState = state;
 
     // 1. Optimistic Update
@@ -57,11 +59,11 @@ class MatricesController extends AsyncNotifier<List<Map<String, dynamic>>> {
       final currentList = List<Map<String, dynamic>>.from(state.value!);
       final index = currentList.indexWhere((m) => m['id'] == id);
 
-      final updatedMatrix = {...payload, 'id': id};
+      final updatedPromptBlock = {...payload, 'id': id};
       if (index >= 0) {
-        currentList[index] = updatedMatrix;
+        currentList[index] = updatedPromptBlock;
       } else {
-        currentList.add(updatedMatrix);
+        currentList.add(updatedPromptBlock);
       }
       state = AsyncValue.data(currentList);
     }
@@ -69,22 +71,44 @@ class MatricesController extends AsyncNotifier<List<Map<String, dynamic>>> {
     try {
       // 2. Network Call (Append-Only)
       final client = ref.read(studioClientProvider);
-      final verifiedMatrix = await client.saveMatrix(id, payload);
+      final verifiedPromptBlock = await client.savePromptBlock(id, payload);
 
       // 3. Confirm with Actual Data (in case backend added fields like `version_id`)
       if (state.hasValue && state.value != null) {
         final currentList = List<Map<String, dynamic>>.from(state.value!);
         final index = currentList.indexWhere((m) => m['id'] == id);
         if (index >= 0) {
-          currentList[index] = verifiedMatrix;
+          currentList[index] = verifiedPromptBlock;
           state = AsyncValue.data(currentList);
         }
       }
     } catch (e) {
       // 4. Rollback on Failure
       state = previousState;
+      if (e is DioException && e.error is AppError) {
+        throw e.error!;
+      }
       // Re-throw to allow view layer to show snackbar
-      throw Exception('Failed to save matrix: $e');
+      throw Exception('Failed to save prompt block: $e');
+    }
+  }
+
+  /// Deletes a prompt block. Throwing AppError on orphan rejection (RESOURCE_IN_USE)
+  Future<void> deletePromptBlock(String id) async {
+    try {
+      final client = ref.read(studioClientProvider);
+      await client.deletePromptBlock(id);
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        currentList.removeWhere((m) => m['id'] == id);
+        state = AsyncValue.data(currentList);
+      }
+    } catch (e) {
+      if (e is DioException && e.error is AppError) {
+        throw e.error!;
+      }
+      throw Exception('Failed to delete prompt block: $e');
     }
   }
 }
@@ -148,7 +172,29 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
     } catch (e) {
       // 4. Rollback on Failure
       state = previousState;
+      if (e is DioException && e.error is AppError) {
+        throw e.error!;
+      }
       throw Exception('Failed to save workflow: $e');
+    }
+  }
+
+  /// Deletes a workflow. Throwing AppError on orphan rejection (RESOURCE_IN_USE)
+  Future<void> deleteWorkflow(String id) async {
+    try {
+      final client = ref.read(studioClientProvider);
+      await client.deleteWorkflow(id);
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        currentList.removeWhere((w) => w['id'] == id);
+        state = AsyncValue.data(currentList);
+      }
+    } catch (e) {
+      if (e is DioException && e.error is AppError) {
+        throw e.error!;
+      }
+      throw Exception('Failed to delete workflow: $e');
     }
   }
 }
@@ -216,7 +262,29 @@ class TaskBlueprintsController
     } catch (e) {
       // 4. Rollback on Failure
       state = previousState;
+      if (e is DioException && e.error is AppError) {
+        throw e.error!;
+      }
       throw Exception('Failed to save task blueprint: $e');
+    }
+  }
+
+  /// Deletes a task blueprint. Throwing AppError on orphan rejection
+  Future<void> deleteTaskBlueprint(String id) async {
+    try {
+      final client = ref.read(studioClientProvider);
+      await client.deleteTaskBlueprint(id);
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        currentList.removeWhere((m) => m['id'] == id);
+        state = AsyncValue.data(currentList);
+      }
+    } catch (e) {
+      if (e is DioException && e.error is AppError) {
+        throw e.error!;
+      }
+      throw Exception('Failed to delete task blueprint: $e');
     }
   }
 }

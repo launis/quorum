@@ -38,7 +38,7 @@ def migrate_seeds() -> None:
     # We do NOT read the old v2_seed. We start fresh.
     v2_seed: dict[str, list[Any]] = {
         "system_config": [],
-        "matrices": [],
+        "prompt_blocks": [],
         "workflows": [],
         "components": [],
         "output_configs": [],
@@ -49,7 +49,7 @@ def migrate_seeds() -> None:
         "references": []
     }
 
-    matrices: list[dict[str, Any]] = [
+    prompt_blocks: list[dict[str, Any]] = [
         {
             "id": "matrix_toulmin",
             "label": {"default_locale": "fi", "translations": {"fi": "Toulminin Argumentaatio"}},
@@ -285,7 +285,7 @@ def migrate_seeds() -> None:
 
             matrix["rows"] = parsed_rows if parsed_rows else [{"default_locale": "fi", "translations": {"fi": "Arviointi"}}]
 
-        matrices.append(matrix)
+        prompt_blocks.append(matrix)
 
     # 1.B MIGRATE V1 COMPONENTS -> V2 MATRICES (PromptBlocks)
     components_db = v1_db.get("components", [])
@@ -355,62 +355,73 @@ def migrate_seeds() -> None:
             "strictness_level": 50,
             "require_justification": False,
         }
-        matrices.append(block_matrix)
+        prompt_blocks.append(block_matrix)
 
-    v2_seed["matrices"] = matrices
+    v2_seed["prompt_blocks"] = prompt_blocks
 
-    # 2. CREATE TASK BLUEPRINTS FROM V1 STEPS
-    task_blueprints: list[dict[str, Any]] = []
+    # 2. CREATE STEPS FROM V1 STEPS (Formerly Task Blueprints)
+    normalized_steps: list[dict[str, Any]] = []
     
     steps_source = v1_db.get("steps", [])
     if isinstance(steps_source, dict):
         steps_source = list(steps_source.values())
         
     for comp_idx, step_data in enumerate(steps_source):
-         step_uuid = step_data.get("id", f"missing_tb_{comp_idx}")
-         b_name = step_data.get("name") or f"Task {comp_idx}"
-         clean_b_slug = f"task_{slugify(b_name, comp_idx)}"
-         
-         # Deduplicate TaskBlueprint ID
-         original_slug = clean_b_slug
-         counter = 1
-         while clean_b_slug in [t["id"] for t in task_blueprints]:
-             clean_b_slug = f"{original_slug}_{counter}"
-             counter += 1
+        step_uuid = step_data.get("id", f"missing_tb_{comp_idx}")
+        b_name = step_data.get("name") or f"Task {comp_idx}"
+        clean_b_slug = f"step_{slugify(b_name, comp_idx)}"
+        
+        # Deduplicate Step ID
+        original_slug = clean_b_slug
+        counter = 1
+        while clean_b_slug in [t["id"] for t in normalized_steps]:
+            clean_b_slug = f"{original_slug}_{counter}"
+            counter += 1
+            
+        prompt_blocks_list = []
+        
+        # In V1, steps usually contained config -> llm_prompts AND matrix_id
+        config = step_data.get("config", {})
+        inner_uuids = config.get("llm_prompts", [])
+        matrix_id = config.get("matrix_id")
+        
+        # 1. Gather all llm_prompts (which used to refer to Components)
+        for suuid in inner_uuids:
+            if suuid in uuid_to_slug:
+                prompt_blocks_list.append(uuid_to_slug[suuid])
+                
+        # 2. Gather matrix_id (which usually mapped to step UUIDs)
+        if matrix_id and matrix_id in uuid_to_slug:
+             prompt_blocks_list.append(uuid_to_slug[matrix_id])
+        
+        # 3. Add itself as a matrix if it was traditionally considered a matrix step
+        #    (for fallback where matrix_id didn't exist but the step itself was converted to a matrix)
+        if step_uuid in uuid_to_slug and uuid_to_slug[step_uuid].startswith("matrix_"):
+             prompt_blocks_list.append(uuid_to_slug[step_uuid])
              
-         prompt_blocks = []
-         
-         # 1. Did V1 step reference legacy_prompt_blocks directly?
-         inner_uuids = step_data.get("prompts", []) or step_data.get("llm_prompts", [])
-         for suuid in inner_uuids:
-             if suuid in uuid_to_slug:
-                 prompt_blocks.append(uuid_to_slug[suuid])
-                 
-         # 2. Add itself as a matrix if it was a matrix step
-         if step_uuid in uuid_to_slug:
-              prompt_blocks.append(uuid_to_slug[step_uuid])
-         
-         blueprint = {
-             "id": clean_b_slug,
-             "slug": clean_b_slug,
-             "name": {
-                 "default_locale": "fi",
-                 "translations": {"fi": b_name}
-             },
-             "description": {
-                 "default_locale": "fi",
-                 "translations": {"fi": step_data.get("description", "")}
-             },
-             "prompt_blocks": prompt_blocks,
-             "pre_hooks": step_data.get("config", {}).get("pre_hooks", []),
-             "model_strategy": step_data.get("config", {}).get("model_strategy", None)
-         }
-         
-         # Register V1 legacy step UUID directly to this new blueprint slug
-         uuid_to_slug[step_uuid] = clean_b_slug
-         task_blueprints.append(blueprint)
+        # Remove duplicates
+        prompt_blocks_list = list(dict.fromkeys(prompt_blocks_list))
+        
+        # TaskBlueprint should ONLY contain lists of matrices/components (prompt_blocks)
+        blueprint = {
+            "id": clean_b_slug,
+            "slug": clean_b_slug,
+            "name": {
+                "default_locale": "fi",
+                "translations": {"fi": b_name}
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {"fi": step_data.get("description", "")}
+            },
+            "prompt_blocks": prompt_blocks_list
+        }
+        
+        # Register V1 legacy step UUID directly to this new blueprint slug
+        uuid_to_slug[step_uuid] = clean_b_slug
+        normalized_steps.append(blueprint)
 
-    v2_seed["task_blueprints"] = task_blueprints
+    v2_seed["steps"] = normalized_steps
 
 
     # 3. CREATE WORKFLOWS (DAG ROUTING)
@@ -451,20 +462,18 @@ def migrate_seeds() -> None:
             # If a workflow directly referenced a Component/Matrix instead of a Step, 
             # dynamically wrap it in a pseudo-blueprint to satisfy V2 architecture.
             if blueprint_slug.startswith("matrix_") or blueprint_slug.startswith("block_"):
-                pseudo_slug = f"task_{blueprint_slug}"
-                if pseudo_slug not in [t["id"] for t in task_blueprints]:
-                     task_blueprints.append({
+                pseudo_slug = f"step_{blueprint_slug}"
+                if pseudo_slug not in [t["id"] for t in normalized_steps]:
+                     normalized_steps.append({
                          "id": pseudo_slug,
                          "slug": pseudo_slug,
                          "name": {"default_locale": "fi", "translations": {"fi": f"Auto-Wrapper for {blueprint_slug}"}},
                          "description": None,
-                         "prompt_blocks": [blueprint_slug],
-                         "pre_hooks": [],
-                         "model_strategy": None
+                         "prompt_blocks": [blueprint_slug]
                      })
                 blueprint_slug = pseudo_slug
 
-            node_slug = f"step_node_{comp_idx}"
+            node_slug = f"step_node_{comp_idx+1}"
 
             existing_steps = v2_wf["steps"]
             prev_step_id = None
@@ -487,7 +496,8 @@ def migrate_seeds() -> None:
                 "task_blueprint": blueprint_slug,
                 "depends_on": depends_on_list,
                 "input_mappings": input_mappings,
-                "hook": None
+                "hook": None,
+                "model_strategy": "advanced_reasoning" # Mandate requires Strategy in the Node level
             }
             v2_wf["steps"].append(step_rule)  # type: ignore
 
@@ -495,72 +505,24 @@ def migrate_seeds() -> None:
 
     v2_seed["workflows"] = workflows
 
-    # 3. GLOBAL CONFIGS (Flattened ModelRegistry)
-    v1_sys_cfgs = v1_db.get("system_config", {})
-    if isinstance(v1_sys_cfgs, dict):
-        v1_sys_cfgs = list(v1_sys_cfgs.values())
 
-    valid_v2_sys_configs = []
 
-    for cfg in v1_sys_cfgs:
-        cfg_id = cfg.get("id")
-        if cfg_id == "model_registry":
-            old_models = cfg.get("models", {})
-            flat_models = {}
-            # Flatten "google -> deep -> attrs" into "deep -> {provider: google, attrs...}"
-            for provider_name, provider_profiles in old_models.items():
-                if isinstance(provider_profiles, dict):
-                    for profile_key, profile_attrs in provider_profiles.items():
-                        if isinstance(profile_attrs, dict):
-                            # Deep copy to avoid mutating the original
-                            attrs_copy = profile_attrs.copy()
-                            attrs_copy["provider"] = provider_name
-                            flat_models[profile_key] = attrs_copy
+    # 5. ASSEMBLE SINGLE SOURCE OF TRUTH (STRICT NORMALIZATION)
+    # The user specifically requested EXACTLY these 6 tables and nothing else:
 
-            new_cfg = {
-                "id": cfg.get("id"),
-                "slug": cfg.get("slug", "config_model_registry"),
-                "type": "model_registry",
-                "models": flat_models
-            }
-            valid_v2_sys_configs.append(new_cfg)
-
-    v2_seed["system_config"] = valid_v2_sys_configs
-
-    # 4. TRANSFER REMAINING RAW V1 COLLECTIONS FOR UI DISPLAY MAPPING ONLY
-    model_mapping = {
-        "output_configs": TypeAdapter(OutputConfig),
-        "dimensions": TypeAdapter(Observation),
-        "references": TypeAdapter(Reference),
-        "users": TypeAdapter(User),
-        "organizations": TypeAdapter(Organization)
+    normalized_v2_seed = {
+        "system_config": v2_seed["system_config"],
+        "prompt_blocks": v2_seed["prompt_blocks"],
+        "workflows": v2_seed["workflows"],
+        "steps": v2_seed["steps"],
+        "organizations": v2_seed["organizations"],
+        "users": v2_seed["users"]
     }
 
-    for coll_name, adapter in model_mapping.items():
-        raw_data = v1_db.get(coll_name, [])
-        if isinstance(raw_data, dict):
-            raw_data = list(raw_data.values())
-
-        validated_data = []
-        for item in raw_data:
-            try:
-                # V1 models lacked standard timestamps for references vs others, fallback implemented in v2_core.py
-                import typing
-                parsed = typing.cast(typing.Any, adapter).validate_python(item)
-                validated_data.append(parsed.model_dump(mode="json"))
-            except Exception as e:
-                print(f"[ERROR] Failed to validate {coll_name} item: {item.get('id', 'unknown')}. Error: {e}")
-                # We do not fail-fast on migration extraction, we drop invalid data so V2 only gets pure valid ones.
-                # Actually, Zero-Compromise pledge means we should fail if data is lost, but V1 legacy data has dirt.
-                # We will crash explicitly since it's an ETL script.
-                raise e
-
-        v2_seed[coll_name] = validated_data
-
     with open(v2_path, "w", encoding="utf-8") as f:
-        json.dump(v2_seed, f, indent=4, ensure_ascii=False)
+        json.dump(normalized_v2_seed, f, indent=4, ensure_ascii=False)
 
-    print(f"Successfully generated {len(matrices)} matrices and {len(workflows)} workflows.")
+    print(f"Successfully generated {len(prompt_blocks)} prompt_blocks and {len(workflows)} workflows.")
 
 if __name__ == "__main__":
     migrate_seeds()

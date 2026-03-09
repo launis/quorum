@@ -17,6 +17,7 @@ taskkill /F /FI "WINDOWTITLE eq CQ Client*" >nul 2>&1
 :: Clear old logs to ensure clean debug session
 if exist backend_debug.log del backend_debug.log
 if exist client_debug.log del client_debug.log
+if exist client_app_v2\client_debug.log del client_app_v2\client_debug.log
 echo [Logs Cleared]
 
 echo [1/3] Starting Infrastructure (Redis)...

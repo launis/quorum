@@ -349,6 +349,32 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
+    async def delete_matrix(self, matrix_id: str, force_delete: bool = False) -> bool:
+        """V2 Fail-Fast deletion. Checks for dependencies in TaskBlueprints."""
+        matrix = await self.get_matrix_by_id(matrix_id)
+        if not matrix:
+            return False
+
+        if not force_delete:
+            # Recheck dependencies
+            blueprints = await self.get_all_task_blueprints()
+            for bp in blueprints:
+                if matrix_id in bp.get("prompt_blocks", []):
+                    from backend_v2.exceptions import AppException, ErrorCodes
+                    error_msg = f"Tuhoaminen estetty: PromptBlock '{matrix_id}' on sidottu Blueprinttiin '{str(bp.get('id', 'unknown'))}'."
+                    raise AppException(
+                        message=str(error_msg),
+                        details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
+                        status_code=400
+                    )
+
+        try:
+            await self.db.collection("matrices").document(matrix_id).delete()
+            return True
+        except Exception as e:
+            logger.error(f"Firestore delete failed for matrix {matrix_id}: {e}")
+            return False
+
     async def delete_workflow(self, workflow_id: str) -> bool:
         try:
             await self.db.collection("workflows").document(workflow_id).delete()

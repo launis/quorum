@@ -52,7 +52,7 @@ class _MatrixBuilderViewState extends ConsumerState<MatrixBuilderView> {
     super.dispose();
   }
 
-  void _saveMatrix() {
+  void _savePromptBlock() {
     final id = _idController.text.trim();
     if (id.isEmpty) {
       ScaffoldMessenger.of(
@@ -65,8 +65,8 @@ class _MatrixBuilderViewState extends ConsumerState<MatrixBuilderView> {
     _editableMatrix['strictness_level'] = _strictnessLevel.round();
 
     ref
-        .read(matricesControllerProvider.notifier)
-        .saveMatrix(id, _editableMatrix)
+        .read(promptBlocksControllerProvider.notifier)
+        .savePromptBlock(id, _editableMatrix)
         .then((_) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -122,7 +122,7 @@ class _MatrixBuilderViewState extends ConsumerState<MatrixBuilderView> {
         title: const Text('Edit Matrix'),
         actions: [
           FilledButton.icon(
-            onPressed: _saveMatrix,
+            onPressed: _savePromptBlock,
             icon: const Icon(Icons.save),
             label: const Text('Save'),
           ),

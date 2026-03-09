@@ -54,7 +54,10 @@ class MatrixScale(BaseModel):
     """Represents a single score point in a BARS matrix scale."""
     score: int = Field(description="Numerical value of the scale point.")
     name: I18nText | None = Field(default=None, description="Optional name for the scale point (e.g., 'Excellent').")
-    claims: list[I18nText] = Field(default_factory=list, description="List of behavioral claims/criteria for this score.")
+    claims: list[I18nText] = Field(
+        default_factory=list, 
+        description="List of behavioral claims/criteria for this score."
+    )
 
 
 
@@ -65,10 +68,14 @@ class PromptBlock(BaseModel):
 
     id: str = Field(
         pattern=r"^[a-zA-Z][a-zA-Z0-9_]*$",
-        description="Unique identifier for the prompt block. MUST be a valid Python identifier (letters, numbers, underscores, starting with letter) to guarantee dynamic schema compilation."
+        description=(
+            "Unique identifier for the prompt block. MUST be a valid Python identifier "
+            "(letters, numbers, underscores, starting with letter) to guarantee dynamic schema compilation."
+        )
     )
     label: I18nText = Field(description="Localizable label for the UI.")
     description: I18nText = Field(description="Localizable description or help text.")
+    category_id: str = Field(description="Categorization identifier (e.g. 'scientific_theory', 'system_rule').")
     type: BlockDataType = Field(
         description="Data type of the expected extracted value."
     )
@@ -88,17 +95,30 @@ class PromptBlock(BaseModel):
         description="If provided, fetches and injects source theory as <theory_context> to prompt.",
     )
     scales: list[MatrixScale] = Field(
-        default_factory=list, 
+        default_factory=list,
         description="BARS scale definitions with scores and localized claims."
     )
     rows: list[I18nText] | None = Field(
-        default=None, 
+        default=None,
         description="Optional rows for grid matrices."
     )
     columns: list[I18nText] | None = Field(
-        default=None, 
+        default=None,
         description="Optional columns for grid matrices."
     )
+
+    @model_validator(mode="after")
+    def validate_block_consistency(self) -> PromptBlock:
+        """Strict validation for PromptBlock relations and logical constraints."""
+        # Fail-fast: Cannot allow decimals on non-numeric types
+        if self.allow_decimals and self.type not in ["numeric", "string"]: # string permitted for BARS format
+            from backend_v2.exceptions import AppException, ErrorCodes
+            raise AppException(
+                message=f"PromptBlock '{self.id}': allow_decimals is only valid for numeric logic.",
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                status_code=400
+            )
+        return self
 
 
 class ChatMessageDTO(BaseModel):
@@ -149,17 +169,29 @@ class TaskBlueprint(BaseModel):
     name: I18nText = Field(description="Localized task name")
     description: I18nText | None = Field(default=None, description="Detailed task context")
     prompt_blocks: list[str] = Field(
-        default_factory=list, 
+        default_factory=list,
         description="List of PromptBlock slugs containing directives and matrices for this task."
     )
     pre_hooks: list[str] = Field(
-        default_factory=list, 
+        default_factory=list,
         description="Native Python functions to execute BEFORE LLM context building."
     )
     model_strategy: str | None = Field(
         default=None,
         description="Logical strategy profile from model registry (e.g., 'fast', 'deep')"
     )
+
+    @model_validator(mode="after")
+    def validate_blueprint_consistency(self) -> TaskBlueprint:
+        """Strict fail-fast validation to ensure TaskBlueprint is not purely empty."""
+        if not self.prompt_blocks and not self.pre_hooks:
+            from backend_v2.exceptions import AppException, ErrorCodes
+            raise AppException(
+                message=f"TaskBlueprint '{self.slug}' must define at least one prompt_block or pre_hook.",
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                status_code=400
+            )
+        return self
 
 class StepRule(BaseModel):
     """Execution step mapping (DAG Router Node)."""
@@ -173,7 +205,7 @@ class StepRule(BaseModel):
         description='Maps upstream results to LLM inputs. e.g. {"context": "$inputs.document"}',
     )
     hook: str | None = Field(
-        default=None, 
+        default=None,
         description="Native Python hook name to execute instead of an LLM. Used for pure structural nodes."
     )
 

@@ -61,6 +61,8 @@ class StudioService:
         return Workflow.model_validate(data)
 
     async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> Workflow:
+        if initiator.role != "ROOT":
+            raise PermissionDeniedError("Only ROOT can modify workflows.")
         self._enforce_modification_rights(initiator, data.organization_id)
 
         dump = data.model_dump(mode="json")
@@ -74,6 +76,8 @@ class StudioService:
         return Workflow.model_validate(saved)
 
     async def delete_workflow(self, initiator: TokenData, id: str) -> None:
+        if initiator.role != "ROOT":
+            raise PermissionDeniedError("Only ROOT can delete workflows.")
         data = await self.repo.get("workflows", id)
         if not data:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
@@ -121,10 +125,10 @@ class StudioService:
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete("task_blueprints", id)
 
-    # --- Matrices ---
+    # --- Prompt Blocks ---
 
-    async def list_matrices(self, initiator: TokenData) -> list[PromptBlock]:
-        all_data = await self.repo.get_all("matrices")
+    async def list_prompt_blocks(self, initiator: TokenData) -> list[PromptBlock]:
+        all_data = await self.repo.get_all("prompt_blocks")
         if initiator.role == "ROOT":
             return [PromptBlock.model_validate(x) for x in all_data]
 
@@ -132,39 +136,39 @@ class StudioService:
         data = [x for x in all_data if x.get("organization_id") in [org_id, "system", None]]
         return [PromptBlock.model_validate(x) for x in data]
 
-    async def get_matrix(self, initiator: TokenData, id: str) -> PromptBlock:
-        data = await self.repo.get("matrices", id)
+    async def get_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
+        data = await self.repo.get("prompt_blocks", id)
         if not data:
-            raise ResourceNotFoundError(resource_type="matrix", resource_id=id)
+            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        self._enforce_tenant_isolation(initiator, data, "matrix")
+        self._enforce_tenant_isolation(initiator, data, "prompt_block")
         return PromptBlock.model_validate(data)
 
-    async def save_matrix(self, initiator: TokenData, id: str, data: PromptBlock) -> PromptBlock:
+    async def save_prompt_block(self, initiator: TokenData, id: str, data: PromptBlock) -> PromptBlock:
         self._enforce_modification_rights(initiator, data.organization_id)
 
         dump = data.model_dump(mode="json")
         if "id" not in dump:
             dump["id"] = id
-        await self.repo.create_raw("matrices", dump)
+        await self.repo.create_raw("prompt_blocks", dump)
 
-        saved = await self.repo.get("matrices", id)
+        saved = await self.repo.get("prompt_blocks", id)
         if not saved:
-            raise ResourceNotFoundError(resource_type="matrix", resource_id=id)
+            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
         return PromptBlock.model_validate(saved)
 
-    async def delete_matrix(self, initiator: TokenData, id: str) -> None:
-        data = await self.repo.get("matrices", id)
+    async def delete_prompt_block(self, initiator: TokenData, id: str) -> None:
+        data = await self.repo.get("prompt_blocks", id)
         if not data:
-            raise ResourceNotFoundError(resource_type="matrix", resource_id=id)
+            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
         self._enforce_modification_rights(initiator, data.get("organization_id"))
-        await self.repo.delete("matrices", id)
+        await self.repo.delete_matrix(id)
 
     # --- System Configs (ROOT Only usually) ---
 
     async def list_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
-        all_data = await self.repo.get_all("system_configs")
+        all_data = await self.repo.get_all("system_config")
         if initiator.role == "ROOT":
             return [SystemConfigModelRegistry.model_validate(x) for x in all_data]
         return [] # Non-root sees no configs
@@ -172,7 +176,7 @@ class StudioService:
     async def get_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
         if initiator.role != "ROOT":
              raise PermissionDeniedError("Only ROOT can view system configs.")
-        data = await self.repo.get("system_configs", id)
+        data = await self.repo.get("system_config", id)
         if not data:
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         return SystemConfigModelRegistry.model_validate(data)
@@ -184,9 +188,9 @@ class StudioService:
         dump = data.model_dump(mode="json")
         if "id" not in dump:
             dump["id"] = id
-        await self.repo.create_raw("system_configs", dump)
+        await self.repo.create_raw("system_config", dump)
 
-        saved = await self.repo.get("system_configs", id)
+        saved = await self.repo.get("system_config", id)
         if not saved:
              raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         return SystemConfigModelRegistry.model_validate(saved)
@@ -195,7 +199,7 @@ class StudioService:
         if initiator.role != "ROOT":
              raise PermissionDeniedError("Only ROOT can delete system configs.")
 
-        data = await self.repo.get("system_configs", id)
+        data = await self.repo.get("system_config", id)
         if not data:
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
-        await self.repo.delete("system_configs", id)
+        await self.repo.delete("system_config", id)

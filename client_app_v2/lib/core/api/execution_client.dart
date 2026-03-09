@@ -1,11 +1,14 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/network/api_client.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'execution_client.g.dart';
 
 /// Execution API Client Provider
-final executionClientProvider = Provider<ExecutionClient>((ref) {
+@riverpod
+ExecutionClient executionClient(Ref ref) {
   return ExecutionClient(ref.watch(apiClientProvider));
-});
+}
 
 /// Client for interacting with the V2 Executions API.
 ///

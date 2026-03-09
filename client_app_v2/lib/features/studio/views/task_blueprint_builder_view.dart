@@ -103,7 +103,7 @@ class _TaskBlueprintBuilderViewState
 
   @override
   Widget build(BuildContext context) {
-    final matricesAsync = ref.watch(matricesControllerProvider);
+    final matricesAsync = ref.watch(promptBlocksControllerProvider);
     final matrices = matricesAsync.value ?? [];
 
     return Scaffold(

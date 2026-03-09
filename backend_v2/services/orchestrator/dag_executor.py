@@ -182,17 +182,17 @@ class DAGExecutor:
                 target_locale="en"
             )
 
-            # 3.2 Criteria Blocks Gathering (matrices/components)
+            # 3.2 Criteria Blocks Gathering (prompt_blocks)
             criteria_blocks = []
-            all_matrices = await self.repository.get_all_matrices()
-            matrix_map = {m["id"]: m for m in all_matrices if "id" in m}
+            all_prompt_blocks = await self.repository.get_all_prompt_blocks()
+            block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
 
             for m_id in blueprint.prompt_blocks:
-                mat_dict = matrix_map.get(m_id)
-                if mat_dict:
+                block_dict = block_map.get(m_id)
+                if block_dict:
                     from backend_v2.models.v2_core import PromptBlock
-                    PromptBlock.model_validate(mat_dict) # Fail-Fast validation check
-                    criteria_blocks.append(mat_dict)
+                    PromptBlock.model_validate(block_dict) # Fail-Fast validation check
+                    criteria_blocks.append(block_dict)
                 else:
                     logger.warning(f"PromptBlock '{m_id}' not found. Referenced by Blueprint '{blueprint.slug}'")
 
