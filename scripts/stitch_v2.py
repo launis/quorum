@@ -108,7 +108,9 @@ def build_normalized_v2():
                 "default_locale": "fi",
                 "translations": {"fi": st.get("description") or ""}
             },
-            "prompt_blocks": prompt_blocks_list
+            "prompt_blocks": prompt_blocks_list,
+            "pre_hooks": config.get("pre_hooks", []),
+            "post_hooks": config.get("post_hooks", [])
         }
         
         uuid_to_slug[s_id] = clean_slug

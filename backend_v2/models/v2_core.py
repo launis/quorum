@@ -13,7 +13,8 @@ __all__ = [
     "I18nText",
     "ModelProfile",
     "SystemConfigModelRegistry",
-    "TaskBlueprint",
+    "SystemConfigModelRegistry",
+    "Step",
     "StepRule",
     "Role",
     "Workflow",
@@ -162,32 +163,33 @@ class SystemConfigModelRegistry(BaseModel):
         description="Dictionary mapping generic role names to specific ModelProfiles"
     )
 
-class TaskBlueprint(BaseModel):
-    """Isolated, reusable orchestrator cognitive module (e.g. Guard or Analyst)."""
+class Step(BaseModel):
+    """Isolated, reusable orchestrator cognitive module (e.g. Guard or step_input_processing).
+    Formerly known as TaskBlueprint."""
     id: str = Field(description="Unique UUID for storage optionally")
-    slug: str = Field(description="Human-readable identifier (e.g., 'task_guard')")
-    name: I18nText = Field(description="Localized task name")
-    description: I18nText | None = Field(default=None, description="Detailed task context")
+    slug: str = Field(description="Human-readable identifier (e.g., 'step_guard')")
+    name: I18nText = Field(description="Localized step name")
+    description: I18nText | None = Field(default=None, description="Detailed step context")
     prompt_blocks: list[str] = Field(
         default_factory=list,
-        description="List of PromptBlock slugs containing directives and matrices for this task."
+        description="List of PromptBlock slugs containing directives and matrices for this step."
     )
     pre_hooks: list[str] = Field(
         default_factory=list,
         description="Native Python functions to execute BEFORE LLM context building."
     )
-    model_strategy: str | None = Field(
-        default=None,
-        description="Logical strategy profile from model registry (e.g., 'fast', 'deep')"
+    post_hooks: list[str] = Field(
+        default_factory=list,
+        description="Native Python functions to execute AFTER LLM generation."
     )
 
     @model_validator(mode="after")
-    def validate_blueprint_consistency(self) -> TaskBlueprint:
-        """Strict fail-fast validation to ensure TaskBlueprint is not purely empty."""
-        if not self.prompt_blocks and not self.pre_hooks:
+    def validate_step_consistency(self) -> "Step":
+        """Strict fail-fast validation to ensure Step is not purely empty."""
+        if not self.prompt_blocks:
             from backend_v2.exceptions import AppException, ErrorCodes
             raise AppException(
-                message=f"TaskBlueprint '{self.slug}' must define at least one prompt_block or pre_hook.",
+                message=f"Step '{self.slug}' must define at least one prompt_block.",
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 status_code=400
             )
@@ -195,9 +197,9 @@ class TaskBlueprint(BaseModel):
 
 class StepRule(BaseModel):
     """Execution step mapping (DAG Router Node)."""
-    id: str = Field(description="Unique Step ID (e.g. step_judge).")
-    task_blueprint: str = Field(
-        description="Slug reference to the isolated TaskBlueprint (e.g., 'task_guard')"
+    id: str = Field(description="Unique node ID in the workflow (e.g. step_node_1).")
+    step_slug: str = Field(
+        description="Slug reference to the isolated Step (e.g., 'step_input_processing')"
     )
     depends_on: list[str] = Field(default_factory=list, description="IDs of steps that must complete first.")
     input_mappings: dict[str, str] = Field(
@@ -207,6 +209,10 @@ class StepRule(BaseModel):
     hook: str | None = Field(
         default=None,
         description="Native Python hook name to execute instead of an LLM. Used for pure structural nodes."
+    )
+    model_strategy: str | None = Field(
+        default=None,
+        description="Logical strategy profile from model registry (e.g., 'fast', 'deep')"
     )
 
 class Role(BaseModel):

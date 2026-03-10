@@ -151,26 +151,6 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_task_blueprint_by_id(self, blueprint_id: str) -> dict[str, Any] | None:
-        pass
-
-    @abstractmethod
-    async def get_all_task_blueprints(self) -> list[dict[str, Any]]:
-        pass
-
-    @abstractmethod
-    async def create_task_blueprint(self, blueprint_data: dict[str, Any]) -> str:
-        pass
-
-    @abstractmethod
-    async def update_task_blueprint(self, blueprint_id: str, updates: dict[str, Any]) -> bool:
-        pass
-
-    @abstractmethod
-    async def delete_task_blueprint(self, blueprint_id: str) -> bool:
-        pass
-
-    @abstractmethod
     async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
         pass
 
