@@ -1,3 +1,0 @@
-﻿backend_v2\seed\seed_registry.py:8: error: Unused "type: ignore" comment  [unused-ignore]
-backend_v2\llm\provider.py:562: error: Unused "type: ignore" comment  [unused-ignore]
-Found 2 errors in 2 files (checked 59 source files)

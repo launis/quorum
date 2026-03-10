@@ -1,1 +1,0 @@
-import pytest; import sys; sys.exit(pytest.main(['backend_v2/tests/unit/test_dag_executor_prompt_blocks.py', '-v', '--tb=long', '--color=no', '-p', 'no:sugar']))
