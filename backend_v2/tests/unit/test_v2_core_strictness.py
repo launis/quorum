@@ -1,13 +1,13 @@
 import pytest
-from pydantic import ValidationError
 
-from backend_v2.models.v2_core import PromptBlock, Step, I18nText
+from backend_v2.models.v2_core import I18nText, PromptBlock, Step
+
 
 def test_prompt_block_allow_decimals_requires_numeric():
     # Valid setup
     label = I18nText(default_locale="fi", translations={"fi": "Testi"})
     desc = I18nText(default_locale="fi", translations={"fi": "Kuvaus"})
-    
+
     # Should validate since type='string' is allowed for BARS format backwards compatibility
     valid_block = PromptBlock(
         id="block_valid",
@@ -20,7 +20,7 @@ def test_prompt_block_allow_decimals_requires_numeric():
         require_justification=False
     )
     assert valid_block.allow_decimals is True
-    
+
     # Should raise error for allow_decimals=True with incompatible type
     with pytest.raises(Exception) as exc_info:
         PromptBlock(
@@ -38,7 +38,7 @@ def test_prompt_block_allow_decimals_requires_numeric():
 
 def test_step_validation_fails_on_empty_execution_logic():
     label = I18nText(default_locale="fi", translations={"fi": "Blueprintti"})
-    
+
     # Successful: Has prompt blocks
     valid_blueprint = Step(
         id="bp_id",
@@ -47,7 +47,7 @@ def test_step_validation_fails_on_empty_execution_logic():
         prompt_blocks=["some_block"]
     )
     assert valid_blueprint.slug == "task_bp_valid"
-    
+
     # Fails: Nothing defined
     with pytest.raises(Exception) as exc_info:
         Step(

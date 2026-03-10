@@ -1,7 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from backend_v2.models.v2_core import Workflow, StepRule, I18nText, ExecutionStatus
+
+import pytest
+
+from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+
 
 @pytest.fixture
 def mock_repo():

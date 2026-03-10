@@ -722,5 +722,31 @@
   "workflowInputMappingsLabel": "Input Mappings (Semantic Routing):",
   "workflowAgentInputKey": "Agent Input Key (e.g. source_text)",
   "workflowSourceVarLabel": "Source Var (e.g. $inputs.data)",
-  "workflowAddMappingBtn": "Add Mapping"
+  "workflowAddMappingBtn": "Add Mapping",
+  "workflowInputKeyLabel": "Input Key/Role (e.g. product_text)",
+  "workflowDeleteInputTooltip": "Delete Input",
+  "workflowInputRequired": "Required",
+  "workflowInputIsChatHistory": "Is Chat History (LLM Parse)",
+  "workflowInputModesLabel": "Input Modes:",
+  "inputModeFile": "file",
+  "inputModePaste": "paste",
+  "inputModeQuestionnaire": "questionnaire",
+  "workflowInputLabelTitle": "Label (UI Form Title)",
+  "workflowInputDescriptionTitle": "Description (UI Hint)",
+  "workflowInputAiDescriptionTitle": "AI Semantic Description (For LLM Grounding)",
+  "workflowInputQuestionnaireDefTitle": "Questionnaire Definition:",
+  "workflowInputNoQuestionsDefined": "No questions defined yet. Add one below.",
+  "workflowInputQuestionIdLabel": "Question ID (e.g. q1)",
+  "workflowInputQuestionTextLabel": "Question Text",
+  "workflowInputAddQuestionBtn": "Add Question",
+  "mockLoginSuccess": "Mock Login Successful! Redirecting...",
+  "mockLoginFailed": "Mock login failed. Verify user data: {error}",
+  "@mockLoginFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message returned by repository"
+      }
+    }
+  }
 }

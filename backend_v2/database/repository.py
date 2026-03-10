@@ -590,7 +590,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         step = await self.get_step_by_id(step_id)
         if not step:
             return False
-            
+
         if not force_delete:
             wfs = await self.get_all_workflows()
             for wf in wfs:
@@ -660,7 +660,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         block = await self.get_prompt_block_by_id(block_id)
         if not block:
             return False
-            
+
         if not force_delete:
             # Relational Check: Fail-Fast if used in any Step
             steps = await self.get_all_steps()

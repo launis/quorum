@@ -19,10 +19,16 @@ The engine is fundamentally **data-driven**. In Cognitive Quorum V2, the core "r
 * **Dynamic Programming**: Changing a database record instantly alters how the system "thinks" and evaluates inputs. The database holds the AI's "Mind".
 * **Single Source of Truth (SSOT)**: `data/seed_data.json` acts as the master blueprint for this logic.
 
-### Database Data Flow
-1. **Seeding (Blueprint to Database)**: `seed_data.json` is ingested into the Runtime Database (`db_v2.json` or Firestore). This step "compiles" the JSON blueprint into active database records.
-2. **Execution Hydration (Database to Engine)**: When a workflow execution starts, the DAG Executor queries the database to fetch the necessary nodes and prompt blocks.
-3. **State Persistence (Engine to Database)**: As the LLM processes the data, results (strictly validated via Pydantic) are written back to the database as `ExecutionRecords`.
+### Bidirectional Seeding System (V2)
+The Engine employs a robust bidirectional seeding mechanism to enforce the Single Source of Truth (`seed_data.json`) while allowing rapid database iterations.
+
+1. **Seeding (Blueprint to Database via `run_seed.py`)**: `seed_data.json` is ingested into the Runtime Database (`data/db_v2.json` or Firestore). This step strictly validates every item via Pydantic models. 
+   - *Safety Feature*: Automatically creates a timestamped backup of the target database in `data/backups/` before clearing any tables.
+2. **Extraction (Database to Blueprint via `migrate_to_seed.py`)**: Allows extracting runtime database modifications back into the SSOT blueprint. 
+   - *Safety Feature*: Automatically creates a timestamped backup of the target file in `backend_v2/seed/backups/` before writing.
+   - *Validation*: Uses `seed_validator.py` with `DeepDiff` to guarantee structural parity (nested lists like `questionnaire_definition` or `claims` are preserved identically, ignoring key-order differences caused by Pydantic serialization).
+3. **Execution Hydration (Database to Engine)**: When a workflow execution starts, the DAG Executor queries the database to fetch the necessary nodes and prompt blocks.
+4. **State Persistence (Engine to Database)**: As the LLM processes the data, results (strictly validated via Pydantic) are written back to the database as `ExecutionRecords`.
 
 ---
 

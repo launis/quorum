@@ -1,23 +1,20 @@
 """Deterministic Input Processing Hook for V2 Architecture.
 
 This hook replaces the legacy V1 `InputProcessorAgent` LLM overhead.
-It safely merges and transforms structured `guided_reflection` questionnaires 
+It safely merges and transforms structured `guided_reflection` questionnaires
 and unstructured `reflection_text` strings into a unified text format for downstream AI nodes.
 """
 
+import base64
 import logging
 from typing import Any
 
+import fitz
 from fastapi import status
+from fastapi.concurrency import run_in_threadpool
 
 from backend_v2.core.hook_registry import hook_registry
-from backend_v2.exceptions import AppException, ErrorCodes
-
-import base64
-import io
-import fitz
-import logging
-from fastapi.concurrency import run_in_threadpool
+from backend_v2.exceptions import AppException
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +32,7 @@ async def resolve_input(val: Any) -> str:
         file_bytes = base64.b64decode(val["content_base64"])
         filename = val.get("filename", "unknown.txt").lower()
         logger.info(f"[InputProcessingHook] Detected binary input payload: {filename}")
-        
+
         if filename.endswith(".pdf"):
             logger.info(f"[InputProcessingHook] Running PyMuPDF extraction for {filename}")
             try:
@@ -60,73 +57,85 @@ async def resolve_input(val: Any) -> str:
 async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
     """HOOK: process_inputs.
 
-    Reads raw input modalities passed from the client, normalizes them, 
-    extracts PDF text if base64 encoded, and handles transformations like expanding 
-    `guided_reflection` into an alternative Markdown document via V1 compatibility logic.
+    Reads raw input modalities passed from the client, normalizes them,
+    extracts PDF text if base64 encoded, and handles transformations like expanding
+    `questionnaire` inputs into Markdown documents. Uses is_chat_history flag to
+    dynamically route unstructured text to ChatParserService.
     """
     logger.info("[InputProcessingHook] Running deterministic input normalizer...")
 
-    # In V2 DAGExecutor, raw_inputs from the payload are flattened into the root state_data dictionary
-    history_text = await resolve_input(data.get("history_text", ""))
-    product_text = await resolve_input(data.get("product_text", ""))
-    reflection_text = await resolve_input(data.get("reflection_text", ""))
-    guided_reflection = data.get("guided_reflection")
+    # Fetch workflow to know about expected_inputs
+    repo = data.get("_sys_repository")
+    workflow_id = data.get("_sys_workflow_id")
 
-    # 1. Transform Guided Reflection to Markdown if provided
-    # Note: Guided reflection is an alternative input to a direct reflection_text document.
-    if guided_reflection and isinstance(guided_reflection, dict):
-        logger.info("[InputProcessingHook] Found guided_reflection dict. Generating alternative Markdown reflection...")
-        try:
-            markdown_parts = ["# Guided Reflection\n"]
-            keys = sorted(guided_reflection.keys())
-            for key in keys:
-                val = guided_reflection[key]
-                if str(key).startswith("q"):
+    if not repo or not workflow_id:
+        logger.error("[InputProcessingHook] Missing repository or workflow_id in context.")
+        raise AppException(
+            message="Missing execution context for input processing.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": "MISSING_EXECUTION_CONTEXT"}
+        )
+
+    workflow_dict = await repo.get_workflow_by_id(workflow_id)
+    if not workflow_dict:
+        raise AppException(
+            message=f"Workflow {workflow_id} not found.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"error_code": "WORKFLOW_NOT_FOUND"}
+        )
+
+    from pydantic import TypeAdapter
+
+    from backend_v2.models.v2_core import Workflow
+    workflow = TypeAdapter(Workflow).validate_python(workflow_dict)
+
+    expected_inputs = workflow.expected_inputs
+    output_dict: dict[str, str] = {}
+
+    for expected_input in expected_inputs:
+        key = expected_input.input_key
+        raw_val = data.get(key)
+
+        # 1. Handle Questionnaire mode specifically if it exists
+        if isinstance(raw_val, dict) and any(str(k).startswith("q") for k in raw_val.keys()):
+            logger.info(f"[InputProcessingHook] Found questionnaire dict for {key}. Generating Markdown...")
+            title_text = expected_input.label.translations.get("en", "Questionnaire")
+            markdown_parts = [f"# {title_text}\n"]
+            keys = sorted(raw_val.keys())
+            for q_key in keys:
+                val = raw_val[q_key]
+                if str(q_key).startswith("q"):
                     markdown_parts.append(f"### Q: {val}")
-                elif str(key).startswith("a"):
+                elif str(q_key).startswith("a"):
                     markdown_parts.append(f"**A:** {val}\n")
                 else:
-                    markdown_parts.append(f"**{key}:** {val}\n")
-            
-            # Form the reflection_text entirely from the questionnaire 
-            # (as it's an alternative to a direct uploaded document)
-            reflection_text = "\n".join(markdown_parts)
-                
-            logger.debug("[InputProcessingHook] Successfully transformed guided reflection.")
-        except Exception as e:
-            logger.error(f"[InputProcessingHook] Failed to parse guided_reflection: {e}")
-            # Do not fail fast here, graceful degradation to original text if possible
+                    markdown_parts.append(f"**{q_key}:** {val}\n")
+            resolved_text = "\n".join(markdown_parts)
 
-    # 2. V2 ChatParser LLM Hook (Y-Funnel equivalent)
-    # If history_text is present and is raw text (not already parsed JSON)
-    if history_text and not history_text.strip().startswith("{"):
-        logger.info("[InputProcessingHook] Unstructured history_text detected. Invoking ChatParserLLM...")
-        try:
-            from backend_v2.services.chat_parser import ChatParserService
-            repo = data.get("_sys_repository")
-            if not repo:
-                logger.warning("[InputProcessingHook] _sys_repository missing; LLM parser might fail if not mocked.")
-                
-            chat_dto = await ChatParserService.parse_pasted_chat(history_text, repository=repo)
-            # Serialize the structured DTO back to a JSON string so downstream PromptCompilers can safely embed it
-            history_text = chat_dto.model_dump_json(indent=2)
-            logger.info("[InputProcessingHook] Successfully structured history_text via ChatParser.")
-        except Exception as e:
-            logger.error(f"[InputProcessingHook] Chat parsing failed: {e}")
-            # Fail-fast bubble up to match V1 specification
-            if isinstance(e, AppException):
-                raise e
-            raise AppException(
-                message="Failed to parse unstructured chat history using AI.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": "CHAT_PARSING_FAILED"}
-            ) from e
+        else:
+            # 2. Standard resolution (File, Paste)
+            resolved_text = await resolve_input(raw_val)
 
-    # 3. Construct and return the output dictionary.
-    # The DAG engine mounts this dict exactly to `$steps.<this_step_id>.<key>`
-    return {
-        "history_text": history_text,
-        "product_text": product_text,
-        "reflection_text": reflection_text.strip(),
-        "status": "Inputs processed deterministically (or structured via LLM if needed)."
-    }
+        # 3. V2 ChatParser LLM Hook (if designated as chat history)
+        if expected_input.is_chat_history and resolved_text and not resolved_text.strip().startswith("{"):
+            logger.info(f"[InputProcessingHook] Unstructured chat detected for {key}. Invoking ChatParserLLM...")
+            try:
+                from backend_v2.services.chat_parser import ChatParserService
+
+                chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, repository=repo)
+                resolved_text = chat_dto.model_dump_json(indent=2)
+                logger.info(f"[InputProcessingHook] Successfully structured {key} via ChatParser.")
+            except Exception as e:
+                logger.error(f"[InputProcessingHook] Chat parsing failed for {key}: {e}")
+                if isinstance(e, AppException):
+                    raise e
+                raise AppException(
+                    message=f"Failed to parse unstructured chat for {key} using AI.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": "CHAT_PARSING_FAILED"}
+                ) from e
+
+        output_dict[key] = resolved_text.strip()
+
+    output_dict["status"] = "Inputs processed deterministically (or structured via LLM if needed)."
+    return output_dict

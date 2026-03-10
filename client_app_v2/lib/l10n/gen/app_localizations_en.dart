@@ -1663,4 +1663,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workflowAddMappingBtn => 'Add Mapping';
+
+  @override
+  String get workflowInputKeyLabel => 'Input Key/Role (e.g. product_text)';
+
+  @override
+  String get workflowDeleteInputTooltip => 'Delete Input';
+
+  @override
+  String get workflowInputRequired => 'Required';
+
+  @override
+  String get workflowInputIsChatHistory => 'Is Chat History (LLM Parse)';
+
+  @override
+  String get workflowInputModesLabel => 'Input Modes:';
+
+  @override
+  String get inputModeFile => 'file';
+
+  @override
+  String get inputModePaste => 'paste';
+
+  @override
+  String get inputModeQuestionnaire => 'questionnaire';
+
+  @override
+  String get workflowInputLabelTitle => 'Label (UI Form Title)';
+
+  @override
+  String get workflowInputDescriptionTitle => 'Description (UI Hint)';
+
+  @override
+  String get workflowInputAiDescriptionTitle =>
+      'AI Semantic Description (For LLM Grounding)';
+
+  @override
+  String get workflowInputQuestionnaireDefTitle => 'Questionnaire Definition:';
+
+  @override
+  String get workflowInputNoQuestionsDefined =>
+      'No questions defined yet. Add one below.';
+
+  @override
+  String get workflowInputQuestionIdLabel => 'Question ID (e.g. q1)';
+
+  @override
+  String get workflowInputQuestionTextLabel => 'Question Text';
+
+  @override
+  String get workflowInputAddQuestionBtn => 'Add Question';
+
+  @override
+  String get mockLoginSuccess => 'Mock Login Successful! Redirecting...';
+
+  @override
+  String mockLoginFailed(String error) {
+    return 'Mock login failed. Verify user data: $error';
+  }
 }

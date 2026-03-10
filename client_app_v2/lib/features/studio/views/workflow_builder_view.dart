@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
+import 'package:client_app/features/studio/views/widgets/expected_input_editor_box.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -92,52 +93,59 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Delete'),
-        content: Text(l10n.deleteWorkflowConfirmation(id)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Confirm Delete'),
+            content: Text(l10n.deleteWorkflowConfirmation(id)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ref
+                      .read(workflowsControllerProvider.notifier)
+                      .deleteWorkflow(id)
+                      .then((_) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Deleted successfully'),
+                            ),
+                          );
+                          Navigator.of(context).pop();
+                        }
+                      })
+                      .catchError((e) {
+                        if (mounted) {
+                          String errorMsg = e.toString();
+                          if (e is AppError && e is ApiAppError) {
+                            if (e.errorCode == 'RESOURCE_IN_USE') {
+                              errorMsg = l10n.errorResourceInUse;
+                            }
+                          } else if (errorMsg.contains('RESOURCE_IN_USE') ||
+                              errorMsg.contains('400')) {
+                            errorMsg = l10n.errorResourceInUse;
+                          }
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMsg),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      });
+                },
+                child: Text(
+                  l10n.delete,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ref
-                  .read(workflowsControllerProvider.notifier)
-                  .deleteWorkflow(id)
-                  .then((_) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Deleted successfully')),
-                      );
-                      Navigator.of(context).pop();
-                    }
-                  })
-                  .catchError((e) {
-                    if (mounted) {
-                      String errorMsg = e.toString();
-                      if (e is AppError && e is ApiAppError) {
-                         if (e.errorCode == 'RESOURCE_IN_USE') {
-                           errorMsg = l10n.errorResourceInUse;
-                         }
-                      } else if (errorMsg.contains('RESOURCE_IN_USE') || errorMsg.contains('400')) {
-                         errorMsg = l10n.errorResourceInUse;
-                      }
-                      
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(errorMsg),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  });
-            },
-            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -145,9 +153,14 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
     setState(() {
       final inputs = SafeCast.safeList(_editableWorkflow['expected_inputs']);
       inputs.add({
-        'role': 'new_input_role',
-        'type': 'string',
-        'description': 'Input description...',
+        'input_key': 'new_input_key',
+        'label': {
+          'default_locale': 'en',
+          'translations': {'en': 'New Input', 'fi': 'Uusi syöte'}
+        },
+        'required': true,
+        'is_chat_history': false,
+        'input_modes': ['file', 'paste'],
       });
       _editableWorkflow['expected_inputs'] = inputs;
     });
@@ -313,81 +326,20 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
     Map<String, dynamic> inputDef,
     AppLocalizations l10n,
   ) {
-    final roleController = TextEditingController(
-      text: SafeCast.safeString(inputDef['role']),
-    );
-    final descController = TextEditingController(
-      text: SafeCast.safeString(inputDef['description']),
-    );
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: Focus(
-                onFocusChange: (f) {
-                  if (!f) inputDef['role'] = roleController.text;
-                },
-                child: TextField(
-                  controller: roleController,
-                  decoration: InputDecoration(
-                    labelText: l10n.workflowRoleKeyLabel,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Focus(
-                onFocusChange: (f) {
-                  if (!f) inputDef['description'] = descController.text;
-                },
-                child: TextField(
-                  controller: descController,
-                  decoration: InputDecoration(
-                    labelText: l10n.workflowDescLabel,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            DropdownButton<String>(
-              value:
-                  const ['string', 'file', 'json'].contains(inputDef['type'])
-                      ? inputDef['type'] as String
-                      : 'string',
-              items: [
-                DropdownMenuItem(
-                  value: 'string',
-                  child: Text(l10n.workflowTypeString),
-                ),
-                DropdownMenuItem(
-                  value: 'file',
-                  child: Text(l10n.workflowTypeFile),
-                ),
-                DropdownMenuItem(
-                  value: 'json',
-                  child: Text(l10n.workflowTypeJson),
-                ),
-              ],
-              onChanged: (val) => setState(() => inputDef['type'] = val),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () {
-                setState(() {
-                  SafeCast.safeList(
-                    _editableWorkflow['expected_inputs'],
-                  ).removeAt(index);
-                });
-              },
-            ),
-          ],
-        ),
-      ),
+    return ExpectedInputEditorBox(
+      inputDef: inputDef,
+      onDelete: () {
+        setState(() {
+          SafeCast.safeList(
+            _editableWorkflow['expected_inputs'],
+          ).removeAt(index);
+        });
+      },
+      onChanged: () {
+        setState(() {
+          // Trigger rebuild if necessary deep within
+        });
+      },
     );
   }
 

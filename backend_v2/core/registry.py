@@ -116,6 +116,7 @@ class TaskRegistry:
             try:
                 from backend_v2.dependencies import get_async_repository
                 from backend_v2.services.agent_registry import AgentRegistry
+
                 from backend_v2.services.usage_service import UsageService
 
                 repo = await get_async_repository()
@@ -176,7 +177,7 @@ class TaskRegistry:
                         vars_to_inject = input_data
 
                     # System Context
-                    from datetime import UTC, datetime
+                    from datetime import datetime
 
                     vars_to_inject["CURRENT_DATE"] = datetime.now().astimezone().strftime("%Y-%m-%d")
                     vars_to_inject["DYNAMIC_TIME"] = datetime.now().astimezone().strftime("%H:%M:%S")

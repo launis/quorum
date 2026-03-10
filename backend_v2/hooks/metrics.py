@@ -207,7 +207,7 @@ def calculate_control_ratio_hook(data: dict[str, Any]) -> dict[str, Any]:
         history = inputs.get("history_text", "")
     elif hasattr(inputs, "history_text"):
         history = getattr(inputs, "history_text", "")
-        
+
     ratio = calculate_control_ratio(str(history))
     return {"input_control_ratio": ratio}
 

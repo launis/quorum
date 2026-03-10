@@ -97,7 +97,7 @@ class RoleClassification(str, Enum):
 
 
 class ScoringPenalty(str, Enum):
-    
+
 
     SECURITY_THREAT = "PENALTY_SECURITY_THREAT"
     POST_HOC = "PENALTY_POST_HOC"

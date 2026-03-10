@@ -1,11 +1,14 @@
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 from fastapi.testclient import TestClient
+
 from backend_v2.api.dependencies import get_current_user_from_header, get_studio_service
-from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.services.studio import StudioService
 from backend_v2.exceptions import PermissionDeniedError
 from backend_v2.main import app
+from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.services.studio import StudioService
+
 
 def mock_get_current_user_member():
     return TokenData(email="member@test.com", id="user456", role=UserRole.MEMBER, organization_id="test_org")
@@ -39,7 +42,7 @@ def test_workflow_rbac_save_member_forbidden(client_member):
     response = client_member.put("/api/v2/studio/workflows/new_wf", json=payload)
     if response.status_code == 404:
         response = client_member.put("/studio/workflows/new_wf", json=payload)
-    
+
     assert response.status_code == 403
     assert "Permission" in response.json()["detail"] or "ROOT" in response.json()["detail"]
 

@@ -25,7 +25,6 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any] | None)
     Returns:
         List[BibliographyItem]: A list of unique reference domain objects found in the text.
     """
-
     try:
         # Stubbed implementation of ReferenceManager (Not ported to V2)
         refs: list[dict[str, Any]] = [

@@ -3163,6 +3163,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add Mapping'**
   String get workflowAddMappingBtn;
+
+  /// No description provided for @workflowInputKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Input Key/Role (e.g. product_text)'**
+  String get workflowInputKeyLabel;
+
+  /// No description provided for @workflowDeleteInputTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Input'**
+  String get workflowDeleteInputTooltip;
+
+  /// No description provided for @workflowInputRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get workflowInputRequired;
+
+  /// No description provided for @workflowInputIsChatHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Is Chat History (LLM Parse)'**
+  String get workflowInputIsChatHistory;
+
+  /// No description provided for @workflowInputModesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Input Modes:'**
+  String get workflowInputModesLabel;
+
+  /// No description provided for @inputModeFile.
+  ///
+  /// In en, this message translates to:
+  /// **'file'**
+  String get inputModeFile;
+
+  /// No description provided for @inputModePaste.
+  ///
+  /// In en, this message translates to:
+  /// **'paste'**
+  String get inputModePaste;
+
+  /// No description provided for @inputModeQuestionnaire.
+  ///
+  /// In en, this message translates to:
+  /// **'questionnaire'**
+  String get inputModeQuestionnaire;
+
+  /// No description provided for @workflowInputLabelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Label (UI Form Title)'**
+  String get workflowInputLabelTitle;
+
+  /// No description provided for @workflowInputDescriptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (UI Hint)'**
+  String get workflowInputDescriptionTitle;
+
+  /// No description provided for @workflowInputAiDescriptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Semantic Description (For LLM Grounding)'**
+  String get workflowInputAiDescriptionTitle;
+
+  /// No description provided for @workflowInputQuestionnaireDefTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaire Definition:'**
+  String get workflowInputQuestionnaireDefTitle;
+
+  /// No description provided for @workflowInputNoQuestionsDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'No questions defined yet. Add one below.'**
+  String get workflowInputNoQuestionsDefined;
+
+  /// No description provided for @workflowInputQuestionIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Question ID (e.g. q1)'**
+  String get workflowInputQuestionIdLabel;
+
+  /// No description provided for @workflowInputQuestionTextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Question Text'**
+  String get workflowInputQuestionTextLabel;
+
+  /// No description provided for @workflowInputAddQuestionBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Question'**
+  String get workflowInputAddQuestionBtn;
+
+  /// No description provided for @mockLoginSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock Login Successful! Redirecting...'**
+  String get mockLoginSuccess;
+
+  /// No description provided for @mockLoginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock login failed. Verify user data: {error}'**
+  String mockLoginFailed(String error);
 }
 
 class _AppLocalizationsDelegate

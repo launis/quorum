@@ -1667,4 +1667,64 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get workflowAddMappingBtn => 'Lisää Mappaus';
+
+  @override
+  String get workflowInputKeyLabel =>
+      'Syötteen Avain/Rooli (esim. product_text)';
+
+  @override
+  String get workflowDeleteInputTooltip => 'Poista Syöte';
+
+  @override
+  String get workflowInputRequired => 'Pakollinen';
+
+  @override
+  String get workflowInputIsChatHistory =>
+      'Onko Keskusteluhistoria (LLM-jäsennys)';
+
+  @override
+  String get workflowInputModesLabel => 'Syöttötavat:';
+
+  @override
+  String get inputModeFile => 'tiedosto';
+
+  @override
+  String get inputModePaste => 'teksti';
+
+  @override
+  String get inputModeQuestionnaire => 'kysely';
+
+  @override
+  String get workflowInputLabelTitle => 'Otsikko (UI-lomakkeen Nimi)';
+
+  @override
+  String get workflowInputDescriptionTitle => 'Kuvaus (UI-vihje)';
+
+  @override
+  String get workflowInputAiDescriptionTitle =>
+      'Tekoälyn Semanttinen Kuvaus (LLM-pohjustus)';
+
+  @override
+  String get workflowInputQuestionnaireDefTitle => 'Kyselyn Määrittely:';
+
+  @override
+  String get workflowInputNoQuestionsDefined =>
+      'Ei vielä määriteltyjä kysymyksiä. Lisää alle.';
+
+  @override
+  String get workflowInputQuestionIdLabel => 'Kysymyksen ID (esim. q1)';
+
+  @override
+  String get workflowInputQuestionTextLabel => 'Kysymyksen Teksti';
+
+  @override
+  String get workflowInputAddQuestionBtn => 'Lisää Kysymys';
+
+  @override
+  String get mockLoginSuccess => 'Ylläpitokirjautuminen onnistui! Ohjataan...';
+
+  @override
+  String mockLoginFailed(String error) {
+    return 'Ylläpitokirjautuminen epäonnistui: $error';
+  }
 }

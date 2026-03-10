@@ -25,13 +25,12 @@ class I18nTextField extends StatefulWidget {
 class _I18nTextFieldState extends State<I18nTextField> {
   late TextEditingController _defaultController;
   late Map<String, String> _translations;
+  late String _defaultLocale;
 
   @override
   void initState() {
     super.initState();
-    _defaultController = TextEditingController(
-      text: widget.initialData['default_locale']?.toString() ?? '',
-    );
+    _defaultLocale = widget.initialData['default_locale']?.toString() ?? 'fi';
 
     _translations = {};
     if (widget.initialData['translations'] is Map) {
@@ -41,7 +40,41 @@ class _I18nTextFieldState extends State<I18nTextField> {
       });
     }
 
+    _defaultController = TextEditingController(
+      text: _translations[_defaultLocale] ?? '',
+    );
+
     _defaultController.addListener(_emitChanges);
+  }
+
+  @override
+  void didUpdateWidget(I18nTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only update if the underlying default locale text genuinely changed from parent
+    final newLocale = widget.initialData['default_locale']?.toString() ?? 'fi';
+    final newTranslationsMap = widget.initialData['translations'];
+    
+    String newDefaultText = '';
+    if (newTranslationsMap is Map) {
+      newDefaultText = newTranslationsMap[newLocale]?.toString() ?? '';
+    }
+
+    if (oldWidget.initialData != widget.initialData) {
+      _defaultLocale = newLocale;
+      _translations.clear();
+      if (newTranslationsMap is Map) {
+        newTranslationsMap.forEach((key, value) {
+          _translations[key.toString()] = value.toString();
+        });
+      }
+
+      if (_defaultController.text != newDefaultText) {
+        _defaultController.value = _defaultController.value.copyWith(
+          text: newDefaultText,
+          selection: TextSelection.collapsed(offset: newDefaultText.length), // Keep cursor cursor at the end
+        );
+      }
+    }
   }
 
   @override
@@ -52,17 +85,27 @@ class _I18nTextFieldState extends State<I18nTextField> {
   }
 
   void _emitChanges() {
+    if (_defaultController.text.isNotEmpty) {
+      _translations[_defaultLocale] = _defaultController.text;
+    } else {
+      _translations.remove(_defaultLocale);
+    }
+
     widget.onChanged({
-      'default_locale': _defaultController.text,
+      'default_locale': _defaultLocale,
       'translations': _translations,
     });
   }
 
   void _addTranslation(String langCode, String text) {
-    setState(() {
-      _translations[langCode] = text;
-    });
-    _emitChanges();
+    if (langCode == _defaultLocale) {
+      _defaultController.text = text;
+    } else {
+      setState(() {
+        _translations[langCode] = text;
+      });
+      _emitChanges();
+    }
   }
 
   void _removeTranslation(String langCode) {
@@ -154,21 +197,23 @@ class _I18nTextFieldState extends State<I18nTextField> {
             const SizedBox(height: 12),
             TextField(
               controller: _defaultController,
-              decoration: const InputDecoration(
-                labelText: 'Default Form (Finnish usually expected)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'Default Form (${_defaultLocale.toUpperCase()} usually expected)',
+                border: const OutlineInputBorder(),
                 filled: true,
               ),
               maxLines: null,
             ),
-            if (_translations.isNotEmpty) ...[
+            if (_translations.keys.where((k) => k != _defaultLocale).isNotEmpty) ...[
               const SizedBox(height: 16),
               const Text(
-                'Translations:',
+                'Other Translations:',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              ..._translations.entries.map((entry) {
+              ..._translations.entries
+                  .where((entry) => entry.key != _defaultLocale)
+                  .map((entry) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Row(

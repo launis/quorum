@@ -5,7 +5,6 @@ profile management, and organization administration.
 """
 
 import logging
-import typing
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel

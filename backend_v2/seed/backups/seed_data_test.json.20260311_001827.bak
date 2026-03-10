@@ -6,64 +6,64 @@
       "type": "model_registry",
       "models": {
         "deep": {
-          "max_tokens": 65536,
+          "provider": "google",
           "model_name": "vertex_ai/gemini-2.5-pro",
           "temperature": 0.5,
-          "top_p": null,
-          "supports_grounding": true,
           "tpm_limit": 100000,
           "rpm_limit": 10,
-          "parsing_mode": "GEMINI_JSON",
-          "is_active": true,
-          "provider": "google"
+          "max_tokens": 65536,
+          "allowed_tools": [],
+          "supports_grounding": true,
+          "api_key": null,
+          "parsing_mode": "GEMINI_JSON"
         },
         "fast": {
-          "max_tokens": 65536,
+          "provider": "google",
           "model_name": "vertex_ai/gemini-2.5-flash",
           "temperature": 0.1,
-          "top_p": null,
-          "supports_grounding": false,
           "tpm_limit": 100000,
           "rpm_limit": 15,
-          "parsing_mode": "GEMINI_JSON",
-          "is_active": true,
-          "provider": "google"
+          "max_tokens": 65536,
+          "allowed_tools": [],
+          "supports_grounding": false,
+          "api_key": null,
+          "parsing_mode": "GEMINI_JSON"
         },
         "search": {
-          "max_tokens": 65536,
+          "provider": "google",
           "model_name": "vertex_ai/gemini-2.5-flash",
           "temperature": 0.0,
-          "top_p": null,
-          "supports_grounding": true,
           "tpm_limit": 100000,
           "rpm_limit": 15,
-          "parsing_mode": "GEMINI_JSON",
-          "is_active": true,
-          "provider": "google"
+          "max_tokens": 65536,
+          "allowed_tools": [],
+          "supports_grounding": true,
+          "api_key": null,
+          "parsing_mode": "GEMINI_JSON"
         },
         "precise": {
-          "max_tokens": 65536,
+          "provider": "google",
           "model_name": "vertex_ai/gemini-2.5-pro",
           "temperature": 0.2,
-          "top_p": null,
-          "supports_grounding": false,
           "tpm_limit": 100000,
           "rpm_limit": 10,
-          "parsing_mode": "GEMINI_JSON",
-          "is_active": true,
-          "provider": "google"
+          "max_tokens": 65536,
+          "allowed_tools": [],
+          "supports_grounding": false,
+          "api_key": null,
+          "parsing_mode": "GEMINI_JSON"
         },
         "strict": {
-          "max_tokens": 65536,
+          "provider": "google",
           "model_name": "vertex_ai/gemini-2.5-pro",
           "temperature": 0.0,
-          "top_p": null,
-          "supports_grounding": false,
           "tpm_limit": 100000,
           "rpm_limit": 10,
-          "parsing_mode": "GEMINI_JSON",
-          "is_active": true,
-          "provider": "google"
+          "max_tokens": 65536,
+          "allowed_tools": [],
+          "supports_grounding": false,
+          "api_key": null,
+          "parsing_mode": "GEMINI_JSON"
         }
       }
     }
@@ -216,7 +216,8 @@
             "fi": "Argumentaation laatu"
           }
         }
-      ]
+      ],
+      "columns": null
     },
     {
       "id": "matrix_bloom",
@@ -358,7 +359,8 @@
             "fi": "Kognitiivinen syvyys"
           }
         }
-      ]
+      ],
+      "columns": null
     },
     {
       "id": "matrix_kahneman",
@@ -455,7 +457,8 @@
             "fi": "Ajattelun modaliteetti"
           }
         }
-      ]
+      ],
+      "columns": null
     },
     {
       "id": "matrix_goodhart",
@@ -592,7 +595,8 @@
             "fi": "Performativiteetti ja ajaminen"
           }
         }
-      ]
+      ],
+      "columns": null
     },
     {
       "id": "matrix_task_interaction",
@@ -718,7 +722,8 @@
             "fi": "Aloitteellisuus ja systeemitason vastuu"
           }
         }
-      ]
+      ],
+      "columns": null
     },
     {
       "id": "matrix_input_processing",
@@ -738,7 +743,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_analyst",
@@ -758,7 +767,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_archivist",
@@ -778,7 +791,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_causal_analyst",
@@ -798,7 +815,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_coach",
@@ -818,7 +839,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_retrieval_agent",
@@ -838,7 +863,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_falsifier",
@@ -858,7 +887,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_input_processor",
@@ -878,7 +911,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_guard",
@@ -898,7 +935,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_interaction_analyst",
@@ -918,7 +959,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_judge",
@@ -938,7 +983,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_logician",
@@ -958,7 +1007,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_overseer",
@@ -978,7 +1031,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_panel",
@@ -998,7 +1055,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_profiler",
@@ -1018,7 +1079,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "matrix_xai_reporter",
@@ -1038,7 +1103,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_headermandates",
@@ -1058,7 +1127,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_instructionstrictscale",
@@ -1078,7 +1151,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_headerrules",
@@ -1098,7 +1175,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_headerprotocols",
@@ -1118,7 +1199,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_headerinstructions",
@@ -1138,7 +1223,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_mandate2",
@@ -1158,7 +1247,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_mandate3",
@@ -1178,7 +1271,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_mandate5",
@@ -1198,7 +1295,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_rule1",
@@ -1218,7 +1319,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_rule2",
@@ -1238,7 +1343,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_rule3",
@@ -1258,7 +1367,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_rule4",
@@ -1278,7 +1391,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_rule5",
@@ -1298,7 +1415,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_rule6",
@@ -1318,7 +1439,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_globalcontext",
@@ -1338,7 +1463,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_oprule1",
@@ -1358,7 +1487,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_oprule2",
@@ -1378,7 +1511,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_oprule3",
@@ -1398,7 +1535,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_oprule4",
@@ -1418,7 +1559,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_instructionnohallucination",
@@ -1438,7 +1583,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_instructioncitationobligation",
@@ -1458,7 +1607,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_instructionnodataleak",
@@ -1478,7 +1631,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_instructionbiblicalgrounding",
@@ -1498,7 +1655,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_instructionlanguagefi",
@@ -1518,7 +1679,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskguard",
@@ -1538,7 +1703,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskanalyst",
@@ -1558,7 +1727,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskprofiler",
@@ -1578,7 +1751,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_tasklogician",
@@ -1598,7 +1775,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskfalsifier",
@@ -1618,7 +1799,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskoverseer",
@@ -1638,7 +1823,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskcausal",
@@ -1658,7 +1847,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskarchivist",
@@ -1678,7 +1871,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskjudge",
@@ -1698,7 +1895,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskcoach",
@@ -1718,7 +1919,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskinteraction",
@@ -1738,7 +1943,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskpanel",
@@ -1758,7 +1967,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_taskxai",
@@ -1778,7 +1991,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_protocol1",
@@ -1798,7 +2015,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_protocol2",
@@ -1818,7 +2039,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_protocol3",
@@ -1838,7 +2063,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_protocol4",
@@ -1858,7 +2087,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_method1",
@@ -1878,7 +2111,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_method2",
@@ -1898,7 +2135,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_method3",
@@ -1918,7 +2159,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_instructionanon",
@@ -1938,7 +2183,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_instructionragopt",
@@ -1958,7 +2207,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_principle1",
@@ -1978,7 +2231,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_requirement1",
@@ -1998,7 +2255,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_instructioncoachcitation",
@@ -2018,7 +2279,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_heuristic1",
@@ -2038,7 +2303,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_heuristic2",
@@ -2058,7 +2327,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_heuristic3",
@@ -2078,7 +2351,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_panelprompttemplate",
@@ -2098,7 +2375,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     },
     {
       "id": "block_systemcomponenttypes",
@@ -2118,12 +2399,17 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": null,
+      "scales": null,
+      "rows": null,
+      "columns": null
     }
   ],
   "workflows": [
     {
       "id": "workflow_courtroom_20_full_audit",
+      "slug": "workflow_courtroom_20_full_audit",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -2136,6 +2422,12 @@
           "fi": "Enhanced 12-step audit chain with Profiler, Archivist, and Coach."
         }
       },
+      "status": "draft",
+      "version": 1,
+      "is_public": false,
+      "organization_id": null,
+      "scoring_logic": [],
+      "ui_schema": {},
       "expected_inputs": [
         {
           "input_key": "product_text",
@@ -2450,6 +2742,7 @@
     },
     {
       "id": "workflow_courtroom_30_fused_critics",
+      "slug": "workflow_courtroom_30_fused_critics",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -2462,6 +2755,12 @@
           "fi": "Optimized workflow merging logical, causal, and performativity analysis into one parallel step."
         }
       },
+      "status": "draft",
+      "version": 1,
+      "is_public": false,
+      "organization_id": null,
+      "scoring_logic": [],
+      "ui_schema": {},
       "expected_inputs": [
         {
           "input_key": "product_text",
@@ -2702,6 +3001,7 @@
     },
     {
       "id": "workflow_courtroom_20_cognitive_audit",
+      "slug": "workflow_courtroom_20_cognitive_audit",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -2714,6 +3014,12 @@
           "fi": "Sequential audit using the new Cognitive BARS Matrix."
         }
       },
+      "status": "draft",
+      "version": 1,
+      "is_public": false,
+      "organization_id": null,
+      "scoring_logic": [],
+      "ui_schema": {},
       "expected_inputs": [
         {
           "input_key": "product_text",
@@ -3006,6 +3312,7 @@
     },
     {
       "id": "workflow_courtroom_30_fused_cognitive",
+      "slug": "workflow_courtroom_30_fused_cognitive",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -3018,6 +3325,12 @@
           "fi": "Fused workflow using the new Cognitive BARS Matrix."
         }
       },
+      "status": "draft",
+      "version": 1,
+      "is_public": false,
+      "organization_id": null,
+      "scoring_logic": [],
+      "ui_schema": {},
       "expected_inputs": [
         {
           "input_key": "product_text",
@@ -3258,6 +3571,7 @@
     },
     {
       "id": "workflow_courtroom_20_dual_matrix",
+      "slug": "workflow_courtroom_20_dual_matrix",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -3270,6 +3584,12 @@
           "fi": "Sequential audit using BOTH Process and Cognitive BARS Matrices."
         }
       },
+      "status": "draft",
+      "version": 1,
+      "is_public": false,
+      "organization_id": null,
+      "scoring_logic": [],
+      "ui_schema": {},
       "expected_inputs": [
         {
           "input_key": "product_text",
@@ -3575,6 +3895,7 @@
     },
     {
       "id": "workflow_courtroom_30_fused_dual",
+      "slug": "workflow_courtroom_30_fused_dual",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -3587,6 +3908,12 @@
           "fi": "Fused workflow using BOTH Process and Cognitive BARS Matrices."
         }
       },
+      "status": "draft",
+      "version": 1,
+      "is_public": false,
+      "organization_id": null,
+      "scoring_logic": [],
+      "ui_schema": {},
       "expected_inputs": [
         {
           "input_key": "product_text",
@@ -3855,6 +4182,7 @@
           "fi": "Parses files and raw text into standard variables."
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "matrix_input_processing"
       ],
@@ -3878,6 +4206,7 @@
           "fi": "Imported from sequential_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -3921,6 +4250,7 @@
           "fi": "Best Practices Audit"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -3953,6 +4283,7 @@
           "fi": "Impact Verification"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -3984,6 +4315,7 @@
           "fi": "Imported from sequential_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4032,6 +4364,7 @@
           "fi": "RAG Retrieval"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_instructionragopt",
@@ -4057,6 +4390,7 @@
           "fi": "Illusion of Control Audit"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4087,6 +4421,7 @@
           "fi": "Critical Loop Audit"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4120,6 +4455,7 @@
           "fi": "Pre-processes raw data before analysis"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "matrix_input_processor"
       ],
@@ -4143,6 +4479,7 @@
           "fi": "Imported from sequential_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4183,6 +4520,7 @@
           "fi": "Imported from sequential_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4217,6 +4555,7 @@
           "fi": "Imported from sequential_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4268,6 +4607,7 @@
           "fi": "Imported from sequential_audit_chain_cognitive"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4315,6 +4655,7 @@
           "fi": "Imported from sequential_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4350,6 +4691,7 @@
           "fi": "Imported from sequential_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4401,6 +4743,7 @@
           "fi": "Imported from fused_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_panelprompttemplate",
@@ -4438,6 +4781,7 @@
           "fi": "Imported from sequential_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4474,6 +4818,7 @@
           "fi": "Imported from sequential_audit_chain"
         }
       },
+      "task_key": null,
       "prompt_blocks": [
         "block_globalcontext",
         "block_headermandates",
@@ -4601,5 +4946,9 @@
       "created_at": "2026-01-01T00:00:00",
       "created_by": null
     }
-  ]
+  ],
+  "agents": [],
+  "output_configs": [],
+  "dimensions": [],
+  "references": []
 }

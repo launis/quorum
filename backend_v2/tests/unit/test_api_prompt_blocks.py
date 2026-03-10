@@ -1,12 +1,14 @@
-import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
-from backend_v2.main import app
+import pytest
+from fastapi.testclient import TestClient
+
 from backend_v2.api.dependencies import get_current_user_from_header, get_studio_service
+from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.v2_core import PromptBlock, I18nText, BlockDataType
+from backend_v2.models.v2_core import BlockDataType, I18nText, PromptBlock
 from backend_v2.services.studio import StudioService
+
 
 # Mock Dependencies
 async def override_get_current_user():

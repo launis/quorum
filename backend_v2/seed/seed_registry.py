@@ -2,17 +2,17 @@
 Strictly maps collections to V2 Pydantic models (Zero V1 leak).
 """
 
-from backend_v2.models.auth import Organization, User
 from pydantic import TypeAdapter
 
+from backend_v2.models.auth import Organization, User
 from backend_v2.models.v2_core import (
     Observation,
     OutputConfig,
     PromptBlock,
     Reference,
     Role,
-    SystemConfigModelRegistry,
     Step,
+    SystemConfigModelRegistry,
     Workflow,
 )
 

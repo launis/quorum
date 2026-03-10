@@ -26,7 +26,9 @@ __all__ = [
     "ExecutionRecord",
     "Observation",
     "OutputConfig",
-    "Reference"
+    "Reference",
+    "ExpectedInput",
+    "QuestionnaireItem"
 ]
 
 
@@ -245,6 +247,51 @@ class Role(BaseModel):
     pre_hooks: list[str] = Field(default_factory=list, description="List of registered hook logic to run BEFORE llm.")
     post_hooks: list[str] = Field(default_factory=list, description="List of registered hook logic to run AFTER llm.")
 
+
+class QuestionnaireItem(BaseModel):
+    """A single question definition within a dynamic questionnaire."""
+    question_id: str = Field(description="Unique identifier for the question (e.g., 'q1').")
+    question: I18nText = Field(description="Localized question text.")
+    type: str = Field(description="Input type, e.g., 'text'.")
+
+
+class ExpectedInput(BaseModel):
+    """Dynamic input definition for a workflow (0-N inputs)."""
+    input_key: str = Field(description="The internal key for routing this input (e.g., 'history_text').")
+    label: I18nText = Field(description="Localized label for the UI.")
+    required: bool = Field(description="Whether this input is universally required.")
+    is_chat_history: bool = Field(default=False, description="If True, routes to ChatParserService for special parsing.")
+    input_modes: list[str] = Field(
+        default_factory=list,
+        description="Allowed modes: 'file', 'paste', 'questionnaire'."
+    )
+    description: I18nText | None = Field(default=None, description="Optional localized description/help text.")
+    ai_description: I18nText | None = Field(default=None, description="Semantic description injected to LLM context to reduce hallucinations.")
+    questionnaire_definition: list[QuestionnaireItem] = Field(
+        default_factory=list, description="Definitions if 'questionnaire' is in input_modes."
+    )
+
+    @model_validator(mode="after")
+    def validate_modes(self) -> ExpectedInput:
+        """Strict validation for input modes."""
+        if not self.input_modes:
+            from backend_v2.exceptions import AppException, ErrorCodes
+            raise AppException(
+                message=f"ExpectedInput '{self.input_key}' must have at least one input_mode.",
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                status_code=400
+            )
+
+        if "questionnaire" in self.input_modes:
+            if not self.questionnaire_definition:
+                from backend_v2.exceptions import AppException, ErrorCodes
+                raise AppException(
+                    message=f"ExpectedInput '{self.input_key}' uses 'questionnaire' mode but lacks definitions.",
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    status_code=400
+                )
+        return self
+
 class Workflow(BaseModel):
     """Dynamic Directed Acyclic Graph orchestrator model."""
     id: str
@@ -257,7 +304,7 @@ class Workflow(BaseModel):
     organization_id: str | None = Field(default=None)
     scoring_logic: list[Any] = Field(default_factory=list)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
-    expected_inputs: dict[str, str] = Field(default_factory=dict, description="Inputs required by the workflow")
+    expected_inputs: list[ExpectedInput] = Field(default_factory=list, description="List of dynamic expected inputs required by the workflow")
     steps: list[StepRule] = Field(default_factory=list)
 
     @model_validator(mode="before")

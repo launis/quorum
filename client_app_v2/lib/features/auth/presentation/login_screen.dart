@@ -1,6 +1,9 @@
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -216,9 +219,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String msg = e.toString().replaceAll('Exception: ', '');
+        if (e is AppError) {
+           msg = e.message(AppLocalizations.of(context)!);
+        }
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Mock Login Failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.mockLoginFailed(msg))));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

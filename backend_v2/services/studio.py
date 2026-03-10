@@ -8,7 +8,7 @@ from typing import Any
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
-from backend_v2.models.v2_core import PromptBlock, SystemConfigModelRegistry, Step, Workflow
+from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigModelRegistry, Workflow
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
-
 # Explicitly load .env to ensure environment variables are populated
 # independent of Pydantic's internal loader (which seems brittle here)
 load_dotenv()

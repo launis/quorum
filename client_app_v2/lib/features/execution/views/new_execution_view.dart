@@ -232,12 +232,20 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     final id = SafeCast.safeString(_selectedWorkflow!['id']);
     final expectedInputsRaw = _selectedWorkflow!['expected_inputs'];
 
-    // Parse expected_inputs gracefully
+    // Parse expected_inputs gracefully (V2 List of ExpectedInput objects)
     Map<String, String> expectedInputs = {};
-    if (expectedInputsRaw is Map) {
-      expectedInputsRaw.forEach((k, v) {
-        expectedInputs[SafeCast.safeString(k)] = SafeCast.safeString(v);
-      });
+    if (expectedInputsRaw is List) {
+      for (final e in expectedInputsRaw) {
+        final item = SafeCast.safeMap(e);
+        final key = SafeCast.safeString(item['input_key']);
+        if (key.isNotEmpty) {
+          final modes = SafeCast.safeList(item['input_modes'])
+              .map((m) => m.toString())
+              .toList();
+          final hint = modes.contains('file') ? 'file' : 'text';
+          expectedInputs[key] = hint;
+        }
+      }
     }
 
     if (expectedInputs.isEmpty) {

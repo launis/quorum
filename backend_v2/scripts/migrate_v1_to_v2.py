@@ -7,10 +7,7 @@ from typing import Any
 # Add project root to Python path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from backend_v2.models.auth import Organization, User
-from pydantic import TypeAdapter
 
-from backend_v2.models.v2_core import Observation, OutputConfig, Reference
 
 
 def slugify(text: str, fallback_index: int) -> str:
@@ -184,7 +181,7 @@ def migrate_seeds() -> None:
         # Determine if this step is purely an instruction/role rather than a matrix
         raw_scales = step_data.get("scales", [])
         raw_rows = step_data.get("rows", [])
-        
+
         is_instruction = False
         cat_id = "cognitive_evaluation"
         block_type = "string"
@@ -244,7 +241,7 @@ def migrate_seeds() -> None:
                 "translations": {"fi": explanation}
             },
             "category_id": cat_id,
-            "type": block_type,  
+            "type": block_type,
             "allow_decimals": not is_instruction,
             "strictness_level": strictness,
             "require_justification": not is_instruction,
@@ -271,7 +268,7 @@ def migrate_seeds() -> None:
 
         if not is_instruction:
             matrix["scales"] = raw_scales
-            
+
             # Convert simple string rows into the I18nText format if needed
             parsed_rows = []
             if not raw_rows:
@@ -361,47 +358,47 @@ def migrate_seeds() -> None:
 
     # 2. CREATE STEPS FROM V1 STEPS (Formerly Task Blueprints)
     normalized_steps: list[dict[str, Any]] = []
-    
+
     steps_source = v1_db.get("steps", [])
     if isinstance(steps_source, dict):
         steps_source = list(steps_source.values())
-        
+
     for comp_idx, step_data in enumerate(steps_source):
         step_uuid = step_data.get("id", f"missing_tb_{comp_idx}")
         b_name = step_data.get("name") or f"Task {comp_idx}"
         clean_b_slug = f"step_{slugify(b_name, comp_idx)}"
-        
+
         # Deduplicate Step ID
         original_slug = clean_b_slug
         counter = 1
         while clean_b_slug in [t["id"] for t in normalized_steps]:
             clean_b_slug = f"{original_slug}_{counter}"
             counter += 1
-            
+
         prompt_blocks_list = []
-        
+
         # In V1, steps usually contained config -> llm_prompts AND matrix_id
         config = step_data.get("config", {})
         inner_uuids = config.get("llm_prompts", [])
         matrix_id = config.get("matrix_id")
-        
+
         # 1. Gather all llm_prompts (which used to refer to Components)
         for suuid in inner_uuids:
             if suuid in uuid_to_slug:
                 prompt_blocks_list.append(uuid_to_slug[suuid])
-                
+
         # 2. Gather matrix_id (which usually mapped to step UUIDs)
         if matrix_id and matrix_id in uuid_to_slug:
              prompt_blocks_list.append(uuid_to_slug[matrix_id])
-        
+
         # 3. Add itself as a matrix if it was traditionally considered a matrix step
         #    (for fallback where matrix_id didn't exist but the step itself was converted to a matrix)
         if step_uuid in uuid_to_slug and uuid_to_slug[step_uuid].startswith("matrix_"):
              prompt_blocks_list.append(uuid_to_slug[step_uuid])
-             
+
         # Remove duplicates
         prompt_blocks_list = list(dict.fromkeys(prompt_blocks_list))
-        
+
         # TaskBlueprint should ONLY contain lists of matrices/components (prompt_blocks)
         blueprint = {
             "id": clean_b_slug,
@@ -416,7 +413,7 @@ def migrate_seeds() -> None:
             },
             "prompt_blocks": prompt_blocks_list
         }
-        
+
         # Register V1 legacy step UUID directly to this new blueprint slug
         uuid_to_slug[step_uuid] = clean_b_slug
         normalized_steps.append(blueprint)
@@ -456,10 +453,10 @@ def migrate_seeds() -> None:
         for comp_idx, comp_uuid in enumerate(v1_steps_array):
             if comp_uuid not in uuid_to_slug:
                 continue
-                
+
             blueprint_slug = uuid_to_slug[comp_uuid]
-            
-            # If a workflow directly referenced a Component/Matrix instead of a Step, 
+
+            # If a workflow directly referenced a Component/Matrix instead of a Step,
             # dynamically wrap it in a pseudo-blueprint to satisfy V2 architecture.
             if blueprint_slug.startswith("matrix_") or blueprint_slug.startswith("block_"):
                 pseudo_slug = f"step_{blueprint_slug}"

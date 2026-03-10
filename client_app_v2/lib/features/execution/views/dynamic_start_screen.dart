@@ -21,7 +21,7 @@ class DynamicStartScreen extends ConsumerStatefulWidget {
 class _DynamicStartScreenState extends ConsumerState<DynamicStartScreen> {
   bool _isLoading = true;
   String? _errorMsg;
-  final Map<String, dynamic> _expectedInputs = {};
+  final List<Map<String, dynamic>> _expectedInputs = [];
 
   // The state map that holds the final user inputs mapped by semantic role keys
   final Map<String, dynamic> _collectedInputs = {};
@@ -39,8 +39,10 @@ class _DynamicStartScreenState extends ConsumerState<DynamicStartScreen> {
       final schema = await client.getWorkflowUiSchema(widget.workflowId);
 
       setState(() {
-        final expected = SafeCast.safeMap(schema['expected_inputs']);
-        _expectedInputs.addAll(expected);
+        final expected = SafeCast.safeList(schema['expected_inputs']);
+        for (var item in expected) {
+          _expectedInputs.add(SafeCast.safeMap(item));
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -95,30 +97,54 @@ class _DynamicStartScreenState extends ConsumerState<DynamicStartScreen> {
                 const SizedBox(height: 24),
 
                 // Blindly iterate expected_inputs to build OmniInputBoxes
-                ..._expectedInputs.entries.map((entry) {
-                  final semanticRole = entry.key;
-                  final details = SafeCast.safeMap(entry.value);
+                ..._expectedInputs.map((details) {
+                  final semanticRole = SafeCast.safeString(
+                    details['input_key'],
+                  );
                   final requiredParam = SafeCast.safeBool(
                     details['required'],
                     true,
                   );
-                  // label might not be provided, fallback to semantic role key
-                  final String labelRaw = SafeCast.safeString(details['label']);
-                  final label =
-                      labelRaw.isEmpty ? semanticRole.toUpperCase() : labelRaw;
+
+                  // I18n fallback for label
+                  final labelObj = SafeCast.safeMap(details['label']);
+                  final translations = SafeCast.safeMap(
+                    labelObj['translations'],
+                  );
+                  final defaultLocale = SafeCast.safeString(
+                    labelObj['default_locale'],
+                    'en',
+                  );
+
+                  String label = SafeCast.safeString(translations['fi']);
+                  if (label.isEmpty)
+                    label = SafeCast.safeString(translations[defaultLocale]);
+                  if (label.isEmpty) label = semanticRole.toUpperCase();
+
+                  final inputModes = SafeCast.safeList(details['input_modes']);
+                  final isQuestionnaire = inputModes.contains('questionnaire');
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
-                    child: OmniInputBox(
-                      label: label + (requiredParam ? ' *' : ''),
-                      keyName: semanticRole,
-                      currentValue: _collectedInputs[semanticRole],
-                      onChanged: (val) {
-                        setState(() {
-                          _collectedInputs[semanticRole] = val;
-                        });
-                      },
-                    ),
+                    child:
+                        isQuestionnaire
+                            ? _buildQuestionnaire(
+                              semanticRole,
+                              label,
+                              SafeCast.safeList(
+                                details['questionnaire_definition'],
+                              ),
+                            )
+                            : OmniInputBox(
+                              label: label + (requiredParam ? ' *' : ''),
+                              keyName: semanticRole,
+                              currentValue: _collectedInputs[semanticRole],
+                              onChanged: (val) {
+                                setState(() {
+                                  _collectedInputs[semanticRole] = val;
+                                });
+                              },
+                            ),
                   );
                 }),
 
@@ -134,6 +160,73 @@ class _DynamicStartScreenState extends ConsumerState<DynamicStartScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestionnaire(
+    String semanticRole,
+    String title,
+    List<dynamic> definitions,
+  ) {
+    if (_collectedInputs[semanticRole] == null) {
+      _collectedInputs[semanticRole] = <String, dynamic>{};
+    }
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ...definitions.map((defInput) {
+              final def = SafeCast.safeMap(defInput);
+              final qId = SafeCast.safeString(def['question_id']);
+              final qLabelObj = SafeCast.safeMap(def['question']);
+              final qTranslations = SafeCast.safeMap(qLabelObj['translations']);
+              final qDefaultLocale = SafeCast.safeString(
+                qLabelObj['default_locale'],
+                'en',
+              );
+
+              String qLabel = SafeCast.safeString(qTranslations['fi']);
+              if (qLabel.isEmpty) {
+                qLabel = SafeCast.safeString(qTranslations[qDefaultLocale]);
+              }
+              if (qLabel.isEmpty) qLabel = qId;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: qLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                  onChanged: (val) {
+                    setState(() {
+                      (_collectedInputs[semanticRole]
+                              as Map<String, dynamic>)[qId] =
+                          val;
+                    });
+                  },
+                ),
+              );
+            }),
+          ],
         ),
       ),
     );

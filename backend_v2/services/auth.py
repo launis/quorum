@@ -6,7 +6,6 @@ import asyncio
 import logging
 import time
 import uuid
-from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -659,7 +658,7 @@ class AuthService:
             return user
         if initiator.role == UserRole.ADMIN and getattr(user, "organization_id", None) == getattr(initiator, "organization_id", None):
             return user
-        
+
         raise PermissionDeniedError("You do not have permission to view this user.")
 
     async def get_organization(self, initiator: TokenData, org_id: str) -> Organization:

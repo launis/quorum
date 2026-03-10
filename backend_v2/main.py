@@ -23,7 +23,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 # from backend_v2.api.auth_router import router as auth_router
 # from backend_v2.api.v2.core_router import router as core_router
 # from backend_v2.api.v2.system_router import router as system_router
-
 from backend_v2.context import set_request_context
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.settings import get_settings
@@ -48,19 +47,6 @@ async def lifespan(app: FastAPI) -> Any:
 
     try:
         # A. Initialize Task Registry (Trigger Decorators)
-        import backend_v2.hooks.archival
-        import backend_v2.hooks.hydration
-        import backend_v2.hooks.input_processing
-        import backend_v2.hooks.integrity
-        import backend_v2.hooks.linguistics
-        import backend_v2.hooks.llm
-        import backend_v2.hooks.metrics
-        import backend_v2.hooks.references
-        import backend_v2.hooks.reporting
-        import backend_v2.hooks.scoring
-        import backend_v2.hooks.search
-        import backend_v2.hooks.security
-        import backend_v2.hooks.validation
         # Import task modules to ensure @TaskRegistry.register_task runs
         # B. Load Workflows (Mock/File-based seeding for now)
         # In a real app, this might sync to DB.
@@ -274,10 +260,10 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 # --- 5. Routers ---
 
 # ...
-from backend_v2.api.routers.iam import router as iam_router
-from backend_v2.api.routers.system import router as system_router
 from backend_v2.api.routers.execution import router as execution_router
+from backend_v2.api.routers.iam import router as iam_router
 from backend_v2.api.routers.studio import router as studio_router
+from backend_v2.api.routers.system import router as system_router
 
 app.include_router(iam_router, prefix="/api/v2")
 app.include_router(system_router, prefix="/api/v2")
