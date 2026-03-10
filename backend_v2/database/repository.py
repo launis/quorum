@@ -1209,15 +1209,15 @@ class AppendOnlyRepository(UnifiedWorkflowRepository):
         await self.driver.upsert("agents", new_doc, new_id)
         return True
 
-    async def update_matrix(self, matrix_id: str, updates: dict[str, Any]) -> bool:
-        """Append-only update for matrix."""
-        old_doc = await self.get_matrix_by_id(matrix_id)
+    async def update_prompt_block(self, prompt_block_id: str, updates: dict[str, Any]) -> bool:
+        """Append-only update for prompt block."""
+        old_doc = await self.get_prompt_block_by_id(prompt_block_id)
         if not old_doc:
             return False
 
-        await self.driver.update("matrices", matrix_id, {"is_latest": False})
+        await self.driver.update("prompt_blocks", prompt_block_id, {"is_latest": False})
 
-        slug, new_id, ver = self._increment_version(matrix_id)
+        slug, new_id, ver = self._increment_version(prompt_block_id)
 
         new_doc = dict(old_doc)
         new_doc.update(updates)
@@ -1226,7 +1226,7 @@ class AppendOnlyRepository(UnifiedWorkflowRepository):
         new_doc["version"] = ver
         new_doc["slug"] = slug
 
-        await self.driver.upsert("matrices", new_doc, new_id)
+        await self.driver.upsert("prompt_blocks", new_doc, new_id)
         return True
 
     async def update_task_blueprint(self, blueprint_id: str, updates: dict[str, Any]) -> bool:

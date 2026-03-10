@@ -95,33 +95,29 @@ def configure_llm_context_hook(data: dict[str, Any]) -> dict[str, Any]:
             # For now, we perform local resolution using identical Pydantic models.
             pass
 
-        from backend_v2.models.llm import LLMProviderConfig, ModelRegistryConfig
-
         from backend_v2.exceptions import ConfigurationError
+        from backend_v2.models.llm import LLMProviderConfig
+        from backend_v2.models.v2_core import SystemConfigModelRegistry
         from backend_v2.utils.pydantic_utils import inflate
 
         raw_registry = getattr(settings, "model_registry", {})
         if not raw_registry:
             raise ConfigurationError("System config 'model_registry' is missing.")
 
-        registry = inflate(raw_registry, ModelRegistryConfig)
+        registry = inflate(raw_registry, SystemConfigModelRegistry)
         if not registry or not registry.models:
             raise ConfigurationError("ModelRegistry is corrupt.")
 
-        # V1/Simple: We assume 'google' as primary provider
-        provider = ctx.get("provider_id", "google")
-
-        provider_models = registry.models.get(provider)
-        if not provider_models:
-            raise ConfigurationError(f"Provider '{provider}' not found in registry.")
-
-        target_strategy = provider_models.get(model_strategy)
+        # V2: Registry is a flat map of Strategy -> ModelProfile
+        target_strategy = registry.models.get(model_strategy)
 
         if not target_strategy:
             raise ConfigurationError(
-                message=f"Strategy '{model_strategy}' not found for provider '{provider}'.",
+                message=f"Strategy '{model_strategy}' not found in registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
+
+        provider = getattr(target_strategy, "provider", "google")
 
         llm_config = LLMProviderConfig(
             id=f"{provider}/{model_strategy}",

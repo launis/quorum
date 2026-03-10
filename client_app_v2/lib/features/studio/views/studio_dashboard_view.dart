@@ -43,6 +43,11 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back to Application',
+          onPressed: () => context.go('/dashboard'),
+        ),
         title: const Text('Admin Studio V2'),
         actions: [
           IconButton(

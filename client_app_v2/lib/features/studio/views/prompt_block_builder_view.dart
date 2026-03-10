@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
@@ -181,6 +182,11 @@ class _PromptBlockBuilderViewState extends ConsumerState<PromptBlockBuilderView>
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back to Studio',
+          onPressed: () => context.go('/admin'),
+        ),
         title: const Text('Edit Prompt Block'),
         actions: [
           if (widget.promptBlock['id']?.toString().isNotEmpty == true)

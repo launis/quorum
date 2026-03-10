@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 
 class StepBuilderView extends ConsumerStatefulWidget {
   final Map<String, dynamic> step;
@@ -173,8 +175,18 @@ class _StepBuilderViewState
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
     final promptBlocks = promptBlocksAsync.value ?? [];
 
+    final modelRegistryAsync = ref.watch(modelRegistryControllerProvider);
+    final modelRegistry = modelRegistryAsync.value ?? {};
+    final modelsMap = SafeCast.safeMap(modelRegistry['models']);
+    final strategyKeys = modelsMap.keys.toList().cast<String>();
+
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back to Studio',
+          onPressed: () => context.go('/admin'),
+        ),
         title: const Text('Edit Step'),
         actions: [
           if (widget.step['id']?.toString().isNotEmpty == true)
@@ -253,13 +265,7 @@ class _StepBuilderViewState
                           labelText: 'Model Strategy',
                         ),
                         initialValue:
-                            const [
-                                  'fast',
-                                  'deep',
-                                  'search',
-                                  'precise',
-                                  'strict',
-                                ].contains(_editableStep['model_strategy'])
+                            strategyKeys.contains(_editableStep['model_strategy'])
                                 ? _editableStep['model_strategy']
                                     as String?
                                 : null,
@@ -269,28 +275,12 @@ class _StepBuilderViewState
                           }
                           return null;
                         },
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'fast',
-                            child: Text("Fast Strategy"),
-                          ),
-                          DropdownMenuItem(
-                            value: 'deep',
-                            child: Text("Deep Strategy"),
-                          ),
-                          DropdownMenuItem(
-                            value: 'search',
-                            child: Text("Search Strategy"),
-                          ),
-                          DropdownMenuItem(
-                            value: 'precise',
-                            child: Text("Precise Strategy"),
-                          ),
-                          DropdownMenuItem(
-                            value: 'strict',
-                            child: Text("Strict Strategy"),
-                          ),
-                        ],
+                        items: strategyKeys.map((key) {
+                          return DropdownMenuItem(
+                            value: key,
+                            child: Text(key),
+                          );
+                        }).toList(),
                         onChanged:
                             (val) => setState(
                               () => _editableStep['model_strategy'] = val,

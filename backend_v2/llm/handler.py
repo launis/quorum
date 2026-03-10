@@ -180,15 +180,14 @@ class LLMHandler:
                     try:
                         import vertexai
                         from vertexai.generative_models import GenerativeModel
-                        
+
                         # Initialize Vertex AI strictly in the target location
                         vertexai.init(project=project, location=target_location, credentials=credentials)
-                        
+
                         # Just initializing the model objects acts as a validation that the string
-                        # name is somewhat valid. To be absolutely sure, we'd need to call it, but 
-                        # that costs money and time. For now we just verify we can instantiate it 
+                        # name is somewhat valid. To be absolutely sure, we'd need to call it, but
+                        # that costs money and time. For now we just verify we can instantiate it
                         # using the Vertex AI SDK which does some basic validation.
-                        import google.api_core.exceptions
                         try:
                            _ = GenerativeModel(clean_id)
                            # Also verify it via the publisher models API to be doubly safe
@@ -279,34 +278,38 @@ class LLMHandler:
         """Fetches the 'global_model_registry' from the 'system_config' table in the database.
 
         Returns:
-            Dict[str, Any]: configuration mapping.
+            Dict[str, Any]: configuration mapping (flat map of ModelProfiles).
         """
         try:
             res = await self.repo.get_model_registry()
-            return dict(res.get("models", {}))
+            from backend_v2.models.v2_core import SystemConfigModelRegistry
+            from backend_v2.utils.pydantic_utils import inflate
+
+            parsed = inflate(res, SystemConfigModelRegistry)
+            if not isinstance(parsed, SystemConfigModelRegistry):
+                raise ValueError("Parsed registry is not a valid SystemConfigModelRegistry")
+            dump = parsed.model_dump()
+            models: dict[str, Any] = dump.get("models", {})
+            return models
         except Exception as e:
-            logger.error(f"Failed to get registry: {e}")
-            return {}
+            from backend_v2.exceptions import ConfigurationError
+            logger.error(f"Failed to parse active model registry: {e}")
+            raise ConfigurationError(f"Model Registry is corrupt: {e}") from e
 
     async def get_model_config(self, provider: str, mode: str) -> dict[str, Any] | None:
         """Retrieves a specific model configuration for a provider/mode.
 
         Args:
-            provider (str): Provider name (e.g., 'openai').
-            mode (str): Mode name (e.g., 'smart').
+            provider (str): Provider name (e.g., 'openai'). Legacy argument, mostly ignored now.
+            mode (str): Mode name (e.g., 'smart', 'fast'). This maps to the V2 strategy slug.
 
         Returns:
             Optional[Dict[str, Any]]: Configuration dictionary if found, else None.
-
         """
         registry = await self.get_active_model_registry()
 
-        # Try nested structure first (new schema)
-        config = None
-        if isinstance(registry.get(provider), dict):
-            provider_config = registry[provider]
-            if isinstance(provider_config, dict):
-                config = provider_config.get(mode)
+        # V2 schema uses 'mode' (strategy) as the top-level keys
+        config = registry.get(mode)
 
         if config:
             return dict(config)
@@ -443,7 +446,7 @@ class LLMHandler:
                 logger.info(f"[LLMHandler] Captured Reasoning Token: {response.reasoning_token[:20]}...")
 
             # Return content string to maintain backward compatibility for this ad-hoc method
-            return response.content  # type: ignore
+            return response.content
 
         except ValueError as ve:
             raise ve  # Re-raise strict validation errors

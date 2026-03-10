@@ -83,17 +83,17 @@ class StudioClient {
     await _dio.delete('studio/steps/$id');
   }
 
-  // --- System Configs (e.g., model_registry) ---
+  // --- Model Registry ---
 
   /// Retrieves available models.
   Future<List<String>> getAvailableModels() async {
-    final response = await _dio.get('studio/system-configs/available-models');
+    final response = await _dio.get('studio/model-registry/available-models');
     return List<String>.from(response.data as List);
   }
 
   /// Retrieves a system config by ID.
   Future<Map<String, dynamic>> getSystemConfig(String id) async {
-    final response = await _dio.get('studio/system-configs/$id');
+    final response = await _dio.get('studio/model-registry/$id');
     return response.data as Map<String, dynamic>;
   }
 
@@ -102,7 +102,7 @@ class StudioClient {
     String id,
     Map<String, dynamic> data,
   ) async {
-    final response = await _dio.put('studio/system-configs/$id', data: data);
+    final response = await _dio.put('studio/model-registry/$id', data: data);
     return response.data as Map<String, dynamic>;
   }
 }

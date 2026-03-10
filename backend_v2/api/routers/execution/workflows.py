@@ -1,12 +1,18 @@
+import logging
+
 from fastapi import APIRouter
 
 from backend_v2.api.dependencies import RepoDep, UserDep
-from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.exceptions import ErrorCodes, ResourceNotFoundError
 from backend_v2.models.v2_core import Workflow
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
 from typing import Any
+
+
 @router.get("/{workflow_id}/ui_schema", response_model=dict[str, Any])
 async def get_workflow_ui_schema(
     workflow_id: str,
@@ -16,6 +22,7 @@ async def get_workflow_ui_schema(
     """Retrieve the expected inputs schema for frontend dynamic rendering."""
     workflow_dict = await repository.get_workflow_by_id(workflow_id)
     if not workflow_dict:
+        logger.error(f"[WorkflowRouter] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Error: Workflow {workflow_id} not found.")
         raise ResourceNotFoundError(resource_type="workflow", resource_id=workflow_id)
 
     workflow = Workflow.model_validate(workflow_dict)

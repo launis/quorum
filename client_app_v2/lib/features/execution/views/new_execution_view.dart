@@ -187,16 +187,26 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           itemBuilder: (context, index) {
             final wf = workflows[index];
             final id = SafeCast.safeString(wf['id']);
-            final desc = SafeCast.safeString(wf['description']);
+            
+            final nameMap = SafeCast.safeMap(wf['name']);
+            final titleStr = nameMap.isNotEmpty 
+                ? (nameMap['translations']?[nameMap['default_locale']] ?? nameMap['default_locale'] ?? id)
+                : (SafeCast.safeString(wf['name']).isNotEmpty ? SafeCast.safeString(wf['name']) : id);
+
+            final descMap = SafeCast.safeMap(wf['description']);
+            final descStr = descMap.isNotEmpty 
+                ? (descMap['translations']?[descMap['default_locale']] ?? descMap['default_locale'] ?? '')
+                : SafeCast.safeString(wf['description']);
+
             final isSelected = _selectedWorkflow?['id'] == id;
 
             return ListTile(
               title: Text(
-                id,
+                '$titleStr\n($id)',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Text(
-                desc,
+                descStr,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

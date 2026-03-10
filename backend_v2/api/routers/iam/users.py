@@ -18,7 +18,7 @@ async def get_all_users(current_user: CurrentUserDep, auth_service: AuthServiceD
         # AuthService implements tenant filtering internally based on current_user
         return await auth_service.list_users(current_user)
     except Exception as e:
-        logger.error(f"[UserRouter] Failed to list users: {e}")
+        logger.error(f"[UserRouter] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Error: {e}", exc_info=True)
         raise AppException(
             message=str(e),
             status_code=500,

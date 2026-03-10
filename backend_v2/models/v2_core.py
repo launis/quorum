@@ -257,6 +257,7 @@ class Workflow(BaseModel):
     organization_id: str | None = Field(default=None)
     scoring_logic: list[Any] = Field(default_factory=list)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
+    expected_inputs: dict[str, str] = Field(default_factory=dict, description="Inputs required by the workflow")
     steps: list[StepRule] = Field(default_factory=list)
 
     @model_validator(mode="before")

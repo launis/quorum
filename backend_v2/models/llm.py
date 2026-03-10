@@ -5,7 +5,7 @@ various LLM providers (Google Gemini, OpenAI, etc.), including support for
 advanced reasoning tokens and tool calls.
 """
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -224,62 +224,4 @@ class AdHocTestResponse(BaseModel):
         return v
 
 
-class AgentSystemConfig(BaseModel):
-    """Configuration for an Agent (Prompts & Settings)."""
-
-    model_config = ConfigDict(extra="ignore", strict=True)
-
-    id: Annotated[str, Field(..., description="Agent ID (e.g. 'PanelAgent').")]
-    llm_prompts: Annotated[
-        dict[str, str] | list[str] | None,
-        Field(default=None, description="Prompt templates or keys."),
-    ]
-    model_strategy: Annotated[
-        str | None,
-        Field(default="deep", description="Model strategy (e.g. 'deep', 'fast', 'strict')."),
-    ]
-    type: Annotated[
-        str | None,
-        Field(default="agent", description="Component type discriminator."),
-    ]
-    pre_hooks: Annotated[
-        list[str] | None,
-        Field(default=None, description="List of pre-execution hooks."),
-    ]
-    settings: Annotated[
-        dict[str, Any] | None,
-        Field(default=None, description="Additional agent settings."),
-    ]
-    # Allow 'type' discriminator if needed in future, but distinct structure is enough here.
-
-
-class LLMStrategy(BaseModel):
-    """Pydantic Enforced Strategy Configuration for an LLM execution."""
-
-    model_config = ConfigDict(extra="ignore", strict=True)
-
-    model_name: Annotated[str, Field(..., description="Model identifier (e.g. 'gemini-2.5-pro').")]
-    temperature: Annotated[float, Field(default=0.7, ge=0.0, le=2.0)]
-    tpm_limit: Annotated[int, Field(default=0, ge=0, description="Tokens per minute limit.")]
-    rpm_limit: Annotated[int, Field(default=0, ge=0, description="Requests per minute limit.")]
-    max_tokens: Annotated[int | None, Field(default=None, description="Max output tokens.")]
-    allowed_tools: Annotated[list[str], Field(default_factory=list, description="Allowed function tools.")]
-    supports_grounding: Annotated[bool, Field(default=False, description="Does this strategy require Vertex Grounding.")]
-    api_key: Annotated[str | None, Field(default=None, description="Resolver specific API key override.")]
-    parsing_mode: Annotated[str | None, Field(default=None, description="Instructor parsing mode override (e.g. 'GEMINI_JSON').")]
-
-
-class ModelRegistryConfig(BaseModel):
-    """Configuration for the Model Registry SSOT."""
-
-    model_config = ConfigDict(extra="ignore", strict=True)
-
-    id: Literal["model_registry"] = Field(default="model_registry", description="Fixed ID.")
-    slug: str | None = Field(default=None, description="Legacy human-readable identifier")
-    type: Literal["model_registry"] = Field(default="model_registry", description="Fixed Type.")
-    # Map of Provider (e.g. google, openai) -> Map of Strategy Name (e.g. fast, SearchHook) -> Strategy
-    models: Annotated[
-        dict[str, dict[str, LLMStrategy | str]],
-        Field(..., description="Map of Provider -> Strategy Map."),
-    ]
 
