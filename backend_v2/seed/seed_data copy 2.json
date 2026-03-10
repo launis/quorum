@@ -1,0 +1,4031 @@
+{
+    "system_config": [
+        {
+            "id": "model_registry",
+            "slug": "config_model_registry",
+            "type": "model_registry",
+            "models": {
+                "deep": {
+                    "max_tokens": 65536,
+                    "model_name": "vertex_ai/gemini-2.5-pro",
+                    "temperature": 0.5,
+                    "top_p": null,
+                    "supports_grounding": true,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 10,
+                    "parsing_mode": "GEMINI_JSON",
+                    "is_active": true,
+                    "provider": "google"
+                },
+                "fast": {
+                    "max_tokens": 65536,
+                    "model_name": "vertex_ai/gemini-2.5-flash",
+                    "temperature": 0.1,
+                    "top_p": null,
+                    "supports_grounding": false,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 15,
+                    "parsing_mode": "GEMINI_JSON",
+                    "is_active": true,
+                    "provider": "google"
+                },
+                "search": {
+                    "max_tokens": 65536,
+                    "model_name": "vertex_ai/gemini-2.5-flash",
+                    "temperature": 0.0,
+                    "top_p": null,
+                    "supports_grounding": true,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 15,
+                    "parsing_mode": "GEMINI_JSON",
+                    "is_active": true,
+                    "provider": "google"
+                },
+                "precise": {
+                    "max_tokens": 65536,
+                    "model_name": "vertex_ai/gemini-2.5-pro",
+                    "temperature": 0.2,
+                    "top_p": null,
+                    "supports_grounding": false,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 10,
+                    "parsing_mode": "GEMINI_JSON",
+                    "is_active": true,
+                    "provider": "google"
+                },
+                "strict": {
+                    "max_tokens": 65536,
+                    "model_name": "vertex_ai/gemini-2.5-pro",
+                    "temperature": 0.0,
+                    "top_p": null,
+                    "supports_grounding": false,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 10,
+                    "parsing_mode": "GEMINI_JSON",
+                    "is_active": true,
+                    "provider": "google"
+                }
+            }
+        }
+    ],
+    "prompt_blocks": [
+        {
+            "id": "matrix_toulmin",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Toulminin Argumentaatio"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Arvioi argumentin laatua Toulminin mallin mukaisesti."
+                }
+            },
+            "category_id": "scientific_theory",
+            "type": "string",
+            "allow_decimals": true,
+            "strictness_level": 80,
+            "require_justification": true,
+            "theory_grounding": {
+                "source_url": "https://doi.org/10.1017/CBO9780511802034",
+                "citation_reference": "Toulmin, Stephen E. 2003. The uses of argument."
+            },
+            "scales": [
+                {
+                    "score": 1,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Heikko"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Väite on täysin vailla perusteita."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Data ja oikeutus (warrant) puuttuvat."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 2,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Välttävä"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Väitteen tueksi esitetään jotain ekspliittistä dataa."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Looginen silta (warrant) datan ja väitteen välillä puuttuu tai on irrallinen."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 3,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Kohtalainen"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Väitteellä on perusteita, mutta oikeutus on hatara."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Vastaväitteitä (rebuttal) ei ole huomioitu."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 4,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Hyvä"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Looginen silta (warrant) on kestävä ja kytkee datan väitteeseen vahvasti."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Taustaoletuksia ja poikkeuksia on puitu jossain määrin."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 5,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Vahva"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Väite on vahvasti perusteltu datalla ja kestävällä oikeutuksella."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Mahdolliset vastaväitteet on käsitelty uskottavasti ja asiantuntevasti."
+                            }
+                        }
+                    ]
+                }
+            ],
+            "rows": [
+                {
+                    "default_locale": "fi",
+                    "translations": {
+                        "fi": "Argumentaation laatu"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "matrix_bloom",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Bloomin Taksonomia"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Arvioi kognitiivista syvyyttä Bloomin taksonomian perusteella."
+                }
+            },
+            "category_id": "scientific_theory",
+            "type": "string",
+            "allow_decimals": true,
+            "strictness_level": 60,
+            "require_justification": true,
+            "theory_grounding": {
+                "source_url": "https://www.jstor.org/stable/j.ctt1v2xv4",
+                "citation_reference": "Anderson, Lorin W. & Krathwohl, David R. (toim.) 2001."
+            },
+            "scales": [
+                {
+                    "score": 1,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Muistaminen"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä vain toistaa opittua tietoa implikoimatta ymmärrystä."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 2,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Ymmärtäminen"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä osaa hieman soveltaa ja uudelleenmuotoilla omin sanoin."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 3,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Soveltaminen"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä käyttää opittua tietoa konkreettisesti uusissa tilanteissa."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 4,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Analysointi"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä erittelee osia ja paljastaa piileviä suhteita tiedon välillä."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 5,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Arviointi"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä kykenee loogisesti perusteltuihin arvoasetelmiin teorioiden välillä."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 6,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Luominen"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä syntetisoi uutta alkuperäistä ajattelua."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Tuotos ylittää selvästi annetun koulutusraamin asettaen uuden standardin."
+                            }
+                        }
+                    ]
+                }
+            ],
+            "rows": [
+                {
+                    "default_locale": "fi",
+                    "translations": {
+                        "fi": "Kognitiivinen syvyys"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "matrix_kahneman",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Kahnemanin Ajattelumallit"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Arvioi ajattelun hitautta tai nopeutta (System 1 vs System 2)."
+                }
+            },
+            "category_id": "scientific_theory",
+            "type": "string",
+            "allow_decimals": true,
+            "strictness_level": 50,
+            "require_justification": true,
+            "theory_grounding": {
+                "source_url": "https://us.macmillan.com/books/9780374533557",
+                "citation_reference": "Kahneman, Daniel 2011."
+            },
+            "scales": [
+                {
+                    "score": 1,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Systeemi 1 (Nopea)"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä tekee tiedostamattomia, intuition ohjaamia havaintoja."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Päättely sisältää todennäköisesti vahvistusvinoumaa tai halo-efektiä."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 2,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Siirtymä"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä yrittää hidastaa ja kyseenalaistaa intuitiota, mutta saattaa yhä sortua osin heuristiikkaan."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 3,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Systeemi 2 (Hidas)"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä analysoi systemaattisesti ja pohtii laiskasti piilotettuja vaihtoehtoja tarkkaan."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Kognitiivinen ponnistus ja tietoinen hidastaminen näkyy tekstin laadussa."
+                            }
+                        }
+                    ]
+                }
+            ],
+            "rows": [
+                {
+                    "default_locale": "fi",
+                    "translations": {
+                        "fi": "Ajattelun modaliteetti"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "matrix_goodhart",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Performatiivisuus"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Arvioi mittarin ja tavoitteen vääristymää."
+                }
+            },
+            "category_id": "scientific_theory",
+            "type": "string",
+            "allow_decimals": true,
+            "strictness_level": 70,
+            "require_justification": true,
+            "theory_grounding": {
+                "source_url": "https://www.cna.org/reports/2022/09/",
+                "citation_reference": "Stumborg, Michael F. ym. 2022. Goodhart's law."
+            },
+            "scales": [
+                {
+                    "score": 1,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Sokea usko"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä uskoo tekoälyn ensimmäiseen analyysiin sokeasti eikä huomaa edes ilmeisiä logiikkavirheitä."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä toimii passiivisena matkustajana prosessissa."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 2,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Reaktiivinen huomioija"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä korjaa selkeitä faktavirheitä, mutta jatkaa mittareiden ja suoritustapojen uskomista kyseenalaistamatta."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 3,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Pintapuolinen"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä huomaa virheet ja pyytää korjausta, mutta tyytyy pintapuoliseen ehostukseen."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Ohjaa tekoälyä oireiden, ei juurisyiden, korjaamiseen."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 4,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Kriittinen ohjaaja"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä kyseenalaistaa aktiivisesti mittarin luotettavuuden suhteessa perimmäiseen tavoitteeseen."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 5,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Aktiivinen haastaja"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä etsii aktiivisesti virheitä, haastaa tekoälyn logiikkaa ja vaatii perustavaa laatua olevia korjauksia ja todisteita."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Toimii ehdottomana prosessin ajajana delegoidakseen vain suoritettavan työn."
+                            }
+                        }
+                    ]
+                }
+            ],
+            "rows": [
+                {
+                    "default_locale": "fi",
+                    "translations": {
+                        "fi": "Performativiteetti ja ajaminen"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "matrix_task_interaction",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Tehtävävuorovaikutus (Task Interaction)"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Arvioi käyttäjän toimintatapaa ja vastuunottoa suhteessa tekoälyyn."
+                }
+            },
+            "category_id": "scientific_theory",
+            "type": "string",
+            "allow_decimals": true,
+            "strictness_level": 50,
+            "require_justification": true,
+            "theory_grounding": {
+                "source_url": "",
+                "citation_reference": "Covey (Proactivity), Fowler (Pair Programming), Senge (Systems Thinking)"
+            },
+            "scales": [
+                {
+                    "score": 1,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Matkustaja (Passenger)"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä on passiivinen ja tekee vain sen mitä erikseen pyydetään."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Vaatii jatkuvaa ohjeistusta ja johtamista, eikä ota omistajuutta lopputuloksesta."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 2,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Kuljettaja (Driver)"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä on aktiivinen suorittaja, joka keskittyy toimeenpanoon ja maaliin viemiseen."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Fokus on välittömässä suorituksessa ison kuvan sijaan, riskinä väärä suunta."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 3,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Navigaattori (Navigator)"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä toimii taktisena ohjaajana, joka lukee karttaa ja ennakoi esteitä tiimille."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Ylläpitää kokonaiskuvaa ja tukee suoritusta joutumatta itse liialliseen ruohonjuuritason työhön."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "score": 4,
+                    "name": {
+                        "default_locale": "fi",
+                        "translations": {
+                            "fi": "Arkkitehti (Architect)"
+                        }
+                    },
+                    "claims": [
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Käyttäjä toimii strategisena visionäärinä, joka suunnittelee rakenteet ja prosessit."
+                            }
+                        },
+                        {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Keskittyy skaalautuvuuteen, pitkän aikavälin visioon ja systeemin optimointiin."
+                            }
+                        }
+                    ]
+                }
+            ],
+            "rows": [
+                {
+                    "default_locale": "fi",
+                    "translations": {
+                        "fi": "Aloitteellisuus ja systeemitason vastuu"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "matrix_input_processing",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Input Processing"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Tehtäväsi on käsitellä raakatiedot ja syötteet (Input Processing). Poista kohina, jäsennä olennaiset väitteet ja valmistele data selkeään, analysoitavaan formaattiin seuraavia vaiheita varten."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_analyst",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Analyst"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Analyytikko (Analyst). Tehtäväsi on käsitellä tietoa puolueettomasti, etsiä syy-seuraussuhteita ja muodostaa selkeä, jäsennelty katsaus käsiteltävästä materiaalista."
+                }
+            },
+            "category_id": "agent_role",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_archivist",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Archivist"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Arkistonhoitaja (Archivist). Tehtäväsi on peilata nykyistä päätöksentekoa organisaation aikaisempiin linjauksiin, ohjeisiin ja turvallisuusprotokolliin. Varmista sääntöjenmukaisuus (Compliance)."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_causal_analyst",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Causal Analyst"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Kausaalinen Analyytikko (Causal Analyst). Tehtäväsi on tunnistaa syy-seuraussuhteet, rakentaa kontrafaktuaalisia (mitä jos) skenaarioita ja arvioida väitteiden uskottavuutta."
+                }
+            },
+            "category_id": "agent_role",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_coach",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Coach"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Valmentaja (Coach). Tehtäväsi on antaa rakentavaa palautetta, tukea kognitiivista kehitystä ja ohjata käyttäjää tai toista agenttia kohti parempia ja syvällisempiä ratkaisuja."
+                }
+            },
+            "category_id": "agent_role",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_retrieval_agent",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Retrieval Agent"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet tiedonhakuun erikoistunut agentti (Retrieval Agent). Tehtäväsi on käsitellä syöte ja hakea siihen liittyvää luotettavaa ja relevanttia faktaa tukemaan myöhempiä päätöksiä. Etsi kontekstia ilman omia tulkintoja."
+                }
+            },
+            "category_id": "agent_role",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_falsifier",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Falsifier"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet kriittinen auditoija (Falsifier). Tehtäväsi on yrittää aktiivisesti murtaa, kumota tai löytää loogisia virhepäätelmiä aiemmista argumenteista. Etsi heikkoja oletuksia (Weak Warrants) ja jälkikäteisrationalisointeja (Post-Hoc Rationalization)."
+                }
+            },
+            "category_id": "agent_role",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_input_processor",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Input Processor"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Tehtäväsi on käsitellä raakatiedot ja syötteet (Input Processing). Poista kohina, jäsennä olennaiset väitteet ja valmistele data selkeään, analysoitavaan formaattiin seuraavia vaiheita varten."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_guard",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Guard"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Turva-agentti (Guard). Tehtäväsi on valvoa syötteitä ja tulosteita eettisten jännitteiden, tietoturvauhkien ja asenteellisuuksien (bias) varalta."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_interaction_analyst",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Interaction Analyst"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Vuorovaikutusanalyytikko. Tehtäväsi on arvioida käyttäjän ja tekoälyn välistä dynaamikkaa, aloitteellisuutta ja hallintasuhdetta."
+                }
+            },
+            "category_id": "agent_role",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_judge",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Judge"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Tuomari (Judge). Tehtäväsi on arvioida aiemmin tuotettu todistusaineisto ja analyysit kokonaisuutena. Anna lopullinen, perusteltu ja puolueeton tuomio."
+                }
+            },
+            "category_id": "agent_role",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_logician",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Logician"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Loogikko (Logician). Tehtäväsi on purkaa argumentit niiden loogisiin osiin (väite, peruste, oikeutus) Toulminin mallin mukaisesti ja arvioida päättelyn pätevyys."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_overseer",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Overseer"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Valvoja (Overseer). Tehtäväsi on koordinoida muita agentteja, valvoa työnkulun etenemistä ja vastata siitä, että lopullinen tuotos on linjassa alkuperäisen tavoitteen kanssa."
+                }
+            },
+            "category_id": "agent_role",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_panel",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Panel"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Toimit osana monialaista asiantuntijapaneelia. Kuuntele muiden agenttien argumentteja, haasta niitä tarvittaessa kunnioittavasti ja pyri löytämään resilienssiä korostava synteesi."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_profiler",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Profiler"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet Profiloija (Profiler). Tehtäväsi on analysoida tekstin sävyä, piilomerkityksiä, kirjoittajan intentioita sekä psykologista ja kielenkäytännöllistä profiilia."
+                }
+            },
+            "category_id": "agent_role",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "matrix_xai_reporter",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "XAI Reporter"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Olet selitettävän tekoälyn raportoija (XAI Reporter). Tehtäväsi on koota kaikkien aiempien analyysivaiheiden löydökset yhdeksi selkeäksi, läpinäkyväksi ja tiiviiksi synteesiksi, joka nostaa esiin tärkeimmät huomiot ja vinoumat."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_headermandates",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "HEADER_MANDATES"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Mandaattiosion erotin.\n\n### 1. PERUUTTAMATTOMAT MÄÄRÄYKSET (IRREVOCABLE MANDATES)"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_instructionstrictscale",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "INSTRUCTION_STRICT_SCALE"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Pakottaa noudattamaan matriisin asteikkoa (Fail Fast).\n\n**TÄRKEÄÄ**: Kaikkien pisteiden ON oltava määritellyn asteikon (Scale) sisällä.\n\nSinun on noudatettava asteikon rajoja ehdottomasti. Pisteet alle asteikon minimin tai yli maksimin ovat kiellettyjä."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_headerrules",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "HEADER_RULES"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Sääntöosion erotin.\n\n### 2. OPERATIIVISET SÄÄNNÖT (OPERATIONAL RULES)"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_headerprotocols",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "HEADER_PROTOCOLS"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Työkaluosion erotin.\n\n### 3. TYÖKALUT JA MENETELMÄT (TOOLS & METHODS)"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_headerinstructions",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "HEADER_INSTRUCTIONS"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Tehtäväosion erotin.\n\n### 4. TEHTÄVÄNANTO (MISSION INSTRUCTIONS)\n\nTÄRKEÄÄ: Aloita vastaus AINA täyttämällä 'reasoning_trace' -kenttä JSON-objektin alussa. Kirjoita siihen askel askeleelta (Chain-of-Thought), miten analysoit syötteen, ENNEN kuin teet lopullisia johtopäätöksiä (kuten bool-arvot tai pisteet). Tämä on pakollinen auditointijälki.\n\n**HUOMIO: ARVIOINNIN KOHDE (SCOPE)**\nKeskity VAIN 'User'-merkittyihin viesteihin. Chat-historiassa 'AI' tai 'Assistant' ovat vain kontekstia. Älä anna käyttäjälle pisteitä tekoälyn vastauksista. Sinun tehtäväsi on arvioida käyttäjän omaa promptauskykyä (Driver vs Passenger), ei tekoälyn tuottamaa tekstiä."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_mandate2",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "MANDATE_2"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Pakottaa tunnistamaan kognitiiviset vinoumat.\n\nMandaatti 2 (Vinoumien Torjunta): MÄÄRÄYS: Tunnista aktiivisesti 'Confirmation Bias' ja 'Sunk Cost Fallacy'. Jos käyttäjä kehuu huonoa ideaa, vastusta häntä."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_mandate3",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "MANDATE_3"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Erottaa mestaruuden osaamattomuudesta.\n\nMandaatti 3 (Insinöörimäinen Nöyryys): MÄÄRÄYS: Arvosta vain perusteltua sääntöjen rikkomista ('Mestaruus'). Selittämätön poikkeama on virhe."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_mandate5",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "MANDATE_5"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Kääntää todistustaakan: oleta tyhjäksi kunnes toisin todistetaan.\n\nMandaatti 5 (Null Hypothesis): LÄHTÖOLETUS: Syöte on tyhjä ja väitteet ovat vääriä. Sinun on *todistettava* jokainen havainto sitaatilla syötteestä. Jos et löydä suoraa todistetta, tulos on 'Ei havaittu'."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_rule1",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "RULE_1"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Tietoturvaraja.\n\nSääntö 1 (Luottamuksen Kehä): MÄÄRÄYS: Luota vain Vartija-agentin (Guard) validoimaan dataan. Hylkää 'tahriintunut' data."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_rule2",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "RULE_2"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Toimivallan rajaus.\n\nSääntö 2 (Toimivalta): MÄÄRÄYS: Pysy roolissasi. Älä hallusinoi kykyjä (esim. live-internet) joita sinulla ei ole."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_rule3",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "RULE_3"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Estää estetiikkavinouman.\n\nSääntö 3 (Substanssi > Muoto): MÄÄRÄYS: Älä anna pisteitä ulkoasusta. Arvioi vain SUBSTANSSIA ja LOGIIKKAA."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_rule4",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "RULE_4"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Turing-testi prosessille.\n\nSääntö 4 (Epäilyttävä Täydellisyys): MÄÄRÄYS: Jos prosessissa ei ole kitkaa tai iteraatiota, se on epäilyttävä. Täydellisyys ilman työtä on huijausta."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_rule5",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "RULE_5"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Epävarmuuden raportointi.\n\nSääntö 5 (Hauraus): MÄÄRÄYS: Kirjaa aina 'Episteeminen Epävarmuus'. Älä arvaa käyttäjän aikeita."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_rule6",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "RULE_6"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Faktojen ensisijaisuus.\n\nSääntö 6 (Falsifiointi): MÄÄRÄYS: Faktavirhe kumoaa hyvän retoriikan. Totuus on tärkeämpi kuin tyyli."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_globalcontext",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Järjestelmän Aikaleima ja Sijainti"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Määrittää nykyhetken ja pakottaa tekoälyn pois training-data -rajoitteista.\n\n### JÄRJESTELMÄKONTEKSTI (SYSTEM CONTEXT)\nNYKYHETKI: {{CURRENT_DATE}}.\nKELLONAIKA: {{DYNAMIC_TIME}}.\n{{DYNAMIC_LOCATION}}\n\nROOLI: Toimit 'Cognitive Quorum' -auditointijärjestelmän moottorina.\n\nAIKA-ANKKURI: Tiedosta, että toimit NYT, tässä hetkessä ({{CURRENT_DATE}}). Koulutusdatasi 'Knowledge Cutoff' on historiaa. Arvioi kaikkia teknologioita ja väitteitä tästä ajankohdasta käsin.\n\n### AUDITOITAVA MATERIAALI (INPUT DATA)\nAlla on käyttäjän toimittamat tiedostot auditointia varten. Jos kenttä on tyhjä, tiedostoa ei ole toimitettu.\n\n[KESKUSTELUHISTORIA_ALKU]\n{{HISTORY_TEXT}}\n[KESKUSTELUHISTORIA_LOPPU]\n\n[LOPPUTUOTE_ALKU]\n{{PRODUCT_TEXT}}\n[LOPPUTUOTE_LOPPU]\n\n[REFLEKTIODOKUMENTTI_ALKU]\n{{REFLECTION_TEXT}}\n[REFLEKTIODOKUMENTTI_LOPPU]"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_oprule1",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "OP_RULE_1"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Sanktio hallusinaatioista.\n\nEROTTELU 1: Faktatarkkuus. Hallusinaatio = Automaattinen pistevähennys."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_oprule2",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "OP_RULE_2"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Sanktio kopioinnista.\n\nEROTTELU 2: Aitous. Jos teksti on >80% tekoälyn kirjoittamaa ilman käyttäjän ohjausta, se on plagiointia."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_oprule3",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "OP_RULE_3"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Todistepohjainen arviointi.\n\nEROTTELU 3: Todisteet. Arvioi vain Lokia (mitä tehtiin), älä Reflektiota (mitä väitettiin)."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_oprule4",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "OP_RULE_4"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Leikkaa pisteet passiivisilta käyttäjiltä (Ohjelmallinen sääntö).\n\nSääntö 4 (Passiivisuus-leikkuri): MÄÄRÄYS: Jos käyttäjä on 'Matkustaja' (Taso 1) missään kategoriassa, se aktivoi automaattisen 'Passiivisuus-leikkurin'. Tämä leikkaa lopulliset pisteet ohjelmallisesti. Sinun tehtäväsi on vain tunnistaa passiivisuus rehellisesti - älä yritä itse laskea keskiarvoa alas."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_instructionnohallucination",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "INSTRUCTION_NO_HALLUCINATION"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Strict grounding instruction to prevent hallucinations.\n\nRAJOITUKSET (NO-HALLUCINATION POLICY):\n- ÄLÄ KEKSI ESIMERKKEJÄ (Esim. 'Uusiutuva energia', 'Sähköautot').\n- Generoi analyysi VAIN JA AINOASTAAN annetusta tekstistä.\n- Jos teksti on 'Asiakasnumero: 12345', analysoi vain se."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_instructioncitationobligation",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "INSTRUCTION_CITATION_OBLIGATION"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Pakottaa suoran sitaatin käytön.\n\nRAJOITUS (CITATION OBLIGATION):\n- Sinun on *pakko* sisällyttää 'citation_snippet' -kenttään suora lainaus syötteestä jokaiselle väitteelle.\n- Jos et pysty lainaamaan tekstiä, et saa esittää väitettä."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_instructionnodataleak",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "INSTRUCTION_NO_DATA_LEAK"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Prevents LLM from mirroring raw input back into output.\n\nRAJOITUS (HUGE DATA PROTECTION):\n- ÄLÄ KOSKAAN KOPIOI ALKUPERÄISTÄ TEKSTIÄ TULOSTEEKSEEN.\n- Aseta kentään VAIN teksti: 'DATA_CHECKED_AND_SECURED'.\n- Syy: JSON-rakenne hajoaa, jos yrität tulostaa 50 sivun raportin tähän."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_instructionbiblicalgrounding",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "INSTRUCTION_BIBLICAL_GROUNDING"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Enforces Knowledge Base and Context (Search) as the sole, indisputable source of truth.\n\nRAJOITUS (BIBLICAL GROUNDING): TIETOKANTA JA KONTEKSTI OVAT AINOA TOTUUS.\n- Sinun maailmasi rajoittuu TÄYSIN annettuun aineistoon (Knowledge Base, Lähdeluettelo, Hakutulokset).\n- Jos tietoa ei ole annetussa tekstissä, SITÄ EI OLE OLEMASSA.\n- Lähdeluettelo on 'Jumalan Sana': Älä koskaan kyseenalaista, muokkaa tai hallusinoi lähteitä.\n- Jos käyttäjä kysyy jotain, mitä ei löydy lähteistä eikä hakutuloksista, vastaa: 'Tieto ei sisälly annettuun aineistoon'."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_instructionlanguagefi",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "INSTRUCTION_LANGUAGE_FI"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Enforces Finnish language output strictly.\n\nKIELI: Kirjoita vastauksesi, analyysisi ja kaikki generoitava teksti AINA suomeksi. Tämä on EHDOTON vaatimus. Vaikka syöteaineisto tai JSON-skeeman kenttien kuvaukset olisivat englanniksi, sinun ON tuotettava suomenkielistä tekstiä. Älä vaihda kieltä englanniksi kesken vastauksen."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskguard",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_GUARD"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Vartija - Input Hygiene Audit\n\nVAIHE 1: VARTIJA (Input Hygiene Audit)\nTEHTÄVÄT:\n1. SUORITA TEKNINEN TARKASTUS: Onko syöte 'roskaa' (epämääräistä) vai 'koodia' (strukturoitua)?\n2. TÄYTÄ 'SecurityCheck':\n   - 'threat_detected': Aseta FALSE (älä keskeytä ajoa osaamattomuuden takia).\n   - 'risk_level': Aseta 'KORKEA', jos havaitset 'Lazy Prompting' (alle 5 sanaa, ei kontekstia).\n   - 'simulation_result': Luokittele käyttäjä: 'Passiivinen Matkustaja' vs 'Aktiivinen Arkkitehti'.\n3. TÄYTÄ 'tainted_data' (TÄRKEÄ - CRITICAL):\n   - ÄLÄ kopioi alkuperäistä tekstiä tähän kenttään.\n   - Aseta arvoksi VAIN merkkijono: \"DATA_CHECKED_AND_SECURED\".\n   - Syytteessä annettu teksti on jo järjestelmässä, sen kopiointi on turhaa ja aiheuttaa virheitä.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (GuardOutput). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon, 'security_check' -objektin, ja 'tainted_data' -objektin:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskanalyst",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_ANALYST"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Analyytikko - Context Engineering Audit\n\nVAIHE 2: ANALYYTIKKO (Context Engineering Audit)\nTEHTÄVÄT:\n1. ETSI todisteita 'Grounding'-tekniikasta VAIN annetuista syötetiedostoista (history_text, product_text, etc.).\n2. SUORITA TOTUUSVERTAILU (Truth Protocol):\n   - TASO 1 (Laki): Tietopankki on Ehdoton Auktoriteetti. Jos käyttäjä väittää jotain, mikä on ristiriidassa Tietopankin kanssa -> KIRJAA RIKKOMUS (Critical Violation).\n   - TASO 2 (Forensinen): Vastaako Reflektio (väitteet) Lokia (teot)?\n   - TASO 3 (Ulkoinen): Jos Tietopankki ei ota kantaa, onko väite uskottava?\n3. TÄYTÄ 'AnalystOutput':\n   - 'hypotheses': Listaa väitteet ja niiden status (Verified/Violation/Hallucination). JOKAISELLE väitteelle TÄYTYY täyttää 'quotes' -lista suorilla lainauksilla.\n   - 'evidence_found': True, jos ja vain jos inputissa on faktoja. Jos tyhjä -> False.\n   - 'rag_evidence': Poimi suorat sitaatit Tietopankista, jotka tukevat tai kumoavat väitteet.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (AnalystOutput). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'hypotheses' -listan:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskprofiler",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_PROFILER"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Profiler - Cognitive Bias Audit\n\nVAIHE 4: PROFILOIJA (Cognitive Bias Audit)\nTEHTÄVÄT:\n1. ETSI kognitiivisia vinoumia prompteista.\n2. TUNNISTA 'Automation Bias': Hyväksyykö käyttäjä ensimmäisen vastauksen sokeasti?\n3. VERTAA Reflektiota (Väitteet) ja Historiaa (Teot). Tunnista Ristiriita (Say-Do Gap): Jos käyttäjä väittää reflektoivansa, mutta historia on mekaanista tilaamista, kirjaa 'Illusion of Competence'.\n\nMETRIIKKA: {{PROFILER_METRICS}}\nKONTROLLISUHDE: {{INPUT_CONTROL_RATIO}}\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (ProfilerAnalysis). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'author_intent' -kentän:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_tasklogician",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_LOGICIAN"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Logician - Prompt Structure Audit\n\nVAIHE 5: LOOGIKKO (Prompt Structure Audit)\nTEHTÄVÄT:\n1. JÄSENNÄ käyttäjän prompti TÄYDELLISELLÄ Toulmin-mallilla (6 osaa):\n   - Claim: Käyttäjän tavoite/väite.\n   - Data: Käyttäjän antama konteksti/todisteet.\n   - Warrant: Logiikka, miksi ohje johtaa tavoitteeseen.\n   - Backing: Taustatuki warrantille (miksi logiikka pätee?).\n   - Rebuttal: Vasta-argumentit tai poikkeukset (huomioiko käyttäjä estot?).\n   - Qualifier: Varmuusaste/rajaus (esim. 'useimmiten', 'ehdottomasti').\n2. ARVIOI TODISTUSVOIMA (Probative Value):\n   - KORKEA: Väite saa tukea Reflektiosta (A), Lokista (B) JA Tietopankista/Hausta (C).\n   - KESKITASO: Väite saa tukea A:sta ja B:stä, mutta ulkoinen validointi puuttuu.\n   - MATALA: Väite perustuu vain käyttäjän omaan sanaan (A) ilman lokitodisteita (B).\n3. ARVIOI: Onko prompti looginen kokonaisuus? Jos osia puuttuu, jätä vastaava kenttä tyhjäksi.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (LogicianOutput). \nVAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'logician_data' -objekti, jonka SISÄLLÄ ovat analyysikentät.\nVarmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'logician_data' -objektin:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskfalsifier",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_FALSIFIER"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Falsifier - Critical Loop Audit\n\nVAIHE 6: FALSIFIOIJA (Critical Loop Audit)\nTEHTÄVÄT:\n1. ETSI 'Iteraatiosilmukkaa': Missä kohtaa käyttäjä sanoi 'Ei' tai 'Korjaa'?\n2. TÄYTÄ 'stress_test_findings':\n   - 'question': Käyttäjän korjauskäsky.\n   - 'observation': Oliko käyttäjä kriittinen vai 'Jees-mies'?\n3. TÄYTÄ 'fidelity_audit': Merkitse 'HEIKKO', jos käyttäjä hyväksyi ensimmäisen version ilman yhtäkään muutosta.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (FalsifierOutput).\nVAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'falsifier_data' -objekti, jonka SISÄLLÄ ovat analyysikentät.\nVarmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'falsifier_data' -objektin:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskoverseer",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_OVERSEER"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Overseer - Hallucination Management\n\nVAIHE 9: VALVOJA (Hallucination Management)\nTEHTÄVÄT:\n1. ANALYSOI hakutulokset:\n{{SEARCH_RESULT}}\n\n2. SUORITA FAKTATARKISTUS (Fact Checker Protocol):\n   - Etsi käyttäjän tai tekoälyn esittämiä FAKTAVÄITTEITÄ (esim. vuosiluvut, nimet, tapahtumat).\n   - VERTAA väitteitä hakutuloksiin.\n   - Jos väite on totta (Search vahvistaa) -> MERKITSE 'VERIFIED'.\n   - Jos väite on epätosi (Search kumoaa) -> MERKITSE 'HALLUCINATION'.\n3. JOS virhe löytyy: Tarkista, huomasiko/korjasiko käyttäjä sen?\n4. TUOMIO: Jos käyttäjä jätti virheen lopputuotteeseen -> Kirjaa 'KRIITTINEN LAIMINLYÖNTI'.\n5. TÄYTÄ 'fact_checks' havainnoillasi.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (OverseerOutput).\nVAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'overseer_data' -objekti, jonka SISÄLLÄ ovat analyysikentät.\nVarmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'overseer_data' -objektin:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskcausal",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_CAUSAL"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Causal Analyst - Impact Verification\n\n**VAIHE 7: KAUSAALINEN ANALYYSI (Causal Audit)**\n\nSinun tehtäväsi on arvioida väitteiden ja todistusaineiston välistä syy-seuraussuhdetta.\n\n**ANALYYSI:**\n1. **Abduktiivinen Päättely**: Onko esitetty syy paras mahdollinen selitys havainnolle?\n   - Tunnista \"Post Hoc Ergo Propter Hoc\" -virheet.\n   - Arvioi: `POST_HOC` (Virheellinen), `UNCERTAIN` (Epävarma), `GENUINE` (Aito).\n\n2. **Vastafaktuaalinen Testi (Counterfactual Test)**:\n   - Kuvittele tilanne, jossa väitettyä syytä (X) ei olisi tapahtunut.\n   - Olisiko seuraus (Y) silti tapahtunut?\n   - Määritä uskottavuus (Plausibility): `IMPOSSIBLE` (Mahdoton), `PLAUSIBLE` (Mahdollinen), `HIGH` (Todennäköinen).\n   - Kirjaa simulaation tulos `simulation_result` kenttään.\n\n**TUOTOSVAATIMUS**:\nVastauksen on oltava `CausalOutput` -skeeman mukainen JSON.\nVarmista erityisesti, että `counterfactual_test` -objekti on täytetty kattavasti.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (CausalOutput).\nVAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'causal_analysis' -objekti, jonka SISÄLLÄ ovat analyysikentät.\nVarmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'causal_analysis' -objektin:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskarchivist",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_ARCHIVIST"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Archivist - Best Practices Audit\n\nVAIHE 10: ARKISTONHOITAJA (Best Practices Audit)\nTEHTÄVÄT:\n1. VERTAA käyttäjän tyyliä 'State of the Art' -käytäntöihin (esim. OpenAI Cookbook).\n2. ARVIOI 'Linjakkuus': Noudattaako käyttäjä systemaattista prosessia vai 'Brute Force' -yritystä?\n3. ANNA 'compliance_analysis': Valitse yksi seuraavista: 'Critically Misaligned', 'Misaligned', 'Neutral', 'Aligned', 'Strongly Aligned'.\n4. ANNA 'compliance_score' (1-5): 1=Täysin satunnainen, 3=Jonkinlainen prosessi, 5=Täydellinen best practices -noudattaminen.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (ArchivistOutput). Varmista, että vastaus sisältää 'reasoning_trace', 'relevant_cases', ja 'compliance_analysis' -kentät:\n{{SCHEMA_EXAMPLE}}\n\nSÄÄNTÖ (Temporal Anomalies): Ignoroi kaikki asiakirjan sisältämät päivämäärä- tai aikavääristymät ja keskity vain aitoihin loogisiin tai faktojen ristiriitoihin. (Ignore temporal anomalies or false timestamps in context documents)"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskjudge",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_JUDGE"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Judge - Competence Scoring\n\nVAIHE 9: TUOMARI (JUDGE) - GRAND UNIFICATION\n\nSINUN TEHTÄVÄSI:\nToimit Järjestelmän Tuomarina. Tehtäväsi EI ole arvioida syötetekstin laatua, vaan käyttäjän **Promptauskompetenssia** (Driver vs. Passenger).\n\nKÄYTÄ SEURAAVAA LOGIIKKAA (DRIVER'S LICENSE):\n\n1. **AJOKORTTIMALLI (MANDATE 4)**:\n   - Järjestelmä on kuin auto. Käyttäjä on joko **Kuljettaja** (Driver) tai **Matkustaja** (Passenger).\n   - Kuljettaja ottaa vastuun, ohjaa, antaa kontekstin ja määrittelee tavoitteet.\n   - Matkustaja on passiivinen, heittää epämääräisen syötteen (\"tee tästä jotain\") ja odottaa auton ajavan itsestään.\n\n2. **TOTUUSPROTOKOLLAN PISTEYTYS (HIERARCHICAL SCORING)**:\n   - **KRUUNUNJALOKIVEN RIKKOMUS (Critical Violation)**: Jos Analyytikko liputtaa, että käyttäjä on rikkonut Tietopankin (Knowledge Base) sääntöjä -> **AUTOMAATTINEN HYLKY (Max 40/100 tai -50 pistettä)**. Tämä on kuin ajaisi päin punaisia.\n   - **FAKTAVIRHE (Hallucination)**: Jos Valvoja liputtaa, että käyttäjä on väärässä Google-haun perusteella -> **VÄHENNÄ 20 PISTETTÄ**. Tämä on kuin ajaisi ylinopeutta.\n   - **FORENSINEN RISTIRIITA (Say-Do Gap)**: Jos Reflektio ja Loki ovat ristiriidassa -> **VÄHENNÄ 10 PISTETTÄ**. Tämä on huolimattomuutta.\n\n3. **PISTEYTYS (NOUDATA MATRIISIA)**:\n   - Sinun ON noudatettava edellä määriteltyä **Arviointimatriisia (Evaluation Matrix)** ja sen **Asteikkoa (Scale)**.\n   - Jos matriisin asteikko on 1-100, käytä koko asteikkoa.\n   - Jos matriisin asteikko on 1-4, käytä sitä.\n\nTÄYTÄ SCHEMA: `EvaluationResult`\n- `reasoning_trace`: Kirjoita tähän SYVÄLLINEN perustelu päätökselle (Chain-of-Thought).\n- `score_card`: Täytä pistekortti (total_score, final_verdict, dimensions).\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (EvaluationResult). Varmista että 'reasoning_trace' on mukana:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskcoach",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_COACH"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Coach - Technical Remediation\n\nVAIHE 12: VALMENTAJA (COACH)\n\nSINUN TEHTÄVÄSI:\nToimit Järjestelmän Valmentajana (Coach). Tehtäväsi on auttaa käyttäjää kehittymään \"Matkustajasta\" (Passenger) \"Kuljettajaksi\" (Driver).\n\nOHJEET:\n1. **ANALYSOI TUOMIO**: Katso Tuomarin (Step 11) antama `score_card`.\n2. **TUNNISTA PROFIILI (SUHTEESSA ASTEIKKOON)**:\n   - **Passenger (Matalat Pisteet)**: Käyttäjä on passiivinen. Pisteet ovat asteikon alapäässä. Ohjaa häntä ottamaan vastuu.\n   - **Driver (Korkeat Pisteet)**: Käyttäjä on aktiivinen. Pisteet ovat asteikon yläpäässä. Anna syvällisempää optimointipalautetta.\n3. **KONSTRUKTIIVINEN JA RIKASTETTU PALAUTE**:\n   - Älä vain hauku. Kerro *miten* promptia pitää parantaa.\n   - **Enriched Feedback**: Viittaa akateemisiin lähteisiin (esim. Kahneman, Strathern, Popper) perustellaksesi neuvosi. Esim. \"Vältä myötäilyvinoumaa (Sycophancy Bias).\"\n\nTÄYTÄ SCHEMA: `CoachingPlan`\n- `focus_areas`: Miksi käyttäjä sai ne pisteet jotka sai?\n- `actionable_steps`: Konkreettinen lista: Tee A, Tee B.\n- `bibliography`: Lähdeviitteet.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (CoachingPlan). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'actionable_steps' -listan:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskinteraction",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_INTERACTION"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Interaction Analyst - Driver Metrics\n\nVAIHE 3: VUOROVAIKUTUS (Driver Metrics)\nTEHTÄVÄT:\n1. ARVIOI Riippuvuussuhdetta (Dependency). (Huom: Järjestelmä laskee tarkan Input-Control Ration erikseen). Jos vaikuttaa, että käyttäjä on täysin riippuvainen, liputa 'High Dependency'.\n2. Laske 'imperative_command_count': Montako kertaa käyttäjä antaa suoran käskyn (esim. 'Tee', 'Korjaa', 'Analysoi')?\n3. TUNNISTA Strategia (pakollinen englanninkielinen arvo!): 'Zero-shot', 'Few-shot', 'Chain-of-Thought'.\n4. LUOKITTELE Arkkityyppi (pakollinen englanninkielinen arvo!): 'Passenger' (Tilaa), 'Navigator' (Korjaa), 'Driver' (Ohjaa), 'Architect' (Suunnittelee).\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (InteractionAnalysis). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'role_classification' -kentän:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskpanel",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_PANEL"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Panel Agent - Unified Critics\n\nSINÄ TOIMIT SEURAAVANA ASIANTUNTIJAPANEELINA (Jokainen rooli analysoi saman aineiston):\n\nROOLI 1: Logician (Structure Audit)\nTEHTÄVÄT:\n1. JÄSENNÄ käyttäjän prompti TÄYDELLISELLÄ Toulmin-mallilla (6 osaa):\n   - Claim: Käyttäjän tavoite/väite.\n   - Data: Käyttäjän antama konteksti/todisteet.\n   - Warrant: Logiikka, miksi ohje johtaa tavoitteeseen.\n   - Backing: Taustatuki warrantille (miksi logiikka pätee?).\n   - Rebuttal: Vasta-argumentit tai poikkeukset (huomioiko käyttäjä estot?).\n   - Qualifier: Varmuusaste/rajaus (esim. 'useimmiten', 'ehdottomasti').\n2. ARVIOI: Onko prompti looginen kokonaisuus? Jos osia puuttuu, jätä vastaava kenttä tyhjäksi.\nOUTPUT: logician_data\n\nROOLI 2: Falsifier (Critical Loop Audit)\nTEHTÄVÄT:\n1. ETSI 'Iteraatiosilmukkaa': Missä kohtaa käyttäjä sanoi 'Ei' tai 'Korjaa'?\n2. TÄYTÄ 'stress_test_findings':\n   - 'question': Käyttäjän korjauskäsky.\n   - 'observation': Oliko käyttäjä kriittinen vai 'Jees-mies'?\n3. TÄYTÄ 'fidelity_audit': Merkitse 'HEIKKO', jos käyttäjä hyväksyi ensimmäisen version ilman yhtäkään muutosta.\nOUTPUT: falsifier_data\n\nROOLI 3: Causal Analyst (Impact Verification)\nSinun tehtäväsi on arvioida väitteiden ja todistusaineiston välistä syy-seuraussuhdetta.\nANALYYSI:\n1. Abduktiivinen Päättely: Onko esitetty syy paras mahdollinen selitys havainnolle?\n   - Tunnista \"Post Hoc Ergo Propter Hoc\" -virheet.\n   - Arvioi: `POST_HOC` (Virheellinen), `UNCERTAIN` (Epävarma), `GENUINE` (Aito).\n2. Vastafaktuaalinen Testi (Counterfactual Test):\n   - Kuvittele tilanne, jossa väitettyä syytä (X) ei olisi tapahtunut.\n   - Olisiko seuraus (Y) silti tapahtunut?\n   - Määritä uskottavuus (Plausibility): `IMPOSSIBLE` (Mahdoton), `PLAUSIBLE` (Mahdollinen), `HIGH` (Todennäköinen).\n   - Kirjaa simulaation tulos `simulation_result` kenttään.\nOUTPUT: causal_analysis\n\nROOLI 4: Performativity Detector (Illusion of Control Audit)\nTEHTÄVÄT:\n1. ETSI 'Väsyneitä Komentoja' (1-2 sanaa: 'jatka', 'lisää').\n2. TUNNISTA 'Illusion of Control': Käyttäjä luulee ohjaavansa, mutta AI tekee aloitteet.\n3. LIPUTA 'Performatiivinen', jos käyttäjän panos on minimaalinen mutta reflektio mahtipontinen.\n4. SOVELLA Goodhartin lakia: Etsi 'Epäilyttävää Täydellisyyttä' (Suspicious Perfection). Jos prosessi on kitkaton ja virheetön, liputa se anomaliana (Strathern 1997).\nOUTPUT: performativity_analysis\n\nROOLI 5: Factual Overseer (Hallucination Management)\nTEHTÄVÄT:\n1. ANALYSOI hakutulokset:\n{{SEARCH_RESULT}}\n\n2. TARKISTA faktojen paikkansapitävyys.\n3. JOS virhe löytyy: Tarkista, huomasiko/korjasiko käyttäjä sen?\n4. TUOMIO: Jos käyttäjä jätti virheen lopputuotteeseen -> Kirjaa 'KRIITTINEN LAIMINLYÖNTI'.\n5. TÄYTÄ 'fact_checks' havainnoillasi.\nOUTPUT: overseer_data\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (PanelOutput).\n\nVAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA.\nSinun on palautettava objekti, jossa on erilliset avaimet jokaiselle roolille (esim. 'logician_data', 'performativity_analysis').\nÄlä yritä yhdistää kaikkia kenttiä yhteen litteään listaan.\n\nVarmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja kaikki vaaditut data-objektit:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_taskxai",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "TASK_XAI"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "XAI Reporter - License Certification\n\nVAIHE 13: XAI-RAPORTOIJA (XAI REPORTER)\n\nSINUN TEHTÄVÄSI:\nToimit Järjestelmän XAI-Raportoijana (Explainable AI). Tehtäväsi on selittää käyttäjälle *miksi* hän sai tietyn tuomion ja *miten* järjestelmä päätyi lopputulokseen.\n\nOHJEET:\n1. **TIIVISTÄ PROSESSI**: Kerro lyhyesti, mitä vaiheita (Guard -> Judge -> Coach) syöte kävi läpi.\n2. **SELITÄ PÄÄTÖS (DRIVERS LICENSE)**:\n   - Jos hylätty (Matalat Pisteet): Selitä, että syöte oli liian passiivinen (\"Matkustaja\").\n   - Jos hyväksytty (Korkeat Pisteet): Selitä, mitkä elementit tekivät siitä \"Kuljettajan\" syötteen.\n3. **AVAIMET JATKOON**: Viittaa Coachin antamaan \"CoachingPlan\"-suunnitelmaan.\\n4. **VERSION COMPATIBILITY**: Support ALL matrix versions (Standard V1 & Cognitive V2). DO NOT reject input based on version mismatch.\\n\\nTÄYTÄ SCHEMA: `XAIOutput`\n- `executive_summary`: Johdon yhteenveto päätöksestä.\n- `final_verdict`: Lopullinen tuomio selkokielellä.\n- `confidence_score`: Kuinka varma järjestelmä on arviostaan (0.0 - 1.0).\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (XAIOutput). Varmista, että vastaus sisältää 'reasoning_trace', 'executive_summary' ja 'final_verdict' -kentät:\n{{SCHEMA_EXAMPLE}}"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_protocol1",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "PROTOCOL_1"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Puutteiden auditointi.\n\nProtokolla 1 (Negatiivinen Loki): Kirjaa ylös PUUTTEET. Mitä käyttäjä jätti tekemättä?"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_protocol2",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "PROTOCOL_2"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Validointiprosessi.\n\nProtokolla 2 (Validointi): 1. Syntaksi (JSON), 2. Semantiikka (Järki), 3. Strategia (Tavoite)."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_protocol3",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "PROTOCOL_3"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Tiedonhankinta.\n\nProtokolla 3 (RFI): Jos tieto puuttuu, älä arvaa. Vaadi lisätietoa."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_protocol4",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "PROTOCOL_4"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Vastuunsiirto.\n\nProtokolla 4 (Vastuu): Jos luotettavuus on epävarma, siirrä vastuu ihmiselle (HITL)."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_method1",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "METHOD_1"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Stressitestaus.\n\nMenetelmä 1 (Red Team): Simuloi hyökkääjää. Yritä rikkoa argumentti tahallaan."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_method2",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "METHOD_2"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Ristiinvalidoiva ketju.\n\nMenetelmä 2 (Ketju): Auditoi edellisen agentin tulos ennen omaa työtäsi."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_method3",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "METHOD_3"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Sokraattinen auditointi.\n\nMenetelmä 3 (Kysymykset): Generoi kysymyksiä, jotka paljastavat käyttäjän tietämättömyyden."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_instructionanon",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "INSTRUCTION_ANON"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Tietosuoja.\n\nTARKISTA: Etsi tekstistä PII-dataa (Nimet, Email). JOS JA VAIN JOS löydät AITOA PII-dataa syötteestä, poista se. ÄLÄ KOSKAAN keksi esimerkkejä tyhjästä (esim. 'Matti Meikäläinen'). Jos dataa ei löydy, kirjaa 'Ei havaittu' ja jatka."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_instructionragopt",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "INSTRUCTION_RAG_OPT"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "RAG-optimointi.\n\nKÄSKE: Optimoi konteksti 'Lost in the Middle' -ilmiötä vastaan."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_principle1",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "PRINCIPLE_1"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Popperilainen tieteenfilosofia.\n\nPeriaate 1: MÄÄRÄYS: Tieteellinen totuus selvitetään yrittämällä kumota väite. Jos väite ei kestä kritiikkiä, se on väärä."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_requirement1",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "REQUIREMENT_1"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Mallien diversiteetti.\n\nVaatimus 1: MÄÄRÄYS: Kriittiset vaiheet (Falsifiointi) on ajettava eri parametreilla kuin luovat vaiheet."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_instructioncoachcitation",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "INSTRUCTION_COACH_CITATION"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Tiukat ohjeet lähdeluettelon luomiseen (Vain DB).\n\nCRITICAL: Do NOT populate the 'lahdeluettelo' field manually. The system will generate it programmatically based on your inline citations.\n\nYOUR TASK is to use inline citations explicitly in your text (e.g., '(Toulmin 2003)', '(Kahneman 2011)').\nEnsure you refer to the provided EXTERNAL SOURCES.\nLeave 'lahdeluettelo' as an empty list []."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_heuristic1",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "HEURISTIC_1"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Syy-seuraus -analyysi.\n\nHeuristiikka 1 (Temporaalinen): MÄÄRÄYS: Tarkista aikajana. Tuliko oivallus ENNEN tuloksen paranemista (Syy) vai vasta sen jälkeen (Rationalisointi)?"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_heuristic2",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "HEURISTIC_2"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Lisäarvon mittaus.\n\nHeuristiikka 2 (Kontrafaktuaalinen): MÄÄRÄYS: Kysy 'Jos käyttäjä ei olisi tehnyt mitään, olisiko tekoäly ratkaissut tämän silti?'. Jos kyllä -> Matkustaja."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_heuristic3",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "HEURISTIC_3"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Occamin partaveitsi.\n\nHeuristiikka 3 (Occamin partaveitsi): MÄÄRÄYS: Yksinkertaisin selitys on todennäköisin."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_panelprompttemplate",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "PANEL_PROMPT_TEMPLATE"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "PANEL_PROMPT_TEMPLATE\n\nOlet Cognitive Quorum -järjestelmän Asiantuntijapaneeli (Panel Agent).\n\nSINUN TEHTÄVÄSI on suorittaa alla määritellyt roolit ja analyysit rinnakkain, hyödyntäen syötteenä saatuja aiempien vaiheiden tuloksia.\n\n{task_section}\n\n{context_section}\n\n{search_section}\n\n{linguistics_section}\n\nTÄSSÄ ON ANALYSOITAVA AINEISTO (INPUTS):\n{input_json}\n\nSUORITA ANALYYSI JA PALAUTA VAIN JSON-MUOTOINEN VASTAUS (PanelOutputDTO)."
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        },
+        {
+            "id": "block_systemcomponenttypes",
+            "label": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "System Component Types Registry"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Registry of valid component types for the UI dropdown.\n\n[\"prompt\", \"rule\", \"mandate\", \"instruction\", \"header\", \"task\", \"bars\", \"context\", \"operational_rule\", \"protocol\", \"method\", \"principle\", \"requirement\", \"heuristic\", \"output_config\", \"system_config\"]"
+                }
+            },
+            "category_id": "system_rule",
+            "type": "instruction",
+            "allow_decimals": false,
+            "strictness_level": 50,
+            "require_justification": false
+        }
+    ],
+    "workflows": [
+        {
+            "id": "workflow_courtroom_20_full_audit",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Courtroom 2.0 (Full Audit)"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Enhanced 12-step audit chain with Profiler, Archivist, and Coach."
+                }
+            },
+            "expected_inputs": {
+                "chat_log": "string"
+            },
+            "steps": [
+                {
+                    "id": "step_node_1",
+                    "task_blueprint": "step_input_processing",
+                    "depends_on": [],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_2",
+                    "task_blueprint": "step_guard",
+                    "depends_on": [
+                        "step_node_1"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_1": "$step_node_1.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_3",
+                    "task_blueprint": "step_retrieval_agent",
+                    "depends_on": [
+                        "step_node_2"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_2": "$step_node_2.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_4",
+                    "task_blueprint": "step_analyst",
+                    "depends_on": [
+                        "step_node_3"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_3": "$step_node_3.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_5",
+                    "task_blueprint": "step_interaction_analyst",
+                    "depends_on": [
+                        "step_node_4"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_4": "$step_node_4.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_6",
+                    "task_blueprint": "step_profiler",
+                    "depends_on": [
+                        "step_node_5"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_5": "$step_node_5.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_7",
+                    "task_blueprint": "step_logician",
+                    "depends_on": [
+                        "step_node_6"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_6": "$step_node_6.output"
+                    },
+                    "model_strategy": "strict"
+                },
+                {
+                    "id": "step_node_8",
+                    "task_blueprint": "step_falsifier",
+                    "depends_on": [
+                        "step_node_7"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_7": "$step_node_7.output"
+                    },
+                    "model_strategy": "strict"
+                },
+                {
+                    "id": "step_node_9",
+                    "task_blueprint": "step_causal_analyst",
+                    "depends_on": [
+                        "step_node_8"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_8": "$step_node_8.output"
+                    },
+                    "model_strategy": "deep"
+                },
+                {
+                    "id": "step_node_10",
+                    "task_blueprint": "step_performativity_detector",
+                    "depends_on": [
+                        "step_node_9"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_9": "$step_node_9.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_11",
+                    "task_blueprint": "step_overseer",
+                    "depends_on": [
+                        "step_node_10"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_10": "$step_node_10.output"
+                    },
+                    "model_strategy": "strict"
+                },
+                {
+                    "id": "step_node_12",
+                    "task_blueprint": "step_archivist",
+                    "depends_on": [
+                        "step_node_11"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_11": "$step_node_11.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_13",
+                    "task_blueprint": "step_judge",
+                    "depends_on": [
+                        "step_node_12"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_12": "$step_node_12.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_14",
+                    "task_blueprint": "step_coach",
+                    "depends_on": [
+                        "step_node_13"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_13": "$step_node_13.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_15",
+                    "task_blueprint": "step_xai_reporter",
+                    "depends_on": [
+                        "step_node_14"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_14": "$step_node_14.output"
+                    },
+                    "model_strategy": "fast"
+                }
+            ]
+        },
+        {
+            "id": "workflow_courtroom_30_fused_critics",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Courtroom 3.0 (Fused Critics)"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Optimized workflow merging logical, causal, and performativity analysis into one parallel step."
+                }
+            },
+            "expected_inputs": {
+                "chat_log": "string"
+            },
+            "steps": [
+                {
+                    "id": "step_node_1",
+                    "task_blueprint": "step_input_processing",
+                    "depends_on": [],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_2",
+                    "task_blueprint": "step_guard",
+                    "depends_on": [
+                        "step_node_1"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_1": "$step_node_1.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_3",
+                    "task_blueprint": "step_retrieval_agent",
+                    "depends_on": [
+                        "step_node_2"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_2": "$step_node_2.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_4",
+                    "task_blueprint": "step_analyst",
+                    "depends_on": [
+                        "step_node_3"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_3": "$step_node_3.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_5",
+                    "task_blueprint": "step_interaction_analyst",
+                    "depends_on": [
+                        "step_node_4"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_4": "$step_node_4.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_6",
+                    "task_blueprint": "step_profiler",
+                    "depends_on": [
+                        "step_node_5"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_5": "$step_node_5.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_7",
+                    "task_blueprint": "step_panel",
+                    "depends_on": [
+                        "step_node_6"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_6": "$step_node_6.output"
+                    },
+                    "model_strategy": "deep"
+                },
+                {
+                    "id": "step_node_8",
+                    "task_blueprint": "step_archivist",
+                    "depends_on": [
+                        "step_node_7"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_7": "$step_node_7.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_9",
+                    "task_blueprint": "step_judge",
+                    "depends_on": [
+                        "step_node_8"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_8": "$step_node_8.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_10",
+                    "task_blueprint": "step_coach",
+                    "depends_on": [
+                        "step_node_9"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_9": "$step_node_9.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_11",
+                    "task_blueprint": "step_xai_reporter",
+                    "depends_on": [
+                        "step_node_10"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_10": "$step_node_10.output"
+                    },
+                    "model_strategy": "fast"
+                }
+            ]
+        },
+        {
+            "id": "workflow_courtroom_20_cognitive_audit",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Courtroom 2.0 (Cognitive Audit)"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Sequential audit using the new Cognitive BARS Matrix."
+                }
+            },
+            "expected_inputs": {
+                "chat_log": "string"
+            },
+            "steps": [
+                {
+                    "id": "step_node_1",
+                    "task_blueprint": "step_input_processing",
+                    "depends_on": [],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_2",
+                    "task_blueprint": "step_guard",
+                    "depends_on": [
+                        "step_node_1"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_1": "$step_node_1.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_3",
+                    "task_blueprint": "step_retrieval_agent",
+                    "depends_on": [
+                        "step_node_2"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_2": "$step_node_2.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_4",
+                    "task_blueprint": "step_analyst",
+                    "depends_on": [
+                        "step_node_3"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_3": "$step_node_3.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_5",
+                    "task_blueprint": "step_interaction_analyst",
+                    "depends_on": [
+                        "step_node_4"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_4": "$step_node_4.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_6",
+                    "task_blueprint": "step_profiler",
+                    "depends_on": [
+                        "step_node_5"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_5": "$step_node_5.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_7",
+                    "task_blueprint": "step_logician",
+                    "depends_on": [
+                        "step_node_6"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_6": "$step_node_6.output"
+                    },
+                    "model_strategy": "strict"
+                },
+                {
+                    "id": "step_node_8",
+                    "task_blueprint": "step_falsifier",
+                    "depends_on": [
+                        "step_node_7"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_7": "$step_node_7.output"
+                    },
+                    "model_strategy": "strict"
+                },
+                {
+                    "id": "step_node_9",
+                    "task_blueprint": "step_causal_analyst",
+                    "depends_on": [
+                        "step_node_8"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_8": "$step_node_8.output"
+                    },
+                    "model_strategy": "deep"
+                },
+                {
+                    "id": "step_node_10",
+                    "task_blueprint": "step_performativity_detector",
+                    "depends_on": [
+                        "step_node_9"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_9": "$step_node_9.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_11",
+                    "task_blueprint": "step_overseer",
+                    "depends_on": [
+                        "step_node_10"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_10": "$step_node_10.output"
+                    },
+                    "model_strategy": "strict"
+                },
+                {
+                    "id": "step_node_12",
+                    "task_blueprint": "step_archivist",
+                    "depends_on": [
+                        "step_node_11"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_11": "$step_node_11.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_13",
+                    "task_blueprint": "step_cognitive_judge",
+                    "depends_on": [
+                        "step_node_12"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_12": "$step_node_12.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_14",
+                    "task_blueprint": "step_coach",
+                    "depends_on": [
+                        "step_node_13"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_13": "$step_node_13.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_15",
+                    "task_blueprint": "step_xai_reporter",
+                    "depends_on": [
+                        "step_node_14"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_14": "$step_node_14.output"
+                    },
+                    "model_strategy": "fast"
+                }
+            ]
+        },
+        {
+            "id": "workflow_courtroom_30_fused_cognitive",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Courtroom 3.0 (Fused Cognitive)"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Fused workflow using the new Cognitive BARS Matrix."
+                }
+            },
+            "expected_inputs": {
+                "chat_log": "string"
+            },
+            "steps": [
+                {
+                    "id": "step_node_1",
+                    "task_blueprint": "step_input_processing",
+                    "depends_on": [],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_2",
+                    "task_blueprint": "step_guard",
+                    "depends_on": [
+                        "step_node_1"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_1": "$step_node_1.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_3",
+                    "task_blueprint": "step_retrieval_agent",
+                    "depends_on": [
+                        "step_node_2"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_2": "$step_node_2.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_4",
+                    "task_blueprint": "step_analyst",
+                    "depends_on": [
+                        "step_node_3"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_3": "$step_node_3.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_5",
+                    "task_blueprint": "step_interaction_analyst",
+                    "depends_on": [
+                        "step_node_4"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_4": "$step_node_4.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_6",
+                    "task_blueprint": "step_profiler",
+                    "depends_on": [
+                        "step_node_5"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_5": "$step_node_5.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_7",
+                    "task_blueprint": "step_panel",
+                    "depends_on": [
+                        "step_node_6"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_6": "$step_node_6.output"
+                    },
+                    "model_strategy": "deep"
+                },
+                {
+                    "id": "step_node_8",
+                    "task_blueprint": "step_archivist",
+                    "depends_on": [
+                        "step_node_7"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_7": "$step_node_7.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_9",
+                    "task_blueprint": "step_cognitive_judge",
+                    "depends_on": [
+                        "step_node_8"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_8": "$step_node_8.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_10",
+                    "task_blueprint": "step_coach",
+                    "depends_on": [
+                        "step_node_9"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_9": "$step_node_9.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_11",
+                    "task_blueprint": "step_xai_reporter",
+                    "depends_on": [
+                        "step_node_10"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_10": "$step_node_10.output"
+                    },
+                    "model_strategy": "fast"
+                }
+            ]
+        },
+        {
+            "id": "workflow_courtroom_20_dual_matrix",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Courtroom 2.0 (Dual Matrix)"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Sequential audit using BOTH Process and Cognitive BARS Matrices."
+                }
+            },
+            "expected_inputs": {
+                "chat_log": "string"
+            },
+            "steps": [
+                {
+                    "id": "step_node_1",
+                    "task_blueprint": "step_input_processing",
+                    "depends_on": [],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_2",
+                    "task_blueprint": "step_guard",
+                    "depends_on": [
+                        "step_node_1"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_1": "$step_node_1.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_3",
+                    "task_blueprint": "step_retrieval_agent",
+                    "depends_on": [
+                        "step_node_2"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_2": "$step_node_2.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_4",
+                    "task_blueprint": "step_analyst",
+                    "depends_on": [
+                        "step_node_3"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_3": "$step_node_3.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_5",
+                    "task_blueprint": "step_interaction_analyst",
+                    "depends_on": [
+                        "step_node_4"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_4": "$step_node_4.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_6",
+                    "task_blueprint": "step_profiler",
+                    "depends_on": [
+                        "step_node_5"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_5": "$step_node_5.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_7",
+                    "task_blueprint": "step_logician",
+                    "depends_on": [
+                        "step_node_6"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_6": "$step_node_6.output"
+                    },
+                    "model_strategy": "strict"
+                },
+                {
+                    "id": "step_node_8",
+                    "task_blueprint": "step_falsifier",
+                    "depends_on": [
+                        "step_node_7"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_7": "$step_node_7.output"
+                    },
+                    "model_strategy": "strict"
+                },
+                {
+                    "id": "step_node_9",
+                    "task_blueprint": "step_causal_analyst",
+                    "depends_on": [
+                        "step_node_8"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_8": "$step_node_8.output"
+                    },
+                    "model_strategy": "deep"
+                },
+                {
+                    "id": "step_node_10",
+                    "task_blueprint": "step_performativity_detector",
+                    "depends_on": [
+                        "step_node_9"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_9": "$step_node_9.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_11",
+                    "task_blueprint": "step_overseer",
+                    "depends_on": [
+                        "step_node_10"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_10": "$step_node_10.output"
+                    },
+                    "model_strategy": "strict"
+                },
+                {
+                    "id": "step_node_12",
+                    "task_blueprint": "step_archivist",
+                    "depends_on": [
+                        "step_node_11"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_11": "$step_node_11.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_13",
+                    "task_blueprint": "step_judge",
+                    "depends_on": [
+                        "step_node_12"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_12": "$step_node_12.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_14",
+                    "task_blueprint": "step_cognitive_judge",
+                    "depends_on": [
+                        "step_node_13"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_13": "$step_node_13.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_15",
+                    "task_blueprint": "step_coach",
+                    "depends_on": [
+                        "step_node_14"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_14": "$step_node_14.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_16",
+                    "task_blueprint": "step_xai_reporter",
+                    "depends_on": [
+                        "step_node_15"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_15": "$step_node_15.output"
+                    },
+                    "model_strategy": "fast"
+                }
+            ]
+        },
+        {
+            "id": "workflow_courtroom_30_fused_dual",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Courtroom 3.0 (Fused Dual)"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Fused workflow using BOTH Process and Cognitive BARS Matrices."
+                }
+            },
+            "expected_inputs": {
+                "chat_log": "string"
+            },
+            "steps": [
+                {
+                    "id": "step_node_1",
+                    "task_blueprint": "step_input_processing",
+                    "depends_on": [],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_2",
+                    "task_blueprint": "step_guard",
+                    "depends_on": [
+                        "step_node_1"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_1": "$step_node_1.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_3",
+                    "task_blueprint": "step_retrieval_agent",
+                    "depends_on": [
+                        "step_node_2"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_2": "$step_node_2.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_4",
+                    "task_blueprint": "step_analyst",
+                    "depends_on": [
+                        "step_node_3"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_3": "$step_node_3.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_5",
+                    "task_blueprint": "step_interaction_analyst",
+                    "depends_on": [
+                        "step_node_4"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_4": "$step_node_4.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_6",
+                    "task_blueprint": "step_profiler",
+                    "depends_on": [
+                        "step_node_5"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_5": "$step_node_5.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_7",
+                    "task_blueprint": "step_panel",
+                    "depends_on": [
+                        "step_node_6"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_6": "$step_node_6.output"
+                    },
+                    "model_strategy": "deep"
+                },
+                {
+                    "id": "step_node_8",
+                    "task_blueprint": "step_archivist",
+                    "depends_on": [
+                        "step_node_7"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_7": "$step_node_7.output"
+                    },
+                    "model_strategy": "fast"
+                },
+                {
+                    "id": "step_node_9",
+                    "task_blueprint": "step_judge",
+                    "depends_on": [
+                        "step_node_8"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_8": "$step_node_8.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_10",
+                    "task_blueprint": "step_cognitive_judge",
+                    "depends_on": [
+                        "step_node_9"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_9": "$step_node_9.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_11",
+                    "task_blueprint": "step_coach",
+                    "depends_on": [
+                        "step_node_10"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_10": "$step_node_10.output"
+                    },
+                    "model_strategy": "precise"
+                },
+                {
+                    "id": "step_node_12",
+                    "task_blueprint": "step_xai_reporter",
+                    "depends_on": [
+                        "step_node_11"
+                    ],
+                    "input_mappings": {
+                        "context": "$inputs.chat_log",
+                        "document": "$inputs.document_text",
+                        "step_node_11": "$step_node_11.output"
+                    },
+                    "model_strategy": "fast"
+                }
+            ]
+        }
+    ],
+    "steps": [
+        {
+            "id": "step_input_processing",
+            "slug": "step_input_processing",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Input Processing"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Parses files and raw text into standard variables."
+                }
+            },
+            "prompt_blocks": [
+                "matrix_input_processing"
+            ],
+            "pre_hooks": [
+                "input_processing"
+            ],
+            "post_hooks": []
+        },
+        {
+            "id": "step_analyst",
+            "slug": "step_analyst",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Analyst"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "matrix_goodhart",
+                "block_headerrules",
+                "block_rule1",
+                "block_rule2",
+                "block_oprule3",
+                "block_headerprotocols",
+                "block_protocol3",
+                "block_instructionragopt",
+                "block_instructionbiblicalgrounding",
+                "block_instructionnohallucination",
+                "block_instructioncitationobligation",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskanalyst",
+                "matrix_analyst"
+            ],
+            "pre_hooks": [
+                "calculate_text_metrics",
+                "calculate_control_ratio"
+            ],
+            "post_hooks": [
+                "verify_citation_integrity",
+                "enforce_hypothesis_linking"
+            ]
+        },
+        {
+            "id": "step_archivist",
+            "slug": "step_archivist",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Archivist"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Best Practices Audit"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule5",
+                "block_instructionnohallucination",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskarchivist",
+                "matrix_archivist"
+            ],
+            "pre_hooks": [
+                "retrieve_precedent"
+            ],
+            "post_hooks": []
+        },
+        {
+            "id": "step_causal_analyst",
+            "slug": "step_causal_analyst",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Causal Analyst"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Impact Verification"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule5",
+                "block_instructionbiblicalgrounding",
+                "block_instructionnohallucination",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskcausal",
+                "matrix_causal_analyst"
+            ],
+            "pre_hooks": [],
+            "post_hooks": []
+        },
+        {
+            "id": "step_coach",
+            "slug": "step_coach",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Coach"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "matrix_kahneman",
+                "block_mandate2",
+                "block_mandate3",
+                "matrix_goodhart",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule1",
+                "block_rule2",
+                "block_rule3",
+                "block_rule4",
+                "block_rule5",
+                "block_rule6",
+                "block_oprule1",
+                "block_oprule2",
+                "block_oprule3",
+                "block_principle1",
+                "block_requirement1",
+                "block_heuristic1",
+                "block_heuristic2",
+                "block_heuristic3",
+                "block_instructionlanguagefi",
+                "block_instructionstrictscale",
+                "block_headerinstructions",
+                "block_taskcoach",
+                "block_instructioncoachcitation",
+                "matrix_coach"
+            ],
+            "pre_hooks": [],
+            "post_hooks": []
+        },
+        {
+            "id": "step_retrieval_agent",
+            "slug": "step_retrieval_agent",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Retrieval Agent"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "RAG Retrieval"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_instructionragopt",
+                "block_instructionbiblicalgrounding",
+                "block_instructionlanguagefi",
+                "matrix_retrieval_agent"
+            ],
+            "pre_hooks": [],
+            "post_hooks": []
+        },
+        {
+            "id": "step_performativity_detector",
+            "slug": "step_performativity_detector",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Performativity Detector"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Illusion of Control Audit"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule5",
+                "block_instructionbiblicalgrounding",
+                "block_instructionnohallucination",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "matrix_goodhart"
+            ],
+            "pre_hooks": [],
+            "post_hooks": []
+        },
+        {
+            "id": "step_falsifier",
+            "slug": "step_falsifier",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Falsifier"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Critical Loop Audit"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule5",
+                "block_instructionbiblicalgrounding",
+                "block_instructionnohallucination",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskfalsifier",
+                "matrix_falsifier"
+            ],
+            "pre_hooks": [],
+            "post_hooks": [
+                "verify_citation_integrity"
+            ]
+        },
+        {
+            "id": "step_input_processor",
+            "slug": "step_input_processor",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Input Processor"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Pre-processes raw data before analysis"
+                }
+            },
+            "prompt_blocks": [
+                "matrix_input_processor"
+            ],
+            "pre_hooks": [],
+            "post_hooks": [
+                "hydrate_global_inputs"
+            ]
+        },
+        {
+            "id": "step_guard",
+            "slug": "step_guard",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Guard"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "matrix_kahneman",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule1",
+                "block_rule2",
+                "block_oprule2",
+                "block_headerprotocols",
+                "block_protocol2",
+                "block_instructionanon",
+                "block_instructionnodataleak",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskguard",
+                "matrix_guard"
+            ],
+            "pre_hooks": [
+                "sanitize_text",
+                "check_banned_phrases",
+                "verify_structure"
+            ],
+            "post_hooks": []
+        },
+        {
+            "id": "step_interaction_analyst",
+            "slug": "step_interaction_analyst",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Interaction Analyst"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "matrix_goodhart",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule4",
+                "block_oprule4",
+                "block_headerprotocols",
+                "block_protocol1",
+                "block_instructionnohallucination",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskinteraction",
+                "matrix_interaction_analyst"
+            ],
+            "pre_hooks": [],
+            "post_hooks": []
+        },
+        {
+            "id": "step_judge",
+            "slug": "step_judge",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Judge"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "matrix_kahneman",
+                "block_mandate2",
+                "block_mandate3",
+                "matrix_goodhart",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule1",
+                "block_rule2",
+                "block_rule3",
+                "block_rule4",
+                "block_rule5",
+                "block_rule6",
+                "block_oprule1",
+                "block_oprule2",
+                "block_oprule3",
+                "block_principle1",
+                "block_requirement1",
+                "block_heuristic1",
+                "block_heuristic2",
+                "block_heuristic3",
+                "block_instructionlanguagefi",
+                "block_instructionstrictscale",
+                "block_headerinstructions",
+                "block_taskjudge",
+                "matrix_judge"
+            ],
+            "pre_hooks": [],
+            "post_hooks": [
+                "apply_scoring_logic",
+                "verify_citation_integrity",
+                "enforce_passivity_penalty"
+            ]
+        },
+        {
+            "id": "step_cognitive_judge",
+            "slug": "step_cognitive_judge",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Cognitive Judge"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain_cognitive"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "matrix_kahneman",
+                "block_mandate2",
+                "block_mandate3",
+                "matrix_goodhart",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule1",
+                "block_rule2",
+                "block_rule3",
+                "block_rule4",
+                "block_rule5",
+                "block_rule6",
+                "block_oprule1",
+                "block_oprule2",
+                "block_oprule3",
+                "block_principle1",
+                "block_requirement1",
+                "block_heuristic1",
+                "block_heuristic2",
+                "block_heuristic3",
+                "block_instructionlanguagefi",
+                "block_instructionstrictscale",
+                "block_headerinstructions",
+                "block_taskjudge",
+                "matrix_bloom"
+            ],
+            "pre_hooks": [],
+            "post_hooks": []
+        },
+        {
+            "id": "step_logician",
+            "slug": "step_logician",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Logician"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "matrix_kahneman",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule3",
+                "matrix_toulmin",
+                "matrix_bloom",
+                "block_instructionbiblicalgrounding",
+                "block_instructionnohallucination",
+                "block_instructioncitationobligation",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_tasklogician",
+                "matrix_logician"
+            ],
+            "pre_hooks": [],
+            "post_hooks": []
+        },
+        {
+            "id": "step_overseer",
+            "slug": "step_overseer",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Overseer"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "matrix_kahneman",
+                "block_mandate2",
+                "block_mandate3",
+                "matrix_goodhart",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule1",
+                "block_rule2",
+                "block_rule3",
+                "block_rule4",
+                "block_rule5",
+                "block_rule6",
+                "block_oprule1",
+                "block_oprule2",
+                "block_oprule3",
+                "block_principle1",
+                "block_requirement1",
+                "block_heuristic1",
+                "block_heuristic2",
+                "block_heuristic3",
+                "block_protocol4",
+                "block_instructionbiblicalgrounding",
+                "block_instructionnohallucination",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskoverseer",
+                "matrix_overseer"
+            ],
+            "pre_hooks": [
+                "execute_google_search"
+            ],
+            "post_hooks": []
+        },
+        {
+            "id": "step_panel",
+            "slug": "step_panel",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Panel"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from fused_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_panelprompttemplate",
+                "block_headermandates",
+                "matrix_kahneman",
+                "matrix_goodhart",
+                "block_mandate5",
+                "block_headerrules",
+                "block_instructionbiblicalgrounding",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskpanel",
+                "matrix_panel"
+            ],
+            "pre_hooks": [
+                "execute_google_search",
+                "detect_performative_patterns"
+            ],
+            "post_hooks": [
+                "verify_citation_integrity"
+            ]
+        },
+        {
+            "id": "step_profiler",
+            "slug": "step_profiler",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Profiler"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "block_mandate2",
+                "block_mandate5",
+                "block_headerrules",
+                "block_rule5",
+                "block_heuristic2",
+                "block_instructionbiblicalgrounding",
+                "block_instructionnohallucination",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskprofiler",
+                "matrix_profiler"
+            ],
+            "pre_hooks": [
+                "calculate_text_metrics",
+                "calculate_control_ratio"
+            ],
+            "post_hooks": []
+        },
+        {
+            "id": "step_xai_reporter",
+            "slug": "step_xai_reporter",
+            "name": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "XAI Reporter"
+                }
+            },
+            "description": {
+                "default_locale": "fi",
+                "translations": {
+                    "fi": "Imported from sequential_audit_chain"
+                }
+            },
+            "prompt_blocks": [
+                "block_globalcontext",
+                "block_headermandates",
+                "matrix_kahneman",
+                "block_mandate2",
+                "block_mandate3",
+                "matrix_goodhart",
+                "block_headerrules",
+                "block_rule1",
+                "block_rule2",
+                "block_rule3",
+                "block_rule4",
+                "block_rule5",
+                "block_rule6",
+                "block_oprule1",
+                "block_oprule2",
+                "block_oprule3",
+                "block_principle1",
+                "block_requirement1",
+                "block_heuristic1",
+                "block_heuristic2",
+                "block_heuristic3",
+                "block_instructionlanguagefi",
+                "block_headerinstructions",
+                "block_taskxai",
+                "matrix_xai_reporter"
+            ],
+            "pre_hooks": [],
+            "post_hooks": []
+        }
+    ],
+    "organizations": [
+        {
+            "id": "436d84de-c526-43b7-93ef-634912be0d2f",
+            "slug": "system",
+            "name": "System Administration",
+            "created_at": "2026-01-01T00:00:00",
+            "is_active": true,
+            "tier": "enterprise",
+            "contact_email": "root@example.com",
+            "billing_id": null,
+            "subscription_status": "active",
+            "quota_limit": 999999.0,
+            "tpm_limit": 10000000,
+            "rpm_limit": 10000
+        },
+        {
+            "id": "f86ec3f7-8920-4cf2-bf33-bb53b8651070",
+            "slug": "demo_corp",
+            "name": "Demo Corporation",
+            "created_at": "2026-01-01T00:00:00",
+            "is_active": true,
+            "tier": "premium",
+            "contact_email": "admin@demo.com",
+            "billing_id": "cus_demo_123",
+            "subscription_status": "active",
+            "quota_limit": 5000.0,
+            "tpm_limit": 1000000,
+            "rpm_limit": 1000
+        }
+    ],
+    "users": [
+        {
+            "email": "root@example.com",
+            "display_name": "System Root",
+            "role": "ROOT",
+            "organization_id": "436d84de-c526-43b7-93ef-634912be0d2f",
+            "is_active": true,
+            "language": "fi",
+            "theme_mode": "system",
+            "id": "10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b",
+            "slug": "root_master",
+            "created_at": "2026-01-01T00:00:00",
+            "created_by": null
+        },
+        {
+            "email": "admin@demo.com",
+            "display_name": "Demo Admin",
+            "role": "ADMIN",
+            "organization_id": "f86ec3f7-8920-4cf2-bf33-bb53b8651070",
+            "is_active": true,
+            "language": "fi",
+            "theme_mode": "system",
+            "id": "5aa54e11-e804-4100-8c61-0f45b9393f1f",
+            "slug": "admin_1",
+            "created_at": "2026-01-01T00:00:00",
+            "created_by": null
+        },
+        {
+            "email": "manager@demo.com",
+            "display_name": "Demo Manager",
+            "role": "MANAGER",
+            "organization_id": "f86ec3f7-8920-4cf2-bf33-bb53b8651070",
+            "is_active": true,
+            "language": "fi",
+            "theme_mode": "dark",
+            "id": "3d081723-e062-4eeb-968e-070a100846b3",
+            "slug": "manager_1",
+            "created_at": "2026-01-01T00:00:00",
+            "created_by": null
+        },
+        {
+            "email": "member@demo.com",
+            "display_name": "Demo Member",
+            "role": "MEMBER",
+            "organization_id": "f86ec3f7-8920-4cf2-bf33-bb53b8651070",
+            "is_active": true,
+            "language": "fi",
+            "theme_mode": "system",
+            "id": "4b8210a9-742e-475e-9f7e-0f1402eb3cec",
+            "slug": "member_1",
+            "created_at": "2026-01-01T00:00:00",
+            "created_by": null
+        },
+        {
+            "email": "viewer@demo.com",
+            "display_name": "Demo Viewer",
+            "role": "VIEWER",
+            "organization_id": "f86ec3f7-8920-4cf2-bf33-bb53b8651070",
+            "is_active": true,
+            "language": "fi",
+            "theme_mode": "system",
+            "id": "b3e77568-9eda-4ede-8c8e-2d189c48037b",
+            "slug": "viewer_1",
+            "created_at": "2026-01-01T00:00:00",
+            "created_by": null
+        }
+    ]
+}

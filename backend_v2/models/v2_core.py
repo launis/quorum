@@ -95,9 +95,9 @@ class PromptBlock(BaseModel):
         default=None,
         description="If provided, fetches and injects source theory as <theory_context> to prompt.",
     )
-    scales: list[MatrixScale] = Field(
-        default_factory=list,
-        description="BARS scale definitions with scores and localized claims."
+    scales: list[MatrixScale] | None = Field(
+        default=None,
+        description="BARS scale definitions with scores and localized claims. If provided, must not be empty."
     )
     rows: list[I18nText] | None = Field(
         default=None,
@@ -119,6 +119,30 @@ class PromptBlock(BaseModel):
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 status_code=400
             )
+
+        # Strict Business Logic Constraints from user rules
+        if self.scales is not None:
+            if len(self.scales) == 0:
+                from backend_v2.exceptions import AppException, ErrorCodes
+                raise AppException(
+                    message=(
+                        f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
+                        "siellä on pakko olla vähintään yksi MatrixScale (len > 0)."
+                    ),
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    status_code=400
+                )
+            for scale in self.scales:
+                if not scale.claims or len(scale.claims) == 0:
+                    from backend_v2.exceptions import AppException, ErrorCodes
+                    raise AppException(
+                        message=(
+                            f"PromptBlock '{self.id}' / Scale '{scale.score}': "
+                            "Jokaisella scorella pitää olla vähintään yksi claim."
+                        ),
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        status_code=400
+                    )
         return self
 
 

@@ -171,24 +171,34 @@ class LLMHandler:
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
                 def check_model(model_id: str) -> str | None:
-                    # Clean model ID for API call (strip prefixes)
-                    # We want the distinct model ID, e.g. "gemini-1.5-pro"
-                    # Input could be "vertex_ai/gemini-1.5-pro", "gemini/gemini-1.5-pro", or just "gemini-1.5-pro"
-
+                    # Clean model ID for API call
                     clean_id = model_id
                     for prefix in ["vertex_ai/", "gemini/", "models/"]:
                         if clean_id.startswith(prefix):
                             clean_id = clean_id[len(prefix) :]
 
-                    # Endpoint: https://{location}-aiplatform.googleapis.com/v1/publishers/google/models/{model}
-                    url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/google/models/{clean_id}"
-
                     try:
-                        resp = requests.get(url, headers=headers, timeout=5)
-                        if resp.status_code == 200:
-                            # Normalize return value to "vertex_ai/" prefix which is what our "google" provider implies
-                            return f"vertex_ai/{clean_id}"
-                        return None
+                        import vertexai
+                        from vertexai.generative_models import GenerativeModel
+                        
+                        # Initialize Vertex AI strictly in the target location
+                        vertexai.init(project=project, location=target_location, credentials=credentials)
+                        
+                        # Just initializing the model objects acts as a validation that the string
+                        # name is somewhat valid. To be absolutely sure, we'd need to call it, but 
+                        # that costs money and time. For now we just verify we can instantiate it 
+                        # using the Vertex AI SDK which does some basic validation.
+                        import google.api_core.exceptions
+                        try:
+                           _ = GenerativeModel(clean_id)
+                           # Also verify it via the publisher models API to be doubly safe
+                           url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/google/models/{clean_id}"
+                           resp = requests.get(url, headers=headers, timeout=5)
+                           if resp.status_code == 200:
+                               return f"vertex_ai/{clean_id}"
+                           return None
+                        except Exception:
+                            return None
                     except Exception:
                         return None
 

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from backend_v2.models.v2_core import Workflow, StepRule, I18nText, TaskBlueprint, ExecutionStatus
+from backend_v2.models.v2_core import Workflow, StepRule, I18nText, ExecutionStatus
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 @pytest.fixture
@@ -15,11 +15,10 @@ def mock_repo():
             "type": "string",
             "allow_decimals": False,
             "strictness_level": 50,
-            "require_justification": False,
-            "scales": []
+            "require_justification": False
         }
     ]
-    repo.get_task_blueprint_by_id.return_value = {
+    repo.get_step_by_id.return_value = {
         "id": "bp_1",
         "slug": "task_bp",
         "name": {"default_locale": "fi", "translations": {}},

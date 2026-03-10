@@ -9,25 +9,24 @@ def mock_driver():
     return driver
 
 @pytest.mark.asyncio
-async def test_delete_matrix_blocks_orphan_data(mock_driver):
+# Test for Fail-Fast deletion boundary
+async def test_delete_prompt_block_blocks_orphan_data(mock_driver):
     repo = UnifiedWorkflowRepository(driver=mock_driver)
     
-    # Mock get_matrix_by_id to simulate the matrix exists
-    repo.get_matrix_by_id = AsyncMock(return_value={"id": "m1"})
+    # Mock get_prompt_block_by_id to simulate the block exists
+    repo.get_prompt_block_by_id = AsyncMock(return_value={"id": "m1"})
     
-    # Mock get_all_task_blueprints to return a blueprint using 'm1'
-    repo.get_all_task_blueprints = AsyncMock(return_value=[
-        {"id": "bp1", "prompt_blocks": ["m1", "m2"]}
-    ])
+    # Mock get_all_steps to simulate it is used in a Step
+    repo.get_all_steps = AsyncMock(return_value=[{"id": "step_1", "prompt_blocks": ["m1", "m2"]}])
     
     # Should raise AppException with RESOURCE_IN_USE
     with pytest.raises(AppException) as exc_info:
-        await repo.delete_matrix("m1")
+        await repo.delete_prompt_block("m1")
         
     assert exc_info.value.status_code == 400
-    assert exc_info.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE
-    assert "Tuhoaminen estetty: PromptBlock 'm1' on sidottu Blueprinttiin 'bp1'." in exc_info.value.message
+    assert exc_info.value.details["error_code"] == str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)
+    assert "Tuhoaminen estetty: PromptBlock 'm1' on sidottu Askeleeseen'step_1'." in exc_info.value.message
     
-    # Should bypass if force_delete=True
-    await repo.delete_matrix("m1", force_delete=True)
-    mock_driver.delete.assert_called_with("matrices", "m1")
+    # Force delete should work by bypassing validation
+    await repo.delete_prompt_block("m1", force_delete=True)
+    mock_driver.delete.assert_called_with("prompt_blocks", "m1")

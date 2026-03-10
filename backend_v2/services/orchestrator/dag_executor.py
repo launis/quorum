@@ -187,14 +187,14 @@ class DAGExecutor:
             all_prompt_blocks = await self.repository.get_all_prompt_blocks()
             block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
 
-            for m_id in blueprint.prompt_blocks:
+            for m_id in step_obj.prompt_blocks:
                 block_dict = block_map.get(m_id)
                 if block_dict:
                     from backend_v2.models.v2_core import PromptBlock
                     PromptBlock.model_validate(block_dict) # Fail-Fast validation check
                     criteria_blocks.append(block_dict)
                 else:
-                    logger.warning(f"PromptBlock '{m_id}' not found. Referenced by Blueprint '{blueprint.slug}'")
+                    logger.warning(f"PromptBlock '{m_id}' not found. Referenced by Step '{step_obj.slug}'")
 
             # 3.3 Dynamic Schema
             dynamic_schema = self.compiler.build_dynamic_schema(
@@ -210,7 +210,7 @@ class DAGExecutor:
             ]
 
             # 3.4 LLM Strategy Resolution (V2 Strict Mode)
-            strategy_name = blueprint.model_strategy or "fast"
+            strategy_name = step.model_strategy or "fast"
             from backend_v2.llm.client import LLMClient
             bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
 

@@ -17,7 +17,16 @@ def get_available_models(current_user: CurrentUserDep, llm_handler: LLMHandlerDe
         from backend_v2.exceptions import PermissionDeniedError
         raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
     result = llm_handler.fetch_all_available_models()
-    return result # type: ignore
+    
+    # Flatten dict[str, list[str] | str] into list[str]
+    flat_list: list[str] = []
+    for models in result.values():
+        if isinstance(models, list):
+            flat_list.extend(models)
+        elif isinstance(models, str):
+            flat_list.append(models)
+            
+    return sorted(list(set(flat_list)))
 
 @router.get("/", response_model=list[SystemConfigModelRegistry])
 async def get_all_system_configs(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> list[SystemConfigModelRegistry]:

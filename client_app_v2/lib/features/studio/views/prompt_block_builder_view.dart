@@ -4,6 +4,8 @@ import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
+import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// **Universal Matrix Builder**
@@ -86,9 +88,13 @@ class _PromptBlockBuilderViewState extends ConsumerState<PromptBlockBuilderView>
         })
         .catchError((e) {
           if (mounted) {
+            String errorMsg = e.toString();
+            if (e is AppError && e is ApiAppError) {
+                errorMsg = e.detail;
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Failed to save: $e'),
+                content: Text('Failed to save: $errorMsg'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -151,6 +157,8 @@ class _PromptBlockBuilderViewState extends ConsumerState<PromptBlockBuilderView>
         ],
       ),
     );
+  }
+
   void _addListItem(String key, Map<String, dynamic> initialValue) {
     setState(() {
       final list = SafeCast.safeList(_editablePromptBlock[key]);
@@ -419,13 +427,16 @@ class _PromptBlockBuilderViewState extends ConsumerState<PromptBlockBuilderView>
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            _buildI18nListCard('rows', 'Grid Rows (Optional)'),
-            const SizedBox(height: 16),
-            _buildI18nListCard('columns', 'Grid Columns (Optional)'),
-            const SizedBox(height: 16),
-            _buildScalesCard(),
+            if (_editablePromptBlock['type'] != 'instruction') ...[
+              const SizedBox(height: 16),
+              _buildI18nListCard('rows', 'Grid Rows (Optional)'),
+              const SizedBox(height: 16),
+              _buildI18nListCard('columns', 'Grid Columns (Optional)'),
+              const SizedBox(height: 16),
+              _buildScalesCard(),
+            ],
           ],
+        ),
         ),
       ),
     );
@@ -460,7 +471,18 @@ class _PromptBlockBuilderViewState extends ConsumerState<PromptBlockBuilderView>
                       if (_editablePromptBlock[key] != null) ...[
                          const SizedBox(width: 8),
                          OutlinedButton.icon(
-                           onPressed: () => _addListItem(key, {'default_locale': ''}),
+                           onPressed: () async {
+                              final result = await showDialog<Map<String, dynamic>>(
+                                context: context,
+                                builder: (ctx) => RowEditorModal(
+                                  initialRow: const {'default_locale': ''},
+                                  title: 'Add $title Item',
+                                ),
+                              );
+                              if (result != null) {
+                                _addListItem(key, result);
+                              }
+                           },
                            icon: const Icon(Icons.add),
                            label: const Text('Add'),
                          ),
@@ -474,29 +496,33 @@ class _PromptBlockBuilderViewState extends ConsumerState<PromptBlockBuilderView>
                ...SafeCast.safeList(_editablePromptBlock[key]).asMap().entries.map((entry) {
                  final index = entry.key;
                  final item = SafeCast.safeMap(entry.value);
-                 return Padding(
-                   padding: const EdgeInsets.only(bottom: 8.0),
-                   child: Row(
-                     children: [
-                       Expanded(
-                         child: I18nTextField(
-                           label: 'Item ${index + 1}',
-                           initialData: item,
-                           onChanged: (val) {
-                               final list = SafeCast.safeList(_editablePromptBlock[key]);
-                               list[index] = val;
-                               setState(() {
-                                 _editablePromptBlock[key] = list;
-                               });
-                           },
-                         ),
-                       ),
-                       IconButton(
-                         icon: const Icon(Icons.remove_circle, color: Colors.red),
-                         onPressed: () => _removeListItem(key, index),
-                       ),
-                     ],
-                   ),
+                 return Card(
+                   margin: const EdgeInsets.only(bottom: 8.0),
+                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                   child: ListTile(
+                     title: Text(item['translations']?[item['default_locale']] ?? item['default_locale'] ?? 'No text'),
+                     subtitle: Text('Item ${index + 1}'),
+                     trailing: IconButton(
+                       icon: const Icon(Icons.delete, color: Colors.red),
+                       onPressed: () => _removeListItem(key, index),
+                     ),
+                     onTap: () async {
+                        final result = await showDialog<Map<String, dynamic>>(
+                          context: context,
+                          builder: (ctx) => RowEditorModal(
+                            initialRow: item,
+                            title: 'Edit $title Item',
+                          ),
+                        );
+                        if (result != null) {
+                           setState(() {
+                              final list = SafeCast.safeList(_editablePromptBlock[key]);
+                              list[index] = result;
+                              _editablePromptBlock[key] = list;
+                           });
+                        }
+                     },
+                   )
                  );
                }),
             ]
@@ -535,11 +561,21 @@ class _PromptBlockBuilderViewState extends ConsumerState<PromptBlockBuilderView>
                       if (_editablePromptBlock['scales'] != null) ...[
                          const SizedBox(width: 8),
                          OutlinedButton.icon(
-                           onPressed: () => _addListItem('scales', {
-                             'score': 1,
-                             'name': {'default_locale': ''},
-                             'claims': [{'default_locale': ''}],
-                           }),
+                           onPressed: () async {
+                              final result = await showDialog<Map<String, dynamic>>(
+                                context: context,
+                                builder: (ctx) => ScaleEditorModal(
+                                  initialScale: {
+                                    'score': 1,
+                                    'name': {'default_locale': ''},
+                                    'claims': [{'default_locale': ''}],
+                                  },
+                                ),
+                              );
+                              if (result != null) {
+                                _addListItem('scales', result);
+                              }
+                           },
                            icon: const Icon(Icons.add),
                            label: const Text('Add Grade'),
                          ),
@@ -553,96 +589,34 @@ class _PromptBlockBuilderViewState extends ConsumerState<PromptBlockBuilderView>
                ...SafeCast.safeList(_editablePromptBlock['scales']).asMap().entries.map((scaleEntry) {
                  final sIndex = scaleEntry.key;
                  final scale = SafeCast.safeMap(scaleEntry.value);
+                 final claimsLength = SafeCast.safeList(scale['claims']).length;
+                 final gradeName = SafeCast.safeMap(scale['name'])['translations']?[SafeCast.safeMap(scale['name'])['default_locale']] ?? SafeCast.safeMap(scale['name'])['default_locale'] ?? '';
                  
-                 return Container(
-                   margin: const EdgeInsets.only(bottom: 16),
-                   padding: const EdgeInsets.all(12),
+                 return Card(
+                   margin: const EdgeInsets.only(bottom: 8.0),
                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                   child: Column(
-                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                     children: [
-                       Row(
-                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                         children: [
-                           Text('Grade/Score: ${scale['score'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                           IconButton(
-                             icon: const Icon(Icons.delete, color: Colors.red),
-                             onPressed: () => _removeListItem('scales', sIndex),
-                           ),
-                         ],
-                       ),
-                       const SizedBox(height: 8),
-                       TextFormField(
-                         initialValue: scale['score']?.toString(),
-                         decoration: const InputDecoration(labelText: 'Score (int)', border: UnderlineInputBorder()),
-                         keyboardType: TextInputType.number,
-                         onChanged: (val) {
-                            scale['score'] = int.tryParse(val) ?? 0;
-                         },
-                       ),
-                       const SizedBox(height: 8),
-                       I18nTextField(
-                         label: 'Grade Name (Optional)',
-                         initialData: SafeCast.safeMap(scale['name']),
-                         onChanged: (val) {
-                            setState(() {
-                               scale['name'] = val;
-                            });
-                         },
-                       ),
-                       const SizedBox(height: 12),
-                       const Text('Claims (Evaluative Behavior Guidelines)', style: TextStyle(fontWeight: FontWeight.bold)),
-                       const SizedBox(height: 8),
-                       Builder(builder: (context) {
-                          final claims = SafeCast.safeList(scale['claims']);
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                               ...claims.asMap().entries.map((claimEntry) {
-                                  final cIndex = claimEntry.key;
-                                  final claim = SafeCast.safeMap(claimEntry.value);
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 8.0),
-                                    child: Row(
-                                       children: [
-                                          Expanded(
-                                             child: I18nTextField(
-                                                label: 'Claim ${cIndex + 1}',
-                                                initialData: claim,
-                                                onChanged: (val) {
-                                                   claims[cIndex] = val;
-                                                },
-                                             ),
-                                          ),
-                                          IconButton(
-                                             icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                             onPressed: () {
-                                                setState(() {
-                                                   claims.removeAt(cIndex);
-                                                });
-                                             },
-                                          )
-                                       ]
-                                    )
-                                  );
-                               }),
-                               Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: TextButton.icon(
-                                     icon: const Icon(Icons.add),
-                                     label: const Text('Add Claim'),
-                                     onPressed: () {
-                                        setState(() {
-                                           claims.add({'default_locale': ''});
-                                           scale['claims'] = claims;
-                                        });
-                                     },
-                                  )
-                               )
-                            ]
-                          );
-                       })
-                     ]
+                   child: ListTile(
+                     title: Text('Grade/Score: ${scale['score']} ${gradeName.isNotEmpty ? "- $gradeName" : ""}'),
+                     subtitle: Text('$claimsLength Claims'),
+                     trailing: IconButton(
+                       icon: const Icon(Icons.delete, color: Colors.red),
+                       onPressed: () => _removeListItem('scales', sIndex),
+                     ),
+                     onTap: () async {
+                        final result = await showDialog<Map<String, dynamic>>(
+                          context: context,
+                          builder: (ctx) => ScaleEditorModal(
+                            initialScale: scale,
+                          ),
+                        );
+                        if (result != null) {
+                           setState(() {
+                              final list = SafeCast.safeList(_editablePromptBlock['scales']);
+                              list[sIndex] = result;
+                              _editablePromptBlock['scales'] = list;
+                           });
+                        }
+                     },
                    )
                  );
                }),

@@ -57,6 +57,14 @@ class _StepBuilderViewState
       return;
     }
 
+    final modelStrategy = _editableStep['model_strategy'];
+    if (modelStrategy == null || modelStrategy.toString().isEmpty || modelStrategy == 'null') {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fail-Fast: You must explicitly select a Model Strategy.'), backgroundColor: Colors.red));
+      return;
+    }
+
     _editableStep['id'] = id;
     _editableStep['slug'] = _slugController.text.trim();
 
@@ -248,16 +256,20 @@ class _StepBuilderViewState
                             const [
                                   'fast',
                                   'deep',
-                                  'none',
+                                  'search',
+                                  'precise',
+                                  'strict',
                                 ].contains(_editableStep['model_strategy'])
                                 ? _editableStep['model_strategy']
                                     as String?
                                 : null,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Fail-Fast: Strategy must be explicitly selected.';
+                          }
+                          return null;
+                        },
                         items: const [
-                          DropdownMenuItem(
-                            value: null,
-                            child: Text("System Default"),
-                          ),
                           DropdownMenuItem(
                             value: 'fast',
                             child: Text("Fast Strategy"),
@@ -265,6 +277,18 @@ class _StepBuilderViewState
                           DropdownMenuItem(
                             value: 'deep',
                             child: Text("Deep Strategy"),
+                          ),
+                          DropdownMenuItem(
+                            value: 'search',
+                            child: Text("Search Strategy"),
+                          ),
+                          DropdownMenuItem(
+                            value: 'precise',
+                            child: Text("Precise Strategy"),
+                          ),
+                          DropdownMenuItem(
+                            value: 'strict',
+                            child: Text("Strict Strategy"),
                           ),
                         ],
                         onChanged:

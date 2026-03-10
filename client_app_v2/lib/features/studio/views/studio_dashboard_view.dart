@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/model_registry_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/error/app_error.dart';
 
 /// **Studio Dashboard View**
 ///
@@ -135,11 +136,16 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => Text(
-                  'Error loading workflows: $e',
-                  style: const TextStyle(color: Colors.red),
-                ),
+            error: (e, _) {
+              String errorMsg = e.toString();
+              if (e is AppError && e is ApiAppError) {
+                  errorMsg = e.detail;
+              }
+              return Text(
+                'Error loading workflows: $errorMsg',
+                style: const TextStyle(color: Colors.red),
+              );
+            },
           ),
         ],
       ),
@@ -194,11 +200,16 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => Text(
-                  'Error loading prompt blocks: $e',
-                  style: const TextStyle(color: Colors.red),
-                ),
+            error: (e, _) {
+              String errorMsg = e.toString();
+              if (e is AppError && e is ApiAppError) {
+                  errorMsg = e.detail;
+              }
+              return Text(
+                'Error loading prompt blocks: $errorMsg',
+                style: const TextStyle(color: Colors.red),
+              );
+            },
           ),
         ],
       ),
@@ -253,11 +264,16 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => Text(
-                  'Error loading Steps: $e',
-                  style: const TextStyle(color: Colors.red),
-                ),
+            error: (e, _) {
+              String errorMsg = e.toString();
+              if (e is AppError && e is ApiAppError) {
+                  errorMsg = e.detail;
+              }
+              return Text(
+                'Error loading Steps: $errorMsg',
+                style: const TextStyle(color: Colors.red),
+              );
+            },
           ),
         ],
       ),
