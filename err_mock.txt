@@ -1,8 +1,0 @@
-backend_v2\llm\mock_data.py:6: error: Module "backend_v2.models.domain" has no attribute "BloomLevel"  [attr-defined]
-backend_v2\llm\mock_data.py:6: error: Module "backend_v2.models.domain" has no attribute "StrategicDepth"  [attr-defined]
-backend_v2\llm\mock_data.py:6: error: Module "backend_v2.models.domain" has no attribute "FidelityLevel"  [attr-defined]
-backend_v2\llm\mock_data.py:6: error: Module "backend_v2.models.domain" has no attribute "PlausibilityLevel"  [attr-defined]
-backend_v2\llm\mock_data.py:6: error: Module "backend_v2.models.domain" has no attribute "AbductiveConclusion"  [attr-defined]
-backend_v2\llm\mock_data.py:6: error: Module "backend_v2.models.domain" has no attribute "AuthenticityLevel"  [attr-defined]
-backend_v2\llm\mock_data.py:6: error: Module "backend_v2.models.domain" has no attribute "RiskLevel"  [attr-defined]
-Found 7 errors in 1 file (checked 1 source file)
