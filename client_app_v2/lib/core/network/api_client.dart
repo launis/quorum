@@ -45,7 +45,7 @@ final apiClientProvider = Provider<Dio>((ref) {
 
   final dio = Dio(
     BaseOptions(
-      baseUrl: '${Env.apiUrl}/api/v2',
+      baseUrl: '${Env.apiUrl}/api/v2/',
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 300),
       headers: {

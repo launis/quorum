@@ -6,8 +6,8 @@ import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/router/scaffold_with_nav.dart';
 import 'package:client_app/features/studio/views/studio_dashboard_view.dart';
 import 'package:client_app/features/studio/views/workflow_builder_view.dart';
-import 'package:client_app/features/studio/views/matrix_builder_view.dart';
-import 'package:client_app/features/studio/views/task_blueprint_builder_view.dart';
+import 'package:client_app/features/studio/views/prompt_block_builder_view.dart';
+import 'package:client_app/features/studio/views/step_builder_view.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -193,10 +193,10 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
   routes: <TypedRoute<RouteData>>[
     TypedGoRoute<WorkflowNewRoute>(path: 'workflow/new'),
     TypedGoRoute<WorkflowEditRoute>(path: 'workflow/edit'),
-    TypedGoRoute<MatrixNewRoute>(path: 'matrix/new'),
-    TypedGoRoute<MatrixEditRoute>(path: 'matrix/edit'),
-    TypedGoRoute<TaskBlueprintNewRoute>(path: 'task-blueprint/new'),
-    TypedGoRoute<TaskBlueprintEditRoute>(path: 'task-blueprint/edit'),
+    TypedGoRoute<PromptBlockNewRoute>(path: 'prompt-block/new'),
+    TypedGoRoute<PromptBlockEditRoute>(path: 'prompt-block/edit'),
+    TypedGoRoute<StepNewRoute>(path: 'step/new'),
+    TypedGoRoute<StepEditRoute>(path: 'step/edit'),
   ],
 )
 class AdminShellRoute extends GoRouteData with $AdminShellRoute {
@@ -222,36 +222,36 @@ class WorkflowEditRoute extends GoRouteData with $WorkflowEditRoute {
       WorkflowBuilderView(workflow: $extra ?? const {});
 }
 
-class MatrixNewRoute extends GoRouteData with $MatrixNewRoute {
-  const MatrixNewRoute();
+class PromptBlockNewRoute extends GoRouteData with $PromptBlockNewRoute {
+  const PromptBlockNewRoute();
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const MatrixBuilderView(matrix: {});
+      const PromptBlockBuilderView(promptBlock: {});
 }
 
-class MatrixEditRoute extends GoRouteData with $MatrixEditRoute {
-  const MatrixEditRoute({this.$extra});
+class PromptBlockEditRoute extends GoRouteData with $PromptBlockEditRoute {
+  const PromptBlockEditRoute({this.$extra});
   final Map<String, dynamic>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      MatrixBuilderView(matrix: $extra ?? const {});
+      PromptBlockBuilderView(promptBlock: $extra ?? const {});
 }
 
-class TaskBlueprintNewRoute extends GoRouteData with $TaskBlueprintNewRoute {
-  const TaskBlueprintNewRoute();
+class StepNewRoute extends GoRouteData with $StepNewRoute {
+  const StepNewRoute();
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const TaskBlueprintBuilderView(blueprint: {});
+      const StepBuilderView(step: {});
 }
 
-class TaskBlueprintEditRoute extends GoRouteData with $TaskBlueprintEditRoute {
-  const TaskBlueprintEditRoute({this.$extra});
+class StepEditRoute extends GoRouteData with $StepEditRoute {
+  const StepEditRoute({this.$extra});
   final Map<String, dynamic>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      TaskBlueprintBuilderView(blueprint: $extra ?? const {});
+      StepBuilderView(step: $extra ?? const {});
 }
 
 @TypedGoRoute<RootRoute>(path: '/')

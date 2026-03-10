@@ -32,7 +32,7 @@ class ExecutionService:
                 org_id = getattr(initiator, "organization_id", None)
                 # Filtering logic to only show executions that belong to this organization or user
                 # Currently simple filtering, will evolve as data schema strictly bounds executions to orgs
-                executions = [e for e in executions if e.get("organization_id") == org_id or e.get("created_by") == initiator.uid]
+                executions = [e for e in executions if e.get("organization_id") == org_id or e.get("created_by") == initiator.id] # type: ignore
 
             return [ExecutionRecord.model_validate(x) for x in executions]
         except Exception as e:
@@ -52,8 +52,8 @@ class ExecutionService:
 
         # SSOT MANDATE: Tenant Isolation Check
         org_id = getattr(initiator, "organization_id", None)
-        if initiator.role != "ROOT" and data.get("organization_id") != org_id and data.get("created_by") != initiator.uid:
-            logger.error(f"[ExecutionService] {ErrorCodes.UNAUTHORIZED.name}: User {initiator.uid} attempted to access foreign execution {execution_id}.")
+        if initiator.role != "ROOT" and data.get("organization_id") != org_id and data.get("created_by") != initiator.id: # type: ignore
+            logger.error(f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.value}: User {initiator.id} attempted to access foreign execution {execution_id}.")
             raise PermissionDeniedError("You do not have permission to view this execution.")
 
         return ExecutionRecord.model_validate(data)
@@ -70,7 +70,7 @@ class ExecutionService:
         # Auth Check
         org_id = getattr(initiator, "organization_id", None)
         if initiator.role != "ROOT" and workflow.organization_id not in [org_id, "system", None]:
-            logger.error(f"[ExecutionService] PERMISSION_DENIED: {initiator.uid} tried to start foreign workflow.")
+            logger.error(f"[ExecutionService] PERMISSION_DENIED: {initiator.id} tried to start foreign workflow.")
             raise PermissionDeniedError("You do not have permission to execute this workflow.")
 
         execution_id = str(uuid4())
@@ -84,7 +84,7 @@ class ExecutionService:
         )
         # We append temporary creator tracking using model_dump bypass for now
         dump = initial_record.model_dump(mode="json")
-        dump["created_by"] = initiator.uid
+        dump["created_by"] = initiator.id
         dump["organization_id"] = getattr(initiator, "organization_id", None)
 
         await self.repo.create_execution(dump)

@@ -300,9 +300,9 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
-    async def update_matrix(self, matrix_id: str, updates: dict[str, Any]) -> bool:
-        """V2 Append-Only update strategy for matrices."""
-        doc_ref = self.db.collection("matrices").document(matrix_id)
+    async def update_prompt_block(self, block_id: str, updates: dict[str, Any]) -> bool:
+        """V2 Append-Only update strategy for prompt blocks."""
+        doc_ref = self.db.collection("prompt_blocks").document(block_id)
         doc = await doc_ref.get()
         if not doc.exists:
             return False
@@ -310,11 +310,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         old_data = doc.to_dict() or {}
         new_data = {**old_data, **updates}
 
-        base_id = matrix_id.split("_v")[0]
+        base_id = block_id.split("_v")[0]
         version = 1
-        if "_v" in matrix_id:
+        if "_v" in block_id:
             try:
-                version = int(matrix_id.split("_v")[1]) + 1
+                version = int(block_id.split("_v")[1]) + 1
             except ValueError:
                 version = 2
         else:
@@ -349,19 +349,19 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
-    async def delete_matrix(self, matrix_id: str, force_delete: bool = False) -> bool:
+    async def delete_prompt_block(self, block_id: str, force_delete: bool = False) -> bool:
         """V2 Fail-Fast deletion. Checks for dependencies in TaskBlueprints."""
-        matrix = await self.get_matrix_by_id(matrix_id)
+        matrix = await self.get_prompt_block_by_id(block_id)
         if not matrix:
             return False
 
         if not force_delete:
             # Recheck dependencies
-            blueprints = await self.get_all_task_blueprints()
-            for bp in blueprints:
-                if matrix_id in bp.get("prompt_blocks", []):
+            steps = await self.get_all_steps()
+            for s in steps:
+                if block_id in s.get("prompt_blocks", []):
                     from backend_v2.exceptions import AppException, ErrorCodes
-                    error_msg = f"Tuhoaminen estetty: PromptBlock '{matrix_id}' on sidottu Blueprinttiin '{str(bp.get('id', 'unknown'))}'."
+                    error_msg = f"Tuhoaminen estetty: PromptBlock '{block_id}' on sidottu Blueprinttiin '{str(s.get('id', 'unknown'))}'."
                     raise AppException(
                         message=str(error_msg),
                         details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
@@ -369,10 +369,10 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
                     )
 
         try:
-            await self.db.collection("matrices").document(matrix_id).delete()
+            await self.db.collection("prompt_blocks").document(block_id).delete()
             return True
         except Exception as e:
-            logger.error(f"Firestore delete failed for matrix {matrix_id}: {e}")
+            logger.error(f"Firestore delete failed for block {block_id}: {e}")
             return False
 
     async def delete_workflow(self, workflow_id: str) -> bool:
@@ -415,7 +415,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
-    async def delete_step(self, step_id: str) -> bool:
+    async def delete_step(self, step_id: str, force_delete: bool = False) -> bool:
         try:
             await self.db.collection("steps").document(step_id).delete()
             return True
@@ -447,9 +447,13 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         results = [doc.to_dict() async for doc in docs]
         return results[0] if results else None
 
-    async def get_matrix_by_id(self, matrix_id: str) -> dict[str, Any] | None:
-        doc = await self.db.collection("matrices").document(matrix_id).get()
+    async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
+        doc = await self.db.collection("prompt_blocks").document(block_id).get()
         return doc.to_dict() if doc.exists else None
+
+    async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
+        docs = await self.db.collection("prompt_blocks").stream()
+        return [doc.to_dict() async for doc in docs]
 
     async def get_agent_by_id(self, agent_id: str) -> dict[str, Any] | None:
         doc = await self.db.collection("agents").document(agent_id).get()

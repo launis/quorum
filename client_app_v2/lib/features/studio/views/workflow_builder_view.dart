@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// **Workflow DAG Builder**
@@ -82,6 +83,63 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
         });
   }
 
+  void _deleteWorkflow(BuildContext context) {
+    final id = _editableWorkflow['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: Text(l10n.deleteWorkflowConfirmation(id)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref
+                  .read(workflowsControllerProvider.notifier)
+                  .deleteWorkflow(id)
+                  .then((_) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Deleted successfully')),
+                      );
+                      Navigator.of(context).pop();
+                    }
+                  })
+                  .catchError((e) {
+                    if (mounted) {
+                      String errorMsg = e.toString();
+                      if (e is AppError && e is ApiAppError) {
+                         if (e.errorCode == 'RESOURCE_IN_USE') {
+                           errorMsg = l10n.errorResourceInUse;
+                         }
+                      } else if (errorMsg.contains('RESOURCE_IN_USE') || errorMsg.contains('400')) {
+                         errorMsg = l10n.errorResourceInUse;
+                      }
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(errorMsg),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  });
+            },
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addExpectedInput() {
     setState(() {
       final inputs = SafeCast.safeList(_editableWorkflow['expected_inputs']);
@@ -110,13 +168,19 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final blueprintsAsync = ref.watch(taskBlueprintsControllerProvider);
-    final blueprints = blueprintsAsync.value ?? [];
+    final stepsAsync = ref.watch(stepsControllerProvider);
+    final stepsList = stepsAsync.value ?? [];
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.workflowEditTitle),
         actions: [
+          if (widget.workflow['id']?.toString().isNotEmpty == true)
+            IconButton(
+              onPressed: () => _deleteWorkflow(context),
+              icon: const Icon(Icons.delete, color: Colors.red),
+              tooltip: 'Delete',
+            ),
           FilledButton.icon(
             onPressed: _saveWorkflow,
             icon: const Icon(Icons.save),
@@ -228,7 +292,7 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
                   entry.key,
                   SafeCast.safeMap(entry.value),
                   l10n,
-                  blueprints,
+                  stepsList,
                 );
               }),
             ],
@@ -325,7 +389,7 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
     int index,
     Map<String, dynamic> stepDef,
     AppLocalizations l10n,
-    List<Map<String, dynamic>> blueprints,
+    List<Map<String, dynamic>> stepsList,
   ) {
     final rawId = stepDef['id'];
     final rawStepId = stepDef['step_id'];
@@ -399,16 +463,16 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
-                      labelText: 'Task Blueprint (replaces agent_type)',
+                      labelText: 'Step (Logical Block)',
                     ),
                     initialValue:
-                        blueprints.any(
+                        stepsList.any(
                               (bp) => bp['slug'] == stepDef['task_blueprint'],
                             )
                             ? stepDef['task_blueprint'] as String?
                             : null,
                     items:
-                        blueprints.map((bp) {
+                        stepsList.map((bp) {
                           final slug = SafeCast.safeString(bp['slug']);
                           final nameMap = SafeCast.safeMap(bp['name']);
                           final enName = SafeCast.safeString(nameMap['en']);

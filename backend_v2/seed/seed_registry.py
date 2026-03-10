@@ -12,7 +12,7 @@ from backend_v2.models.v2_core import (
     Reference,
     Role,
     SystemConfigModelRegistry,
-    TaskBlueprint,
+    Step,
     Workflow,
 )
 
@@ -23,7 +23,7 @@ STANDARD_REGISTRY = {
     "workflows": {"table": "workflows", "model": TypeAdapter(Workflow), "id_field": "id"},
     "agents": {"table": "agents", "model": TypeAdapter(Role), "id_field": "id"},
     "prompt_blocks": {"table": "prompt_blocks", "model": TypeAdapter(PromptBlock), "id_field": "id"},
-    "task_blueprints": {"table": "task_blueprints", "model": TypeAdapter(TaskBlueprint), "id_field": "id"},
+    "steps": {"table": "steps", "model": TypeAdapter(Step), "id_field": "id"},
 
     # Dynamic Raw V1 Collections Mapping to V2 Strict Types
     "output_configs": {"table": "output_configs", "model": TypeAdapter(OutputConfig), "id_field": "id"},

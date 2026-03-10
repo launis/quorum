@@ -141,7 +141,7 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def delete_step(self, step_id: str) -> bool:
+    async def delete_step(self, step_id: str, force_delete: bool = False) -> bool:
         pass
 
     @abstractmethod
@@ -175,23 +175,24 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_matrix_by_id(self, matrix_id: str) -> dict[str, Any] | None:
+    async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def get_all_matrices(self) -> list[dict[str, Any]]:
+    async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
+        """Fetch all V2 prompt_blocks."""
         pass
 
     @abstractmethod
-    async def create_matrix(self, matrix_data: dict[str, Any]) -> str:
+    async def create_prompt_block(self, block_data: dict[str, Any]) -> str:
         pass
 
     @abstractmethod
-    async def update_matrix(self, matrix_id: str, updates: dict[str, Any]) -> bool:
+    async def update_prompt_block(self, block_id: str, updates: dict[str, Any]) -> bool:
         pass
 
     @abstractmethod
-    async def delete_matrix(self, matrix_id: str, force_delete: bool = False) -> bool:
+    async def delete_prompt_block(self, block_id: str, force_delete: bool = False) -> bool:
         pass
 
     @abstractmethod
@@ -419,6 +420,8 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def create_raw(self, collection: str, data: dict[str, Any]) -> str:
         doc_id = data.get("id")
+        if not doc_id:
+             doc_id = str(uuid.uuid4())
         return await self.driver.upsert(collection, data, doc_id)
 
     async def delete(self, collection: str, doc_id: str) -> bool:
@@ -583,7 +586,31 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         await self.driver.update("steps", step_id, updates)
         return step_id
 
-    async def delete_step(self, step_id: str) -> bool:
+    async def delete_step(self, step_id: str, force_delete: bool = False) -> bool:
+        step = await self.get_step_by_id(step_id)
+        if not step:
+            return False
+            
+        if not force_delete:
+            wfs = await self.get_all_workflows()
+            for wf in wfs:
+                wf_steps = wf.get("steps", [])
+                for s in wf_steps:
+                    if isinstance(s, dict) and (s.get("id") == step_id or s.get("slug") == step_id):
+                        from backend_v2.exceptions import AppException, ErrorCodes
+                        raise AppException(
+                            message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf.get('id', 'unknown')}'.",
+                            details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
+                            status_code=400
+                        )
+                    elif isinstance(s, str) and s == step_id:
+                        from backend_v2.exceptions import AppException, ErrorCodes
+                        raise AppException(
+                            message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf.get('id', 'unknown')}'.",
+                            details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
+                            status_code=400
+                        )
+
         return await self.driver.delete("steps", step_id)
 
     # --- Components ---
@@ -613,41 +640,41 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         res = await self.driver.query("components", [Filter("slug", "==", slug)], limit=1)
         return res[0] if res else None
 
-    async def get_matrix_by_id(self, matrix_id: str) -> dict[str, Any] | None:
-        return await self.driver.get("matrices", matrix_id)
+    async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
+        return await self.driver.get("prompt_blocks", block_id)
 
-    async def get_all_matrices(self) -> list[dict[str, Any]]:
-        return await self.driver.query("matrices")
+    async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
+        return await self.driver.query("prompt_blocks")
 
-    async def create_matrix(self, matrix_data: dict[str, Any]) -> str:
-        doc_id = matrix_data["id"]
-        return await self.driver.upsert("matrices", matrix_data, doc_id)
+    async def create_prompt_block(self, block_data: dict[str, Any]) -> str:
+        doc_id = block_data["id"]
+        return await self.driver.upsert("prompt_blocks", block_data, doc_id)
 
-    async def update_matrix(self, matrix_id: str, updates: dict[str, Any]) -> bool:
-        matrix = await self.get_matrix_by_id(matrix_id)
-        if not matrix:
+    async def update_prompt_block(self, block_id: str, updates: dict[str, Any]) -> bool:
+        block = await self.get_prompt_block_by_id(block_id)
+        if not block:
             return False
-        return await self.driver.update("matrices", matrix_id, updates)
+        return await self.driver.update("prompt_blocks", block_id, updates)
 
-    async def delete_matrix(self, matrix_id: str, force_delete: bool = False) -> bool:
-        matrix = await self.get_matrix_by_id(matrix_id)
-        if not matrix:
+    async def delete_prompt_block(self, block_id: str, force_delete: bool = False) -> bool:
+        block = await self.get_prompt_block_by_id(block_id)
+        if not block:
             return False
             
         if not force_delete:
-            # Relational Check: Fail-Fast if used in any TaskBlueprint
-            blueprints = await self.get_all_task_blueprints()
-            for bp in blueprints:
-                if matrix_id in bp.get("prompt_blocks", []):
+            # Relational Check: Fail-Fast if used in any Step
+            steps = await self.get_all_steps()
+            for s in steps:
+                if block_id in s.get("prompt_blocks", []):
                     from backend_v2.exceptions import AppException, ErrorCodes
-                    error_msg = f"Tuhoaminen estetty: PromptBlock '{matrix_id}' on sidottu Blueprinttiin '{str(bp.get('id', 'unknown'))}'."
+                    error_msg = f"Tuhoaminen estetty: PromptBlock '{block_id}' on sidottu Askeleeseen'{str(s.get('id', 'unknown'))}'."
                     raise AppException(
                         message=str(error_msg),
                         details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
                         status_code=400
                     )
 
-        return await self.driver.delete("matrices", matrix_id)
+        return await self.driver.delete("prompt_blocks", block_id)
 
     async def get_agent_by_id(self, agent_id: str) -> dict[str, Any] | None:
         return await self.driver.get("agents", agent_id)

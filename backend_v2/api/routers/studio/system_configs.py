@@ -3,12 +3,21 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
+from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep, LLMHandlerDep
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/system-configs", tags=["Admin Studio V2 - System Configs"])
+
+@router.get("/available-models", response_model=list[str])
+def get_available_models(current_user: CurrentUserDep, llm_handler: LLMHandlerDep) -> list[str]:
+    """Retrieve all available LLM models discovered by the LLM Handler."""
+    if current_user.role != "ROOT" and current_user.role != "ADMIN":
+        from backend_v2.exceptions import PermissionDeniedError
+        raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
+    result = llm_handler.fetch_all_available_models()
+    return result # type: ignore
 
 @router.get("/", response_model=list[SystemConfigModelRegistry])
 async def get_all_system_configs(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> list[SystemConfigModelRegistry]:

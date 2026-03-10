@@ -199,19 +199,16 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
       path: 'workflow/edit',
       factory: $WorkflowEditRoute._fromState,
     ),
-    GoRouteData.$route(path: 'matrix/new', factory: $MatrixNewRoute._fromState),
     GoRouteData.$route(
-      path: 'matrix/edit',
-      factory: $MatrixEditRoute._fromState,
+      path: 'prompt-block/new',
+      factory: $PromptBlockNewRoute._fromState,
     ),
     GoRouteData.$route(
-      path: 'task-blueprint/new',
-      factory: $TaskBlueprintNewRoute._fromState,
+      path: 'prompt-block/edit',
+      factory: $PromptBlockEditRoute._fromState,
     ),
-    GoRouteData.$route(
-      path: 'task-blueprint/edit',
-      factory: $TaskBlueprintEditRoute._fromState,
-    ),
+    GoRouteData.$route(path: 'step/new', factory: $StepNewRoute._fromState),
+    GoRouteData.$route(path: 'step/edit', factory: $StepEditRoute._fromState),
   ],
 );
 
@@ -282,12 +279,12 @@ mixin $WorkflowEditRoute on GoRouteData {
       context.replace(location, extra: _self.$extra);
 }
 
-mixin $MatrixNewRoute on GoRouteData {
-  static MatrixNewRoute _fromState(GoRouterState state) =>
-      const MatrixNewRoute();
+mixin $PromptBlockNewRoute on GoRouteData {
+  static PromptBlockNewRoute _fromState(GoRouterState state) =>
+      const PromptBlockNewRoute();
 
   @override
-  String get location => GoRouteData.$location('/admin/matrix/new');
+  String get location => GoRouteData.$location('/admin/prompt-block/new');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -303,14 +300,14 @@ mixin $MatrixNewRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-mixin $MatrixEditRoute on GoRouteData {
-  static MatrixEditRoute _fromState(GoRouterState state) =>
-      MatrixEditRoute($extra: state.extra as Map<String, dynamic>?);
+mixin $PromptBlockEditRoute on GoRouteData {
+  static PromptBlockEditRoute _fromState(GoRouterState state) =>
+      PromptBlockEditRoute($extra: state.extra as Map<String, dynamic>?);
 
-  MatrixEditRoute get _self => this as MatrixEditRoute;
+  PromptBlockEditRoute get _self => this as PromptBlockEditRoute;
 
   @override
-  String get location => GoRouteData.$location('/admin/matrix/edit');
+  String get location => GoRouteData.$location('/admin/prompt-block/edit');
 
   @override
   void go(BuildContext context) => context.go(location, extra: _self.$extra);
@@ -328,12 +325,11 @@ mixin $MatrixEditRoute on GoRouteData {
       context.replace(location, extra: _self.$extra);
 }
 
-mixin $TaskBlueprintNewRoute on GoRouteData {
-  static TaskBlueprintNewRoute _fromState(GoRouterState state) =>
-      const TaskBlueprintNewRoute();
+mixin $StepNewRoute on GoRouteData {
+  static StepNewRoute _fromState(GoRouterState state) => const StepNewRoute();
 
   @override
-  String get location => GoRouteData.$location('/admin/task-blueprint/new');
+  String get location => GoRouteData.$location('/admin/step/new');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -349,14 +345,14 @@ mixin $TaskBlueprintNewRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-mixin $TaskBlueprintEditRoute on GoRouteData {
-  static TaskBlueprintEditRoute _fromState(GoRouterState state) =>
-      TaskBlueprintEditRoute($extra: state.extra as Map<String, dynamic>?);
+mixin $StepEditRoute on GoRouteData {
+  static StepEditRoute _fromState(GoRouterState state) =>
+      StepEditRoute($extra: state.extra as Map<String, dynamic>?);
 
-  TaskBlueprintEditRoute get _self => this as TaskBlueprintEditRoute;
+  StepEditRoute get _self => this as StepEditRoute;
 
   @override
-  String get location => GoRouteData.$location('/admin/task-blueprint/edit');
+  String get location => GoRouteData.$location('/admin/step/edit');
 
   @override
   void go(BuildContext context) => context.go(location, extra: _self.$extra);

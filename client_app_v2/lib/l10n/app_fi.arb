@@ -148,6 +148,7 @@
   "deleteOrganization": "Poista organisaatio",
   "errorDeleteBlockedByExecutions": "Ei voi poistaa: Kohteella on suorituksia.",
   "errorDeleteBlockedByMatrix": "Ei voi poistaa: Havainto on sidottu PromptBlockiin.",
+  "errorResourceInUse": "Tuhoaminen estetty: Tietue on yhä käytössä.",
   "save": "Tallenna",
   "orgNameLabel": "Organisaation nimi",
   "orgTierLabel": "Taso",

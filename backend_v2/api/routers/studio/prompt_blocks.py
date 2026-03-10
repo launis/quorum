@@ -26,7 +26,7 @@ async def save_prompt_block(id: str, data: PromptBlock, current_user: CurrentUse
     return await studio_service.save_prompt_block(current_user, id, data)
 
 @router.delete("/{id}")
-async def delete_prompt_block(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> dict[str, Any]:
+async def delete_prompt_block(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep, force_delete: bool = False) -> dict[str, Any]:
     """Delete a prompt block securely via SSOT Service Layer."""
-    await studio_service.delete_prompt_block(current_user, id)
+    await studio_service.delete_prompt_block(current_user, id, force_delete=force_delete)
     return {"status": "success", "deleted_id": id}

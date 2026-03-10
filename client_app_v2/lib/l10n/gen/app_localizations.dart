@@ -998,6 +998,12 @@ abstract class AppLocalizations {
   /// **'Cannot delete: Observation is bound to a PromptBlock.'**
   String get errorDeleteBlockedByMatrix;
 
+  /// No description provided for @errorResourceInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot delete: Record is still in use.'**
+  String get errorResourceInUse;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:

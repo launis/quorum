@@ -61,29 +61,35 @@ class StudioClient {
     await _dio.delete('studio/workflows/$id');
   }
 
-  // --- Task Blueprints (Independent steps) ---
+  // --- Steps ---
 
-  /// Retrieves all task blueprints.
-  Future<List<Map<String, dynamic>>> getTaskBlueprints() async {
-    final response = await _dio.get('studio/task-blueprints');
+  /// Retrieves all steps.
+  Future<List<Map<String, dynamic>>> getSteps() async {
+    final response = await _dio.get('studio/steps');
     return List<Map<String, dynamic>>.from(response.data as List);
   }
 
-  /// Appends or updates a task blueprint.
-  Future<Map<String, dynamic>> saveTaskBlueprint(
+  /// Appends or updates a step.
+  Future<Map<String, dynamic>> saveStep(
     String id,
     Map<String, dynamic> data,
   ) async {
-    final response = await _dio.put('studio/task-blueprints/$id', data: data);
+    final response = await _dio.put('studio/steps/$id', data: data);
     return response.data as Map<String, dynamic>;
   }
 
-  /// Deletes a task blueprint.
-  Future<void> deleteTaskBlueprint(String id) async {
-    await _dio.delete('studio/task-blueprints/$id');
+  /// Deletes a step.
+  Future<void> deleteStep(String id) async {
+    await _dio.delete('studio/steps/$id');
   }
 
   // --- System Configs (e.g., model_registry) ---
+
+  /// Retrieves available models.
+  Future<List<String>> getAvailableModels() async {
+    final response = await _dio.get('studio/system-configs/available-models');
+    return List<String>.from(response.data as List);
+  }
 
   /// Retrieves a system config by ID.
   Future<Map<String, dynamic>> getSystemConfig(String id) async {

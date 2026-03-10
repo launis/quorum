@@ -131,7 +131,7 @@ async def impersonate_user(request: ImpersonationRequest, current_user: CurrentU
     Raises:
         HTTPException: If permission denied (403) or target not found (404).
     """
-    requester = auth_service.repo.get_by_id(current_user.id)
+    requester = await auth_service.repo.get_by_id(current_user.id)
     if not requester or requester.role != UserRole.ROOT:
         from backend_v2.exceptions import PermissionDeniedError
 
@@ -139,7 +139,7 @@ async def impersonate_user(request: ImpersonationRequest, current_user: CurrentU
         logger.warning(f"{error_code}: User {current_user.id} attempted to impersonate without Root")
         raise PermissionDeniedError(message="Impersonation Denied", details={"error_code": error_code})
 
-    target = auth_service.repo.get_by_id(request.target_id)
+    target = await auth_service.repo.get_by_id(request.target_id)
     if not target:
         from backend_v2.exceptions import ResourceNotFoundError
 
@@ -181,7 +181,7 @@ async def create_user(
     """
     # Authorization checks are handled inside auth_service._enforce_hierarchy,
     # but we need to fetch the full Creator User object first.
-    creator_full = auth_service.repo.get_by_id(current_user.id)
+    creator_full = await auth_service.repo.get_by_id(current_user.id)
     if not creator_full:
         from backend_v2.exceptions import AuthenticationError
 
@@ -228,7 +228,7 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
     Returns:
         list[User]: A list of accessible user profiles.
     """
-    requester = auth_service.repo.get_by_id(current_user.id)
+    requester = await auth_service.repo.get_by_id(current_user.id)
     if not requester:
         from backend_v2.exceptions import AuthenticationError
 
@@ -236,7 +236,7 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
         logger.warning(f"{error_code}: User {current_user.id} not found")
         raise AuthenticationError(message="User not found", details={"error_code": error_code})
 
-    all_users = auth_service.repo.list_all()
+    all_users = await auth_service.repo.list_all()
 
     # 1. Root sees everyone
     if requester.role == UserRole.ROOT:
@@ -278,7 +278,7 @@ async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthS
         HTTPException: Permission denied (403) or business logic error (400).
     """
     try:
-        target = auth_service.repo.get_by_id(id)
+        target = await auth_service.repo.get_by_id(id)
         if not target:
             from backend_v2.exceptions import ResourceNotFoundError
             raise ResourceNotFoundError("User", id)
@@ -389,7 +389,7 @@ async def get_my_profile(current_user: CurrentUserDep, auth_service: AuthService
     Returns:
         User: The full user profile.
     """
-    user = auth_service.repo.get_by_id(current_user.id)
+    user = await auth_service.repo.get_by_id(current_user.id)
     if not user:
         from backend_v2.exceptions import AuthenticationError
 

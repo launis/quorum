@@ -56,7 +56,7 @@ class MatrixScale(BaseModel):
     score: int = Field(description="Numerical value of the scale point.")
     name: I18nText | None = Field(default=None, description="Optional name for the scale point (e.g., 'Excellent').")
     claims: list[I18nText] = Field(
-        default_factory=list, 
+        default_factory=list,
         description="List of behavioral claims/criteria for this score."
     )
 
@@ -165,11 +165,13 @@ class SystemConfigModelRegistry(BaseModel):
 
 class Step(BaseModel):
     """Isolated, reusable orchestrator cognitive module (e.g. Guard or step_input_processing).
-    Formerly known as TaskBlueprint."""
+    Formerly known as TaskBlueprint.
+    """
     id: str = Field(description="Unique UUID for storage optionally")
     slug: str = Field(description="Human-readable identifier (e.g., 'step_guard')")
-    name: I18nText = Field(description="Localized step name")
-    description: I18nText | None = Field(default=None, description="Detailed step context")
+    name: I18nText | str = Field(description="Localized step name or string name")
+    description: I18nText | str | None = Field(default=None, description="Detailed step context")
+    task_key: str | None = Field(default=None, description="Legacy or internal key reference")
     prompt_blocks: list[str] = Field(
         default_factory=list,
         description="List of PromptBlock slugs containing directives and matrices for this step."
@@ -184,7 +186,7 @@ class Step(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_step_consistency(self) -> "Step":
+    def validate_step_consistency(self) -> Step:
         """Strict fail-fast validation to ensure Step is not purely empty."""
         if not self.prompt_blocks:
             from backend_v2.exceptions import AppException, ErrorCodes
@@ -198,17 +200,13 @@ class Step(BaseModel):
 class StepRule(BaseModel):
     """Execution step mapping (DAG Router Node)."""
     id: str = Field(description="Unique node ID in the workflow (e.g. step_node_1).")
-    step_slug: str = Field(
+    task_blueprint: str = Field(
         description="Slug reference to the isolated Step (e.g., 'step_input_processing')"
     )
     depends_on: list[str] = Field(default_factory=list, description="IDs of steps that must complete first.")
     input_mappings: dict[str, str] = Field(
         default_factory=dict,
         description='Maps upstream results to LLM inputs. e.g. {"context": "$inputs.document"}',
-    )
-    hook: str | None = Field(
-        default=None,
-        description="Native Python hook name to execute instead of an LLM. Used for pure structural nodes."
     )
     model_strategy: str | None = Field(
         default=None,
@@ -226,13 +224,25 @@ class Role(BaseModel):
 class Workflow(BaseModel):
     """Dynamic Directed Acyclic Graph orchestrator model."""
     id: str
-    name: I18nText
-    description: I18nText
-    expected_inputs: dict[str, str] = Field(
-        default_factory=dict,
-        description='Schema mapping for dynamic frontend. e.g. {"document": "string"}',
-    )
+    slug: str
+    name: I18nText | str
+    description: I18nText | str
+    status: str = Field(default="draft")
+    version: int = Field(default=1)
+    is_public: bool = Field(default=False)
+    organization_id: str | None = Field(default=None)
+    scoring_logic: list[Any] = Field(default_factory=list)
+    ui_schema: dict[str, Any] = Field(default_factory=dict)
     steps: list[StepRule] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_slug_from_id(cls, data: Any) -> Any:
+        # Fallback for seed data missing the slug
+        if isinstance(data, dict):
+            if "slug" not in data and "id" in data:
+                data["slug"] = data["id"]
+        return data
 
     @model_validator(mode="after")
     def check_cyclic_dependencies(self) -> Workflow:

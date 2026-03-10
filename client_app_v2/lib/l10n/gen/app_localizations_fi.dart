@@ -503,6 +503,10 @@ class AppLocalizationsFi extends AppLocalizations {
       'Ei voi poistaa: Havainto on sidottu PromptBlockiin.';
 
   @override
+  String get errorResourceInUse =>
+      'Tuhoaminen estetty: Tietue on yhä käytössä.';
+
+  @override
   String get save => 'Tallenna';
 
   @override

@@ -164,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _isLoading
                               ? null
                               : () => _mockLogin(
-                                '1', // ROOT
+                                '10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b', // ROOT
                               ),
                       child: const Text('Mock Login (Root Master)'),
                     ),
@@ -176,7 +176,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _isLoading
                               ? null
                               : () => _mockLogin(
-                                '2', // ADMIN
+                                '5aa54e11-e804-4100-8c61-0f45b9393f1f', // ADMIN
                               ),
                       child: const Text('Mock Login (Admin)'),
                     ),
@@ -188,7 +188,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _isLoading
                               ? null
                               : () => _mockLogin(
-                                '3', // MANAGER
+                                '3d081723-e062-4eeb-968e-070a100846b3', // MANAGER
                               ),
                       child: const Text('Mock Login (Manager)'),
                     ),

@@ -20,6 +20,7 @@ from backend_v2.exceptions import (
     ConflictError,
     ErrorCodes,
     PermissionDeniedError,
+    ResourceNotFoundError,
 )
 from backend_v2.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
 
@@ -490,12 +491,12 @@ class AuthService:
         # 4. Delete Org Entity
         logger.info(f"[AuthService] Removing Organization {target_org_id} from DB...")
 
-        await self.repo.delete_organization(target_org_id)
+        await self.org_repo.repo.delete_organization(target_org_id)
 
         # Audit
         if self.audit_service:
             await self.audit_service.log_event(
-                actor_id=initiator_id,
+                actor_id=initiator.id,
                 action="ORG_DELETED",
                 organization_id=target_org_id,
                 target_id=target_org_id,
@@ -637,12 +638,29 @@ class AuthService:
 
     async def list_users(self, initiator: TokenData) -> list[User]:
         """List users securely scoped by Tenant/Organization."""
-        all_users = await self.user_repo.list_all()
+        all_users: list[User] = await self.repo.list_all()
         if initiator.role == UserRole.ROOT:
             return all_users
 
         org_id = getattr(initiator, "organization_id", None)
         return [u for u in all_users if getattr(u, "organization_id", None) == org_id]
+
+    async def get_user(self, initiator: TokenData, target_id: str) -> User:
+        """Fetch user securely."""
+        user = await self.repo.get_by_id(target_id)
+        if not user:
+            from backend_v2.exceptions import ResourceNotFoundError
+            raise ResourceNotFoundError(resource_type="user", resource_id=target_id)
+
+        # Tenant Isolation
+        if initiator.role == UserRole.ROOT:
+            return user
+        if initiator.id == target_id:
+            return user
+        if initiator.role == UserRole.ADMIN and getattr(user, "organization_id", None) == getattr(initiator, "organization_id", None):
+            return user
+        
+        raise PermissionDeniedError("You do not have permission to view this user.")
 
     async def get_organization(self, initiator: TokenData, org_id: str) -> Organization:
         """Fetch organization securely."""
@@ -652,7 +670,7 @@ class AuthService:
 
         # Tenant Isolation
         if initiator.role != UserRole.ROOT and getattr(initiator, "organization_id", None) != org_id:
-            logger.warning(f"[AuthService] PERMISSION_DENIED: {initiator.uid} tried to read foreign org {org_id}")
+            logger.warning(f"[AuthService] PERMISSION_DENIED: {initiator.id} tried to read foreign org {org_id}")
             raise PermissionDeniedError("You do not have permission to view this organization.")
 
         return org
@@ -700,7 +718,7 @@ class AuthService:
 
     # --- Dependency Injection Helpers (Static) ---
     @staticmethod
-    def require_role(required_role: UserRole) -> Callable:
+    def require_role(required_role: UserRole) -> Any:
         """Returns a dependency that validates the user has the required role.
 
         Implicitly allows ROOT for everything.
@@ -722,8 +740,8 @@ class AuthService:
 
     @staticmethod
     def get_current_user(
-        from_header=None,  # Placeholder to match Depends signature if needed, but we delegate
-    ) -> Callable:
+        from_header: Any = None,  # Placeholder to match Depends signature if needed, but we delegate
+    ) -> Any:
         """Dependency alias for getting current user via header.
 
         Intended usage: user: TokenData = Depends(AuthService.get_current_user).

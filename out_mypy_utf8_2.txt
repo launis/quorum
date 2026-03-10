@@ -1,0 +1,9 @@
+﻿backend_v2\services\studio.py:88: error: Name "Step" is not defined  [name-defined]
+backend_v2\services\studio.py:91: error: Name "Step" is not defined  [name-defined]
+backend_v2\services\studio.py:95: error: Name "Step" is not defined  [name-defined]
+backend_v2\services\studio.py:97: error: Name "Step" is not defined  [name-defined]
+backend_v2\services\studio.py:103: error: Name "Step" is not defined  [name-defined]
+backend_v2\services\studio.py:105: error: Name "Step" is not defined  [name-defined]
+backend_v2\services\studio.py:116: error: Name "Step" is not defined  [name-defined]
+backend_v2\services\studio.py:146: error: "PromptBlock" has no attribute "organization_id"  [attr-defined]
+Found 8 errors in 1 file (checked 1 source file)

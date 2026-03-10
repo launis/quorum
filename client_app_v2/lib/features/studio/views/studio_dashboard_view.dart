@@ -63,7 +63,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               icon: const Icon(Icons.dataset),
               text: l10n.studioDashboardMatricesTitle,
             ),
-            Tab(icon: const Icon(Icons.extension), text: 'Task Blueprints'),
+            Tab(icon: const Icon(Icons.extension), text: 'Steps'),
             Tab(
               icon: const Icon(Icons.settings),
               text: l10n.modelRegistryTitle,
@@ -80,8 +80,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           // TAB 2: Prompt Blocks
           _buildPromptBlocksTab(context, ref, l10n),
 
-          // TAB 3: Task Blueprints
-          _buildTaskBlueprintsTab(context, ref, l10n),
+          // TAB 3: Steps
+          _buildStepsTab(context, ref, l10n),
 
           // TAB 4: Model Registry
           const ModelRegistryView(),
@@ -159,7 +159,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildSectionHeader(context, l10n.studioDashboardMatricesTitle, () {
-            context.go('/admin/matrix/new');
+            context.go('/admin/prompt-block/new');
           }),
           const SizedBox(height: 16),
           promptBlocksState.when(
@@ -186,7 +186,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        context.go('/admin/matrix/edit', extra: matrix);
+                        context.go('/admin/prompt-block/edit', extra: matrix);
                       },
                     ),
                   );
@@ -205,26 +205,26 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     );
   }
 
-  Widget _buildTaskBlueprintsTab(
+  Widget _buildStepsTab(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
   ) {
-    final blueprintsState = ref.watch(taskBlueprintsControllerProvider);
+    final blueprintsState = ref.watch(stepsControllerProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(context, 'Task Blueprints', () {
-            context.go('/admin/task-blueprint/new');
+          _buildSectionHeader(context, 'Steps', () {
+            context.go('/admin/step/new');
           }),
           const SizedBox(height: 16),
           blueprintsState.when(
             data: (blueprints) {
               if (blueprints.isEmpty)
-                return const Text('No Task Blueprints defined.');
+                return const Text('No Steps defined.');
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -243,7 +243,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         context.go(
-                          '/admin/task-blueprint/edit',
+                          '/admin/step/edit',
                           extra: blueprint,
                         );
                       },
@@ -255,7 +255,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
             loading: () => const Center(child: CircularProgressIndicator()),
             error:
                 (e, _) => Text(
-                  'Error loading Task Blueprints: $e',
+                  'Error loading Steps: $e',
                   style: const TextStyle(color: Colors.red),
                 ),
           ),

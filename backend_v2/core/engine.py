@@ -8,7 +8,8 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.core.registry import TaskRegistry
-from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError, status
+from fastapi import status
+from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.state import ReasoningTrace, TraceEvent, WorkflowState
@@ -565,7 +566,8 @@ class GraphEngine:
                     details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED},
                 )
 
-            return result_state
+            import typing
+            return typing.cast(WorkflowState, result_state)
 
         except Exception as e:
             logger.error(f"[GraphEngine] Hook '{hook_name}' failed: {e}", exc_info=True)

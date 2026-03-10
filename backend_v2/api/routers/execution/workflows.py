@@ -6,12 +6,13 @@ from backend_v2.models.v2_core import Workflow
 
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
-@router.get("/{workflow_id}/ui_schema", response_model=dict[str, str])
+from typing import Any
+@router.get("/{workflow_id}/ui_schema", response_model=dict[str, Any])
 async def get_workflow_ui_schema(
     workflow_id: str,
     current_user: UserDep,
     repository: RepoDep,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Retrieve the expected inputs schema for frontend dynamic rendering."""
     workflow_dict = await repository.get_workflow_by_id(workflow_id)
     if not workflow_dict:
@@ -19,4 +20,4 @@ async def get_workflow_ui_schema(
 
     workflow = Workflow.model_validate(workflow_dict)
 
-    return workflow.expected_inputs
+    return workflow.ui_schema

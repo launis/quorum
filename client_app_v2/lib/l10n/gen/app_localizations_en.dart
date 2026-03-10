@@ -504,6 +504,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cannot delete: Observation is bound to a PromptBlock.';
 
   @override
+  String get errorResourceInUse => 'Cannot delete: Record is still in use.';
+
+  @override
   String get save => 'Save';
 
   @override

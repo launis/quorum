@@ -1,4 +1,4 @@
-from typing import Annotated, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated, Any
 
 if TYPE_CHECKING:
     from backend_v2.llm.handler import LLMHandler
@@ -76,7 +76,7 @@ StudioServiceDep = Annotated[StudioService, Depends(get_studio_service)]
 
 def get_llm_handler(
     repo: AbstractWorkflowRepository = Depends(get_repo)
-) -> LLMHandler:
+) -> "LLMHandler":
     from backend_v2.llm.handler import LLMHandler
     return LLMHandler(repo=repo)
 

@@ -65,7 +65,9 @@ class ChatParserService:
 
         SÄÄNNÖT:
         1. Erottele tekstistä ihmisen (user) ja tekoälyn (ai) viestit. 'role' tulee olla joko 'user' tai 'ai'.
-        2. Jätä täysin huomiotta kaikki käyttöliittymän roskateksti (esim. "Regenerate", "Copy code", aikaleimat, "Was this response better or worse?", sivuvalikot, profiilien nimet).
+        2. Jätä täysin huomiotta kaikki käyttöliittymän roskateksti
+           (esim. "Regenerate", "Copy code", aikaleimat, "Was this response better or worse?", 
+           sivuvalikot, profiilien nimet).
         3. Oletus: viestit vuorottelevat. Jos teksti alkaa ihmisen kysymyksellä, ensimmäinen 'role' on 'user'.
         4. Palauta data TÄSMÄLLEEN pyydetyssä Pydantic JSON-muodossa.
 

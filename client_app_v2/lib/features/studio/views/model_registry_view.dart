@@ -22,6 +22,8 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(modelRegistryControllerProvider);
+    final availableModelsAsync = ref.watch(availableModelsProvider);
+    final availableModels = availableModelsAsync.value ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -50,7 +52,7 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
               children: [
                 _buildSystemAttributes(l10n, _editableState!),
                 const SizedBox(height: 24),
-                _buildModelsSection(l10n, _editableState!),
+                _buildModelsSection(l10n, _editableState!, availableModels),
               ],
             ),
           );
@@ -91,7 +93,11 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
     );
   }
 
-  Widget _buildModelsSection(AppLocalizations l10n, Map<String, dynamic> data) {
+  Widget _buildModelsSection(
+    AppLocalizations l10n,
+    Map<String, dynamic> data,
+    List<String> availableModels,
+  ) {
     final models = data['models'] as Map<String, dynamic>? ?? {};
 
     // Group by provider for UI display
@@ -143,10 +149,11 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          _buildStringField(
+                          _buildModelNameDropdown(
                             fields,
                             'model_name',
                             l10n.modelNameLabel,
+                            availableModels,
                           ),
                           _buildDoubleField(
                             fields,
@@ -206,6 +213,41 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
           border: const OutlineInputBorder(),
         ),
         onSaved: (val) => map[key] = val,
+      ),
+    );
+  }
+
+  Widget _buildModelNameDropdown(
+    Map<String, dynamic> map,
+    String key,
+    String label,
+    List<String> availableModels,
+  ) {
+    final currentValue = map[key]?.toString();
+    final items = availableModels.toList();
+    if (currentValue != null &&
+        currentValue.isNotEmpty &&
+        !items.contains(currentValue)) {
+      items.add(currentValue);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        value: items.contains(currentValue) ? currentValue : null,
+        items:
+            items.map((modelId) {
+              return DropdownMenuItem(value: modelId, child: Text(modelId));
+            }).toList(),
+        onChanged: (val) {
+          if (val != null) {
+            setState(() => map[key] = val);
+          }
+        },
       ),
     );
   }

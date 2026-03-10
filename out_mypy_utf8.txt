@@ -1,0 +1,6 @@
+﻿backend_v2\services\studio.py:31: error: "TokenData" has no attribute "uid"; maybe "id"?  [attr-defined]
+backend_v2\services\studio.py:91: error: "dict[str, Any]" has no attribute "model_dump"  [attr-defined]
+backend_v2\services\studio.py:99: error: Returning Any from function declared to return "None"  [no-any-return]
+backend_v2\services\studio.py:99: error: Name "TaskBlueprint" is not defined  [name-defined]
+backend_v2\services\studio.py:129: error: "PromptBlock" has no attribute "organization_id"  [attr-defined]
+Found 5 errors in 1 file (checked 1 source file)

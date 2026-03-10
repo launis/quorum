@@ -151,23 +151,23 @@ class DAGExecutor:
         # 3. Role LLM Execution (Non-Deterministic)
         blueprint_slug: str | None = getattr(step, "task_blueprint", None)
         if blueprint_slug:
-            blueprint_dict = await self.repository.get_task_blueprint_by_id(blueprint_slug)
-            if not blueprint_dict:
-                logger.error(f"TaskBlueprint '{blueprint_slug}' not found for step {step.id}")
+            step_def = await self.repository.get_step_by_id(blueprint_slug)
+            if not step_def:
+                logger.error(f"Step '{blueprint_slug}' not found for step {step.id}")
                 raise AppException(
-                    message=f"Configuration error: TaskBlueprint '{blueprint_slug}' not found in database.",
+                    message=f"Configuration error: Step '{blueprint_slug}' not found in database.",
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED}
                 )
 
-            from backend_v2.models.v2_core import TaskBlueprint
-            blueprint = TaskBlueprint.model_validate(blueprint_dict)
+            from backend_v2.models.v2_core import Step
+            step_obj = Step.model_validate(step_def)
 
-            logger.debug(f"Executing TaskBlueprint: {blueprint.slug}")
+            logger.debug(f"Executing Step: {step_obj.id}")
 
             # 3.0 Pre-Hooks Execution
             state_data["_sys_repository"] = self.repository
-            for pre_hook in blueprint.pre_hooks:
+            for pre_hook in step_obj.pre_hooks:
                 logger.debug(f"Executing Pre-Hook: {pre_hook}")
                 # We assume pre-hooks modify state_data in-place or return updated dict.
                 result = await hook_registry.execute(pre_hook, state_data)

@@ -3,39 +3,41 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
-class TaskBlueprintBuilderView extends ConsumerStatefulWidget {
-  final Map<String, dynamic> blueprint;
+class StepBuilderView extends ConsumerStatefulWidget {
+  final Map<String, dynamic> step;
 
-  const TaskBlueprintBuilderView({super.key, required this.blueprint});
+  const StepBuilderView({super.key, required this.step});
 
   @override
-  ConsumerState<TaskBlueprintBuilderView> createState() =>
-      _TaskBlueprintBuilderViewState();
+  ConsumerState<StepBuilderView> createState() =>
+      _StepBuilderViewState();
 }
 
-class _TaskBlueprintBuilderViewState
-    extends ConsumerState<TaskBlueprintBuilderView> {
-  late Map<String, dynamic> _editableBlueprint;
+class _StepBuilderViewState
+    extends ConsumerState<StepBuilderView> {
+  late Map<String, dynamic> _editableStep;
   late TextEditingController _idController;
   late TextEditingController _slugController;
 
   @override
   void initState() {
     super.initState();
-    _editableBlueprint = Map<String, dynamic>.from(widget.blueprint);
+    _editableStep = Map<String, dynamic>.from(widget.step);
     _idController = TextEditingController(
-      text: SafeCast.safeString(_editableBlueprint['id']),
+      text: SafeCast.safeString(_editableStep['id']),
     );
     _slugController = TextEditingController(
-      text: SafeCast.safeString(_editableBlueprint['slug']),
+      text: SafeCast.safeString(_editableStep['slug']),
     );
 
-    if (!_editableBlueprint.containsKey('prompt_blocks')) {
-      _editableBlueprint['prompt_blocks'] = [];
+    if (!_editableStep.containsKey('prompt_blocks')) {
+      _editableStep['prompt_blocks'] = [];
     }
-    if (!_editableBlueprint.containsKey('pre_hooks')) {
-      _editableBlueprint['pre_hooks'] = [];
+    if (!_editableStep.containsKey('pre_hooks')) {
+      _editableStep['pre_hooks'] = [];
     }
   }
 
@@ -55,18 +57,18 @@ class _TaskBlueprintBuilderViewState
       return;
     }
 
-    _editableBlueprint['id'] = id;
-    _editableBlueprint['slug'] = _slugController.text.trim();
+    _editableStep['id'] = id;
+    _editableStep['slug'] = _slugController.text.trim();
 
     ref
-        .read(taskBlueprintsControllerProvider.notifier)
-        .saveTaskBlueprint(id, _editableBlueprint)
+        .read(stepsControllerProvider.notifier)
+        .saveStep(id, _editableStep)
         .then((_) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                  'Task Blueprint saved (Optimistic update applied).',
+                  'Step saved (Optimistic update applied).',
                 ),
               ),
             );
@@ -85,31 +87,94 @@ class _TaskBlueprintBuilderViewState
         });
   }
 
+  void _deleteStep(BuildContext context) {
+    final id = _editableStep['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.stepDeleteConfirmTitle),
+        content: Text(l10n.stepDeleteConfirmMessage(id)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref
+                  .read(stepsControllerProvider.notifier)
+                  .deleteStep(id)
+                  .then((_) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Deleted successfully')),
+                      );
+                      Navigator.of(context).pop();
+                    }
+                  })
+                  .catchError((e) {
+                    if (mounted) {
+                      String errorMsg = e.toString();
+                      if (e is AppError && e is ApiAppError) {
+                         if (e.errorCode == 'RESOURCE_IN_USE') {
+                           errorMsg = l10n.errorResourceInUse;
+                         }
+                      } else if (errorMsg.contains('RESOURCE_IN_USE') || errorMsg.contains('400')) {
+                         errorMsg = l10n.errorResourceInUse;
+                      }
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(errorMsg),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  });
+            },
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addPromptBlock() {
     setState(() {
-      final blocks = SafeCast.safeList(_editableBlueprint['prompt_blocks']);
+      final blocks = SafeCast.safeList(_editableStep['prompt_blocks']);
       blocks.add('');
-      _editableBlueprint['prompt_blocks'] = blocks;
+      _editableStep['prompt_blocks'] = blocks;
     });
   }
 
   void _addPreHook() {
     setState(() {
-      final hooks = SafeCast.safeList(_editableBlueprint['pre_hooks']);
+      final hooks = SafeCast.safeList(_editableStep['pre_hooks']);
       hooks.add('');
-      _editableBlueprint['pre_hooks'] = hooks;
+      _editableStep['pre_hooks'] = hooks;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final matricesAsync = ref.watch(promptBlocksControllerProvider);
-    final matrices = matricesAsync.value ?? [];
+    final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
+    final promptBlocks = promptBlocksAsync.value ?? [];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Task Blueprint'),
+        title: const Text('Edit Step'),
         actions: [
+          if (widget.step['id']?.toString().isNotEmpty == true)
+            IconButton(
+              onPressed: () => _deleteStep(context),
+              icon: const Icon(Icons.delete, color: Colors.red),
+              tooltip: 'Delete',
+            ),
           FilledButton.icon(
             onPressed: _saveBlueprint,
             icon: const Icon(Icons.save),
@@ -142,12 +207,12 @@ class _TaskBlueprintBuilderViewState
                       TextField(
                         controller: _idController,
                         decoration: const InputDecoration(
-                          labelText: 'Blueprint ID (UUID or Unique String)',
+                          labelText: 'Step ID (UUID or Unique String)',
                           border: OutlineInputBorder(),
                         ),
                         enabled:
-                            widget.blueprint['id'] == null ||
-                            widget.blueprint['id'].toString().isEmpty,
+                            widget.step['id'] == null ||
+                            widget.step['id'].toString().isEmpty,
                       ),
                       const SizedBox(height: 16),
                       TextField(
@@ -161,18 +226,18 @@ class _TaskBlueprintBuilderViewState
                       I18nTextField(
                         label: 'Name',
                         initialData: SafeCast.safeMap(
-                          _editableBlueprint['name'],
+                          _editableStep['name'],
                         ),
-                        onChanged: (val) => _editableBlueprint['name'] = val,
+                        onChanged: (val) => _editableStep['name'] = val,
                       ),
                       const SizedBox(height: 16),
                       I18nTextField(
                         label: 'Description',
                         initialData: SafeCast.safeMap(
-                          _editableBlueprint['description'],
+                          _editableStep['description'],
                         ),
                         onChanged:
-                            (val) => _editableBlueprint['description'] = val,
+                            (val) => _editableStep['description'] = val,
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
@@ -184,8 +249,8 @@ class _TaskBlueprintBuilderViewState
                                   'fast',
                                   'deep',
                                   'none',
-                                ].contains(_editableBlueprint['model_strategy'])
-                                ? _editableBlueprint['model_strategy']
+                                ].contains(_editableStep['model_strategy'])
+                                ? _editableStep['model_strategy']
                                     as String?
                                 : null,
                         items: const [
@@ -204,7 +269,7 @@ class _TaskBlueprintBuilderViewState
                         ],
                         onChanged:
                             (val) => setState(
-                              () => _editableBlueprint['model_strategy'] = val,
+                              () => _editableStep['model_strategy'] = val,
                             ),
                       ),
                     ],
@@ -231,7 +296,7 @@ class _TaskBlueprintBuilderViewState
               ),
               const SizedBox(height: 16),
               ...SafeCast.safeList(
-                _editableBlueprint['pre_hooks'],
+                _editableStep['pre_hooks'],
               ).asMap().entries.map((entry) {
                 return _buildPreHookCard(entry.key, entry.value.toString());
               }),
@@ -255,12 +320,12 @@ class _TaskBlueprintBuilderViewState
               ),
               const SizedBox(height: 16),
               ...SafeCast.safeList(
-                _editableBlueprint['prompt_blocks'],
+                _editableStep['prompt_blocks'],
               ).asMap().entries.map((entry) {
                 return _buildPromptBlockCard(
                   entry.key,
                   entry.value.toString(),
-                  matrices,
+                  promptBlocks,
                 );
               }),
             ],
@@ -284,10 +349,10 @@ class _TaskBlueprintBuilderViewState
                 onFocusChange: (f) {
                   if (!f) {
                     final hooks = SafeCast.safeList(
-                      _editableBlueprint['pre_hooks'],
+                      _editableStep['pre_hooks'],
                     );
                     hooks[index] = hookController.text;
-                    _editableBlueprint['pre_hooks'] = hooks;
+                    _editableStep['pre_hooks'] = hooks;
                   }
                 },
                 child: TextField(
@@ -303,7 +368,7 @@ class _TaskBlueprintBuilderViewState
               onPressed: () {
                 setState(() {
                   SafeCast.safeList(
-                    _editableBlueprint['pre_hooks'],
+                    _editableStep['pre_hooks'],
                   ).removeAt(index);
                 });
               },
@@ -317,7 +382,7 @@ class _TaskBlueprintBuilderViewState
   Widget _buildPromptBlockCard(
     int index,
     String blockDef,
-    List<Map<String, dynamic>> matrices,
+    List<Map<String, dynamic>> promptBlocks,
   ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -328,12 +393,12 @@ class _TaskBlueprintBuilderViewState
             Expanded(
               child: DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
-                  labelText: 'Prompt Block (Matrix)',
+                  labelText: 'Prompt Block',
                 ),
                 initialValue:
-                    matrices.any((m) => m['id'] == blockDef) ? blockDef : null,
+                    promptBlocks.any((m) => m['id'] == blockDef) ? blockDef : null,
                 items:
-                    matrices.map((m) {
+                    promptBlocks.map((m) {
                       return DropdownMenuItem(
                         value: m['id'] as String,
                         child: Text(SafeCast.safeString(m['id'])),
@@ -342,10 +407,10 @@ class _TaskBlueprintBuilderViewState
                 onChanged: (val) {
                   setState(() {
                     final blocks = SafeCast.safeList(
-                      _editableBlueprint['prompt_blocks'],
+                      _editableStep['prompt_blocks'],
                     );
                     blocks[index] = val;
-                    _editableBlueprint['prompt_blocks'] = blocks;
+                    _editableStep['prompt_blocks'] = blocks;
                   });
                 },
               ),
@@ -355,7 +420,7 @@ class _TaskBlueprintBuilderViewState
               onPressed: () {
                 setState(() {
                   SafeCast.safeList(
-                    _editableBlueprint['prompt_blocks'],
+                    _editableStep['prompt_blocks'],
                   ).removeAt(index);
                 });
               },

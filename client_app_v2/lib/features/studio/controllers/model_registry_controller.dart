@@ -10,6 +10,12 @@ final modelRegistryControllerProvider =
       ModelRegistryController.new,
     );
 
+/// Fetches the list of available models from the backend.
+final availableModelsProvider = FutureProvider<List<String>>((ref) async {
+  final client = ref.read(studioClientProvider);
+  return client.getAvailableModels();
+});
+
 // --- Controllers ---
 
 /// Controller managing the Model Registry strictly using `Map<String, dynamic>`.

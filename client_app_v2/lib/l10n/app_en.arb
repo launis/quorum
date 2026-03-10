@@ -243,6 +243,7 @@
   "deleteOrganization": "Delete Organization",
   "errorDeleteBlockedByExecutions": "Cannot delete: Item has active executions.",
   "errorDeleteBlockedByMatrix": "Cannot delete: Observation is bound to a PromptBlock.",
+  "errorResourceInUse": "Cannot delete: Record is still in use.",
   "save": "Save",
   "orgNameLabel": "Organization Name",
   "orgTierLabel": "Tier",

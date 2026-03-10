@@ -18,10 +18,10 @@ final workflowsControllerProvider =
       WorkflowsController.new,
     );
 
-/// Manages the state of all Studio TaskBlueprints.
-final taskBlueprintsControllerProvider =
-    AsyncNotifierProvider<TaskBlueprintsController, List<Map<String, dynamic>>>(
-      TaskBlueprintsController.new,
+/// Manages the state of all Studio Steps.
+final stepsControllerProvider =
+    AsyncNotifierProvider<StepsController, List<Map<String, dynamic>>>(
+      StepsController.new,
     );
 
 // --- Controllers ---
@@ -199,33 +199,33 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
   }
 }
 
-/// Controller managing Studio Task Blueprints strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Steps strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
-class TaskBlueprintsController
+class StepsController
     extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
-    return _fetchTaskBlueprints();
+    return _fetchSteps();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchTaskBlueprints() async {
+  Future<List<Map<String, dynamic>>> _fetchSteps() async {
     final client = ref.read(studioClientProvider);
-    return client.getTaskBlueprints();
+    return client.getSteps();
   }
 
-  /// Refreshes the task blueprints list from the backend.
+  /// Refreshes the steps list from the backend.
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     try {
-      final newBlueprints = await _fetchTaskBlueprints();
-      state = AsyncValue.data(newBlueprints);
+      final newSteps = await _fetchSteps();
+      state = AsyncValue.data(newSteps);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
   }
 
-  /// Saves a task blueprint utilizing Optimistic Updates.
-  Future<void> saveTaskBlueprint(
+  /// Saves a step utilizing Optimistic Updates.
+  Future<void> saveStep(
     String id,
     Map<String, dynamic> payload,
   ) async {
@@ -236,11 +236,11 @@ class TaskBlueprintsController
       final currentList = List<Map<String, dynamic>>.from(state.value!);
       final index = currentList.indexWhere((m) => m['id'] == id);
 
-      final updatedBlueprint = {...payload, 'id': id};
+      final updatedStep = {...payload, 'id': id};
       if (index >= 0) {
-        currentList[index] = updatedBlueprint;
+        currentList[index] = updatedStep;
       } else {
-        currentList.add(updatedBlueprint);
+        currentList.add(updatedStep);
       }
       state = AsyncValue.data(currentList);
     }
@@ -248,14 +248,14 @@ class TaskBlueprintsController
     try {
       // 2. Network Call (Append-Only)
       final client = ref.read(studioClientProvider);
-      final verifiedBlueprint = await client.saveTaskBlueprint(id, payload);
+      final verifiedStep = await client.saveStep(id, payload);
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
         final currentList = List<Map<String, dynamic>>.from(state.value!);
         final index = currentList.indexWhere((m) => m['id'] == id);
         if (index >= 0) {
-          currentList[index] = verifiedBlueprint;
+          currentList[index] = verifiedStep;
           state = AsyncValue.data(currentList);
         }
       }
@@ -265,15 +265,15 @@ class TaskBlueprintsController
       if (e is DioException && e.error is AppError) {
         throw e.error!;
       }
-      throw Exception('Failed to save task blueprint: $e');
+      throw Exception('Failed to save step: $e');
     }
   }
 
-  /// Deletes a task blueprint. Throwing AppError on orphan rejection
-  Future<void> deleteTaskBlueprint(String id) async {
+  /// Deletes a step. Throwing AppError on orphan rejection
+  Future<void> deleteStep(String id) async {
     try {
       final client = ref.read(studioClientProvider);
-      await client.deleteTaskBlueprint(id);
+      await client.deleteStep(id);
 
       if (state.hasValue && state.value != null) {
         final currentList = List<Map<String, dynamic>>.from(state.value!);
@@ -284,7 +284,7 @@ class TaskBlueprintsController
       if (e is DioException && e.error is AppError) {
         throw e.error!;
       }
-      throw Exception('Failed to delete task blueprint: $e');
+      throw Exception('Failed to delete step: $e');
     }
   }
 }

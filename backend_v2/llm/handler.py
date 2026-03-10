@@ -5,7 +5,6 @@ import os
 from typing import Any
 
 import openai
-from tinydb import Query
 
 from backend_v2.exceptions import ConfigurationError, ErrorCodes, ServiceUnavailableError
 from backend_v2.llm.provider import LLMFactory
@@ -55,15 +54,6 @@ class LLMHandler:
             repo (Any): The AbstractWorkflowRepository instance (injected via dependencies.py).
         """
         self.repo = repo
-        # Extract underlying tinydb instance for system_config access
-        # (TODO: Move system_config logic fully into AbstractWorkflowRepository in the future)
-        self.db_client = getattr(repo, "_db", None)
-        if not self.db_client:
-             raise ConfigurationError(
-                message="LLMHandler could not extract db_client from repository. Ensure repository is a TinyDBWorkflowRepository.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
-             )
-
         self._cached_google_models: list[str] = []
         self._cached_openai_models: list[str] = []
 
@@ -275,26 +265,20 @@ class LLMHandler:
 
         return models
 
-    def get_active_model_registry(self) -> dict[str, Any]:
+    async def get_active_model_registry(self) -> dict[str, Any]:
         """Fetches the 'global_model_registry' from the 'system_config' table in the database.
 
         Returns:
             Dict[str, Any]: configuration mapping.
         """
         try:
-            table = self.db_client.table("system_config")
-
-            Result = Query()
-            results = table.search(Result.type == "model_registry")
-
-            if results:
-                return dict(results[0].get("models", {}))
-            return {}
+            res = await self.repo.get_model_registry()
+            return dict(res.get("models", {}))
         except Exception as e:
             logger.error(f"Failed to get registry: {e}")
             return {}
 
-    def get_model_config(self, provider: str, mode: str) -> dict[str, Any] | None:
+    async def get_model_config(self, provider: str, mode: str) -> dict[str, Any] | None:
         """Retrieves a specific model configuration for a provider/mode.
 
         Args:
@@ -305,7 +289,7 @@ class LLMHandler:
             Optional[Dict[str, Any]]: Configuration dictionary if found, else None.
 
         """
-        registry = self.get_active_model_registry()
+        registry = await self.get_active_model_registry()
 
         # Try nested structure first (new schema)
         config = None
@@ -334,7 +318,7 @@ class LLMHandler:
 
         """
         settings = get_settings()
-        config = self.get_model_config(provider, mode)
+        config = await self.get_model_config(provider, mode)
 
         if not config:
             raise ValueError(f"STRICT CONFIG ERROR: No configuration found for strategy '{provider}/{mode}' ")
