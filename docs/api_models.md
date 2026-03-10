@@ -2,6 +2,9 @@
 
 This document details the strict **Pydantic V2** data models used throughout the Cognitive Quorum system. All data exchange is strictly typed (`ConfigDict(strict=True, extra="ignore")`) to ensure hallucination-free execution and proper integration with the Server-Driven UI (SDUI) architecture.
 
+> [!NOTE] 
+> This document provides specific schema details, but all architectural rules must still follow the Single Sources of Truth as defined in `GEMINI.md` and `AGENTS.md`.
+
 ---
 
 ## 🟢 Core Infrastructure Models (`backend_v2.models.v2_core`)

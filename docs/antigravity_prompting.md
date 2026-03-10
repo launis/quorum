@@ -20,7 +20,7 @@ Valitse tarpeeseesi sopiva ohjeistuslohko tekstin sisältä ja kopioi se kokonai
 Goal: [KIRJOITA TAVOITE. Esim: "Suunnittele ja toteuta uusi raportointimoduuli ja UI"]
 
 ROLE: Principal Solutions Architect (2026 Context - Phase 9 Hardening).
-REFERENCE: `@docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md` & `@docs/flutterpromptohje.md` (Read first. Absolute law).
+REFERENCE: `GEMINI.md` or `AGENTS.md` (Read first. Absolute law).
 
 INSTRUCTIONS (LEVEL 1):
 1. READ: Do NOT write code yet. Familiarize yourself with the architectural laws.
@@ -39,7 +39,7 @@ INSTRUCTIONS (LEVEL 1):
 Goal: Execute the approved `implementation_plan.md` step-by-step.
 
 ROLE: Lead Developer (2026 Context - Phase 9 Hardening).
-REFERENCE: `@docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md` & `@docs/flutterpromptohje.md`.
+REFERENCE: `GEMINI.md` or `AGENTS.md`.
 
 INSTRUCTIONS (LEVEL 2):
 1. ISOLATION: Execute the plan ATOMICALLY. Work on one single Milestone/Step at a time.
@@ -63,7 +63,7 @@ INSTRUCTIONS (LEVEL 3A):
 1. PLAN: Read related files. Create a quick execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files.
 2. FAIL-FAST: State where `AppException` will be raised if data is missing. Do not use fallbacks.
 3. UI/UX: Output localized keys only via the API. Do not hardcode frontend strings.
-4. EXECUTE & PAUSE: Present the root cause or execution plan, get confirmation ("LUPA MYÖNNETTY"), and write the code adhering strictly to `@docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md` and `@docs/flutterpromptohje.md`.
+4. EXECUTE & PAUSE: Present the root cause or execution plan, get confirmation ("LUPA MYÖNNETTY"), and write the code adhering strictly to the Single Source of Truth rules defined in `GEMINI.md` or `AGENTS.md`.
 >>>>```
 
 #### 3B. BUG HUNTING & ROOT CAUSE ANALYSIS (Virheiden selvitys)
@@ -83,7 +83,7 @@ Goal: Audit the newly written files: [KIRJOITA TIEDOSTOT DAAKERILLE, esim. /back
 
 ROLE: Ruthless Code Reviewer (2026 Context).
 INSTRUCTIONS (LEVEL 3C):
-1. Review the provided targets aggressively against `@docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md` and `@docs/flutterpromptohje.md` (Part 18).
+1. Review the provided targets aggressively against the Single Source of Truth architecture rules linked in `GEMINI.md` or `AGENTS.md`.
 2. Look strictly for: `try-except pass` blocks, silent `{}` returns masking data errors, naked `ValueError` raises, implicit domain defaults (like `score = 0.0`), and hardcoded localization strings in the backend.
 3. REPORT: If ANY critical violation is discovered, refuse to pass the code. Fix them immediately using strict best practices.
 ```
@@ -123,8 +123,8 @@ Modifying `backend/seed/seed_data.json` autonomously is STRICTLY BLOCKED without
    - Explicit Scope: Only modify `TARGET` files. Treat `CONTEXT` files as Read-Only.
 
 2. ARCHITECTURAL BANS & MANDATORY VERIFICATION (Non-Negotiable - Enforced by Strict Mandates):
-   - You MUST adhere to `docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md`, `docs/STRICT MANDATES & ARCHITECTURE PRINCIPLES.md` and `docs/STRICT FRONTEND MANDATES & ARCHITECTURE PRINCIPLES.md`.
-   - AI VERIFICATION MANDATE: You (the AI assistant) MUST actively verify your compliance with `docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md` on EVERY task. Before writing any code, you MUST explicitly state that the V2 Architecture has been taken into account and briefly explain how your proposed solution complies with its core tenets (e.g., Pydantic schemas, Zero-Deploy logic, SDUI, Riverpod state).
+   - You MUST adhere to the Single Sources of Truth defined in `GEMINI.md` or `AGENTS.md`.
+   - AI VERIFICATION MANDATE: You (the AI assistant) MUST actively verify your compliance with the V2 Architecture on EVERY task. Before writing any code, you MUST explicitly state that the V2 Architecture has been taken into account and briefly explain how your proposed solution complies with its core tenets (e.g., Pydantic schemas, Zero-Deploy logic, SDUI, Riverpod state).
    - Backend: NO `try-except pass`. NO raw `dict` returns (Strict Pydantic V2 only). NO legacy `Depends` (Use `Annotated`). NO business logic in Routers. NO `HTTPException` (Use `AppException` & RFC 7807). No default values in domain models unless logically strictly necessary.
    - Frontend: Käytetään Riverpod 3.0 koodigenerointia (`@riverpod`) ja `Freezed`-malleja API/Domain datalle kehitysnopeuden javakauden vuoksi. Datan hallinta pidetään pienenä ja ytimekkäänä. Kaikki asynkroninen tieto on piirrettävä käyttöliittymään noudattaen formaalia mallia. Routing MUST use `GoRouteData`. NO manual `if(isLoading)` checks (Use `.when()`). NO `Future.wait` monoliths for State.
    - L10N (No-String Policy): Backend MUST return Enum Keys (e.g., `AUTH_ORGANIC`). Raw UI strings are BANNED in Python APIs. Translations live exclusively in Frontend `.arb` files executing ICU formats. No manual string concatenation.

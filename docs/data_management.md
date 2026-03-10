@@ -5,6 +5,8 @@ The engine is **data-driven**: logic definitions are stored in JSON (the "Mind")
 > [!IMPORTANT]
 > **Enterprise V2 Standard (Strict Pydantic V2 & Zero-Deploy)**
 > All internal state management MUST use **Pydantic V2 Models**. Dictionary passing (`dict[str, Any]`) is strictly forbidden for inter-component communication. Järjestelmä siirtää kaiken kognitiivisen liiketoimintalogiikan, datareitityksen, arvioinnin kalibroinnin ja käyttöliittymän piirtosäännöt tietokantaan (Zero-Deploy).
+> 
+> *Tekoälyn säännöstöt ja Single Source of Truth (SSOT) on keskitetty ohjaustiedostoihin:* **`GEMINI.md`** *sekä* **`AGENTS.md`**.
 
 ---
 
