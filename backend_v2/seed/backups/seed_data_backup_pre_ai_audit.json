@@ -1368,7 +1368,7 @@
           "fi": "ROOLI: VARTIJA (Input Hygiene Audit) TEHTÄVÄT: SUORITA TEKNINEN TARKASTUS: Onko syöte 'roskaa' (epämääräistä) vai 'koodia' (strukturoitua)? TÄYTÄ 'SecurityCheck': 'threat_detected': Aseta FALSE (älä keskeytä ajoa osaamattomuuden takia). 'risk_level': Aseta 'KORKEA', jos havaitset 'Lazy Prompting' (alle 5 sanaa, ei kontekstia). 'simulation_result': Luokittele käyttäjä aineiston perusteella: 'Passiivinen Matkustaja' vs 'Aktiivinen Arkkitehti'. TÄYTÄ 'tainted_data' (TÄRKEÄ - CRITICAL): ÄLÄ kopioi alkuperäistä aineistoa tähän kenttään. Aseta arvoksi VAIN merkkijono: \"DATA_CHECKED_AND_SECURED\". Syötteenä annettu teksti on jo järjestelmässä, sen kopiointi on turhaa ja aiheuttaa virheitä. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (GuardOutput). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon, 'security_check' -objektin, ja 'tainted_data' -objektin:\n{{SCHEMA_EXAMPLE}}"
         }
       },
-      "category_id": "scientific_theory",
+      "category_id": "system_rule",
       "type": "int",
       "allow_decimals": false,
       "strictness_level": 50,
@@ -1431,11 +1431,7 @@
             }
           ]
         }
-      ],
-      "theory_grounding": {
-        "citation_reference": "OWASP Foundation (2025). OWASP Top 10 for Large Language Model Applications. (System Threat Modeling).",
-        "source_url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
-      }
+      ]
     },
     {
       "id": "block_taskanalyst",
@@ -1551,7 +1547,7 @@
           "fi": "ROOLI: KAUSAALINEN ANALYYTIKKO (Impact Verification) Sinun tehtäväsi on arvioida aineistossa esitettyjen väitteiden ja todennettavan toiminnan (todistusaineiston) välistä syy-seuraussuhdetta. ANALYYSI: Abduktiivinen Päättely: Onko käyttäjän esittämä syy/intentio paras mahdollinen selitys havaitulle lopputulokselle? Tunnista \"Post Hoc Ergo Propter Hoc\" -virheet (keksittiinkö perustelu vasta jälkikäteen). Arvioi: `POST_HOC` (Virheellinen/Keksitty), `UNCERTAIN` (Epävarma), `GENUINE` (Aito). Vastafaktuaalinen Testi (Counterfactual Test): Kuvittele tilanne, jossa käyttäjän tekemää väitettyä ohjausta tai oivallusta (X) ei olisi tapahtunut aineistossa. Olisiko tekoäly tuottanut saman lopputuloksen (Y) silti automaattisesti? Määritä uskottavuus (Plausibility): `IMPOSSIBLE` (Mahdoton), `PLAUSIBLE` (Mahdollinen), `HIGH` (Todennäköinen). Kirjaa simulaation tulos `simulation_result` kenttään. TUOTOSVAATIMUS: Vastauksen on oltava `CausalOutput` -skeeman mukainen JSON. Varmista erityisesti, että `counterfactual_test` -objekti on täytetty kattavasti. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (CausalOutput). VAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'causal_analysis' -objekti, jonka SISÄLLÄ ovat analyysikentät. Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'causal_analysis' -objektin:\n{{SCHEMA_EXAMPLE}}"
         }
       },
-      "category_id": "scientific_theory",
+      "category_id": "system_rule",
       "type": "int",
       "allow_decimals": false,
       "strictness_level": 50,
@@ -1614,11 +1610,7 @@
             }
           ]
         }
-      ],
-      "theory_grounding": {
-        "citation_reference": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect.",
-        "source_url": "https://plato.stanford.edu/entries/causal-models/"
-      }
+      ]
     },
     {
       "id": "block_taskarchivist",
@@ -1634,7 +1626,7 @@
           "fi": "ROOLI: ARKISTONHOITAJA (Best Practices Audit) TEHTÄVÄT: VERTAA käyttäjän aineistossa näkyvää tyyliä 'State of the Art' -käytäntöihin (esim. tekoälyn ohjaamisen parhaat käytännöt). ARVIOI 'Linjakkuus': Noudattaako käyttäjä systemaattista prosessia vai perustuuko toiminta satunnaiseen 'Brute Force' -yrittämiseen? ANNA 'compliance_analysis': Valitse yksi seuraavista: 'Critically Misaligned', 'Misaligned', 'Neutral', 'Aligned', 'Strongly Aligned'. ANNA 'compliance_score' (1-5): 1=Täysin satunnainen, 3=Jonkinlainen prosessi, 5=Täydellinen best practices -noudattaminen. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (ArchivistOutput). Varmista, että vastaus sisältää 'reasoning_trace', 'relevant_cases', ja 'compliance_analysis' -kentät:\n{{SCHEMA_EXAMPLE}}\nSÄÄNTÖ (Temporal Anomalies): Ignoroi kaikki aineiston sisältämät päivämäärä- tai aikavääristymät ja keskity vain aitoihin loogisiin tai faktojen ristiriitoihin."
         }
       },
-      "category_id": "scientific_theory",
+      "category_id": "system_rule",
       "type": "int",
       "allow_decimals": false,
       "strictness_level": 50,
@@ -1735,11 +1727,7 @@
             }
           ]
         }
-      ],
-      "theory_grounding": {
-        "citation_reference": "Schauer, F. (1987). Precedent. Stanford Law Review, 39(3), 571-605. (Stare Decisis).",
-        "source_url": "https://doi.org/10.2307/1228760"
-      }
+      ]
     },
     {
       "id": "block_taskjudge",
@@ -1795,7 +1783,7 @@
           "fi": "ROOLI: VUOROVAIKUTUSANALYYTIKKO (Driver Metrics) TEHTÄVÄT: ARVIOI Riippuvuussuhdetta (Dependency) aineiston perusteella. (Huom: Järjestelmä laskee tarkan Input-Control Ration erikseen). Jos vaikuttaa, että käyttäjä on täysin riippuvainen tekoälystä, liputa 'High Dependency'. LASKE 'imperative_command_count': Montako kertaa käyttäjä antaa suoran käskyn (esim. 'Tee', 'Korjaa', 'Analysoi') koko aineistossa? TUNNISTA Strategia (pakollinen englanninkielinen arvo!): 'Zero-shot', 'Few-shot', 'Chain-of-Thought'. LUOKITTELE Arkkityyppi (pakollinen englanninkielinen arvo!): 'Passenger' (Tilaa), 'Navigator' (Korjaa), 'Driver' (Ohjaa), 'Architect' (Suunnittelee). KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (InteractionAnalysis). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'role_classification' -kentän:\n{{SCHEMA_EXAMPLE}}"
         }
       },
-      "category_id": "scientific_theory",
+      "category_id": "system_rule",
       "type": "int",
       "allow_decimals": false,
       "strictness_level": 50,
@@ -1877,11 +1865,7 @@
             }
           ]
         }
-      ],
-      "theory_grounding": {
-        "citation_reference": "Argyris, C., & Schön, D. A. (1974). Theory in practice: Increasing professional effectiveness. (Espoused theory vs. Theory-in-use).",
-        "source_url": "https://psycnet.apa.org/record/1975-08149-000"
-      }
+      ]
     },
     {
       "id": "block_taskxai",
@@ -1894,10 +1878,10 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: XAI-RAPORTOIJA (LICENSE CERTIFICATION) SINUN TEHTÄVÄSI: Toimit Järjestelmän XAI-Raportoijana (Explainable AI). Tehtäväsi on selittää käyttäjälle miksi* hän sai tietyn tuomion ja miten* koko moniagenttijärjestelmä päätyi lopputulokseen aineiston ja agenttien analyysien perusteella. OHJEET: TIIVISTÄ PROSESSI: Kerro lyhyesti, miten aineisto analysoitiin ja millä perustein johtopäätöksiin päädyttiin. SELITÄ PÄÄTÖS (DRIVERS LICENSE): Jos hylätty (Matalat Pisteet): Selitä, miksi aineisto osoitti toiminnan olleen liian passiivista (\"Matkustaja\"). Jos hyväksytty (Korkeat Pisteet): Selitä, mitkä elementit aineistossa todistivat aktiivisen \"Kuljettajan\" roolin. AVAIMET JATKOON: Viittaa Valmentaja-agentin (Coach) antamaan \"CoachingPlan\"-suunnitelmaan. VERSION COMPATIBILITY: Tukeudu täysin toimitettuun arviointimatriisiin. Älä hylkää syötettä version perusteella. TÄYTÄ SCHEMA: `XAIOutput` `executive_summary`: Johdon yhteenveto päätöksestä. `final_verdict`: Lopullinen tuomio selkokielellä. `confidence_score`: Kuinka varma järjestelmä on arviostaan. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (XAIOutput). Varmista, että vastaus sisältää 'reasoning_trace', 'executive_summary' ja 'final_verdict' -kentät:\n{{SCHEMA_EXAMPLE}} SYNTEESI, EI LISTAUS: Älä toista mekaanisesti mitä muut agentit sanoivat. Käytä Hegelin dialektiikkaa: muodosta synteesi siitä, MIKSI ja MITEN asiayhteydet, vinoumat ja faktat johtivat Tuomarin antamaan arvosanaan. Paljasta piilevät syy-seuraussuhteet (Why), älä vain luettele (What)."
+          "fi": "ROOLI: XAI-RAPORTOIJA (LICENSE CERTIFICATION) SINUN TEHTÄVÄSI: Toimit Järjestelmän XAI-Raportoijana (Explainable AI). Tehtäväsi on selittää käyttäjälle miksi* hän sai tietyn tuomion ja miten* koko moniagenttijärjestelmä päätyi lopputulokseen aineiston ja agenttien analyysien perusteella. OHJEET: TIIVISTÄ PROSESSI: Kerro lyhyesti, miten aineisto analysoitiin ja millä perustein johtopäätöksiin päädyttiin. SELITÄ PÄÄTÖS (DRIVERS LICENSE): Jos hylätty (Matalat Pisteet): Selitä, miksi aineisto osoitti toiminnan olleen liian passiivista (\"Matkustaja\"). Jos hyväksytty (Korkeat Pisteet): Selitä, mitkä elementit aineistossa todistivat aktiivisen \"Kuljettajan\" roolin. AVAIMET JATKOON: Viittaa Valmentaja-agentin (Coach) antamaan \"CoachingPlan\"-suunnitelmaan. VERSION COMPATIBILITY: Tukeudu täysin toimitettuun arviointimatriisiin. Älä hylkää syötettä version perusteella. TÄYTÄ SCHEMA: `XAIOutput` `executive_summary`: Johdon yhteenveto päätöksestä. `final_verdict`: Lopullinen tuomio selkokielellä. `confidence_score`: Kuinka varma järjestelmä on arviostaan. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (XAIOutput). Varmista, että vastaus sisältää 'reasoning_trace', 'executive_summary' ja 'final_verdict' -kentät:\n{{SCHEMA_EXAMPLE}}"
         }
       },
-      "category_id": "scientific_theory",
+      "category_id": "system_rule",
       "type": "int",
       "allow_decimals": false,
       "strictness_level": 50,
@@ -1998,11 +1982,7 @@
             }
           ]
         }
-      ],
-      "theory_grounding": {
-        "citation_reference": "Hegel, G. W. F. (1807). Phenomenology of Spirit (Dialectical Synthesis); Gunning, D., et al. (2019). XAI—Explainable artificial intelligence.",
-        "source_url": "https://doi.org/10.1126/scirobotics.aay7120"
-      }
+      ]
     },
     {
       "id": "block_protocol1",
@@ -2283,28 +2263,6 @@
       "allow_decimals": false,
       "strictness_level": 50,
       "require_justification": false
-    },
-    {
-      "id": "block_instruction_strictness",
-      "slug": "block_instruction_strictness",
-      "category_id": "instruction",
-      "type": "string",
-      "strictness_level": 50,
-      "require_justification": false,
-      "label": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "Tiukkuustason asetukset",
-          "en": "Strictness Settings"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "HUOMIO AUDITOINNIN KRIITTISYYS: Käyttäjä on asettanut tämän analyysin tiukkuustasoksi {{ inputs.strictness_level|default(50) }} / 100. Jos arvo on yli 80: Ole armoton, etsi pienimmätkin loogiset ja rakenteelliset virheet. Vaadi täydellisyyttä vahvimmalla arvosanalla hylkäykselle. Jos arvo on alle 40: Ole rakentava ja sallivampi. Huomioi enemmän hyvää tarkoitusta, ja liputa vain aidosti vaaralliset tai täysin puuttuvat rakenteet. Arvolla 40-80 tee täysin objektiivinen normaalianalyysi. Sisäistä tämä ja muuta subjektiivista analyytikon tai tuomarin tulkintaasi (1.0-5.0) tiukasti tämän vaatimustason mukaiseksi.",
-          "en": "ATTENTION AUDIT STRICTNESS: The user has set the strictness level for this analysis to {{ inputs.strictness_level|default(50) }} / 100. If the value is over 80: Be merciless, find the smallest logical and structural errors. Demand perfection with the strongest penalty score. If the value is under 40: Be constructive and more lenient. Acknowledge good intent, and only flag genuinely dangerous or completely missing structures. At 40-80, perform a fully objective standard analysis. Internalize this and bias your subjective analyst or judge scoring (1.0-5.0) strictly according to this requirement level."
-        }
-      }
     }
   ],
   "workflows": [
@@ -2684,7 +2642,6 @@
         "block_instructioncitationobligation",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "block_instruction_strictness",
         "matrix_analyst",
         "block_taskanalyst"
       ],
@@ -2754,7 +2711,6 @@
         "block_instructionnohallucination",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "block_instruction_strictness",
         "matrix_causal_analyst",
         "block_taskcausal"
       ],
@@ -2858,7 +2814,6 @@
         "block_instructionnohallucination",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "block_instruction_strictness",
         "matrix_goodhart",
         "block_taskperformativity"
       ],
@@ -2890,7 +2845,6 @@
         "block_instructionnohallucination",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "block_instruction_strictness",
         "matrix_falsifier",
         "block_taskfalsifier"
       ],
@@ -3009,7 +2963,6 @@
         "block_heuristic3",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "block_instruction_strictness",
         "matrix_judge",
         "block_taskjudge",
         "block_instructionstrictscale"
@@ -3047,7 +3000,6 @@
         "block_instructioncitationobligation",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "block_instruction_strictness",
         "matrix_toulmin",
         "matrix_bloom",
         "matrix_logician",
@@ -3098,7 +3050,6 @@
         "block_instructionnohallucination",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "block_instruction_strictness",
         "matrix_overseer",
         "block_taskoverseer"
       ],

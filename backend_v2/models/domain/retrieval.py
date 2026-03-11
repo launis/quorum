@@ -1,50 +1,44 @@
 """Retrieval Agent Domain Models.
 
-This module contains the schemas for the Retrieval Agent (RAG),
-including Precedent and ContextData.
+This module contains the schemas for the Retrieval Agent, focusing on facts extracted from sources.
 """
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
+from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 class RetrievalInput(BaseModel):
     """Strict input schema for RetrievalAgent."""
 
-    organization_id: str = Field(
+    history_text: str | None = Field(None, description="Chat history or prior context.")
+    product_text: str | None = Field(None, description="Reference text/documents to retrieve from.")
+    
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+class RetrievedFact(BaseModel):
+    """A single fact extracted from the material."""
+
+    id: str = Field(..., description="Fact ID.")
+    fact_statement: str = Field(
         ...,
-        description="The organization ID to retrieve precedents for.",
-        json_schema_extra={"x-ui-label": "Organization ID"},
+        description="The retrieved fact.",
+        json_schema_extra={"x-ui-label": "Fact Statement"},
     )
-    query: str | None = Field(
-        default=None,
-        description="Optional query to filter knowledge base items.",
-        json_schema_extra={"x-ui-label": "Search Query"},
+    source_quote: str = Field(
+        ...,
+        description="Exact quote from the source material.",
+        json_schema_extra={"x-ui-label": "Source Quote"},
     )
-    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    relevance_score: int = Field(
+        ...,
+        description="Relevance to the objective (1-5).",
+        json_schema_extra={"x-ui-label": "Relevance"},
+        ge=1,
+        le=5
+    )
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=False)
 
-    @field_validator("organization_id")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
-            raise ValueError("Organization ID cannot be empty.")
-        return v.strip()
-
-
-class Precedent(BaseModel):
-    """A past case/execution retrieved by RetrievalAgent."""
-
-    id: str
-    date: str
-    scores: str
-    verdict: str
-
-    model_config = ConfigDict(frozen=True, strict=True)
-
-    @field_validator("id", "date", "scores", "verdict")
+    @field_validator("id", "fact_statement", "source_quote")
     @classmethod
     def validate_non_empty(cls, v: str | None) -> str | None:
         if v is None:
@@ -53,59 +47,30 @@ class Precedent(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
+class RetrievalDTO(ReasoningTraceDTO):
+    """Retrieval DTO (Content Only)."""
 
-class KnowledgeItem(BaseModel):
-    """A single item retrieved from the Knowledge Base."""
-
-    id: str
-    type: str = Field(..., description="concept, reference, or claim")
-    term: str
-    definition: str
-    source: str
-    score: float | None = Field(None, description="Relevance score (if available)")
-
-    model_config = ConfigDict(frozen=True, strict=True)
-
-    @field_validator("id", "type", "term", "definition", "source")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
-
-
-from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
-
-
-class ContextDataDTO(ReasoningTraceDTO):
-    """Data Transfer Object for ContextData (Content Only)."""
-
-    precedents: str = Field(..., description="Summary text of precedents.")
-    precedent_list: list[Precedent] = Field(default_factory=list, description="Structured list of precedents.")
-    knowledge_items: list[KnowledgeItem] = Field(
-        default_factory=list,
-        description="Structured list of knowledge items.",
-        json_schema_extra={"reader_mode": "hidden"},
+    retrieved_facts: list[RetrievedFact] = Field(
+        ...,
+        description="List of facts retrieved.",
+        json_schema_extra={"x-ui-label": "Retrieved Facts"},
     )
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    key_takeaways: str = Field(
+        ...,
+        description="High-level summary of the retrieved information.",
+        json_schema_extra={"x-ui-label": "Key Takeaways"}
+    )
+    
+    model_config = ConfigDict(frozen=True, strict=False)
 
+    @field_validator("retrieved_facts")
+    @classmethod
+    def validate_facts_not_empty(cls, v: list[RetrievedFact]) -> list[RetrievedFact]:
+        if not v:
+            raise ValueError("Retrieval output must contain at least one fact.")
+        return v
 
-class ContextData(ContextDataDTO, ReasoningTrace):
+class RetrievalOutput(RetrievalDTO, ReasoningTrace):
     """Output schema for the Retrieval Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=True)
-
-    @field_validator("precedents")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        # Precedents summary might be legitimately empty if nothing found?
-        # But schema says ... (required).
-        # Let's enforce non-empty if it's a required field describing retrieval.
-        if not v or not v.strip():
-            # If retrieval found nothing, it should probably say "No precedents found."
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=False)

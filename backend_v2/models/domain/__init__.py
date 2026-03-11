@@ -93,7 +93,7 @@ from backend_v2.models.domain.performativity import (
     PreMortemAnalysis,
 )
 from backend_v2.models.domain.profiler import ProfilerDTO, ProfilerInput, ProfilerOutput, TextMetrics
-from backend_v2.models.domain.retrieval import ContextData, Precedent, RetrievalInput
+from backend_v2.models.domain.retrieval import ContextData, Precedent, RetrievalInput, RetrievalOutput, RetrievedFact, RetrievalDTO
 from backend_v2.models.domain.xai import (
     ReportResult,
     XAIOutput,
@@ -128,6 +128,7 @@ DOMAIN_REGISTRY = {
     "SearchResult": SearchResult,
     # Inputs
     "RetrievalInput": RetrievalInput,
+    "RetrievalOutput": RetrievalOutput,
     "InteractionInput": InteractionInput,
     "CoachInput": CoachInput,
     "XAIReporterInput": XAIReporterInput,
@@ -217,6 +218,9 @@ __all__ = [
     "PanelOutputDTO",
     "DOMAIN_REGISTRY",
     "RetrievalInput",
+    "RetrievalOutput",
+    "RetrievedFact",
+    "RetrievalDTO",
     "InteractionInput",
     "CoachInput",
     "XAIReporterInput",
