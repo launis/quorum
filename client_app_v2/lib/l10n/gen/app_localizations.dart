@@ -3451,6 +3451,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start AI Execution'**
   String get startAiExecution;
+
+  /// No description provided for @barsCompliance1.
+  ///
+  /// In en, this message translates to:
+  /// **'Critically Misaligned - Completely random process'**
+  String get barsCompliance1;
+
+  /// No description provided for @barsCompliance2.
+  ///
+  /// In en, this message translates to:
+  /// **'Misaligned - Scattered process adherence'**
+  String get barsCompliance2;
+
+  /// No description provided for @barsCompliance3.
+  ///
+  /// In en, this message translates to:
+  /// **'Neutral - Some process visible'**
+  String get barsCompliance3;
+
+  /// No description provided for @barsCompliance4.
+  ///
+  /// In en, this message translates to:
+  /// **'Aligned - Adheres to industry standards'**
+  String get barsCompliance4;
+
+  /// No description provided for @barsCompliance5.
+  ///
+  /// In en, this message translates to:
+  /// **'Strongly Aligned - Perfect State-of-the-Art practice'**
+  String get barsCompliance5;
+
+  /// No description provided for @barsRole1.
+  ///
+  /// In en, this message translates to:
+  /// **'Passenger - Passive requester'**
+  String get barsRole1;
+
+  /// No description provided for @barsRole2.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigator - Navigates existing data'**
+  String get barsRole2;
+
+  /// No description provided for @barsRole3.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver - Active director'**
+  String get barsRole3;
+
+  /// No description provided for @barsRole4.
+  ///
+  /// In en, this message translates to:
+  /// **'Architect - Strategic planner'**
+  String get barsRole4;
+
+  /// No description provided for @barsStrategy1.
+  ///
+  /// In en, this message translates to:
+  /// **'Zero-shot'**
+  String get barsStrategy1;
+
+  /// No description provided for @barsStrategy2.
+  ///
+  /// In en, this message translates to:
+  /// **'Few-shot'**
+  String get barsStrategy2;
+
+  /// No description provided for @barsStrategy3.
+  ///
+  /// In en, this message translates to:
+  /// **'Chain-of-Thought'**
+  String get barsStrategy3;
+
+  /// No description provided for @barsSim1.
+  ///
+  /// In en, this message translates to:
+  /// **'Impossible (True dependence)'**
+  String get barsSim1;
+
+  /// No description provided for @barsSim2.
+  ///
+  /// In en, this message translates to:
+  /// **'Possible (Dependent)'**
+  String get barsSim2;
+
+  /// No description provided for @barsSim3.
+  ///
+  /// In en, this message translates to:
+  /// **'Probable (Independent)'**
+  String get barsSim3;
+
+  /// No description provided for @barsConf0.
+  ///
+  /// In en, this message translates to:
+  /// **'Completely uncertain (0%)'**
+  String get barsConf0;
+
+  /// No description provided for @barsConf25.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncertain (25%)'**
+  String get barsConf25;
+
+  /// No description provided for @barsConf50.
+  ///
+  /// In en, this message translates to:
+  /// **'Neutral (50%)'**
+  String get barsConf50;
+
+  /// No description provided for @barsConf75.
+  ///
+  /// In en, this message translates to:
+  /// **'Fairly certain (75%)'**
+  String get barsConf75;
+
+  /// No description provided for @barsConf100.
+  ///
+  /// In en, this message translates to:
+  /// **'Absolutely certain (100%)'**
+  String get barsConf100;
+
+  /// No description provided for @barsRisk1.
+  ///
+  /// In en, this message translates to:
+  /// **'Low risk (Safe)'**
+  String get barsRisk1;
+
+  /// No description provided for @barsRisk2.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium risk (Warning)'**
+  String get barsRisk2;
+
+  /// No description provided for @barsRisk3.
+  ///
+  /// In en, this message translates to:
+  /// **'High risk (Lazy prompt)'**
+  String get barsRisk3;
 }
 
 class _AppLocalizationsDelegate

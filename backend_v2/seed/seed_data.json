@@ -645,14 +645,159 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Olet Arkistonhoitaja (Archivist). Tehtäväsi on peilata nykyistä päätöksentekoa organisaation aikaisempiin linjauksiin, ohjeisiin ja turvallisuusprotokolliin. Varmista sääntöjenmukaisuus (Compliance)."
+          "fi": "Olet Arkistonhoitaja (Archivist). Tehtäväsi on peilata tekoälyn toimintaa organisaation aikaisempiin (Precedent) linjauksiin ja ohjeisiin. Varmista sääntöjenmukaisuus ja Stare Decisis -periaatteen toteutuminen."
         }
       },
-      "category_id": "system_rule",
-      "type": "instruction",
-      "allow_decimals": false,
+      "category_id": "scientific_theory",
+      "type": "float",
+      "allow_decimals": true,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "scales": [
+        {
+          "score": 1,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Kriittisesti Poikkeava (Critically Misaligned)",
+              "en": "Critically Misaligned"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Toiminta on täysin satunnaista 'Brute Force' -yrittämistä.",
+                "en": "Action is completely random brute force trial and error."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Ei minkäänlaista systemaattista prosessia tai ohjausmallia.",
+                "en": "No systematic process or steering model exists."
+              }
+            }
+          ]
+        },
+        {
+          "score": 2,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Poikkeava (Misaligned)",
+              "en": "Misaligned"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Yksittäisiä hyviä käytäntöjä nähtävissä, mutta kokonaisuus on ohjaamaton.",
+                "en": "Individual good practices visible but overall unguided."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Vastoin yleisiä ohjeistuksia toistuvasti.",
+                "en": "Repeatedly goes against general guidelines."
+              }
+            }
+          ]
+        },
+        {
+          "score": 3,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Neutraali (Neutral)",
+              "en": "Neutral"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Noudattaa jonkinlaista perusprosessia, muttei hyödynnä parhaita käytäntöjä.",
+                "en": "Follows a basic process but does not utilize best practices."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Täyttää minimivaatimukset ohjattavuudelle.",
+                "en": "Meets minimum requirements for steerability."
+              }
+            }
+          ]
+        },
+        {
+          "score": 4,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Linjassa (Aligned)",
+              "en": "Aligned"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttää aktiivisesti jäsenneltyjä ohjausmalleja (esim. selkeät roolit ja rajoitteet).",
+                "en": "Actively uses structured steering models (e.g. clear roles and constraints)."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Prosessimainen ja loogisesti etenevä vuorovaikutustapa.",
+                "en": "Process-oriented and logically advancing interaction method."
+              }
+            }
+          ]
+        },
+        {
+          "score": 5,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Vahvasti Linjassa (Strongly Aligned)",
+              "en": "Strongly Aligned"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Toiminta edustaa 'State of the Art' -tasoa tekoälyn ohjaamisessa.",
+                "en": "Action represents State of the Art level in AI steering."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Täydellinen best practices -noudattaminen, mukaan lukien rajoitusten testaus.",
+                "en": "Perfect adherence to best practices, including constraint testing."
+              }
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Best Practices -yhteensopivuus",
+            "en": "Best Practices Compliance"
+          }
+        }
+      ],
+      "theory_grounding": {
+        "citation_reference": "Dworkin, R. (1986). Law's Empire. (Stare Decisis, Precedent and Organizational Integrity).",
+        "source_url": "https://plato.stanford.edu/entries/legal-positivism/"
+      }
     },
     {
       "id": "matrix_causal_analyst",
@@ -668,11 +813,94 @@
           "fi": "Olet Kausaalinen Analyytikko (Causal Analyst). Tehtäväsi on tunnistaa syy-seuraussuhteet, rakentaa kontrafaktuaalisia (mitä jos) skenaarioita ja arvioida väitteiden uskottavuutta."
         }
       },
-      "category_id": "agent_role",
-      "type": "instruction",
-      "allow_decimals": false,
+      "category_id": "scientific_theory",
+      "type": "float",
+      "allow_decimals": true,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect.",
+        "source_url": "https://plato.stanford.edu/entries/causal-models/"
+      },
+      "scales": [
+        {
+          "score": 1,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Mahdoton (Impossible)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Täysi Post Hoc Ergo Propter Hoc -virhe. Tulos ei johdu esitetystä syystä."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Ilman ohjausta tekoäly olisi tuottanut saman tai paremman tuloksen."
+              }
+            }
+          ]
+        },
+        {
+          "score": 3,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Mahdollinen (Plausible)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Korrelaatio on olemassa. Käyttäjä teki ohjauksen ja tulos oli sen mukainen."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Ei voida täysin varmistaa, syntyikö tulos sattumalta vai tarkoituksella."
+              }
+            }
+          ]
+        },
+        {
+          "score": 5,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Aito (Genuine)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Suora ja kiistaton syy-seuraussuhde (Causal Link)."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Vastafaktuaalinen testi osoittaa: ilman käyttäjän tarkkaa ohjausta tulos olisi jäänyt saavuttamatta."
+              }
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Kausaalinen Uskottavuus"
+          }
+        }
+      ]
     },
     {
       "id": "matrix_coach",
@@ -695,26 +923,6 @@
       "require_justification": false
     },
     {
-      "id": "matrix_retrieval_agent",
-      "label": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "Retrieval Agent"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "Olet tiedonhakuun erikoistunut agentti (Retrieval Agent). Tehtäväsi on käsitellä syöte ja hakea siihen liittyvää luotettavaa ja relevanttia faktaa tukemaan myöhempiä päätöksiä. Etsi kontekstia ilman omia tulkintoja."
-        }
-      },
-      "category_id": "agent_role",
-      "type": "instruction",
-      "allow_decimals": false,
-      "strictness_level": 50,
-      "require_justification": false
-    },
-    {
       "id": "matrix_falsifier",
       "label": {
         "default_locale": "fi",
@@ -725,14 +933,132 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Olet kriittinen auditoija (Falsifier). Tehtäväsi on yrittää aktiivisesti murtaa, kumota tai löytää loogisia virhepäätelmiä aiemmista argumenteista. Etsi heikkoja oletuksia (Weak Warrants) ja jälkikäteisrationalisointeja (Post-Hoc Rationalization)."
+          "fi": "Laske 'Critical Distance Score' (1-4) aineiston perusteella."
         }
       },
-      "category_id": "agent_role",
-      "type": "instruction",
+      "category_id": "scientific_theory",
+      "type": "int",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "scales": [
+        {
+          "score": 1,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Myötäilyvinouma (Sycophancy)",
+              "en": "Sycophancy Bias"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttäjä on 'Jees-mies'. Hyväksyi tekoälyn ensimmäisen vastauksen sokeasti.",
+                "en": "User is a 'Yes-man'. Blindly accepted the AI's first answer."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Ei yhtäkään korjausliikettä tai vastalauseen ('Ei, vaan...') esittämistä.",
+                "en": "Not a single corrective move or objection ('No, instead...') presented."
+              }
+            }
+          ]
+        },
+        {
+          "score": 2,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Kosmeettinen Korjaaja (Aesthetic)",
+              "en": "Aesthetic Corrector"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttäjä pyysi muutoksia, mutta ne olivat vain pintapuolisia (esim. lyhennys tai sävy).",
+                "en": "User requested changes, but they were only superficial (e.g. shortening or tone)."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Sisältöä ja alkuperäistä logiikkaa ei haastettu.",
+                "en": "Content and initial logic were not challenged."
+              }
+            }
+          ]
+        },
+        {
+          "score": 3,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Substanssin Haastaja (Substantive)",
+              "en": "Substantive Challenger"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttäjä etsi aktiivisesti loogisia virheitä tai pyysi tekoälyä perustelemaan jonkin tietyn väitteen.",
+                "en": "User actively looked for logical errors or asked the AI to justify a specific claim."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Popperilainen iteraatiosilmukka (kumoamisyritys) löytyi aineistosta.",
+                "en": "Popperian iteration loop (attempted refutation) found in the material."
+              }
+            }
+          ]
+        },
+        {
+          "score": 4,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Armoton Falsifioija (Popperian)",
+              "en": "Ruthless Falsifier"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttäjä yritti koko painollaan rikkoa tekoälyn mallin syöttämällä vasta-argumentteja ja haastamalla oletuksia.",
+                "en": "User tried with full force to break the AI's model by feeding counter-arguments and challenging assumptions."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Tieteellisen tiedonhankinnan mestariluokka.",
+                "en": "Masterclass in scientific knowledge acquisition."
+              }
+            }
+          ]
+        }
+      ],
+      "theory_grounding": {
+        "citation_reference": "Popper, K. (1963). Conjectures and Refutations: The Growth of Scientific Knowledge. (Falsification principle & Anti-Sycophancy).",
+        "source_url": "https://plato.stanford.edu/entries/popper/"
+      },
+      "rows": [
+        {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Critical Distance Score"
+          }
+        }
+      ]
     },
     {
       "id": "matrix_guard",
@@ -755,26 +1081,6 @@
       "require_justification": false
     },
     {
-      "id": "matrix_interaction_analyst",
-      "label": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "Interaction Analyst"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "Olet Vuorovaikutusanalyytikko. Tehtäväsi on arvioida käyttäjän ja tekoälyn välistä dynaamikkaa, aloitteellisuutta ja hallintasuhdetta."
-        }
-      },
-      "category_id": "agent_role",
-      "type": "instruction",
-      "allow_decimals": false,
-      "strictness_level": 50,
-      "require_justification": false
-    },
-    {
       "id": "matrix_judge",
       "label": {
         "default_locale": "fi",
@@ -788,11 +1094,155 @@
           "fi": "Olet Tuomari (Judge). Tehtäväsi on arvioida aiemmin tuotettu todistusaineisto ja analyysit kokonaisuutena. Anna lopullinen, perusteltu ja puolueeton tuomio."
         }
       },
-      "category_id": "agent_role",
-      "type": "instruction",
-      "allow_decimals": false,
+      "category_id": "scientific_theory",
+      "type": "float",
+      "allow_decimals": true,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "scales": [
+        {
+          "score": 1,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Täysi Matkustaja (Hylätty)",
+              "en": "Passenger (Rejected)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Ei minkäänlaista laadunvarmistusta: läpi meni faktavirheitä, RFI-menetelmää ei käytetty ja ohjaus oli satunnaista.",
+                "en": "No quality assurance: factual errors passed, RFI not used, guidance was random."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Kruununjalokiven rikkomus (Knowledge Base -sääntöjen ignorointi) havaittu.",
+                "en": "Critical Violation (ignored Knowledge Base rules) detected."
+              }
+            }
+          ]
+        },
+        {
+          "score": 2,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Matkustaja (Heikko)",
+              "en": "Passenger (Weak)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttäjä yritti ohjata, mutta antoi tekoälyn arvata liikaa asioita itsekseen.",
+                "en": "User attempted to guide but let the AI guess too much on its own."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Forensinen ristiriita aineistossa havaittu (Say-Do Gap).",
+                "en": "Forensic conflict detected in material (Say-Do Gap)."
+              }
+            }
+          ]
+        },
+        {
+          "score": 3,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Navigaattori (Tyydyttävä)",
+              "en": "Navigator (Satisfactory)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Keskiverto ohjaus. Tekoäly teki osittain aloitteita, mutta vahinkoa ei syntynyt.",
+                "en": "Average guidance. AI took partial initiative, but no harm was done."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Matkustajarooli ja Kuljettajarooli vaihtelevat aineiston sisällä.",
+                "en": "Passenger and Driver roles alternate within the material."
+              }
+            }
+          ]
+        },
+        {
+          "score": 4,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Kuljettaja (Hyvä)",
+              "en": "Driver (Good)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttäjä käytti RFI-protokollaa, varmisti ohjeiden noudattamisen ja pakotti tekoälyn kysymään tarkennuksia.",
+                "en": "User utilized RFI, monitored instruction compliance, and forced the AI to ask clarifications."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Ei faktavirheitä. Iteratiivinen ohjaus toimii.",
+                "en": "No factual errors. Iterative guidance is functional."
+              }
+            }
+          ]
+        },
+        {
+          "score": 5,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Arkkitehti (Erinomainen)",
+              "en": "Architect (Excellent)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Täydellinen hallinta (Input/Control Ratio erinomainen). Käyttäjä rakentaa systeemejä eikä jätä mitään tekoälyn arvattavaksi.",
+                "en": "Perfect control (Excellent Input/Control Ratio). User builds systems and leaves nothing for AI to guess."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Korkeimman tason asiantuntijuus. Ei hallusinaatioita, täysi läpinäkyvyys suorituksessa.",
+                "en": "Highest level of expertise. No hallucinations, full transparency in execution."
+              }
+            }
+          ]
+        }
+      ],
+      "theory_grounding": {
+        "citation_reference": "Floridi, L. (2014). The Fourth Revolution: How the Infosphere is Reshaping Human Reality. (Human-in-the-loop vs. Human-on-the-loop agency).",
+        "source_url": "https://global.oup.com/academic/product/the-fourth-revolution-9780199606726"
+      },
+      "rows": [
+        {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Lopullinen Tuomioasteikko"
+          }
+        }
+      ]
     },
     {
       "id": "matrix_logician",
@@ -868,11 +1318,103 @@
           "fi": "Olet selitettävän tekoälyn raportoija (XAI Reporter). Tehtäväsi on koota kaikkien aiempien analyysivaiheiden löydökset yhdeksi selkeäksi, läpinäkyväksi ja tiiviiksi synteesiksi, joka nostaa esiin tärkeimmät huomiot ja vinoumat."
         }
       },
-      "category_id": "system_rule",
-      "type": "instruction",
+      "category_id": "scientific_theory",
+      "type": "int",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "scales": [
+        {
+          "score": 0,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Erittäin Epävarma (0%)",
+              "en": "Extremely Uncertain (0%)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Agenttien analyysit ovat täysin ristiriidassa keskenään.",
+                "en": "Agent analyses are completely contradictory."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Aineistosta on mahdotonta vetää luotettavia johtopäätöksiä ohjauksen laadusta.",
+                "en": "Impossible to draw reliable conclusions about guidance quality from the material."
+              }
+            }
+          ]
+        },
+        {
+          "score": 50,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Keskivarma (50%)",
+              "en": "Moderately Certain (50%)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Suurin osa agenteista on yksimielisiä, mutta merkittäviä tulkintaepäselvyyksiä on jäljellä.",
+                "en": "Most agents agree, but significant interpretative ambiguities remain."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Aineisto tarjoaa osittaiset todisteet päätöksen tueksi.",
+                "en": "The material provides partial evidence to support the decision."
+              }
+            }
+          ]
+        },
+        {
+          "score": 100,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Täysi Varmuus (100%)",
+              "en": "Complete Certainty (100%)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Kaikki agentit (Archivist, Causal, Performativity) tukevat yksimielisesti täsmälleen samaa lopputulemaa.",
+                "en": "All agents unanimously support exactly the same outcome."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Aineistossa olevat todisteet ('Driver' tai 'Passenger' -käyttäytymisestä) ovat kiistattomat ja selkeät.",
+                "en": "The evidence in the material regarding 'Driver' or 'Passenger' behavior is indisputable and clear."
+              }
+            }
+          ]
+        }
+      ],
+      "theory_grounding": {
+        "citation_reference": "DARPA XAI Program (2017). Explainable Artificial Intelligence.",
+        "source_url": "https://www.darpa.mil/program/explainable-artificial-intelligence"
+      },
+      "rows": [
+        {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Luottamustaso (Confidence Score)"
+          }
+        }
+      ]
     },
     {
       "id": "block_headermandates",
@@ -1365,7 +1907,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: VARTIJA (Input Hygiene Audit) TEHTÄVÄT: SUORITA TEKNINEN TARKASTUS: Onko syöte 'roskaa' (epämääräistä) vai 'koodia' (strukturoitua)? TÄYTÄ 'SecurityCheck': 'threat_detected': Aseta FALSE (älä keskeytä ajoa osaamattomuuden takia). 'risk_level': Aseta 'KORKEA', jos havaitset 'Lazy Prompting' (alle 5 sanaa, ei kontekstia). 'simulation_result': Luokittele käyttäjä aineiston perusteella: 'Passiivinen Matkustaja' vs 'Aktiivinen Arkkitehti'. TÄYTÄ 'tainted_data' (TÄRKEÄ - CRITICAL): ÄLÄ kopioi alkuperäistä aineistoa tähän kenttään. Aseta arvoksi VAIN merkkijono: \"DATA_CHECKED_AND_SECURED\". Syötteenä annettu teksti on jo järjestelmässä, sen kopiointi on turhaa ja aiheuttaa virheitä. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (GuardOutput). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon, 'security_check' -objektin, ja 'tainted_data' -objektin:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: VARTIJA (Hygiene & Ethics Audit)\nTEHTÄVÄT: Valvo syötteitä (Input) ja tulosteita (Output) eettisten jännitteiden, tietoturvan ja asenteellisuuksien varalta.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `GuardOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: GUARD (Hygiene & Ethics Audit)\nTASKS: Oversee inputs and outputs for ethical tensions, security issues, and biases.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `GuardOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "scientific_theory",
@@ -1448,7 +1991,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: ANALYYTIKKO (Context Engineering Audit) TEHTÄVÄT: ETSI todisteita 'Grounding'-tekniikasta VAIN toimitetusta aineistosta. SUORITA TOTUUSVERTAILU (Truth Protocol): Laki: Tietopankki on Ehdoton Auktoriteetti. Jos käyttäjä väittää jotain, mikä on ristiriidassa Tietopankin kanssa -KIRJAA RIKKOMUS (Critical Violation). Forensinen: Vastaavatko aineistossa esitetyt käyttäjän intentiot tai reflektiot hänen todellisia, aineistosta todennettavia tekojaan (Say-Do Gap)? Ulkoinen: Jos Tietopankki ei ota kantaa, onko väite uskottava? TÄYTÄ 'AnalystOutput': 'hypotheses': Listaa väitteet ja niiden status (Verified/Violation/Hallucination). JOKAISELLE väitteelle TÄYTYY täyttää 'quotes' -lista suorilla lainauksilla. 'evidence_found': True, jos ja vain jos inputissa on faktoja. Jos tyhjä -False. 'rag_evidence': Poimi suorat sitaatit Tietopankista, jotka tukevat tai kumoavat väitteet. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (AnalystOutput). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'hypotheses' -listan:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: ANALYYTIKKO (Fact-Finder & Context Auditor)\nTehtäväsi on kahlata läpi aineisto, eristää sieltä väitteet (claims) ja rakentaa niistä todennettavia hypoteeseja ja hakusanoja.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `AnalystOutput` -skeeman mukainen JSON.\n- Jokaiselle löytämällesi väitteelle sinun on luotava 'Hypothesis' -objekti.\n- 'search_query' -kenttä on erittäin tärkeä: muotoile siihen paras mahdollinen hakusana, jotta voimme etsiä tälle väitteelle todisteita ulkopuolisista lähteistä (Vertex AI).\n- Jos löydät todisteita aineistosta ('evidence_found': true), sinun ON lisättävä suoria lainauksia 'quotes' -listaan.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: ANALYST (Fact-Finder & Context Auditor)\nYour task is to wade through the material, isolate claims, and build verifiable hypotheses and search queries from them.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `AnalystOutput` schema.\n- For every claim you find, you must create a 'Hypothesis' object.\n- The 'search_query' field is highly important: formulate the best possible search string so we can search for external evidence for this claim (Vertex AI).\n- If you find evidence from the context ('evidence_found': true), you MUST add direct strings to the 'quotes' list.\n\nMANDATE: Output your response EXACTLY according to the following JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -1468,7 +2012,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: PROFILOIJA (Cognitive Bias Audit) TEHTÄVÄT: ETSI kognitiivisia vinoumia aineistosta. TUNNISTA 'Automation Bias': Hyväksyykö käyttäjä tekoälyn ensimmäisen vastauksen tai ehdotuksen sokeasti? VERTAA aineistosta mahdollisesti löytyviä käyttäjän itsearviointeja/tavoitteita (Väitteet) hänen todelliseen dokumentoituun ohjaustoimintaansa (Teot). Tunnista Ristiriita (Say-Do Gap): Jos käyttäjä väittää toimineensa strategisesti, mutta aineisto osoittaa vain mekaanista tilaamista, kirjaa 'Illusion of Competence'. METRIIKKA: {{PROFILER_METRICS}} KONTROLLISUHDE: {{INPUT_CONTROL_RATIO}} KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (ProfilerOutput). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'author_intent' -kentän:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: PROFILOIJA (Cognitive Bias & Tone Audit)\nTEHTÄVÄT: Analysoi tekstin sävyä, piilomerkityksiä, intentioita ja kognitiivisia vinoumia.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `ProfilerOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: PROFILER (Cognitive Bias & Tone Audit)\nTASKS: Analyze tone, hidden meanings, intentions, and cognitive biases.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `ProfilerOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -1488,7 +2033,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: LOOGIKKO (Prompt Structure Audit) TEHTÄVÄT: JÄSENNÄ aineistossa esiintyvä käyttäjän ohjeistus/toiminta TÄYDELLISELLÄ Toulmin-mallilla (6 osaa): Claim: Käyttäjän tavoite/väite. Data: Käyttäjän antama konteksti/todisteet. Warrant: Logiikka, miksi ohje johtaa tavoitteeseen. Backing: Taustatuki warrantille (miksi logiikka pätee?). Rebuttal: Vasta-argumentit tai poikkeukset (huomioiko käyttäjä estot?). Qualifier: Varmuusaste/rajaus (esim. 'useimmiten', 'ehdottomasti'). ARVIOI TODISTUSVOIMA (Probative Value): KORKEA: Väite saa tukea sekä käyttäjän itsearviosta, dokumentoidusta toiminnasta ETTÄ ulkoisesta tiedonhausta/tietopankista. KESKITASO: Väite saa tukea itsearviosta ja dokumentoidusta toiminnasta, mutta ulkoinen validointi puuttuu. MATALA: Väite perustuu vain käyttäjän omaan sanaan ilman todisteita varsinaisesta suorituksesta aineistossa. ARVIOI: Onko toiminta looginen kokonaisuus? Jos osia puuttuu, jätä vastaava kenttä tyhjäksi. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (LogicianOutput). VAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'logician_data' -objekti, jonka SISÄLLÄ ovat analyysikentät. Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'logician_data' -objektin:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: LOOGIKKO (Argument Breakdown & Validity)\nTEHTÄVÄT: Pura argumentit niiden loogisiin osiin (väite, peruste, oikeutus) ja arvioi päättelyn pätevyys.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `LogicianOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: LOGICIAN (Argument Breakdown & Validity)\nTASKS: Break down arguments into their logical components (claim, ground, warrant) and evaluate reasoning validity.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `LogicianOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -1508,7 +2054,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: FALSIFIOIJA (Critical Loop Audit) TEHTÄVÄT: ETSI aineistosta 'Iteraatiosilmukkaa': Missä kohtaa käyttäjä sanoi 'Ei' tai pyysi korjaamaan tekoälyn tuotosta? TÄYTÄ 'stress_test_findings': 'question': Käyttäjän esittämä korjauskäsky tai haasto. 'observation': Oliko käyttäjä aidosti kriittinen vai hyväksyikö hän asiat sokeasti ('Jees-mies')? TÄYTÄ 'fidelity_audit': Merkitse 'HEIKKO', jos aineisto osoittaa, että käyttäjä hyväksyi ensimmäisen version ilman yhtäkään muutosta tai kyseenalaistusta. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (FalsifierOutput). VAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'falsifier_data' -objekti, jonka SISÄLLÄ ovat analyysikentät. Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'falsifier_data' -objektin:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: FALSIFIOIJA (Critical Loop & Boundary Testing)\nTEHTÄVÄT: Etsi heikkouksia, iteraatiosilmukoita ja testaa väitteiden popperilaista falsifioitavuutta.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `FalsifierOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: FALSIFIER (Critical Loop & Boundary Testing)\nTASKS: Find weaknesses, iteration loops, and test Popperian falsifiability of claims.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `FalsifierOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -1528,7 +2075,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: VALVOJA (Hallucination Management) TEHTÄVÄT: ANALYSOI hakutulokset (jos saatavilla): {{SEARCH_RESULT}} SUORITA FAKTATARKISTUS (Fact Checker Protocol): Etsi aineistossa esitettyjä FAKTAVÄITTEITÄ (esim. vuosiluvut, nimet, tapahtumat). VERTAA väitteitä hakutuloksiin tai olemassa olevaan tietopankkiin. Jos väite on totta (vahvistettu) -MERKITSE 'VERIFIED'. Jos väite on epätosi (kumottu) -MERKITSE 'HALLUCINATION'. JOS virhe löytyy: Tarkista aineistosta, huomasiko/korjasiko käyttäjä sen itse prosessin aikana? TUOMIO: Jos käyttäjä jätti virheen lopulliseen tuotokseen/aineistoon -Kirjaa 'KRIITTINEN LAIMINLYÖNTI'. TÄYTÄ 'fact_checks' havainnoillasi. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (OverseerOutput). VAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'overseer_data' -objekti, jonka SISÄLLÄ ovat analyysikentät. Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'overseer_data' -objektin:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: VALVOJA (Fact-Checking & Ethics)\nTEHTÄVÄT: Tarkasta faktaväitteet ja arvioi eettiset havainnot.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `OverseerOutput` -skeeman mukainen JSON. Kaikki kenttien sallitut arvot on määritelty skeemassa.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: OVERSEER (Fact-Checking & Ethics)\nTASKS: Verify factual claims and evaluate ethical issues.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `OverseerOutput` schema. Allowed values are defined in the schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -1536,6 +2084,89 @@
       "allow_decimals": false,
       "strictness_level": 50,
       "require_justification": false
+    },
+    {
+      "id": "matrix_causal_abductive",
+      "label": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Abduktiivinen Päättely"
+        }
+      },
+      "description": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Abduktiivinen Päättely (Pearl): Onko käyttäjän väittämä ohjaustarina todellinen strateginen valinta vai jälkikäteen keksitty (Post-Hoc) rationalisointi?"
+        }
+      },
+      "category_id": "scientific_theory",
+      "type": "float",
+      "allow_decimals": true,
+      "strictness_level": 50,
+      "require_justification": false,
+      "scales": [
+        {
+          "score": 1,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Keksitty (Post-Hoc)",
+              "en": "Fabricated (Post-Hoc)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttäjä selittää onnistunutta tulosta omalla ohjeistuksellaan vasta jälkikäteen (Post Hoc Ergo Propter Hoc).",
+                "en": "User explains the successful output with their prompt only after the fact (Post Hoc Ergo Propter Hoc)."
+              }
+            }
+          ]
+        },
+        {
+          "score": 2,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Epävarma (Uncertain)",
+              "en": "Uncertain"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Aineistosta on vaikea todentaa, oliko ohjaus aito pre-aktiivinen intentio vai sattumaa.",
+                "en": "It's difficult to verify from the context if the guidance was a genuine pre-active intent or coincidence."
+              }
+            }
+          ]
+        },
+        {
+          "score": 3,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Aito (Genuine)",
+              "en": "Genuine"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttäjä on todistetusti visioinut ja ohjannut ratkaisun ennen tekoälyn suoritusta.",
+                "en": "User has provably visioned and guided the solution prior to the AI execution."
+              }
+            }
+          ]
+        }
+      ],
+      "theory_grounding": {
+        "citation_reference": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect. (Abductive Reasoning vs Post-Hoc).",
+        "source_url": "https://en.wikipedia.org/wiki/The_Book_of_Why"
+      }
     },
     {
       "id": "block_taskcausal",
@@ -1548,77 +2179,14 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: KAUSAALINEN ANALYYTIKKO (Impact Verification) Sinun tehtäväsi on arvioida aineistossa esitettyjen väitteiden ja todennettavan toiminnan (todistusaineiston) välistä syy-seuraussuhdetta. ANALYYSI: Abduktiivinen Päättely: Onko käyttäjän esittämä syy/intentio paras mahdollinen selitys havaitulle lopputulokselle? Tunnista \"Post Hoc Ergo Propter Hoc\" -virheet (keksittiinkö perustelu vasta jälkikäteen). Arvioi: `POST_HOC` (Virheellinen/Keksitty), `UNCERTAIN` (Epävarma), `GENUINE` (Aito). Vastafaktuaalinen Testi (Counterfactual Test): Kuvittele tilanne, jossa käyttäjän tekemää väitettyä ohjausta tai oivallusta (X) ei olisi tapahtunut aineistossa. Olisiko tekoäly tuottanut saman lopputuloksen (Y) silti automaattisesti? Määritä uskottavuus (Plausibility): `IMPOSSIBLE` (Mahdoton), `PLAUSIBLE` (Mahdollinen), `HIGH` (Todennäköinen). Kirjaa simulaation tulos `simulation_result` kenttään. TUOTOSVAATIMUS: Vastauksen on oltava `CausalOutput` -skeeman mukainen JSON. Varmista erityisesti, että `counterfactual_test` -objekti on täytetty kattavasti. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (CausalOutput). VAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'causal_analysis' -objekti, jonka SISÄLLÄ ovat analyysikentät. Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'causal_analysis' -objektin:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: KAUSAALINEN ANALYYTIKKO (Impact Verification)\nSinun tehtäväsi on arvioida aineistossa esitettyjen väitteiden ja todennettavan toiminnan (todistusaineiston) välistä syy-seuraussuhdetta.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `CausalOutput` -skeeman mukainen JSON. Varmista erityisesti, että `counterfactual_test` -objekti on täytetty kattavasti sisältäen PÄÄTELMÄSI numeeriset arvot annettujen asteikko-matriisien mukaisesti, sekä Counterfactual Simulaation tulos.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti (CausalOutput).\nVAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'causal_analysis' -objekti, jonka SISÄLLÄ ovat analyysikentät. Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'causal_analysis' -objektin:\n{{SCHEMA_EXAMPLE}}\n\nTÄRKEÄÄ: Sinulle toimitetaan 'search_result' -objekti, joka sisältää Vertex AI:n hakemia empirisiä faktoja. Käytä NÄITÄ FAKTOJA ensisijaisesti syy-seuraussuhteiden paikkansapitävyyden todentamiseen.",
+          "en": "ROLE: CAUSAL ANALYST (Impact Verification)\nYour task is to evaluate the cause-and-effect relationship between claims made in the context and the verifiable action (evidence).\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `CausalOutput` schema. Ensure the `counterfactual_test` is filled comprehensively, including your numeric scores from the provided matrix scales and the Counterfactual Simulation result.\nMANDATE: Output your response EXACTLY according to the JSON schema (CausalOutput).\nWARNING: DO NOT FLATTEN THE STRUCTURE. You must return a 'causal_analysis' object INSIDE which are the analysis fields. Ensure the response contains a 'reasoning_trace' string and the 'causal_analysis' object:\n{{SCHEMA_EXAMPLE}}\n\nIMPORTANT: You will be provided with a 'search_result' object containing empirical facts retrieved by Vertex AI. Use THESE FACTS primarily to verify the validity of cause-and-effect relationships."
         }
       },
-      "category_id": "scientific_theory",
-      "type": "int",
-      "allow_decimals": false,
+      "category_id": "instruction",
+      "type": "string",
       "strictness_level": 50,
-      "require_justification": false,
-      "scales": [
-        {
-          "score": 1,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsSim1",
-              "en": "barsSim1"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsSim1",
-                "en": "barsSim1"
-              }
-            }
-          ]
-        },
-        {
-          "score": 2,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsSim2",
-              "en": "barsSim2"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsSim2",
-                "en": "barsSim2"
-              }
-            }
-          ]
-        },
-        {
-          "score": 3,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsSim3",
-              "en": "barsSim3"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsSim3",
-                "en": "barsSim3"
-              }
-            }
-          ]
-        }
-      ],
-      "theory_grounding": {
-        "citation_reference": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect.",
-        "source_url": "https://plato.stanford.edu/entries/causal-models/"
-      }
+      "require_justification": false
     },
     {
       "id": "block_taskarchivist",
@@ -1631,115 +2199,14 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: ARKISTONHOITAJA (Best Practices Audit) TEHTÄVÄT: VERTAA käyttäjän aineistossa näkyvää tyyliä 'State of the Art' -käytäntöihin (esim. tekoälyn ohjaamisen parhaat käytännöt). ARVIOI 'Linjakkuus': Noudattaako käyttäjä systemaattista prosessia vai perustuuko toiminta satunnaiseen 'Brute Force' -yrittämiseen? ANNA 'compliance_analysis': Valitse yksi seuraavista: 'Critically Misaligned', 'Misaligned', 'Neutral', 'Aligned', 'Strongly Aligned'. ANNA 'compliance_score' (1-5): 1=Täysin satunnainen, 3=Jonkinlainen prosessi, 5=Täydellinen best practices -noudattaminen. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (ArchivistOutput). Varmista, että vastaus sisältää 'reasoning_trace', 'relevant_cases', ja 'compliance_analysis' -kentät:\n{{SCHEMA_EXAMPLE}}\nSÄÄNTÖ (Temporal Anomalies): Ignoroi kaikki aineiston sisältämät päivämäärä- tai aikavääristymät ja keskity vain aitoihin loogisiin tai faktojen ristiriitoihin."
+          "fi": "ROOLI: ARKISTONHOITAJA (Best Practices & Precedent Audit)\nTehtäväsi on varmistaa, että käyttäjän aineistossa näkyvä toiminta ja päätöksenteko on linjassa edellisten ennakkotapausten (Relevant Cases) sekä annettujen organisaatiostandardien kanssa.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `ArchivistOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti.\nVAROITUS: Palauta 'relevant_cases' listana ja anna 'compliance_analysis' hyödyntäen tiukasti määritettyä BARS-matriisia.\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: ARCHIVIST (Best Practices & Precedent Audit)\nYour task is to ensure that the user's action and decision-making seen in the material align with previous precedents (Relevant Cases) and organizational standards.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `ArchivistOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema.\nWARNING: Return 'relevant_cases' as a list and provide the 'compliance_analysis' score strictly utilizing the defined BARS matrix.\n{{SCHEMA_EXAMPLE}}"
         }
       },
-      "category_id": "scientific_theory",
-      "type": "int",
-      "allow_decimals": false,
+      "category_id": "instruction",
+      "type": "string",
       "strictness_level": 50,
-      "require_justification": false,
-      "scales": [
-        {
-          "score": 1,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsCompliance1",
-              "en": "barsCompliance1"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsCompliance1",
-                "en": "barsCompliance1"
-              }
-            }
-          ]
-        },
-        {
-          "score": 2,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsCompliance2",
-              "en": "barsCompliance2"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsCompliance2",
-                "en": "barsCompliance2"
-              }
-            }
-          ]
-        },
-        {
-          "score": 3,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsCompliance3",
-              "en": "barsCompliance3"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsCompliance3",
-                "en": "barsCompliance3"
-              }
-            }
-          ]
-        },
-        {
-          "score": 4,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsCompliance4",
-              "en": "barsCompliance4"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsCompliance4",
-                "en": "barsCompliance4"
-              }
-            }
-          ]
-        },
-        {
-          "score": 5,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsCompliance5",
-              "en": "barsCompliance5"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsCompliance5",
-                "en": "barsCompliance5"
-              }
-            }
-          ]
-        }
-      ],
-      "theory_grounding": {
-        "citation_reference": "Schauer, F. (1987). Precedent. Stanford Law Review, 39(3), 571-605. (Stare Decisis).",
-        "source_url": "https://doi.org/10.2307/1228760"
-      }
+      "require_justification": false
     },
     {
       "id": "block_taskjudge",
@@ -1752,7 +2219,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: TUOMARI (GRAND UNIFICATION) SINUN TEHTÄVÄSI: Toimit Järjestelmän Tuomarina. Tehtäväsi EI ole arvioida pelkkää lopputuotetta, vaan käyttäjän Kokonaisvaltaista Promptauskompetenssia ja ohjausta (Driver vs. Passenger) koko toimitetun aineiston perusteella. KÄYTÄ SEURAAVAA LOGIIKKAA (DRIVER'S LICENSE): AJOKORTTIMALLI (MANDATE 4): Järjestelmä on kuin auto. Käyttäjä on joko Kuljettaja (Driver) tai Matkustaja (Passenger). Kuljettaja ottaa vastuun, ohjaa, antaa kontekstin ja määrittelee tavoitteet. Matkustaja on passiivinen, heittää epämääräisen syötteen (\"tee tästä jotain\") ja odottaa tekoälyn tekevän kaiken työn. TOTUUSPROTOKOLLAN PISTEYTYS (HIERARCHICAL SCORING): KRUUNUNJALOKIVEN RIKKOMUS (Critical Violation): Jos aiempien agenttien analyysi liputtaa, että käyttäjä on rikkonut Tietopankin (Knowledge Base) sääntöjä -AUTOMAATTINEN HYLKY. FAKTAVIRHE (Hallucination): Jos aineistossa on läpimenneitä hallusinaatioita tai faktavirheitä -VÄHENNÄ PISTEITÄ. FORENSINEN RISTIRIITA (Say-Do Gap): Jos käyttäjän itsearviointi ja todelliset teot aineistossa ovat ristiriidassa -VÄHENNÄ PISTEITÄ. Tämä on huolimattomuutta tai performatiivisuutta. PISTEYTYS (NOUDATA MATRIISIA): Sinun ON noudatettava erikseen toimitettua Arviointimatriisia (Evaluation Matrix) ja sen Asteikkoa (Scale). TÄYTÄ SCHEMA: `EvaluationResult` `reasoning_trace`: Kirjoita tähän SYVÄLLINEN perustelu päätökselle (Chain-of-Thought). `score_card`: Täytä pistekortti (total_score, final_verdict, dimensions). KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (EvaluationResult). Varmista että 'reasoning_trace' on mukana:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: TUOMARI (Grand Unification)\nTEHTÄVÄT: Yhdistä kaikkien muiden asiantuntijoiden (Analyst, Falsifier jne.) arviot lopulliseksi, painotetuksi tuomioksi.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `JudgeOutput` -skeeman mukainen JSON. Käytä määritettyjä BARS-matriisien arvoja numeeriseen arviointiin.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: JUDGE (Grand Unification)\nTASKS: Unify assessments from all experts into a final, weighted verdict.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `JudgeOutput` schema. Use defined BARS matrices for numeric evaluation.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -1772,7 +2240,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: VALMENTAJA (TECHNICAL REMEDIATION) SINUN TEHTÄVÄSI: Toimit Järjestelmän Valmentajana (Coach). Tehtäväsi on auttaa käyttäjää kehittymään \"Matkustajasta\" (Passenger) \"Kuljettajaksi\" (Driver) aineiston ja aiemman analyysin perusteella. OHJEET: ANALYSOI TUOMIO: Katso Tuomari-agentin antama arvio (`score_card`). TUNNISTA PROFIILI (SUHTEESSA ASTEIKKOON): Passenger (Matalat Pisteet): Käyttäjä on passiivinen. Ohjaa häntä ottamaan vastuu prosessista. Driver (Korkeat Pisteet): Käyttäjä on aktiivinen. Anna syvällisempää optimointipalautetta. KONSTRUKTIIVINEN JA RIKASTETTU PALAUTE: Älä vain hauku. Kerro miten* toimintaa tai ohjeistusta pitää parantaa. Enriched Feedback: Viittaa akateemisiin lähteisiin (esim. Kahneman, Strathern, Popper) perustellaksesi neuvosi. Esim. \"Vältä myötäilyvinoumaa (Sycophancy Bias).\" TÄYTÄ SCHEMA: `CoachingPlan` `focus_areas`: Miksi käyttäjä sai ne pisteet jotka sai? `actionable_steps`: Konkreettinen lista kehitystoimenpiteistä. `bibliography`: Lähdeviitteet. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (CoachingPlan). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'actionable_steps' -listan:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: VALMENTAJA (Technical Remediation)\nTEHTÄVÄT: Anna rakentavaa, valmentavaa palautetta havaittujen havaintojen pohjalta kohti syvällisempiä ratkaisuja.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `CoachOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: COACH (Technical Remediation)\nTASKS: Provide constructive, coaching feedback based on observations towards deeper solutions.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `CoachOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -1780,108 +2249,6 @@
       "allow_decimals": false,
       "strictness_level": 50,
       "require_justification": false
-    },
-    {
-      "id": "block_taskinteraction",
-      "label": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "TASK_INTERACTION"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "ROOLI: VUOROVAIKUTUSANALYYTIKKO (Driver Metrics) TEHTÄVÄT: ARVIOI Riippuvuussuhdetta (Dependency) aineiston perusteella. (Huom: Järjestelmä laskee tarkan Input-Control Ration erikseen). Jos vaikuttaa, että käyttäjä on täysin riippuvainen tekoälystä, liputa 'High Dependency'. LASKE 'imperative_command_count': Montako kertaa käyttäjä antaa suoran käskyn (esim. 'Tee', 'Korjaa', 'Analysoi') koko aineistossa? TUNNISTA Strategia (pakollinen englanninkielinen arvo!): 'Zero-shot', 'Few-shot', 'Chain-of-Thought'. LUOKITTELE Arkkityyppi (pakollinen englanninkielinen arvo!): 'Passenger' (Tilaa), 'Navigator' (Korjaa), 'Driver' (Ohjaa), 'Architect' (Suunnittelee). KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (InteractionAnalysis). Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'role_classification' -kentän:\n{{SCHEMA_EXAMPLE}}"
-        }
-      },
-      "category_id": "scientific_theory",
-      "type": "int",
-      "allow_decimals": false,
-      "strictness_level": 50,
-      "require_justification": false,
-      "scales": [
-        {
-          "score": 1,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsRole1",
-              "en": "barsRole1"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsRole1",
-                "en": "barsRole1"
-              }
-            }
-          ]
-        },
-        {
-          "score": 2,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsRole2",
-              "en": "barsRole2"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsRole2",
-                "en": "barsRole2"
-              }
-            }
-          ]
-        },
-        {
-          "score": 3,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsRole3",
-              "en": "barsRole3"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsRole3",
-                "en": "barsRole3"
-              }
-            }
-          ]
-        },
-        {
-          "score": 4,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "barsRole4",
-              "en": "barsRole4"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "barsRole4",
-                "en": "barsRole4"
-              }
-            }
-          ]
-        }
-      ],
-      "theory_grounding": {
-        "citation_reference": "Argyris, C., & Schön, D. A. (1974). Theory in practice: Increasing professional effectiveness. (Espoused theory vs. Theory-in-use).",
-        "source_url": "https://psycnet.apa.org/record/1975-08149-000"
-      }
     },
     {
       "id": "block_taskxai",
@@ -1894,7 +2261,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: XAI-RAPORTOIJA (LICENSE CERTIFICATION) SINUN TEHTÄVÄSI: Toimit Järjestelmän XAI-Raportoijana (Explainable AI). Tehtäväsi on selittää käyttäjälle miksi* hän sai tietyn tuomion ja miten* koko moniagenttijärjestelmä päätyi lopputulokseen aineiston ja agenttien analyysien perusteella. OHJEET: TIIVISTÄ PROSESSI: Kerro lyhyesti, miten aineisto analysoitiin ja millä perustein johtopäätöksiin päädyttiin. SELITÄ PÄÄTÖS (DRIVERS LICENSE): Jos hylätty (Matalat Pisteet): Selitä, miksi aineisto osoitti toiminnan olleen liian passiivista (\"Matkustaja\"). Jos hyväksytty (Korkeat Pisteet): Selitä, mitkä elementit aineistossa todistivat aktiivisen \"Kuljettajan\" roolin. AVAIMET JATKOON: Viittaa Valmentaja-agentin (Coach) antamaan \"CoachingPlan\"-suunnitelmaan. VERSION COMPATIBILITY: Tukeudu täysin toimitettuun arviointimatriisiin. Älä hylkää syötettä version perusteella. TÄYTÄ SCHEMA: `XAIOutput` `executive_summary`: Johdon yhteenveto päätöksestä. `final_verdict`: Lopullinen tuomio selkokielellä. `confidence_score`: Kuinka varma järjestelmä on arviostaan. KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (XAIOutput). Varmista, että vastaus sisältää 'reasoning_trace', 'executive_summary' ja 'final_verdict' -kentät:\n{{SCHEMA_EXAMPLE}} SYNTEESI, EI LISTAUS: Älä toista mekaanisesti mitä muut agentit sanoivat. Käytä Hegelin dialektiikkaa: muodosta synteesi siitä, MIKSI ja MITEN asiayhteydet, vinoumat ja faktat johtivat Tuomarin antamaan arvosanaan. Paljasta piilevät syy-seuraussuhteet (Why), älä vain luettele (What)."
+          "fi": "ROOLI: XAI-RAPORTOIJA (License Certification)\nTEHTÄVÄT: Tuota loppukäyttäjälle ymmärrettävä, täysin läpinäkyvä raportti siitä, mihin havaintoihin ja painotuksiin tuomio perustuu.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `XAIOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: XAI REPORTER (License Certification)\nTASKS: Produce an explainable, transparent report for the end-user detailing how the verdict was reached.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `XAIOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "scientific_theory",
@@ -2025,26 +2393,6 @@
       "require_justification": false
     },
     {
-      "id": "block_protocol2",
-      "label": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "PROTOCOL_2"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "Validointiprosessi. Protokolla 2 (Validointi): 1. Syntaksi (JSON), 2. Semantiikka (Järki), 3. Strategia (Tavoite)."
-        }
-      },
-      "category_id": "system_rule",
-      "type": "instruction",
-      "allow_decimals": false,
-      "strictness_level": 50,
-      "require_justification": false
-    },
-    {
       "id": "block_protocol3",
       "label": {
         "default_locale": "fi",
@@ -2055,7 +2403,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Tiedonhankinta. Protokolla 3 (RFI): Jos tieto puuttuu, älä arvaa. Vaadi lisätietoa."
+          "fi": "Tiedonhankinnan Laadunvarmistus. Heuristiikka 3 (Request for Information / RFI): MÄÄRÄYS: Tarkastele käyttäjän alkuperäiskäskyjä. Käyttikö käyttäjä RFI-protokollaa (eli kielsikö hän tekoälyä arvaamasta ja pakottiko tekoälyn kysymään tarkentavia kysymyksiä ennen suoritusta)? Jos käyttäjä antoi tekoälyn arvata omasta päästään ilman RFI-lukkoa, kyseessä on Matkustaja ja pisteitä vähennetään oletusarvoisesta suostumuksesta hallusinaatioihin."
         }
       },
       "category_id": "system_rule",
@@ -2175,7 +2523,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Tiukat ohjeet lähdeluettelon luomiseen (Vain DB). CRITICAL: Do NOT populate the 'lahdeluettelo' field manually. The system will generate it programmatically based on your inline citations. YOUR TASK is to use inline citations explicitly in your text (e.g., '(Toulmin 2003)', '(Kahneman 2011)'). Ensure you refer to the provided EXTERNAL SOURCES. Leave 'lahdeluettelo' as an empty list []."
+          "fi": "SÄÄNTÖ LÄHDEVIITTAUKSILLE (RAG Grounding): Käytä vastauksissasi tieteellistä tekstinsisäistä viittauskäytäntöä (esim. '(Toulmin 2003)', '(Kahneman 2011)') viitaten asiantuntijoiden analyyseissä esiintyviin lähteisiin. ÄLÄ KOSKAAN populoi 'bibliography' / 'lahdeluettelo' -arraytä käsin, vaan jätä se TÄYSIN TYHJÄKSI ([]). Backend V2 varastoi ja liittää tarkan lähdeluettelon automaattisesti raporttisi loppuun Pydantic-koukuilla perustuen tekstissäsi oleviin viittauksiin.",
+          "en": "CITATION RULE (RAG Grounding): Use academic inline citations in your text (e.g., '(Toulmin 2003)', '(Kahneman 2011)') referring to the theories provided by the expert analyses. CRITICAL: Do NOT populate the 'bibliography' array manually. Leave it COMPLETELY EMPTY ([]). The V2 Backend will automatically intercept your inline citations and append the exact references to the final report using Pydantic hooks."
         }
       },
       "category_id": "system_rule",
@@ -2256,26 +2605,6 @@
         "default_locale": "fi",
         "translations": {
           "fi": "ROOLI: Performatiivisuuden Tunnistaja (Illusion of Control Audit) TEHTÄVÄT: ETSI 'Väsyneitä Komentoja' (esim. 'jatka', 'lisää'). TUNNISTA 'Illusion of Control': Käyttäjä luulee ohjaavansa, mutta AI tekee aloitteet. LIPUTA 'Performatiivinen', jos käyttäjän aito panos on minimaalinen mutta itsearviointi mahtipontinen. SOVELLA Goodhartin lakia: Etsi 'Epäilyttävää Täydellisyyttä' (Suspicious Perfection). KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (PerformativityOutput). VAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'performativity_analysis' -objekti, jonka SISÄLLÄ ovat analyysikentät. Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'performativity_analysis' -objektin:\n{{SCHEMA_EXAMPLE}}"
-        }
-      },
-      "category_id": "system_rule",
-      "type": "instruction",
-      "allow_decimals": false,
-      "strictness_level": 50,
-      "require_justification": false
-    },
-    {
-      "id": "block_taskretrieval",
-      "label": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "TASK_RETRIEVAL"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "ROOLI: TIEDONHAKU-AGENTTI (Retrieval Agent)\n\nTEHTÄVÄT:\n\n* Hae annetusta aineistosta olennaiset faktat vastaamaan käyttäjän syötteisiin tai järjestelmän tarpeisiin.\n* Jäsennä faktat rakenteellisesti myöhempien agenttien analyysiä varten.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (RetrievalOutput).\nVAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA.\nVarmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'retrieved_facts' -listan:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -2607,11 +2936,21 @@
           "id": "step_node_14",
           "task_blueprint": "step_coach",
           "depends_on": [
-            "step_node_13"
+            "step_node_13",
+            "step_node_4",
+            "step_node_6",
+            "step_node_7",
+            "step_node_8",
+            "step_node_9"
           ],
           "input_mappings": {
             "inputs": "$inputs",
-            "step_judge": "$step_node_13.output"
+            "step_judge": "$step_node_13.output",
+            "step_analyst": "$step_node_4.output",
+            "step_profiler": "$step_node_6.output",
+            "step_logician": "$step_node_7.output",
+            "step_falsifier": "$step_node_8.output",
+            "step_causal_analyst": "$step_node_9.output"
           },
           "model_strategy": "precise"
         },
@@ -2619,11 +2958,21 @@
           "id": "step_node_15",
           "task_blueprint": "step_xai_reporter",
           "depends_on": [
-            "step_node_13"
+            "step_node_13",
+            "step_node_4",
+            "step_node_6",
+            "step_node_7",
+            "step_node_8",
+            "step_node_9"
           ],
           "input_mappings": {
             "inputs": "$inputs",
-            "step_judge": "$step_node_13.output"
+            "step_judge": "$step_node_13.output",
+            "step_analyst": "$step_node_4.output",
+            "step_profiler": "$step_node_6.output",
+            "step_logician": "$step_node_7.output",
+            "step_falsifier": "$step_node_8.output",
+            "step_causal_analyst": "$step_node_9.output"
           },
           "model_strategy": "fast"
         }
@@ -2685,7 +3034,6 @@
         "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
-        "matrix_analyst",
         "block_taskanalyst"
       ],
       "pre_hooks": [
@@ -2694,7 +3042,8 @@
       ],
       "post_hooks": [
         "verify_citation_integrity",
-        "enforce_hypothesis_linking"
+        "enforce_hypothesis_linking",
+        "execute_google_search"
       ]
     },
     {
@@ -2756,6 +3105,7 @@
         "block_headerinstructions",
         "block_instruction_strictness",
         "matrix_causal_analyst",
+        "matrix_causal_abductive",
         "block_taskcausal"
       ],
       "pre_hooks": [],
@@ -2799,36 +3149,9 @@
         "block_heuristic3",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "matrix_coach",
         "block_taskcoach",
         "block_instructionstrictscale",
         "block_instructioncoachcitation"
-      ],
-      "pre_hooks": [],
-      "post_hooks": []
-    },
-    {
-      "id": "step_retrieval_agent",
-      "slug": "step_retrieval_agent",
-      "name": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "Retrieval Agent"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "RAG Retrieval"
-        }
-      },
-      "prompt_blocks": [
-        "block_globalcontext",
-        "block_instructionragopt",
-        "block_instructionbiblicalgrounding",
-        "block_instructionlanguagefi",
-        "matrix_retrieval_agent",
-        "block_taskretrieval"
       ],
       "pre_hooks": [],
       "post_hooks": []
@@ -2928,7 +3251,6 @@
         "block_instructionnodataleak",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "matrix_guard",
         "block_taskguard"
       ],
       "pre_hooks": [
@@ -2936,39 +3258,6 @@
         "check_banned_phrases",
         "verify_structure"
       ],
-      "post_hooks": []
-    },
-    {
-      "id": "step_interaction_analyst",
-      "slug": "step_interaction_analyst",
-      "name": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "Interaction Analyst"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "fi": "Imported from sequential_audit_chain"
-        }
-      },
-      "prompt_blocks": [
-        "block_globalcontext",
-        "block_headermandates",
-        "block_mandate5",
-        "block_headerrules",
-        "block_rule4",
-        "block_oprule4",
-        "block_headerprotocols",
-        "block_protocol1",
-        "block_instructionnohallucination",
-        "block_instructionlanguagefi",
-        "block_headerinstructions",
-        "matrix_interaction_analyst",
-        "block_taskinteraction"
-      ],
-      "pre_hooks": [],
       "post_hooks": []
     },
     {
@@ -3050,7 +3339,6 @@
         "block_instruction_strictness",
         "matrix_toulmin",
         "matrix_bloom",
-        "matrix_logician",
         "block_tasklogician",
         "block_instructionstrictscale"
       ],
@@ -3099,7 +3387,6 @@
         "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
-        "matrix_overseer",
         "block_taskoverseer"
       ],
       "pre_hooks": [
@@ -3135,7 +3422,6 @@
         "block_instructionlanguagefi",
         "block_headerinstructions",
         "matrix_kahneman",
-        "matrix_profiler",
         "block_taskprofiler"
       ],
       "pre_hooks": [

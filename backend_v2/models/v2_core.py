@@ -114,7 +114,7 @@ class PromptBlock(BaseModel):
     def validate_block_consistency(self) -> PromptBlock:
         """Strict validation for PromptBlock relations and logical constraints."""
         # Fail-fast: Cannot allow decimals on non-numeric types
-        if self.allow_decimals and self.type not in ["numeric", "string"]: # string permitted for BARS format
+        if self.allow_decimals and self.type not in ["float", "int", "string"]: # string permitted for BARS format
             from backend_v2.exceptions import AppException, ErrorCodes
             raise AppException(
                 message=f"PromptBlock '{self.id}': allow_decimals is only valid for numeric logic.",

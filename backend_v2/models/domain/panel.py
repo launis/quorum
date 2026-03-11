@@ -16,7 +16,7 @@ from backend_v2.models.domain.logician import LogicianData, LogicianOutput
 from backend_v2.models.domain.overseer import OverseerData
 from backend_v2.models.domain.performativity import PerformativityAnalysis
 from backend_v2.models.domain.profiler import ProfilerOutput
-from backend_v2.models.domain.retrieval import ContextData
+from backend_v2.models.domain.retrieval import RetrievalOutput
 
 
 class PanelInput(BaseModel):
@@ -31,7 +31,7 @@ class PanelInput(BaseModel):
     # No, strict typing means we should define what we expect.
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     step_profiler: ProfilerOutput | None = Field(None, description="Profiler Analysis.")
-    step_context: ContextData | None = Field(None, description="Knowledge Context from Retriever.")
+    step_context: RetrievalOutput | None = Field(None, description="Knowledge Context from Retriever.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
     # Upstream Agent Outputs (Strict Forward References)

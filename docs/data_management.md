@@ -27,7 +27,7 @@ The Engine employs a robust bidirectional seeding mechanism to enforce the Singl
 2. **Extraction (Database to Blueprint via `migrate_to_seed.py`)**: Allows extracting runtime database modifications back into the SSOT blueprint. 
    - *Safety Feature*: Automatically creates a timestamped backup of the target file in `backend_v2/seed/backups/` before writing.
    - *Validation*: Uses `seed_validator.py` with `DeepDiff` to guarantee structural parity (nested lists like `questionnaire_definition` or `claims` are preserved identically, ignoring key-order differences caused by Pydantic serialization).
-3. **Execution Hydration (Database to Engine)**: When a workflow execution starts, the DAG Executor queries the database to fetch the necessary nodes and prompt blocks.
+3. **Execution Hydration & Universal Routing (Database to Engine)**: When a workflow starts, the DAG Executor queries the database. Pre-hooks like `input_processing.py` dynamically inject semantic intent (`ai_description`) directly into the raw data, decoupling generic agent logic from hardcoded file names.
 4. **State Persistence (Engine to Database)**: As the LLM processes the data, results (strictly validated via Pydantic) are written back to the database as `ExecutionRecords`.
 
 ---

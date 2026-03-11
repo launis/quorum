@@ -19,9 +19,10 @@ This document details the complete lifecycle of data execution in the Cognitive 
 * **Role**: The **Deterministic Processor**.
 * **Function**:
     1. **Hydration**: Loads workflows from the Service layer (SSOT: `seed_data.json`).
-    2. **Execution**: Runs `BaseAgent` implementations.
-    3. **Standardization & Python Authority**: Agents accept raw LLM outputs (DTOs) and promote them to strictly typed **Domain Models** by injecting metadata (checksums, usage, etc.) before handing them back to the Engine.
-    4. **Persistence Boundary**: The engine strictly persists these **Domain Models** into the database, never the raw LLM DTOs. If an LLM hallucinates an unexpected field in the DTO, it is silently dropped (`extra="ignore"`). If a required field is missing, it causes a Fail-Fast crash.
+    2. **Hook Execution & Universal Routing**: Pre-hooks (e.g., `input_processing.py`) intercept incoming data, injecting the User-defined `ai_description` (Semantic Intent) into the raw text payloads. This enables agnostic agents to analyze arbitrary documents without coding changes.
+    3. **Execution**: Runs `BaseAgent` implementations reading exclusively from `$inputs` and `$steps` DAG mappings.
+    4. **Standardization & Python Authority**: Agents accept raw LLM outputs (DTOs) and promote them to strictly typed **Domain Models** by injecting metadata (checksums, usage, etc.) before handing them back to the Engine. Post-hooks (e.g., `scoring.py`, `integrity.py`) mathematically apply quantitative penalties and enforce anti-hallucination checks.
+    5. **Persistence Boundary**: The engine strictly persists these **Domain Models** into the database, never the raw LLM DTOs. If an LLM hallucinates an unexpected field in the DTO, it is silently dropped (`extra="ignore"`). If a required field is missing, it causes a Fail-Fast crash.
 
 ---
 

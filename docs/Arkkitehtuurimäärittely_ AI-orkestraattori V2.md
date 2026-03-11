@@ -63,8 +63,8 @@ Tietokanta on suunniteltu Firestoren varaan tuotannossa ja lokaalin `db_v2.json`
 
 Järjestelmä ei sisällä kovakoodattua vaatimusta pelkästä "keskusteluhistoriasta". Työnkulku itse määrittelee dynaamisesti, mitä dataa tarvitaan ja mikä sen kognitiivinen rooli on.
 
-## **4.1. Odotetut syötteet (Expected Inputs)**
-`workflows`-dokumentissa on `expected_inputs`-taulukko (Esim. `{"chat_log": "file", "reflection_text": "file"}`). Käyttöliittymä lukee tämän lennosta ja piirtää vaadittujen kenttien Upload/Text-alueet.
+## **4.1. Odotetut syötteet (Expected Inputs) ja Universaali Reititys**
+`workflows`-dokumentissa on `expected_inputs`-taulukko (Esim. `{"chat_log": "file", "reflection_text": "file"}`). Käyttöliittymä lukee tämän lennosta ja piirtää vaadittujen kenttien Upload/Text-alueet. Mukaansa jokainen syöte ottaa `ai_description`-kentän (esim. "Tämä on Sitran raportti"). `input_processing.py`-hook injektoi tämän kuvauksen suoraan raakadatan yläpuolelle (Universal Routing), jolloin jokainen Pydantic-agentti ymmärtää datan kontekstin ilman, että ohjeita tarvitsee kovakoodata agenteille!
 
 ## **4.2. Routing Variables ($)**
 DAG-verkossa jokaisella askeleella (`step_node_1`) on `input_mappings`-määritys:

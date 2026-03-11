@@ -1841,4 +1841,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startAiExecution => 'Start AI Execution';
+
+  @override
+  String get barsCompliance1 =>
+      'Critically Misaligned - Completely random process';
+
+  @override
+  String get barsCompliance2 => 'Misaligned - Scattered process adherence';
+
+  @override
+  String get barsCompliance3 => 'Neutral - Some process visible';
+
+  @override
+  String get barsCompliance4 => 'Aligned - Adheres to industry standards';
+
+  @override
+  String get barsCompliance5 =>
+      'Strongly Aligned - Perfect State-of-the-Art practice';
+
+  @override
+  String get barsRole1 => 'Passenger - Passive requester';
+
+  @override
+  String get barsRole2 => 'Navigator - Navigates existing data';
+
+  @override
+  String get barsRole3 => 'Driver - Active director';
+
+  @override
+  String get barsRole4 => 'Architect - Strategic planner';
+
+  @override
+  String get barsStrategy1 => 'Zero-shot';
+
+  @override
+  String get barsStrategy2 => 'Few-shot';
+
+  @override
+  String get barsStrategy3 => 'Chain-of-Thought';
+
+  @override
+  String get barsSim1 => 'Impossible (True dependence)';
+
+  @override
+  String get barsSim2 => 'Possible (Dependent)';
+
+  @override
+  String get barsSim3 => 'Probable (Independent)';
+
+  @override
+  String get barsConf0 => 'Completely uncertain (0%)';
+
+  @override
+  String get barsConf25 => 'Uncertain (25%)';
+
+  @override
+  String get barsConf50 => 'Neutral (50%)';
+
+  @override
+  String get barsConf75 => 'Fairly certain (75%)';
+
+  @override
+  String get barsConf100 => 'Absolutely certain (100%)';
+
+  @override
+  String get barsRisk1 => 'Low risk (Safe)';
+
+  @override
+  String get barsRisk2 => 'Medium risk (Warning)';
+
+  @override
+  String get barsRisk3 => 'High risk (Lazy prompt)';
 }

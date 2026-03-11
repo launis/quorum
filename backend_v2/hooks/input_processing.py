@@ -135,6 +135,20 @@ async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
                     details={"error_code": "CHAT_PARSING_FAILED"}
                 ) from e
 
+        # 4. Injektoidaan `ai_description` suoraan raakatekstin yläpuolelle (Universal Routing)
+        lang_code = data.get("language", "fi")
+        if expected_input.ai_description and hasattr(expected_input.ai_description, "translations"):
+            desc_text = expected_input.ai_description.translations.get(lang_code, expected_input.ai_description.default_locale)
+            if desc_text:
+                logger.info(f"[InputProcessingHook] Injecting ai_description for {key}.")
+                if lang_code == "fi":
+                    header = f"--- TEKOÄLYN OHJEISTUS TÄLLE LÄHTEELLE ({key}) ---\n"
+                    footer = f"\n--- LÄHDE: {key} ---"
+                else:
+                    header = f"--- AI INSTRUCTION FOR THIS SOURCE ({key}) ---\n"
+                    footer = f"\n--- SOURCE: {key} ---"
+                resolved_text = f"{header}{desc_text}{footer}\n{resolved_text}"
+
         output_dict[key] = resolved_text.strip()
 
     output_dict["status"] = "Inputs processed deterministically (or structured via LLM if needed)."

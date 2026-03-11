@@ -22,6 +22,7 @@ class CausalInput(BaseModel):
     history_text: str | None = Field(None, description="Chat history to analyze.")
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    search_result: Any | None = Field(default=None, description="Vertex AI Grounding search results.")
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 

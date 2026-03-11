@@ -18,6 +18,7 @@ quorum/
 │   │   │   └── iam/        # Tenant mapping and identity
 │   ├── core/               # DAG Execution Engine
 │   ├── database/           # Unified Repository (Firestore)
+│   ├── hooks/              # Deterministic CPU Logic (Security, Validation, Pipeline Logic)
 │   ├── models/             # Pydantic V2 Schemas (SSOT)
 │   │   ├── execution.py    # Execution states
 │   │   └── v2_core.py      # Core Models (Workflows, Blocks, SystemConfig)

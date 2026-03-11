@@ -13,9 +13,9 @@ The system fundamentally separates "intelligence" from "muscle":
 ## 0. Key Architectural Upgrades (V2)
 * **The Strict DTO Pattern (Type Safety & "Air Gap")**: Pydantic V2 models (`ConfigDict(strict=True, extra="ignore")`) are the absolute source of truth for all data entering or leaving the system. No loose dictionaries are passed internally.
 * **Fail-Fast Protocol (RFC 7807 & Zero-Fallback)**: The system never uses `try-except pass` to silence errors or guess default values. If an entity is missing, data is malformed, or relations are violated, the Service layer immediately raises an `AppException` (Fail-Fast).
-* **Polymorphic PromptBlocks**: Legacy text components, evaluation matrices, and hooks are now unified under a single strict model (`PromptBlock`). This reduces API surface area while maximizing cognitive routing flexibility.
-* **Model Registry (Global Configs)**: Intelligence tiers (`fast`, `deep`) are decoupled from agents and stored in the database's `system_config`. Changing an underlying cloud model does not require a code deploy.
-* **Unified UI State (Freezed/Riverpod)**: The frontend embraces Dart `freezed` models and Riverpod `AsyncNotifier` for absolutely robust, immutable state management that strictly mirrors the backend API schemas.
+*   **Polymorphic PromptBlocks & Universal Routing**: Legacy text components, evaluation matrices, and hooks are now unified under a single strict model (`PromptBlock`). Furthermore, agents no longer process hardcoded file names; instead, they operate via Universal Routing, analyzing dynamic datasets enriched by an `ai_description` injected via Pre-Hooks.
+*   **Model Registry (Global Configs)**: Intelligence tiers (`fast`, `deep`) are decoupled from agents and stored in the database's `system_config`. Changing an underlying cloud model does not require a code deploy.
+*   **Unified UI State (Freezed/Riverpod)**: The frontend embraces Dart `freezed` models and Riverpod `AsyncNotifier` for absolutely robust, immutable state management that strictly mirrors the backend API schemas.
 
 ---
 
@@ -61,7 +61,7 @@ graph TD
 
 ### A. The "Spine" (Execution Engine)
 * **Role**: The deterministic runtime that loads definitions and executes steps based on the Single Source of Truth (`seed_data.json`).
-* **DAG Execution (Topological Sort)**: Workflows define dependencies between `RoutingNodes`. The DAG Executor resolves these dependencies and executes nodes sequentially or in parallel where supported.
+* **Universal Routing & DAG Execution**: Workflows define dependencies between `RoutingNodes`. The DAG Executor resolves these dependencies and executes nodes. Raw inputs (e.g., PDFs) are intercepted by the `input_processing.py` hook, which dynamically injects an `ai_description` header into the text. This allows generic agents to analyze any dataset without requiring hardcoded instructions for specific filenames.
 
 ### B. The API & Service Layers (Strict SSOT)
 * **System Routes** (`backend_v2/api/routers/*.py`): Extremely thin wrappers. They ONLY parse HTTP input, inject dependencies, and call the Service layer.

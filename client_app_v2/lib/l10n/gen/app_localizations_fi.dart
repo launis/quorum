@@ -1848,4 +1848,76 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get startAiExecution => 'Käynnistä tekoälysuoritus';
+
+  @override
+  String get barsCompliance1 =>
+      'Critically Misaligned - Täysin satunnainen prosessi';
+
+  @override
+  String get barsCompliance2 =>
+      'Misaligned - Hajanaista prosessin noudattamista';
+
+  @override
+  String get barsCompliance3 => 'Neutral - Jonkinlainen prosessi näkyvissä';
+
+  @override
+  String get barsCompliance4 => 'Aligned - Noudattaa alan standardeja';
+
+  @override
+  String get barsCompliance5 =>
+      'Strongly Aligned - Täydellinen State-of-the-Art käytäntö';
+
+  @override
+  String get barsRole1 => 'Passenger (Matkustaja) - Passiivinen tilaaja';
+
+  @override
+  String get barsRole2 => 'Navigator (Suunnistaja) - Suunnistaa datan varassa';
+
+  @override
+  String get barsRole3 => 'Driver (Kuljettaja) - Aktiivinen ohjaaja';
+
+  @override
+  String get barsRole4 => 'Architect (Arkkitehti) - Strateginen suunnittelija';
+
+  @override
+  String get barsStrategy1 => 'Zero-shot';
+
+  @override
+  String get barsStrategy2 => 'Few-shot';
+
+  @override
+  String get barsStrategy3 => 'Chain-of-Thought';
+
+  @override
+  String get barsSim1 => 'Mahdoton (Aito riippuvuus)';
+
+  @override
+  String get barsSim2 => 'Mahdollinen (Riippuvainen)';
+
+  @override
+  String get barsSim3 => 'Todennäköinen (Riippumaton)';
+
+  @override
+  String get barsConf0 => 'Täysin epävarma (0%)';
+
+  @override
+  String get barsConf25 => 'Epävarma (25%)';
+
+  @override
+  String get barsConf50 => 'Neutraali (50%)';
+
+  @override
+  String get barsConf75 => 'Melko varma (75%)';
+
+  @override
+  String get barsConf100 => 'Ehdottoman varma (100%)';
+
+  @override
+  String get barsRisk1 => 'Matala riski (Safe)';
+
+  @override
+  String get barsRisk2 => 'Keskisuuri riski (Medium)';
+
+  @override
+  String get barsRisk3 => 'Korkea riski (Lazy prompt)';
 }

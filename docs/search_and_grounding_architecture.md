@@ -16,10 +16,10 @@ This document defines the three distinct paradigms of information retrieval and 
 This process is designed to independently test the *User's* inputs or the *Analyst's* hypotheses. It expands the system's awareness by actively searching the internet for new information related to the ongoing case before any final synthesis is drafted. 
 
 ### Mechanism
-- The `AnalystAgent` generates a JSON output containing `hypotheses` with specific `search_query` strings.
-- The `execute_google_search` hook halts the workflow, takes these queries, and performs explicit internet searches using a dedicated Vertex AI LLM (configured in the database where `supports_grounding=True`).
-- The resulting web snippets and URLs are injected back into the Analyst's `rag_evidence` array.
-- Downstream agents (like the Factual Overseer or the Koonti-Panel) now possess external context they can use to build their arguments.
+- The `AnalystAgent` strictly generates JSON output containing `hypotheses` with specific `search_query` strings and sequential IDs (e.g., `HYP-1`).
+- The `execute_google_search` hook (`search.py`) intercepts the workflow, takes these queries, and performs explicit internet searches using a dedicated Vertex AI LLM.
+- The resulting web snippets and URLs are converted to strict Pydantic `search_result` dicts and injected into the global context variable.
+- Downstream agents (like the Factual Overseer or Koonti-Panel) now possess deterministic external context they can use to build their arguments, isolated from hallucination risks.
 
 ---
 

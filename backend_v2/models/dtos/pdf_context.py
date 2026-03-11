@@ -8,7 +8,7 @@ from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.logician import LogicianData
 from backend_v2.models.domain.overseer import OverseerData
 from backend_v2.models.domain.performativity import PerformativityAnalysis
-from backend_v2.models.domain.retrieval import KnowledgeItem
+from backend_v2.models.domain.retrieval import RetrievedFact
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.view.sdui import ReferenceItem
 
@@ -43,7 +43,7 @@ class ReportContext(BaseDTO):
     causal_analysis: CausalAnalysis | None = Field(default=None, description="Causal analysis.")
     performativity_analysis: PerformativityAnalysis | None = Field(default=None, description="Performativity analysis.")
     overseer_data: OverseerData | None = Field(default=None, description="Overseer analysis.")
-    knowledge_items: list[KnowledgeItem] = Field(default_factory=list, description="Knowledge Base items.")
+    knowledge_items: list[RetrievedFact] = Field(default_factory=list, description="Knowledge Base items.")
 
     # Allow type coercion (e.g. string "1" to integer 1) for LLM friendliness, but keep fields frozen
     model_config = ConfigDict(frozen=True, strict=False)

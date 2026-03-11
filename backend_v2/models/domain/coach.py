@@ -8,6 +8,8 @@ including coaching plans and bibliography.
 # To avoid potential circular imports (though judge doesn't import coach), we can use forward refs or just imports
 # But let's check if we can import JudgeOutput from backend_v2.models.domain.judge
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -27,6 +29,14 @@ class CoachInput(BaseModel):
         default=None, description="The Verdict from Cognitive Judge Agent.", json_schema_extra={"x-ui-label": "Cognitive Verdict"}
     )
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+
+    # --- Universal Routing Inputs ---
+    search_result: Any | None = Field(default=None, description="Vertex AI Grounding search results.")
+    step_analyst: Any | None = Field(default=None, description="Analyst hypotheses and RAG data.")
+    step_profiler: Any | None = Field(default=None, description="Profiler cognitive bias data.")
+    step_falsifier: Any | None = Field(default=None, description="Falsifier critical distance data.")
+    step_logician: Any | None = Field(default=None, description="Logician Toulmin analysis data.")
+    step_causal_analyst: Any | None = Field(default=None, description="Causal Analyst post-hoc and counterfactual data.")
 
     # Allow extra fields because Coach might receive step_judge, step_judge_cognitive etc.
     # Logic in agent iterates keys.

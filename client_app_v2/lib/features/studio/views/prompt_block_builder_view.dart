@@ -312,6 +312,10 @@ class _PromptBlockBuilderViewState
                             value: 'system_rule',
                             child: Text('System Rule'),
                           ),
+                          DropdownMenuItem(
+                            value: 'instruction',
+                            child: Text('Instruction'),
+                          ),
                         ],
                         onChanged:
                             (val) => setState(

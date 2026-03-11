@@ -20,6 +20,14 @@ class XAIReporterInput(BaseModel):
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
     step_judge: JudgeOutput | None = Field(default=None, description="Standard evaluate output.")
     step_judge_cognitive: JudgeOutput | None = Field(default=None, description="Cognitive Judge output.")
+    
+    # --- Universal Routing Inputs ---
+    search_result: Any | None = Field(default=None, description="Vertex AI Grounding search results.")
+    step_analyst: Any | None = Field(default=None, description="Analyst hypotheses and RAG data.")
+    step_profiler: Any | None = Field(default=None, description="Profiler cognitive bias data.")
+    step_falsifier: Any | None = Field(default=None, description="Falsifier critical distance data.")
+    step_logician: Any | None = Field(default=None, description="Logician Toulmin analysis data.")
+    step_causal_analyst: Any | None = Field(default=None, description="Causal Analyst post-hoc and counterfactual data.")
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -56,6 +64,21 @@ class XAIOutputDTO(ReasoningTraceDTO):
         ...,
         description="High-level summary.",
         json_schema_extra={"x-ui-label": "Executive Summary"},
+    )
+    verified_facts: str = Field(
+        ...,
+        description="Synthesis of Vertex Search facts.",
+        json_schema_extra={"x-ui-label": "Verified Facts"},
+    )
+    cognitive_behavior: str = Field(
+        ...,
+        description="Synthesis of Profiler and Falsifier findings.",
+        json_schema_extra={"x-ui-label": "Cognitive Behavior"},
+    )
+    causal_chain: str = Field(
+        ...,
+        description="Synthesis of Causal and Logician findings.",
+        json_schema_extra={"x-ui-label": "Causal Chain"},
     )
     analysis_strengths: str = Field(
         ...,
