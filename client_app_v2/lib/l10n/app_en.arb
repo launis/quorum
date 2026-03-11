@@ -848,5 +848,28 @@
       }
     }
   },
-  "startAiExecution": "Start AI Execution"
+  "startAiExecution": "Start AI Execution",
+  "barsCompliance1": "Critically Misaligned - Completely random process",
+  "barsCompliance2": "Misaligned - Scattered process adherence",
+  "barsCompliance3": "Neutral - Some process visible",
+  "barsCompliance4": "Aligned - Adheres to industry standards",
+  "barsCompliance5": "Strongly Aligned - Perfect State-of-the-Art practice",
+  "barsRole1": "Passenger - Passive requester",
+  "barsRole2": "Navigator - Navigates existing data",
+  "barsRole3": "Driver - Active director",
+  "barsRole4": "Architect - Strategic planner",
+  "barsStrategy1": "Zero-shot",
+  "barsStrategy2": "Few-shot",
+  "barsStrategy3": "Chain-of-Thought",
+  "barsSim1": "Impossible (True dependence)",
+  "barsSim2": "Possible (Dependent)",
+  "barsSim3": "Probable (Independent)",
+  "barsConf0": "Completely uncertain (0%)",
+  "barsConf25": "Uncertain (25%)",
+  "barsConf50": "Neutral (50%)",
+  "barsConf75": "Fairly certain (75%)",
+  "barsConf100": "Absolutely certain (100%)",
+  "barsRisk1": "Low risk (Safe)",
+  "barsRisk2": "Medium risk (Warning)",
+  "barsRisk3": "High risk (Lazy prompt)"
 }

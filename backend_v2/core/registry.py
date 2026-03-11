@@ -88,7 +88,9 @@ class TaskRegistry:
             cls.agents_map[agent_cls.__name__] = agent_cls()
         except Exception as e:
             logger.error(f"Could not instantiate {agent_cls.__name__} for metadata: {e}")
-            from backend_v2.exceptions import AppException, ErrorCodes, status
+            from fastapi import status
+
+            from backend_v2.exceptions import AppException, ErrorCodes
 
             raise AppException(
                 message=f"Agent {agent_cls.__name__} instantiation failed: {e}",
@@ -133,7 +135,9 @@ class TaskRegistry:
                     )
             except Exception as e:
                 logger.error(f"Failed to configure agent {agent_cls.__name__}: {e}")
-                from backend_v2.exceptions import AppException, ErrorCodes, status
+                from fastapi import status
+
+                from backend_v2.exceptions import AppException, ErrorCodes
 
                 if isinstance(e, AppException):
                     raise e
@@ -176,6 +180,30 @@ class TaskRegistry:
                     if isinstance(input_data, dict):  # Should not happen if strictly typed
                         vars_to_inject = input_data
 
+                    # Dynamic Input Handling for V2 (Courtroom SDUI)
+                    if "inputs" in vars_to_inject and "expected_inputs" in execution_config:
+                        import json
+                        expected_inputs = execution_config["expected_inputs"]
+                        dynamic_inputs = vars_to_inject["inputs"]
+                        structured_inputs = []
+
+                        # If inputs is a dict mapping expected_input keys to content
+                        if isinstance(dynamic_inputs, dict) and isinstance(expected_inputs, list):
+                            for expected in expected_inputs:
+                                key = expected.get("id")
+                                if key and key in dynamic_inputs:
+                                    # Fallback descriptions if missing
+                                    ai_desc = expected.get("ai_description", {})
+                                    translations = ai_desc.get("translations", {})
+                                    desc = translations.get("fi", f"Input data for {key}")
+                                    structured_inputs.append({
+                                        "role_description": desc,
+                                        "content": dynamic_inputs[key]
+                                    })
+                        # Set to vars_to_inject so it replaces {{INPUTS_JSON}}
+                        if structured_inputs:
+                            vars_to_inject["INPUTS_JSON"] = structured_inputs
+
                     # System Context
                     from datetime import datetime
 
@@ -211,7 +239,6 @@ class TaskRegistry:
                                 replaced = True
 
                             if replaced:
-                                diff = len(system_instruction) - old_len
                                 logger.info(
                                     f"[DEBUG-INJECTION] Replaced {key}: {old_len} -> {len(system_instruction)} chars"
                                 )
@@ -239,7 +266,9 @@ class TaskRegistry:
                         resolved_override = await registry.resolve_model_name(override_model)
                         execution_config["model"] = resolved_override
                     except Exception as e:
-                        from backend_v2.exceptions import AppException, ErrorCodes, status
+                        from fastapi import status
+
+                        from backend_v2.exceptions import AppException, ErrorCodes
 
                         raise AppException(
                             message=f"Invalid model override: {e}",
@@ -270,7 +299,7 @@ class TaskRegistry:
             if isinstance(result_dict, dict):
                 return output_model(**result_dict)
 
-            return result_dict
+            return output_model(**result_dict) if isinstance(result_dict, dict) else result_dict
 
         # Register for each key
         for key in task_keys:

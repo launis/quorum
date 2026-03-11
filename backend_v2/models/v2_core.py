@@ -5,7 +5,7 @@ Implements dynamic, append-only, and I18N-capable models according to V2 specs.
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus
 
@@ -266,7 +266,10 @@ class ExpectedInput(BaseModel):
         description="Allowed modes: 'file', 'paste', 'questionnaire'."
     )
     description: I18nText | None = Field(default=None, description="Optional localized description/help text.")
-    ai_description: I18nText | None = Field(default=None, description="Semantic description injected to LLM context to reduce hallucinations.")
+    ai_description: I18nText | None = Field(
+        default=None,
+        description="Semantic description injected to LLM context.",
+    )
     questionnaire_definition: list[QuestionnaireItem] = Field(
         default_factory=list, description="Definitions if 'questionnaire' is in input_modes."
     )
@@ -286,7 +289,10 @@ class ExpectedInput(BaseModel):
             if self.is_chat_history:
                 from backend_v2.exceptions import AppException, ErrorCodes
                 raise AppException(
-                    message=f"ExpectedInput '{self.input_key}' cannot use 'questionnaire' mode when flagged as chat history.",
+                    message=(
+                        f"ExpectedInput '{self.input_key}' cannot use "
+                        "'questionnaire' mode when flagged as chat history."
+                    ),
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                     status_code=400
                 )
@@ -318,7 +324,10 @@ class Workflow(BaseModel):
     organization_id: str | None = Field(default=None)
     scoring_logic: list[Any] = Field(default_factory=list)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
-    expected_inputs: list[ExpectedInput] = Field(default_factory=list, description="List of dynamic expected inputs required by the workflow")
+    expected_inputs: list[ExpectedInput] = Field(
+        default_factory=list,
+        description="List of dynamic expected inputs required by the workflow",
+    )
     steps: list[StepRule] = Field(default_factory=list)
 
     @model_validator(mode="before")
@@ -376,10 +385,14 @@ class FrozenContext(BaseModel):
         default_factory=dict, description="UI rendering instructions.")
 
 
+class WorkflowInputs(BaseModel):
+    """Schema for dynamic workflow inputs, allowing any extra keys for dynamic routing."""
+    model_config = ConfigDict(extra="allow")
+
 class ExecutionCreate(BaseModel):
     """Schema for initiating a new workflow execution."""
     workflow_id: str = Field(description="ID of the workflow to execute")
-    raw_inputs: dict[str, Any] = Field(default_factory=dict, description="User provided raw inputs")
+    raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")
 
 
 class ExecutionRecord(BaseModel):
@@ -387,8 +400,8 @@ class ExecutionRecord(BaseModel):
     id: str = Field(description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
     status: ExecutionStatus = Field(description="Current status of execution")
-    raw_inputs: dict[str, Any] = Field(
-        default_factory=dict, description="Raw user inputs by role")
+    raw_inputs: WorkflowInputs = Field(
+        default_factory=WorkflowInputs, description="Raw user inputs by role")
     frozen_context: FrozenContext = Field(
         default_factory=FrozenContext, description="Immutable snapshot of context")
     results: dict[str, Any] = Field(

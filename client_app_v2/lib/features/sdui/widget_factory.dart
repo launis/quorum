@@ -62,6 +62,24 @@ class SDUIWidgetFactory {
           6.0,
         );
 
+        // V2 Numeric Scale Localization (No-String Mandate)
+        // Map raw integer score (e.g., 4) back to its localized string name using the scales definition.
+        String displayVal = val.toStringAsFixed(1);
+        final scales = SafeCast.safeList(hint['scales']);
+        if (scales.isNotEmpty) {
+          final intIntVal = val.toInt();
+          for (final dynamic s in scales) {
+            final scaleDef = SafeCast.safeMap(s);
+            if (SafeCast.safeInt(scaleDef['score']) == intIntVal) {
+              final scaleName = I18nResolver.resolve(scaleDef['name'], locale);
+              if (scaleName.isNotEmpty) {
+                displayVal = '$intIntVal: $scaleName';
+                break;
+              }
+            }
+          }
+        }
+
         final options = SafeCast.safeList(hint['options']);
         dynamic rawInstruction = hint['instruction'];
         if (options.isNotEmpty && options.first is Map) {
@@ -84,7 +102,7 @@ class SDUIWidgetFactory {
             value: val,
             max: maxVal,
             description: label,
-            displayValue: val.toStringAsFixed(1),
+            displayValue: displayVal,
           ),
         );
         break;
