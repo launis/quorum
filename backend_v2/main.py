@@ -79,6 +79,12 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+try:
+    import logfire
+    logfire.instrument_fastapi(app)
+except Exception:
+    pass
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     import logging

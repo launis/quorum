@@ -163,7 +163,7 @@ class Settings(BaseSettings):
     api_url: Annotated[str | None, Field(description="Public API Base URL")] = "http://localhost:8000"
 
     # --- Paths ---
-    log_file_name: Annotated[str, Field(description="Name of the debug log file")] = "backend_v2_debug.log"
+    log_file_name: Annotated[str, Field(description="Name of the debug log file")] = "backend_debug.log"
 
     # We define base_dir relative to this file (backend_v2/settings.py)
     @computed_field  # type: ignore[prop-decorator]

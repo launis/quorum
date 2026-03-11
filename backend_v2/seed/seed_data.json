@@ -2791,7 +2791,7 @@
         },
         {
           "id": "step_node_3",
-          "task_blueprint": "step_retrieval_agent",
+          "task_blueprint": "step_analyst",
           "depends_on": [
             "step_node_2"
           ],
@@ -2802,31 +2802,9 @@
         },
         {
           "id": "step_node_4",
-          "task_blueprint": "step_analyst",
-          "depends_on": [
-            "step_node_3"
-          ],
-          "input_mappings": {
-            "inputs": "$inputs"
-          },
-          "model_strategy": "fast"
-        },
-        {
-          "id": "step_node_5",
-          "task_blueprint": "step_interaction_analyst",
-          "depends_on": [
-            "step_node_3"
-          ],
-          "input_mappings": {
-            "inputs": "$inputs"
-          },
-          "model_strategy": "fast"
-        },
-        {
-          "id": "step_node_6",
           "task_blueprint": "step_profiler",
           "depends_on": [
-            "step_node_3"
+            "step_node_2"
           ],
           "input_mappings": {
             "inputs": "$inputs"
@@ -2834,70 +2812,70 @@
           "model_strategy": "precise"
         },
         {
-          "id": "step_node_7",
+          "id": "step_node_5",
           "task_blueprint": "step_logician",
           "depends_on": [
-            "step_node_4"
+            "step_node_3"
           ],
           "input_mappings": {
-            "step_analyst": "$step_node_4.output",
+            "step_analyst": ".output",
             "inputs": "$inputs"
           },
           "model_strategy": "strict"
         },
         {
-          "id": "step_node_8",
+          "id": "step_node_6",
           "task_blueprint": "step_falsifier",
           "depends_on": [
-            "step_node_4"
+            "step_node_3"
           ],
           "input_mappings": {
-            "step_analyst": "$step_node_4.output",
+            "step_analyst": ".output",
             "inputs": "$inputs"
           },
           "model_strategy": "strict"
         },
         {
-          "id": "step_node_9",
+          "id": "step_node_7",
           "task_blueprint": "step_causal_analyst",
           "depends_on": [
-            "step_node_4"
+            "step_node_3"
           ],
           "input_mappings": {
-            "step_analyst": "$step_node_4.output",
+            "step_analyst": ".output",
             "inputs": "$inputs"
           },
           "model_strategy": "deep"
         },
         {
-          "id": "step_node_10",
+          "id": "step_node_8",
           "task_blueprint": "step_performativity_detector",
           "depends_on": [
-            "step_node_4"
+            "step_node_3"
           ],
           "input_mappings": {
-            "step_analyst": "$step_node_4.output",
+            "step_analyst": ".output",
             "inputs": "$inputs"
           },
           "model_strategy": "precise"
         },
         {
-          "id": "step_node_11",
+          "id": "step_node_9",
           "task_blueprint": "step_overseer",
           "depends_on": [
-            "step_node_4"
+            "step_node_3"
           ],
           "input_mappings": {
-            "step_analyst": "$step_node_4.output",
+            "step_analyst": ".output",
             "inputs": "$inputs"
           },
           "model_strategy": "strict"
         },
         {
-          "id": "step_node_12",
+          "id": "step_node_10",
           "task_blueprint": "step_archivist",
           "depends_on": [
-            "step_node_3"
+            "step_node_2"
           ],
           "input_mappings": {
             "inputs": "$inputs"
@@ -2905,74 +2883,74 @@
           "model_strategy": "fast"
         },
         {
-          "id": "step_node_13",
+          "id": "step_node_11",
           "task_blueprint": "step_judge",
           "depends_on": [
             "step_node_2",
+            "step_node_3",
             "step_node_4",
+            "step_node_5",
             "step_node_6",
             "step_node_7",
             "step_node_8",
             "step_node_9",
-            "step_node_10",
-            "step_node_11",
-            "step_node_12"
+            "step_node_10"
           ],
           "input_mappings": {
             "inputs": "$inputs",
-            "step_guard": "$step_node_2.output",
-            "step_analyst": "$step_node_4.output",
-            "step_profiler": "$step_node_6.output",
-            "step_logician": "$step_node_7.output",
-            "step_falsifier": "$step_node_8.output",
-            "step_causal": "$step_node_9.output",
-            "step_detector": "$step_node_10.output",
-            "step_overseer": "$step_node_11.output",
-            "step_archivist": "$step_node_12.output"
+            "step_guard": ".output",
+            "step_analyst": ".output",
+            "step_profiler": ".output",
+            "step_logician": ".output",
+            "step_falsifier": ".output",
+            "step_causal": ".output",
+            "step_detector": ".output",
+            "step_overseer": ".output",
+            "step_archivist": ".output"
           },
           "model_strategy": "precise"
         },
         {
-          "id": "step_node_14",
+          "id": "step_node_12",
           "task_blueprint": "step_coach",
           "depends_on": [
-            "step_node_13",
+            "step_node_11",
+            "step_node_3",
             "step_node_4",
+            "step_node_5",
             "step_node_6",
-            "step_node_7",
-            "step_node_8",
-            "step_node_9"
+            "step_node_7"
           ],
           "input_mappings": {
             "inputs": "$inputs",
-            "step_judge": "$step_node_13.output",
-            "step_analyst": "$step_node_4.output",
-            "step_profiler": "$step_node_6.output",
-            "step_logician": "$step_node_7.output",
-            "step_falsifier": "$step_node_8.output",
-            "step_causal_analyst": "$step_node_9.output"
+            "step_judge": ".output",
+            "step_analyst": ".output",
+            "step_profiler": ".output",
+            "step_logician": ".output",
+            "step_falsifier": ".output",
+            "step_causal_analyst": ".output"
           },
           "model_strategy": "precise"
         },
         {
-          "id": "step_node_15",
+          "id": "step_node_13",
           "task_blueprint": "step_xai_reporter",
           "depends_on": [
-            "step_node_13",
+            "step_node_11",
+            "step_node_3",
             "step_node_4",
+            "step_node_5",
             "step_node_6",
-            "step_node_7",
-            "step_node_8",
-            "step_node_9"
+            "step_node_7"
           ],
           "input_mappings": {
             "inputs": "$inputs",
-            "step_judge": "$step_node_13.output",
-            "step_analyst": "$step_node_4.output",
-            "step_profiler": "$step_node_6.output",
-            "step_logician": "$step_node_7.output",
-            "step_falsifier": "$step_node_8.output",
-            "step_causal_analyst": "$step_node_9.output"
+            "step_judge": ".output",
+            "step_analyst": ".output",
+            "step_profiler": ".output",
+            "step_logician": ".output",
+            "step_falsifier": ".output",
+            "step_causal_analyst": ".output"
           },
           "model_strategy": "fast"
         }
@@ -3246,7 +3224,6 @@
         "block_rule2",
         "block_oprule2",
         "block_headerprotocols",
-        "block_protocol2",
         "block_instructionanon",
         "block_instructionnodataleak",
         "block_instructionlanguagefi",

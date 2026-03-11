@@ -151,5 +151,4 @@ async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
 
         output_dict[key] = resolved_text.strip()
 
-    output_dict["status"] = "Inputs processed deterministically (or structured via LLM if needed)."
-    return output_dict
+    return {"inputs": output_dict}

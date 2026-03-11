@@ -64,9 +64,15 @@ def configure_logfire():
         os.environ.setdefault("LOGFIRE_SEND_TO_LOGFIRE", "true")
 
         # send_to_logfire=True explicitly enables the cloud exporter.
-        # console=False suppresses the noisy local console logs from Logfire.
-        logfire.configure(send_to_logfire=True, console=False)
-        # logfire.instrument_pydantic()
+        # Removing `console=False` and `project_name` as they are deprecated/bugged in this Logfire version
+        # and cause silent setup crashes!
+        logfire.configure(send_to_logfire=True)
+        logfire.instrument_pydantic()
+        logfire.instrument_httpx()
+
+        import litellm
+        litellm.success_callback = ["logfire"]   # Instrument LLM Calls
+        litellm.failure_callback = ["logfire"]
     except Exception as e:
         logging.getLogger(__name__).warning(
             f"Logfire validation failed (likely no token): {e}. Observability disabled."

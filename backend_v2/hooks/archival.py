@@ -60,12 +60,12 @@ async def retrieve_precedent_hook(
         # 2. Filter and Format
         precedents = []
 
-        # FAIL FAST: Strict Data Integrity (All completed executions must have a completed_at timestamp)
+        # FAIL FAST: Strict Data Integrity (All completed executions must have a updated_at timestamp)
         for res in recent_executions:
-            if not res.completed_at:  # type: ignore
+            if not getattr(res, "updated_at", None):
                 # Fail Fast Protocol (Part 18): Hard crash on data integrity violation
                 error_code = ErrorCodes.STATE_INTEGRITY_ERROR
-                msg = f"Data Integrity Violation: Execution {res.id} marked complete but missing timestamp."
+                msg = f"Data Integrity Violation: Execution {res.id} marked complete but missing updated_at timestamp."
                 logger.error(f"[ArchivalHook] {error_code.name}: {msg}", exc_info=False)
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": error_code.value, "execution_id": res.id}
