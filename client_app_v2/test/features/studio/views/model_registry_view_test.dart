@@ -7,14 +7,18 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
   group('ModelRegistryView Widget Tests', () {
-    testWidgets('renders model selection dropdown from available models', (WidgetTester tester) async {
+    testWidgets('renders model selection dropdown from available models', (
+      WidgetTester tester,
+    ) async {
       final mockModels = ['gpt-4o', 'gpt-3.5-turbo'];
-      
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             availableModelsProvider.overrideWith((ref) async => mockModels),
-            modelRegistryControllerProvider.overrideWith(() => MockModelRegistryController()),
+            modelRegistryControllerProvider.overrideWith(
+              () => MockModelRegistryController(),
+            ),
           ],
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -32,11 +36,11 @@ void main() {
 
       // Open the dropdown
       final dropdownFinder = find.byType(DropdownButtonFormField<String>).last;
-      
+
       // Ensure the widget is visible
       await tester.ensureVisible(dropdownFinder);
       await tester.pumpAndSettle();
-      
+
       await tester.tap(dropdownFinder);
       await tester.pumpAndSettle();
 
@@ -46,7 +50,8 @@ void main() {
   });
 }
 
-class MockModelRegistryController extends AsyncNotifier<Map<String, dynamic>> implements ModelRegistryController {
+class MockModelRegistryController extends AsyncNotifier<Map<String, dynamic>>
+    implements ModelRegistryController {
   @override
   Future<Map<String, dynamic>> build() async {
     return {
@@ -55,8 +60,8 @@ class MockModelRegistryController extends AsyncNotifier<Map<String, dynamic>> im
           'model_name': 'gpt-4o',
           'provider': 'OpenAI',
           'is_active': true,
-        }
-      }
+        },
+      },
     };
   }
 

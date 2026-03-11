@@ -54,8 +54,9 @@ class ExecutionController extends _$ExecutionController {
   }
 
   /// Reconnects to an existing execution stream by ID
-  void resumeExecution(String executionId) {
+  Future<void> resumeExecution(String executionId) async {
     state = const AsyncValue.loading();
+    await _sseSubscription?.cancel();
     _connectToStream(executionId);
   }
 

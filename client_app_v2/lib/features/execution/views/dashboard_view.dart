@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/router/router.dart';
+import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 // Provider to fetch executions using SafeCast (No Freezed API DTOs)
 final executionListProvider =
@@ -23,7 +25,7 @@ class DashboardView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Executions Dashboard'),
+        title: Text(AppLocalizations.of(context)!.executionsDashboardTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -34,12 +36,12 @@ class DashboardView extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => const NewExecutionRoute().go(context),
         icon: const Icon(Icons.add),
-        label: const Text('New Analysis'),
+        label: Text(AppLocalizations.of(context)!.newAnalysis),
       ),
       body: asyncExecutions.when(
         data: (executions) {
           if (executions.isEmpty) {
-            return const Center(child: Text('No executions found.'));
+            return Center(child: Text(AppLocalizations.of(context)!.noExecutions));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -69,7 +71,18 @@ class DashboardView extends ConsumerWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text('ID: $id\nCreated: $dateStr'),
-                  trailing: _buildStatusChip(status),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildStatusChip(status),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        tooltip: 'Delete Execution',
+                        onPressed: () => _confirmDelete(context, ref, id),
+                      ),
+                    ],
+                  ),
                   isThreeLine: true,
                   onTap: () {
                     // Navigate to details safely using GoRouter codegen
@@ -81,27 +94,65 @@ class DashboardView extends ConsumerWidget {
           );
         },
         error:
-            (err, stack) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Failed to load executions:\n$err',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => ref.invalidate(executionListProvider),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            (err, stack) => ErrorView(
+              error: err,
+              stackTrace: stack,
+              onRetry: () => ref.invalidate(executionListProvider),
             ),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(AppLocalizations.of(context)!.confirmDeletionTitle),
+            content: Text(AppLocalizations.of(context)!.confirmDeletionMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(AppLocalizations.of(context)!.cancel),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(AppLocalizations.of(context)!.delete),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        final dio = ref.read(apiClientProvider);
+        await dio.delete('/execution/executions/$id');
+        ref.invalidate(executionListProvider);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)!.executionDeletedSuccessfully)),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.failedToDeleteExecution(e.toString())),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildStatusChip(String status) {

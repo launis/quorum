@@ -19,7 +19,7 @@ from backend_v2.models.enums import FidelityLevel
 class FalsifierInput(BaseModel):
     """Strict input schema for LogicalFalsifierAgent."""
 
-    history_text: str = Field(..., description="Chat history to analyze.")
+    history_text: str | None = Field(None, description="Chat history to analyze.")
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 

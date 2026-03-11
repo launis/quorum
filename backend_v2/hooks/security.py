@@ -45,17 +45,9 @@ def sanitize_text_hook(data: dict[str, Any]) -> dict[str, Any]:
             details={"error_code": error_code},
         )
 
-    for field in ["history_text", "product_text", "reflection_text"]:
-        # Strict Access: Field MUST exist on inputs dict
-        val = inputs.get(field)
-
-        # If the user didn't provide this optional text field, just skip sanitization for it
+    for field, val in inputs.items():
         if not val:
-            # Fail Fast: Mandatory inputs
-            error_code = ErrorCodes.EMPTY_INPUT
-            msg = f"Missing mandatory input field: '{field}'."
-            logger.error(f"[SecurityHook] {error_code.name}: {msg}")
-            raise AppException(message=msg, status_code=400, details={"error_code": error_code})
+            continue
 
         original = str(val)
         if original.strip():
@@ -187,8 +179,7 @@ async def check_banned_phrases_hook(data: dict[str, Any], repository: Any = None
         )
 
     all_text = ""
-    for field in ["history_text", "product_text", "reflection_text"]:
-        val = inputs.get(field)
+    for field, val in inputs.items():
         if val:
             text = str(val)
             all_text += text + "\n"

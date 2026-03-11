@@ -23,7 +23,9 @@ class InteractionInput(BaseModel):
 
     @field_validator("history_text")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("History text cannot be empty.")
         return v.strip()

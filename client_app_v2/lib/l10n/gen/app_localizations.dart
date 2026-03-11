@@ -3271,6 +3271,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mock login failed. Verify user data: {error}'**
   String mockLoginFailed(String error);
+
+  /// No description provided for @actionHintCheckInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint: Please check your input and try again.'**
+  String get actionHintCheckInput;
+
+  /// No description provided for @actionHintLoginAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint: Session expired. Please log in again.'**
+  String get actionHintLoginAgain;
+
+  /// No description provided for @actionHintTryAgainLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint: Server error. Please wait a moment and try again.'**
+  String get actionHintTryAgainLater;
+
+  /// No description provided for @actionHintContactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint: If the issue persists, contact support.'**
+  String get actionHintContactSupport;
+
+  /// No description provided for @actionHintRunIngestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint: Please upload documents to the Knowledge Base first.'**
+  String get actionHintRunIngestion;
+
+  /// No description provided for @actionHintCheckUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint: Please verify the spelling of the URL.'**
+  String get actionHintCheckUrl;
+
+  /// No description provided for @actionHintCheckConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint: Please check your network connection.'**
+  String get actionHintCheckConnection;
+
+  /// No description provided for @confirmDeletionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Deletion'**
+  String get confirmDeletionTitle;
+
+  /// No description provided for @confirmDeletionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this execution? This action cannot be undone.'**
+  String get confirmDeletionMessage;
+
+  /// No description provided for @executionsDashboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Executions Dashboard'**
+  String get executionsDashboardTitle;
+
+  /// No description provided for @newAnalysisPipelineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Analysis Pipeline (SDUI)'**
+  String get newAnalysisPipelineTitle;
+
+  /// No description provided for @liveExecutionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Live Execution'**
+  String get liveExecutionTitle;
+
+  /// No description provided for @establishingConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Establishing connection...'**
+  String get establishingConnection;
+
+  /// No description provided for @statusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status: {status}'**
+  String statusLabel(String status);
+
+  /// No description provided for @auditDriftWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Audit Drift Warning: This execution was completed with system parameters ({versionId}) that differ from the current active ruleset (v2.0.0). Results should be interpreted with caution.'**
+  String auditDriftWarning(String versionId);
+
+  /// No description provided for @noUiHintsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No UI hints available yet. Waiting for stream...'**
+  String get noUiHintsAvailable;
+
+  /// No description provided for @executionStartedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution started successfully!'**
+  String get executionStartedSuccessfully;
+
+  /// No description provided for @failedToStartExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to start execution: {error}'**
+  String failedToStartExecution(String error);
+
+  /// No description provided for @executionDeletedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution deleted successfully.'**
+  String get executionDeletedSuccessfully;
+
+  /// No description provided for @failedToDeleteExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete execution: {error}'**
+  String failedToDeleteExecution(String error);
+
+  /// No description provided for @selectWorkflowPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a workflow from the list to begin.'**
+  String get selectWorkflowPrompt;
+
+  /// No description provided for @noInputsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'No inputs strictly required for \n{id}'**
+  String noInputsRequired(String id);
+
+  /// No description provided for @configureInputsFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure Inputs for {id}'**
+  String configureInputsFor(String id);
+
+  /// No description provided for @inputLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Input: {key}'**
+  String inputLabel(String key);
+
+  /// No description provided for @selectedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected: {fileName}'**
+  String selectedFile(String fileName);
+
+  /// No description provided for @noFileSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No file selected'**
+  String get noFileSelected;
+
+  /// No description provided for @browseFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse'**
+  String get browseFile;
+
+  /// No description provided for @inputTypeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type: {typeHint}'**
+  String inputTypeHint(String typeHint);
+
+  /// No description provided for @questionnaireTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Questionnaire: {title}'**
+  String questionnaireTitle(String title);
+
+  /// No description provided for @startAiExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Start AI Execution'**
+  String get startAiExecution;
 }
 
 class _AppLocalizationsDelegate

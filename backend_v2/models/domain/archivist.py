@@ -14,7 +14,7 @@ from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 class ArchivistInput(BaseModel):
     """Strict input schema for ArchivistAgent."""
 
-    history_text: str = Field(..., description="Chat history to analyze.")
+    history_text: str | None = Field(None, description="Chat history to analyze.")
     product_text: str | None = Field(None, description="Product context (optional).")
     archivist_precedents: list[dict[str, Any]] | None = Field(None, description="Retrieved precedents.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
@@ -34,7 +34,9 @@ class ArchiveCase(BaseModel):
 
     @field_validator("case_id", "verdict", "summary")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -80,7 +82,9 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
 
     @field_validator("consistency_analysis", "description_key")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()

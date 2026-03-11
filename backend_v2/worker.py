@@ -49,9 +49,11 @@ async def execute_workflow_job(
     Returns:
         dict: The final workflow state.
     """
-    logger.info(
-        f"[Job] Executing workflow: {workflow_id} (Execution ID: {execution_id}, Org: {organization_id}, User: {user_id})"
+    msg = (
+        f"[Job] Executing workflow: {workflow_id} "
+        f"(Execution ID: {execution_id}, Org: {organization_id}, User: {user_id})"
     )
+    logger.info(msg)
 
     # LOGFIRE INTEGRATION: Bind execution_id to this trace context
     # This groups all subsequent logs (Agent, LLM, DB) under this execution_id.
@@ -95,7 +97,8 @@ async def execute_workflow_job(
                         workflow_def = WorkflowDefinition(**data)
 
             if not workflow_def:
-                raise ValueError(f"Workflow '{workflow_id}' not found.")
+                from backend_v2.exceptions import WorkflowNotFoundError
+                raise WorkflowNotFoundError(workflow_id)
 
             start_time = datetime.now(UTC)
 
@@ -170,16 +173,32 @@ async def execute_workflow_job(
             return result
 
         except Exception as e:
-            logger.error(f"[Job] Workflow {workflow_id} failed: {e}", exc_info=True)
+            from backend_v2.exceptions import AppException
+            if not isinstance(e, AppException):
+                logger.error(
+                    f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Workflow {workflow_id} failed: {e}",
+                    exc_info=True
+                )
+                e = AppException(
+                    message=str(e),
+                    status_code=500,
+                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                )
+
             # Final Status Update (Failed)
             if execution_id:
                 try:
                     await repository.update_execution(
-                        execution_id, {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()}
+                        execution_id,
+                        {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()}
                     )
                 except Exception as update_err:
-                    logger.error(f"Failed to update execution failure status: {update_err}")
-            raise
+                    logger.error(
+                        f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
+                        f"Failed to update execution failure status: {update_err}",
+                        exc_info=True
+                    )
+            raise e
         except asyncio.CancelledError:
             logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {execution_id}")
             if execution_id:
@@ -193,7 +212,11 @@ async def execute_workflow_job(
                         },
                     )
                 except Exception as update_err:
-                    logger.error(f"Failed to update execution cancellation status: {update_err}")
+                    logger.error(
+                        f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
+                        f"Failed to update execution cancellation status: {update_err}",
+                        exc_info=True
+                    )
             raise
 
 
@@ -238,16 +261,19 @@ async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
         return saved_path
 
     except Exception as e:
-        error_code = ErrorCodes.PDF_GENERATION_FAILED
-        logger.error(f"{error_code}: PDF generation failed for {execution_id}. Cause: {e}", exc_info=True)
-        # We ensure the worker doesn't crash by catching generic Exception
-        # Arq will mark the job as failed if we re-raise, but mandate says "Ensure job failure does not crash the worker".
-        # Logging exception is sufficient. Usually we rely on Arq's retry mechanism if we raise.
-        # But if we want to "not crash", we might suppress?
-        # "Ensure job failure does not crash the worker" usually means catch-all.
-        # However, for Arq to know it failed, we usually should raise.
-        # I will re-raise so Arq sees it as failed job, but the worker process itself stays alive (which is default Arq behavior).
-        raise
+        from backend_v2.exceptions import AppException
+        if not isinstance(e, AppException):
+            logger.error(
+                f"[Worker] {ErrorCodes.PDF_GENERATION_FAILED.name}: "
+                f"PDF generation failed for {execution_id}. Cause: {e}",
+                exc_info=True
+            )
+            e = AppException(
+                message=str(e),
+                status_code=500,
+                details={"error_code": ErrorCodes.PDF_GENERATION_FAILED}
+            )
+        raise e
 
 
 # --- Lifecycle ---
@@ -272,9 +298,10 @@ async def startup(ctx: Any) -> None:
     logger.info("  -> Log: backend_debug.log (CHECK FOR DETAILS)")
     logger.info("===================================================")
 
-    # 1. CRITICAL: Register Tasks
-    # Import all task modules here to trigger the @TaskRegistry.register_task decorators.
-    # This ensures the Registry is populated before we try to run anything.
+    # 1. CRITICAL: Register Tasks & Hooks
+    # Import all task modules and hooks here to trigger their decorators.
+    # This ensures the Registries are populated before we try to run anything.
+    import backend_v2.hooks  # Automatically populates HookRegistry
     logger.info(f"TaskRegistry initialized. Registered tasks: {list(TaskRegistry._tasks.keys())}")
 
     # 2. Initialize Dependencies

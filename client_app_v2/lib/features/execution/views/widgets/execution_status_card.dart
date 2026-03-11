@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// A card widget that displays the current status of a DAG workflow execution.
 /// It observes the [executionControllerProvider] to reactively update its UI
@@ -116,19 +117,8 @@ class ExecutionStatusCard extends ConsumerWidget {
             ),
           ),
       error:
-          (error, stackTrace) => Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              'Error: $error',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onErrorContainer,
-              ),
-            ),
-          ),
+          (error, stackTrace) =>
+              ErrorView(error: error, stackTrace: stackTrace, compact: true),
     );
   }
 

@@ -19,7 +19,7 @@ from backend_v2.models.enums import AbductiveConclusion, PlausibilityLevel
 class CausalInput(BaseModel):
     """Strict input schema for CausalAnalystAgent."""
 
-    history_text: str = Field(..., description="Chat history to analyze.")
+    history_text: str | None = Field(None, description="Chat history to analyze.")
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -43,7 +43,9 @@ class CausalAnalysisData(BaseModel):
 
     @field_validator("observation")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -73,7 +75,9 @@ class CounterfactualTest(BaseModel):
 
     @field_validator("actual_scenario", "simulation_result")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -128,7 +132,9 @@ class CausalAnalysis(BaseModel):
 
     @field_validator("observation", "hypothesis")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()

@@ -30,9 +30,9 @@ class WorkflowInputs(BaseModel):
     simulation_mode: bool = Field(default=False, description="If True, indicates a test/simulation run.")
     language: str = Field(default="en", description="Target language code (e.g., 'en', 'fi').")
 
-    # Config: Allow new fields for forward compatibility, but keep core fields strict.
+    # Config: Allow new fields so dynamic inputs are retained.
     # frozen=True ensures immutability once created.
-    model_config = ConfigDict(extra="ignore", frozen=True)
+    model_config = ConfigDict(extra="allow", frozen=True)
 
     @model_validator(mode="after")
     def validate_distinct_inputs(self) -> WorkflowInputs:

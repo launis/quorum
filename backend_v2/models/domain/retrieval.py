@@ -26,7 +26,9 @@ class RetrievalInput(BaseModel):
 
     @field_validator("organization_id")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Organization ID cannot be empty.")
         return v.strip()
@@ -44,7 +46,9 @@ class Precedent(BaseModel):
 
     @field_validator("id", "date", "scores", "verdict")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -64,7 +68,9 @@ class KnowledgeItem(BaseModel):
 
     @field_validator("id", "type", "term", "definition", "source")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -93,7 +99,9 @@ class ContextData(ContextDataDTO, ReasoningTrace):
 
     @field_validator("precedents")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         # Precedents summary might be legitimately empty if nothing found?
         # But schema says ... (required).
         # Let's enforce non-empty if it's a required field describing retrieval.

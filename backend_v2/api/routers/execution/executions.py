@@ -1,7 +1,8 @@
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Query, status
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
+import asyncio
 
 from backend_v2.api.dependencies import CurrentUserDep, ExecutionServiceDep, RepoDep
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -43,6 +44,47 @@ async def get_execution_status(
 ) -> ExecutionRecord:
     """Retrieve the current status and results of an execution securely via SSOT."""
     return await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
+
+
+@router.get("/{execution_id}/stream")
+async def stream_execution_status(
+    execution_id: str,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> StreamingResponse:
+    """Stream execution status and results securely via Sever-Sent Events (SSE)."""
+    # 1. Authorize connection first
+    await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
+
+    async def event_generator():
+        try:
+            while True:
+                # Poll database (Fallback from Redis Pub/Sub for simpler local portability)
+                # In true production, this should attach to a Redis Pub/Sub channel.
+                record = await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
+                
+                # V2 Protocol Requirement: JSON Payload inside 'data: '
+                yield f"data: {record.model_dump_json()}\n\n"
+                
+                if record.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED]:
+                    break
+                    
+                await asyncio.sleep(2)
+        except Exception as e:
+            logger.error(f"SSE Error for execution {execution_id}: {e}")
+            yield f"data: {{\"error\": \"SSE Stream Interrupted: {str(e)}\"}}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@router.delete("/{execution_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_execution(
+    execution_id: str,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> None:
+    """Delete an execution securely via SSOT."""
+    await execution_service.delete_execution(initiator=current_user, execution_id=execution_id)
 
 
 @router.get("/{execution_id}/render")

@@ -41,7 +41,9 @@ class XAIScoreItem(BaseModel):
 
     @field_validator("label")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -107,7 +109,9 @@ class XAIOutputDTO(ReasoningTraceDTO):
         "final_verdict",
     )
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -154,7 +158,9 @@ class ReportResult(BaseModel):
 
     @field_validator("report_content")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Report content cannot be empty.")
         return v

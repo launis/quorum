@@ -18,8 +18,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
-from tinydb import TinyDB
 
 SOURCE_DB_PATH = os.path.join(PROJECT_ROOT, "data", "db_v2.json")
 
@@ -134,7 +134,7 @@ def migrate_db_to_seed(target_seed_path: str, template_path: str, source_type: s
                         existing_item = validated.model_dump(mode="json")
                     except Exception as e:
                         logger.warning(f"Validation warning during extraction for {item_id} in {collection_key}: {e}")
-                
+
                 new_target_list.append(existing_item)
                 seen_ids.add(item_id)
 
@@ -142,7 +142,7 @@ def migrate_db_to_seed(target_seed_path: str, template_path: str, source_type: s
             for source_item in source_list:
                 item_id = source_item.get(id_field)
                 if item_id and item_id not in seen_ids:
-                    
+
                      # Validate new items too
                     if registry_model:
                         try:
@@ -162,12 +162,12 @@ def migrate_db_to_seed(target_seed_path: str, template_path: str, source_type: s
         for collection_key, config in STANDARD_REGISTRY.items():
             db_list = extract_list(collection_key)
             id_key = str(config.get("id_field", "id"))
-            
+
             current_list = current_seed.get(collection_key, [])
 
             current_seed[collection_key] = update_collection_in_place(
-                current_list, 
-                db_list, 
+                current_list,
+                db_list,
                 id_field=id_key,
                 collection_key=collection_key
             )

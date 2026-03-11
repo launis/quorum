@@ -55,12 +55,25 @@ extension AppErrorExt on AppError {
       'KNOWLEDGE_RESET_FAILED' => l10n.errorKnowledgeResetFailed,
       'KNOWLEDGE_RETRIEVAL_FAILED' => l10n.errorKnowledgeRetrievalFailed,
 
-      // New Standardized Error Codes (Feb 16)
-      'VALIDATION_FAILED' => l10n.errValidationFailed,
-      'AUTHENTICATION_FAILED' => l10n.errAuthenticationFailed,
-      'SERVICE_UNAVAILABLE' => l10n.errServiceUnavailable,
-      'AGENT_EXECUTION_CRITICAL' => l10n.errAgentExecutionCritical,
-      'KNOWLEDGE_NOT_INGESTED' => l10n.errKnowledgeNotIngested,
+      // New Standardized Error Codes (Feb 16 / RFC 7807)
+      // Includes Actionable Hints per the Dual-Reporting UI Mandate
+      'VALIDATION_FAILED' =>
+        '${l10n.errValidationFailed}\n\n${l10n.actionHintCheckInput}',
+      'AUTHENTICATION_FAILED' =>
+        '${l10n.errAuthenticationFailed}\n\n${l10n.actionHintLoginAgain}',
+      'SERVICE_UNAVAILABLE' =>
+        '${l10n.errServiceUnavailable}\n\n${l10n.actionHintTryAgainLater}',
+      'AGENT_EXECUTION_CRITICAL' =>
+        '${l10n.errAgentExecutionCritical}\n\n${l10n.actionHintContactSupport}',
+      'KNOWLEDGE_NOT_INGESTED' =>
+        '${l10n.errKnowledgeNotIngested}\n\n${l10n.actionHintRunIngestion}',
+
+      // Additional fallback mappings with hints if matching legacy patterns
+      'URL_INVALID' => '${l10n.errorValidation}\n\n${l10n.actionHintCheckUrl}',
+      'FETCH_FAILED' =>
+        '${l10n.errorNetwork}\n\n${l10n.actionHintCheckConnection}',
+      'INTERNAL_SERVER_ERROR' =>
+        '${l10n.errorServer}\n\n${l10n.actionHintTryAgainLater}',
 
       _ => l10n.errorUnknown,
     };

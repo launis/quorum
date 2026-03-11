@@ -20,7 +20,7 @@ from backend_v2.services.localization import LocalizationService
 class PerformativityInput(BaseModel):
     """Strict input schema for PerformativityDetectorAgent."""
 
-    history_text: str = Field(..., description="Chat history to analyze.")
+    history_text: str | None = Field(None, description="Chat history to analyze.")
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -49,7 +49,9 @@ class PerformativityHeuristic(BaseModel):
 
     @field_validator("heuristic_name", "description")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -138,7 +140,9 @@ class PerformativityAnalysis(BaseModel):
 
     @field_validator("description")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         return v.strip() if v else v
 
     @field_validator("authenticity_score")
@@ -179,7 +183,9 @@ class PerformativePattern(BaseModel):
 
     @field_validator("pattern_id", "detected_phrase", "category")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()

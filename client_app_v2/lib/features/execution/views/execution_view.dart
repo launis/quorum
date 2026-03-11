@@ -3,33 +3,52 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/features/sdui/widget_factory.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// **Live Execution SDUI Screen**
 ///
 /// V2 Architecture: Uses `StreamNotifier` for real-time SSE updates.
 /// Iterates over `frozen_context['ui_hints_snapshot']` blindly to render
 /// widget definitions from the backend using the `SDUIWidgetFactory`.
-class ExecutionView extends ConsumerWidget {
+class ExecutionView extends ConsumerStatefulWidget {
   final String executionId;
 
   const ExecutionView({super.key, required this.executionId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExecutionView> createState() => _ExecutionViewState();
+}
+
+class _ExecutionViewState extends ConsumerState<ExecutionView> {
+  @override
+  void initState() {
+    super.initState();
+    // Fire the stream connection immediately after the layout phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(executionControllerProvider.notifier).resumeExecution(widget.executionId);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Watch the live stream
     final executionState = ref.watch(executionControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Live Execution')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.liveExecutionTitle)),
       body: executionState.when(
         data: (record) {
           if (record == null) {
-            return const Center(child: Text('Establishing connection...'));
+            return Center(child: Text(AppLocalizations.of(context)!.establishingConnection));
           }
 
           final status = SafeCast.safeString(record['status']).toLowerCase();
           final frozenContext = SafeCast.safeMap(record['frozen_context']);
-          final uiHints = SafeCast.safeList(frozenContext['ui_hints_snapshot']);
+          final uiHints =
+              SafeCast.safeMap(
+                frozenContext['ui_hints_snapshot'],
+              ).values.toList();
 
           return CustomScrollView(
             slivers: [
@@ -51,7 +70,7 @@ class ExecutionView extends ConsumerWidget {
                             const Icon(Icons.error, color: Colors.white),
                           const SizedBox(width: 16),
                           Text(
-                            'Status: ${status.toUpperCase()}',
+                            AppLocalizations.of(context)!.statusLabel(status.toUpperCase()),
                             style: Theme.of(
                               context,
                             ).textTheme.titleMedium?.copyWith(
@@ -90,8 +109,7 @@ class ExecutionView extends ConsumerWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Audit Drift Warning: This execution was completed with system parameters (${SafeCast.safeString(frozenContext['version_id'])}) '
-                              'that differ from the current active ruleset (v2.0.0). Results should be interpreted with caution.',
+                              AppLocalizations.of(context)!.auditDriftWarning(SafeCast.safeString(frozenContext['version_id'])),
                               style: TextStyle(color: Colors.amber.shade900),
                             ),
                           ),
@@ -117,7 +135,7 @@ class ExecutionView extends ConsumerWidget {
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final hint = SafeCast.safeMap(uiHints[index]);
                       final componentType = SafeCast.safeString(
-                        hint['component'],
+                        hint['field_id'] ?? hint['component'],
                       );
                       final results = SafeCast.safeMap(record['results']);
 
@@ -132,10 +150,10 @@ class ExecutionView extends ConsumerWidget {
                   ),
                 )
               else
-                const SliverFillRemaining(
+                SliverFillRemaining(
                   child: Center(
                     child: Text(
-                      'No UI hints available yet. Waiting for stream...',
+                      AppLocalizations.of(context)!.noUiHintsAvailable,
                     ),
                   ),
                 ),
@@ -144,11 +162,10 @@ class ExecutionView extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error:
-            (error, stackTrace) => Center(
-              child: Text(
-                'Error: $error',
-                style: const TextStyle(color: Colors.red),
-              ),
+            (error, stackTrace) => ErrorView(
+              error: error,
+              stackTrace: stackTrace,
+              onRetry: () => ref.invalidate(executionControllerProvider),
             ),
       ),
     );

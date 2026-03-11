@@ -11,7 +11,7 @@ from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 class AnalystInput(BaseModel):
     """Strict input schema for AnalystAgent."""
 
-    history_text: str = Field(..., description="Chat history to analyze.")
+    history_text: str | None = Field(None, description="Chat history to analyze.")
     product_text: str | None = Field(None, description="Product context (optional).")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -46,7 +46,9 @@ class Hypothesis(BaseModel):
 
     @field_validator("id", "claim_text", "search_query")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -105,7 +107,9 @@ class SearchResultItem(BaseModel):
 
     @field_validator("title", "link", "snippet")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()

@@ -18,7 +18,7 @@ from backend_v2.models.domain.logician import LogicianOutput
 class OverseerInput(BaseModel):
     """Strict input schema for FactualOverseerAgent."""
 
-    history_text: str = Field(..., description="Chat history to analyze.")
+    history_text: str | None = Field(None, description="Chat history to analyze.")
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -50,7 +50,9 @@ class FactCheckRFI(BaseModel):
 
     @field_validator("claim", "source_or_reasoning")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -92,7 +94,9 @@ class EthicalObservation(BaseModel):
 
     @field_validator("issue_type", "description")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()

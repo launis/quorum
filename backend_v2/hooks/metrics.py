@@ -202,13 +202,13 @@ def calculate_behavioral_metrics(metrics: Any) -> Any:
 def calculate_control_ratio_hook(data: dict[str, Any]) -> dict[str, Any]:
     """Standalone hook to provide input control ratio if requested explicitly by a DAG step."""
     inputs = data.get("inputs", {})
-    history = ""
+    
+    # Dynamically scan all string inputs
+    all_text = ""
     if isinstance(inputs, dict):
-        history = inputs.get("history_text", "")
-    elif hasattr(inputs, "history_text"):
-        history = getattr(inputs, "history_text", "")
-
-    ratio = calculate_control_ratio(str(history))
+        all_text = " ".join(str(v) for v in inputs.values() if v)
+        
+    ratio = calculate_control_ratio(all_text)
     return {"input_control_ratio": ratio}
 
 
@@ -235,17 +235,14 @@ def text_metrics(data: dict[str, Any]) -> dict[str, Any]:
             details={"error_code": error_code},
         )
 
-    history = inputs.get("history_text", "")
-    product = inputs.get("product_text", "")
-    text = f"{history}\n{product}"
+    # Dynamically combine ALL string input fields for text metric analysis
+    all_text = " ".join(str(v) for v in inputs.values() if v)
 
-    if not text.strip():
-        logger.warning("[MetricsHook] No valid text found. Both history and product text are empty.")
-
-    # STRICT INPUT CHECK
-    if not history and not product:
+    if not all_text.strip():
+        logger.warning("[MetricsHook] No valid text found in any input fields.")
+        # If absolutely no inputs were provided but they reached here, fail fast.
         error_code = ErrorCodes.EMPTY_INPUT
-        msg = "Missing 'history_text' or 'product_text' in inputs."
+        msg = "Missing text in inputs for metrics analysis."
         logger.error(f"[MetricsHook] {error_code.name}: {msg}")
         raise AppException(
             message=msg,
@@ -254,9 +251,9 @@ def text_metrics(data: dict[str, Any]) -> dict[str, Any]:
         )
 
     try:
-        # Calculate Metrics
-        base_metrics = analyze_text(product)
-        control_ratio = calculate_control_ratio(history)
+        # Calculate Metrics using combined text
+        base_metrics = analyze_text(all_text)
+        control_ratio = calculate_control_ratio(all_text)
         behavioral_metrics = calculate_behavioral_metrics(base_metrics)
 
         # Merge results into a single output dict

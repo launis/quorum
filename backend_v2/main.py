@@ -13,7 +13,7 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,8 +46,8 @@ async def lifespan(app: FastAPI) -> Any:
     # Output is handled by loggers to backend_debug.log
 
     try:
-        # A. Initialize Task Registry (Trigger Decorators)
-        # Import task modules to ensure @TaskRegistry.register_task runs
+        # A. Initialize Task Registry / Hook Registry (Trigger Decorators)
+
         # B. Load Workflows (Mock/File-based seeding for now)
         # In a real app, this might sync to DB.
         # Here we just verify the file exists.
@@ -78,6 +78,16 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    import logging
+    logger = logging.getLogger("backend.main")
+    logger.error(f"[Validation Error] on request {request.url}: {exc.errors()} - Body: {exc.body}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors(), "body": exc.body},
+    )
 
 # --- 3. Middleware ---
 

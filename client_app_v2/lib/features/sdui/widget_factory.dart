@@ -30,7 +30,10 @@ class SDUIWidgetFactory {
     required Map<String, dynamic> results,
     required String locale,
   }) {
-    final String widgetType = hint['widget']?.toString() ?? 'unknown';
+    final String widgetType =
+        hint['component_type']?.toString() ??
+        hint['widget']?.toString() ??
+        'unknown';
 
     // 1. Defensively extract the primary value
     final dynamic rawValue = results[slug];
@@ -52,8 +55,20 @@ class SDUIWidgetFactory {
       case 'gauge':
       case 'slider':
         final double val = SafeCast.safeDouble(rawValue);
-        final double maxVal = SafeCast.safeDouble(hint['max'], 6.0);
-        final String label = I18nResolver.resolve(hint['instruction'], locale);
+
+        final validationRules = SafeCast.safeMap(hint['validation_rules']);
+        final double maxVal = SafeCast.safeDouble(
+          validationRules['max'] ?? hint['max'],
+          6.0,
+        );
+
+        final options = SafeCast.safeList(hint['options']);
+        dynamic rawInstruction = hint['instruction'];
+        if (options.isNotEmpty && options.first is Map) {
+          rawInstruction ??= SafeCast.safeMap(options.first)['label'];
+        }
+
+        final String label = I18nResolver.resolve(rawInstruction, locale);
 
         if (label.isEmpty) {
           debugPrint(

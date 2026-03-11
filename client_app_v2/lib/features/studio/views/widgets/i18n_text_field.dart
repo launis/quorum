@@ -53,7 +53,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
     // Only update if the underlying default locale text genuinely changed from parent
     final newLocale = widget.initialData['default_locale']?.toString() ?? 'fi';
     final newTranslationsMap = widget.initialData['translations'];
-    
+
     String newDefaultText = '';
     if (newTranslationsMap is Map) {
       newDefaultText = newTranslationsMap[newLocale]?.toString() ?? '';
@@ -71,7 +71,9 @@ class _I18nTextFieldState extends State<I18nTextField> {
       if (_defaultController.text != newDefaultText) {
         _defaultController.value = _defaultController.value.copyWith(
           text: newDefaultText,
-          selection: TextSelection.collapsed(offset: newDefaultText.length), // Keep cursor cursor at the end
+          selection: TextSelection.collapsed(
+            offset: newDefaultText.length,
+          ), // Keep cursor cursor at the end
         );
       }
     }
@@ -198,13 +200,16 @@ class _I18nTextFieldState extends State<I18nTextField> {
             TextField(
               controller: _defaultController,
               decoration: InputDecoration(
-                labelText: 'Default Form (${_defaultLocale.toUpperCase()} usually expected)',
+                labelText:
+                    'Default Form (${_defaultLocale.toUpperCase()} usually expected)',
                 border: const OutlineInputBorder(),
                 filled: true,
               ),
               maxLines: null,
             ),
-            if (_translations.keys.where((k) => k != _defaultLocale).isNotEmpty) ...[
+            if (_translations.keys
+                .where((k) => k != _defaultLocale)
+                .isNotEmpty) ...[
               const SizedBox(height: 16),
               const Text(
                 'Other Translations:',
@@ -214,45 +219,48 @@ class _I18nTextFieldState extends State<I18nTextField> {
               ..._translations.entries
                   .where((entry) => entry.key != _defaultLocale)
                   .map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          entry.key.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color:
-                                Theme.of(
-                                  context,
-                                ).colorScheme.onPrimaryContainer,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              entry.key.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(entry.value)),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: Colors.red,
+                            ),
+                            onPressed: () => _removeTranslation(entry.key),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(entry.value)),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          size: 20,
-                          color: Colors.red,
-                        ),
-                        onPressed: () => _removeTranslation(entry.key),
-                      ),
-                    ],
-                  ),
-                );
-              }),
+                    );
+                  }),
             ],
           ],
         ),

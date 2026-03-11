@@ -126,16 +126,8 @@ def detect_performative_patterns(data: dict[str, Any]) -> dict[str, Any]:
 
     detected: list[str] = []
 
-    # Scan history and product text
-    history = inputs.get("history_text", "")
-    product = inputs.get("product_text", "")
-
-    if not history and not product:
-        # Loophole fix: if mandatory inputs are None but inputs dict input handling allowed it,
-        # we treat it as empty text but warn.
-        pass
-
-    text_to_scan = (str(history or "") + str(product or "")).lower()
+    # Scan all string inputs dynamically
+    text_to_scan = " ".join(str(v) for v in inputs.values() if v).lower()
 
     for pattern in patterns_to_check:
         if pattern in text_to_scan:

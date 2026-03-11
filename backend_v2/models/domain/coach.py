@@ -17,7 +17,7 @@ from backend_v2.models.domain.judge import JudgeOutput
 class CoachInput(BaseModel):
     """Strict input schema for CoachAgent."""
 
-    history_text: str = Field(..., description="Chat history.")
+    history_text: str | None = Field(None, description="Chat history.")
     product_text: str | None = Field(default=None, description="Product context.")
     reflection_text: str | None = Field(default=None, description="User reflection.")
     step_judge: JudgeOutput | None = Field(
@@ -34,7 +34,9 @@ class CoachInput(BaseModel):
 
     @field_validator("history_text")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("History text cannot be empty.")
         return v.strip()
@@ -60,7 +62,9 @@ class BibliographyItem(BaseModel):
 
     @field_validator("source_id", "title")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()

@@ -39,6 +39,11 @@ class LocalFileDriver(FileDriver):
         try:
             self.base_path.mkdir(parents=True, exist_ok=True)
         except Exception as e:
+            logger.error(
+                f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: "
+                f"Failed to create/access local storage directory '{base_path}': {e}",
+                exc_info=True
+            )
             raise AppException(
                 message=f"Failed to create/access local storage directory '{base_path}': {e}",
                 status_code=500,
@@ -62,7 +67,11 @@ class LocalFileDriver(FileDriver):
             # clean inputs
             cleaned = path.strip().lstrip("/\\")
             if not cleaned:
-                raise ValueError("Empty path")
+                raise AppException(
+                    message="Empty path",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION}
+                )
 
             # Resolve against base
             full_path = (self.base_path / cleaned).resolve()
@@ -100,7 +109,10 @@ class LocalFileDriver(FileDriver):
 
             return str(full_path)
         except Exception as e:
-            logger.error(f"Failed to save file to {path}: {e}")
+            logger.error(
+                f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to save file to {path}: {e}",
+                exc_info=True
+            )
             raise AppException(
                 message=f"Local Save Failed: {str(e)}",
                 status_code=500,
@@ -121,7 +133,10 @@ class LocalFileDriver(FileDriver):
             async with aiofiles.open(full_path, "rb") as f:
                 return await f.read()
         except Exception as e:
-            logger.error(f"Failed to read file from {path}: {e}")
+            logger.error(
+                f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to read file from {path}: {e}",
+                exc_info=True
+            )
             raise AppException(
                 message=f"Local Read Failed: {str(e)}",
                 status_code=500,
@@ -137,7 +152,10 @@ class LocalFileDriver(FileDriver):
                 os.remove(full_path)
                 return True
             except Exception as e:
-                logger.error(f"Failed to delete file {path}: {e}")
+                logger.error(
+                    f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to delete file {path}: {e}",
+                    exc_info=True
+                )
                 raise AppException(
                     message=f"Local Delete Failed: {str(e)}",
                     status_code=500,

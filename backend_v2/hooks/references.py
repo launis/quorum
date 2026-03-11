@@ -63,9 +63,9 @@ async def generate_bibliography_hook(data: dict[str, Any], repository: Any = Non
         inputs = data.get("inputs")
 
         if inputs:
-            for field in ["history_text", "product_text", "reflection_text"]:
-                text = getattr(inputs, field, "") if not isinstance(inputs, dict) else inputs.get(field, "")
-                text_dump += str(text) + "\n"
+            for val in inputs.values():
+                text = str(val) if val else ""
+                text_dump += text + "\n"
 
         step_coach = data.get("step_coach")
         if step_coach:

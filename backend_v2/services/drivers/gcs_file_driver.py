@@ -61,7 +61,11 @@ class GCSFileDriver(FileDriver):
                 self._bucket = self._client.bucket(self.bucket_name)
             return self._bucket
         except Exception as e:
-            logger.error(f"Failed to initialize GCS client/bucket '{self.bucket_name}': {e}")
+            logger.error(
+                f"[GCSFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: "
+                f"Failed to initialize GCS client/bucket '{self.bucket_name}': {e}",
+                exc_info=True
+            )
             raise AppException(
                 message=f"GCS Initialization Failed: {str(e)}",
                 status_code=500,
@@ -85,7 +89,10 @@ class GCSFileDriver(FileDriver):
         except AppException:
             raise
         except Exception as e:
-            logger.error(f"Failed to save file to GCS {path}: {e}")
+            logger.error(
+                f"[GCSFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to save file to GCS {path}: {e}",
+                exc_info=True
+            )
             raise AppException(
                 message=f"GCS Save Failed: {str(e)}",
                 status_code=500,
@@ -104,16 +111,22 @@ class GCSFileDriver(FileDriver):
         try:
             return await asyncio.to_thread(_sync_read)
         except FileNotFoundError as e:
-            # Not strictly an internal error, but standardizing
+            logger.error(
+                f"[GCSFileDriver] {ErrorCodes.FILE_NOT_FOUND.name}: File not found in GCS: {path}",
+                exc_info=True
+            )
             raise AppException(
                 message=f"File not found in GCS: {path}",
                 status_code=404,
-                details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND},  # or similar resource error
+                details={"error_code": ErrorCodes.FILE_NOT_FOUND},
             ) from e
         except AppException:
             raise
         except Exception as e:
-            logger.error(f"Failed to read file from GCS {path}: {e}")
+            logger.error(
+                f"[GCSFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to read file from GCS {path}: {e}",
+                exc_info=True
+            )
             raise AppException(
                 message=f"GCS Read Failed: {str(e)}",
                 status_code=500,
@@ -134,7 +147,10 @@ class GCSFileDriver(FileDriver):
         except AppException:
             raise
         except Exception as e:
-            logger.error(f"Failed to delete file from GCS {path}: {e}")
+            logger.error(
+                f"[GCSFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to delete file from GCS {path}: {e}",
+                exc_info=True
+            )
             # delete usually returns false on failure in old impl, but RFC 7807 prefers explicit failures?
             # Contracts often allow delete to be idempotent.
             # But if it's a connectivity error, we should probably raise.
@@ -164,7 +180,11 @@ class GCSFileDriver(FileDriver):
         except AppException:
             raise
         except Exception as e:
-            logger.error(f"Failed to check existence in GCS {path}: {e}")
+            logger.error(
+                f"[GCSFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: "
+                f"Failed to check existence in GCS {path}: {e}",
+                exc_info=True
+            )
             raise AppException(
                 message=f"GCS Exists Check Failed: {str(e)}",
                 status_code=500,

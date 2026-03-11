@@ -145,7 +145,11 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               return ErrorView(
                 error: e,
                 compact: true,
-                onRetry: () => ref.read(workflowsControllerProvider.notifier).refresh(),
+                onRetry:
+                    () =>
+                        ref
+                            .read(workflowsControllerProvider.notifier)
+                            .refresh(),
               );
             },
           ),
@@ -172,7 +176,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           const SizedBox(height: 16),
           promptBlocksState.when(
             data: (promptBlocks) {
-              if (promptBlocks.isEmpty) return const Text('No prompt blocks defined.');
+              if (promptBlocks.isEmpty)
+                return const Text('No prompt blocks defined.');
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -206,7 +211,11 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               return ErrorView(
                 error: e,
                 compact: true,
-                onRetry: () => ref.read(promptBlocksControllerProvider.notifier).refresh(),
+                onRetry:
+                    () =>
+                        ref
+                            .read(promptBlocksControllerProvider.notifier)
+                            .refresh(),
               );
             },
           ),
@@ -233,8 +242,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           const SizedBox(height: 16),
           blueprintsState.when(
             data: (blueprints) {
-              if (blueprints.isEmpty)
-                return const Text('No Steps defined.');
+              if (blueprints.isEmpty) return const Text('No Steps defined.');
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -252,10 +260,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       subtitle: Text('Blocks: $blockCount | Hooks: $hookCount'),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        context.go(
-                          '/admin/step/edit',
-                          extra: blueprint,
-                        );
+                        context.go('/admin/step/edit', extra: blueprint);
                       },
                     ),
                   );
@@ -267,7 +272,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               return ErrorView(
                 error: e,
                 compact: true,
-                onRetry: () => ref.read(stepsControllerProvider.notifier).refresh(),
+                onRetry:
+                    () => ref.read(stepsControllerProvider.notifier).refresh(),
               );
             },
           ),

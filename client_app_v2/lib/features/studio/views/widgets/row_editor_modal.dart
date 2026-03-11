@@ -7,7 +7,7 @@ class RowEditorModal extends StatefulWidget {
   final String title;
 
   const RowEditorModal({
-    super.key, 
+    super.key,
     required this.initialRow,
     this.title = 'Edit Row/Column',
   });

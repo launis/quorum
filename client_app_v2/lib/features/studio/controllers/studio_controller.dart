@@ -201,8 +201,7 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
 
 /// Controller managing Studio Steps strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
-class StepsController
-    extends AsyncNotifier<List<Map<String, dynamic>>> {
+class StepsController extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
     return _fetchSteps();
@@ -225,10 +224,7 @@ class StepsController
   }
 
   /// Saves a step utilizing Optimistic Updates.
-  Future<void> saveStep(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<void> saveStep(String id, Map<String, dynamic> payload) async {
     final previousState = state;
 
     // 1. Optimistic Update

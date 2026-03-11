@@ -2,6 +2,7 @@ import asyncio
 import logging
 from typing import Any
 
+import backend_v2.hooks  # Ensures hooks are registered
 from backend_v2.core.hook_registry import hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -80,6 +81,7 @@ class DAGExecutor:
 
         state_data = dict(raw_inputs)
         state_data["inputs"] = raw_inputs  # Legacy V1 hooks expect data["inputs"]
+        state_data["_sys_workflow_id"] = workflow.id  # Required by V2 input_processing hook
         frozen_ctx = exec_record.frozen_context
 
         try:
@@ -100,18 +102,27 @@ class DAGExecutor:
                         execution_id,
                         {"results": exec_record.results, "frozen_context": frozen_ctx.model_dump()}
                     )
+                    # Signal completion to unblock dependents ONLY ON SUCCESS
+                    step_events[step_id].set()
+                except asyncio.CancelledError:
+                    # Task was cancelled, do not set event
+                    raise
                 except Exception as e:
                     logger.error(f"Step {step_id} failed: {e}")
                     raise e
-                finally:
-                    # Signal completion to unblock dependents
-                    step_events[step_id].set()
 
             # Schedule all steps immediately, they will block on .wait()
             tasks = [asyncio.create_task(run_step_wrapper(step.id)) for step in workflow.steps]
 
-            # Await all
-            await asyncio.gather(*tasks)
+            try:
+                # Await all
+                await asyncio.gather(*tasks)
+            except Exception as e:
+                # Cancel all remaining tasks to ensure true Fail-Fast behavior
+                for t in tasks:
+                    if not t.done():
+                        t.cancel()
+                raise e
 
             exec_record.status = ExecutionStatus.COMPLETED
             await self.repository.update_execution(execution_id, {"status": exec_record.status.value})
@@ -125,15 +136,9 @@ class DAGExecutor:
                 execution_id,
                 {"status": exec_record.status.value, "error": exec_record.error}
             )
-            # Fail-fast bubble up
-            if isinstance(overall_err, AppException):
-                raise overall_err
-
-            raise AppException(
-                message=f"Execution failed: {overall_err}",
-                status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
-            ) from overall_err
+            # DO NOT re-raise. This runs in a FastAPI BackgroundTask. Re-raising here
+            # crashes the Uvicorn ASGI server as the response has already been sent.
+            return exec_record
 
     async def _execute_step(self, step: StepRule, state_data: dict[str, Any], frozen_ctx: FrozenContext) -> Any:
         """Executes a single step: hook, agent, or conditional logic."""

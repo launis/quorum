@@ -112,6 +112,11 @@ class AbstractWorkflowRepository(ABC):
     async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
         pass
 
+    @abstractmethod
+    async def get_step(self, step_id: str) -> dict[str, Any] | None:
+        """Alias for get_step_by_id."""
+        pass
+
     # --- Generic Data Access ---
 
     @abstractmethod
@@ -176,6 +181,11 @@ class AbstractWorkflowRepository(ABC):
 
     @abstractmethod
     async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
+    async def get_prompt_block(self, block_id: str) -> dict[str, Any] | None:
+        """Alias for get_prompt_block_by_id."""
         pass
 
     @abstractmethod
@@ -576,6 +586,9 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                     return s
         return None
 
+    async def get_step(self, step_id: str) -> dict[str, Any] | None:
+        """Alias for get_step_by_id."""
+        return await self.get_step_by_id(step_id)
 
 
     async def create_step(self, step_data: dict[str, Any]) -> str:
@@ -598,15 +611,17 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 for s in wf_steps:
                     if isinstance(s, dict) and (s.get("id") == step_id or s.get("slug") == step_id):
                         from backend_v2.exceptions import AppException, ErrorCodes
+                        wf_id = wf.get('id', 'unknown')
                         raise AppException(
-                            message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf.get('id', 'unknown')}'.",
+                            message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf_id}'.",
                             details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
                             status_code=400
                         )
                     elif isinstance(s, str) and s == step_id:
                         from backend_v2.exceptions import AppException, ErrorCodes
+                        wf_id = wf.get('id', 'unknown')
                         raise AppException(
-                            message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf.get('id', 'unknown')}'.",
+                            message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf_id}'.",
                             details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
                             status_code=400
                         )
@@ -643,6 +658,10 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
         return await self.driver.get("prompt_blocks", block_id)
 
+    async def get_prompt_block(self, block_id: str) -> dict[str, Any] | None:
+        """Alias for get_prompt_block_by_id."""
+        return await self.get_prompt_block_by_id(block_id)
+
     async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
         return await self.driver.query("prompt_blocks")
 
@@ -667,7 +686,8 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             for s in steps:
                 if block_id in s.get("prompt_blocks", []):
                     from backend_v2.exceptions import AppException, ErrorCodes
-                    error_msg = f"Tuhoaminen estetty: PromptBlock '{block_id}' on sidottu Askeleeseen'{str(s.get('id', 'unknown'))}'."
+                    step_ref = str(s.get('id', 'unknown'))
+                    error_msg = f"Tuhoaminen estetty: PromptBlock '{block_id}' on sidottu Askeleeseen'{step_ref}'."
                     raise AppException(
                         message=str(error_msg),
                         details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
@@ -733,7 +753,8 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def update_dimension(self, dimension_id: str, updates: dict[str, Any]) -> str:
         dimension = await self.get_dimension_by_id(dimension_id)
         if not dimension:
-            raise ValueError(f"Observation {dimension_id} not found")
+            from backend_v2.exceptions import ResourceNotFoundError
+            raise ResourceNotFoundError(resource_type="Observation", resource_id=dimension_id)
         await self.driver.update("dimensions", dimension_id, updates)
         return dimension_id
 
@@ -781,7 +802,8 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def update_component(self, component_id: str, updates: dict[str, Any]) -> str:
         comp = await self.get_component_by_id(component_id)
         if not comp:
-            raise ValueError(f"LegacyPromptBlock {component_id} not found")
+            from backend_v2.exceptions import ResourceNotFoundError
+            raise ResourceNotFoundError(resource_type="LegacyPromptBlock", resource_id=component_id)
         await self.driver.update("components", component_id, updates)
         return component_id
 
@@ -1171,7 +1193,8 @@ class AppendOnlyRepository(UnifiedWorkflowRepository):
         """Append-only update for workflow."""
         old_doc = await self.get_workflow_by_id(workflow_id)
         if not old_doc:
-            raise ValueError(f"Workflow {workflow_id} not found")
+            from backend_v2.exceptions import WorkflowNotFoundError
+            raise WorkflowNotFoundError(workflow_id)
 
         # Set old document is_latest to False
         await self.driver.update("workflows", workflow_id, {"is_latest": False})

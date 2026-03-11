@@ -156,7 +156,7 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
         'input_key': 'new_input_key',
         'label': {
           'default_locale': 'en',
-          'translations': {'en': 'New Input', 'fi': 'Uusi syöte'}
+          'translations': {'en': 'New Input', 'fi': 'Uusi syöte'},
         },
         'required': true,
         'is_chat_history': false,

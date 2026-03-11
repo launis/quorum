@@ -15,9 +15,7 @@ void main() {
   setUp(() {
     mockClient = MockStudioClient();
     container = ProviderContainer(
-      overrides: [
-        studioClientProvider.overrideWithValue(mockClient),
-      ],
+      overrides: [studioClientProvider.overrideWithValue(mockClient)],
     );
   });
 
@@ -26,38 +24,43 @@ void main() {
   });
 
   group('PromptBlocksController Exception Handling', () {
-    test('deletePromptBlock throws AppError if DioException contains one (RFC 7807 Fail-Fast)', () async {
-      // Arrange
-      const id = 'pb1';
-      final appError = const AppError.api(
-        errorCode: 'RESOURCE_IN_USE',
-        detail: 'Cannot delete block used by a blueprint',
-        status: 400,
-      );
+    test(
+      'deletePromptBlock throws AppError if DioException contains one (RFC 7807 Fail-Fast)',
+      () async {
+        // Arrange
+        const id = 'pb1';
+        final appError = const AppError.api(
+          errorCode: 'RESOURCE_IN_USE',
+          detail: 'Cannot delete block used by a blueprint',
+          status: 400,
+        );
 
-      when(() => mockClient.getPromptBlocks()).thenAnswer((_) async => []);
+        when(() => mockClient.getPromptBlocks()).thenAnswer((_) async => []);
 
-      when(() => mockClient.deletePromptBlock(id)).thenThrow(
-        DioException(
-          requestOptions: RequestOptions(path: '/studio/prompt-blocks/$id'),
-          error: appError,
-        ),
-      );
+        when(() => mockClient.deletePromptBlock(id)).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/studio/prompt-blocks/$id'),
+            error: appError,
+          ),
+        );
 
-      final controller = container.read(promptBlocksControllerProvider.notifier);
+        final controller = container.read(
+          promptBlocksControllerProvider.notifier,
+        );
 
-      // Act & Assert
-      expect(
-        () => controller.deletePromptBlock(id),
-        throwsA(
-          isA<ApiAppError>()
-              .having((e) => e.errorCode, 'errorCode', 'RESOURCE_IN_USE')
-              .having((e) => e.status, 'status', 400),
-        ),
-      );
-      
-      // Verify client was called
-      verify(() => mockClient.deletePromptBlock(id)).called(1);
-    });
+        // Act & Assert
+        expect(
+          () => controller.deletePromptBlock(id),
+          throwsA(
+            isA<ApiAppError>()
+                .having((e) => e.errorCode, 'errorCode', 'RESOURCE_IN_USE')
+                .having((e) => e.status, 'status', 400),
+          ),
+        );
+
+        // Verify client was called
+        verify(() => mockClient.deletePromptBlock(id)).called(1);
+      },
+    );
   });
 }

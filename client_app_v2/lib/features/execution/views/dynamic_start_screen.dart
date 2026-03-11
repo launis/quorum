@@ -1,9 +1,13 @@
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/workflow_client.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/shared/widgets/omni_input_box.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// **Dynamic Start Screen**
 ///
@@ -55,13 +59,23 @@ class _DynamicStartScreenState extends ConsumerState<DynamicStartScreen> {
 
   void _onStart() {
     if (_formKey.currentState?.validate() ?? false) {
-      // 1. Process files into base64 or pass to controller, etc.
-      // Assuming executionController handles the conversion or the backend
-      // accepts multipart if files are present.
-      // For V2 MVP we just pass the _collectedInputs directly.
+      // 1. Process files into base64 for the backend deterministic input hook.
+      final Map<String, dynamic> processedInputs = {};
+
+      _collectedInputs.forEach((key, value) {
+        if (value is PlatformFile && value.bytes != null) {
+          processedInputs[key] = {
+            'filename': value.name,
+            'content_base64': base64Encode(value.bytes!),
+          };
+        } else {
+          processedInputs[key] = value;
+        }
+      });
+
       ref
           .read(executionControllerProvider.notifier)
-          .startExecution(widget.workflowId, _collectedInputs);
+          .startExecution(widget.workflowId, processedInputs);
     }
   }
 
@@ -72,11 +86,9 @@ class _DynamicStartScreenState extends ConsumerState<DynamicStartScreen> {
     }
 
     if (_errorMsg != null) {
-      return Center(
-        child: Text(
-          'Failed to load schema: $_errorMsg',
-          style: const TextStyle(color: Colors.red),
-        ),
+      return ErrorView(
+        error: 'Failed to load schema: $_errorMsg',
+        compact: true,
       );
     }
 

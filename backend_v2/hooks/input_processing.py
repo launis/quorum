@@ -53,9 +53,9 @@ async def resolve_input(val: Any) -> str:
     return str(val) if val else ""
 
 
-@hook_registry.register(name="process_inputs")
+@hook_registry.register(name="input_processing")
 async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
-    """HOOK: process_inputs.
+    """HOOK: input_processing.
 
     Reads raw input modalities passed from the client, normalizes them,
     extracts PDF text if base64 encoded, and handles transformations like expanding

@@ -59,24 +59,15 @@ def verify_structure(data: dict[str, Any]) -> dict[str, Any]:
             details={"error_code": error_code},
         )
 
-    # Mandatory Fields
-    for key in ["history_text", "product_text", "reflection_text"]:
-        # Strict: Field must exist on schema
-        val = inputs.get(key)
+    # Generic check for all provided string inputs
+    for key, val in inputs.items():
         if not val or not str(val).strip():
-            warnings.append(f"Missing mandatory input '{key}'.")
+            # If the value is present but empty, we still warn or continue
             continue
-
+            
         text = str(val).strip()
         if len(text) < MIN_CHARS:
             warnings.append(f"Input '{key}' is too short ({len(text)} chars). Min required: {MIN_CHARS}.")
-
-    # Optional Fields
-    reflection = inputs.get("reflection_text")
-    if reflection and str(reflection).strip():
-        text = str(reflection).strip()
-        if len(text) < MIN_CHARS:
-            warnings.append(f"Input 'reflection_text' is too short ({len(text)} chars). Min required: {MIN_CHARS}.")
 
     try:
         # Create pure dict result

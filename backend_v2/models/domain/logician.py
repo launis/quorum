@@ -17,7 +17,7 @@ from backend_v2.services.localization import LocalizationService
 class LogicianInput(BaseModel):
     """Strict input schema for LogicianAgent."""
 
-    history_text: str = Field(..., description="Chat history to analyze.")
+    history_text: str | None = Field(None, description="Chat history to analyze.")
     step_analyst: AnalystOutput | None = Field(None, description="Analyst hypotheses/timeline.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -66,7 +66,9 @@ class ToulminComponent(BaseModel):
 
     @field_validator("id", "claim", "data", "warrant")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -208,7 +210,9 @@ class WaltonScheme(BaseModel):
 
     @field_validator("identified_scheme")
     @classmethod
-    def validate_scheme(cls, v: str) -> str:
+    def validate_scheme(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Identified scheme cannot be empty.")
         return v.strip()

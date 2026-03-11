@@ -748,5 +748,105 @@
         "description": "Error message returned by repository"
       }
     }
-  }
+  },
+  "actionHintCheckInput": "Hint: Please check your input and try again.",
+  "actionHintLoginAgain": "Hint: Session expired. Please log in again.",
+  "actionHintTryAgainLater": "Hint: Server error. Please wait a moment and try again.",
+  "actionHintContactSupport": "Hint: If the issue persists, contact support.",
+  "actionHintRunIngestion": "Hint: Please upload documents to the Knowledge Base first.",
+  "actionHintCheckUrl": "Hint: Please verify the spelling of the URL.",
+  "actionHintCheckConnection": "Hint: Please check your network connection.",
+  "confirmDeletionTitle": "Confirm Deletion",
+  "confirmDeletionMessage": "Are you sure you want to delete this execution? This action cannot be undone.",
+  "executionsDashboardTitle": "Executions Dashboard",
+  "newAnalysisPipelineTitle": "New Analysis Pipeline (SDUI)",
+  "liveExecutionTitle": "Live Execution",
+  "establishingConnection": "Establishing connection...",
+  "statusLabel": "Status: {status}",
+  "@statusLabel": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "auditDriftWarning": "Audit Drift Warning: This execution was completed with system parameters ({versionId}) that differ from the current active ruleset (v2.0.0). Results should be interpreted with caution.",
+  "@auditDriftWarning": {
+    "placeholders": {
+      "versionId": {
+        "type": "String"
+      }
+    }
+  },
+  "noUiHintsAvailable": "No UI hints available yet. Waiting for stream...",
+  "executionStartedSuccessfully": "Execution started successfully!",
+  "failedToStartExecution": "Failed to start execution: {error}",
+  "@failedToStartExecution": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "executionDeletedSuccessfully": "Execution deleted successfully.",
+  "failedToDeleteExecution": "Failed to delete execution: {error}",
+  "@failedToDeleteExecution": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "selectWorkflowPrompt": "Select a workflow from the list to begin.",
+  "noInputsRequired": "No inputs strictly required for \n{id}",
+  "@noInputsRequired": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "configureInputsFor": "Configure Inputs for {id}",
+  "@configureInputsFor": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "inputLabel": "Input: {key}",
+  "@inputLabel": {
+    "placeholders": {
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedFile": "Selected: {fileName}",
+  "@selectedFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "noFileSelected": "No file selected",
+  "browseFile": "Browse",
+  "inputTypeHint": "Type: {typeHint}",
+  "@inputTypeHint": {
+    "placeholders": {
+      "typeHint": {
+        "type": "String"
+      }
+    }
+  },
+  "questionnaireTitle": "Questionnaire: {title}",
+  "@questionnaireTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "startAiExecution": "Start AI Execution"
 }

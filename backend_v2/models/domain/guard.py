@@ -15,14 +15,16 @@ from backend_v2.models.enums import RiskLevel, SimulationType
 class GuardInput(BaseModel):
     """Input schema for the Guard Agent, supporting strict validation."""
 
-    history_text: str = Field(..., json_schema_extra={"x-ui-label": "INPUT_HISTORY_TEXT"})
-    product_text: str = Field(..., json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"})
+    history_text: str | None = Field(None, json_schema_extra={"x-ui-label": "INPUT_HISTORY_TEXT"})
+    product_text: str | None = Field(None, json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"})
     reflection_text: str | None = Field(default=None, json_schema_extra={"x-ui-label": "INPUT_REFLECTION_TEXT"})
     last_reasoning_trace: str | None = Field(default=None, json_schema_extra={"x-ui-label": "Last Reasoning Trace"})
 
     @field_validator("history_text", "product_text")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -59,7 +61,7 @@ class TaintedDataContent(BaseModel):
     """Raw input data wrapper."""
 
     chat_history: str = Field(..., description="Chat history.", json_schema_extra={"x-ui-label": "INPUT_CHAT_HISTORY"})
-    product_text: str = Field(..., description="Product text.", json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"})
+    product_text: str | None = Field(None, description="Product text.", json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"})
     reflection_text: str = Field(
         ..., description="Reflection text.", json_schema_extra={"x-ui-label": "INPUT_REFLECTION_TEXT"}
     )

@@ -1727,4 +1727,125 @@ class AppLocalizationsFi extends AppLocalizations {
   String mockLoginFailed(String error) {
     return 'Ylläpitokirjautuminen epäonnistui: $error';
   }
+
+  @override
+  String get actionHintCheckInput =>
+      'Vihje: Tarkista syöttämäsi tiedot ja yritä uudelleen.';
+
+  @override
+  String get actionHintLoginAgain =>
+      'Vihje: Tunnistautuminen vanhentui. Kirjaudu sisään uudelleen.';
+
+  @override
+  String get actionHintTryAgainLater =>
+      'Vihje: Palvelinvirhe. Odota hetki ja yritä myöhemmin uudelleen.';
+
+  @override
+  String get actionHintContactSupport =>
+      'Vihje: Jos ongelma jatkuu, ota yhteyttä ylläpitoon.';
+
+  @override
+  String get actionHintRunIngestion =>
+      'Vihje: Lataa tietokantaan dokumentteja ensin.';
+
+  @override
+  String get actionHintCheckUrl =>
+      'Vihje: Tarkista antamasi URL-osoitteen oikeinkirjoitus.';
+
+  @override
+  String get actionHintCheckConnection => 'Vihje: Tarkista verkkoyhteytesi.';
+
+  @override
+  String get confirmDeletionTitle => 'Vahvista Poisto';
+
+  @override
+  String get confirmDeletionMessage =>
+      'Haluatko varmasti poistaa tämän suorituksen? Toimintoa ei voi peruuttaa.';
+
+  @override
+  String get executionsDashboardTitle => 'Suoritusten Hallintapaneeli';
+
+  @override
+  String get newAnalysisPipelineTitle => 'Uusi Analyysiputki (SDUI)';
+
+  @override
+  String get liveExecutionTitle => 'Aktiivinen Suoritus';
+
+  @override
+  String get establishingConnection => 'Muodostetaan yhteyttä...';
+
+  @override
+  String statusLabel(String status) {
+    return 'Tila: $status';
+  }
+
+  @override
+  String auditDriftWarning(String versionId) {
+    return 'Audit Drift Varoitus: Tämä suoritus tehtiin järjestelmäparametreilla ($versionId), jotka poikkeavat nykyisestä aktiivisesta säännöstöstä (v2.0.0). Tuloksia tulisi tulkita varoen.';
+  }
+
+  @override
+  String get noUiHintsAvailable =>
+      'Ei käyttöliittymävihjeitä saatavilla vielä. Odotetaan virtaa...';
+
+  @override
+  String get executionStartedSuccessfully =>
+      'Suoritus aloitettu onnistuneesti!';
+
+  @override
+  String failedToStartExecution(String error) {
+    return 'Suorituksen aloittaminen epäonnistui: $error';
+  }
+
+  @override
+  String get executionDeletedSuccessfully =>
+      'Suoritus poistettu onnistuneesti.';
+
+  @override
+  String failedToDeleteExecution(String error) {
+    return 'Suorituksen poistaminen epäonnistui: $error';
+  }
+
+  @override
+  String get selectWorkflowPrompt =>
+      'Valitse työnkulku luettelosta aloittaaksesi.';
+
+  @override
+  String noInputsRequired(String id) {
+    return 'Ei pakollisia syötteitä putkelle \n$id';
+  }
+
+  @override
+  String configureInputsFor(String id) {
+    return 'Määritä syötteet putkelle $id';
+  }
+
+  @override
+  String inputLabel(String key) {
+    return 'Syöte: $key';
+  }
+
+  @override
+  String selectedFile(String fileName) {
+    return 'Valittu: $fileName';
+  }
+
+  @override
+  String get noFileSelected => 'Ei valittua tiedostoa';
+
+  @override
+  String get browseFile => 'Selaa';
+
+  @override
+  String inputTypeHint(String typeHint) {
+    return 'Tyyppi: $typeHint';
+  }
+
+  @override
+  String questionnaireTitle(String title) {
+    return 'Kysely (Questionnaire): $title';
+  }
+
+  @override
+  String get startAiExecution => 'Käynnistä tekoälysuoritus';
 }

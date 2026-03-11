@@ -25,7 +25,9 @@ class AuditLogEntry(BaseModel):
 
     @field_validator("level", "message")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -77,7 +79,9 @@ class Metadata(BaseModel):
     )
     @field_validator("agentti", "suoritus_ymparisto")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -124,7 +128,9 @@ class ReasoningTraceDTO(BaseModel):
 
     @field_validator("thought_process", "conclusion")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
@@ -189,7 +195,9 @@ class UsageRecord(BaseModel):
 
     @field_validator("id", "org_id", "user_id", "model")
     @classmethod
-    def validate_non_empty_strings(cls, v: str) -> str:
+    def validate_non_empty_strings(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()

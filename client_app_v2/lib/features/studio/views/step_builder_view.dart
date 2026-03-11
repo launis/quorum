@@ -14,12 +14,10 @@ class StepBuilderView extends ConsumerStatefulWidget {
   const StepBuilderView({super.key, required this.step});
 
   @override
-  ConsumerState<StepBuilderView> createState() =>
-      _StepBuilderViewState();
+  ConsumerState<StepBuilderView> createState() => _StepBuilderViewState();
 }
 
-class _StepBuilderViewState
-    extends ConsumerState<StepBuilderView> {
+class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
   late Map<String, dynamic> _editableStep;
   late TextEditingController _idController;
   late TextEditingController _slugController;
@@ -60,10 +58,17 @@ class _StepBuilderViewState
     }
 
     final modelStrategy = _editableStep['model_strategy'];
-    if (modelStrategy == null || modelStrategy.toString().isEmpty || modelStrategy == 'null') {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Fail-Fast: You must explicitly select a Model Strategy.'), backgroundColor: Colors.red));
+    if (modelStrategy == null ||
+        modelStrategy.toString().isEmpty ||
+        modelStrategy == 'null') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Fail-Fast: You must explicitly select a Model Strategy.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -77,9 +82,7 @@ class _StepBuilderViewState
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text(
-                  'Step saved (Optimistic update applied).',
-                ),
+                content: Text('Step saved (Optimistic update applied).'),
               ),
             );
             Navigator.of(context).pop();
@@ -105,52 +108,59 @@ class _StepBuilderViewState
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.stepDeleteConfirmTitle),
-        content: Text(l10n.stepDeleteConfirmMessage(id)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(l10n.stepDeleteConfirmTitle),
+            content: Text(l10n.stepDeleteConfirmMessage(id)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ref
+                      .read(stepsControllerProvider.notifier)
+                      .deleteStep(id)
+                      .then((_) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Deleted successfully'),
+                            ),
+                          );
+                          Navigator.of(context).pop();
+                        }
+                      })
+                      .catchError((e) {
+                        if (mounted) {
+                          String errorMsg = e.toString();
+                          if (e is AppError && e is ApiAppError) {
+                            if (e.errorCode == 'RESOURCE_IN_USE') {
+                              errorMsg = l10n.errorResourceInUse;
+                            }
+                          } else if (errorMsg.contains('RESOURCE_IN_USE') ||
+                              errorMsg.contains('400')) {
+                            errorMsg = l10n.errorResourceInUse;
+                          }
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMsg),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      });
+                },
+                child: Text(
+                  l10n.delete,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ref
-                  .read(stepsControllerProvider.notifier)
-                  .deleteStep(id)
-                  .then((_) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Deleted successfully')),
-                      );
-                      Navigator.of(context).pop();
-                    }
-                  })
-                  .catchError((e) {
-                    if (mounted) {
-                      String errorMsg = e.toString();
-                      if (e is AppError && e is ApiAppError) {
-                         if (e.errorCode == 'RESOURCE_IN_USE') {
-                           errorMsg = l10n.errorResourceInUse;
-                         }
-                      } else if (errorMsg.contains('RESOURCE_IN_USE') || errorMsg.contains('400')) {
-                         errorMsg = l10n.errorResourceInUse;
-                      }
-                      
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(errorMsg),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  });
-            },
-            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -245,9 +255,7 @@ class _StepBuilderViewState
                       const SizedBox(height: 16),
                       I18nTextField(
                         label: 'Name',
-                        initialData: SafeCast.safeMap(
-                          _editableStep['name'],
-                        ),
+                        initialData: SafeCast.safeMap(_editableStep['name']),
                         onChanged: (val) => _editableStep['name'] = val,
                       ),
                       const SizedBox(height: 16),
@@ -256,8 +264,7 @@ class _StepBuilderViewState
                         initialData: SafeCast.safeMap(
                           _editableStep['description'],
                         ),
-                        onChanged:
-                            (val) => _editableStep['description'] = val,
+                        onChanged: (val) => _editableStep['description'] = val,
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
@@ -265,9 +272,10 @@ class _StepBuilderViewState
                           labelText: 'Model Strategy',
                         ),
                         initialValue:
-                            strategyKeys.contains(_editableStep['model_strategy'])
-                                ? _editableStep['model_strategy']
-                                    as String?
+                            strategyKeys.contains(
+                                  _editableStep['model_strategy'],
+                                )
+                                ? _editableStep['model_strategy'] as String?
                                 : null,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -275,12 +283,13 @@ class _StepBuilderViewState
                           }
                           return null;
                         },
-                        items: strategyKeys.map((key) {
-                          return DropdownMenuItem(
-                            value: key,
-                            child: Text(key),
-                          );
-                        }).toList(),
+                        items:
+                            strategyKeys.map((key) {
+                              return DropdownMenuItem(
+                                value: key,
+                                child: Text(key),
+                              );
+                            }).toList(),
                         onChanged:
                             (val) => setState(
                               () => _editableStep['model_strategy'] = val,
@@ -362,9 +371,7 @@ class _StepBuilderViewState
               child: Focus(
                 onFocusChange: (f) {
                   if (!f) {
-                    final hooks = SafeCast.safeList(
-                      _editableStep['pre_hooks'],
-                    );
+                    final hooks = SafeCast.safeList(_editableStep['pre_hooks']);
                     hooks[index] = hookController.text;
                     _editableStep['pre_hooks'] = hooks;
                   }
@@ -381,9 +388,7 @@ class _StepBuilderViewState
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () {
                 setState(() {
-                  SafeCast.safeList(
-                    _editableStep['pre_hooks'],
-                  ).removeAt(index);
+                  SafeCast.safeList(_editableStep['pre_hooks']).removeAt(index);
                 });
               },
             ),
@@ -406,11 +411,11 @@ class _StepBuilderViewState
           children: [
             Expanded(
               child: DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Prompt Block',
-                ),
+                decoration: const InputDecoration(labelText: 'Prompt Block'),
                 initialValue:
-                    promptBlocks.any((m) => m['id'] == blockDef) ? blockDef : null,
+                    promptBlocks.any((m) => m['id'] == blockDef)
+                        ? blockDef
+                        : null,
                 items:
                     promptBlocks.map((m) {
                       return DropdownMenuItem(

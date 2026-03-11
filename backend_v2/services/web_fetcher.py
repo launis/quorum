@@ -56,16 +56,16 @@ class WebFetcher:
 
         except ValueError as e:
             # Invalid URL format
+            logger.error(f"[WebFetcher] {ErrorCodes.URL_INVALID.name}: Invalid URL format: {e}", exc_info=True)
             raise AppException(message=str(e), status_code=400, details={"error_code": ErrorCodes.URL_INVALID}) from e
 
         except (urllib.error.URLError, TimeoutError) as e:
             # Network or Protocol error
-            error_code = ErrorCodes.FETCH_FAILED
-            logger.error(f"[WebFetcher] Failed to fetch {url}: {e}")
+            logger.error(f"[WebFetcher] {ErrorCodes.FETCH_FAILED.name}: Failed to fetch {url}: {e}", exc_info=True)
             raise AppException(
                 message=f"Failed to fetch content from {url}",
                 status_code=502,  # Bad Gateway / Upstream Error
-                details={"error_code": error_code, "original_error": str(e)},
+                details={"error_code": ErrorCodes.FETCH_FAILED, "original_error": str(e)},
             ) from e
 
         except Exception as e:
@@ -73,8 +73,13 @@ class WebFetcher:
             if isinstance(e, AppException):
                 raise e
 
-            error_code = ErrorCodes.INTERNAL_SERVER_ERROR
-            logger.error(f"[WebFetcher] Unexpected error for {url}: {e}", exc_info=True)
+            logger.error(
+                f"[WebFetcher] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
+                f"Unexpected error for {url}: {e}",
+                exc_info=True
+            )
             raise AppException(
-                message="Unexpected error during web fetch.", status_code=500, details={"error_code": error_code}
+                message="Unexpected error during web fetch.",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name}
             ) from e

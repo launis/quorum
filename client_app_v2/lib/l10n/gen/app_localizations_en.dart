@@ -1721,4 +1721,124 @@ class AppLocalizationsEn extends AppLocalizations {
   String mockLoginFailed(String error) {
     return 'Mock login failed. Verify user data: $error';
   }
+
+  @override
+  String get actionHintCheckInput =>
+      'Hint: Please check your input and try again.';
+
+  @override
+  String get actionHintLoginAgain =>
+      'Hint: Session expired. Please log in again.';
+
+  @override
+  String get actionHintTryAgainLater =>
+      'Hint: Server error. Please wait a moment and try again.';
+
+  @override
+  String get actionHintContactSupport =>
+      'Hint: If the issue persists, contact support.';
+
+  @override
+  String get actionHintRunIngestion =>
+      'Hint: Please upload documents to the Knowledge Base first.';
+
+  @override
+  String get actionHintCheckUrl =>
+      'Hint: Please verify the spelling of the URL.';
+
+  @override
+  String get actionHintCheckConnection =>
+      'Hint: Please check your network connection.';
+
+  @override
+  String get confirmDeletionTitle => 'Confirm Deletion';
+
+  @override
+  String get confirmDeletionMessage =>
+      'Are you sure you want to delete this execution? This action cannot be undone.';
+
+  @override
+  String get executionsDashboardTitle => 'Executions Dashboard';
+
+  @override
+  String get newAnalysisPipelineTitle => 'New Analysis Pipeline (SDUI)';
+
+  @override
+  String get liveExecutionTitle => 'Live Execution';
+
+  @override
+  String get establishingConnection => 'Establishing connection...';
+
+  @override
+  String statusLabel(String status) {
+    return 'Status: $status';
+  }
+
+  @override
+  String auditDriftWarning(String versionId) {
+    return 'Audit Drift Warning: This execution was completed with system parameters ($versionId) that differ from the current active ruleset (v2.0.0). Results should be interpreted with caution.';
+  }
+
+  @override
+  String get noUiHintsAvailable =>
+      'No UI hints available yet. Waiting for stream...';
+
+  @override
+  String get executionStartedSuccessfully => 'Execution started successfully!';
+
+  @override
+  String failedToStartExecution(String error) {
+    return 'Failed to start execution: $error';
+  }
+
+  @override
+  String get executionDeletedSuccessfully => 'Execution deleted successfully.';
+
+  @override
+  String failedToDeleteExecution(String error) {
+    return 'Failed to delete execution: $error';
+  }
+
+  @override
+  String get selectWorkflowPrompt =>
+      'Select a workflow from the list to begin.';
+
+  @override
+  String noInputsRequired(String id) {
+    return 'No inputs strictly required for \n$id';
+  }
+
+  @override
+  String configureInputsFor(String id) {
+    return 'Configure Inputs for $id';
+  }
+
+  @override
+  String inputLabel(String key) {
+    return 'Input: $key';
+  }
+
+  @override
+  String selectedFile(String fileName) {
+    return 'Selected: $fileName';
+  }
+
+  @override
+  String get noFileSelected => 'No file selected';
+
+  @override
+  String get browseFile => 'Browse';
+
+  @override
+  String inputTypeHint(String typeHint) {
+    return 'Type: $typeHint';
+  }
+
+  @override
+  String questionnaireTitle(String title) {
+    return 'Questionnaire: $title';
+  }
+
+  @override
+  String get startAiExecution => 'Start AI Execution';
 }

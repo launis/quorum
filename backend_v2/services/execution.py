@@ -10,7 +10,15 @@ from fastapi import BackgroundTasks
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
-from backend_v2.models.v2_core import ExecutionCreate, ExecutionRecord, ExecutionStatus, FrozenContext, Workflow
+from backend_v2.models.v2_core import (
+    ComponentType,
+    DataDictionaryField,
+    ExecutionCreate,
+    ExecutionRecord,
+    ExecutionStatus,
+    FrozenContext,
+    Workflow,
+)
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 logger = logging.getLogger(__name__)
@@ -58,6 +66,21 @@ class ExecutionService:
 
         return ExecutionRecord.model_validate(data)
 
+    async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
+        """Securely delete an execution."""
+        # This will also perform the authorization check
+        await self.get_execution(initiator=initiator, execution_id=execution_id)
+
+        try:
+            return await self.repo.delete_execution(execution_id)
+        except Exception as e:
+            logger.error(f"[ExecutionService] Failed to delete execution {execution_id}: {e}")
+            raise AppException(
+                message=f"Failed to delete execution: {str(e)}",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+            ) from e
+
     async def start_execution(self, initiator: TokenData, payload: ExecutionCreate, background_tasks: BackgroundTasks) -> ExecutionRecord:
         """Initialize and trigger workflow securely."""
         workflow_dict = await self.repo.get_workflow_by_id(payload.workflow_id)
@@ -73,13 +96,61 @@ class ExecutionService:
             logger.error(f"[ExecutionService] PERMISSION_DENIED: {initiator.id} tried to start foreign workflow.")
             raise PermissionDeniedError("You do not have permission to execute this workflow.")
 
+        # V2 MANDATE: Dynamically generate SDUI hints synchronously before execution
+        ui_hints: dict[str, DataDictionaryField] = {}
+        for step_rule in workflow.steps:
+            # We fetch the step definition to find its core mapped matrices/blocks
+            step_dict = await self.repo.get_step(step_rule.task_blueprint)
+            if not step_dict:
+                from backend_v2.exceptions import ConfigurationError
+                raise ConfigurationError(f"Missing task blueprint {step_rule.task_blueprint} for DAG.")
+
+            prompt_blocks_refs = step_dict.get("prompt_blocks", [])
+            for pb_slug in prompt_blocks_refs:
+                pb_dict = await self.repo.get_prompt_block(pb_slug)
+                if not pb_dict:
+                     continue # For robustness in execution, if a block is removed since deployment, log it in executor, skip here mostly. But wait, V2 strictly says Fail Fast.
+
+                # We apply Fail-Fast for missing blocks to guarantee auditability:
+                if not pb_dict:
+                    from backend_v2.exceptions import ConfigurationError
+                    raise ConfigurationError(f"SDUI Engine Error: PromptBlock '{pb_slug}' is missing but referenced in step '{step_rule.task_blueprint}'.")
+
+                dt = pb_dict.get("type")
+
+                # Define component defaults based on Strict Block Types
+                comp_type = ComponentType.TEXT_INPUT
+                if dt in ["float", "int"]:
+                    comp_type = ComponentType.SLIDER
+                elif dt == "panel":
+                    comp_type = ComponentType.DROPDOWN
+
+                max_val = 6.0
+                if "scales" in pb_dict and pb_dict["scales"]:
+                    try:
+                         # Attempt to find actual scaling max dynamically
+                         max_val = float(max([s.get("score", 0) for s in pb_dict["scales"]]))
+                    except Exception:
+                         pass
+
+                # Extract translation map for UI label
+                label_obj = pb_dict.get("label", {})
+
+                # Lock the hint
+                ui_hints[pb_slug] = DataDictionaryField(
+                    field_id=pb_slug,
+                    component_type=comp_type,
+                    options=[label_obj] if label_obj else None,
+                    validation_rules={"max": max_val}
+                )
+
         execution_id = str(uuid4())
         initial_record = ExecutionRecord(
             id=execution_id,
             workflow_id=workflow.id,
             status=ExecutionStatus.PENDING,
             raw_inputs=payload.raw_inputs,
-            frozen_context=FrozenContext(),
+            frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             results={},
         )
         # We append temporary creator tracking using model_dump bypass for now

@@ -130,6 +130,14 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                     setState(() {
                       _isChatHistory = val;
                       widget.inputDef['is_chat_history'] = val;
+                      
+                      // Enforce rule: Chat history cannot be a questionnaire
+                      if (val && modes.contains('questionnaire')) {
+                        modes.clear();
+                        if (!modes.contains('file')) modes.add('file');
+                        widget.inputDef['input_modes'] = modes;
+                      }
+
                       _notifyChange();
                     });
                   },
@@ -145,16 +153,39 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               spacing: 8,
               children:
                   ['file', 'paste', 'questionnaire'].map((mode) {
-                    final modeStr = mode == 'file' ? l10n.inputModeFile : mode == 'paste' ? l10n.inputModePaste : l10n.inputModeQuestionnaire;
+                    final modeStr =
+                        mode == 'file'
+                            ? l10n.inputModeFile
+                            : mode == 'paste'
+                            ? l10n.inputModePaste
+                            : l10n.inputModeQuestionnaire;
                     return FilterChip(
                       label: Text(modeStr),
                       selected: modes.contains(mode),
                       onSelected: (selected) {
                         setState(() {
                           if (selected) {
-                            modes.add(mode);
+                            if (mode == 'questionnaire') {
+                              modes.clear();
+                              modes.add(mode);
+                              // Enforce rule: Questionnaire cannot be chat history
+                              if (_isChatHistory) {
+                                _isChatHistory = false;
+                                widget.inputDef['is_chat_history'] = false;
+                              }
+                            } else {
+                              modes.remove('questionnaire');
+                              if (!modes.contains(mode)) {
+                                modes.add(mode);
+                              }
+                            }
                           } else {
-                            modes.remove(mode);
+                            // Prevent deselection if it would leave the list empty
+                            if (modes.length > 1) {
+                              modes.remove(mode);
+                            } else if (modes.length == 1 && modes.first != mode) {
+                               modes.remove(mode); // theoretically impossible but safe
+                            }
                           }
                           widget.inputDef['input_modes'] = modes;
                           _notifyChange();
@@ -197,7 +228,10 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               const SizedBox(height: 24),
               Text(
                 l10n.workflowInputQuestionnaireDefTitle,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 8),
               _buildQuestionnaireEditor(l10n),
@@ -293,7 +327,10 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               setState(() {
                 questions.add({
                   'question_id': 'q${questions.length + 1}',
-                  'question': {},
+                  'question': {
+                    'default_locale': 'en',
+                    'translations': {}
+                  },
                   'type': 'text',
                 });
                 widget.inputDef['questionnaire_definition'] = questions;

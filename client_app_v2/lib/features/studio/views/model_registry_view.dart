@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// Admin Studio View for managing the Model Registry (SystemConfig).
 /// Uses raw `Map<String, dynamic>` to adhere to V2 De-Generator principles.
@@ -40,7 +41,13 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
       ),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error:
+            (e, st) => ErrorView(
+              error: e,
+              stackTrace: st,
+              compact: true,
+              onRetry: () => ref.invalidate(modelRegistryControllerProvider),
+            ),
         data: (data) {
           // Initialize working copy if not already done. Map.from enables deep-ish copy.
           _editableState ??= _deepCopy(data);
@@ -238,7 +245,7 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
           labelText: label,
           border: const OutlineInputBorder(),
         ),
-        value: items.contains(currentValue) ? currentValue : null,
+        initialValue: items.contains(currentValue) ? currentValue : null,
         items:
             items.map((modelId) {
               return DropdownMenuItem(value: modelId, child: Text(modelId));

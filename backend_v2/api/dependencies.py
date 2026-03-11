@@ -76,7 +76,7 @@ StudioServiceDep = Annotated[StudioService, Depends(get_studio_service)]
 
 def get_llm_handler(
     repo: AbstractWorkflowRepository = Depends(get_repo)
-) -> "LLMHandler":
+) -> Any:
     from backend_v2.llm.handler import LLMHandler
     return LLMHandler(repo=repo)
 

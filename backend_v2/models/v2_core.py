@@ -283,6 +283,20 @@ class ExpectedInput(BaseModel):
             )
 
         if "questionnaire" in self.input_modes:
+            if self.is_chat_history:
+                from backend_v2.exceptions import AppException, ErrorCodes
+                raise AppException(
+                    message=f"ExpectedInput '{self.input_key}' cannot use 'questionnaire' mode when flagged as chat history.",
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    status_code=400
+                )
+            if len(self.input_modes) > 1:
+                from backend_v2.exceptions import AppException, ErrorCodes
+                raise AppException(
+                    message=f"ExpectedInput '{self.input_key}' cannot mix 'questionnaire' with other input modes.",
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    status_code=400
+                )
             if not self.questionnaire_definition:
                 from backend_v2.exceptions import AppException, ErrorCodes
                 raise AppException(

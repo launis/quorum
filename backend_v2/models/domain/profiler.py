@@ -16,7 +16,7 @@ from backend_v2.models.enums import RoleClassification
 class ProfilerInput(BaseModel):
     """Strict input schema for ProfilerAgent."""
 
-    history_text: str = Field(..., description="Chat history to profile.")
+    history_text: str | None = Field(None, description="Chat history to profile.")
     product_text: str | None = Field(None, description="Product context (optional).")
     profiler_metrics: ProfilerMetrics | None = Field(None, description="Injected text metrics.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
@@ -147,7 +147,9 @@ class ProfilerDTO(ReasoningTraceDTO):
 
     @field_validator("author_intent", "emotional_tone")
     @classmethod
-    def validate_non_empty(cls, v: str) -> str:
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()

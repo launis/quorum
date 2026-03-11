@@ -60,148 +60,148 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Cognitive Quorum',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign in to continue',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                if (_errorMessage != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(8),
+            constraints: const BoxConstraints(maxWidth: 400),
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Cognitive Quorum',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Sign in to continue',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  if (_errorMessage != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
                       ),
                     ),
-                  ),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Invalid email address';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _submit(),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _isLoading ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child:
-                      _isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text('Sign In'),
-                ),
-                // Debug Feature: Mock Login
-                const SizedBox(height: 24),
-                // Only show in debug mode (or always during Prototyping Phase)
-                Column(
-                  children: [
-                    const Divider(),
-                    const Text(
-                      'Development Tools',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.purple,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      if (!value.contains('@')) {
+                        return 'Invalid email address';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submit(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: _isLoading ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child:
+                        _isLoading
+                            ? const CircularProgressIndicator()
+                            : const Text('Sign In'),
+                  ),
+                  // Debug Feature: Mock Login
+                  const SizedBox(height: 24),
+                  // Only show in debug mode (or always during Prototyping Phase)
+                  Column(
+                    children: [
+                      const Divider(),
+                      const Text(
+                        'Development Tools',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
-                      onPressed:
-                          _isLoading
-                              ? null
-                              : () => _mockLogin(
-                                '10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b', // ROOT
-                              ),
-                      child: const Text('Mock Login (Root Master)'),
-                    ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.orange,
+                      const SizedBox(height: 8),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.purple,
+                        ),
+                        onPressed:
+                            _isLoading
+                                ? null
+                                : () => _mockLogin(
+                                  '10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b', // ROOT
+                                ),
+                        child: const Text('Mock Login (Root Master)'),
                       ),
-                      onPressed:
-                          _isLoading
-                              ? null
-                              : () => _mockLogin(
-                                '5aa54e11-e804-4100-8c61-0f45b9393f1f', // ADMIN
-                              ),
-                      child: const Text('Mock Login (Admin)'),
-                    ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.green,
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                        ),
+                        onPressed:
+                            _isLoading
+                                ? null
+                                : () => _mockLogin(
+                                  '5aa54e11-e804-4100-8c61-0f45b9393f1f', // ADMIN
+                                ),
+                        child: const Text('Mock Login (Admin)'),
                       ),
-                      onPressed:
-                          _isLoading
-                              ? null
-                              : () => _mockLogin(
-                                '3d081723-e062-4eeb-968e-070a100846b3', // MANAGER
-                              ),
-                      child: const Text('Mock Login (Manager)'),
-                    ),
-                  ],
-                ),
-              ],
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.green,
+                        ),
+                        onPressed:
+                            _isLoading
+                                ? null
+                                : () => _mockLogin(
+                                  '3d081723-e062-4eeb-968e-070a100846b3', // MANAGER
+                                ),
+                        child: const Text('Mock Login (Manager)'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -221,11 +221,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         String msg = e.toString().replaceAll('Exception: ', '');
         if (e is AppError) {
-           msg = e.message(AppLocalizations.of(context)!);
+          msg = e.message(AppLocalizations.of(context)!);
         }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.mockLoginFailed(msg))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.mockLoginFailed(msg)),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

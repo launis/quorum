@@ -23,8 +23,8 @@ class PanelInput(BaseModel):
     """Strict input schema for PanelAgent."""
 
     # Context
-    history_text: str = Field(..., description="Chat history.")
-    product_text: str = Field(..., description="Product description.")
+    history_text: str | None = Field(None, description="Chat history.")
+    product_text: str | None = Field(None, description="Product description.")
     reflection_text: str | None = Field(None, description="User reflection.")
 
     # Dependencies (Mandatory in Agent Logic, Optional in Schema for flexibility?)

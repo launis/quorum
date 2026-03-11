@@ -74,31 +74,24 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
         logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
         raise AppException(message=msg, status_code=status_code, details={"error_code": error_code})
 
-    # Strict separation of mandatory inputs
-    history_text = None
-    product_text = None
-    reflection_text = None
-
+    # Gather all text inputs dynamically
+    source_texts = []
+    
     if isinstance(inputs, dict):
-        history_text = inputs.get("history_text")
-        product_text = inputs.get("product_text")
-        reflection_text = inputs.get("reflection_text")
+        for val in inputs.values():
+            if val:
+                source_texts.append(str(val))
     else:
-        history_text = getattr(inputs, "history_text", None)
-        product_text = getattr(inputs, "product_text", None)
-        reflection_text = getattr(inputs, "reflection_text", None)
-
-    if not history_text or not product_text or not reflection_text:
+        # Fallback if Pydantic model (though should be dict in V2)
+        for key, val in vars(inputs).items():
+            if val and isinstance(val, str):
+                source_texts.append(val)
+                
+    if not source_texts:
         error_code = ErrorCodes.EMPTY_INPUT
-        msg = "Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification."
+        msg = "Missing any input text for citation verification."
         logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
         raise AppException(message=msg, status_code=400, details={"error_code": error_code})
-
-    # Ensure strings (Pydantic models fields are already typed as Optional[str], so strict check above handles None)
-    # We can cast to str just to be safe for concatenation, but if they are str they are str.
-    history_text = str(history_text)
-    product_text = str(product_text)
-    reflection_text = str(reflection_text)
 
     # 1b. Gather Context (RAG) - SAFE INFLATION
     rag_text = ""
@@ -124,7 +117,7 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
             for item in step_ctx.knowledge_items:
                 rag_text += f"[{item.term}]: {item.definition}\n"
 
-    source_corpus = (history_text + "\n" + product_text + "\n" + reflection_text + "\n" + rag_text).lower()
+    source_corpus = ("\n".join(source_texts) + "\n" + rag_text).lower()
 
     # Helper for loose matching (ignore extra whitespace)
     def normalize(text: str) -> str:

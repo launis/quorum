@@ -200,7 +200,8 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         doc_ref = self.db.collection("workflows").document(workflow_id)
         doc = await doc_ref.get()
         if not doc.exists:
-            raise ValueError(f"Workflow {workflow_id} not found")
+            from backend_v2.exceptions import WorkflowNotFoundError
+            raise WorkflowNotFoundError(workflow_id)
 
         old_data = doc.to_dict()
         if old_data is None:
@@ -240,10 +241,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             await batch.commit()
             return new_id
         except Exception as e:
-            logger.error(f"Failed to append-only update workflow {workflow_id}: {e}")
             from fastapi import status
 
             from backend_v2.exceptions import AppException, ErrorCodes
+
+            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to append-only update workflow {workflow_id}: {e}", exc_info=True)
 
             raise AppException(
                 message=str(e),
@@ -290,10 +292,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             await batch.commit()
             return True
         except Exception as e:
-            logger.error(f"Failed to append-only update agent {agent_id}: {e}")
             from fastapi import status
 
             from backend_v2.exceptions import AppException, ErrorCodes
+
+            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to append-only update agent {agent_id}: {e}", exc_info=True)
             raise AppException(
                 message=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -339,10 +342,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             await batch.commit()
             return True
         except Exception as e:
-            logger.error(f"Failed to append-only update matrix {matrix_id}: {e}")
             from fastapi import status
 
             from backend_v2.exceptions import AppException, ErrorCodes
+
+            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to append-only update matrix {block_id}: {e}", exc_info=True)
             raise AppException(
                 message=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -361,7 +365,8 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             for s in steps:
                 if block_id in s.get("prompt_blocks", []):
                     from backend_v2.exceptions import AppException, ErrorCodes
-                    error_msg = f"Tuhoaminen estetty: PromptBlock '{block_id}' on sidottu Blueprinttiin '{str(s.get('id', 'unknown'))}'."
+                    step_name = str(s.get('id', 'unknown'))
+                    error_msg = f"Tuhoaminen estetty: PromptBlock '{block_id}' on sidottu Blueprinttiin '{step_name}'."
                     raise AppException(
                         message=str(error_msg),
                         details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
@@ -394,7 +399,12 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         safe_data = self._serialize_for_firestore(step_data)
         doc_id = safe_data.get("id")
         if not doc_id:
-            raise ValueError("Step ID missing")
+            from backend_v2.exceptions import AppException, ErrorCodes
+            raise AppException(
+                message="Step ID missing",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED}
+            )
         await self.db.collection("steps").document(doc_id).set(safe_data)
         return str(doc_id)
 
@@ -404,10 +414,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             await self.db.collection("steps").document(step_id).update(safe_updates)
             return step_id
         except Exception as e:
-            logger.error(f"Failed to update step {step_id}: {e}")
             from fastapi import status
 
             from backend_v2.exceptions import AppException, ErrorCodes
+
+            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to update step {step_id}: {e}", exc_info=True)
 
             raise AppException(
                 message=str(e),
@@ -540,10 +551,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             await self.db.collection("components").document(component_id).update(safe_updates)
             return component_id
         except Exception as e:
-            logger.error(f"Failed to update legacy_prompt_block {component_id}: {e}")
             from fastapi import status
 
             from backend_v2.exceptions import AppException, ErrorCodes
+
+            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to update legacy_prompt_block {component_id}: {e}", exc_info=True)
 
             raise AppException(
                 message=str(e),

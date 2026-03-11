@@ -7,10 +7,12 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
   group('StepBuilderView Dropdown Tests', () {
-    testWidgets('renders prompt_blocks dropdown with correct options', (WidgetTester tester) async {
+    testWidgets('renders prompt_blocks dropdown with correct options', (
+      WidgetTester tester,
+    ) async {
       final mockStep = {
         'id': 'test_step_1',
-        'prompt_blocks': ['block_a']
+        'prompt_blocks': ['block_a'],
       };
 
       final mockPromptBlocks = [
@@ -55,7 +57,9 @@ void main() {
   });
 }
 
-class MockPromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> implements PromptBlocksController {
+class MockPromptBlocksController
+    extends AsyncNotifier<List<Map<String, dynamic>>>
+    implements PromptBlocksController {
   final List<Map<String, dynamic>> initialData;
   MockPromptBlocksController(this.initialData);
 
