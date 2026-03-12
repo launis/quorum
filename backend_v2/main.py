@@ -47,6 +47,7 @@ async def lifespan(app: FastAPI) -> Any:
 
     try:
         # A. Initialize Task Registry / Hook Registry (Trigger Decorators)
+        import backend_v2.hooks
 
         # B. Load Workflows (Mock/File-based seeding for now)
         # In a real app, this might sync to DB.

@@ -189,8 +189,6 @@ class _PromptBlockBuilderViewState
 
   @override
   Widget build(BuildContext context) {
-    final criteria = SafeCast.safeList(_editablePromptBlock['criteria']);
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -296,7 +294,7 @@ class _PromptBlockBuilderViewState
                         decoration: const InputDecoration(
                           labelText: 'Category',
                         ),
-                        value:
+                        initialValue:
                             _editablePromptBlock['category_id'] as String? ??
                             'system_rule',
                         items: const [
@@ -370,6 +368,7 @@ class _PromptBlockBuilderViewState
                                       [
                                             'int',
                                             'float',
+                                            'number',
                                             'string',
                                             'instruction',
                                             'bool',
@@ -389,6 +388,10 @@ class _PromptBlockBuilderViewState
                                     DropdownMenuItem(
                                       value: 'string',
                                       child: Text('String'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'number',
+                                      child: Text('Number (Numeric)'),
                                     ),
                                     DropdownMenuItem(
                                       value: 'int',
@@ -718,6 +721,56 @@ class _PromptBlockBuilderViewState
               ],
             ),
             if (_editablePromptBlock['scales'] != null) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      initialValue:
+                          _editablePromptBlock['scale_min']?.toString() ?? '4',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Scale Min (e.g. 4)',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        final parsed = num.tryParse(val);
+                        if (parsed != null) {
+                          setState(() {
+                            _editablePromptBlock['scale_min'] = parsed;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue:
+                          _editablePromptBlock['scale_max']?.toString() ?? '10',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Scale Max (e.g. 10)',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        final parsed = num.tryParse(val);
+                        if (parsed != null) {
+                          setState(() {
+                            _editablePromptBlock['scale_max'] = parsed;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               ...SafeCast.safeList(
                 _editablePromptBlock['scales'],

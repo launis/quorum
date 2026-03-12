@@ -97,6 +97,14 @@ class PromptBlock(BaseModel):
         default=None,
         description="If provided, fetches and injects source theory as <theory_context> to prompt.",
     )
+    scale_min: int | None = Field(
+        default=None,
+        description="Minimum score for the scales matrix. Required if scales are present."
+    )
+    scale_max: int | None = Field(
+        default=None,
+        description="Maximum score for the scales matrix. Required if scales are present."
+    )
     scales: list[MatrixScale] | None = Field(
         default=None,
         description="BARS scale definitions with scores and localized claims. If provided, must not be empty."
@@ -124,6 +132,26 @@ class PromptBlock(BaseModel):
 
         # Strict Business Logic Constraints from user rules
         if self.scales is not None:
+            if self.scale_min is None or self.scale_max is None:
+                from backend_v2.exceptions import AppException, ErrorCodes
+                raise AppException(
+                    message=(
+                        f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
+                        "scale_min ja scale_max on oltava määriteltynä."
+                    ),
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    status_code=400
+                )
+            if self.scale_max <= self.scale_min:
+                from backend_v2.exceptions import AppException, ErrorCodes
+                raise AppException(
+                    message=(
+                        f"PromptBlock '{self.id}': scale_max ({self.scale_max}) "
+                        f"on oltava suurempi kuin scale_min ({self.scale_min})."
+                    ),
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    status_code=400
+                )
             if len(self.scales) == 0:
                 from backend_v2.exceptions import AppException, ErrorCodes
                 raise AppException(
@@ -260,7 +288,10 @@ class ExpectedInput(BaseModel):
     input_key: str = Field(description="The internal key for routing this input (e.g., 'history_text').")
     label: I18nText = Field(description="Localized label for the UI.")
     required: bool = Field(description="Whether this input is universally required.")
-    is_chat_history: bool = Field(default=False, description="If True, routes to ChatParserService for special parsing.")
+    is_chat_history: bool = Field(
+        default=False,
+        description="If True, routes to ChatParserService for special parsing."
+    )
     input_modes: list[str] = Field(
         default_factory=list,
         description="Allowed modes: 'file', 'paste', 'questionnaire'."

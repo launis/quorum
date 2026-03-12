@@ -48,7 +48,9 @@ def _extract_falsifier_data(data: dict[str, Any]) -> Any | None:
 
     if isinstance(falsifier_model, dict) and falsifier_model.get("falsifier_data"):
         return falsifier_model["falsifier_data"]
-    if falsifier_model and hasattr(falsifier_model, "falsifier_data") and getattr(falsifier_model, "falsifier_data", None):
+    if falsifier_model and hasattr(falsifier_model, "falsifier_data") and getattr(
+        falsifier_model, "falsifier_data", None
+    ):
         return getattr(falsifier_model, "falsifier_data", None)
 
     if isinstance(panel_model, dict) and panel_model.get("falsifier_data"):
@@ -195,7 +197,7 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
     return {"scoring_result": result}
 
 
-from backend_v2.models.enums import ScoringPenalty  # type: ignore
+from backend_v2.models.enums import ScoringPenalty
 from backend_v2.settings import get_settings
 
 
@@ -247,7 +249,11 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
     if falsifier_data:
         if isinstance(falsifier_data, dict):
             audit = falsifier_data.get("fidelity_audit", {})
-            post_hoc = audit.get("post_hoc_rationalization", False) if isinstance(audit, dict) else getattr(audit, "post_hoc_rationalization", False)
+            post_hoc = (
+                audit.get("post_hoc_rationalization", False)
+                if isinstance(audit, dict)
+                else getattr(audit, "post_hoc_rationalization", False)
+            )
         else:
             audit = getattr(falsifier_data, "fidelity_audit", None)
             post_hoc = getattr(audit, "post_hoc_rationalization", False)
@@ -434,3 +440,135 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
         return new_data
 
     return {}
+
+
+@hook_registry.register(name="normalize_matrix_scores")
+async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> Any:
+    """Post-Hook to normalize any raw matrix scores into a user-defined target scale.
+
+    It scans the current step's output in the state context.
+    For any numeric field corresponding to a PromptBlock with `scales` and min/max boundaries,
+    it calculates the scaled score.
+
+    Args:
+        state: WorkflowState
+        repository: The active AbstractWorkflowRepository for fetching schemas.
+    """
+    logger.info("[ScoringHook] Running normalize_matrix_scores_hook...")
+
+    if not repository:
+        logger.warning("[ScoringHook] No repository provided. Skipping normalization.")
+        return state
+
+    # Get the last event to identify the current step
+    last_event = state.execution_trace[-1] if state.execution_trace else None
+    if not last_event or last_event.event_type != "output":
+        logger.debug("[ScoringHook] No valid output event found in trace.")
+        return state
+
+    step_id = last_event.step_name
+
+    try:
+        step_obj = await repository.get_step_by_id(step_id)
+        if not step_obj:
+            logger.warning(f"[ScoringHook] Step '{step_id}' not found in registry.")
+            return state
+
+        prompt_blocks_slugs = (
+            step_obj.get("prompt_blocks", [])
+            if isinstance(step_obj, dict)
+            else getattr(step_obj, "prompt_blocks", [])
+        )
+
+        # Get content payload from context variables (it represents the current mutated state if updated locally)
+        content_payload = state.context_variables.get(step_id)
+        if not content_payload:
+            content_payload = last_event.content
+
+        if not isinstance(content_payload, dict):
+            # Try to convert Pydantic to dict
+            if hasattr(content_payload, "model_dump"):
+                content_payload = content_payload.model_dump()
+            else:
+                logger.debug(f"[ScoringHook] Step '{step_id}' output is not a dict/model. Skipping.")
+                return state
+
+        updates_made = False
+        new_payload = content_payload.copy()
+
+        for slug in prompt_blocks_slugs:
+            if slug not in new_payload:
+                continue
+
+            raw_val = new_payload[slug]
+            if not isinstance(raw_val, (int, float)):
+                continue
+
+            pb = await repository.get_prompt_block_by_id(slug)
+            if not pb:
+                logger.warning(f"[ScoringHook] Missing PromptBlock '{slug}'.")
+                continue
+
+            pb_dict = pb if isinstance(pb, dict) else pb.model_dump()
+
+            scales = pb_dict.get("scales")
+            target_min = pb_dict.get("scale_min")
+            target_max = pb_dict.get("scale_max")
+
+            if scales and target_min is not None and target_max is not None:
+                # Find raw min and max from the scales definition
+                scores: list[float] = []
+                for s in scales:
+                    val = s.get("score") if isinstance(s, dict) else getattr(s, "score", None)
+                    if val is not None:
+                        try:
+                            scores.append(float(val))
+                        except (TypeError, ValueError):
+                            pass
+                            
+                if not scores:
+                    continue
+
+                raw_min = min(scores)
+                raw_max = max(scores)
+
+                from backend_v2.utils.math_utils import scale_to_custom_range
+
+                scaled_val = scale_to_custom_range(
+                    score=float(raw_val),
+                    raw_min=raw_min,
+                    raw_max=raw_max,
+                    target_min=float(target_min),
+                    target_max=float(target_max),
+                )
+
+                # Append raw score to payload
+                new_payload[f"{slug}_raw"] = raw_val
+                new_payload[slug] = scaled_val
+                updates_made = True
+                logger.info(
+                    f"[ScoringHook] Normalized '{slug}': {raw_val} -> {scaled_val} "
+                    f"(Target: {target_min}-{target_max})"
+                )
+
+        if updates_made:
+            # Update state context directly (mutable dict)
+            state.context_variables[step_id] = new_payload
+
+            # Since the engine also copies it to step_slug:
+            step_slug = step_obj.get("slug") if isinstance(step_obj, dict) else getattr(step_obj, "slug", None)
+            if step_slug and step_slug in state.context_variables:
+                state.context_variables[step_slug] = new_payload
+
+    except Exception as e:
+        logger.error(f"[ScoringHook] Failed to normalize matrix scores: {e}", exc_info=True)
+        # Fail Fast Requirement
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        raise AppException(
+            message=f"Normalization failed for step '{step_id}': {e}",
+            status_code=500,
+            details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED},
+        ) from e
+
+    return state

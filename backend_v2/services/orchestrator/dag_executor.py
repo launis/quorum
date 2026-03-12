@@ -12,9 +12,11 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExecutionStatus,
+    ExecutionStepState,
     FrozenContext,
     StepRule,
     Workflow,
+    WorkflowInputs,
 )
 
 logger = logging.getLogger(__name__)
@@ -54,13 +56,18 @@ class DAGExecutor:
         # Note: Pydantic Workflow model handles it on instantiation.
 
         # Create new execution record
+        step_states = {
+            step.id: ExecutionStepState(id=step.id, label=step.id, status="pending")
+            for step in workflow.steps
+        }
         exec_record = ExecutionRecord(
             id=execution_id,
             workflow_id=workflow.id,
             status=ExecutionStatus.RUNNING,
-            raw_inputs=raw_inputs,
+            raw_inputs=raw_inputs if isinstance(raw_inputs, WorkflowInputs) else WorkflowInputs(**raw_inputs),
             frozen_context=FrozenContext(),
             results={},
+            step_states=step_states,
         )
         await self.repository.create_execution(exec_record.model_dump())
 
@@ -111,7 +118,7 @@ class DAGExecutor:
                     await self.repository.update_execution(
                         execution_id,
                         {
-                            "results": exec_record.results, 
+                            "results": exec_record.results,
                             "frozen_context": frozen_ctx.model_dump(),
                             "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
                         }

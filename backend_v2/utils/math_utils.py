@@ -39,3 +39,27 @@ def normalize_score_to_100(score: float, scale_min: float, scale_max: float) -> 
     # or passivity penalties cause minor out-of-bounds results,
     # but the primary validation happens upstream.
     return max(0.0, min(100.0, normalized))
+
+def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_min: float, target_max: float) -> float:
+    """Scale a score from a raw range to a custom target range linearly.
+
+    Args:
+        score: The score to scale.
+        raw_min: The minimum possible score of the original scale.
+        raw_max: The maximum possible score of the original scale.
+        target_min: The minimum value of the desired target scale (e.g. 4.0).
+        target_max: The maximum value of the desired target scale (e.g. 10.0).
+
+    Returns:
+        float: The proportionally scaled score.
+    """
+    if raw_min >= raw_max:
+        return target_min
+
+    scaled = target_min + (score - raw_min) / (raw_max - raw_min) * (target_max - target_min)
+
+    # Clamp to target bounds
+    actual_min = min(target_min, target_max)
+    actual_max = max(target_min, target_max)
+
+    return max(actual_min, min(actual_max, scaled))

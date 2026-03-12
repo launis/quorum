@@ -6,6 +6,7 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/shared/widgets/execution_timeline.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'dart:convert';
 
 /// **Live Execution SDUI Screen**
@@ -174,13 +175,25 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                         hint['field_id'] ?? hint['component'],
                       );
 
-                      // Generate component
-                      return SDUIWidgetFactory.buildWidget(
-                        hint: hint,
-                        slug: componentType, // Map component type to slug
-                        results: results,
-                        locale: 'fi', // Default until locale context is added
-                      );
+                      // Generate component with Graceful Degradation Protocol
+                      try {
+                        return SDUIWidgetFactory.buildWidget(
+                          hint: hint,
+                          slug: componentType, // Map component type to slug
+                          results: results,
+                          locale: 'fi', // Default until locale context is added
+                          logger: ref.read(loggerServiceProvider), // Inject Singleton Logger
+                        );
+                      } catch (e, st) {
+                        // Protocol V2: MANDATORY LOGGING EVEN IF NON-FATAL
+                        ref.read(loggerServiceProvider).error(
+                              'SDUIBuilder',
+                              'VALIDATION_FAILED: Widget render fatal crash for slug "$componentType": $e',
+                              e,
+                              st,
+                            );
+                        return const SizedBox.shrink();
+                      }
                     }, childCount: uiHints.length),
                   ),
                 )

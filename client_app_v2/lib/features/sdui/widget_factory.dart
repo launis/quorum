@@ -5,6 +5,7 @@ import 'package:client_app/shared/widgets/unified_metric_gauge.dart';
 import 'package:client_app/shared/widgets/deep_dive_expander.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/utils/i18n_resolver.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 /// **SDUI Widget Factory**
 ///
@@ -29,6 +30,7 @@ class SDUIWidgetFactory {
     required String slug,
     required Map<String, dynamic> results,
     required String locale,
+    required LoggerService logger,
   }) {
     final String widgetType =
         hint['component_type']?.toString() ??
@@ -44,8 +46,9 @@ class SDUIWidgetFactory {
       case 'radar_chart':
         final Map<String, dynamic> cardData = SafeCast.safeMap(rawValue);
         if (cardData.isEmpty) {
-          debugPrint(
-            'SDUIWidgetFactory WARN: radar_chart requires Map data for slug "$slug"',
+          logger.error(
+            'SDUIBuilder',
+            'VALIDATION_FAILED: radar_chart requires Map data for slug "$slug"',
           );
           return const SizedBox.shrink();
         }
@@ -89,8 +92,9 @@ class SDUIWidgetFactory {
         final String label = I18nResolver.resolve(rawInstruction, locale);
 
         if (label.isEmpty) {
-          debugPrint(
-            'SDUIWidgetFactory WARN: gauge requires a label for slug "$slug"',
+          logger.error(
+            'SDUIBuilder',
+            'VALIDATION_FAILED: gauge requires a label for slug "$slug"',
           );
           return const SizedBox.shrink();
         }
@@ -108,8 +112,9 @@ class SDUIWidgetFactory {
         break;
 
       default:
-        debugPrint(
-          'SDUIWidgetFactory WARN: Unsupported widget type "$widgetType" for slug "$slug"',
+        logger.error(
+          'SDUIBuilder',
+          'VALIDATION_FAILED: Unsupported widget type "$widgetType" for slug "$slug"',
         );
         return const SizedBox.shrink();
     }

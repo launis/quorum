@@ -151,7 +151,24 @@ except Exception as e:
     raise AppException(message=..., error_code=ErrorCodes.VALIDATION_FAILED, ...) from e
 ```
 
-### 6.3 Mapping Exceptions to the UI (Actionable Hints & ErrorView)
+### 6.3 Non-Fatal Errors (Sallitut läpimenot / Graceful Degradation)
+Myös silloin, kun virheen tai tietyn poikkeuksen annetaan mennä läpi ilman koko sovelluksen kaatumista (esim. poikkeuksen nappaaminen SDUI-renderöijässä, jotta yksi viallinen JSON-noodi ei kaada koko näkymää), **käytetään lähes täsmälleen samaa rakenteellista virheenhallintaa ja lokitusta** kuin fataaleissa tilanteissa. Pelkkää hiljaista ohittamista (`catch: return fallback()`) ei hyväksytä koskaan vikatilanteissa. 
+
+Tyypillinen esimerkki tästä on Frontendin SDUI-widget (Server-Driven UI): jos backendistä tullut payload on osittain korruptoitunut ja yksittäisen komponentin rakentaminen failaa, näytämme näkymässä `SizedBox.shrink()` (Graceful Degradation). VAIKKA sovellus ei kaadu, komponentin on pakko ampua vahva virheloki osoittamaan, että fail-fast periaate toteutui osittain ja data oli viallista.
+
+**Esimerkki (Dart / Flutter):**
+```dart
+try {
+  return buildDynamicWidget(jsonData);
+} catch (e, st) {
+  // 1. Log with STRUCTURED FORMAT vaikka tilanteen annetaankin mennä läpi
+  logger.error('[SDUI Builder] ${ErrorCodes.VALIDATION_FAILED}: Widget render error: $e', e, st);
+  // 2. Fallback UI, mutta vain koska backendin dataongelma ei saa rikkoa koko puhelinta
+  return const SizedBox.shrink(); 
+}
+```
+
+### 6.4 Mapping Exceptions to the UI (Actionable Hints & ErrorView)
 * Backendin virhedata (`AppException`) tuodaan sellaisenaan koodina UI:hin (`"VALIDATION_FAILED"`), ilman käännöstä.
 * UI lokalisoi viestin asiakkaalle (`client_app/lib/core/error/app_error_ext.dart`). Sanomaan kirjataan **miksi kävi näin ja mitä käyttäjän pitäisi yrittää seuraavaksi (Actionable Hint).** Ei kuitteja mallia "Tapahtui virhe".
 * **Standardisoitu UI-Komponentti:** Kaikki virheet (`.when(error: ...)`) ohjataan standardoidun kokonäytön tai osittaisen näytön `ErrorView`-widgetin kautta, joka osaa näyttää poikkeuksen vikakoodit siististi ja nätisti. Omia `Text('Error')` vökerryksiä ei tueta.
@@ -217,18 +234,3 @@ Sisäisten rivikommenttien ainoa tehtävä arkkitehtuurissa on avata poikkeuksia
 * Orphaned (Orvot) TODO:t ovat kiellettyjä. Merkintä vaatii kontekstin ratkaisulle: `TODO(risto) [2026-03] Remove after api-V2 rolls out.`
 
 ---
-
-## 🗺️ 10. KNOWLEDGE BASE MAP (DEEP DIVES)
-
-Lisätietoja tarkemmista osa-alueista löydät järjestelmän ylläpitämästä sisäisestä tiedosta (Knowledge Items). Arkkitehtuurilinjaukset syvennetään näissä:
-
-1. **Backend & AI Engine**:
-   - `knowledge/backend_system_architecture/`
-   - `knowledge/workflow_orchestration_and_reliability/`
-   - `knowledge/seeding_and_data_lifecycle/`
-2. **Frontend & UX**:
-   - `knowledge/client_application_development/`
-   - `knowledge/hybrid_sdui_strategy/`
-   - `knowledge/identity_and_access_management/`
-3. **Environment Protocols**:
-   - `knowledge/development_environment_modernization/`

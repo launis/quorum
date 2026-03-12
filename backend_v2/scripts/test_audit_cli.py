@@ -44,6 +44,9 @@ async def main():
     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
     from backend_v2.settings import get_settings
 
+    # Initialize Task Registry / Hook Registry
+    import backend_v2.hooks
+
     class MockUser:
         id = "10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b" # Match system root ID from DB
         uid = "test-system"

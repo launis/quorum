@@ -301,6 +301,7 @@ async def startup(ctx: Any) -> None:
     # 1. CRITICAL: Register Tasks & Hooks
     # Import all task modules and hooks here to trigger their decorators.
     # This ensures the Registries are populated before we try to run anything.
+    import backend_v2.hooks
     logger.info(f"TaskRegistry initialized. Registered tasks: {list(TaskRegistry._tasks.keys())}")
 
     # 2. Initialize Dependencies

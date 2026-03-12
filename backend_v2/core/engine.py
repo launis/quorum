@@ -41,6 +41,7 @@ HOOK_MAPPING = {
     "generate_bibliography": ("backend.hooks.references", "generate_bibliography_hook"),
     # Passiveness Cutter (Strict Penalty)
     "enforce_passivity_penalty": ("backend.hooks.scoring", "enforce_passivity_penalty"),
+    "normalize_matrix_scores": ("backend_v2.hooks.scoring", "normalize_matrix_scores_hook"),
     # Integrity & Linking
     "verify_citation_integrity": ("backend.hooks.integrity", "verify_citation_integrity"),
     "enforce_hypothesis_linking": ("backend.hooks.integrity", "enforce_hypothesis_linking"),
@@ -55,7 +56,7 @@ class GraphEngine:
     Uses append-only TraceEvent log for state management.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the GraphEngine."""
         from backend_v2.core.registry import TaskRegistry
 
@@ -164,13 +165,13 @@ class GraphEngine:
                     message=exact_message,
                     status_code=400,
                     details={"error_code": error_code, "original_error": str(ve)},
-                )
+                ) from ve
             except Exception as e:
                 # Fallback for non-Pydantic errors
                 error_code = ErrorCodes.INVALID_JSON_PAYLOAD
                 msg = f"Invalid WorkflowInputs data. Failed to parse: {e}"
                 logger.error(f"[GraphEngine] {error_code}: {msg}")
-                raise AppException(message=msg, status_code=400, details={"error_code": error_code})
+                raise AppException(message=msg, status_code=400, details={"error_code": error_code}) from e
 
             # Note: Phase 10 Refactor removed legacy `ChatLogParser` execution from here.
             # All Y-Funnel generation (Base64 decoding, format parsing, reflection compilation)
@@ -242,7 +243,8 @@ class GraphEngine:
                     step = WorkflowStep.model_validate(merged)
                 except Exception as e:
                     logger.error(
-                        f"[GraphEngine] Failed to properly validate step '{step_id}': {e}. Rejecting due to Zero-Fallback mandate."
+                        f"[GraphEngine] Failed to properly validate step '{step_id}': {e}. "
+                        "Rejecting due to Zero-Fallback mandate."
                     )
                     raise WorkflowExecutionError(
                         step_id=step_id,
