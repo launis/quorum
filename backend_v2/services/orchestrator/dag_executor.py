@@ -2,7 +2,6 @@ import asyncio
 import logging
 from typing import Any
 
-import backend_v2.hooks  # Ensures hooks are registered
 from backend_v2.core.hook_registry import hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -93,14 +92,29 @@ class DAGExecutor:
                     await step_events[dep].wait()
 
                 try:
+                    # 1. Update status to running
+                    exec_record.step_states[step_id].status = "running"
+                    await self.repository.update_execution(
+                        execution_id,
+                        {"step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}}
+                    )
+
                     result = await self._execute_step(step_obj, state_data, frozen_ctx)
                     # State update is atomic per step constraint
                     state_data[step_obj.id] = result
                     exec_record.results[step_obj.id] = result
+
+                    # 2. Update status to completed
+                    exec_record.step_states[step_id].status = "completed"
+
                     # Append results to DB (Optimistic Update)
                     await self.repository.update_execution(
                         execution_id,
-                        {"results": exec_record.results, "frozen_context": frozen_ctx.model_dump()}
+                        {
+                            "results": exec_record.results, 
+                            "frozen_context": frozen_ctx.model_dump(),
+                            "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
+                        }
                     )
                     # Signal completion to unblock dependents ONLY ON SUCCESS
                     step_events[step_id].set()
@@ -109,6 +123,13 @@ class DAGExecutor:
                     raise
                 except Exception as e:
                     logger.error(f"Step {step_id} failed: {e}")
+                    # 3. Update status to failed
+                    if step_id in exec_record.step_states:
+                        exec_record.step_states[step_id].status = "failed"
+                        await self.repository.update_execution(
+                            execution_id,
+                            {"step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}}
+                        )
                     raise e
 
             # Schedule all steps immediately, they will block on .wait()

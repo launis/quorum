@@ -4,7 +4,9 @@ import 'package:client_app/features/execution/controllers/execution_controller.d
 import 'package:client_app/features/sdui/widget_factory.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/shared/widgets/execution_timeline.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'dart:convert';
 
 /// **Live Execution SDUI Screen**
 ///
@@ -26,7 +28,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
     super.initState();
     // Fire the stream connection immediately after the layout phase
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(executionControllerProvider.notifier).resumeExecution(widget.executionId);
+      ref
+          .read(executionControllerProvider.notifier)
+          .resumeExecution(widget.executionId);
     });
   }
 
@@ -36,11 +40,15 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
     final executionState = ref.watch(executionControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.liveExecutionTitle)),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.liveExecutionTitle),
+      ),
       body: executionState.when(
         data: (record) {
           if (record == null) {
-            return Center(child: Text(AppLocalizations.of(context)!.establishingConnection));
+            return Center(
+              child: Text(AppLocalizations.of(context)!.establishingConnection),
+            );
           }
 
           final status = SafeCast.safeString(record['status']).toLowerCase();
@@ -49,6 +57,12 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
               SafeCast.safeMap(
                 frozenContext['ui_hints_snapshot'],
               ).values.toList();
+
+          final stepStatesMap = SafeCast.safeMap(record['step_states']);
+          final stepStatesList =
+              stepStatesMap.values.map((e) => SafeCast.safeMap(e)).toList();
+
+          final results = SafeCast.safeMap(record['results']);
 
           return CustomScrollView(
             slivers: [
@@ -70,7 +84,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             const Icon(Icons.error, color: Colors.white),
                           const SizedBox(width: 16),
                           Text(
-                            AppLocalizations.of(context)!.statusLabel(status.toUpperCase()),
+                            AppLocalizations.of(
+                              context,
+                            )!.statusLabel(status.toUpperCase()),
                             style: Theme.of(
                               context,
                             ).textTheme.titleMedium?.copyWith(
@@ -109,7 +125,11 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              AppLocalizations.of(context)!.auditDriftWarning(SafeCast.safeString(frozenContext['version_id'])),
+                              AppLocalizations.of(context)!.auditDriftWarning(
+                                SafeCast.safeString(
+                                  frozenContext['version_id'],
+                                ),
+                              ),
                               style: TextStyle(color: Colors.amber.shade900),
                             ),
                           ),
@@ -119,12 +139,28 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   ),
                 ),
 
+              // Real-Time Execution Timeline
+              if (stepStatesList.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    child: ExecutionTimeline(
+                      steps: stepStatesList,
+                      compact: false,
+                    ),
+                  ),
+                ),
+
               // SDUI Grid
               if (uiHints.isNotEmpty)
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent:
                           800, // Breakpoint for Desktop/Tablet responsivity
                       mainAxisSpacing: 16,
@@ -137,7 +173,6 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                       final componentType = SafeCast.safeString(
                         hint['field_id'] ?? hint['component'],
                       );
-                      final results = SafeCast.safeMap(record['results']);
 
                       // Generate component
                       return SDUIWidgetFactory.buildWidget(
@@ -147,6 +182,46 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                         locale: 'fi', // Default until locale context is added
                       );
                     }, childCount: uiHints.length),
+                  ),
+                )
+              else if (status == 'completed' && results.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.rawOutputFallbackTitle,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
+                            ),
+                          ),
+                          child: SelectableText(
+                            const JsonEncoder.withIndent('  ').convert(results),
+                            style: const TextStyle(fontFamily: 'monospace'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               else

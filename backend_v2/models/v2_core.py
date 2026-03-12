@@ -5,7 +5,7 @@ Implements dynamic, append-only, and I18N-capable models according to V2 specs.
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus
 
@@ -394,6 +394,11 @@ class ExecutionCreate(BaseModel):
     workflow_id: str = Field(description="ID of the workflow to execute")
     raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")
 
+class ExecutionStepState(BaseModel):
+    """Real-time status tracking for a single DAG node."""
+    id: str = Field(description="Step ID")
+    label: str = Field(description="Localized label for UI tracking")
+    status: str = Field(default="pending", description="Status: pending, running, completed, failed")
 
 class ExecutionRecord(BaseModel):
     """Record of a workflow execution, including the frozen context and results."""
@@ -404,6 +409,8 @@ class ExecutionRecord(BaseModel):
         default_factory=WorkflowInputs, description="Raw user inputs by role")
     frozen_context: FrozenContext = Field(
         default_factory=FrozenContext, description="Immutable snapshot of context")
+    step_states: dict[str, ExecutionStepState] = Field(
+        default_factory=dict, description="Real-time timeline status of individual nodes")
     results: dict[str, Any] = Field(
         default_factory=dict, description="Step-by-step LLM output results")
     error: str | None = Field(default=None, description="Error message if failed")

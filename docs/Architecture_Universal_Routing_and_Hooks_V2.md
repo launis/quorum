@@ -63,7 +63,7 @@ The initial tier of execution processes the context:
 ### 3.4 The Grand Unifier (The Judge) & Late Reporting
 At node 13 (`step_judge`), the architecture reaches its first convergence point. The `JudgeInput` Pydantic model absorbs this 360-degree data panorama and derives a unified categorical scoring matrix.
 
-Nodes 14 (`step_coach`) and 15 (`step_xai_reporter`) act as the final rendering systems. By explicitly routing the Upstream Experts directly into to the downstream output generators (`$steps.step_analyst.output`), V2 ensures PDF reports and SDUI dashboards contain exact structured fallacies and raw search quotes uncovered deep inside the DAG runtime.
+Nodes 14 (`step_coach`) and 15 (`step_xai_reporter`) act as the final rendering systems. *Note: While the theoretical cognitive framework describes 15 logical maturity steps, the V2 DAG engine physically executes this across 13 optimized nodes (`step_node_1` to `step_node_13`). The references to nodes 13-15 reflect the conceptual architecture.* By explicitly routing the Upstream Experts directly into to the downstream output generators (`$steps.step_analyst.output`), V2 ensures PDF reports and SDUI dashboards contain exact structured fallacies and raw search quotes uncovered deep inside the DAG runtime.
 
 ---
 

@@ -1,4 +1,4 @@
-﻿# 🗺️ Cognitive Quorum - Product Roadmap (2026)
+# 🗺️ Cognitive Quorum - Product Roadmap (2026)
 
 This document outlines the strategic roadmap for evolving Cognitive Quorum from a prototype into a scalable, multi-tenant B2B SaaS platform.
 
@@ -20,7 +20,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ### 0.1 Async-First Architecture
 - [x] **V3 Engine Refactor**: Transitioned from Synchronous to Asynchronous Blackboard Architecture.
-- [x] **State Management**: Implemented `WorkflowState` with Pydantic V2 for type-safe data passing.
+- [x] **State Management**: Implemented `WorkflowState` (Legacy V1) with Pydantic V2 for type-safe data passing.
 - [x] **Persistence Layer**: Created `AbstractWorkflowRepository` supporting both TinyDB and Firestore.
 
 ### 0.2 Intelligent Agent System
@@ -118,7 +118,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Studio Shell**:
     - Implemented `/studio` route with distinct navigation structure.
 - [x] **Workflow Editor**:
-    - Implemented `WorkflowStudioScreen` using backend `WorkflowDefinition` schema.
+    - Implemented `WorkflowStudioScreen` using backend `WorkflowDefinition` schema (Legacy V1).
 
 ---
 
@@ -374,7 +374,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ## 🧬 Phase 9: Agent DTO/Domain Separation (The Panel Pattern) (✅ Completed)
 **Objective:** Eliminate LLM-hallucinated system metadata by strictly separating "LLM Content" from "System Authority".
 **Owner:** @antigravity
-**Status:** [x] Done. Pydantic V2 strictly separates Domain from Output DTOs, culminating in the BFF Transformer View Models for SDUI rendering.
+**Status:** [x] Done. Pydantic V2 strictly separates Domain from Output DTOs, culminating in the Omni-Channel Render View Models for SDUI rendering.
 
 ### 9.1 Strict DTO Architecture
 - [x] **DTO Definition**: All Agents MUST define a `*DTO` Pydantic model containing *only* the fields the LLM is responsible for.
@@ -394,4 +394,4 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 **Benefit:**
 1.  **Zero Hallucination**: LLMs strictly cannot overwrite system timestamps or versions.
 2.  **Schema Evolution**: We can change internal metadata structures without retraining LLMs.
-3.  **Type Safety**: `BaseAgent` guarantees that `execute()` returns a fully hydrated Domain Object, empowering the BFF Transformers to map them fearlessly to SDUI View Models.
+3.  **Type Safety**: `BaseAgent` guarantees that `execute()` returns a fully hydrated Domain Object, empowering the Omni-Channel Render Endpoints to map them fearlessly to SDUI View Models.

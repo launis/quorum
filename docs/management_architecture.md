@@ -48,13 +48,13 @@ The Control Plane. It handles incoming HTTP requests, validates configuration ch
 The Execution Plane. A distributed background service that pulls jobs from Redis.
 
 ### Generic Engine
-The core processing unit running inside the Worker. It reads the `WorkflowState` and **System Config** from the database, initializes the required Agents using Strict Dependency Injection, and executes the pipeline.
+The core processing unit running inside the Worker. It loads the `DAGExecutor` with the requested `seed_data.json` configuration blocks, initializes the required hooks, and executes the pipeline.
 
 ### Database (JSON / Firestore)
 The **Single Source of Truth** (SSOT). It stores:
 *   **Definitions**: Prompts, Rules, Agent Configs (Managed via Registry).
 *   **System Config**: Model strategies and global settings.
-*   **State**: Live execution data (`WorkflowState`).
+*   **State**: Live execution data (`ExecutionRecord`).
 
 ---
 

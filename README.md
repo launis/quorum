@@ -3,7 +3,7 @@
 **Structured, Auditable, and Deterministic AI Orchestration.**
 
 > **Status:** Phase 9 Hardening (V5.1)
-> **Architecture:** Modular Async Monolith with Panel Fusion
+> **Architecture:** Zero-Deploy DAG Orchestrator & Omni-Channel Renderer
 > **Philosophy:** Zero-Magic, Fail-Fast, Strict DTOs.
 
 Cognitive Quorum is a specialized AI orchestration platform designed for high-stakes cognitive labor—scientific peer review, legal auditing, and strategic analysis. Unlike generic chatbot frameworks, Quorum enforces a **Strict Object Mode**, ensuring that every step of the AI's reasoning is validated, persisted, and auditable.
@@ -14,20 +14,21 @@ Cognitive Quorum is a specialized AI orchestration platform designed for high-st
 
 ### 1. The "Zero-Magic" Manifesto
 We reject "black box" agent frameworks. Quorum uses explicit, deterministic Python code:
-*   **Strict Pydantic V2**: Every agent input/output is a typed **DTO**, not a dictionary.
+*   **Strict Pydantic V2**: Every step's input/output is a typed **DTO**, not a dictionary.
 *   **Zero-Fallback**: Configuration (Prompts, Rules, Models) must be explicit in the Database. No hardcoded defaults.
 *   **Fail-Fast**: The system crashes immediately (`AppException`) on invalid configuration or schema violations.
 
-### 2. Panel Fusion (The "Senate")
-We replaced sequential agent chains with a **"Fused Panel"** architecture:
-*   **Committee of One**: A single "Deep" model (Gemini Pro) assumes multiple personas (Logician, Falsifier, Profiler) in one pass.
-*   **Fan-Out Pattern**: The Engine splits the Panel's output into discrete domain models for downstream consumers.
+### 2. Zero-Deploy DAG Routing
+We replaced sequential hardcoded agent chains with a dynamic **Directed Acyclic Graph (DAG)** workflow:
+*   **Data-Driven Pipelines**: Workflows and Prompts are defined in `seed_data.json`, meaning new evaluation criteria can be added without modifying backend code.
+*   **PromptCompiler**: Compiles dynamic Pydantic DTOs prior to execution based on the visual blocks requested, ensuring absolute schema conformity from the chosen LLM.
+*   **Omni-Channel UI**: The backend no longer ships formatting. It ships pure Data Models (`ExecutionRecord`) alongside an explicitly frozen snapshot of UI hints, allowing Flutter, Flat/CSV files, and PDF Generators to render with 100% parity.
 
 ### 3. Modular Async Monolith
 The system decouples **User Interaction** from **Cognitive Reasoning**:
-*   **API (FastAPI)**: Handles HTTP requests and enqueues jobs (< 50ms).
-*   **Worker (Arq/Redis)**: Executes deep reasoning tasks (10m+) without timeouts.
-*   **Client (Flutter)**: A "Thick Client" that polls for real-time updates. See the **[Client Application README](client_app/README.md)** for details.
+*   **API (FastAPI)**: Handles HTTP requests, generic SDUI view rendering, and enqueues jobs (< 50ms).
+*   **Worker (Arq/Redis)**: Executes deep reasoning DAGs (10m+) without timeouts.
+*   **Client (Flutter)**: A reactive client (Riverpod) that polls Server-Sent Events (SSE) for real-time DAG node progression updates. See the **[Client Application README](client_app_v2/README.md)** for details.
 
 ---
 
@@ -35,21 +36,22 @@ The system decouples **User Interaction** from **Cognitive Reasoning**:
 
 ```mermaid
 graph LR
-    User[Flutter Client] -->|JSON/Multipart| API[FastAPI Gateway]
+    User[Flutter Client] -->|SSE / REST| API[FastAPI Gateway]
     API -->|Enqueue| Redis[(Redis Broker)]
     Redis -->|Pull| Worker[Async Worker]
     
     subgraph "Execution Core"
-        Worker --> Engine[GraphEngine]
-        Engine -->|Hydrate| State[WorkflowState]
-        Engine -->|Invoke| Agents[Agent Graph]
-        Agents -->|Generate| LLM[Gemini 1.5 Pro]
+        Worker --> Engine[DAGExecutor]
+        Engine -->|Compile Schema| PC[PromptCompiler]
+        PC -->|Invoke Step| LLM[Gemini 1.5 Pro]
+        LLM -->|Validate DTO| Engine
     end
     
-    Engine -->|Persist| DB[(Firestore / TinyDB)]
+    Engine -->|Optimistic Save| DB[(Firestore / TinyDB)]
+    DB -->|ExecutionRecord| API
+    API -->|format=json| User
+    API -->|format=pdf| PDF[PdfReportService]
 ```
-
-For a deep dive, see **[System Architecture](docs/architecture.md)**.
 
 ---
 
@@ -57,34 +59,17 @@ For a deep dive, see **[System Architecture](docs/architecture.md)**.
 
 The `docs/` directory serves as the central repository for the platform's detailed architectural, theoretical, and operational documentation.
 
-### Theoretical Foundation
-Cognitive Quorum is built upon a hybrid evaluation framework designed to address the psychometric paradox of reliability and validity in assessing AI-era cognitive skills. It employs a bipartite architecture: an analytical tier that maximizes reliability via structured rubrics anchored in established cognitive taxonomies, and a holistic tier that maximizes validity by utilizing an ensemble-based multi-agent system. By deliberately balancing strict systematic analysis with dynamic adversarial debate, this framework moves beyond mere rule-following to effectively identify context-dependent, human-directed strategic mastery and critical agency in human-AI collaborative processes.
+### Core Architecture & Protocols
+*   **[Master Architecture AI Orchestrator V2](docs/Arkkitehtuurimäärittely_%20AI-orkestraattori%20V2.md)**: The authoritative system reference for the backend Python Engine.
+*   **[Universal Routing & Hooks V2](docs/Architecture_Universal_Routing_and_Hooks_V2.md)**: Deep dive into the Zero-Deploy workflow mappings, $inputs routing, and strictly typed interceptor hooks.
+*   **[Output Generation Pipeline](docs/output_generation_pipeline.md)**: The lifecycle of generating and rendering `ExecutionRecord` states.
+*   **[Holistinen Mestaruus](docs/Holistinen%20Mestaruus.md)**: The theoretical foundation of psychometric assessment, balancing system-1 and system-2 cognition.
 
-### Technical Architecture
-At its core, Cognitive Quorum operates as a "Zero-Magic" Modular Async Monolith that fundamentally decouples cognitive logic from execution mechanics. The system is compartmentalized into "The Spine," a deterministic Python-based orchestrator (FastAPI and Arq) enforcing strict data integrity via Pydantic V2 and a Fail-Fast protocol, and "The Mind," where all agent behaviors, scoring matrices, and workflows are dynamically governed as configuration data within a Single Source of Truth architecture. To ensure performance without sacrificing deep analysis, the execution layer leverages "Panel Fusion" to handle multiple specialized cognitive roles concurrently within single inference steps, while delivering real-time state updates to a robust Server-Driven UI (SDUI) Client.
-
-To combat LLM hallucinations and ensure epistemic integrity, the architecture implements a rigorous "3-Tier Grounding" mechanism. Large Language Models are actively utilized not just for text generation, but as autonomous retrieval agents: they proactively formulate search hypotheses to scour the web via search hooks, perform real-time fact-checking with deep integration into Vertex AI Grounding for precise URL citations, and cross-reference all reasoning against an internal vector database of organizational knowledge.
-
-### Core Architecture
-*   **[Master Architecture](docs/index.md)**: The authoritative system reference.
-*   **[Management Architecture](docs/management_architecture.md)**: System Config, Tenants, and RBAC.
-*   **[Data Management](docs/data_management.md)**: Database strategies & Zero-Fallback mandate.
-
-### Cognitive System
-*   **[Structured Cognitive Architecture](docs/structured_cognitive_architecture.md)**: Panel Fusion, BARS Scoring, and the 12-Agent Pipeline.
-*   **[Workflow Data Architecture](docs/workflow_data_architecture.md)**: Data contracts and the **Fan-Out Pattern**.
-*   **[Prompt Engineering](docs/prompt_engineering.md)**: The "Sandwich" Strategy and Thinking Tokens.
-*   **[JSON Flattening Hazard](docs/json_flattening_hazard.md)**: DTO mitigation strategies.
-
-### Implementation & Verification
-*   **[Simplified Verification Strategy](docs/simplified_verification_strategy.md)**: "Zero-Magic" testing guide.
-*   **[Test Strategy](docs/test_strategy.md)**: Strict DTO testing & System Config mocking.
-*   **[Seed Data & Sync](docs/seed_data.md)**: The SSOT for System Configuration.
-*   **[Startup Protocol](docs/alku.md)**: Critical context for contributors.
-
-### Development Standards
-*   **[Product Roadmap](docs/product_roadmap.md)**: Phase 9 (Complete) -> SDUI Meta-Programming.
-*   **[Flutter Development Guide](docs/flutterpromptohje.md)**: Frontend standards.
+### Development Standards & Tooling
+*   **[Antigravity Prompting](docs/antigravity_prompting.md)**: Required protocols for AI-assisted development context.
+*   **[Flutter Prompt Instructions](docs/flutterpromptohje.md)**: Mandatory rules for Client-side Flutter/Dart generation.
+*   **[Product Roadmap](docs/product_roadmap.md)**: Phase 9 (Hardening) status.
+*   **[Test Strategy](docs/test_strategy.md)**: Strict DTO testing & System Config mocking patterns.
 
 ---
 
@@ -94,7 +79,7 @@ To combat LLM hallucinations and ensure epistemic integrity, the architecture im
 *   **Frameworks**: FastAPI, Arq, Riverpod 3.0+
 *   **Database**: TinyDB (Local) / Firestore (Cloud)
 *   **LLM**: Google Vertex AI (Gemini 2.0 Pro Exp)
-*   **Tools**: `uv` (Package Mgmt), `ruff` (Linting), `presidio` (PII)
+*   **Tools**: `uv` (Package Mgmt), `ruff` (Linting), `mypy` (Typing)
 
 ---
 

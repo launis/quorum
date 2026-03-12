@@ -1,8 +1,8 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Query, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
-import asyncio
 
 from backend_v2.api.dependencies import CurrentUserDep, ExecutionServiceDep, RepoDep
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -62,13 +62,13 @@ async def stream_execution_status(
                 # Poll database (Fallback from Redis Pub/Sub for simpler local portability)
                 # In true production, this should attach to a Redis Pub/Sub channel.
                 record = await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
-                
+
                 # V2 Protocol Requirement: JSON Payload inside 'data: '
                 yield f"data: {record.model_dump_json()}\n\n"
-                
+
                 if record.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED]:
                     break
-                    
+
                 await asyncio.sleep(2)
         except Exception as e:
             logger.error(f"SSE Error for execution {execution_id}: {e}")

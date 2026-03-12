@@ -130,7 +130,7 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                     setState(() {
                       _isChatHistory = val;
                       widget.inputDef['is_chat_history'] = val;
-                      
+
                       // Enforce rule: Chat history cannot be a questionnaire
                       if (val && modes.contains('questionnaire')) {
                         modes.clear();
@@ -183,8 +183,11 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                             // Prevent deselection if it would leave the list empty
                             if (modes.length > 1) {
                               modes.remove(mode);
-                            } else if (modes.length == 1 && modes.first != mode) {
-                               modes.remove(mode); // theoretically impossible but safe
+                            } else if (modes.length == 1 &&
+                                modes.first != mode) {
+                              modes.remove(
+                                mode,
+                              ); // theoretically impossible but safe
                             }
                           }
                           widget.inputDef['input_modes'] = modes;
@@ -327,10 +330,7 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               setState(() {
                 questions.add({
                   'question_id': 'q${questions.length + 1}',
-                  'question': {
-                    'default_locale': 'en',
-                    'translations': {}
-                  },
+                  'question': {'default_locale': 'en', 'translations': {}},
                   'type': 'text',
                 });
                 widget.inputDef['questionnaire_definition'] = questions;

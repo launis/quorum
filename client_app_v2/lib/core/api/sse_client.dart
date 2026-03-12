@@ -38,25 +38,25 @@ class SseClient {
       throw Exception('Failed to establish SSE connection');
     }
 
-    // Process the raw byte stream into lines, then extract SSE data payload
-    await for (final rawData in stream) {
-      final chunk = utf8.decode(rawData);
-      final lines = chunk.split('\n');
+    // Process the raw byte stream into continuous lines to prevent fragmentation
+    final lineStream = stream
+        .cast<List<int>>()
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
 
-      for (final line in lines) {
-        if (line.startsWith('data: ')) {
-          final dataStr = line.substring(6).trim();
-          if (dataStr.isNotEmpty) {
-            try {
-              // Mandate 5.3: Concurrency & Performance via Isolate.run
-              final Map<String, dynamic> payload = await Isolate.run(
-                () => jsonDecode(dataStr),
-              );
-              yield payload;
-            } catch (e) {
-              // Log but graceful degradation: ignore malformed chunk
-              // Exception to Fail-Fast since SSE chunks can sometimes fragment.
-            }
+    await for (final line in lineStream) {
+      if (line.startsWith('data: ')) {
+        final dataStr = line.substring(6).trim();
+        if (dataStr.isNotEmpty) {
+          try {
+            // Mandate 5.3: Concurrency & Performance via Isolate.run
+            final Map<String, dynamic> payload = await Isolate.run(
+              () => jsonDecode(dataStr),
+            );
+            yield payload;
+          } catch (e) {
+            // Log but graceful degradation: ignore malformed chunk
+            // Exception to Fail-Fast since SSE chunks can sometimes fragment.
           }
         }
       }

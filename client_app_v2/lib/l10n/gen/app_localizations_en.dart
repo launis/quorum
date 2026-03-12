@@ -1912,4 +1912,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get barsRisk3 => 'High risk (Lazy prompt)';
+
+  @override
+  String get rawOutputFallbackTitle => 'Raw Output (UI Missing)';
 }

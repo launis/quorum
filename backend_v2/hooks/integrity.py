@@ -76,7 +76,7 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
 
     # Gather all text inputs dynamically
     source_texts = []
-    
+
     if isinstance(inputs, dict):
         for val in inputs.values():
             if val:
@@ -86,7 +86,7 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
         for key, val in vars(inputs).items():
             if val and isinstance(val, str):
                 source_texts.append(val)
-                
+
     if not source_texts:
         error_code = ErrorCodes.EMPTY_INPUT
         msg = "Missing any input text for citation verification."

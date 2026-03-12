@@ -39,7 +39,7 @@ How the AI reasons, grounds itself, and maintains continuity.
 Technical references for the code that powers the system.
 
 *   **[API Models & Schemas](api_models.md)**
-    Strict Pydantic V2 definitions for `WorkflowState` and Agent Input/Output DTOs.
+    Strict Pydantic V2 definitions for `ExecutionRecord` and Agent Input/Output DTOs.
 *   **[Components Registry](components.md)**
     Reference for Agents, Prompts, and Matrices.
 *   **[Hooks & Tools](hooks.md)**

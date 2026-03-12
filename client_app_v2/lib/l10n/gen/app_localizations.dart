@@ -3589,6 +3589,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'High risk (Lazy prompt)'**
   String get barsRisk3;
+
+  /// No description provided for @rawOutputFallbackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw Output (UI Missing)'**
+  String get rawOutputFallbackTitle;
 }
 
 class _AppLocalizationsDelegate

@@ -134,7 +134,7 @@ Bypassing these instructions and tinkering with the live DB (`db_v2.json`) corru
 
 3. THE ZERO-COMPROMISE PLEDGE (Fail Fast & Root Cause):
    - If data is invalid or missing, crash immediately at the Service boundary. Do not return `None` or `{}` to silently bypass errors. Fix the root cause.
-   - Exception: The BFF (Backend-For-Frontend) mapping layer MUST use graceful degradation (e.g., returning `{}` or `SizedBox.shrink()` on UI) for missing specialist data to prevent total UI crashes, but must log an explicit warning (`logger.warning(...)` / `debugPrint(...)`).
+   - Exception: The Omni-Channel Rendering layer MUST use graceful degradation (e.g., returning `{}` or `SizedBox.shrink()` on UI) for missing specialist data to prevent total UI crashes, but must log an explicit warning (`logger.warning(...)` / `debugPrint(...)`).
    - Dual-Reporting Python: Always log errors structurally (`logger.error`) BEFORE raising `AppException`.
 
 4. EDITING SAFETY (Anti-Duplication Protocol):

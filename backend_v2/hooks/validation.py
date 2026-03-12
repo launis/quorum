@@ -64,7 +64,7 @@ def verify_structure(data: dict[str, Any]) -> dict[str, Any]:
         if not val or not str(val).strip():
             # If the value is present but empty, we still warn or continue
             continue
-            
+
         text = str(val).strip()
         if len(text) < MIN_CHARS:
             warnings.append(f"Input '{key}' is too short ({len(text)} chars). Min required: {MIN_CHARS}.")

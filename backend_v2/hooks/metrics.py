@@ -202,12 +202,12 @@ def calculate_behavioral_metrics(metrics: Any) -> Any:
 def calculate_control_ratio_hook(data: dict[str, Any]) -> dict[str, Any]:
     """Standalone hook to provide input control ratio if requested explicitly by a DAG step."""
     inputs = data.get("inputs", {})
-    
+
     # Dynamically scan all string inputs
     all_text = ""
     if isinstance(inputs, dict):
         all_text = " ".join(str(v) for v in inputs.values() if v)
-        
+
     ratio = calculate_control_ratio(all_text)
     return {"input_control_ratio": ratio}
 

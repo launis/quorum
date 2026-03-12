@@ -4,14 +4,16 @@ This module contains the schemas for the Retrieval Agent, focusing on facts extr
 """
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+
 
 class RetrievalInput(BaseModel):
     """Strict input schema for RetrievalAgent."""
 
     history_text: str | None = Field(None, description="Chat history or prior context.")
     product_text: str | None = Field(None, description="Reference text/documents to retrieve from.")
-    
+
     model_config = ConfigDict(frozen=True, extra="ignore")
 
 class RetrievedFact(BaseModel):
@@ -60,7 +62,7 @@ class RetrievalDTO(ReasoningTraceDTO):
         description="High-level summary of the retrieved information.",
         json_schema_extra={"x-ui-label": "Key Takeaways"}
     )
-    
+
     model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("retrieved_facts")

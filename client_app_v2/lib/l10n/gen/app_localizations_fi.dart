@@ -1920,4 +1920,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get barsRisk3 => 'Korkea riski (Lazy prompt)';
+
+  @override
+  String get rawOutputFallbackTitle => 'Raaka-data (Käyttöliittymä puuttuu)';
 }

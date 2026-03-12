@@ -16,6 +16,7 @@ from backend_v2.models.v2_core import (
     ExecutionCreate,
     ExecutionRecord,
     ExecutionStatus,
+    ExecutionStepState,
     FrozenContext,
     Workflow,
 )
@@ -98,12 +99,29 @@ class ExecutionService:
 
         # V2 MANDATE: Dynamically generate SDUI hints synchronously before execution
         ui_hints: dict[str, DataDictionaryField] = {}
+        step_states: dict[str, ExecutionStepState] = {}
         for step_rule in workflow.steps:
             # We fetch the step definition to find its core mapped matrices/blocks
             step_dict = await self.repo.get_step(step_rule.task_blueprint)
             if not step_dict:
                 from backend_v2.exceptions import ConfigurationError
                 raise ConfigurationError(f"Missing task blueprint {step_rule.task_blueprint} for DAG.")
+
+            # Populate initial pending step state for timeline
+            step_name_raw = step_dict.get("name", step_rule.task_blueprint)
+            step_label = step_rule.task_blueprint
+            if isinstance(step_name_raw, dict):
+                # Handle I18nText dict or legacy dict
+                translations = step_name_raw.get("translations", step_name_raw)
+                step_label = translations.get("fi", translations.get("en", step_rule.task_blueprint))
+            elif isinstance(step_name_raw, str):
+                step_label = step_name_raw
+
+            step_states[step_rule.id] = ExecutionStepState(
+                id=step_rule.id,
+                label=step_label,
+                status="pending"
+            )
 
             prompt_blocks_refs = step_dict.get("prompt_blocks", [])
             for pb_slug in prompt_blocks_refs:
@@ -151,6 +169,7 @@ class ExecutionService:
             status=ExecutionStatus.PENDING,
             raw_inputs=payload.raw_inputs,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
+            step_states=step_states,
             results={},
         )
         # We append temporary creator tracking using model_dump bypass for now

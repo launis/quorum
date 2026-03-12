@@ -20,7 +20,7 @@ class XAIReporterInput(BaseModel):
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
     step_judge: JudgeOutput | None = Field(default=None, description="Standard evaluate output.")
     step_judge_cognitive: JudgeOutput | None = Field(default=None, description="Cognitive Judge output.")
-    
+
     # --- Universal Routing Inputs ---
     search_result: Any | None = Field(default=None, description="Vertex AI Grounding search results.")
     step_analyst: Any | None = Field(default=None, description="Analyst hypotheses and RAG data.")

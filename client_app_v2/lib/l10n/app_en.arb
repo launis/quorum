@@ -871,5 +871,6 @@
   "barsConf100": "Absolutely certain (100%)",
   "barsRisk1": "Low risk (Safe)",
   "barsRisk2": "Medium risk (Warning)",
-  "barsRisk3": "High risk (Lazy prompt)"
+  "barsRisk3": "High risk (Lazy prompt)",
+  "rawOutputFallbackTitle": "Raw Output (UI Missing)"
 }

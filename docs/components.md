@@ -60,12 +60,12 @@ The "Mind" of the system is decoupled from Python logic files. Reusable configur
 
 ### 3.1 Hook Architecture
 
-#### A. Blackboard Pattern (`context_variables`)
-Hooks interact with the `WorkflowState` primarily through `context_variables`.
-* **Read**: Hooks read input data from `state.context_variables`.
+#### A. Blackboard Pattern (`results`)
+Hooks interact with the `ExecutionRecord` primarily through `results`.
+* **Read**: Hooks read input data from `state.results`.
     * **Strict Access**: Use `state.get_context(ModelType)` or `inflate()` to ensure type safety. DO NOT access raw dicts.
-* **Write**: Hooks return a **new** state with updated `context_variables` containing their Pydantic result model.
-* **Immutability**: `WorkflowState` is frozen. Hooks use `state.model_copy(update=...)`.
+* **Write**: Hooks return a **new** state with updated `results` containing their Pydantic result model.
+* **Immutability**: `ExecutionRecord` is frozen. Hooks use `state.model_copy(update=...)`.
 
 #### B. Strict Pydantic Models (`backend/models/domain.py`)
 Every hook typically has a corresponding result model:
@@ -121,9 +121,9 @@ Hooks do **not** fail silently.
 1. **Define Model**: Create a result model in `backend/models/domain.py` with `strict=True`.
 2. **Implement Hook**: Create a function in `backend/hooks/`.
     ```python
-    def my_hook(state: WorkflowState) -> WorkflowState:
+    def my_hook(state: ExecutionRecord) -> ExecutionRecord:
         # 1. Validate Input (Fail Fast)
-        inputs = state.context_variables.get("inputs")
+        inputs = state.results.get("inputs")
         if not inputs:
             raise AppException(message="Missing input data.", error_code=ErrorCodes.VALIDATION_FAILED)
 
@@ -131,9 +131,9 @@ Hooks do **not** fail silently.
         result = MyHookResult(value=100)
 
         # 3. Update State (Immutable)
-        new_context = state.context_variables.copy()
+        new_context = state.results.copy()
         new_context["my_hook_result"] = result
-        return state.model_copy(update={"context_variables": new_context})
+        return state.model_copy(update={"results": new_context})
     ```
 3. **Register**: Add it to `HOOK_MAPPING` in `backend/core/engine.py`.
 
@@ -145,8 +145,8 @@ The Core execution path relies entirely on typed components.
 
 * **API Layer**: `backend/api/routes/*.py`. Pure IO. Fast routing and dependency injection.
 * **Service Layer**: Unites Domain constraints. The API calls the Service, the Service validates the constraints, and triggers the repo or queue.
-* **GraphEngine**: The core orchestrator that executes `WorkflowDefinition` DAGs. Creates the immutable `WorkflowState` log.
-* **Transformers (BFF)**: `backend/api/transformers/`. Responsible for extracting raw domain state from `GraphEngine` records and mapping it to lean `View Models` (SDUI Enums) for the frontend.
+* **DAGExecutor**: The core orchestrator that executes dynamic configurations from `seed_data.json`. Creates the immutable `ExecutionRecord` log.
+* **Omni-Channel RenderEndpoints**: `backend/api/routers/execution/render.py`. Responsible for passing generic `ExecutionRecord` data and the frozen `ui_hints_snapshot` directly to clients without hardcoded intermediate mappings.
 
 ---
 
@@ -154,6 +154,6 @@ The Core execution path relies entirely on typed components.
 
 To adhere to the **No-String Mandate**, the backend strictly passes **Keys** rather than user-visible text. 
 * The `profiler.py` and `logician.py` output heavy nested reasoning data.
-* The `ReportTransformer` strips out internal LLM reasoning tokens and formats properties like `say_do_gap` into Enums like `GAP_NONE`.
+* The Server-Driven UI architecture strips out internal LLM reasoning tokens and formats properties like `say_do_gap` into Enums like `GAP_NONE` dynamically via `ui_hints_snapshot`.
 * **Late-Binding Omni-Channel**: Datan prosessointi pidetään yhtenäisenä koneluettavana JSON-rakenteena läpi koko prosessin, ja se purkautuu vasta aivan viimeisessä adapterikerroksessa kolmeen eri muotoon (Flutter SDUI Compound Widgets, Backend Jinja2 PDF, ja litteä CSV/Flat-File vienti).
 * **Flutter (`client_app`) SDUI** executes dynamic matching of these Enum labels against `app_fi.arb` dictionaries for robust UI presentation independent of backend deployments.

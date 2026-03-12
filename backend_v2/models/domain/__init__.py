@@ -93,7 +93,7 @@ from backend_v2.models.domain.performativity import (
     PreMortemAnalysis,
 )
 from backend_v2.models.domain.profiler import ProfilerDTO, ProfilerInput, ProfilerOutput, TextMetrics
-from backend_v2.models.domain.retrieval import RetrievalInput, RetrievalOutput, RetrievedFact, RetrievalDTO
+from backend_v2.models.domain.retrieval import RetrievalDTO, RetrievalInput, RetrievalOutput, RetrievedFact
 from backend_v2.models.domain.xai import (
     ReportResult,
     XAIOutput,

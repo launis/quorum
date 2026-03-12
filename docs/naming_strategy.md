@@ -1,12 +1,12 @@
 # Unified Naming Strategy (V5.1 - Phase 9 Hardening)
 
-This document defines the strict naming conventions for the Cognitive Quorum system. In a system where data traverses from Database -> Pydantic Domain -> DTO/BFF -> Flutter Freezed Models, inconsistent naming causes serialization errors, null pointer exceptions, and type mapping failures.
+This document defines the strict naming conventions for the Cognitive Quorum system. In a system where data traverses from Database -> Pydantic Domain -> Riverpod State (SafeCast) -> Flutter UI, inconsistent naming causes serialization errors, null pointer exceptions, and type mapping failures.
 
 ## 1. Core Principle: "Backend is the Authority"
 
 The database (TinyDB/Firestore) and the Pydantic Domain models dictate the actual state of the system. The naming convention must always **originate from the Backend** and flow down to Flutter. Flutter developers should never have to guess or manually remap field names.
 
-**The Golden Rule:** If a field is named `dimension_id` in the Pydantic model, it must be exactly `dimension_id` in the JSON payload, the BFF view, and the Flutter JSON deserialization.
+**The Golden Rule:** If a field is named `dimension_id` in the Pydantic model, it must be exactly `dimension_id` in the JSON payload, and the Flutter JSON deserialization.
 
 ## 2. JSON Data Exchange Standard (Snake Case)
 
@@ -55,11 +55,11 @@ When building a new feature or model, follow this exact sequence:
     *   Create strict Pydantic models in `backend/models/domain/*.py`.
     *   Use strict `snake_case` naming.
     *   *Example:* `class LogicianOutput(BaseModel): argument_score: float`
-2.  **Validate BFF View Model (Backend Python)**
-    *   Ensure the BFF layer (`backend/models/view/sdui.py`) mirrors the strict naming convention before data crosses the API boundary.
+2.  **Verify Omni-Channel Endpoints (Backend Python)**
+    *   Ensure the rendered outputs mirror the strict naming convention before data crosses the API boundary into UI hints.
 3.  **Create Dart Freezed Model (Frontend Flutter)**
     *   Create a Dart class that perfectly matches the Pydantic schema.
     *   Apply `@JsonKey(name: 'snake_case_name')` annotations to **every single field** received from the backend to guarantee correct JSON-to-Dart mapping.
     *   Run code generation: `dart run build_runner build -d`.
 
-By following these rules, the pipeline `Agent -> Database -> BFF -> Flutter UI` remains unbroken, type-safe, and highly predictable.
+By following these rules, the pipeline `Agent -> Database -> Riverpod State -> Flutter UI` remains unbroken, type-safe, and highly predictable.

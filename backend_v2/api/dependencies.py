@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Annotated, Any
 
 if TYPE_CHECKING:
-    from backend_v2.llm.handler import LLMHandler
+    pass
 
 from fastapi import Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer

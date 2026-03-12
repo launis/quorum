@@ -1,29 +1,6 @@
 """Authentication and User Management Service."""
 
-from __future__ import annotations
-
-import asyncio
-import logging
-import time
-import uuid
-from datetime import datetime, timezone
-from typing import Any
-
-import jwt
-from fastapi import Depends
-
-from backend_v2.database.repository import AbstractWorkflowRepository
-from backend_v2.exceptions import (
-    AppException,
-    AuthenticationError,
-    ConflictError,
-    ErrorCodes,
-    PermissionDeniedError,
-    ResourceNotFoundError,
-)
-from backend_v2.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
-
-# Secure Secret for Local Tokens (Impersonation)
+from __future__ import annotationsimport asyncioimport loggingimport timeimport uuidfrom datetime import datetime, timezonefrom typing import Anyimport jwtfrom fastapi import Dependsfrom backend_v2.database.repository import AbstractWorkflowRepositoryfrom backend_v2.exceptions import (    AppException,    AuthenticationError,    ConflictError,    ErrorCodes,    PermissionDeniedError,    ResourceNotFoundError,)from backend_v2.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate# Secure Secret for Local Tokens (Impersonation)
 # In production, this MUST be set via environment variable.
 JWT_SECRET = "cognitive-quorum-internal-secret-change-me"
 JWT_ALGORITHM = "HS256"
@@ -34,8 +11,7 @@ logger = logging.getLogger(__name__)
 # --- Repository Layer (Organization) ---
 
 
-class OrganizationRepository:
-    """Repository for Organization data access."""
+class OrganizationRepository:    """Repository for Organization data access."""
 
     def __init__(self, repo: AbstractWorkflowRepository):
         self.repo = repo
@@ -104,11 +80,9 @@ class UserRepository:
 # --- Service Layer ---
 
 
-class AuthService:
-    """Hybrid Auth Service with Multi-Tenancy (SaaS)."""
+class AuthService:    """Hybrid Auth Service with Multi-Tenancy (SaaS)."""
 
-    def __init__(self, repo: AbstractWorkflowRepository, use_firebase: bool = False, audit_service: Any = None):
-        """Initialize AuthService."""
+    def __init__(self, repo: AbstractWorkflowRepository, use_firebase: bool = False, audit_service: Any = None):        """Initialize AuthService."""
         self.repo = UserRepository(repo)
         self.org_repo = OrganizationRepository(repo)
         self.use_firebase = use_firebase
@@ -129,16 +103,13 @@ class AuthService:
             logger.warning("[AuthService] Firebase SDK not installed. Falling back to Mock mode.")
             self.use_firebase = False
 
-    def create_impersonation_token(self, target_id: str, duration_seconds: int = 3600) -> str:
-        """Generates a signed JWT for impersonating a user.
+    def create_impersonation_token(self, target_id: str, duration_seconds: int = 3600) -> str:        """Generates a signed JWT for impersonating a user.
 
-        Args:
-            target_id (str): The UID of the user to impersonate.
+        Args:            target_id (str): The UID of the user to impersonate.
             duration_seconds (int): Token validity duration.
 
-        Returns:
-            str: Signed JWT string.
-        """
+        Returns:            str: Signed JWT string.
+        """
         payload = {
             "sub": target_id,
             "exp": time.time() + duration_seconds,
@@ -148,15 +119,12 @@ class AuthService:
         token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
         return token
 
-    async def verify_token(self, token: str) -> TokenData:
-        """Verifies a Bearer token.
+    async def verify_token(self, token: str) -> TokenData:        """Verifies a Bearer token.
 
-        Returns:
-            TokenData: (id, role, organization_id).
+        Returns:            TokenData: (id, role, organization_id).
 
-        Raises:
-            AuthenticationError: If token is invalid or expired.
-        """
+        Raises:            AuthenticationError: If token is invalid or expired.
+        """
         # 1. Local Signed Token (Impersonation / Internal)
         try:
             # We enforce the secret check here.
@@ -226,11 +194,10 @@ class AuthService:
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise AuthenticationError(message="Invalid credentials", details={"error_code": error_code}) from e
 
-    async def create_organization(self, initiator: TokenData, org_create: OrganizationCreate) -> Organization:
-        """Creates a new Tenant Organization and an initial Admin user for it.
+    async def create_organization(self, initiator: TokenData, org_create: OrganizationCreate) -> Organization:        """Creates a new Tenant Organization and an initial Admin user for it.
 
         Strictly Async.
-        """
+        """
         if initiator.role != UserRole.ROOT:
             raise PermissionDeniedError("Only ROOT can create organizations.")
 
@@ -264,8 +231,7 @@ class AuthService:
 
         return new_org
 
-    async def create_user(self, creator_id: str, user_data: UserCreate) -> User:
-        """Creates a new user, enforcing hierarchy and tenancy."""
+    async def create_user(self, creator_id: str, user_data: UserCreate) -> User:        """Creates a new user, enforcing hierarchy and tenancy."""
         return await self._create_user_internal(creator_id, user_data)
 
     async def _create_user_internal(
@@ -379,12 +345,10 @@ class AuthService:
         all_users = await self.repo.list_all()
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
-    async def get_users_by_organization(self, organization_id: str) -> list[User]:
-        """Async retrieval of all users for a given organization."""
+    async def get_users_by_organization(self, organization_id: str) -> list[User]:        """Async retrieval of all users for a given organization."""
         return await self.repo.get_by_organization(organization_id)
 
-    async def delete_user(self, initiator_id: str, target_id: str) -> bool:
-        """Delete a user, with Last Admin Protection. (Non-blocking)."""
+    async def delete_user(self, initiator_id: str, target_id: str) -> bool:        """Delete a user, with Last Admin Protection. (Non-blocking)."""
         logger.info(f"[AuthService] delete_user called. Initiator: {initiator_id}, Target: {target_id}")
 
         # Run Read operations in thread
@@ -442,14 +406,13 @@ class AuthService:
 
         return True
 
-    async def delete_organization(self, initiator: TokenData, target_org_id: str, force: bool = False) -> None:
-        """Deletes an Organization.
+    async def delete_organization(self, initiator: TokenData, target_org_id: str, force: bool = False) -> None:        """Deletes an Organization.
 
         Safety Rules:
         - Cannot delete 'system' organization.
         - Cannot delete non-empty organization unless force=True.
         - force=True cascades delete to all users.
-        """
+        """
         logger.info(
             f"[AuthService] delete_organization called. Initiator: {initiator.id}, "
             f"Target: {target_org_id}, Force: {force}"
@@ -502,11 +465,10 @@ class AuthService:
                 details={"users_deleted": user_count, "force_used": force},
             )
 
-    async def update_user(self, initiator_id: str, target_id: str, updates: UserUpdate) -> User:
-        """General update method.
+    async def update_user(self, initiator_id: str, target_id: str, updates: UserUpdate) -> User:        """General update method.
 
         If 'role' is being changed, we must enforce Last Admin Protection.
-        """
+        """
         initiator = await self.repo.get_by_id(initiator_id)
         target = await self.repo.get_by_id(target_id)
 
@@ -563,14 +525,12 @@ class AuthService:
 
         return updated_user
 
-    async def update_user_role(self, initiator_id: str, target_id: str, new_role: UserRole) -> User:
-        """Updates a user's role with strict Last Admin Protection.
+    async def update_user_role(self, initiator_id: str, target_id: str, new_role: UserRole) -> User:        """Updates a user's role with strict Last Admin Protection.
 
-        Raises:
-            PermissionDeniedError: If hierarchy is violated.
+        Raises:            PermissionDeniedError: If hierarchy is violated.
             AppException: If user not found.
             ConflictError: If Last Admin Protection is triggered.
-        """
+        """
         initiator = await self.repo.get_by_id(initiator_id)
         target = await self.repo.get_by_id(target_id)
 
@@ -635,8 +595,7 @@ class AuthService:
 
     # --- Tenant Isolation Wrappers for Routers ---
 
-    async def list_users(self, initiator: TokenData) -> list[User]:
-        """List users securely scoped by Tenant/Organization."""
+    async def list_users(self, initiator: TokenData) -> list[User]:        """List users securely scoped by Tenant/Organization."""
         all_users: list[User] = await self.repo.list_all()
         if initiator.role == UserRole.ROOT:
             return all_users
@@ -644,8 +603,7 @@ class AuthService:
         org_id = getattr(initiator, "organization_id", None)
         return [u for u in all_users if getattr(u, "organization_id", None) == org_id]
 
-    async def get_user(self, initiator: TokenData, target_id: str) -> User:
-        """Fetch user securely."""
+    async def get_user(self, initiator: TokenData, target_id: str) -> User:        """Fetch user securely."""
         user = await self.repo.get_by_id(target_id)
         if not user:
             from backend_v2.exceptions import ResourceNotFoundError
@@ -661,8 +619,7 @@ class AuthService:
 
         raise PermissionDeniedError("You do not have permission to view this user.")
 
-    async def get_organization(self, initiator: TokenData, org_id: str) -> Organization:
-        """Fetch organization securely."""
+    async def get_organization(self, initiator: TokenData, org_id: str) -> Organization:        """Fetch organization securely."""
         org = await self.org_repo.get_by_id(org_id)
         if not org:
             raise ResourceNotFoundError(resource_type="organization", resource_id=org_id)
@@ -673,8 +630,7 @@ class AuthService:
             raise PermissionDeniedError("You do not have permission to view this organization.")
 
         return org
-    async def ensure_root_user(self, email: str = "root@example.com") -> User:
-        """Bootstraps a root user and Development Scenario (Demo Corp) if needed."""
+    async def ensure_root_user(self, email: str = "root@example.com") -> User:        """Bootstraps a root user and Development Scenario (Demo Corp) if needed."""
         # 0. Ensure SYSTEM Org exists (Container for Root)
         # Note: Must use model_dump(mode="json") to avoid datetime serialization errors
         if not await self.org_repo.get_by_id("436d84de-c526-43b7-93ef-634912be0d2f"):
@@ -717,11 +673,10 @@ class AuthService:
 
     # --- Dependency Injection Helpers (Static) ---
     @staticmethod
-    def require_role(required_role: UserRole) -> Any:
-        """Returns a dependency that validates the user has the required role.
+    def require_role(required_role: UserRole) -> Any:        """Returns a dependency that validates the user has the required role.
 
         Implicitly allows ROOT for everything.
-        """
+        """
         from backend_v2.api.dependencies import get_current_user_from_header
 
         async def _role_checker(user: TokenData = Depends(get_current_user_from_header)) -> TokenData:  # noqa: B008
@@ -740,11 +695,10 @@ class AuthService:
     @staticmethod
     def get_current_user(
         from_header: Any = None,  # Placeholder to match Depends signature if needed, but we delegate
-    ) -> Any:
-        """Dependency alias for getting current user via header.
+    ) -> Any:        """Dependency alias for getting current user via header.
 
         Intended usage: user: TokenData = Depends(AuthService.get_current_user).
-        """
+        """
         from backend_v2.api.dependencies import get_current_user_from_header
 
         # This one is tricky because Depends() needs a callable.

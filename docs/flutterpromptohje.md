@@ -74,7 +74,7 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näi
 
 ### 3.3 Hybrid State Architecture
 * Tapahtumaloki (`TraceEvent`) on totuuden lähde (Immutable).
-* Työtila (`WorkflowState.context_variables` / Blackboard) on nopea ja editoitava hetkittäinen tilanne. Molempia täytyy ylläpitää, kun agentti tekee siirron.
+* Työtila (`ExecutionRecord.results` / Blackboard) on nopea ja editoitava hetkittäinen tilanne. Molempia täytyy ylläpitää, kun agentti tekee siirron.
 
 ### 3.4 Reliability Strategy (Timeout)
 * Kaikilla ulospäin lähtevillä verkkopyynnöillä on pakotettu aikakatkaisu (Timeout). Järjestelmä ei saa hirttää kiinni (Zombie).
@@ -158,20 +158,19 @@ except Exception as e:
 
 ---
 
-## 🖥️ 7. HYBRID SDUI & BFF (Backend-for-Frontend)
+## 🖥️ 7. HYBRID SDUI & OMNI-CHANNEL RENDERING
 
 ### 7.1 Zero-Deploy SDUI & Compound Widgets (Server-Driven UI)
 Kaikki kognitiivinen liiketoimintalogiikka ja käyttöliittymän piirtosäännöt konfiguroidaan tietokannassa. Frontend on "tyhmä" renderöintimoottori, joka kääntää isot epäsäännölliset rakenteet nautittavaan dynaamiseen perusformaattiin. 
 Käyttöliittymä piirtää UI-vihjeiden (esim. `slider`) pohjalta dynaamisia yhdistelmäkomponentteja (Compound Widgets), jotka näyttävät LLM:n teoriaperustelun ja virallisen lähdeviitteen automaattisesti laajennettavissa Markdown-laatikoissa.
 
-### 7.2 The BFF Mapping layer
-Tässä kerroksessa isot domain mallit pienennetään spesifeihin View-malleihin (esimerkiksi `DriverProfileDisplay`).
+### 7.2 Omni-Channel Data Feed
+Tässä kerroksessa isot domain mallit tarjoillaan Pydantic DTO:ina ja liitetään jäädytettyyn `ui_hints_snapshot` -sääntöjoukkoon. Backend ei enää sisällä kovakoodattuja UI-reittejä (BFF).
 
 ### 7.3 Graceful Degradation Protocol (The Only Exception to Fail-Fast)
 Rajapinta on ohjelmiston **AINOA PAIKKA**, jossa Fail-Fast ei ole ehdoton standardi.
 * Jos Agentti tuottaa laajan monihierarkisen raportin, ja yhdestä sen palasesta rikkoutuu yksi solu, emme kaada koko näkymää. 
-* Frontendille toimitetaan tällöin muunnoksena kyseiselle osiolle tyhjä data `{}` tai `SizedBox.shrink()`.
-* **Kriittinen lisäehto:** Fallback (pehmennys) on merkittävä logeihin erittäin näkyvästi (`logger.warning("BFF Graceful degradation applied to specialist_data")` / Flutter `debugPrint("🔴 UI GRACFEFUL DEGRADATION...")`), jotta se ei huku hiljaisiksi aavebugeiksi!
+* Ominaisuus hoituu nykyään automaattisesti `ui_hints_snapshot` -mekanismin ja Dartin `SafeCast` -defensiivisen parsinnan yhteistyönä. Frontend on suunniteltu ohittamaan tyhjät (`{}`) tai tuntemattomat blokit nostamatta Punaista Ruutua (Red Screen of Death) `SizedBox.shrink()` avulla.
 
 ### 7.4 Specialist Nested Output Data
 Kaikki erikoisagenttien (kuten Logician tai Archivist) tuottamat erikoistulokset pakataan omaksi avaimekseen rakenteen sisään (Strict Nesting -> `{"logician_data": {"score": ...}}`). Datan luvaton "flättäys" (yhdistäminen root-tasolle) romuttaa SDUI:n dynamiikan.

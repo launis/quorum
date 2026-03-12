@@ -41,7 +41,9 @@ class DashboardView extends ConsumerWidget {
       body: asyncExecutions.when(
         data: (executions) {
           if (executions.isEmpty) {
-            return Center(child: Text(AppLocalizations.of(context)!.noExecutions));
+            return Center(
+              child: Text(AppLocalizations.of(context)!.noExecutions),
+            );
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -139,14 +141,22 @@ class DashboardView extends ConsumerWidget {
         ref.invalidate(executionListProvider);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.executionDeletedSuccessfully)),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.executionDeletedSuccessfully,
+              ),
+            ),
           );
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context)!.failedToDeleteExecution(e.toString())),
+              content: Text(
+                AppLocalizations.of(
+                  context,
+                )!.failedToDeleteExecution(e.toString()),
+              ),
               backgroundColor: Colors.red,
             ),
           );

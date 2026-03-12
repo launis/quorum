@@ -42,7 +42,7 @@ To prevent hallucinations, we strictly enforce the **Sidebar Pattern** for Infor
 ### D. Architectural Resilience (Lazy Inflation)
 To handle evolving schemas while maintaining seamless access to historical data, the `RetrievalAgent` implements the **Lazy Inflation Pattern**.
 *   **Storage**: Historical data (`db.json`) may contain older schema versions or raw dictionaries.
-*   **Mechanism**: When the agent reads `results` (union type), it actively checks type. If raw `dict` is found, it attempts Just-In-Time inflation to `WorkflowState`.
+*   **Mechanism**: When the agent reads `results` (union type), it actively checks type. If raw `dict` is found, it attempts Just-In-Time inflation to `ExecutionRecord`.
 *   **Benefit**: This prevents "Brittle Model" crashes on legacy data while enforcing strict typing for new execution.
 
 ---

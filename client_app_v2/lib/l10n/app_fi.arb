@@ -620,5 +620,6 @@
   "barsConf100": "Ehdottoman varma (100%)",
   "barsRisk1": "Matala riski (Safe)",
   "barsRisk2": "Keskisuuri riski (Medium)",
-  "barsRisk3": "Korkea riski (Lazy prompt)"
+  "barsRisk3": "Korkea riski (Lazy prompt)",
+  "rawOutputFallbackTitle": "Raaka-data (Käyttöliittymä puuttuu)"
 }

@@ -132,21 +132,24 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     _textControllers.forEach((key, controller) {
       if (controller.text.isNotEmpty) {
         if (key.contains('|||')) {
-           final parts = key.split('|||');
-           final semanticRole = parts[0];
-           final qId = parts[1];
-           if (_compiledInputs[semanticRole] == null || _compiledInputs[semanticRole] is! Map) {
-              _compiledInputs[semanticRole] = <String, dynamic>{};
-           }
-           (_compiledInputs[semanticRole] as Map<String, dynamic>)[qId] = controller.text;
+          final parts = key.split('|||');
+          final semanticRole = parts[0];
+          final qId = parts[1];
+          if (_compiledInputs[semanticRole] == null ||
+              _compiledInputs[semanticRole] is! Map) {
+            _compiledInputs[semanticRole] = <String, dynamic>{};
+          }
+          (_compiledInputs[semanticRole] as Map<String, dynamic>)[qId] =
+              controller.text;
         } else {
-           // Prioritize file upload if one is already selected
-           final hasFile = _compiledInputs.containsKey(key) && 
-                           _compiledInputs[key] is Map && 
-                           (_compiledInputs[key] as Map).containsKey('content_base64');
-           if (!hasFile) {
-             _compiledInputs[key] = controller.text;
-           }
+          // Prioritize file upload if one is already selected
+          final hasFile =
+              _compiledInputs.containsKey(key) &&
+              _compiledInputs[key] is Map &&
+              (_compiledInputs[key] as Map).containsKey('content_base64');
+          if (!hasFile) {
+            _compiledInputs[key] = controller.text;
+          }
         }
       }
     });
@@ -166,20 +169,28 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         // Safe context routing using GoRouter Codegen
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.executionStartedSuccessfully)),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.executionStartedSuccessfully,
+              ),
+            ),
           );
           ExecutionRoute(executionId: execId).go(context);
         }
       } else {
-         if (mounted) {
-             ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(AppLocalizations.of(context)!.failedToStartExecution(e.toString())),
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  duration: const Duration(seconds: 5),
-                ),
-             );
-         }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(
+                  context,
+                )!.failedToStartExecution(e.toString()),
+              ),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     }
   }
@@ -321,18 +332,24 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
           ...expectedInputsList.map((item) {
             final inputKey = SafeCast.safeString(item['input_key']);
-            final modes = SafeCast.safeList(item['input_modes']).map((m) => m.toString()).toList();
-            
+            final modes =
+                SafeCast.safeList(
+                  item['input_modes'],
+                ).map((m) => m.toString()).toList();
+
             // Handle questionnaire first
             if (modes.contains('questionnaire')) {
-               return Padding(
-                 padding: const EdgeInsets.only(bottom: 24),
-                 child: _buildQuestionnaireWidget(inputKey, item),
-               );
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: _buildQuestionnaireWidget(inputKey, item),
+              );
             }
 
             final showFile = modes.contains('file');
-            final showText = modes.contains('paste') || modes.contains('text') || (!showFile && !modes.contains('questionnaire'));
+            final showText =
+                modes.contains('paste') ||
+                modes.contains('text') ||
+                (!showFile && !modes.contains('questionnaire'));
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 24),
@@ -343,8 +360,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                     _buildInputWidget(inputKey, 'file'),
                     if (showText) const SizedBox(height: 16),
                   ],
-                  if (showText) 
-                    _buildInputWidget(inputKey, 'text'),
+                  if (showText) _buildInputWidget(inputKey, 'text'),
                 ],
               ),
             );
@@ -392,7 +408,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    hasFile ? AppLocalizations.of(context)!.selectedFile(fileName) : AppLocalizations.of(context)!.noFileSelected,
+                    hasFile
+                        ? AppLocalizations.of(context)!.selectedFile(fileName)
+                        : AppLocalizations.of(context)!.noFileSelected,
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
                 ],
@@ -447,7 +465,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           children: [
             Text(
               AppLocalizations.of(context)!.questionnaireTitle(title),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             ...defs.map((defInput) {
@@ -462,10 +482,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
               String qLabel = '';
               if (qTranslations.isNotEmpty) {
-                 qLabel = SafeCast.safeString(qTranslations['fi']);
-                 if (qLabel.isEmpty) {
-                   qLabel = SafeCast.safeString(qTranslations[qDefaultLocale]);
-                 }
+                qLabel = SafeCast.safeString(qTranslations['fi']);
+                if (qLabel.isEmpty) {
+                  qLabel = SafeCast.safeString(qTranslations[qDefaultLocale]);
+                }
               }
               if (qLabel.isEmpty) qLabel = qId;
 
@@ -504,7 +524,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       child: FilledButton.icon(
         onPressed: _submit,
         icon: const Icon(Icons.rocket_launch),
-        label: Text(AppLocalizations.of(context)!.startAiExecution, style: const TextStyle(fontSize: 16)),
+        label: Text(
+          AppLocalizations.of(context)!.startAiExecution,
+          style: const TextStyle(fontSize: 16),
+        ),
       ),
     );
   }
