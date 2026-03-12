@@ -141,7 +141,11 @@ Strateginen ohjaus arvioi käyttäjän **toimijuutta** (engl. *agency*). Se pohj
 | **Tekninen Toteutus** (Engineering) | **Insinööri:** Käyttää edistyneitä tekniikoita: Few-Shot, Chain-of-Thought, XML-tagit. Promptit ovat strukturoituja olioita. | **Osaaja:** Käyttää perustekniikoita: Roolitus, selkeät rajoitteet, kontekstin syöttö. Kieli on täsmällistä. | **Keskusteleva:** Käyttää luonnollista puhekieltä ("Voisitko..."). Promptit epätarkkoja. | **Laiska (Lazy):** Kirjoitusvirheitä, "se juttu", pelkkiä avainsanoja. Luottaa tekoälyn "mind reading" \-kykyyn. |
 | **Kriittinen Iteraatio** (Falsification) | **Adversariaalinen:** Testaa rajoja ("Etsi virheet"). Spottaa faktavirheet ja pakottaa korjaamaan lähteisiin viitaten. | **Korjaava:** Huomaa selkeät virheet ja pyytää korjausta. | **Hyväksyvä:** Kehuu tekoälyä ("Hyvä\!") vaikka vastauksessa olisi puutteita. Korjaukset vain tyylillisiä. | **Sokea:** Sokea luottamus. Kopioi hallusinaatiot suoraan lopputuotteeseen. |
 
-##### **2.2.1.3 Vertailu ja Synteesi: Miksi molempia tarvitaan?**
+##### **2.2.1.3 Ennakkotapausten ja organisaatiostandardien noudattaminen (Archivist)**
+
+Kolmas analyyttisen tason ulottuvuus arvioi käyttäjän toiminnan yhteensopivuutta organisaation parhaiden käytäntöjen ja aiempien linjausten (precedent) kanssa. Tämä ulottuvuus toteutetaan Arkistonhoitaja-agentin avulla, jonka arviointi perustuu oikeustieteestä lainattuun Stare decisis -periaatteeseen (Dworkin 1986). Arviointi asteikolla 1-5 (Kriittisesti Poikkeava – Vahvasti Linjassa) mittaa, kuinka hyvin käyttäjä soveltaa rakenteellisia ohjausmalleja satunnaisen kokeilun sijaan.
+
+##### **2.2.1.4 Vertailu ja Synteesi: Miksi molempia tarvitaan?**
 
 Näiden kahden ulottuvuuden suhde on kriittinen "Mittaamisen paradoksin" ratkaisemiseksi. Li ym. (2025) osoittavat, että perinteiset arviointimallit ovat alttiita "tekoälyharhalle", jossa pelkkä loogisesti eheä lopputuote voi johtaa yliarviointiin, mikäli käyttäjän omaa kriittistä ajattelua ja panosta prosessiin ei erikseen mitata. Se mittaa *mitä* on tehty, mutta on sokea sille *kuka* työn teki. Strateginen matriisi (Agency/Roles) korjaa tätä mittaamalla *miten* työ on tehty. Se paljastaa "Matkustajan", joka on tuottanut Bloomin tasolla erinomaisen analyysin, mutta jonka oma panos prosessiin on ollut olematon.
 
@@ -156,7 +160,7 @@ Yhdistämällä nämä tasot hybridirubriikki kykenee erottamaan aidon asiantunt
 | **Todistusaineisto** | Lopputuote ja Reflektiodokumentin argumentaatio (Toulmin). | Keskusteluhistoria (Promptit) ja korjausliikkeet (Iteraatio). |
 | **Riski / Sokea piste** | **Tekoälyharha:** Hyvä kehotus voi tuottaa täydellisen analyysin ilman käyttäjän aitoa ymmärrystä. | **Näennäisaktiivisuus:** Paljon kehotteita, mutta vähän strategista suuntaa tai laadunvalvontaa. |
 
-##### **2.2.1.4 Metodologiset Rajoitteet**
+##### **2.2.1.5 Metodologiset Rajoitteet**
 
 Tämä metodologinen valinta sisältää kuitenkin tietoisesti hyväksyttyjä rajoitteita, jotka tekevät hybridimallin toisesta tasosta välttämättömän. BARS-menetelmiä on perinteisesti kehitetty tavoitteena parantaa luotettavuutta siten, että arviointitasot ankkuroidaan konkreettisiin käyttäytymiskuvauksiin (Moskal 2000; Smith & Kendall 1963). Niiden todellinen psykometrinen ylivoimaisuus muihin menetelmiin nähden on kuitenkin kyseenalaistettu (Jacobs ym. 1980). Akateemiset arviot ovat todenneet, että BARS-asteikot eivät kvantitatiivisesti arvioituna ole välttämättä parempia kuin muutkaan menetelmät (Jacobs ym. 1980), ja eräissä vertailuissa ne ovat jopa osoittaneet heikompaa arvioitsijoiden välistä yhdenmukaisuutta kuin perinteiset summatiiviset asteikot (Kinicki ym. 1985).
 
@@ -176,7 +180,7 @@ Hybridirubriikin toinen arkkitehtoninen taso on sen holistinen taso. Se on suunn
 
 Tämä monimutkainen ja vivahteikas analyysi vaatii erikoistuneen mekanismin, joka on tässä viitekehyksessä Kognitiivinen Kvoorum. Kognitiivinen Kvoorum on moniagenttijärjestelmä (MAS) (vrt. [Supianto ym. 2023](https://www.google.com/search?q=%23supianto2023)), joka perustuu kognitiiviseen työnjakoon. Se ei nojaa yhteen monoliittiseen tekoälymalliin, vaan jakaa analyysitehtävän erillisiin, teoreettisesti johdettuihin ja erikoistuneisiin kognitiivisiin rooleihin ([Guo ym. 2024](https://www.google.com/search?q=%23guo2024)).
 
-Nykyisessä V2-arkkitehtuurissa järjestelmä on toteutettu dynaamisena suuntamattomana verkkona (DAG) `GraphEngine`-orkestraattorin avulla (toimintatila **Courtroom 2.0 Full Audit**). Tämä 15 askeleen ja logiikkasolmun auditointiketju maksimoi tarkkuuden ja auditoitavuuden.
+Nykyisessä V2-arkkitehtuurissa järjestelmä on toteutettu dynaamisena suuntamattomana verkkona (DAG) `GraphEngine`-orkestraattorin avulla (toimintatila **Courtroom 2.0 Full Audit**). Tämä **13** askeleen ja logiikkasolmun auditointiketju maksimoi tarkkuuden ja auditoitavuuden.
 
 Kvoorum koostuu erikoistuneista agenteista ja solmuista (step_node), jotka jakautuvat toiminnallisiin ryhmiin:
 
@@ -211,9 +215,12 @@ Tämä varmistaa, että 'Matkustaja'-tason suoritus ei voi koskaan nousta 'Kuski
 
 **Perustelu:** Hyvä tekoäly ei kompensoi huonoa kuskia. Arvioimme prosessinhallintaa, emme tuuria. Jos käyttäjä nukkuu ratissa, suoritus hylätään, vaikka auto (AI) ajaisi maaliin.
 
+**2.3.1.1 Dynaaminen tiukkuustaso (Strictness Level)**
+Järjestelmän operatiiviseen malliin on integroitu käyttäjän määriteltävissä oleva dynaaminen tiukkuustaso. Tämä parametri ohjaa agenttien subjektiivista arviointia: korkeilla arvoilla (>80) agentit on ohjeistettu vaatimaan täydellisyyttä ja rokottamaan pienimmistäkin loogisista virheistä, kun taas matalilla arvoilla (<40) arviointi on sallivampaa ja painottaa hyvää intentiota. Vaikka tämä ominaisuus lisää järjestelmän joustavuutta erilaisissa käyttökonteksteissa, se samalla problematisoi arvioitsijoiden välisen yhdenmukaisuuden (IRR) saavuttamista, sillä se tekee arviointimatriisien ankkureista (BARS) liukuvia.
+
 #### **2.3.2 Prosessimallin Kuvaus ja Auditoitavuus**
 
-Wooldridgen (2009) määritelmän mukaisesti järjestelmä toteuttaa moniagenttiarkkitehtuurin (MAS), joka tässä viitekehyksessä konkretisoituu dynaamisena ”kognitiivisena auditointiverkkona (DAG)”, jossa erikoistuneet agentit prosessoivat informaatiota tiukasti annettujen riippuvuuksien mukaisesti. Vaikka taustalla rullaa 15 rinnakkaista solmua, tämä arkkitehtuuri noudattaa tieteellisen menetelmän soveltamisen loogista polkua (Cheng 2001):
+Wooldridgen (2009) määritelmän mukaisesti järjestelmä toteuttaa moniagenttiarkkitehtuurin (MAS), joka tässä viitekehyksessä konkretisoituu dynaamisena ”kognitiivisena auditointiverkkona (DAG)”, jossa erikoistuneet agentit prosessoivat informaatiota tiukasti annettujen riippuvuuksien mukaisesti. Vaikka taustalla rullaa **13** rinnakkaista solmua, tämä arkkitehtuuri noudattaa tieteellisen menetelmän soveltamisen loogista polkua (Cheng 2001):
 
 * **Vaihe 1: Empiirinen havainnointi (Esikäsittely).** Prosessi alkaa todistusaineiston jäsentelyllä ja turvallisuuden varmistuksella (Input Processing -solmu, Vartija-agentti, ks. Luku 2.3.3).
 * **Vaihe 2: Kontekstualisointi ja Analyysi.** Tietotarpeen ankkurointi ja tiedonhaku ulkoisilla työkaluilla sekä raakadatan jäsennys (Retrieval-agentti, Arkistonhoitaja-agentti, Analyytikko-agentti).
@@ -908,6 +915,8 @@ Koska viitekehyksen toiminnallinen malli on toteutettu mutta empiirisesti testaa
 * **Duhem, Pierre 1906\.** *La théorie physique: son objet et sa structure*. Paris: Chevalier & Rivière.
 
 * **Durlak, Joseph A. & DuPre, Elizabeth P. 2008\.** *Implementation matters: A review of research on the influence of implementation on program outcomes*. American Journal of Community Psychology, 41(3–4), s. 327–350. Saatavilla: [https://doi.org/10.1007/s10464-008-9165-0](https://doi.org/10.1007/s10464-008-9165-0).
+
+* **Dworkin, Ronald 1986\.** *Law's empire*. Cambridge: Harvard University Press. Saatavilla: [https://plato.stanford.edu/entries/legal-positivism/](https://plato.stanford.edu/entries/legal-positivism/).
 
 * **Eloundou, Tyna ym. 2023\.** *GPTs are GPTs: An Early Look at the Labor Market Impact Potential of Large Language Models*. arXiv preprint arXiv:2303.10130. Saatavilla: [https://doi.org/10.48550/arXiv.2303.10130](https://doi.org/10.48550/arXiv.2303.10130).
 

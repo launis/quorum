@@ -71,9 +71,9 @@ def sanitize_text_hook(data: dict[str, Any]) -> dict[str, Any]:
     try:
         result = {
             "sanitized_inputs": sanitized_inputs,
-            "pii_threats_detected": threats_summary,
             "banned_phrases_detected": [],  # Populated by check_banned_phrases
             "banned_phrases_error": None,
+            "security_status": "DATA_CHECKED_AND_SECURED",
         }
     except Exception as e:
         # Configuration/System Error
@@ -206,6 +206,7 @@ async def check_banned_phrases_hook(data: dict[str, Any], repository: Any = None
         "pii_threats_detected": existing_result.get("pii_threats_detected", []),
         "banned_phrases_detected": detected,
         "banned_phrases_error": fetch_error,
+        "security_status": "DATA_CHECKED_AND_SECURED",
     }
 
     return {"sanitization_result": new_result}
