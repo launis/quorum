@@ -68,11 +68,8 @@ async def generate_bibliography_hook(data: dict[str, Any], repository: Any = Non
                 text_dump += text + "\n"
 
         step_coach = data.get("step_coach")
-        if step_coach:
-            if isinstance(step_coach, dict):
-                text_dump += json.dumps(step_coach, ensure_ascii=False)
-            elif hasattr(step_coach, "model_dump"):
-                text_dump += json.dumps(step_coach.model_dump(mode="json"), ensure_ascii=False)
+        if step_coach and isinstance(step_coach, dict):
+            text_dump += json.dumps(step_coach, ensure_ascii=False)
 
         if not text_dump.strip():
             logger.warning("[ReferenceHook] No text to scan.")

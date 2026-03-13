@@ -289,7 +289,7 @@ class PromptCompiler:
                         bars_text += f" - {s_claim_text}"
                     bars_text += "\n"
                 if crit.get("allow_decimals", False):
-                    bars_text += "\nINSTRUCTION: Evaluate strictly using the matrix above. You may use one decimal place (e.g. 2.5 or 4.1) if the answer falls between two scores. Return only the numeric value."
+                    bars_text += "\nKÄSKE: Arvioi ydinkysymystä yllä olevalla matriisilla. Anna lopullinen numeerinen arvio aina yhden desimaalin tarkkuudella (esim. 4.2), jotta arviointi heijastaa suorituksen tarkkaa vivahtekkuutta. Palauta TÄSMÄLLEEN oikeanlainen numeerinen arvo."
                 else:
                     bars_text += "\nINSTRUCTION: Evaluate strictly using the matrix above. Return only an exact numeric score from the list."
 

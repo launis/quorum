@@ -121,21 +121,34 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
     if step_id in ["step_judge", "step_judge_cognitive"]:
         candidates.append(data)
 
-    for item in candidates:
-        if not isinstance(item, dict):
-            continue
+    unique_matrices = {}
 
-        for k, v in item.items():
-            if k.endswith("_scaled"):
-                base_key = k.replace("_scaled", "")
+    def _extract_scores(source: dict):
+        for k, v in source.items():
+            if isinstance(k, str) and k.endswith("_normalized"):
+                base_key = k.replace("_normalized", "")
                 if base_key in EVALUATIVE_MATRICES:
                     try:
-                        v_float = float(v)
-                        total_score_accum += v_float
-                        count += 1
-                        scores_found.append(v_float)
-                    except (ValueError, TypeError):
-                        pass
+                        unique_matrices[base_key] = float(v)
+                    except (ValueError, TypeError) as e:
+                        from backend_v2.exceptions import AppException, ErrorCodes
+                        logger.error(f"[ScoringHook] Invalid Commensurate Score format for '{k}': {v}")
+                        raise AppException(
+                            message=f"Corrupt scoring data: {k} could not be parsed as float.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value}
+                        ) from e
+            elif isinstance(v, dict):
+                _extract_scores(v)
+
+    for item in candidates:
+        if isinstance(item, dict):
+            _extract_scores(item)
+
+    for v_float in unique_matrices.values():
+        total_score_accum += v_float
+        count += 1
+        scores_found.append(v_float)
 
     if count == 0:
         logger.warning("[ScoringHook] No valid commensurate scores found for aggregation.")
@@ -451,34 +464,30 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
     """
     logger.info("[ScoringHook] Running normalize_matrix_scores_hook...")
 
+    if not repository and isinstance(state, dict):
+        repository = state.get("_sys_repository")
+        if not repository:
+            ctx = state.get("_sys_context_vars", {})
+            if isinstance(ctx, dict):
+                repository = ctx.get("_sys_repository")
+
     if not repository:
-        logger.warning("[ScoringHook] No repository provided. Skipping normalization.")
+        logger.warning("[ScoringHook] No repository provided (not in kwargs or state). Skipping normalization.")
         return state
 
     # V2 Fast-Fail Architecture: State is now a strictly isolated dictionary (DAGExecutor final_dict)
     # We depend on _sys_step_id being injected during the execution context.
-    if isinstance(state, dict):
-        step_id = state.get("_sys_step_id")
-        content_payload = state
-    else:
-        # Legacy fallback if anyone still executes V1 orchestration loops
-        last_event = state.execution_trace[-1] if hasattr(state, "execution_trace") and state.execution_trace else None
-        if not last_event or last_event.event_type != "output":
-            logger.debug("[ScoringHook] No valid output event found in trace.")
-            return state
+    if not isinstance(state, dict):
+        logger.debug("[ScoringHook] State is not a dictionary. Skipping.")
+        return state
 
-        step_id = last_event.step_name
-        content_payload = state.context_variables.get(step_id)
-        if not content_payload:
-            content_payload = last_event.content
-
-        if not isinstance(content_payload, dict):
-            # Try to convert Pydantic to dict
-            if hasattr(content_payload, "model_dump"):
-                content_payload = content_payload.model_dump(mode="json")
-            else:
-                logger.debug(f"[ScoringHook] Step '{step_id}' output is not a dict/model. Skipping.")
-                return state
+    step_id = state.get("_sys_step_id")
+    if not step_id:
+        ctx = state.get("_sys_context_vars", {})
+        if isinstance(ctx, dict):
+            step_id = ctx.get("_sys_step_id")
+            
+    content_payload = state
 
     if not step_id:
          logger.debug("[ScoringHook] No step_id found in execution context. Skipping.")
@@ -513,40 +522,57 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
                 continue
 
             pb_dict = pb if isinstance(pb, dict) else pb.model_dump()
+            logger.debug(f"[ScoringHook] Found PromptBlock '{slug}' with allowed decimals: {pb_dict.get('allow_decimals')}")
 
             scales = pb_dict.get("scales")
             target_min = pb_dict.get("scale_min")
             target_max = pb_dict.get("scale_max")
 
+            # Fallback: Infer min/max from the actual scales array if missing
+            if scales and (target_min is None or target_max is None):
+                scores_in_scales = []
+                for s in scales:
+                    val = s.get("score") if isinstance(s, dict) else getattr(s, "score", None)
+                    if val is not None:
+                        try:
+                            scores_in_scales.append(float(val))
+                        except (TypeError, ValueError):
+                            pass
+                if scores_in_scales:
+                    target_min = min(scores_in_scales)
+                    target_max = max(scores_in_scales)
+
             if scales and target_min is not None and target_max is not None:
-                # We scale directly from the BARS boundaries (scale_min -> scale_max) strictly to 0-100
                 from backend_v2.utils.math_utils import normalize_score_to_100
 
-                scaled_val = normalize_score_to_100(
-                    score=float(raw_val),
+                # 1. The original AI output
+                raw_float = float(raw_val)
+                
+                # 2. The Python-scaled (clamped) value based on scale_min and scale_max
+                scaled_val = max(float(target_min), min(float(target_max), raw_float))
+
+                # 3. The 1-100 normalized value for commensurable aggregation
+                normalized_val = normalize_score_to_100(
+                    score=scaled_val,
                     scale_min=float(target_min),
                     scale_max=float(target_max),
                 )
 
-                # Keep the original raw key intact, and add the scaled 0-100 version explicitly
+                # Store exactly three properties
                 new_payload[slug] = raw_val
                 new_payload[f"{slug}_scaled"] = scaled_val
+                new_payload[f"{slug}_normalized"] = normalized_val
+                
                 updates_made = True
                 logger.info(
-                    f"[ScoringHook] Preserved raw '{slug}': {raw_val}, Generated '{slug}_scaled': {scaled_val} "
+                    f"[ScoringHook] 3-Tier Score '{slug}': Raw={raw_val}, "
+                    f"Scaled={scaled_val}, Normalized={normalized_val} "
                     f"(Scale: {target_min}-{target_max})"
                 )
 
         if updates_made:
-            if isinstance(state, dict):
-                 # V2 Dict direct mutation
-                 state.update(new_payload)
-            else:
-                 # Legacy V1 context mutation
-                 state.context_variables[step_id] = new_payload
-                 step_slug = step_obj.get("slug") if isinstance(step_obj, dict) else getattr(step_obj, "slug", None)
-                 if step_slug and step_slug in state.context_variables:
-                     state.context_variables[step_slug] = new_payload
+             # V2 Dict direct mutation
+             state.update(new_payload)
 
     except Exception as e:
         logger.error(f"[ScoringHook] Failed to normalize matrix scores: {e}", exc_info=True)

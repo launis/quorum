@@ -135,9 +135,6 @@ def generate_report_hook(data: dict[str, Any]) -> dict[str, Any]:
         for issue in overseer_data.get("ethical_issues", []):
             if isinstance(issue, dict):
                 ethical_issues_list.append(issue)
-            elif hasattr(issue, "model_dump"):
-                # Convert model to dict for ReportContext if it happens to be inflated
-                ethical_issues_list.append(issue.model_dump())
     context["ethical_issues"] = ethical_issues_list
 
     # Audit Questions (From Logician)
@@ -315,10 +312,6 @@ def generate_report_hook(data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(metrics, dict):
             context["word_count"] = metrics.get("word_count", 0)
             context["input_control_ratio"] = metrics.get("control_ratio", 0.0)
-        else:
-            # Fallback for inflated DTO
-            context["word_count"] = getattr(metrics, "word_count", 0)
-            context["input_control_ratio"] = getattr(metrics, "control_ratio", 0.0)
 
     if analyst_out:
         # Knowledge Items (Now extracted directly from analyst_out.rag_evidence if we want to show it, or left empty)
@@ -348,9 +341,6 @@ def generate_report_hook(data: dict[str, Any]) -> dict[str, Any]:
     coaching_out = data.get("step_coach")
     if isinstance(coaching_out, dict):
         context["coaching_plan"] = coaching_out
-    elif hasattr(coaching_out, "model_dump") and callable(getattr(coaching_out, "model_dump", None)):
-        dump_fn: Any = coaching_out.model_dump  # type: ignore
-        context["coaching_plan"] = dump_fn()
 
     # 5. RENDER / GENERATE (Strict Validation without Silent Failures)
 

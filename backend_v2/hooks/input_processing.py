@@ -126,8 +126,8 @@ async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
                 
                 # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
                 chat_lines = []
-                for turn in chat_dto.turns:
-                     chat_lines.append(f"**{turn.speaker}**: {turn.content}")
+                for turn in chat_dto.conversation:
+                     chat_lines.append(f"**{turn.role}**: {turn.content}")
                 resolved_text = "\n\n".join(chat_lines)
                 
                 logger.info(f"[InputProcessingHook] Successfully structured {key} via ChatParser (Markdown).")

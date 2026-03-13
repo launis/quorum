@@ -27,53 +27,32 @@ def hydrate_global_inputs_hook(data: dict[str, Any]) -> dict[str, Any]:
     if not data:
         return {}
 
-    # Original logic for processor_output
-    processor_output: dict[str, Any] | Any | None = None
+    processor_output: dict[str, Any] | None = None
     for _key, result in data.items():
-        if result and type(result).__name__ == "InputProcessorOutput":
-            processor_output = result
-            break
-        elif isinstance(result, dict):
+        if isinstance(result, dict):
             if result.get("agent_type") == "InputProcessorAgent" or "inputs" in result:
-                try:
-                    processor_output = result
-                    break
-                except Exception as e:
-                    raise AppException(
-                        message=f"Failed to inflate InputProcessorOutput during hydration: {str(e)}",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
-                    ) from e
+                processor_output = result
+                break
 
     if not processor_output:
         logger.warning("[HydrationHook] No InputProcessorOutput found in data. Skipping hydration.")
         return {}
 
     # Load existing inputs
-    inputs_raw = data.get("inputs", {})
-    if isinstance(inputs_raw, dict):
-        inputs = inputs_raw
-    else:
-        inputs = inputs_raw.model_dump() if hasattr(inputs_raw, "model_dump") else {}
-
-    if not inputs:
-        logger.warning("[HydrationHook] Missing 'inputs' block in context. Creating fresh.")
+    inputs = data.get("inputs", {})
+    if not isinstance(inputs, dict):
+        logger.warning("[HydrationHook] The 'inputs' key is invalid. Creating fresh dictionary.")
         inputs = {}
 
     # Apply properties dynamically
     updates: dict[str, Any] = {}
 
-    if isinstance(processor_output, dict):
-        # Allow InputProcessor to specify 'inputs' dict directly
-        if "inputs" in processor_output and isinstance(processor_output["inputs"], dict):
-            updates.update(processor_output["inputs"])
-        else:
-            # Otherwise grab top-level strings as inputs
-            for k, v in processor_output.items():
-                if isinstance(v, str) and k != "agent_type":
-                    updates[k] = v
+    # Allow InputProcessor to specify 'inputs' dict directly
+    if "inputs" in processor_output and isinstance(processor_output["inputs"], dict):
+        updates.update(processor_output["inputs"])
     else:
-        for k, v in vars(processor_output).items():
+        # Otherwise grab top-level strings as inputs
+        for k, v in processor_output.items():
             if isinstance(v, str) and k != "agent_type":
                 updates[k] = v
 

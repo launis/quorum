@@ -33,11 +33,11 @@ def normalize_score_to_100(score: float, scale_min: float, scale_max: float) -> 
     # is the responsibility of the JudgeScoreCard Pydantic validation (Fail Fast).
     # If a score gets here, we calculate its percentage linearly.
 
-    normalized = (score - scale_min) / (scale_max - scale_min) * 100.0
+    # Calculate mathematical percentage based on scale_max, adhering to user's logic where 
+    # a score of 2.5 out of 5 equals 50, and 5 out of 10 equals 50.
+    normalized = (score / scale_max) * 100.0
 
-    # We clamp the normalisation to 0-100 just in case floating point inaccuracies
-    # or passivity penalties cause minor out-of-bounds results,
-    # but the primary validation happens upstream.
+    # Ensure it's between 0 and 100 (clamp just in case, though logically it should be if within bounds)
     return max(0.0, min(100.0, normalized))
 
 def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_min: float, target_max: float) -> float:

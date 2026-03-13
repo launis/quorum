@@ -44,7 +44,7 @@
         "precise": {
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
-          "temperature": 0.3,
+          "temperature": 0.2,
           "top_p": null,
           "supports_grounding": false,
           "tpm_limit": 100000,
@@ -56,7 +56,7 @@
         "strict": {
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
-          "temperature": 0.1,
+          "temperature": 0.0,
           "top_p": null,
           "supports_grounding": false,
           "tpm_limit": 100000,
@@ -865,29 +865,6 @@
           ]
         },
         {
-          "score": 2,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "Epätodennäköinen (Unlikely)"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Käyttäjän antama ohjaus oli niin ylimalkaista, että sen suora syy-seuraussuhde laadukkaaseen lopputulokseen on kyseenalainen."
-              }
-            },
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Tekoälyn sisäiset ennakkokäsitykset ohjasivat tulosta enemmän."
-              }
-            }
-          ]
-        },
-        {
           "score": 3,
           "name": {
             "default_locale": "fi",
@@ -906,29 +883,6 @@
               "default_locale": "fi",
               "translations": {
                 "fi": "Ei voida täysin varmistaa, syntyikö tulos sattumalta vai tarkoituksella."
-              }
-            }
-          ]
-        },
-        {
-          "score": 4,
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "Todennäköinen (Probable)"
-            }
-          },
-          "claims": [
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Looginen jatkumo käyttäjän prompteista lopulliseen malliin on selkeästi nähtävissä."
-              }
-            },
-            {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Vastafaktuaalinen testi viittaa siihen, että ilman tätä dialogia tulos olisi ollut erilainen."
               }
             }
           ]
@@ -3395,8 +3349,7 @@
       "post_hooks": [
         "verify_citation_integrity",
         "enforce_hypothesis_linking",
-        "execute_google_search",
-        "normalize_matrix_scores"
+        "execute_google_search"
       ]
     },
     {
@@ -3431,9 +3384,7 @@
         "retrieve_precedent",
         "inject_step_metadata"
       ],
-      "post_hooks": [
-        "normalize_matrix_scores"
-      ]
+      "post_hooks": []
     },
     {
       "id": "step_causal_analyst",
@@ -3468,9 +3419,7 @@
       "pre_hooks": [
         "inject_step_metadata"
       ],
-      "post_hooks": [
-        "normalize_matrix_scores"
-      ]
+      "post_hooks": []
     },
     {
       "id": "step_coach",
@@ -3517,9 +3466,7 @@
       "pre_hooks": [
         "inject_step_metadata"
       ],
-      "post_hooks": [
-        "normalize_matrix_scores"
-      ]
+      "post_hooks": []
     },
     {
       "id": "step_performativity_detector",
@@ -3553,9 +3500,7 @@
       "pre_hooks": [
         "inject_step_metadata"
       ],
-      "post_hooks": [
-        "normalize_matrix_scores"
-      ]
+      "post_hooks": []
     },
     {
       "id": "step_falsifier",
@@ -3590,8 +3535,7 @@
         "inject_step_metadata"
       ],
       "post_hooks": [
-        "verify_citation_integrity",
-        "normalize_matrix_scores"
+        "verify_citation_integrity"
       ]
     },
     {
@@ -3630,9 +3574,7 @@
         "verify_structure",
         "inject_step_metadata"
       ],
-      "post_hooks": [
-        "normalize_matrix_scores"
-      ]
+      "post_hooks": []
     },
     {
       "id": "step_judge",
@@ -3670,8 +3612,7 @@
       "post_hooks": [
         "apply_scoring_logic",
         "verify_citation_integrity",
-        "enforce_passivity_penalty",
-        "normalize_matrix_scores"
+        "enforce_passivity_penalty"
       ]
     },
     {
@@ -3709,9 +3650,7 @@
       "pre_hooks": [
         "inject_step_metadata"
       ],
-      "post_hooks": [
-        "normalize_matrix_scores"
-      ]
+      "post_hooks": []
     },
     {
       "id": "step_overseer",
@@ -3761,9 +3700,7 @@
         "execute_google_search",
         "inject_step_metadata"
       ],
-      "post_hooks": [
-        "normalize_matrix_scores"
-      ]
+      "post_hooks": []
     },
     {
       "id": "step_profiler",
@@ -3802,9 +3739,7 @@
         "calculate_control_ratio",
         "inject_step_metadata"
       ],
-      "post_hooks": [
-        "normalize_matrix_scores"
-      ]
+      "post_hooks": []
     },
     {
       "id": "step_xai_reporter",
@@ -3836,9 +3771,7 @@
       "pre_hooks": [
         "inject_step_metadata"
       ],
-      "post_hooks": [
-        "normalize_matrix_scores"
-      ]
+      "post_hooks": []
     }
   ],
   "organizations": [
