@@ -38,6 +38,7 @@ class NewExecutionController extends _$NewExecutionController {
   Future<void> startExecution({
     required String workflowId,
     required Map<String, dynamic> collectedInputs,
+    int strictnessLevel = 3,
   }) async {
     state = const AsyncLoading();
     try {
@@ -45,7 +46,11 @@ class NewExecutionController extends _$NewExecutionController {
 
       final response = await dio.post(
         '/execution/executions/',
-        data: {'workflow_id': workflowId, 'raw_inputs': collectedInputs},
+        data: {
+          'workflow_id': workflowId,
+          'raw_inputs': collectedInputs,
+          'strictness_level': strictnessLevel,
+        },
       );
 
       final executionId = SafeCast.safeString(response.data['id']);
@@ -89,12 +94,15 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     super.dispose();
   }
 
+  int _strictnessLevel = 3;
+
   void _onWorkflowSelected(Map<String, dynamic>? workflow) {
     if (workflow == null) return;
     setState(() {
       _selectedWorkflow = workflow;
       _compiledInputs.clear();
       _selectedFileNames.clear();
+      _strictnessLevel = 3; // Reset to default
 
       for (final c in _textControllers.values) {
         c.dispose();
@@ -162,6 +170,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           .startExecution(
             workflowId: workflowId,
             collectedInputs: _compiledInputs,
+            strictnessLevel: _strictnessLevel,
           );
     } catch (e) {
       if (e.toString().startsWith('Exception: SUCCESS:')) {
@@ -368,6 +377,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
           const Divider(height: 48),
 
+          _buildStrictnessSelector(),
+          const SizedBox(height: 24),
+
           if (state.hasError) ...[
             ErrorView(error: state.error!, compact: true),
             const SizedBox(height: 16),
@@ -530,5 +542,77 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         ),
       ),
     );
+  }
+
+  Widget _buildStrictnessSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.strictnessLevelTitle,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+          child: Column(
+            children: [
+              Slider(
+                value: _strictnessLevel.toDouble(),
+                min: 1,
+                max: 5,
+                divisions: 4,
+                label: _getStrictnessLabel(_strictnessLevel),
+                onChanged: (double value) {
+                  setState(() {
+                    _strictnessLevel = value.toInt();
+                  });
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('1', style: Theme.of(context).textTheme.bodySmall),
+                    Text('5', style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _getStrictnessLabel(_strictnessLevel),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getStrictnessLabel(int level) {
+    switch (level) {
+      case 1:
+        return AppLocalizations.of(context)!.strictnessGricean;
+      case 2:
+        return AppLocalizations.of(context)!.strictnessLiteral;
+      case 3:
+        return AppLocalizations.of(context)!.strictnessCausal;
+      case 4:
+        return AppLocalizations.of(context)!.strictnessFalsification;
+      case 5:
+        return AppLocalizations.of(context)!.strictnessZeroTrust;
+      default:
+        return AppLocalizations.of(context)!.strictnessCausal;
+    }
   }
 }

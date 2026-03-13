@@ -17,10 +17,10 @@ async def test_delete_prompt_block_blocks_orphan_data(mock_driver):
     repo = UnifiedWorkflowRepository(driver=mock_driver)
 
     # Mock get_prompt_block_by_id to simulate the block exists
-    repo.get_prompt_block_by_id = AsyncMock(return_value={"id": "m1"})
+    repo.get_prompt_block_by_id = AsyncMock(return_value={"id": "m1"})  # type: ignore
 
     # Mock get_all_steps to simulate it is used in a Step
-    repo.get_all_steps = AsyncMock(return_value=[{"id": "step_1", "prompt_blocks": ["m1", "m2"]}])
+    repo.get_all_steps = AsyncMock(return_value=[{"id": "step_1", "prompt_blocks": ["m1", "m2"]}])  # type: ignore
 
     # Should raise AppException with RESOURCE_IN_USE
     with pytest.raises(AppException) as exc_info:

@@ -6,6 +6,7 @@ from . import (
     integrity,
     linguistics,
     llm,
+    metadata,
     metrics,
     references,
     reporting,
@@ -13,7 +14,6 @@ from . import (
     search,
     security,
     validation,
-    metadata,
 )
 
 __all__ = [

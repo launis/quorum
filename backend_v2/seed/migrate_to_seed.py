@@ -81,7 +81,7 @@ def migrate_db_to_seed(target_seed_path: str, template_path: str, source_type: s
 
         def extract_from_firestore(collection_name: str) -> list[dict]:
             try:
-                from google.cloud import firestore
+                from google.cloud import firestore  # type: ignore
                 db = firestore.Client()
                 docs = db.collection(collection_name).stream()
                 return [doc.to_dict() for doc in docs]
@@ -130,7 +130,7 @@ def migrate_db_to_seed(target_seed_path: str, template_path: str, source_type: s
                 # Validate with Pydantic if registry exists to ensure types are strictly bound (e.g no DateTime leakage to strings before dumping)
                 if registry_model:
                     try:
-                        validated = registry_model.validate_python(existing_item)
+                        validated = registry_model.validate_python(existing_item)  # type: ignore
                         existing_item = validated.model_dump(mode="json")
                     except Exception as e:
                         logger.warning(f"Validation warning during extraction for {item_id} in {collection_key}: {e}")
@@ -146,7 +146,7 @@ def migrate_db_to_seed(target_seed_path: str, template_path: str, source_type: s
                      # Validate new items too
                     if registry_model:
                         try:
-                            validated = registry_model.validate_python(source_item)
+                            validated = registry_model.validate_python(source_item)  # type: ignore
                             source_item = validated.model_dump(mode="json")
                         except Exception as e:
                             logger.warning(f"Validation warning for new item {item_id} in {collection_key}: {e}")

@@ -2,12 +2,19 @@
 Implements dynamic, append-only, and I18N-capable models according to V2 specs.
 """
 
+import logging
 from datetime import datetime, timezone
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus
+from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus, StrictnessLevel
+
+logger = logging.getLogger(__name__)
+
+class V2CoreBase(BaseModel):
+    """Base model enforcing Pydantic strict mode across all V2 schemas."""
+    model_config = ConfigDict(strict=True)
 
 __all__ = [
     "I18nText",
@@ -32,7 +39,7 @@ __all__ = [
 ]
 
 
-class I18nText(BaseModel):
+class I18nText(V2CoreBase):
     """V2 Strict: Frontend no-string mandate requires all localized text to be structured."""
 
     default_locale: str = Field(
@@ -44,7 +51,7 @@ class I18nText(BaseModel):
     )
 
 
-class TheoryGrounding(BaseModel):
+class TheoryGrounding(V2CoreBase):
     """Used in PromptBlock to bind criteria to organizational truth."""
 
     source_url: str = Field(description="URL or reference to the source material.")
@@ -53,7 +60,7 @@ class TheoryGrounding(BaseModel):
     )
 
 
-class MatrixScale(BaseModel):
+class MatrixScale(V2CoreBase):
     """Represents a single score point in a BARS matrix scale."""
     score: int = Field(description="Numerical value of the scale point.")
     name: I18nText | None = Field(default=None, description="Optional name for the scale point (e.g., 'Excellent').")
@@ -64,7 +71,7 @@ class MatrixScale(BaseModel):
 
 
 
-class PromptBlock(BaseModel):
+class PromptBlock(V2CoreBase):
     """V2 PromptBlock representation.
     Fuses legacy Components and Matrices into a unified directive model.
     """
@@ -118,14 +125,31 @@ class PromptBlock(BaseModel):
         description="Optional columns for grid matrices."
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def pre_validate_type_enum(cls, data: Any) -> Any:
+        """Parse string to Enum before strict mode rejects it."""
+        if isinstance(data, dict):
+            t = data.get("type")
+            if isinstance(t, str):
+                try:
+                    data["type"] = BlockDataType(t)
+                except ValueError:
+                    pass # Let standard validation catch invalid strings
+        return data
+
     @model_validator(mode="after")
     def validate_block_consistency(self) -> PromptBlock:
         """Strict validation for PromptBlock relations and logical constraints."""
+        from backend_v2.exceptions import AppException, ErrorCodes
         # Fail-fast: Cannot allow decimals on non-numeric types
-        if self.allow_decimals and self.type not in ["float", "int", "string"]: # string permitted for BARS format
-            from backend_v2.exceptions import AppException, ErrorCodes
+        # string permitted for BARS format
+        valid_numeric = [BlockDataType.FLOAT, BlockDataType.INT, BlockDataType.STRING]
+        if self.allow_decimals and self.type not in valid_numeric:
+            msg = f"PromptBlock '{self.id}': allow_decimals is only valid for numeric logic."
+            logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"PromptBlock '{self.id}': allow_decimals is only valid for numeric logic.",
+                message=msg,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 status_code=400
             )
@@ -133,60 +157,64 @@ class PromptBlock(BaseModel):
         # Strict Business Logic Constraints from user rules
         if self.scales is not None:
             if self.scale_min is None or self.scale_max is None:
-                from backend_v2.exceptions import AppException, ErrorCodes
+                msg = (
+                    f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
+                    "scale_min ja scale_max on oltava määriteltynä."
+                )
+                logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                 raise AppException(
-                    message=(
-                        f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
-                        "scale_min ja scale_max on oltava määriteltynä."
-                    ),
+                    message=msg,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                     status_code=400
                 )
             if self.scale_max <= self.scale_min:
-                from backend_v2.exceptions import AppException, ErrorCodes
+                msg = (
+                    f"PromptBlock '{self.id}': scale_max ({self.scale_max}) "
+                    f"on oltava suurempi kuin scale_min ({self.scale_min})."
+                )
+                logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                 raise AppException(
-                    message=(
-                        f"PromptBlock '{self.id}': scale_max ({self.scale_max}) "
-                        f"on oltava suurempi kuin scale_min ({self.scale_min})."
-                    ),
+                    message=msg,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                     status_code=400
                 )
             if len(self.scales) == 0:
-                from backend_v2.exceptions import AppException, ErrorCodes
+                msg = (
+                    f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
+                    "siellä on pakko olla vähintään yksi MatrixScale (len > 0)."
+                )
+                logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                 raise AppException(
-                    message=(
-                        f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
-                        "siellä on pakko olla vähintään yksi MatrixScale (len > 0)."
-                    ),
+                    message=msg,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                     status_code=400
                 )
             for scale in self.scales:
                 if not scale.claims or len(scale.claims) == 0:
-                    from backend_v2.exceptions import AppException, ErrorCodes
+                    msg = (
+                        f"PromptBlock '{self.id}' / Scale '{scale.score}': "
+                        "Jokaisella scorella pitää olla vähintään yksi claim."
+                    )
+                    logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                     raise AppException(
-                        message=(
-                            f"PromptBlock '{self.id}' / Scale '{scale.score}': "
-                            "Jokaisella scorella pitää olla vähintään yksi claim."
-                        ),
+                        message=msg,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED},
                         status_code=400
                     )
         return self
 
 
-class ChatMessageDTO(BaseModel):
+class ChatMessageDTO(V2CoreBase):
     """Schema for a single parsed chat message."""
     role: str = Field(description="The role of the speaker (e.g. 'user' or 'ai').")
     content: str = Field(description="The message text.")
 
-class ChatHistoryDTO(BaseModel):
+class ChatHistoryDTO(V2CoreBase):
     """Strict schema for a complete parsed chat sequence."""
     conversation: list[ChatMessageDTO] = Field(description="List of messages in chronological order.")
 
 
-class DataDictionaryField(BaseModel):
+class DataDictionaryField(V2CoreBase):
     """UI Hints mapping for dynamic form generation (SDUI)."""
 
     field_id: str
@@ -194,8 +222,21 @@ class DataDictionaryField(BaseModel):
     options: list[dict[str, Any]] | None = None
     validation_rules: dict[str, Any] | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def pre_validate_type_enum(cls, data: Any) -> Any:
+        """Parse string to Enum before strict mode rejects it."""
+        if isinstance(data, dict):
+            t = data.get("component_type")
+            if isinstance(t, str):
+                try:
+                    data["component_type"] = ComponentType(t)
+                except ValueError:
+                    pass
+        return data
 
-class ModelProfile(BaseModel):
+
+class ModelProfile(V2CoreBase):
     """A flattened physical AI model representation."""
     provider: str = Field(description="E.g., 'google', 'openai'")
     model_name: str = Field(description="The underlying API model name")
@@ -208,7 +249,7 @@ class ModelProfile(BaseModel):
     api_key: str | None = Field(default=None, description="Optional override API key")
     parsing_mode: str | None = Field(default=None, description="Parser logic flag (e.g. 'GEMINI_JSON')")
 
-class SystemConfigModelRegistry(BaseModel):
+class SystemConfigModelRegistry(V2CoreBase):
     """V2 Flattened Model Registry System Config."""
     id: str = Field(description="System config ID")
     slug: str = Field(description="Slug identifier")
@@ -217,7 +258,7 @@ class SystemConfigModelRegistry(BaseModel):
         description="Dictionary mapping generic role names to specific ModelProfiles"
     )
 
-class Step(BaseModel):
+class Step(V2CoreBase):
     """Isolated, reusable orchestrator cognitive module (e.g. Guard or step_input_processing).
     Formerly known as TaskBlueprint.
     """
@@ -244,14 +285,16 @@ class Step(BaseModel):
         """Strict fail-fast validation to ensure Step is not purely empty."""
         if not self.prompt_blocks:
             from backend_v2.exceptions import AppException, ErrorCodes
+            msg = f"Step '{self.slug}' must define at least one prompt_block."
+            logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"Step '{self.slug}' must define at least one prompt_block.",
+                message=msg,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 status_code=400
             )
         return self
 
-class StepRule(BaseModel):
+class StepRule(V2CoreBase):
     """Execution step mapping (DAG Router Node)."""
     id: str = Field(description="Unique node ID in the workflow (e.g. step_node_1).")
     task_blueprint: str = Field(
@@ -267,7 +310,7 @@ class StepRule(BaseModel):
         description="Logical strategy profile from model registry (e.g., 'fast', 'deep')"
     )
 
-class Role(BaseModel):
+class Role(V2CoreBase):
     """Role definition that locks physical models and pre_hooks."""
     id: str
     name: I18nText
@@ -276,14 +319,14 @@ class Role(BaseModel):
     post_hooks: list[str] = Field(default_factory=list, description="List of registered hook logic to run AFTER llm.")
 
 
-class QuestionnaireItem(BaseModel):
+class QuestionnaireItem(V2CoreBase):
     """A single question definition within a dynamic questionnaire."""
     question_id: str = Field(description="Unique identifier for the question (e.g., 'q1').")
     question: I18nText = Field(description="Localized question text.")
     type: str = Field(description="Input type, e.g., 'text'.")
 
 
-class ExpectedInput(BaseModel):
+class ExpectedInput(V2CoreBase):
     """Dynamic input definition for a workflow (0-N inputs)."""
     input_key: str = Field(description="The internal key for routing this input (e.g., 'history_text').")
     label: I18nText = Field(description="Localized label for the UI.")
@@ -308,42 +351,47 @@ class ExpectedInput(BaseModel):
     @model_validator(mode="after")
     def validate_modes(self) -> ExpectedInput:
         """Strict validation for input modes."""
+        from backend_v2.exceptions import AppException, ErrorCodes
         if not self.input_modes:
-            from backend_v2.exceptions import AppException, ErrorCodes
+            msg = f"ExpectedInput '{self.input_key}' must have at least one input_mode."
+            logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"ExpectedInput '{self.input_key}' must have at least one input_mode.",
+                message=msg,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 status_code=400
             )
 
         if "questionnaire" in self.input_modes:
             if self.is_chat_history:
-                from backend_v2.exceptions import AppException, ErrorCodes
+                msg = (
+                    f"ExpectedInput '{self.input_key}' cannot use "
+                    "'questionnaire' mode when flagged as chat history."
+                )
+                logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                 raise AppException(
-                    message=(
-                        f"ExpectedInput '{self.input_key}' cannot use "
-                        "'questionnaire' mode when flagged as chat history."
-                    ),
+                    message=msg,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                     status_code=400
                 )
             if len(self.input_modes) > 1:
-                from backend_v2.exceptions import AppException, ErrorCodes
+                msg = f"ExpectedInput '{self.input_key}' cannot mix 'questionnaire' with other input modes."
+                logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                 raise AppException(
-                    message=f"ExpectedInput '{self.input_key}' cannot mix 'questionnaire' with other input modes.",
+                    message=msg,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                     status_code=400
                 )
             if not self.questionnaire_definition:
-                from backend_v2.exceptions import AppException, ErrorCodes
+                msg = f"ExpectedInput '{self.input_key}' uses 'questionnaire' mode but lacks definitions."
+                logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                 raise AppException(
-                    message=f"ExpectedInput '{self.input_key}' uses 'questionnaire' mode but lacks definitions.",
+                    message=msg,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                     status_code=400
                 )
         return self
 
-class Workflow(BaseModel):
+class Workflow(V2CoreBase):
     """Dynamic Directed Acyclic Graph orchestrator model."""
     id: str
     slug: str
@@ -395,8 +443,10 @@ class Workflow(BaseModel):
         for step in self.steps:
             if step.id not in visited:
                 if is_cyclic(step.id):
+                    msg = f"Cyclic dependency detected involving step: {step.id}"
+                    logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                     raise AppException(
-                        message=f"Cyclic dependency detected involving step: {step.id}",
+                        message=msg,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED},
                         status_code=400
                     )
@@ -404,7 +454,7 @@ class Workflow(BaseModel):
         return self
 
 
-class FrozenContext(BaseModel):
+class FrozenContext(V2CoreBase):
     """Deep copy of context state at execution time for auditability."""
     compiled_prompts: dict[str, str] = Field(
         default_factory=dict, description="Prompts sent to LLM.")
@@ -416,25 +466,45 @@ class FrozenContext(BaseModel):
         default_factory=dict, description="UI rendering instructions.")
 
 
-class WorkflowInputs(BaseModel):
+class WorkflowInputs(V2CoreBase):
     """Schema for dynamic workflow inputs, allowing any extra keys for dynamic routing."""
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(strict=True, extra="allow")
 
-class ExecutionCreate(BaseModel):
+class ExecutionCreate(V2CoreBase):
     """Schema for initiating a new workflow execution."""
     workflow_id: str = Field(description="ID of the workflow to execute")
+    strictness_level: StrictnessLevel = Field(
+        description="Cognitive strictness level (1-5). Determines the injection of Zero-Trust or Falsification blocks."
+    )
     raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")
 
-class ExecutionStepState(BaseModel):
+    @model_validator(mode="before")
+    @classmethod
+    def pre_validate_type_enums(cls, data: Any) -> Any:
+        """Parse string to Enum before strict mode rejects it."""
+        if isinstance(data, dict):
+            s = data.get("strictness_level")
+            if s is not None and not isinstance(s, StrictnessLevel):
+                try:
+                    data["strictness_level"] = StrictnessLevel(int(s))
+                except ValueError:
+                    pass
+        return data
+
+class ExecutionStepState(V2CoreBase):
     """Real-time status tracking for a single DAG node."""
     id: str = Field(description="Step ID")
     label: str = Field(description="Localized label for UI tracking")
     status: str = Field(default="pending", description="Status: pending, running, completed, failed")
 
-class ExecutionRecord(BaseModel):
+class ExecutionRecord(V2CoreBase):
     """Record of a workflow execution, including the frozen context and results."""
     id: str = Field(description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
+    strictness_level: StrictnessLevel = Field(
+        default=StrictnessLevel.CAUSAL,
+        description="Cognitive strictness level used for this execution."
+    )
     status: ExecutionStatus = Field(description="Current status of execution")
     raw_inputs: WorkflowInputs = Field(
         default_factory=WorkflowInputs, description="Raw user inputs by role")
@@ -452,9 +522,38 @@ class ExecutionRecord(BaseModel):
         default_factory=lambda: datetime.now(timezone.utc),
         description="UTC update timestamp")
 
+    @model_validator(mode="before")
+    @classmethod
+    def pre_validate_type_enums(cls, data: Any) -> Any:
+        """Parse string to Enum & Datetime before strict mode rejects it."""
+        if isinstance(data, dict):
+            # Status
+            st = data.get("status")
+            if isinstance(st, str):
+                try:
+                    data["status"] = ExecutionStatus(st)
+                except ValueError:
+                    pass
+            # Strictness Level
+            sl = data.get("strictness_level")
+            if sl is not None and not isinstance(sl, StrictnessLevel):
+                try:
+                    data["strictness_level"] = StrictnessLevel(int(sl))
+                except ValueError:
+                    pass
+            # Datetimes
+            for df in ["created_at", "updated_at"]:
+                dt = data.get(df)
+                if isinstance(dt, str):
+                    try:
+                        data[df] = datetime.fromisoformat(dt.replace('Z', '+00:00'))
+                    except ValueError:
+                        pass
+        return data
+
 # --- Legacy Collection Mapping for UI CRUD ---
 
-class Observation(BaseModel):
+class Observation(V2CoreBase):
     """Legacy V1 Observation mapped to V2 Strict structure."""
     id: str = Field(description="Unique Observation ID")
     workflow_id: str | None = Field(default=None, description="Associated Workflow ID")
@@ -463,7 +562,7 @@ class Observation(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict, description="Configuration rules")
 
 
-class OutputConfig(BaseModel):
+class OutputConfig(V2CoreBase):
     """Legacy V1 OutputConfig mapped to V2 Strict structure."""
     id: str = Field(description="Unique Output Config ID")
     workflow_id: str | None = Field(default=None, description="Associated Workflow ID")
@@ -471,7 +570,7 @@ class OutputConfig(BaseModel):
     template: str | None = Field(default=None, description="Template identifier or content")
 
 
-class Reference(BaseModel):
+class Reference(V2CoreBase):
     """Legacy V1 Reference mapped to V2 Strict structure."""
     id: str = Field(description="Unique Reference ID")
     slug: str | None = Field(default=None, description="Legacy slug")

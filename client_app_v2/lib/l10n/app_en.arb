@@ -849,6 +849,12 @@
     }
   },
   "startAiExecution": "Start AI Execution",
+  "strictnessLevelTitle": "Strictness Level",
+  "strictnessGricean": "Level 1: Cooperative (Gricean)",
+  "strictnessLiteral": "Level 2: Literal (Lexical)",
+  "strictnessCausal": "Level 3: Causal (Default)",
+  "strictnessFalsification": "Level 4: Adversarial (Falsification)",
+  "strictnessZeroTrust": "Level 5: Zero-Trust",
   "barsCompliance1": "Critically Misaligned - Completely random process",
   "barsCompliance2": "Misaligned - Scattered process adherence",
   "barsCompliance3": "Neutral - Some process visible",

@@ -37,25 +37,23 @@ async def main():
 
     from fastapi import BackgroundTasks
 
+    # Initialize Task Registry / Hook Registry
+    from backend_v2.api.dependencies import TokenData
     from backend_v2.database.factory import get_repository
-    from backend_v2.models.v2_core import ExecutionCreate
+    from backend_v2.models.v2_core import ExecutionCreate, WorkflowInputs
     from backend_v2.services.execution import ExecutionService
     from backend_v2.services.orchestrator.dag_executor import DAGExecutor
     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
     from backend_v2.settings import get_settings
 
-    # Initialize Task Registry / Hook Registry
-    import backend_v2.hooks
+    from backend_v2.models.auth import UserRole
+    user = TokenData(
+        id="10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b", # Match system root ID from DB
+        email="system@local",
+        role=UserRole.ROOT,
+        organization_id="436d84de-c526-43b7-93ef-634912be0d2f"
+    )
 
-    class MockUser:
-        id = "10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b" # Match system root ID from DB
-        uid = "test-system"
-        email = "system@local"
-        role = "ROOT"
-        tenant_id = None
-        organization_id = "436d84de-c526-43b7-93ef-634912be0d2f"
-
-    user = MockUser()
     settings = get_settings()
     repo = await get_repository(settings)
     compiler = PromptCompiler()
@@ -64,11 +62,11 @@ async def main():
 
     payload = ExecutionCreate(
         workflow_id="workflow_courtroom_20_full_audit",
-        raw_inputs={
+        raw_inputs=WorkflowInputs(**{
             "chat_log": chat_log,
             "product_text": product,
             "reflection_text": reflection
-        }
+        })
     )
 
     bt = BackgroundTasks()

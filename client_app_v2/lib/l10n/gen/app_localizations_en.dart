@@ -1843,6 +1843,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startAiExecution => 'Start AI Execution';
 
   @override
+  String get strictnessLevelTitle => 'Strictness Level';
+
+  @override
+  String get strictnessGricean => 'Level 1: Cooperative (Gricean)';
+
+  @override
+  String get strictnessLiteral => 'Level 2: Literal (Lexical)';
+
+  @override
+  String get strictnessCausal => 'Level 3: Causal (Default)';
+
+  @override
+  String get strictnessFalsification => 'Level 4: Adversarial (Falsification)';
+
+  @override
+  String get strictnessZeroTrust => 'Level 5: Zero-Trust';
+
+  @override
   String get barsCompliance1 =>
       'Critically Misaligned - Completely random process';
 

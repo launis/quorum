@@ -1850,6 +1850,24 @@ class AppLocalizationsFi extends AppLocalizations {
   String get startAiExecution => 'Käynnistä tekoälysuoritus';
 
   @override
+  String get strictnessLevelTitle => 'Rajoitteiden taso (Strictness)';
+
+  @override
+  String get strictnessGricean => 'Taso 1: Yhteistyökykyinen (Gricean)';
+
+  @override
+  String get strictnessLiteral => 'Taso 2: Kirjaimellinen (Lexical)';
+
+  @override
+  String get strictnessCausal => 'Taso 3: Kausaalinen (Oletus)';
+
+  @override
+  String get strictnessFalsification => 'Taso 4: Syyttävä (Falsifikaatio)';
+
+  @override
+  String get strictnessZeroTrust => 'Taso 5: Nollaluottamus (Zero-Trust)';
+
+  @override
   String get barsCompliance1 =>
       'Critically Misaligned - Täysin satunnainen prosessi';
 

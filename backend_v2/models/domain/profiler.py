@@ -5,11 +5,11 @@ including intent analysis and text metrics.
 """
 
 
-from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+
 
 class ProfilerInput(BaseModel):
     """Strict input schema for ProfilerAgent."""

@@ -249,6 +249,9 @@ MOCK_XAI_OUTPUT = XAIOutput(
     analysis_recommendations="Recommendations",
     final_verdict="Verdict",
     confidence_score=0.95,
+    verified_facts="Mock verified fact string",
+    cognitive_behavior="Mock cognitive behavior",
+    causal_chain="Mock causal chain",
     score_cards=[
         JudgeScoreCard(
             agent_name="Standard Judge",

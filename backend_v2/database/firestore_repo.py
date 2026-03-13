@@ -6,7 +6,7 @@ import os
 import uuid
 from typing import Any
 
-from google.cloud import firestore
+from google.cloud import firestore  # type: ignore
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.models.v2_core import ExecutionRecord

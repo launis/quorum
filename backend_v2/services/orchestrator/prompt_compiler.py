@@ -172,11 +172,12 @@ class PromptCompiler:
             if isinstance(e, AppException):
                 raise e
 
-            logger.error(f"[PromptCompiler] Failed to inject theory grounding: {e}", exc_info=True)
+            msg = f"System failed to fetch required theoretical grounding from url: {url}"
+            logger.error(f"[PromptCompiler] {ErrorCodes.FETCH_FAILED.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"System failed to fetch required theoretical grounding from url: {url}",
+                message=msg,
                 status_code=502,
-                details={"error_code": ErrorCodes.FETCH_FAILED.value, "url": url},
+                details={"error_code": ErrorCodes.FETCH_FAILED, "url": url},
             ) from e
 
     def calibrate_strictness(self, level: int | float | None) -> str:
@@ -269,6 +270,7 @@ class PromptCompiler:
 
             # Determine type based on explicit block type, otherwise fallback to BARS scales
             block_type = crit.get("type")
+            value_type: Any
             if block_type == "string":
                  value_type = str
             else:
@@ -289,9 +291,17 @@ class PromptCompiler:
                         bars_text += f" - {s_claim_text}"
                     bars_text += "\n"
                 if crit.get("allow_decimals", False):
-                    bars_text += "\nKÄSKE: Arvioi ydinkysymystä yllä olevalla matriisilla. Anna lopullinen numeerinen arvio aina yhden desimaalin tarkkuudella (esim. 4.2), jotta arviointi heijastaa suorituksen tarkkaa vivahtekkuutta. Palauta TÄSMÄLLEEN oikeanlainen numeerinen arvo."
+                    bars_text += (
+                        "\nKÄSKE: Arvioi ydinkysymystä yllä olevalla matriisilla. "
+                        "Anna lopullinen numeerinen arvio aina yhden desimaalin tarkkuudella (esim. 4.2), "
+                        "jotta arviointi heijastaa suorituksen tarkkaa vivahtekkuutta. "
+                        "Palauta TÄSMÄLLEEN oikeanlainen numeerinen arvo."
+                    )
                 else:
-                    bars_text += "\nINSTRUCTION: Evaluate strictly using the matrix above. Return only an exact numeric score from the list."
+                    bars_text += (
+                        "\nINSTRUCTION: Evaluate strictly using the matrix above. "
+                        "Return only an exact numeric score from the list."
+                    )
 
             # The actual evaluation value.
             final_desc = f"{label}: {base_desc}{bars_text}"
@@ -300,7 +310,7 @@ class PromptCompiler:
             if require_justification or crit.get("require_justification", False):
                 # 1. Justification (XAI)
                 justification_key = f"{crit_id}_justification"
-                
+
                 # CoT Decimal Override Hack (V2 JSON Mode rounding bypass)
                 if crit.get("allow_decimals", False):
                     justification_desc = (
@@ -314,7 +324,7 @@ class PromptCompiler:
                         f"Detailed reasoning for the assigned score for '{label}'. "
                         "Must explicitly adhere to the active STRICTNESS CALIBRATION."
                     )
-                    
+
                 fields[justification_key] = (str, Field(..., description=justification_desc))
 
                 # 2. Citation Source ID (Grounded Theory Integration)
@@ -326,6 +336,7 @@ class PromptCompiler:
                 )
 
                 source_id_key = f"{crit_id}_cited_source_id"
+                source_id_type: Any
                 if citation_ref:
                     from typing import Literal
 
@@ -369,13 +380,14 @@ class PromptCompiler:
             DynamicModel = create_model(schema_name, **fields)
             return cast(type[BaseModel], DynamicModel)
         except Exception as e:
+            msg = f"Critical failure while dynamically compiling LLM execution schema '{schema_name}'."
             logger.error(
-                f"[PromptCompiler] Failed to compile dynamic Pydantic model '{schema_name}': {e}", exc_info=True
+                f"[PromptCompiler] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True
             )
             raise AppException(
-                message="Critical failure while dynamically compiling LLM execution schema.",
+                message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
     def compile_instruction_blocks(self, blocks: list[dict[str, Any]], target_locale: str) -> str:

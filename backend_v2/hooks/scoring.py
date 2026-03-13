@@ -5,7 +5,6 @@ from typing import Any
 
 from backend_v2.core.hook_registry import hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.utils.math_utils import normalize_score_to_100
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +111,7 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
     # Candidate list for potential multiple judges (Standard + Cognitive)
     # Note: V2 matrices are extracted directly from the context history tree
     # But for final scoring, the Judge node has its own output. Actually, the Judge node
-    # has ALL the outputs from previous nodes if using a `PromptBlock` approach. 
+    # has ALL the outputs from previous nodes if using a `PromptBlock` approach.
     # Let's inspect the entire context for any `_scaled` keys that match the whitelist.
     # The Judge is the final aggregator so by checking context we capture everything.
 
@@ -398,14 +397,14 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
                 new_card = score_card.copy()
                 new_card["total_score"] = new_score
                 new_card["verdict"] = str(new_card.get("verdict", "")) + f" [PASSIVITY PENALTY x{multiplier:.2f}]"
-                
+
                 if is_post_hook:
                     new_data["score_card"] = new_card
                 else:
                     new_judge = judge_model.copy()
                     new_judge["score_card"] = new_card
                     new_data[judge_key] = new_judge
-                    
+
                 updates_needed = True
 
         # Strategy 2: V2 Matrix (Flat Schema)
@@ -435,7 +434,7 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
                                 just_key = f"{k}_justification"
                                 if just_key in new_judge:
                                      new_judge[just_key] = f"[PASSIVITY PENALTY x{multiplier:.2f}] " + str(new_judge[just_key])
-                                     
+
                  if is_post_hook:
                      for k, v in new_judge.items():
                          if k in judge_model and judge_model[k] != v:
@@ -486,7 +485,7 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
         ctx = state.get("_sys_context_vars", {})
         if isinstance(ctx, dict):
             step_id = ctx.get("_sys_step_id")
-            
+
     content_payload = state
 
     if not step_id:
@@ -525,7 +524,7 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
                         # Override the LLM's raw biased value
                         new_payload[slug] = extracted_decimal
                         logger.info(f"[ScoringHook] Extracted CoT Decimal '{extracted_decimal}' for '{slug}'")
-                        
+
                         # Clean the justification string to remove the hack syntax from the DB
                         clean_justification = re.sub(r"\s*\|\|DECIMAL:\s*[0-9.]+\|\|\s*", "", justification_val)
                         new_payload[f"{slug}_justification"] = clean_justification
@@ -564,12 +563,12 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
                     target_max = max(scores_in_scales)
 
             if scales and target_min is not None and target_max is not None:
-                from backend_v2.utils.math_utils import normalize_score_to_100, calculate_scaled_score
+                from backend_v2.utils.math_utils import calculate_scaled_score, normalize_score_to_100
 
                 # 1. The original AI output
                 raw_float = float(raw_val)
                 number_of_options = len(scales)
-                
+
                 # 2. The Python-scaled calculated value based on relative proportion of options (V2 Logic)
                 scaled_val = calculate_scaled_score(
                      score=raw_float,
@@ -588,7 +587,7 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
                 new_payload[slug] = raw_val
                 new_payload[f"{slug}_scaled"] = scaled_val
                 new_payload[f"{slug}_normalized"] = normalized_val
-                
+
                 updates_made = True
                 logger.info(
                     f"[ScoringHook] 3-Tier Score '{slug}': Raw={raw_val}, "

@@ -97,15 +97,20 @@ class DAGExecutor:
         # With V2 Shallow Copy Concurrency isolation (Phase 9), pre_hooks mutating state_data
         # inside _execute_step are strictly isolated. Thus, we MUST run global hydrators
         # like `input_processing` synchronously BEFORE parallel DAG orchestration starts.
-        from backend_v2.core.hook_registry import hook_registry
+
         try:
             logger.info(f"[DAGExecutor] Initiating Step 0 Base64 Pre-Hydration for Workflow {workflow.id}")
             processed = await hook_registry.execute("input_processing", state_data)
             if isinstance(processed, dict) and "inputs" in processed:
                  state_data["inputs"] = processed["inputs"]
         except Exception as e:
-            logger.error(f"[DAGExecutor] Pre-Hydration failed to parse raw inputs: {e}")
-            # Do not crash here. Let step_input_processing fail naturally with the standard schema if needed.
+            msg = f"Pre-Hydration failed to parse raw inputs: {e}"
+            logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+            raise AppException(
+                message=msg,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                status_code=400
+            ) from e
         state_data["_sys_execution_id"] = execution_id
         frozen_ctx = exec_record.frozen_context
 
@@ -148,7 +153,11 @@ class DAGExecutor:
                     # Task was cancelled, do not set event
                     raise
                 except Exception as e:
-                    logger.error(f"Step {step_id} failed: {e}")
+                    logger.error(
+                        f"[DAGExecutor] {ErrorCodes.WORKFLOW_EXECUTION_FAILED.name}: "
+                        f"Step {step_id} failed: {e}",
+                        exc_info=True
+                    )
                     # 3. Update status to failed
                     if step_id in exec_record.step_states:
                         exec_record.step_states[step_id].status = "failed"
@@ -156,7 +165,12 @@ class DAGExecutor:
                             execution_id,
                             {"step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}}
                         )
-                    raise e
+                    from backend_v2.exceptions import WorkflowExecutionError
+                    raise WorkflowExecutionError(
+                        step_id=step_id,
+                        task_key=step_obj.task_blueprint,
+                        original_error=e
+                    ) from e
 
             # Schedule all steps immediately, they will block on .wait()
             tasks = [asyncio.create_task(run_step_wrapper(step.id)) for step in workflow.steps]
@@ -176,7 +190,11 @@ class DAGExecutor:
             return exec_record
 
         except Exception as overall_err:
-            logger.error(f"Workflow execution {execution_id} failed: {overall_err}")
+            logger.error(
+                f"[DAGExecutor] {ErrorCodes.WORKFLOW_EXECUTION_FAILED.name}: "
+                f"Workflow execution {execution_id} failed: {overall_err}",
+                exc_info=True
+            )
             exec_record.status = ExecutionStatus.FAILED
             exec_record.error = str(overall_err)
             await self.repository.update_execution(
@@ -208,9 +226,10 @@ class DAGExecutor:
         if blueprint_slug:
             step_def = await self.repository.get_step_by_id(blueprint_slug)
             if not step_def:
-                logger.error(f"Step '{blueprint_slug}' not found for step {step.id}")
+                msg = f"Configuration error: Step '{blueprint_slug}' not found in database."
+                logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                 raise AppException(
-                    message=f"Configuration error: Step '{blueprint_slug}' not found in database.",
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED}
                 )
@@ -244,14 +263,48 @@ class DAGExecutor:
             all_prompt_blocks = await self.repository.get_all_prompt_blocks()
             block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
 
-            for m_id in step_obj.prompt_blocks:
+            # --- V2 Strictness Level: Cognitive Payload Injection ---
+            # Extract execution record to determine Strictness Level
+            # Default to CAUSAL (V1 max) if not found
+            strictness = 3
+            execution_id = state_data.get("_sys_execution_id")
+            if execution_id:
+                exec_record_dict = await self.repository.get_execution(execution_id)
+                if exec_record_dict and hasattr(exec_record_dict, 'strictness_level'):
+                    strictness = exec_record_dict.strictness_level
+
+            # Clone the block list so we don't mutate the db-loaded schema
+            active_prompt_blocks = list(step_obj.prompt_blocks)
+
+            # Apply Zero-Trust / Falsification dynamic mutations
+            if strictness >= 4:
+                # Remove default judge if present and inject prosecutor
+                if "block_role_judge" in active_prompt_blocks:
+                    active_prompt_blocks.remove("block_role_judge")
+                    if "block_role_prosecutor" not in active_prompt_blocks:
+                        active_prompt_blocks.append("block_role_prosecutor")
+
+            if strictness == 5:
+                # Inject absolute Zero-Trust mandates
+                if "block_mandate_zerotrust" not in active_prompt_blocks:
+                    active_prompt_blocks.append("block_mandate_zerotrust")
+                if "block_rule_cognitiverequirement" not in active_prompt_blocks:
+                    active_prompt_blocks.append("block_rule_cognitiverequirement")
+
+            for m_id in active_prompt_blocks:
                 block_dict = block_map.get(m_id)
                 if block_dict:
                     from backend_v2.models.v2_core import PromptBlock
                     PromptBlock.model_validate(block_dict) # Fail-Fast validation check
                     criteria_blocks.append(block_dict)
                 else:
-                    logger.warning(f"PromptBlock '{m_id}' not found. Referenced by Step '{step_obj.slug}'")
+                    msg = f"PromptBlock '{m_id}' not found. Referenced by Step '{step_obj.slug}'"
+                    logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                    )
 
             # 3.3 Dynamic Schema
             dynamic_schema = self.compiler.build_dynamic_schema(
@@ -311,8 +364,10 @@ class DAGExecutor:
             return final_dict
 
         else:
+            msg = f"Step {step.id} has no valid execution target (no hook or matrix_ids)."
+            logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"Step {step.id} has no valid execution target (no hook or matrix_ids).",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED}
             )

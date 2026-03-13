@@ -2,7 +2,7 @@ import json
 
 DATA_PATH = r"c:\src\quorum\backend_v2\seed\seed_data.json"
 
-with open(DATA_PATH, "r", encoding="utf-8") as f:
+with open(DATA_PATH, encoding="utf-8") as f:
     data = json.load(f)
 
 for block in data.get("prompt_blocks", []):

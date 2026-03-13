@@ -1,5 +1,6 @@
 import pytest
 
+from backend_v2.models.enums import BlockDataType
 from backend_v2.models.v2_core import I18nText, PromptBlock, Step
 
 
@@ -14,7 +15,7 @@ def test_prompt_block_allow_decimals_requires_numeric():
         label=label,
         description=desc,
         category_id="test_cat",
-        type="string", # Valid
+        type=BlockDataType.STRING, # Valid
         allow_decimals=True,
         strictness_level=50,
         require_justification=False
@@ -28,7 +29,7 @@ def test_prompt_block_allow_decimals_requires_numeric():
             label=label,
             description=desc,
             category_id="test_cat",
-            type="instruction", # Invalid for decimals
+            type=BlockDataType.INSTRUCTION, # Invalid for decimals
             allow_decimals=True,
             strictness_level=50,
             require_justification=False

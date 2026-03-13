@@ -1,14 +1,16 @@
 import json
 import os
+
 import pytest
 
 from backend_v2.settings import get_settings
+
 
 def load_seed_data():
     settings = get_settings()
     # Or just hardcode path for this specific script
     seed_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "seed", "seed_data.json")
-    with open(seed_path, 'r', encoding='utf-8') as f:
+    with open(seed_path, encoding='utf-8') as f:
         return json.load(f)
 
 @pytest.fixture(scope="module")
@@ -30,19 +32,19 @@ def test_all_bars_matrices_use_discrete_integer_scores(db):
             scales = item.get("scales", [])
             if not scales:
                 continue
-                
+
             scores = []
             for s in scales:
                 val = s.get("score")
                 assert val is not None, f"Scale inside {item.get('id')} is missing 'score'"
-                
+
                 # Verify numeric type
                 assert isinstance(val, (int, float)), f"Score in {item.get('id')} must be a number, got {type(val)}"
-                
+
                 # Check that it's actually an integer value logically (e.g. 1 or 1.0)
                 assert float(val).is_integer(), f"Score in {item.get('id')} must be a discrete integer like 1, 2, 3. Found: {val}"
                 scores.append(int(val))
-            
+
             # Additional check: values should ideally be 1, 2, 3... pattern starting at 1
             # Even if there are gaps (like 1, 3, 5), they must all be positive small integers
             for score in scores:

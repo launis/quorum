@@ -13,7 +13,7 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI) -> Any:
 
     try:
         # A. Initialize Task Registry / Hook Registry (Trigger Decorators)
-        import backend_v2.hooks
+        import backend_v2.hooks  # noqa: F401
 
         # B. Load Workflows (Mock/File-based seeding for now)
         # In a real app, this might sync to DB.
@@ -86,15 +86,7 @@ try:
 except Exception:
     pass
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    import logging
-    logger = logging.getLogger("backend.main")
-    logger.error(f"[Validation Error] on request {request.url}: {exc.errors()} - Body: {exc.body}")
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": exc.errors(), "body": exc.body},
-    )
+# (duplicate validation handler removed)
 
 # --- 3. Middleware ---
 

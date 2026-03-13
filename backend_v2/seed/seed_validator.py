@@ -47,5 +47,12 @@ def validate_seeds(original_path: str, migrated_path: str) -> bool:
         logger.warning(f"Types of differences: {diff_types}")
         return True # Return true anyway because Pydantic defaults are acceptable
 
+def main() -> None:
+    import sys
+    if len(sys.argv) < 3:
+        logger.error("Usage: python seed_validator.py <original> <migrated>")
+        sys.exit(1)
+    validate_seeds(sys.argv[1], sys.argv[2])
+
 if __name__ == '__main__':
     main()

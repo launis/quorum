@@ -3452,6 +3452,42 @@ abstract class AppLocalizations {
   /// **'Start AI Execution'**
   String get startAiExecution;
 
+  /// No description provided for @strictnessLevelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Strictness Level'**
+  String get strictnessLevelTitle;
+
+  /// No description provided for @strictnessGricean.
+  ///
+  /// In en, this message translates to:
+  /// **'Level 1: Cooperative (Gricean)'**
+  String get strictnessGricean;
+
+  /// No description provided for @strictnessLiteral.
+  ///
+  /// In en, this message translates to:
+  /// **'Level 2: Literal (Lexical)'**
+  String get strictnessLiteral;
+
+  /// No description provided for @strictnessCausal.
+  ///
+  /// In en, this message translates to:
+  /// **'Level 3: Causal (Default)'**
+  String get strictnessCausal;
+
+  /// No description provided for @strictnessFalsification.
+  ///
+  /// In en, this message translates to:
+  /// **'Level 4: Adversarial (Falsification)'**
+  String get strictnessFalsification;
+
+  /// No description provided for @strictnessZeroTrust.
+  ///
+  /// In en, this message translates to:
+  /// **'Level 5: Zero-Trust'**
+  String get strictnessZeroTrust;
+
   /// No description provided for @barsCompliance1.
   ///
   /// In en, this message translates to:

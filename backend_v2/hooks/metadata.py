@@ -15,11 +15,10 @@ def inject_step_metadata(data: dict[str, Any]) -> dict[str, Any]:
     This fulfills the V2 requirement for providing 'kello' (timestamp) and 'user' 
     information dynamically to the output dictionary without requiring LLM generation.
     """
-    
     execution_id = data.get("_sys_execution_id", "unknown_execution")
     step_id = data.get("_sys_step_id", "unknown_step")
     workflow_id = data.get("_sys_workflow_id", "unknown_workflow")
-    
+
     # Try to grab user/initiator from context if it was passed down from the API/Authentication route
     # Fallback to system user if absent
     initiator_id = data.get("_sys_initiator_id", "system")

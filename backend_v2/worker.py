@@ -16,7 +16,6 @@ from backend_v2.exceptions import ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.services.pdf_generator import PdfReportService
-from backend_v2.services.progress import ProgressService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 
@@ -24,6 +23,8 @@ from backend_v2.settings import get_settings
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
+# Pre-register all hooks for background execution
+import backend_v2.hooks  # noqa: F401
 
 # --- Worker Job Tasks ---
 
@@ -175,12 +176,13 @@ async def execute_workflow_job(
         except Exception as e:
             from backend_v2.exceptions import AppException
             if not isinstance(e, AppException):
+                msg = f"Workflow {workflow_id} failed: {e}"
                 logger.error(
-                    f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Workflow {workflow_id} failed: {e}",
+                    f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}",
                     exc_info=True
                 )
                 e = AppException(
-                    message=str(e),
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
                 )
@@ -193,9 +195,9 @@ async def execute_workflow_job(
                         {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()}
                     )
                 except Exception as update_err:
+                    update_msg = f"Failed to update execution failure status: {update_err}"
                     logger.error(
-                        f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
-                        f"Failed to update execution failure status: {update_err}",
+                        f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {update_msg}",
                         exc_info=True
                     )
             raise e
@@ -212,9 +214,9 @@ async def execute_workflow_job(
                         },
                     )
                 except Exception as update_err:
+                    update_msg = f"Failed to update execution cancellation status: {update_err}"
                     logger.error(
-                        f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
-                        f"Failed to update execution cancellation status: {update_err}",
+                        f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {update_msg}",
                         exc_info=True
                     )
             raise
@@ -238,13 +240,12 @@ async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
         # Startup initializes ctx["repository"]
         repository = ctx["repository"]
 
-        # 2. Instantiate ProgressService
-        # Arq context has 'redis'
-        redis = ctx["redis"]
-        progress = ProgressService(redis)
+        # 2. Instantiate ProgressService (Currently unused directly here but reserved)
+        # redis = ctx["redis"]
+        # progress = ProgressService(redis)
 
         # 3. Instantiate PdfReportService
-        service = PdfReportService(repository, progress)
+        service = PdfReportService(repository)
 
         # 4. Generate PDF
         pdf_bytes = await service.generate_execution_pdf(execution_id)
@@ -263,13 +264,13 @@ async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
     except Exception as e:
         from backend_v2.exceptions import AppException
         if not isinstance(e, AppException):
+            msg = f"PDF generation failed for {execution_id}. Cause: {e}"
             logger.error(
-                f"[Worker] {ErrorCodes.PDF_GENERATION_FAILED.name}: "
-                f"PDF generation failed for {execution_id}. Cause: {e}",
+                f"[Worker] {ErrorCodes.PDF_GENERATION_FAILED.name}: {msg}",
                 exc_info=True
             )
             e = AppException(
-                message=str(e),
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.PDF_GENERATION_FAILED}
             )
@@ -301,7 +302,6 @@ async def startup(ctx: Any) -> None:
     # 1. CRITICAL: Register Tasks & Hooks
     # Import all task modules and hooks here to trigger their decorators.
     # This ensures the Registries are populated before we try to run anything.
-    import backend_v2.hooks
     logger.info(f"TaskRegistry initialized. Registered tasks: {list(TaskRegistry._tasks.keys())}")
 
     # 2. Initialize Dependencies

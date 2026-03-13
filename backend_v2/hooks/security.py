@@ -69,7 +69,7 @@ def sanitize_text_hook(data: dict[str, Any]) -> dict[str, Any]:
 
     # Create pure dict result
     try:
-        result = {
+        result: dict[str, Any] = {
             "sanitized_inputs": sanitized_inputs,
             "banned_phrases_detected": [],  # Populated by check_banned_phrases
             "banned_phrases_error": None,

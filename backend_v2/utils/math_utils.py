@@ -4,14 +4,15 @@ Contains deterministic calculation logic (Part 18.7 Python Authority),
 prioritizing strict validation and Fail Fast principles.
 """
 
-from backend_v2.exceptions import AppException, ErrorCodes
 import logging
+
+from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
 
 def normalize_score_to_100(score: float, number_of_options: int) -> float:
-    """Normalize any score to a proportional 0.0 - 100.0 percentage scale 
+    """Normalize any score to a proportional 0.0 - 100.0 percentage scale
     according to V2 proportional step logic.
 
     Args:
@@ -31,7 +32,7 @@ def normalize_score_to_100(score: float, number_of_options: int) -> float:
             status_code=500,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
-        
+
     proportional_fraction = score / number_of_options
 
     # 2. Normalize to 0-100: suhteellinen osuus täydestä * 100
@@ -54,7 +55,7 @@ def calculate_scaled_score(score: float, number_of_options: int, scale_min: floa
             status_code=500,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
-         
+
     if number_of_options <= 0:
         msg = f"Invalid number_of_options ({number_of_options}). Must be > 0."
         logger.error(f"[MathUtils] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}")
@@ -63,12 +64,12 @@ def calculate_scaled_score(score: float, number_of_options: int, scale_min: floa
             status_code=500,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
-         
+
     scale_gap = scale_max - scale_min
     proportional_fraction = score / number_of_options
-    
+
     proportional_gap = proportional_fraction * scale_gap
-    
+
     scaled_val = scale_min + proportional_gap
     return max(scale_min, min(scale_max, scaled_val))
 

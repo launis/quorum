@@ -71,7 +71,7 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
           # It might be in global lookup if this is evaluated on global end
           pass
 
-    source_texts = []
+    source_texts: list[str] = []
 
     if not inputs:
          logger.warning("[IntegrityHook] Local citation verification requires 'inputs' dictionary. Bypassing safely.")

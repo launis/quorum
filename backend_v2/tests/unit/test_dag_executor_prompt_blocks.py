@@ -9,13 +9,14 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 @pytest.fixture
 def mock_repo():
     repo = AsyncMock()
+    from backend_v2.models.enums import BlockDataType
     repo.get_all_prompt_blocks.return_value = [
         {
             "id": "block_test",
             "label": {"default_locale": "fi", "translations": {"fi": "Testi"}},
             "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus"}},
             "category_id": "test",
-            "type": "string",
+            "type": BlockDataType.STRING,
             "allow_decimals": False,
             "strictness_level": 50,
             "require_justification": False
@@ -50,6 +51,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
     # Setup basic valid workflow
     workflow = Workflow(
         id="wf_test",
+        slug="wf_test_slug",
         name=I18nText(default_locale="en", translations={"en": "Test WF"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         steps=[
@@ -64,11 +66,21 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
         mock_bound_client.run_structured_task.return_value = MagicMock(model_dump=lambda **kwargs: {"test_res": 1})
         mock_strategy.return_value = mock_bound_client
 
-        record = await executor.execute_workflow(
-            execution_id="exec_123",
-            workflow=workflow,
-            raw_inputs={"test_input": "data"}
-        )
+        mock_repo.get_execution.return_value = {
+            "id": "exec_123",
+            "strictness_level": 3,
+            "status": "running"
+        }
+
+        # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
+        with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
+            mock_hooks.execute = AsyncMock(return_value={"inputs": {}})
+
+            record = await executor.execute_workflow(
+                execution_id="exec_123",
+                workflow=workflow,
+                raw_inputs={"test_input": "data"}
+            )
 
     # Assert repo called new method instead of get_all_matrices
     mock_repo.get_all_prompt_blocks.assert_called_once()

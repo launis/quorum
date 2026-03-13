@@ -41,29 +41,42 @@ class ExecutionService:
                 org_id = getattr(initiator, "organization_id", None)
                 # Filtering logic to only show executions that belong to this organization or user
                 # Currently simple filtering, will evolve as data schema strictly bounds executions to orgs
-                executions = [e for e in executions if e.get("organization_id") == org_id or e.get("created_by") == initiator.id] # type: ignore
+                executions = [
+                    e for e in executions
+                    if e.get("organization_id") == org_id or e.get("created_by") == initiator.id
+                ] # type: ignore
 
             return [ExecutionRecord.model_validate(x) for x in executions]
         except Exception as e:
-            logger.error(f"[ExecutionService] Failed to list executions: {e}")
+            msg = f"Failed to list executions: {str(e)}"
+            logger.error(f"[ExecutionService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"Failed to list executions: {str(e)}",
+                message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
             ) from e
 
     async def get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
         """Fetch single execution securely."""
         data = await self.repo.get_execution(execution_id)
         if not data:
-             logger.error(f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Execution {execution_id} not found.")
+             logger.error(
+                 f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
+                 f"Execution {execution_id} not found."
+             )
              raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
         org_id = getattr(initiator, "organization_id", None)
-        if initiator.role != "ROOT" and data.get("organization_id") != org_id and data.get("created_by") != initiator.id: # type: ignore
-            logger.error(f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.value}: User {initiator.id} attempted to access foreign execution {execution_id}.")
-            raise PermissionDeniedError("You do not have permission to view this execution.")
+        if (initiator.role != "ROOT" and
+            data.get("organization_id") != org_id and
+            data.get("created_by") != initiator.id): # type: ignore
+            msg = "You do not have permission to view this execution."
+            logger.error(
+                f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.name}: "
+                f"User {initiator.id} attempted to access foreign execution {execution_id}."
+            )
+            raise PermissionDeniedError(msg)
 
         return ExecutionRecord.model_validate(data)
 
@@ -75,18 +88,27 @@ class ExecutionService:
         try:
             return await self.repo.delete_execution(execution_id)
         except Exception as e:
-            logger.error(f"[ExecutionService] Failed to delete execution {execution_id}: {e}")
+            msg = f"Failed to delete execution {execution_id}: {str(e)}"
+            logger.error(f"[ExecutionService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"Failed to delete execution: {str(e)}",
+                message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
             ) from e
 
-    async def start_execution(self, initiator: TokenData, payload: ExecutionCreate, background_tasks: BackgroundTasks) -> ExecutionRecord:
+    async def start_execution(
+        self,
+        initiator: TokenData,
+        payload: ExecutionCreate,
+        background_tasks: BackgroundTasks
+    ) -> ExecutionRecord:
         """Initialize and trigger workflow securely."""
         workflow_dict = await self.repo.get_workflow_by_id(payload.workflow_id)
         if not workflow_dict:
-            logger.error(f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {payload.workflow_id} not found.")
+            logger.error(
+                f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
+                f"Workflow {payload.workflow_id} not found."
+            )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=payload.workflow_id)
 
         workflow = Workflow.model_validate(workflow_dict)
@@ -94,8 +116,12 @@ class ExecutionService:
         # Auth Check
         org_id = getattr(initiator, "organization_id", None)
         if initiator.role != "ROOT" and workflow.organization_id not in [org_id, "system", None]:
-            logger.error(f"[ExecutionService] PERMISSION_DENIED: {initiator.id} tried to start foreign workflow.")
-            raise PermissionDeniedError("You do not have permission to execute this workflow.")
+            msg = "You do not have permission to execute this workflow."
+            logger.error(
+                f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.name}: "
+                f"{initiator.id} tried to start foreign workflow '{workflow.id}'."
+            )
+            raise PermissionDeniedError(msg)
 
         # V2 MANDATE: Dynamically generate SDUI hints synchronously before execution
         ui_hints: dict[str, DataDictionaryField] = {}
@@ -105,7 +131,9 @@ class ExecutionService:
             step_dict = await self.repo.get_step(step_rule.task_blueprint)
             if not step_dict:
                 from backend_v2.exceptions import ConfigurationError
-                raise ConfigurationError(f"Missing task blueprint {step_rule.task_blueprint} for DAG.")
+                msg = f"Missing task blueprint {step_rule.task_blueprint} for DAG."
+                logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                raise ConfigurationError(msg)
 
             # Populate initial pending step state for timeline
             step_name_raw = step_dict.get("name", step_rule.task_blueprint)
@@ -127,12 +155,19 @@ class ExecutionService:
             for pb_slug in prompt_blocks_refs:
                 pb_dict = await self.repo.get_prompt_block(pb_slug)
                 if not pb_dict:
-                     continue # For robustness in execution, if a block is removed since deployment, log it in executor, skip here mostly. But wait, V2 strictly says Fail Fast.
+                     # For robustness in execution, if a block is removed since deployment,
+                     # log it in executor, skip here mostly. But wait, V2 strictly says Fail Fast.
+                     continue
 
                 # We apply Fail-Fast for missing blocks to guarantee auditability:
                 if not pb_dict:
                     from backend_v2.exceptions import ConfigurationError
-                    raise ConfigurationError(f"SDUI Engine Error: PromptBlock '{pb_slug}' is missing but referenced in step '{step_rule.task_blueprint}'.")
+                    msg = (
+                        f"SDUI Engine Error: PromptBlock '{pb_slug}' is missing "
+                        f"but referenced in step '{step_rule.task_blueprint}'."
+                    )
+                    logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    raise ConfigurationError(msg)
 
                 dt = pb_dict.get("type")
 
@@ -166,6 +201,7 @@ class ExecutionService:
         initial_record = ExecutionRecord(
             id=execution_id,
             workflow_id=workflow.id,
+            strictness_level=payload.strictness_level,
             status=ExecutionStatus.PENDING,
             raw_inputs=payload.raw_inputs,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
@@ -184,7 +220,7 @@ class ExecutionService:
             self.executor.execute_workflow,
             execution_id=execution_id,
             workflow=workflow,
-            raw_inputs=payload.raw_inputs
+            raw_inputs=payload.raw_inputs.model_dump(mode="json")
         )
 
         return initial_record
