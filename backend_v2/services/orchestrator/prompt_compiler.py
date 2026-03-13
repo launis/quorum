@@ -116,17 +116,25 @@ class PromptCompiler:
                 return ""
 
         if isinstance(current, str):
+            # Already a string, return directly
             return current
 
         if hasattr(current, "model_dump_json") and callable(getattr(current, "model_dump_json", None)):
             dump_fn: Any = current.model_dump_json
-            return str(dump_fn())
+            return str(dump_fn(indent=2))
 
         if isinstance(current, dict):
             # Format dictionaries gracefully to prevent literal \n escaping in LLM xml
             formatted = []
             for k, v in current.items():
-                formatted.append(f"--- {str(k).upper()} ---\n{v}\n")
+                if isinstance(v, str):
+                    formatted.append(f"--- {str(k).upper()} ---\n{v}\n")
+                elif isinstance(v, dict):
+                    # Basic pretty-print for nested dictionaries to avoid strict JSON dumps
+                    import json
+                    formatted.append(f"--- {str(k).upper()} ---\n{json.dumps(v, indent=2, ensure_ascii=False)}\n")
+                else:
+                    formatted.append(f"--- {str(k).upper()} ---\n{v}\n")
             return "\n".join(formatted).strip()
 
         return str(current)

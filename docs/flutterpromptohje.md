@@ -98,6 +98,10 @@ Tämän ohjeen kiertäminen ja kannan (`db_v2.json`) sorkkiminen lennossa korrup
 
 ### 4.2 API Boundary & Schema-First (No-ORM)
 * JSON-datansiirtoon on kiellettyä käyttää `dict` tai tyypittämätöntä datakenttää HTTP-rajapinnassa. Request/Response -kappaleet ovat aina vahvasti rajattuja Pydantic-malleja (`response_model`).
+* **The Three Pydantic Boundaries (API, Service, Middleware)**: 
+  1. **API Ingestion (Generic IN -> Strict OUT)**: Kun data saapuu ulkomaailmasta (Web/Flutter) sisään Backendin API-reitittimiin (`backend_v2/api/`), se ON PAKOTETTAVA välittömästi tiukkaan Pydantic DTO -malliin ennen kuin sitä saa siirtää Service-kerrokselle. Service-kerros ei ota vastaan tyhmiä sanakirjoja.
+  2. **Service Layer (Strict IN -> Strict OUT)**: Liiketoimintalogiikka (`backend_v2/services/`) on järjestelmän ehdoton portinvartija. Se ottaa API:lta vastaan vain puhdasta Pydanticia. Kaikki tietokannasta (`repository`) haettava data on myös VÄLITTÖMÄSTI hydratoitava Pydantic-malleihin (`Model.model_validate(data)`) ennen kuin logiikkaa suoritetaan.
+  3. **Middleware (Strict IN -> Generic OUT)**: Koko post-hook arkkitehtuuri (`backend_v2/hooks/`), DAG-putkisto ja tallennuslokit toimivat päinvastoin: ne ovat 100% litetyssä Sanakirja-maailmassa. Middlewaren sisään EI SAA kirjoittaa Pydantic-fallbackeja (esim. `hasattr(item, "model_dump")`). Agentit pakottavat Pydanticin luontihetkellä (Fail-Fast), mutta DAG takaa, että eteenpäin hookeille siirrettävä data on aina turvallisesti riisuttua `.model_dump(mode="json")` muotoa.
 * **No-ORM**: Ei SQLAlchemyä. Pydantic kuvaa suoraan tietokannan dokumenttirakenteen (NoSQL) 1:1.
 
 ### 4.3 Null-Safety v2.12

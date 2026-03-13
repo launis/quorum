@@ -19,17 +19,11 @@ def _extract_guard_flag(data: dict[str, Any]) -> Any | None:
     Returns:
         Any | None: True if a security threat is detected, False otherwise, or None if guard data is missing/invalid.
     """
-    if "step_guard" in data:
-        guard_model = data.get("step_guard")
-        if isinstance(guard_model, dict):
-            security_check = guard_model.get("security_check", {})
-            if isinstance(security_check, dict) and security_check.get("threat_detected"):
-                return True
-        elif guard_model and getattr(guard_model, "security_check", None):
-            if guard_model.security_check.threat_detected:
-                return True
-        elif not guard_model:
-            logger.warning("[ScoringHook] step_guard present but failed validation via inflate.")
+    guard_model = data.get("step_guard")
+    if guard_model and isinstance(guard_model, dict):
+        security_check = guard_model.get("security_check", {})
+        if isinstance(security_check, dict) and security_check.get("threat_detected"):
+            return True
     logger.debug("[ScoringHook] step_guard missing from context or no threat detected.")
     return False
 
@@ -48,15 +42,9 @@ def _extract_falsifier_data(data: dict[str, Any]) -> Any | None:
 
     if isinstance(falsifier_model, dict) and falsifier_model.get("falsifier_data"):
         return falsifier_model["falsifier_data"]
-    if falsifier_model and hasattr(falsifier_model, "falsifier_data") and getattr(
-        falsifier_model, "falsifier_data", None
-    ):
-        return getattr(falsifier_model, "falsifier_data", None)
 
     if isinstance(panel_model, dict) and panel_model.get("falsifier_data"):
         return panel_model["falsifier_data"]
-    if panel_model and hasattr(panel_model, "falsifier_data") and getattr(panel_model, "falsifier_data", None):
-        return getattr(panel_model, "falsifier_data", None)
 
     return None
 
@@ -74,10 +62,6 @@ def _calculate_falsifier_penalty(falsifier_data: Any | None) -> bool:
         fidelity = falsifier_data.get("fidelity_audit", {})
         if isinstance(fidelity, dict) and fidelity.get("post_hoc_rationalization"):
             return True
-    elif falsifier_data and hasattr(falsifier_data, "fidelity_audit"):
-        if hasattr(falsifier_data.fidelity_audit, "post_hoc_rationalization"):
-            if falsifier_data.fidelity_audit.post_hoc_rationalization:
-                return True
     return False
 
 
@@ -109,84 +93,59 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
     if not falsifier_data:
         logger.debug("[ScoringHook] Falsifier data missing from context, skipping Falsifier Penalty.")
 
-    # 3. Aggregate Scores from Audit Results
+    # 3. Aggregate Commensurate Evaluative Scores
+    # We explicitly define matrices that measure unified system quality and CAN mathematically be averaged.
+    # We EXCLUDE orthogonal matrices (e.g. security, bias, certainty).
+    EVALUATIVE_MATRICES = {
+        "matrix_judge",
+        "matrix_toulmin",
+        "matrix_bloom",
+        "matrix_archivist",
+        "matrix_causal_analyst",
+        "matrix_causal_abductive"
+    }
+
     total_score_accum = 0.0
     count = 0
     scores_found = []
 
     # Candidate list for potential multiple judges (Standard + Cognitive)
-    candidates = []
+    # Note: V2 matrices are extracted directly from the context history tree
+    # But for final scoring, the Judge node has its own output. Actually, the Judge node
+    # has ALL the outputs from previous nodes if using a `PromptBlock` approach. 
+    # Let's inspect the entire context for any `_scaled` keys that match the whitelist.
+    # The Judge is the final aggregator so by checking context we capture everything.
 
-    for judge_key in ["step_judge", "step_judge_cognitive"]:
-        if judge_key in context:
-            judge_model = context.get(judge_key)
-            if not judge_model:
-                continue
-            candidates.append(judge_model)
+    candidates = [context]  # Default to full history
+    step_id = context.get("_sys_step_id")
+    if step_id in ["step_judge", "step_judge_cognitive"]:
+        candidates.append(data)
 
     for item in candidates:
-        if not item:
+        if not isinstance(item, dict):
             continue
 
-        # Handle both dicts and inflated models robustly
-        # Handle both dicts and inflated models robustly
-        if isinstance(item, dict):
-            # Check for legacy nested score_card
-            score_card = item.get("score_card", {})
-            if isinstance(score_card, dict) and "total_score" in score_card:
-                # Normalize and aggregate
-                total_score = score_card.get("total_score", 0.0)
-                scale_min = score_card.get("scale_min", 0.0)
-                scale_max = score_card.get("scale_max", 5.0)
-
-                normalized = normalize_score_to_100(
-                    score=total_score,
-                    scale_min=scale_min,
-                    scale_max=scale_max,
-                )
-                total_score_accum += normalized
-                count += 1
-                scores_found.append(normalized)
-            else:
-                # Direct Matrix Evaluation (V2 Flat Schema) - e.g. "matrix_judge": 5.0
-                for k, v in item.items():
-                    # We look for normalized _raw outputs or just base keys
-                    if k.startswith("matrix_") and not k.endswith("_justification") and not k.endswith("_id") and not k.endswith("_quote") and not k.endswith("_raw"):
-                        if isinstance(v, (int, float)):
-                            # If it's a matrix key, we assume 1-5 scale by default unless specified
-                            normalized = normalize_score_to_100(score=float(v), scale_min=1.0, scale_max=5.0)
-                            total_score_accum += normalized
-                            count += 1
-                            scores_found.append(normalized)
-        elif hasattr(item, "score_card") and item.score_card:
-            normalized = normalize_score_to_100(
-                score=item.score_card.total_score,
-                scale_min=item.score_card.scale_min,
-                scale_max=item.score_card.scale_max,
-            )
-            total_score_accum += normalized
-            count += 1
-            scores_found.append(normalized)
-        elif hasattr(item, "model_dump"):
-            # Direct Matrix Evaluation (V2 Flat Schema) for Inflated Pydantic Models
-            dumped_item = item.model_dump()
-            for k, v in dumped_item.items():
-                if k.startswith("matrix_") and not k.endswith("_justification") and not k.endswith("_id") and not k.endswith("_quote") and not k.endswith("_raw"):
-                    if isinstance(v, (int, float)):
-                        normalized = normalize_score_to_100(score=float(v), scale_min=1.0, scale_max=5.0)
-                        total_score_accum += normalized
+        for k, v in item.items():
+            if k.endswith("_scaled"):
+                base_key = k.replace("_scaled", "")
+                if base_key in EVALUATIVE_MATRICES:
+                    try:
+                        v_float = float(v)
+                        total_score_accum += v_float
                         count += 1
-                        scores_found.append(normalized)
+                        scores_found.append(v_float)
+                    except (ValueError, TypeError):
+                        pass
 
     if count == 0:
-        logger.warning("[ScoringHook] No valid scores found from Judge/Evaluation steps.")
+        logger.warning("[ScoringHook] No valid commensurate scores found for aggregation.")
         average_score = 0.0
     else:
+        # A true unified average (all 0-100 scales) of commensurate dimensions
         average_score = total_score_accum / count
 
-    # 4. Apply Penalties (Relative to Values via Settings)
+    # 4. Apply Penalties (Log traces and apply to average without corrupting base)
     from backend_v2.settings import get_settings
-
     settings = get_settings()
 
     final_score = average_score
@@ -195,8 +154,6 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
     if security_threat:
         p_val = settings.scoring_security_penalty
         if p_val > 0:
-            # Relative Penalty (Multiplicative)
-            # e.g. score 4.0 * (1.0 - 0.1) = 3.6
             final_score *= 1.0 - p_val
             penalties.append(f"Security Threat Detected (-{p_val * 100:.0f}%)")
         else:
@@ -212,19 +169,18 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
                 "[ScoringHook] Post-Hoc Rationalization Detected (Logged Only - Penalty Disabled in Settings)"
             )
 
-    # Safety Clamp (Relative scores should technically not go below min if min is 0, but if min is 1, they can)
-    # We now operate on a 0.0 - 100.0 scale for the aggregated score.
+    # Safety Clamp (0.0 - 100.0)
     final_score = max(0.0, final_score)
 
-    # 5. Create Result
-    # Strict Dict -> Dict Return
+    # 5. Create Result with True Averaging
     result = {
         "total_score": final_score,
         "final_score": final_score,
-        "penalties_applied": penalties
+        "penalties_applied": penalties,
+        "aggregation_status": f"V2 Commensurate Average of {count} matrices"
     }
 
-    logger.info(f"[ScoringHook] Scoring complete. Score: {final_score}")
+    logger.info(f"[ScoringHook] Scoring validation complete. Commensurate Base Average: {average_score:.1f}, Final: {final_score:.1f}. Penalties: {len(penalties)}")
     return {"scoring_result": result}
 
 
@@ -255,7 +211,7 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
 
     step_guard = _get_ctx("step_guard")
 
-    # Can accept both domain models or dictionaries
+    # Expects pure dictionaries
     if _extract_guard_flag({"step_guard": step_guard}):
         # Load penalty from settings
             p_val = settings.scoring_security_penalty
@@ -277,17 +233,10 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
         falsifier_data = step_panel.get("falsifier_data")
 
     post_hoc = False
-    if falsifier_data:
-        if isinstance(falsifier_data, dict):
-            audit = falsifier_data.get("fidelity_audit", {})
-            post_hoc = (
-                audit.get("post_hoc_rationalization", False)
-                if isinstance(audit, dict)
-                else getattr(audit, "post_hoc_rationalization", False)
-            )
-        else:
-            audit = getattr(falsifier_data, "fidelity_audit", None)
-            post_hoc = getattr(audit, "post_hoc_rationalization", False)
+    if isinstance(falsifier_data, dict):
+        audit = falsifier_data.get("fidelity_audit", {})
+        if isinstance(audit, dict):
+            post_hoc = audit.get("post_hoc_rationalization", False)
 
     if post_hoc:
         # Load penalty from settings
@@ -308,31 +257,19 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
     is_judge_output = isinstance(result, dict) and "score_card" in result
     is_eval_result = isinstance(result, dict) and "total_score" in result
 
-    if not isinstance(result, dict):
-        is_judge_output = hasattr(result, "score_card")
-        is_eval_result = hasattr(result, "total_score")
-
     # 3. Apply Penalties
     current_score: float | None = None
     field_name: str | None = None
 
-    # Extraction (Dict or Pydantic)
+    # Extraction (Dict only)
     # Case A: JudgeOutput
     if is_judge_output:
-        if isinstance(result, dict):
-            current_score = result.get("score_card", {}).get("total_score")
-        else:
-            current_score = result.score_card.total_score
-
+        current_score = result.get("score_card", {}).get("total_score")
         field_name = "score_card.total_score"
 
     # Case B: EvaluationResult
     elif is_eval_result:
-        if isinstance(result, dict):
-            current_score = result.get("total_score")
-        else:
-            current_score = result.total_score
-
+        current_score = result.get("total_score")
         field_name = "total_score"
 
     # FAIL FAST: If we still don't have a score
@@ -351,31 +288,21 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
         f"Factor: {penalty_factor:.2f}. Score {current_score} -> {new_score}"
     )
 
-    # 4. Return Updated Model (Immutable Update)
-    if isinstance(result, dict):
-        new_result = result.copy()
-        new_result["penalties"] = penalties
+    # 4. Return Updated Model (Immutable Update - Dict Only)
+    new_result = result.copy() if isinstance(result, dict) else {}
+    if not isinstance(result, dict):
+        return result
 
-        if field_name == "score_card.total_score":
-            score_card = new_result.get("score_card", {}).copy()
-            score_card["total_score"] = new_score
-            new_result["score_card"] = score_card
-        elif field_name is not None:
-            new_result[field_name] = new_score
+    new_result["penalties"] = penalties
 
-        return new_result
-    else:
-        updates: dict[str, Any] = {"penalties": penalties}
+    if field_name == "score_card.total_score":
+        score_card = new_result.get("score_card", {}).copy()
+        score_card["total_score"] = new_score
+        new_result["score_card"] = score_card
+    elif field_name is not None:
+        new_result[field_name] = new_score
 
-        if field_name == "score_card.total_score":
-            # Nested update logic for JudgeOutput
-            original_card = result.score_card
-            new_card = original_card.model_copy(update={"total_score": new_score})
-            updates["score_card"] = new_card
-        elif field_name is not None:
-            updates[field_name] = new_score
-
-        return result.model_copy(update=updates)
+    return new_result
 
 
 @hook_registry.register(name="enforce_passivity_penalty")
@@ -404,72 +331,75 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
     updates_needed = False
     new_data: dict[str, Any] = {}
 
+    judges_to_check = []
+
+    # 1. From context (legacy/global)
     for judge_key in ["step_judge", "step_judge_cognitive"]:
-        if judge_key not in context:
+        if judge_key in context:
+            judges_to_check.append((judge_key, context.get(judge_key), False))
+
+    # 2. From V2 Isolation Fix (post-hook)
+    step_id = context.get("_sys_step_id")
+    if step_id in ["step_judge", "step_judge_cognitive"]:
+        judges_to_check.append((step_id, data, True))
+
+    for judge_key, judge_model, is_post_hook in judges_to_check:
+        if not judge_model or not isinstance(judge_model, dict):
             continue
 
-        judge_model = context.get(judge_key)
+        score_card = judge_model.get("score_card", {})
 
-        if not judge_model:
-            continue
-
-        is_dict = isinstance(judge_model, dict)
-        score_card = judge_model.get("score_card", {}) if is_dict else getattr(judge_model, "score_card", None)
-        
         # Strategy 1: Legacy Dimensions
         if score_card:
-            scale_min = score_card.get("scale_min", 0.0) if is_dict else score_card.scale_min
-            dimensions = score_card.get("dimensions", []) if is_dict else score_card.dimensions
-    
+            scale_min = score_card.get("scale_min", 0.0)
+            dimensions = score_card.get("dimensions", [])
+
             penalty_triggered = False
-    
+
             for dim in dimensions:
-                dim_score = dim.get("score", 0.0) if is_dict else getattr(dim, "score", 0.0)
-                dim_id = dim.get("dimension_id", "") if is_dict else getattr(dim, "dimension_id", "")
-    
+                if not isinstance(dim, dict):
+                    continue
+                dim_score = dim.get("score", 0.0)
+                dim_id = dim.get("dimension_id", "")
+
                 if dim_score <= scale_min:
                     penalty_triggered = True
                     logger.warning(
                         f"[ScoringHook] Passive/Low Quality detected in {judge_key} dimension '{dim_id}'"
                     )
                     break
-    
+
             if penalty_triggered:
                 logger.info(f"[ScoringHook] Applying Passivity Penalty to {judge_key} (Factor {multiplier}).")
-    
-                current_score = score_card.get("total_score", 0.0) if is_dict else score_card.total_score
+
+                current_score = score_card.get("total_score", 0.0)
                 new_score = current_score * multiplier
-    
+
                 if new_score < scale_min:
                     logger.warning(
                         f"[ScoringHook] Passivity penalty reduced score ({new_score}) "
                         f"below min ({scale_min}). Clamping."
                     )
                     new_score = scale_min
-    
-                if is_dict:
-                    new_card = score_card.copy()
-                    new_card["total_score"] = new_score
-                    new_card["verdict"] = str(new_card.get("verdict", "")) + f" [PASSIVITY PENALTY x{multiplier:.2f}]"
+
+                new_card = score_card.copy()
+                new_card["total_score"] = new_score
+                new_card["verdict"] = str(new_card.get("verdict", "")) + f" [PASSIVITY PENALTY x{multiplier:.2f}]"
+                
+                if is_post_hook:
+                    new_data["score_card"] = new_card
+                else:
                     new_judge = judge_model.copy()
                     new_judge["score_card"] = new_card
-                else:
-                    new_card = score_card.model_copy(
-                        update={
-                            "total_score": new_score,
-                            "verdict": score_card.verdict + f" [PASSIVITY PENALTY x{multiplier:.2f}]",
-                        }
-                    )
-                    new_judge = judge_model.model_copy(update={"score_card": new_card})
-    
-                new_data[judge_key] = new_judge
+                    new_data[judge_key] = new_judge
+                    
                 updates_needed = True
 
         # Strategy 2: V2 Matrix (Flat Schema)
-        elif is_dict:
+        else:
             penalty_triggered = False
             scale_min = 1.0 # Default BARS scale minimum
-            
+
             for k, v in judge_model.items():
                 if k.startswith("matrix_") and not k.endswith("_justification") and not k.endswith("_id") and not k.endswith("_quote") and not k.endswith("_raw"):
                     if isinstance(v, (int, float)):
@@ -477,7 +407,7 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
                              penalty_triggered = True
                              logger.warning(f"[ScoringHook] Passive/Low Quality detected in V2 Matrix '{k}'")
                              break
-                             
+
             if penalty_triggered:
                  logger.info(f"[ScoringHook] Applying V2 Passivity Penalty to {judge_key} (Factor {multiplier}).")
                  new_judge = judge_model.copy()
@@ -492,7 +422,13 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
                                 just_key = f"{k}_justification"
                                 if just_key in new_judge:
                                      new_judge[just_key] = f"[PASSIVITY PENALTY x{multiplier:.2f}] " + str(new_judge[just_key])
-                 new_data[judge_key] = new_judge
+                                     
+                 if is_post_hook:
+                     for k, v in new_judge.items():
+                         if k in judge_model and judge_model[k] != v:
+                             new_data[k] = v
+                 else:
+                     new_data[judge_key] = new_judge
                  updates_needed = True
 
     if updates_needed:
@@ -539,7 +475,7 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
         if not isinstance(content_payload, dict):
             # Try to convert Pydantic to dict
             if hasattr(content_payload, "model_dump"):
-                content_payload = content_payload.model_dump()
+                content_payload = content_payload.model_dump(mode="json")
             else:
                 logger.debug(f"[ScoringHook] Step '{step_id}' output is not a dict/model. Skipping.")
                 return state
@@ -583,39 +519,22 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
             target_max = pb_dict.get("scale_max")
 
             if scales and target_min is not None and target_max is not None:
-                # Find raw min and max from the scales definition
-                scores: list[float] = []
-                for s in scales:
-                    val = s.get("score") if isinstance(s, dict) else getattr(s, "score", None)
-                    if val is not None:
-                        try:
-                            scores.append(float(val))
-                        except (TypeError, ValueError):
-                            pass
-                            
-                if not scores:
-                    continue
+                # We scale directly from the BARS boundaries (scale_min -> scale_max) strictly to 0-100
+                from backend_v2.utils.math_utils import normalize_score_to_100
 
-                raw_min = min(scores)
-                raw_max = max(scores)
-
-                from backend_v2.utils.math_utils import scale_to_custom_range
-
-                scaled_val = scale_to_custom_range(
+                scaled_val = normalize_score_to_100(
                     score=float(raw_val),
-                    raw_min=raw_min,
-                    raw_max=raw_max,
-                    target_min=float(target_min),
-                    target_max=float(target_max),
+                    scale_min=float(target_min),
+                    scale_max=float(target_max),
                 )
 
-                # Append raw score to payload
-                new_payload[f"{slug}_raw"] = raw_val
-                new_payload[slug] = scaled_val
+                # Keep the original raw key intact, and add the scaled 0-100 version explicitly
+                new_payload[slug] = raw_val
+                new_payload[f"{slug}_scaled"] = scaled_val
                 updates_made = True
                 logger.info(
-                    f"[ScoringHook] Normalized '{slug}': {raw_val} -> {scaled_val} "
-                    f"(Target: {target_min}-{target_max})"
+                    f"[ScoringHook] Preserved raw '{slug}': {raw_val}, Generated '{slug}_scaled': {scaled_val} "
+                    f"(Scale: {target_min}-{target_max})"
                 )
 
         if updates_made:

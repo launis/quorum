@@ -4,7 +4,6 @@ import logging
 import re
 from typing import Any
 
-from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.hook_registry import hook_registry
@@ -73,7 +72,7 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
           pass
 
     source_texts = []
-    
+
     if not inputs:
          logger.warning("[IntegrityHook] Local citation verification requires 'inputs' dictionary. Bypassing safely.")
          return data
@@ -85,10 +84,6 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
         for val in inputs.values():
             if val:
                 source_texts.append(str(val))
-    else:
-        for _key, val in vars(inputs).items():
-            if val and isinstance(val, str):
-                source_texts.append(val)
 
     if not source_texts:
         error_code = ErrorCodes.EMPTY_INPUT
@@ -98,21 +93,15 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
 
     # 1b. Gather Context (RAG)
     rag_text = ""
-    step_ctx = data.get("step_context")
+    step_ctx = data.get("step_context", {})
 
-    if step_ctx:
-        if isinstance(step_ctx, dict):
-            if step_ctx.get("precedents"):
-                rag_text += str(step_ctx.get("precedents")) + "\n"
-            for item in step_ctx.get("knowledge_items", []):
-                term = item.get("term", "") if isinstance(item, dict) else getattr(item, "term", "")
-                defn = item.get("definition", "") if isinstance(item, dict) else getattr(item, "definition", "")
-                rag_text += f"[{term}]: {defn}\n"
-        else:
-            if step_ctx.precedents:
-                rag_text += str(step_ctx.precedents) + "\n"
-            for item in step_ctx.knowledge_items:
-                rag_text += f"[{item.term}]: {item.definition}\n"
+    if step_ctx.get("precedents"):
+        rag_text += str(step_ctx.get("precedents")) + "\n"
+    for item in step_ctx.get("knowledge_items", []):
+        if isinstance(item, dict):
+            term = item.get("term", "")
+            defn = item.get("definition", "")
+            rag_text += f"[{term}]: {defn}\n"
 
     # Inject theoretical texts into the RAG text from seed databases
     import json
@@ -247,13 +236,9 @@ def enforce_hypothesis_linking_hook(data: dict[str, Any]) -> dict[str, Any]:
         return {}
 
     # V2 Architecture Isolation: Post hooks receive the local dictionary.
-    # Therefore, we check if `hypotheses` exists in the local root directly.
     step_analyst = data.get("step_analyst", data)
 
-    if isinstance(step_analyst, dict):
-        hypotheses = step_analyst.get("hypotheses", [])
-    else:
-        hypotheses = getattr(step_analyst, "hypotheses", [])
+    hypotheses = step_analyst.get("hypotheses", [])
     if not hypotheses:
         return {}
 
@@ -261,7 +246,7 @@ def enforce_hypothesis_linking_hook(data: dict[str, Any]) -> dict[str, Any]:
     expected_idx = 1
 
     for hyp in hypotheses:
-        h_id = hyp.get("id", "") if isinstance(hyp, dict) else getattr(hyp, "id", "")
+        h_id = hyp.get("id", "")
 
         if not h_id:
             error_code = ErrorCodes.VALIDATION_FAILED

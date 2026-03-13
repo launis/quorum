@@ -86,7 +86,7 @@ class DAGExecutor:
         step_events: dict[str, asyncio.Event] = {step.id: asyncio.Event() for step in workflow.steps}
 
         # Convert to pure dicts for hook compatibility
-        raw_inputs_dict = dict(raw_inputs) if isinstance(raw_inputs, dict) else raw_inputs.model_dump()
+        raw_inputs_dict = raw_inputs.model_dump(mode="json") if hasattr(raw_inputs, "model_dump") else dict(raw_inputs)
         state_data = dict(raw_inputs_dict)
         state_data["inputs"] = raw_inputs_dict  # Legacy V1 hooks expect data["inputs"]
         state_data["_sys_workflow_id"] = workflow.id  # Required by V2 input_processing hook
@@ -190,7 +190,7 @@ class DAGExecutor:
     async def _execute_step(self, step: StepRule, shared_state_data: dict[str, Any], frozen_ctx: FrozenContext) -> Any:
         """Executes a single step: hook, agent, or conditional logic."""
         # 1. Condition Evaluation (Currently unsupported in V2 StepRule schema)
-        
+
         # Isolate state to prevent concurrency bleeding between async nodes in Phase 9
         state_data = dict(shared_state_data)
 
@@ -222,8 +222,8 @@ class DAGExecutor:
 
             # 3.0 Pre-Hooks Execution
             state_data["_sys_repository"] = self.repository
-            state_data["_sys_step_id"] = step.id 
-            
+            state_data["_sys_step_id"] = step.id
+
             for pre_hook in step_obj.pre_hooks:
                 logger.debug(f"Executing Pre-Hook: {pre_hook}")
                 # We assume pre-hooks modify state_data in-place or return updated dict.
@@ -276,25 +276,30 @@ class DAGExecutor:
                 messages=messages,
                 response_model=dynamic_schema,
             )
-            
-            final_dict = result.model_dump()
+
+            final_dict = result.model_dump(mode="json")
 
             # 3.4 Post-Hooks Execution
             # V2 Isolation: Provide the isolated final_dict, but inject a lookup hook
             # for global context if the post-hook needs to aggregate across nodes.
-            final_dict["_sys_context_vars"] = state_data
-            
+            # SSOT Mandate (Phase 11): Strict IN -> Generic OUT. Enforce dictionary serialization boundary.
+            safe_context = {
+                k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v
+                for k, v in state_data.items()
+            }
+            final_dict["_sys_context_vars"] = safe_context
+
             for post_hook in step_obj.post_hooks:
                 logger.debug(f"Executing Post-Hook: {post_hook}")
                 # Pass the LLM output dict to the post hook for manipulation/normalization
                 ph_result = await hook_registry.execute(post_hook, final_dict)
                 if isinstance(ph_result, dict):
                     final_dict.update(ph_result)
-            
+
             # Remove the injected global context immediately to prevent recursive JSON bloat
             if "_sys_context_vars" in final_dict:
                 del final_dict["_sys_context_vars"]
-            
+
             # 3.5 Merge Python Hook State into Final Result
             # Pre-hooks often return specific statistical metadata keys. By convention,
             # we look for known injected objects in the state_data and append them dynamically
@@ -302,7 +307,7 @@ class DAGExecutor:
             for key in ["profiler_metrics", "step_metadata", "_audit_signature"]:
                 if key in state_data:
                     final_dict[key] = state_data[key]
-                    
+
             return final_dict
 
         else:

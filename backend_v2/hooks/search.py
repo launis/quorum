@@ -46,16 +46,12 @@ async def execute_google_search_hook(data: dict[str, Any], repository: Any = Non
     # 2. Extract Queries
     queries: list[str] = []
 
-    if isinstance(analyst_output, dict):
-        hypotheses = analyst_output.get("hypotheses", [])
-        for hyp in hypotheses:
-            sq = hyp.get("search_query") if isinstance(hyp, dict) else getattr(hyp, "search_query", None)
+    hypotheses = analyst_output.get("hypotheses", [])
+    for hyp in hypotheses:
+        if isinstance(hyp, dict):
+            sq = hyp.get("search_query")
             if sq and isinstance(sq, str) and len(sq.strip()) > 3:
                 queries.append(sq)
-    elif hasattr(analyst_output, "hypotheses") and analyst_output.hypotheses:
-        for hyp in analyst_output.hypotheses:
-            if hyp.search_query and len(hyp.search_query.strip()) > 3:
-                queries.append(hyp.search_query)
 
     if not queries:
         logger.debug("[SearchHook] No valid queries generated. Skipping search.")
@@ -98,8 +94,6 @@ async def execute_google_search_hook(data: dict[str, Any], repository: Any = Non
     lang_code = "en"
     if isinstance(inputs, dict):
         lang_code = inputs.get("language", "en")
-    elif inputs and hasattr(inputs, "language"):
-        lang_code = inputs.language
 
     # 6. Execute Search (Vertex AI Grounding)
     try:

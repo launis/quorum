@@ -123,8 +123,14 @@ async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
                 from backend_v2.services.chat_parser import ChatParserService
 
                 chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, repository=repo)
-                resolved_text = chat_dto.model_dump_json(indent=2)
-                logger.info(f"[InputProcessingHook] Successfully structured {key} via ChatParser.")
+                
+                # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
+                chat_lines = []
+                for turn in chat_dto.turns:
+                     chat_lines.append(f"**{turn.speaker}**: {turn.content}")
+                resolved_text = "\n\n".join(chat_lines)
+                
+                logger.info(f"[InputProcessingHook] Successfully structured {key} via ChatParser (Markdown).")
             except Exception as e:
                 logger.error(f"[InputProcessingHook] Chat parsing failed for {key}: {e}")
                 if isinstance(e, AppException):
