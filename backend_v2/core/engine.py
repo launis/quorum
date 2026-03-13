@@ -101,7 +101,11 @@ class GraphEngine:
                 concepts = await repository.get_concepts()
                 context_vars["knowledge_base"] = {"references": references, "concepts": concepts}
             except Exception as e:
-                logger.warning(f"[GraphEngine] Failed to initialize global knowledge_base: {e}")
+                error_code = ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED
+                logger.error(
+                    f"[GraphEngine] {error_code.name}: Failed to initialize global knowledge_base: {e}",
+                    exc_info=True,
+                )
 
         # Cast for mypy strictness
         state_payload: dict[str, Any] = {
@@ -115,11 +119,12 @@ class GraphEngine:
         try:
             execution_state = WorkflowState(**state_payload)
         except Exception as e:
-            logger.error(f"[GraphEngine] Invalid initial state: {e}")
+            error_code = ErrorCodes.INVALID_JSON_PAYLOAD
+            logger.error(f"[GraphEngine] {error_code.name}: Invalid initial state: {e}", exc_info=True)
             raise AppException(
                 message=f"Invalid initial state structure: {e}",
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "original_error": str(e)},
+                details={"error_code": error_code, "original_error": str(e)},
             ) from e
 
         if execution_id and repository:
@@ -142,7 +147,11 @@ class GraphEngine:
                         # Re-instantiate to validate
                         execution_state = WorkflowState(**current_dump)
             except Exception as e:
-                logger.warning(f"[GraphEngine] Failed to hydrate state for {execution_id}: {e}")
+                error_code = ErrorCodes.STATE_INTEGRITY_ERROR
+                logger.error(
+                    f"[GraphEngine] {error_code.name}: Failed to hydrate state for {execution_id}: {e}",
+                    exc_info=True,
+                )
 
         # Jan 2026 Mandate: Strict Input Inflation & Sanitization
         inputs_data = execution_state.context_variables.get("inputs")
@@ -216,7 +225,11 @@ class GraphEngine:
                     try:
                         canonical_step = await repository.get_step_by_id(step_id)
                     except Exception as e:
-                        logger.warning(f"[GraphEngine] Step fetch failed for '{step_id}': {e}")
+                        error_code = ErrorCodes.TASK_NOT_FOUND
+                        logger.error(
+                            f"[GraphEngine] {error_code.name}: Step fetch failed for '{step_id}': {e}",
+                            exc_info=True,
+                        )
 
                 if not canonical_step:
                     logger.error(
@@ -467,7 +480,11 @@ class GraphEngine:
 
                         await repository.update_execution(execution_id, step_updates)
                     except Exception as e:
-                        logger.warning(f"Failed to persist state for {execution_id}: {e}")
+                        error_code = ErrorCodes.STATE_INTEGRITY_ERROR
+                        logger.error(
+                            f"[GraphEngine] {error_code.name}: Failed to persist state for {execution_id}: {e}",
+                            exc_info=True,
+                        )
 
             except AppException as ae:
                 # Specific Application Error (Fail Fast)
@@ -484,7 +501,12 @@ class GraphEngine:
                 try:
                     execution_state = execution_state.add_event(error_event)
                 except Exception as event_err:
-                    logger.warning(f"[GraphEngine] Failed to append error event to trace: {event_err}")
+                    error_code = ErrorCodes.STATE_INTEGRITY_ERROR
+                    logger.error(
+                        f"[GraphEngine] {error_code.name}: Failed to append error event to trace on "
+                        f"step '{safe_step_id}': {event_err}",
+                        exc_info=True,
+                    )
 
                 # Check if we should re-raise or wrap?
                 # If it's already an AppException, re-raising preserves the code.
@@ -505,7 +527,12 @@ class GraphEngine:
                 try:
                     execution_state = execution_state.add_event(error_event)
                 except Exception as event_err:
-                    logger.warning(f"[GraphEngine] Failed to append error event to trace: {event_err}")
+                    error_code = ErrorCodes.STATE_INTEGRITY_ERROR
+                    logger.error(
+                        f"[GraphEngine] {error_code.name}: Failed to append critical error event to trace on "
+                        f"step '{safe_step_id}': {event_err}",
+                        exc_info=True,
+                    )
 
                 failed_state_dump = execution_state.model_dump(mode="json")
                 safe_task_key = step.task_key if "step" in locals() else "unknown"
@@ -572,13 +599,14 @@ class GraphEngine:
             return typing.cast(WorkflowState, result_state)
 
         except Exception as e:
-            logger.error(f"[GraphEngine] Hook '{hook_name}' failed: {e}", exc_info=True)
+            error_code = ErrorCodes.HOOK_EXECUTION_FAILED
+            logger.error(f"[GraphEngine] {error_code.name}: Hook '{hook_name}' failed: {e}", exc_info=True)
             if isinstance(e, AppException):
                 raise e
             raise AppException(
                 message=f"Hook execution failed: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED, "original_error": str(e)},
+                details={"error_code": error_code, "original_error": str(e)},
             ) from e
 
     def _resolve_inputs(

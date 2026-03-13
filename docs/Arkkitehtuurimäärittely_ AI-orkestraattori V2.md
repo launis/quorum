@@ -94,6 +94,12 @@ Frontend API rajapinnoissa virheet hoidetaan aina **RFC 7807** hengessä:
 2. Tulostetaan `logger.error` backend lokeihin kehittäjille teknisen poikkeuksen kera.
 3. Nostetaan ulospäin asiallinen JSON, joka sisältää koneluettavan enumin (Esim. `VALIDATION_FAILED`), estäen koodin pinojen ja salaisuuksien vuotamisen asiakkaalle.
 
+## **5.5. CoT String-Tuple Pre-Parsing (LLM Decimal Bias Ohitus)**
+Koska LLM Structured Outputs (JSON Mode) pakottaa luontaisesti arvot kohti vahvoja kokonaislukuja (esim. 4.0), V2-arkkitehtuuri soveltaa dynaamista Chain-of-Thought (CoT) String-Tuple -ratkaisua (Decimal Override) ohittamaan tekoälyn "pyöristysharhan":
+1. **Injektio (`prompt_compiler.py`)**: LLM:n sanalliseen `justification`-kenttään injektoidaan ohje lennosta, joka pakottaa mallin kirjoittamaan kognitiivisen pohdintansa ensin ja päättämään sen tiukkaan tuple-tekstiin (esim. `||DECIMAL: 4.2||`).
+2. **Sieppaus (`scoring.py`)**: `normalize_matrix_scores`-hook sieppaa Pydantic-tilan juuri ennen sen tallentamista tietokantaan, purkaa tuplesta tarkan desimaalin säännöllisellä lausekkeella (regex), ylikirjoittaa LLM:n antaman "tyhmän" kokonaisluvun uudella liukuluvulla, ja siivoaa tekstin UI:ta varten.
+Tämä takaa aidosti vivahteikkaat desimaaliarvot (esim. 3.8) säilyttäen `db_v2.json` -rakenteen sataprosenttisen puhtaana matemaattisesta yhdenmukaisuudesta (Pydantic V2 float).
+
 ## ---
 
 ## **6\. Esityskerros (Adaptive SDUI - Flutter)**

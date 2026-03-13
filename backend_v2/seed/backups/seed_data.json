@@ -44,7 +44,7 @@
         "precise": {
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
-          "temperature": 0.2,
+          "temperature": 0.3,
           "top_p": null,
           "supports_grounding": false,
           "tpm_limit": 100000,
@@ -56,7 +56,7 @@
         "strict": {
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
-          "temperature": 0.0,
+          "temperature": 0.1,
           "top_p": null,
           "supports_grounding": false,
           "tpm_limit": 100000,
@@ -620,7 +620,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Eloundou, Tyna ym. 2023.",
+        "source_url": "https://doi.org/10.48550/arXiv.2303.10130"
+      }
     },
     {
       "id": "matrix_analyst",
@@ -640,7 +644,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Anderson, Lorin W. & Krathwohl, David R. (toim.) 2001.",
+        "source_url": "https://www.jstor.org/stable/j.ctt1v2xv4"
+      }
     },
     {
       "id": "matrix_archivist",
@@ -857,6 +865,29 @@
           ]
         },
         {
+          "score": 2,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Epätodennäköinen (Unlikely)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Käyttäjän antama ohjaus oli niin ylimalkaista, että sen suora syy-seuraussuhde laadukkaaseen lopputulokseen on kyseenalainen."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Tekoälyn sisäiset ennakkokäsitykset ohjasivat tulosta enemmän."
+              }
+            }
+          ]
+        },
+        {
           "score": 3,
           "name": {
             "default_locale": "fi",
@@ -875,6 +906,29 @@
               "default_locale": "fi",
               "translations": {
                 "fi": "Ei voida täysin varmistaa, syntyikö tulos sattumalta vai tarkoituksella."
+              }
+            }
+          ]
+        },
+        {
+          "score": 4,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Todennäköinen (Probable)"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Looginen jatkumo käyttäjän prompteista lopulliseen malliin on selkeästi nähtävissä."
+              }
+            },
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Vastafaktuaalinen testi viittaa siihen, että ilman tätä dialogia tulos olisi ollut erilainen."
               }
             }
           ]
@@ -932,7 +986,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Flavell, John H. 1979.",
+        "source_url": "https://doi.org/10.1037/0003-066X.34.10.906"
+      }
     },
     {
       "id": "matrix_falsifier",
@@ -950,7 +1008,7 @@
       },
       "category_id": "scientific_theory",
       "type": "float",
-      "allow_decimals": false,
+      "allow_decimals": true,
       "strictness_level": 50,
       "require_justification": false,
       "scales": [
@@ -1092,7 +1150,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "OWASP Foundation 2025f.",
+        "source_url": "https://genai.owasp.org/llm-top-10/"
+      }
     },
     {
       "id": "matrix_judge",
@@ -1278,7 +1340,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Toulmin, Stephen E. 2003.",
+        "source_url": "https://doi.org/10.1017/CBO9780511802034"
+      }
     },
     {
       "id": "matrix_overseer",
@@ -1298,7 +1364,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Kahneman, Daniel 2011.",
+        "source_url": "https://us.macmillan.com/books/9780374533557/thinkingfastandslow"
+      }
     },
     {
       "id": "matrix_profiler",
@@ -1318,7 +1388,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Dreyfus, Stuart E. & Dreyfus, Hubert L. 1980.",
+        "source_url": "https://apps.dtic.mil/sti/pdfs/ADA084551.pdf"
+      }
     },
     {
       "id": "matrix_xai_reporter",
@@ -1336,12 +1410,12 @@
       },
       "category_id": "scientific_theory",
       "type": "float",
-      "allow_decimals": false,
+      "allow_decimals": true,
       "strictness_level": 50,
       "require_justification": false,
       "scales": [
         {
-          "score": 0,
+          "score": 1,
           "name": {
             "default_locale": "fi",
             "translations": {
@@ -1367,7 +1441,7 @@
           ]
         },
         {
-          "score": 50,
+          "score": 2,
           "name": {
             "default_locale": "fi",
             "translations": {
@@ -1393,7 +1467,7 @@
           ]
         },
         {
-          "score": 100,
+          "score": 3,
           "name": {
             "default_locale": "fi",
             "translations": {
@@ -1431,8 +1505,8 @@
           }
         }
       ],
-      "scale_min": 4,
-      "scale_max": 10
+      "scale_min": 1,
+      "scale_max": 3
     },
     {
       "id": "block_headermandates",
@@ -1452,7 +1526,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Euroopan parlamentti & Euroopan unionin neuvosto 2024.",
+        "source_url": "https://artificialintelligenceact.eu/"
+      }
     },
     {
       "id": "block_instructionstrictscale",
@@ -1465,14 +1543,19 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Pakottaa noudattamaan matriisin asteikkoa (Fail Fast). TÄRKEÄÄ: Kaikkien pisteiden ON oltava määritellyn asteikon (Scale) sisällä. Sinun on noudatettava asteikon rajoja ehdottomasti. Pisteet alle asteikon minimin tai yli maksimin ovat kiellettyjä."
+          "fi": "Arvioi jokainen kriteeri EHDOTTOMASTI sille annetun pisteytysmatriisin (BARS) pohjalta. Voit käyttää arvioinnissa vapaasti yhtä desimaalia (esim. 2.1, 3.5, 4.9), jos konteksti sijoittuu kahden annetun arvon väliin. ÄLÄ hallusinoi ohjeistamattomia skaaloja.",
+          "en": "Evaluate every criterion STRICTLY based on the provided BARS matrix. You may freely use one decimal place (e.g. 2.1, 3.5, 4.9) if the context falls between two defined values. DO NOT hallucinate arbitrary scales."
         }
       },
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Moskal, Barbara M. 2000.",
+        "source_url": "https://doi.org/10.7275/a5vq-7q66"
+      }
     },
     {
       "id": "block_headerrules",
@@ -1492,7 +1575,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "ISO/IEC 2023.",
+        "source_url": "https://www.iso.org/standard/78176.html"
+      }
     },
     {
       "id": "block_headerprotocols",
@@ -1512,7 +1599,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "ISO/IEC 2023.",
+        "source_url": "https://www.iso.org/standard/78176.html"
+      }
     },
     {
       "id": "block_headerinstructions",
@@ -1532,7 +1623,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Wu, Junjie ym. 2024.",
+        "source_url": "https://doi.org/10.48550/arXiv.2409.07844"
+      }
     },
     {
       "id": "block_mandate2",
@@ -1552,7 +1647,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Turpin, Miles ym. 2023.",
+        "source_url": "https://arxiv.org/abs/2305.04388"
+      }
     },
     {
       "id": "block_mandate3",
@@ -1572,7 +1671,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Shavelson, Richard J. 2013.",
+        "source_url": "https://doi.org/10.1080/00461520.2013.779483"
+      }
     },
     {
       "id": "block_mandate5",
@@ -1592,7 +1695,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Euroopan komission korkean tason asiantuntijaryhmä 2019.",
+        "source_url": "https://digital-strategy.ec.europa.eu/en/library/ethics-guidelines-for-trustworthy-ai"
+      }
     },
     {
       "id": "block_rule1",
@@ -1612,7 +1719,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Adadi, Amina & Berrada, Mohammed 2018.",
+        "source_url": "https://doi.org/10.1109/ACCESS.2018.2870052"
+      }
     },
     {
       "id": "block_rule2",
@@ -1632,7 +1743,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Borsboom, Denny, Mellenbergh, Gideon J. & van Heerden, Jaap 2004.",
+        "source_url": "https://doi.org/10.1037/0033-295X.111.4.1061"
+      }
     },
     {
       "id": "block_rule3",
@@ -1652,7 +1767,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Mislevy, Robert J. 2003.",
+        "source_url": "https://doi.org/10.1093/lpr/2.4.237"
+      }
     },
     {
       "id": "block_rule4",
@@ -1672,7 +1791,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Weidinger, Laura ym. 2021.",
+        "source_url": "https://doi.org/10.48550/arXiv.2112.04359"
+      }
     },
     {
       "id": "block_rule5",
@@ -1692,7 +1815,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Goffman, Erving 1959.",
+        "source_url": "https://www.penguinrandomhouse.com/books/60786/the-presentation-of-self-in-everyday-life-by-erving-goffman/"
+      }
     },
     {
       "id": "block_rule6",
@@ -1712,7 +1839,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Koretz, Daniel M. ym. 1994.",
+        "source_url": "https://doi.org/10.1111/j.1745-3992.1994.tb00854.x"
+      }
     },
     {
       "id": "block_globalcontext",
@@ -1732,7 +1863,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Acemoglu, Daron & Restrepo, Pascual 2018.",
+        "source_url": "https://doi.org/10.1257/aer.20160696"
+      }
     },
     {
       "id": "block_oprule1",
@@ -1752,7 +1887,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "AERA, APA & NCME 2014.",
+        "source_url": "https://www.testingstandards.net/uploads/7/6/6/4/76643089/standards_2014edition.pdf"
+      }
     },
     {
       "id": "block_oprule2",
@@ -1772,7 +1911,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "AERA, APA & NCME 2014.",
+        "source_url": "https://www.testingstandards.net/uploads/7/6/6/4/76643089/standards_2014edition.pdf"
+      }
     },
     {
       "id": "block_oprule3",
@@ -1792,7 +1935,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Jonsson, Anders & Svingby, Gunilla 2007.",
+        "source_url": "https://doi.org/10.1016/j.edurev.2007.05.002"
+      }
     },
     {
       "id": "block_oprule4",
@@ -1812,7 +1959,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Jonsson, Anders & Svingby, Gunilla 2007.",
+        "source_url": "https://doi.org/10.1016/j.edurev.2007.05.002"
+      }
     },
     {
       "id": "block_instructionnohallucination",
@@ -1832,7 +1983,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Huang, Lei ym. 2023.",
+        "source_url": "https://doi.org/10.1145/3703155"
+      }
     },
     {
       "id": "block_instructioncitationobligation",
@@ -1852,7 +2007,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Mislevy, Robert J. 2003.",
+        "source_url": "https://doi.org/10.1093/lpr/2.4.237"
+      }
     },
     {
       "id": "block_instructionnodataleak",
@@ -1872,7 +2031,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "OWASP Foundation 2025b.",
+        "source_url": "https://genai.owasp.org/llm-top-10/"
+      }
     },
     {
       "id": "block_instructionbiblicalgrounding",
@@ -1892,7 +2055,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Popper, Karl 1934.",
+        "source_url": "https://plato.stanford.edu/entries/popper/"
+      }
     },
     {
       "id": "block_instructionlanguagefi",
@@ -1912,10 +2079,14 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "W3C 2008.",
+        "source_url": "https://www.w3.org/International/articles/unicode-migration/"
+      }
     },
     {
-      "id": "block_taskguard",
+      "id": "matrix_taskguard",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1931,7 +2102,7 @@
       },
       "category_id": "scientific_theory",
       "type": "float",
-      "allow_decimals": false,
+      "allow_decimals": true,
       "strictness_level": 50,
       "require_justification": false,
       "scales": [
@@ -1940,16 +2111,16 @@
           "name": {
             "default_locale": "fi",
             "translations": {
-              "fi": "barsRisk1",
-              "en": "barsRisk1"
+              "fi": "Aktiivinen Riski (OWASP LLM01, LLM02, LLM06)",
+              "en": "Active Vulnerability (OWASP LLM01, LLM02, LLM06)"
             }
           },
           "claims": [
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "barsRisk1",
-                "en": "barsRisk1"
+                "fi": "Syöte sisältää suoran kehotteen ohittaa järjestelmän ohjeistus tai manipuloida LLM:ää (Prompt Injection). Syöte tai tuloste uhkaa paljastaa arkaluonteista dataa tai lähdekoodia (Sensitive Information Disclosure). Tuloste sisältää suoritettavaa koodia, jota ei ole eristetty turvallisesti (Insecure Output Handling).",
+                "en": "The input contains a direct prompt injection attempt. The input or output threatens to expose sensitive data, or the output contains insecurely executable code."
               }
             }
           ]
@@ -1959,16 +2130,16 @@
           "name": {
             "default_locale": "fi",
             "translations": {
-              "fi": "barsRisk2",
-              "en": "barsRisk2"
+              "fi": "Asenteellinen Jännite tai Yliluottamus (OWASP LLM09)",
+              "en": "Structural Tension or Overreliance (OWASP LLM09)"
             }
           },
           "claims": [
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "barsRisk2",
-                "en": "barsRisk2"
+                "fi": "Syöte tai tuloste on dynaamisesti turvallinen, mutta havaitaan sokeaa luottamusta yksipuoliseen tietoon tai väärän/hallusinoidun tiedon generointia (Overreliance). Voi sisältää eettisesti harmaita alueita tai epävarmoja plugin-kutsuja (Insecure Plugin Design), mutta ei välitöntä hyökkäysriskiä.",
+                "en": "The text is technically safe but demonstrates overreliance on unverified information, hallucination risks, or ethically gray areas without critical review."
               }
             }
           ]
@@ -1978,16 +2149,16 @@
           "name": {
             "default_locale": "fi",
             "translations": {
-              "fi": "barsRisk3",
-              "en": "barsRisk3"
+              "fi": "Täydellinen Tietoturvahygienia",
+              "en": "Pristine Security Hygiene"
             }
           },
           "claims": [
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "barsRisk3",
-                "en": "barsRisk3"
+                "fi": "Keskustelu, syöte ja tulosteet ovat täysin neutraaleja ja turvallisia. OWASP Top 10 for LLMs -listan mukaisten haavoittuvuuksien tai asenteellisuuksien tunnusmerkistö ei täyty miltään osin.",
+                "en": "Complete absence of any OWASP Top 10 LLM risks. The interaction is fully secure, neutral, and ethically sound."
               }
             }
           ]
@@ -2019,7 +2190,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Wiggins, Grant 1998.",
+        "source_url": "https://www.wiley.com/en-us/Educative+Assessment%3A+Designing+Assessments+to+Inform+and+Improve+Student+Performance-p-9780787908488"
+      }
     },
     {
       "id": "block_taskprofiler",
@@ -2040,7 +2215,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Dreyfus, Stuart E. & Dreyfus, Hubert L. 1980.",
+        "source_url": "https://apps.dtic.mil/sti/pdfs/ADA084551.pdf"
+      }
     },
     {
       "id": "block_tasklogician",
@@ -2061,7 +2240,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Toulmin, Stephen E. 2003.",
+        "source_url": "https://doi.org/10.1017/CBO9780511802034"
+      }
     },
     {
       "id": "block_taskfalsifier",
@@ -2082,7 +2265,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Popper, Karl 1934.",
+        "source_url": "https://plato.stanford.edu/entries/popper/"
+      }
     },
     {
       "id": "block_taskoverseer",
@@ -2103,7 +2290,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Kahneman, Daniel 2011.",
+        "source_url": "https://us.macmillan.com/books/9780374533557/thinkingfastandslow"
+      }
     },
     {
       "id": "matrix_causal_abductive",
@@ -2208,7 +2399,11 @@
       "category_id": "instruction",
       "type": "string",
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Pearl, Judea 2009.",
+        "source_url": "https://doi.org/10.1017/CBO9780511803161"
+      }
     },
     {
       "id": "block_taskarchivist",
@@ -2228,7 +2423,11 @@
       "category_id": "instruction",
       "type": "string",
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Dworkin, Ronald 1986.",
+        "source_url": "https://plato.stanford.edu/entries/legal-positivism/"
+      }
     },
     {
       "id": "block_taskjudge",
@@ -2249,7 +2448,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Kahneman, Daniel 2011.",
+        "source_url": "https://us.macmillan.com/books/9780374533557/thinkingfastandslow"
+      }
     },
     {
       "id": "block_taskcoach",
@@ -2270,10 +2473,14 @@
       "type": "string",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Flavell, John H. 1979.",
+        "source_url": "https://doi.org/10.1037/0003-066X.34.10.906"
+      }
     },
     {
-      "id": "block_taskxai",
+      "id": "matrix_taskxai_clarity",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2283,22 +2490,22 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: XAI-RAPORTOIJA (License Certification)\nTEHTÄVÄT: Tuota loppukäyttäjälle ymmärrettävä, täysin läpinäkyvä raportti siitä, mihin havaintoihin ja painotuksiin tuomio perustuu.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `XAIOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
-          "en": "ROLE: XAI REPORTER (License Certification)\nTASKS: Produce an explainable, transparent report for the end-user detailing how the verdict was reached.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `XAIOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
+          "fi": "ROOLI: XAI-RAPORTOIJA (License Certification)\nTEHTÄVÄT: Arvioi järjestelmän kykyä tuottaa loppukäyttäjälle ymmärrettävä ja läpinäkyvä raportti siitä, mihin havaintoihin ja painotuksiin tuomio perustuu.",
+          "en": "ROLE: XAI REPORTER (License Certification)\nTASKS: Evaluate the systems ability to produce an explainable, transparent report detailing how the verdict was reached."
         }
       },
       "category_id": "scientific_theory",
       "type": "float",
-      "allow_decimals": false,
+      "allow_decimals": true,
       "strictness_level": 50,
       "require_justification": false,
       "scales": [
         {
-          "score": 0,
+          "score": 1,
           "name": {
             "default_locale": "fi",
             "translations": {
-              "fi": "barsConf0",
+              "fi": "Täysin läpinäkymätön (Musta laatikko)",
               "en": "barsConf0"
             }
           },
@@ -2306,18 +2513,18 @@
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "barsConf0",
+                "fi": "Täysin läpinäkymätön (Musta laatikko)",
                 "en": "barsConf0"
               }
             }
           ]
         },
         {
-          "score": 25,
+          "score": 2,
           "name": {
             "default_locale": "fi",
             "translations": {
-              "fi": "barsConf25",
+              "fi": "Heikosti selitetty (Osittainen perustelu)",
               "en": "barsConf25"
             }
           },
@@ -2325,18 +2532,18 @@
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "barsConf25",
+                "fi": "Heikosti selitetty (Osittainen perustelu)",
                 "en": "barsConf25"
               }
             }
           ]
         },
         {
-          "score": 50,
+          "score": 3,
           "name": {
             "default_locale": "fi",
             "translations": {
-              "fi": "barsConf50",
+              "fi": "Kohtalainen läpinäkyvyys (Looginen perusrakenne)",
               "en": "barsConf50"
             }
           },
@@ -2344,18 +2551,18 @@
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "barsConf50",
+                "fi": "Kohtalainen läpinäkyvyys (Looginen perusrakenne)",
                 "en": "barsConf50"
               }
             }
           ]
         },
         {
-          "score": 75,
+          "score": 4,
           "name": {
             "default_locale": "fi",
             "translations": {
-              "fi": "barsConf75",
+              "fi": "Vahvasti perusteltu (Selkeät kausaalisuudet)",
               "en": "barsConf75"
             }
           },
@@ -2363,18 +2570,18 @@
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "barsConf75",
+                "fi": "Vahvasti perusteltu (Selkeät kausaalisuudet)",
                 "en": "barsConf75"
               }
             }
           ]
         },
         {
-          "score": 100,
+          "score": 5,
           "name": {
             "default_locale": "fi",
             "translations": {
-              "fi": "barsConf100",
+              "fi": "Täydellinen läpinäkyvyys (Dialektinen synteesi)",
               "en": "barsConf100"
             }
           },
@@ -2382,7 +2589,7 @@
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "barsConf100",
+                "fi": "Täydellinen läpinäkyvyys (Dialektinen synteesi)",
                 "en": "barsConf100"
               }
             }
@@ -2393,8 +2600,8 @@
         "citation_reference": "Hegel, G. W. F. (1807). Phenomenology of Spirit (Dialectical Synthesis); Gunning, D., et al. (2019). XAI—Explainable artificial intelligence.",
         "source_url": "https://doi.org/10.1126/scirobotics.aay7120"
       },
-      "scale_min": 4,
-      "scale_max": 10
+      "scale_min": 1,
+      "scale_max": 5
     },
     {
       "id": "block_protocol1",
@@ -2414,7 +2621,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Ganascia, Jean-Gabriel 2017.",
+        "source_url": "https://doi.org/10.48550/arXiv.1704.08111"
+      }
     },
     {
       "id": "block_protocol3",
@@ -2434,7 +2645,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Tversky, Amos & Kahneman, Daniel 1974.",
+        "source_url": "https://doi.org/10.1126/science.185.4157.1124"
+      }
     },
     {
       "id": "block_protocol4",
@@ -2454,7 +2669,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Tversky, Amos & Kahneman, Daniel 1974.",
+        "source_url": "https://doi.org/10.1126/science.185.4157.1124"
+      }
     },
     {
       "id": "block_instructionanon",
@@ -2474,7 +2693,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Lison, Pierre ym. 2021.",
+        "source_url": "https://doi.org/10.48550/arXiv.2106.04631"
+      }
     },
     {
       "id": "block_instructionragopt",
@@ -2494,7 +2717,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Ahmad, Sultan ym. 2024.",
+        "source_url": "https://doi.org/10.48550/arXiv.2410.12837"
+      }
     },
     {
       "id": "block_principle1",
@@ -2514,7 +2741,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Popper, Karl 1934.",
+        "source_url": "https://plato.stanford.edu/entries/popper/"
+      }
     },
     {
       "id": "block_requirement1",
@@ -2534,7 +2765,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "OWASP Foundation 2025a.",
+        "source_url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/"
+      }
     },
     {
       "id": "block_instructioncoachcitation",
@@ -2555,7 +2790,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Flavell, John H. 1979.",
+        "source_url": "https://doi.org/10.1037/0003-066X.34.10.906"
+      }
     },
     {
       "id": "block_heuristic1",
@@ -2575,7 +2814,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Tversky, Amos & Kahneman, Daniel 1974.",
+        "source_url": "https://doi.org/10.1126/science.185.4157.1124"
+      }
     },
     {
       "id": "block_heuristic2",
@@ -2595,7 +2838,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Evans, Jonathan St. B. T. & Stanovich, Keith E. 2013.",
+        "source_url": "https://doi.org/10.1177/1745691612460685"
+      }
     },
     {
       "id": "block_heuristic3",
@@ -2615,7 +2862,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Kahneman, Daniel 2011.",
+        "source_url": "https://us.macmillan.com/books/9780374533557/thinkingfastandslow"
+      }
     },
     {
       "id": "block_taskperformativity",
@@ -2635,7 +2886,11 @@
       "type": "instruction",
       "allow_decimals": false,
       "strictness_level": 50,
-      "require_justification": false
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Strathern, Marilyn 1997.",
+        "source_url": "https://doi.org/10.1002/(SICI)1234-981X(199707)5:3<305::AID-EURO184>3.0.CO;2-4"
+      }
     },
     {
       "id": "block_instruction_strictness",
@@ -2657,6 +2912,10 @@
           "fi": "HUOMIO AUDITOINNIN KRIITTISYYS: Käyttäjä on asettanut tämän analyysin tiukkuustasoksi {{ inputs.strictness_level|default(50) }} / 100. Jos arvo on yli 80: Ole armoton, etsi pienimmätkin loogiset ja rakenteelliset virheet. Vaadi täydellisyyttä vahvimmalla arvosanalla hylkäykselle. Jos arvo on alle 40: Ole rakentava ja sallivampi. Huomioi enemmän hyvää tarkoitusta, ja liputa vain aidosti vaaralliset tai täysin puuttuvat rakenteet. Arvolla 40-80 tee täysin objektiivinen normaalianalyysi. Sisäistä tämä ja muuta subjektiivista analyytikon tai tuomarin tulkintaasi (1.0-5.0) tiukasti tämän vaatimustason mukaiseksi.",
           "en": "ATTENTION AUDIT STRICTNESS: The user has set the strictness level for this analysis to {{ inputs.strictness_level|default(50) }} / 100. If the value is over 80: Be merciless, find the smallest logical and structural errors. Demand perfection with the strongest penalty score. If the value is under 40: Be constructive and more lenient. Acknowledge good intent, and only flag genuinely dangerous or completely missing structures. At 40-80, perform a fully objective standard analysis. Internalize this and bias your subjective analyst or judge scoring (1.0-5.0) strictly according to this requirement level."
         }
+      },
+      "theory_grounding": {
+        "citation_reference": "Moskal, Barbara M. 2000.",
+        "source_url": "https://doi.org/10.7275/a5vq-7q66"
       }
     }
   ],
@@ -2800,7 +3059,13 @@
           "input_mappings": {
             "inputs": "$inputs"
           },
-          "model_strategy": "fast"
+          "model_strategy": "fast",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_guard",
@@ -2811,7 +3076,13 @@
           "input_mappings": {
             "inputs": "$inputs"
           },
-          "model_strategy": "fast"
+          "model_strategy": "fast",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_analyst",
@@ -2822,18 +3093,32 @@
           "input_mappings": {
             "inputs": "$inputs"
           },
-          "model_strategy": "fast"
+          "model_strategy": "fast",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_profiler",
           "task_blueprint": "step_profiler",
           "depends_on": [
-            "step_guard"
+            "step_guard",
+            "step_analyst"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "inputs": "$inputs",
+            "step_analyst": ""
           },
-          "model_strategy": "precise"
+          "model_strategy": "precise",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_logician",
@@ -2845,7 +3130,13 @@
             "step_analyst": "$step_analyst",
             "inputs": "$inputs"
           },
-          "model_strategy": "strict"
+          "model_strategy": "strict",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_falsifier",
@@ -2857,31 +3148,53 @@
             "step_analyst": "$step_analyst",
             "inputs": "$inputs"
           },
-          "model_strategy": "strict"
+          "model_strategy": "strict",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_causal_analyst",
           "task_blueprint": "step_causal_analyst",
           "depends_on": [
-            "step_analyst"
+            "step_analyst",
+            "step_falsifier"
           ],
           "input_mappings": {
             "step_analyst": "$step_analyst",
-            "inputs": "$inputs"
+            "inputs": "$inputs",
+            "step_falsifier": ""
           },
-          "model_strategy": "deep"
+          "model_strategy": "deep",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_performativity_detector",
           "task_blueprint": "step_performativity_detector",
           "depends_on": [
-            "step_analyst"
+            "step_analyst",
+            "step_profiler"
           ],
           "input_mappings": {
             "step_analyst": "$step_analyst",
-            "inputs": "$inputs"
+            "inputs": "$inputs",
+            "step_profiler": ""
           },
-          "model_strategy": "precise"
+          "model_strategy": "precise",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_overseer",
@@ -2893,18 +3206,32 @@
             "step_analyst": "$step_analyst",
             "inputs": "$inputs"
           },
-          "model_strategy": "strict"
+          "model_strategy": "strict",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_archivist",
           "task_blueprint": "step_archivist",
           "depends_on": [
-            "step_guard"
+            "step_guard",
+            "step_analyst"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "inputs": "$inputs",
+            "step_analyst": ""
           },
-          "model_strategy": "fast"
+          "model_strategy": "fast",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_judge",
@@ -2932,7 +3259,13 @@
             "step_overseer": "$step_overseer",
             "step_archivist": "$step_archivist"
           },
-          "model_strategy": "precise"
+          "model_strategy": "precise",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_coach",
@@ -2954,7 +3287,13 @@
             "step_falsifier": "$step_falsifier",
             "step_causal_analyst": "$step_causal_analyst"
           },
-          "model_strategy": "precise"
+          "model_strategy": "precise",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         },
         {
           "id": "step_xai_reporter",
@@ -2976,8 +3315,17 @@
             "step_falsifier": "$step_falsifier",
             "step_causal_analyst": "$step_causal_analyst"
           },
-          "model_strategy": "fast"
+          "model_strategy": "precise",
+          "pre_hooks": [
+            "inject_step_metadata"
+          ],
+          "post_hooks": [
+            "normalize_matrix_scores"
+          ]
         }
+      ],
+      "post_hooks": [
+        "normalize_matrix_scores"
       ]
     }
   ],
@@ -3001,7 +3349,8 @@
         "matrix_input_processing"
       ],
       "pre_hooks": [
-        "input_processing"
+        "input_processing",
+        "inject_step_metadata"
       ],
       "post_hooks": []
     },
@@ -3040,12 +3389,14 @@
       ],
       "pre_hooks": [
         "calculate_text_metrics",
-        "calculate_control_ratio"
+        "calculate_control_ratio",
+        "inject_step_metadata"
       ],
       "post_hooks": [
         "verify_citation_integrity",
         "enforce_hypothesis_linking",
-        "execute_google_search"
+        "execute_google_search",
+        "normalize_matrix_scores"
       ]
     },
     {
@@ -3072,13 +3423,17 @@
         "block_instructionnohallucination",
         "block_instructionlanguagefi",
         "block_headerinstructions",
+        "block_instruction_strictness",
         "matrix_archivist",
         "block_taskarchivist"
       ],
       "pre_hooks": [
-        "retrieve_precedent"
+        "retrieve_precedent",
+        "inject_step_metadata"
       ],
-      "post_hooks": []
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ]
     },
     {
       "id": "step_causal_analyst",
@@ -3110,8 +3465,12 @@
         "matrix_causal_abductive",
         "block_taskcausal"
       ],
-      "pre_hooks": [],
-      "post_hooks": []
+      "pre_hooks": [
+        "inject_step_metadata"
+      ],
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ]
     },
     {
       "id": "step_coach",
@@ -3155,8 +3514,12 @@
         "block_instructionstrictscale",
         "block_instructioncoachcitation"
       ],
-      "pre_hooks": [],
-      "post_hooks": []
+      "pre_hooks": [
+        "inject_step_metadata"
+      ],
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ]
     },
     {
       "id": "step_performativity_detector",
@@ -3187,8 +3550,12 @@
         "matrix_goodhart",
         "block_taskperformativity"
       ],
-      "pre_hooks": [],
-      "post_hooks": []
+      "pre_hooks": [
+        "inject_step_metadata"
+      ],
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ]
     },
     {
       "id": "step_falsifier",
@@ -3219,9 +3586,12 @@
         "matrix_falsifier",
         "block_taskfalsifier"
       ],
-      "pre_hooks": [],
+      "pre_hooks": [
+        "inject_step_metadata"
+      ],
       "post_hooks": [
-        "verify_citation_integrity"
+        "verify_citation_integrity",
+        "normalize_matrix_scores"
       ]
     },
     {
@@ -3252,14 +3622,17 @@
         "block_instructionnodataleak",
         "block_instructionlanguagefi",
         "block_headerinstructions",
-        "block_taskguard"
+        "matrix_taskguard"
       ],
       "pre_hooks": [
         "sanitize_text",
         "check_banned_phrases",
-        "verify_structure"
+        "verify_structure",
+        "inject_step_metadata"
       ],
-      "post_hooks": []
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ]
     },
     {
       "id": "step_judge",
@@ -3282,21 +3655,8 @@
         "block_mandate2",
         "block_mandate3",
         "block_mandate5",
-        "block_headerrules",
-        "block_rule1",
-        "block_rule2",
-        "block_rule3",
-        "block_rule4",
-        "block_rule5",
-        "block_rule6",
-        "block_oprule1",
-        "block_oprule2",
-        "block_oprule3",
         "block_principle1",
         "block_requirement1",
-        "block_heuristic1",
-        "block_heuristic2",
-        "block_heuristic3",
         "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
@@ -3304,11 +3664,14 @@
         "block_taskjudge",
         "block_instructionstrictscale"
       ],
-      "pre_hooks": [],
+      "pre_hooks": [
+        "inject_step_metadata"
+      ],
       "post_hooks": [
         "apply_scoring_logic",
         "verify_citation_integrity",
-        "enforce_passivity_penalty"
+        "enforce_passivity_penalty",
+        "normalize_matrix_scores"
       ]
     },
     {
@@ -3343,8 +3706,12 @@
         "block_tasklogician",
         "block_instructionstrictscale"
       ],
-      "pre_hooks": [],
-      "post_hooks": []
+      "pre_hooks": [
+        "inject_step_metadata"
+      ],
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ]
     },
     {
       "id": "step_overseer",
@@ -3391,9 +3758,12 @@
         "block_taskoverseer"
       ],
       "pre_hooks": [
-        "execute_google_search"
+        "execute_google_search",
+        "inject_step_metadata"
       ],
-      "post_hooks": []
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ]
     },
     {
       "id": "step_profiler",
@@ -3422,14 +3792,19 @@
         "block_instructionnohallucination",
         "block_instructionlanguagefi",
         "block_headerinstructions",
+        "block_heuristic1",
+        "block_instruction_strictness",
         "matrix_kahneman",
         "block_taskprofiler"
       ],
       "pre_hooks": [
         "calculate_text_metrics",
-        "calculate_control_ratio"
+        "calculate_control_ratio",
+        "inject_step_metadata"
       ],
-      "post_hooks": []
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ]
     },
     {
       "id": "step_xai_reporter",
@@ -3451,28 +3826,19 @@
         "block_headermandates",
         "block_mandate2",
         "block_mandate3",
-        "block_headerrules",
-        "block_rule1",
-        "block_rule2",
-        "block_rule3",
-        "block_rule4",
-        "block_rule5",
-        "block_rule6",
-        "block_oprule1",
-        "block_oprule2",
-        "block_oprule3",
         "block_principle1",
         "block_requirement1",
-        "block_heuristic1",
-        "block_heuristic2",
-        "block_heuristic3",
         "block_instructionlanguagefi",
         "block_headerinstructions",
         "matrix_xai_reporter",
-        "block_taskxai"
+        "matrix_taskxai_clarity"
       ],
-      "pre_hooks": [],
-      "post_hooks": []
+      "pre_hooks": [
+        "inject_step_metadata"
+      ],
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ]
     }
   ],
   "organizations": [

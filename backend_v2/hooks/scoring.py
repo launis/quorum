@@ -512,6 +512,27 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
             if slug not in new_payload:
                 continue
 
+            # --- CoT Decimal Override Hack ---
+            # Extract the raw justification string if it exists
+            justification_val = new_payload.get(f"{slug}_justification")
+            if justification_val and isinstance(justification_val, str):
+                import re
+                # Look for the strict tag at the end: ||DECIMAL: 4.2||
+                cot_match = re.search(r"\|\|DECIMAL:\s*([0-9.]+)\|\|", justification_val)
+                if cot_match:
+                    try:
+                        extracted_decimal = float(cot_match.group(1))
+                        # Override the LLM's raw biased value
+                        new_payload[slug] = extracted_decimal
+                        logger.info(f"[ScoringHook] Extracted CoT Decimal '{extracted_decimal}' for '{slug}'")
+                        
+                        # Clean the justification string to remove the hack syntax from the DB
+                        clean_justification = re.sub(r"\s*\|\|DECIMAL:\s*[0-9.]+\|\|\s*", "", justification_val)
+                        new_payload[f"{slug}_justification"] = clean_justification
+                    except ValueError:
+                        pass
+            # ---------------------------------
+
             raw_val = new_payload[slug]
             if not isinstance(raw_val, (int, float)):
                 continue
@@ -543,19 +564,24 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
                     target_max = max(scores_in_scales)
 
             if scales and target_min is not None and target_max is not None:
-                from backend_v2.utils.math_utils import normalize_score_to_100
+                from backend_v2.utils.math_utils import normalize_score_to_100, calculate_scaled_score
 
                 # 1. The original AI output
                 raw_float = float(raw_val)
+                number_of_options = len(scales)
                 
-                # 2. The Python-scaled (clamped) value based on scale_min and scale_max
-                scaled_val = max(float(target_min), min(float(target_max), raw_float))
+                # 2. The Python-scaled calculated value based on relative proportion of options (V2 Logic)
+                scaled_val = calculate_scaled_score(
+                     score=raw_float,
+                     number_of_options=number_of_options,
+                     scale_min=float(target_min),
+                     scale_max=float(target_max),
+                )
 
-                # 3. The 1-100 normalized value for commensurable aggregation
+                # 3. The 1-100 normalized value for commensurable aggregation (V2 Logic)
                 normalized_val = normalize_score_to_100(
-                    score=scaled_val,
-                    scale_min=float(target_min),
-                    scale_max=float(target_max),
+                    score=raw_float,
+                    number_of_options=number_of_options,
                 )
 
                 # Store exactly three properties

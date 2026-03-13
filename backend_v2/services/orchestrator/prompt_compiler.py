@@ -300,10 +300,21 @@ class PromptCompiler:
             if require_justification or crit.get("require_justification", False):
                 # 1. Justification (XAI)
                 justification_key = f"{crit_id}_justification"
-                justification_desc = (
-                    f"Detailed reasoning for the assigned score for '{label}'. "
-                    "Must explicitly adhere to the active STRICTNESS CALIBRATION."
-                )
+                
+                # CoT Decimal Override Hack (V2 JSON Mode rounding bypass)
+                if crit.get("allow_decimals", False):
+                    justification_desc = (
+                        f"Detailed reasoning for the assigned score for '{label}'. "
+                        "Must explicitly adhere to the active STRICTNESS CALIBRATION. "
+                        "CRITICAL INSTRUCTION: Write your analysis first. At the VERY END of this text, "
+                        "you MUST provide the final nuanced decimal score in this exact format: ||DECIMAL: 4.2||"
+                    )
+                else:
+                    justification_desc = (
+                        f"Detailed reasoning for the assigned score for '{label}'. "
+                        "Must explicitly adhere to the active STRICTNESS CALIBRATION."
+                    )
+                    
                 fields[justification_key] = (str, Field(..., description=justification_desc))
 
                 # 2. Citation Source ID (Grounded Theory Integration)

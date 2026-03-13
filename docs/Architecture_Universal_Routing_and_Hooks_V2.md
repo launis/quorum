@@ -101,6 +101,12 @@ The crown jewel of the V2 mechanism protects the output from LLM distortion:
 -   **`inject_step_metadata`**: A pre-hook that injects deterministic system context (e.g., `execution_id`, `initiator_id`, ISO timestamps) directly into the step's execution state. This ensures robust auditability by associating every LLM payload securely with its orchestrating system process without relying on the LLM to hallucinate run IDs.
 -   **`score_penalties`**: Evaluates boolean flags generated across the expert pipeline (e.g. `post_hoc_rationalization` applied by the Falsifier) and multiplies the Judge's ultimate grade by administrative penalty scalars entirely outside the LLM purview.
 
+### 5.4 CoT String-Tuple Pre-Parsing (Decimal Override)
+To combat the mathematical collapse of probabilities toward whole integers inherent in LLM JSON Mode (Structured Outputs bias), V2 employs the **CoT String-Tuple Hack**. 
+- **Prompt Injection (`prompt_compiler.py`)**: The engine strategically injects a directive into the text-based `justification` field, forcing the LLM to process its Chain-of-Thought (CoT) reasoning *before* outputting a strict string tuple at the exact end of the property (e.g., `||DECIMAL: 4.2||`).
+- **Hook Interception (`scoring.py`)**: The `normalize_matrix_scores` hook intercepts the execution state payload, uses regex to extract the nuanced decimal from the `justification` string, and forcefully overrides the LLM's integer-biased matrix value. The hook then cleanses the justification string for the database.
+This guarantees robust fractional precision (e.g., 3.8, 4.2) without violating pure Pydantic typing or destructively altering the UI schemas.
+
 ---
 
 ## 6. Information Retrieval & 3-Tier Grounding Architecture
