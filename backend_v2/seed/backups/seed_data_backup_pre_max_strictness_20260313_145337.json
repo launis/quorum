@@ -619,7 +619,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Eloundou, Tyna ym. 2023.",
@@ -644,7 +644,7 @@
       "category_id": "agent_role",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Anderson, Lorin W. & Krathwohl, David R. (toim.) 2001.",
@@ -990,7 +990,7 @@
       "category_id": "agent_role",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Flavell, John H. 1979.",
@@ -1155,7 +1155,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "OWASP Foundation 2025f.",
@@ -1346,7 +1346,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Toulmin, Stephen E. 2003.",
@@ -1371,7 +1371,7 @@
       "category_id": "agent_role",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Kahneman, Daniel 2011.",
@@ -1396,7 +1396,7 @@
       "category_id": "agent_role",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Dreyfus, Stuart E. & Dreyfus, Hubert L. 1980.",
@@ -1534,7 +1534,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Euroopan parlamentti & Euroopan unionin neuvosto 2024.",
@@ -1559,7 +1559,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Moskal, Barbara M. 2000.",
@@ -1583,7 +1583,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "ISO/IEC 2023.",
@@ -1607,7 +1607,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "ISO/IEC 2023.",
@@ -1631,7 +1631,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Wu, Junjie ym. 2024.",
@@ -1655,7 +1655,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Turpin, Miles ym. 2023.",
@@ -1679,7 +1679,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Shavelson, Richard J. 2013.",
@@ -1703,7 +1703,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Euroopan komission korkean tason asiantuntijaryhmä 2019.",
@@ -1727,7 +1727,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Adadi, Amina & Berrada, Mohammed 2018.",
@@ -1751,7 +1751,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Borsboom, Denny, Mellenbergh, Gideon J. & van Heerden, Jaap 2004.",
@@ -1775,7 +1775,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Mislevy, Robert J. 2003.",
@@ -1800,7 +1800,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Weidinger, Laura ym. 2021.",
@@ -1824,7 +1824,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Goffman, Erving 1959.",
@@ -1848,7 +1848,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Koretz, Daniel M. ym. 1994.",
@@ -1872,7 +1872,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Acemoglu, Daron & Restrepo, Pascual 2018.",
@@ -1896,7 +1896,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "AERA, APA & NCME 2014.",
@@ -1920,7 +1920,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "AERA, APA & NCME 2014.",
@@ -1945,7 +1945,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Jonsson, Anders & Svingby, Gunilla 2007.",
@@ -1970,7 +1970,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Jonsson, Anders & Svingby, Gunilla 2007.",
@@ -1994,7 +1994,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Huang, Lei ym. 2023.",
@@ -2018,7 +2018,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Mislevy, Robert J. 2003.",
@@ -2042,7 +2042,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "OWASP Foundation 2025b.",
@@ -2066,7 +2066,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Popper, Karl 1934.",
@@ -2091,7 +2091,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "W3C 2008.",
@@ -2202,7 +2202,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Wiggins, Grant 1998.",
@@ -2227,7 +2227,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Dreyfus, Stuart E. & Dreyfus, Hubert L. 1980.",
@@ -2252,7 +2252,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Toulmin, Stephen E. 2003.",
@@ -2277,7 +2277,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Popper, Karl 1934.",
@@ -2302,7 +2302,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Kahneman, Daniel 2011.",
@@ -2460,7 +2460,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Kahneman, Daniel 2011.",
@@ -2634,7 +2634,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Ganascia, Jean-Gabriel 2017.",
@@ -2658,7 +2658,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Tversky, Amos & Kahneman, Daniel 1974.",
@@ -2682,7 +2682,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Tversky, Amos & Kahneman, Daniel 1974.",
@@ -2706,7 +2706,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Lison, Pierre ym. 2021.",
@@ -2730,7 +2730,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Ahmad, Sultan ym. 2024.",
@@ -2754,7 +2754,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Popper, Karl 1934.",
@@ -2778,7 +2778,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "OWASP Foundation 2025a.",
@@ -2803,7 +2803,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Flavell, John H. 1979.",
@@ -2828,7 +2828,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Tversky, Amos & Kahneman, Daniel 1974.",
@@ -2853,7 +2853,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Evans, Jonathan St. B. T. & Stanovich, Keith E. 2013.",
@@ -2877,7 +2877,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Kahneman, Daniel 2011.",
@@ -2901,7 +2901,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "theory_grounding": {
         "citation_reference": "Strathern, Marilyn 1997.",
@@ -2913,7 +2913,7 @@
       "slug": "block_instruction_strictness",
       "category_id": "instruction",
       "type": "instruction",
-      "strictness_level": 100,
+      "strictness_level": 50,
       "require_justification": false,
       "label": {
         "default_locale": "fi",
