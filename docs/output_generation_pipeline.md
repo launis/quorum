@@ -68,6 +68,13 @@ Because `ExecutionRecord` contains massive amounts of raw internal event logs, i
     4. **I18N No-String Mandate**: `SDUIWidgetFactory` matches the keys from `results` against the components mapped in the `ui_hints_snapshot` and dynamically interprets localization Enum Keys (Not translated strings) using `.arb` files and ICU plurals/formatting.
     5. **Graceful Degradation**: If backend validation fails or the stream is interrupted, Flutter degrades safely preventing white screens but logs `🔴 UI GRACEFUL DEGRADATION` for the developer.
 
+> 🏛️ **Architectural Standard: BARS Matrices & SDUI Rendering (Tripartite Boundary)**
+> **Rule**: Matrix metadata (Text Claims, Scale Translations, and visual charting configurations) MUST NEVER be embedded within the `ExecutionRecord` payload during the DAG Execution phase. Visual assembly must be deferred to the SDUI Render phase.
+> 
+> * **1. Execution Phase (Cognition)**: The LLM and DAG Engine output ONLY the raw numeric score alongside its `matrix_id` reference (e.g., `{ "score": 4.5, "matrix_id": "matrix_standard_v1" }`). This ensures an append-only, hyper-lightweight database footprint.
+> * **2. Render Phase (Transformation)**: When a client accesses the `/render` endpoint, the Server-Side SDUI Transformer intercepts the payload. It queries `seed_data.json` for the exact `matrix_id`, evaluates the `score` against the defined anchors, dynamically extracts the required text claims/translations, and constructs the visual SDUI schema (e.g., a `ScoreCardDisplay` or progress bar component).
+> * **3. Client Phase (Zero-Deploy)**: The Flutter UI receives a fully constructed Server-Driven UI component and simply renders it. The Flutter client requires no hardcoded knowledge of specific matrices, ensuring massive backwards compatibility and strict Zero-Deploy adherence.
+
 ### 4.2 PDF Generation & Flat File/CSV Export (Server-Side)
 * **Mechanism**:
     1. The PDF generator directly uses the same `ExecutionRecord` payload via the endpoint `format=pdf`.

@@ -13,6 +13,7 @@ from . import (
     search,
     security,
     validation,
+    metadata,
 )
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "search",
     "security",
     "validation",
+    "metadata",
 ]

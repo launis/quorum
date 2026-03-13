@@ -85,9 +85,28 @@ class DAGExecutor:
         # Execution State variables
         step_events: dict[str, asyncio.Event] = {step.id: asyncio.Event() for step in workflow.steps}
 
-        state_data = dict(raw_inputs)
-        state_data["inputs"] = raw_inputs  # Legacy V1 hooks expect data["inputs"]
+        # Convert to pure dicts for hook compatibility
+        raw_inputs_dict = dict(raw_inputs) if isinstance(raw_inputs, dict) else raw_inputs.model_dump()
+        state_data = dict(raw_inputs_dict)
+        state_data["inputs"] = raw_inputs_dict  # Legacy V1 hooks expect data["inputs"]
         state_data["_sys_workflow_id"] = workflow.id  # Required by V2 input_processing hook
+        state_data["_sys_execution_id"] = execution_id
+        state_data["_sys_repository"] = self.repository
+
+        # --- V2 Strict Execution Hydration Phase ---
+        # With V2 Shallow Copy Concurrency isolation (Phase 9), pre_hooks mutating state_data
+        # inside _execute_step are strictly isolated. Thus, we MUST run global hydrators
+        # like `input_processing` synchronously BEFORE parallel DAG orchestration starts.
+        from backend_v2.core.hook_registry import hook_registry
+        try:
+            logger.info(f"[DAGExecutor] Initiating Step 0 Base64 Pre-Hydration for Workflow {workflow.id}")
+            processed = await hook_registry.execute("input_processing", state_data)
+            if isinstance(processed, dict) and "inputs" in processed:
+                 state_data["inputs"] = processed["inputs"]
+        except Exception as e:
+            logger.error(f"[DAGExecutor] Pre-Hydration failed to parse raw inputs: {e}")
+            # Do not crash here. Let step_input_processing fail naturally with the standard schema if needed.
+        state_data["_sys_execution_id"] = execution_id
         frozen_ctx = exec_record.frozen_context
 
         try:
@@ -168,9 +187,12 @@ class DAGExecutor:
             # crashes the Uvicorn ASGI server as the response has already been sent.
             return exec_record
 
-    async def _execute_step(self, step: StepRule, state_data: dict[str, Any], frozen_ctx: FrozenContext) -> Any:
+    async def _execute_step(self, step: StepRule, shared_state_data: dict[str, Any], frozen_ctx: FrozenContext) -> Any:
         """Executes a single step: hook, agent, or conditional logic."""
         # 1. Condition Evaluation (Currently unsupported in V2 StepRule schema)
+        
+        # Isolate state to prevent concurrency bleeding between async nodes in Phase 9
+        state_data = dict(shared_state_data)
 
         # 2. Hook Execution (Deterministic or Async)
         hook_name: str | None = getattr(step, "hook", None)
@@ -200,6 +222,8 @@ class DAGExecutor:
 
             # 3.0 Pre-Hooks Execution
             state_data["_sys_repository"] = self.repository
+            state_data["_sys_step_id"] = step.id 
+            
             for pre_hook in step_obj.pre_hooks:
                 logger.debug(f"Executing Pre-Hook: {pre_hook}")
                 # We assume pre-hooks modify state_data in-place or return updated dict.
@@ -252,7 +276,34 @@ class DAGExecutor:
                 messages=messages,
                 response_model=dynamic_schema,
             )
-            return result.model_dump()
+            
+            final_dict = result.model_dump()
+
+            # 3.4 Post-Hooks Execution
+            # V2 Isolation: Provide the isolated final_dict, but inject a lookup hook
+            # for global context if the post-hook needs to aggregate across nodes.
+            final_dict["_sys_context_vars"] = state_data
+            
+            for post_hook in step_obj.post_hooks:
+                logger.debug(f"Executing Post-Hook: {post_hook}")
+                # Pass the LLM output dict to the post hook for manipulation/normalization
+                ph_result = await hook_registry.execute(post_hook, final_dict)
+                if isinstance(ph_result, dict):
+                    final_dict.update(ph_result)
+            
+            # Remove the injected global context immediately to prevent recursive JSON bloat
+            if "_sys_context_vars" in final_dict:
+                del final_dict["_sys_context_vars"]
+            
+            # 3.5 Merge Python Hook State into Final Result
+            # Pre-hooks often return specific statistical metadata keys. By convention,
+            # we look for known injected objects in the state_data and append them dynamically
+            # to the Pydantic-validated output dictionary.
+            for key in ["profiler_metrics", "step_metadata", "_audit_signature"]:
+                if key in state_data:
+                    final_dict[key] = state_data[key]
+                    
+            return final_dict
 
         else:
             raise AppException(

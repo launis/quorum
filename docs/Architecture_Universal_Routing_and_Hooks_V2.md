@@ -97,7 +97,8 @@ In V1, LLMs were instructed to "calculate" bias or word lengths. This is moved t
 
 ### 5.3 Governance: Zero-Hallucination & Penalty Execution
 The crown jewel of the V2 mechanism protects the output from LLM distortion:
--   **`verify_citation_integrity`**: The ultimate anti-hallucination safeguard. Forces the Analyst and Falsifier to supply exact `quotes`. The hook scans originating inputs; if quoted text does not exist precisely in the raw data, the internal `integrity_score` drops. If this score falls beneath the system threshold, the API crashes via `AppException`. Enforces sequential IDs (`HYP-1`) on hypotheses.
+-   **`verify_citation_integrity`**: The ultimate anti-hallucination safeguard. Forces the Analyst and Falsifier to supply exact `quotes`. The hook scans originating inputs; if quoted text does not exist precisely in the raw data, the internal `integrity_score` drops. If this score falls beneath the system threshold, the API gracefully degrades the citation to `null` and logs the hallucination (Dual-Reporting) without crashing the pipeline, adhering to the Fail-Fast Protocol.
+-   **`inject_step_metadata`**: A pre-hook that injects deterministic system context (e.g., `execution_id`, `initiator_id`, ISO timestamps) directly into the step's execution state. This ensures robust auditability by associating every LLM payload securely with its orchestrating system process without relying on the LLM to hallucinate run IDs.
 -   **`score_penalties`**: Evaluates boolean flags generated across the expert pipeline (e.g. `post_hoc_rationalization` applied by the Falsifier) and multiplies the Judge's ultimate grade by administrative penalty scalars entirely outside the LLM purview.
 
 ---

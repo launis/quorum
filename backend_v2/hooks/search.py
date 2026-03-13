@@ -40,13 +40,8 @@ async def execute_google_search_hook(data: dict[str, Any], repository: Any = Non
         return {}
 
     # 1. Extract Analyst Output
-    analyst_output = data.get("step_analyst")
-
-    if not analyst_output:
-        # If the step was skipped or not executed, we can't search.
-        # This is a valid "no-op" scenario, not a crash.
-        logger.warning("[SearchHook] 'step_analyst' (Analyst) not found in context. Skipping search.")
-        return {}
+    # V2 Isolation: If running as a post-hook, 'data' is already the local step dictionary.
+    analyst_output = data.get("step_analyst", data)
 
     # 2. Extract Queries
     queries: list[str] = []
@@ -58,7 +53,6 @@ async def execute_google_search_hook(data: dict[str, Any], repository: Any = Non
             if sq and isinstance(sq, str) and len(sq.strip()) > 3:
                 queries.append(sq)
     elif hasattr(analyst_output, "hypotheses") and analyst_output.hypotheses:
-
         for hyp in analyst_output.hypotheses:
             if hyp.search_query and len(hyp.search_query.strip()) > 3:
                 queries.append(hyp.search_query)
@@ -99,7 +93,8 @@ async def execute_google_search_hook(data: dict[str, Any], repository: Any = Non
         raise ConfigurationError(msg, details={"error_code": error_code}) from e
 
     # 5. Extract Language
-    inputs = data.get("inputs")
+    # If inputs is missing due to V2 isolation, default to "en" or attempt a global fetch if repository is injected
+    inputs = data.get("inputs", {})
     lang_code = "en"
     if isinstance(inputs, dict):
         lang_code = inputs.get("language", "en")

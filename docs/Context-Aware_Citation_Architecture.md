@@ -59,6 +59,7 @@ Käyttöliittymässä "WidgetFactory" vastaanottaa datan. Jos `cited_source_id` 
 
 Tämän tavoitteen saavuttaminen edellyttää seuraavien spesifien teknisten vaiheiden toteuttamista:
 
+0.  **[CRITICAL COMPLIANCE] Datan Varmistus (Data Backup):** Ennen koodaustyön tai luovien rakennemuutosten aloittamista, nykyinen dynaaminen tietokanta (`backend_v2\seed\seed_data.json`) on ehdottomasti kopioitava muotoon `backend_v2\seed\backups\seed_data_backup_[pvm].json`. Asiantuntija ei saa koskea dataan ennen vahvistusta tämän tallennuksen olemassaolosta.
 1.  **Rakenteellinen purku (Knowledge Extraction):** Rakenna mekanismi tai koodinpätkä, joka jäsentää ja lukee `Holistinen Mestaruus.md` -dokumentin olennaisimmat viitekehykset (Bloom, Toulmin, Kahneman jne.) koneluettaviksi objekteiksi (esim. `PromptBlock` tai sisäinen tietokanta `seed_data.json` -tasolla).
 2.  **Dynaamisen Pydantic-skeeman päivitys:** Muokkaa Pydantic-malleja (esim. `prompt_compiler.py`) vastaanottamaan ja generoimaan edellä kuvatut `cited_source_id` ja `cited_text_quote` vapaan `citation` -tekstikentän sijaan.
 3.  **Deterministinen Tarkistus-Hook (`verify_citation_integrity`):** Laajenna nykyinen backendin arkkitehtuuri siten, että `verify_citation_integrity` tutkii Pydantic-vastauksen:

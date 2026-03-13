@@ -18,6 +18,7 @@ The engine is fundamentally **data-driven**. In Cognitive Quorum V2, the core "r
 * **LLM Definitions are Data**: The instructions, matrices, and hooks that constrain the LLM's reasoning are stored entirely as database records in the `prompt_blocks` collection.
 * **Dynamic Programming**: Changing a database record instantly alters how the system "thinks" and evaluates inputs. The database holds the AI's "Mind".
 * **Single Source of Truth (SSOT)**: `data/seed_data.json` acts as the master blueprint for this logic.
+   * **🚨 Recovery Protocol (Data Integrity):** If programmatic patches or seeder scripts crash, developers must *never* blindly revert or overwrite `seed_data.json` with a backup. Script failures must be analyzed, and targeted fixes applied incrementally. Overwriting destroys active manual translation blocks and structural data changes.
 
 ### Bidirectional Seeding System (V2)
 The Engine employs a robust bidirectional seeding mechanism to enforce the Single Source of Truth (`seed_data.json`) while allowing rapid database iterations.

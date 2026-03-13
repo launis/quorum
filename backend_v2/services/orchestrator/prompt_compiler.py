@@ -118,10 +118,16 @@ class PromptCompiler:
         if isinstance(current, str):
             return current
 
-        # For Pydantic models in state, use model_dump_json or dict string
         if hasattr(current, "model_dump_json") and callable(getattr(current, "model_dump_json", None)):
             dump_fn: Any = current.model_dump_json
             return str(dump_fn())
+
+        if isinstance(current, dict):
+            # Format dictionaries gracefully to prevent literal \n escaping in LLM xml
+            formatted = []
+            for k, v in current.items():
+                formatted.append(f"--- {str(k).upper()} ---\n{v}\n")
+            return "\n".join(formatted).strip()
 
         return str(current)
 
@@ -162,7 +168,7 @@ class PromptCompiler:
             raise AppException(
                 message=f"System failed to fetch required theoretical grounding from url: {url}",
                 status_code=502,
-                details={"error_code": ErrorCodes.FETCH_FAILED.value, "url": url}
+                details={"error_code": ErrorCodes.FETCH_FAILED.value, "url": url},
             ) from e
 
     def calibrate_strictness(self, level: int | float | None) -> str:
@@ -215,10 +221,7 @@ class PromptCompiler:
             )
 
     def build_dynamic_schema(
-        self,
-        schema_name: str,
-        criteria: list[dict[str, Any]],
-        require_justification: bool = False
+        self, schema_name: str, criteria: list[dict[str, Any]], require_justification: bool = False
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -256,14 +259,35 @@ class PromptCompiler:
             desc_obj = crit.get("description")
             base_desc = self.resolve_i18n(desc_obj, "en") if desc_obj else f"Evaluation for {label}"
 
-            # Determine type based on 'allow_decimals' flag in PromptBlock
-            value_type = float if crit.get("allow_decimals", False) else int
+            # Determine type based on explicit block type, otherwise fallback to BARS scales
+            block_type = crit.get("type")
+            if block_type == "string":
+                 value_type = str
+            else:
+                 value_type = float if crit.get("allow_decimals", False) else int
+
+            # Inject the specific BARS into the description
+            bars_text = ""
+            scales = crit.get("scales")
+            if scales and isinstance(scales, list) and len(scales) > 0:
+                bars_text += "\n\nEVALUATION MATRIX (BARS):\n"
+                for s in scales:
+                    s_val = s.get("score")
+                    s_lbl = self.resolve_i18n(s.get("name"), "en") or str(s_val)
+                    s_claims = s.get("claims", [])
+                    s_claim_text = self.resolve_i18n(s_claims[0], "en") if s_claims else ""
+                    bars_text += f"- Score {s_val}: {s_lbl}"
+                    if s_claim_text:
+                        bars_text += f" - {s_claim_text}"
+                    bars_text += "\n"
+                if crit.get("allow_decimals", False):
+                    bars_text += "\nINSTRUCTION: Evaluate strictly using the matrix above. You may use one decimal place (e.g. 2.5 or 4.1) if the answer falls between two scores. Return only the numeric value."
+                else:
+                    bars_text += "\nINSTRUCTION: Evaluate strictly using the matrix above. Return only an exact numeric score from the list."
 
             # The actual evaluation value.
-            fields[crit_id] = (
-                value_type,
-                Field(..., description=f"{label}: {base_desc}")
-            )
+            final_desc = f"{label}: {base_desc}{bars_text}"
+            fields[crit_id] = (value_type, Field(..., description=final_desc))
 
             if require_justification or crit.get("require_justification", False):
                 # 1. Justification (XAI)
@@ -272,32 +296,57 @@ class PromptCompiler:
                     f"Detailed reasoning for the assigned score for '{label}'. "
                     "Must explicitly adhere to the active STRICTNESS CALIBRATION."
                 )
-                fields[justification_key] = (
-                    str,
-                    Field(..., description=justification_desc)
+                fields[justification_key] = (str, Field(..., description=justification_desc))
+
+                # 2. Citation Source ID (Grounded Theory Integration)
+                theory_grounding = crit.get("theory_grounding", {})
+                citation_ref = (
+                    theory_grounding.get("citation_reference")
+                    if isinstance(theory_grounding, dict)
+                    else None
                 )
 
-                # 2. Citation (Grounded Theory Integration)
-                citation_key = f"{crit_id}_citation"
-                citation_desc = (
-                    f"Direct quote from the <theory_context> supporting your justification for '{label}'. "
-                    "If no direct quote is applicable, explain why based on the context."
+                source_id_key = f"{crit_id}_cited_source_id"
+                if citation_ref:
+                    from typing import Literal
+
+                    # V2 Strict Literal: The LLM can ONLY return this exact string or None
+                    source_id_type = Literal[citation_ref] | None  # type: ignore
+                    source_id_desc = (
+                        "Jos perustelut viittaavat johonkin ohjeistettuun teoriaan, "
+                        f"PALAUTA TÄSMÄLLEEN TÄMÄ merkkijono: '{citation_ref}'. "
+                        "Muuten palauta null."
+                    )
+                else:
+                    source_id_type = str | None
+                    source_id_desc = (
+                        "Tälle kriteerille ei ole autoktorisoitua lähdettä. "
+                        "Palauta EHDOTTOMASTI aina null."
+                    )
+
+                fields[source_id_key] = (source_id_type, Field(default=None, description=source_id_desc))
+
+                # 3. Citation Text Quote
+                quote_key = f"{crit_id}_cited_text_quote"
+                quote_desc = (
+                    "JOS valitsit lähteen yllä, liitä tähän tarkka, SUORA ja "
+                    "SANATARKKA lainaus teoriasta/lähteestä, joka tukee perusteluasi. "
+                    "Tekoälyn luoma oma teksti on tässä kielletty. "
+                    "Jos lähdettä ei ole, palauta null."
                 )
-                fields[citation_key] = (
-                    str,
-                    Field(..., description=citation_desc)
-                )
+                fields[quote_key] = (str | None, Field(default=None, description=quote_desc))
 
         if not fields:
             # If all blocks were pure instructions with no actionable scales,
             # we must still return a valid Pydantic model for LLM Structured Outputs.
             fields["acknowledged_instruction"] = (
                 str,
-                Field(default="yes", description="Acknowledge completion of the instruction.")
+                Field(default="yes", description="Acknowledge completion of the instruction."),
             )
 
         try:
             from typing import cast
+
             DynamicModel = create_model(schema_name, **fields)
             return cast(type[BaseModel], DynamicModel)
         except Exception as e:
@@ -307,7 +356,7 @@ class PromptCompiler:
             raise AppException(
                 message="Critical failure while dynamically compiling LLM execution schema.",
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             ) from e
 
     def compile_instruction_blocks(self, blocks: list[dict[str, Any]], target_locale: str) -> str:

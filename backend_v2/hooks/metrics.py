@@ -143,7 +143,6 @@ def calculate_behavioral_metrics(metrics: Any) -> Any:
     automation_bias = 0.0
     illusion_of_competence = 0.0
     imperative_command_count = 0
-    role_classification = "PASSENGER"
 
     if not metrics:
         return {
@@ -151,7 +150,6 @@ def calculate_behavioral_metrics(metrics: Any) -> Any:
             "automation_bias": automation_bias,
             "illusion_of_competence": illusion_of_competence,
             "imperative_command_count": imperative_command_count,
-            "role_classification": role_classification,
         }
 
     # 1. Automation Bias (Heuristic: Short, affirmative user messages)
@@ -194,7 +192,6 @@ def calculate_behavioral_metrics(metrics: Any) -> Any:
         "automation_bias": automation_bias,
         "illusion_of_competence": illusion_of_competence,
         "imperative_command_count": imperative_command_count,
-        "role_classification": role_classification,
     }
 
 
@@ -288,19 +285,13 @@ def text_metrics(data: dict[str, Any]) -> dict[str, Any]:
 
             "imperative_command_count": behavioral_metrics.get("imperative_command_count", 0)
             if isinstance(behavioral_metrics, dict) else getattr(behavioral_metrics, "imperative_command_count", 0),
-
-            "role_classification": behavioral_metrics.get("role_classification", "PASSENGER")
-            if isinstance(behavioral_metrics, dict)
-            else getattr(behavioral_metrics, "role_classification", "PASSENGER"),
         }
 
         logger.info("[MetricsHook] Metrics calculated successfully.")
 
         # Return the strictly enforced dict -> dict output
         return {
-            "audit_metrics": audit_metrics,
             "profiler_metrics": audit_metrics,
-            "input_control_ratio": control_ratio,
         }
 
     except Exception as e:

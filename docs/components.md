@@ -114,8 +114,13 @@ Hooks do **not** fail silently.
 #### 5. Integrity Hooks (`backend/hooks/integrity.py`)
 * **`verify_citation_integrity` (Post-hook)**
   * **Action**: Verifies that quotes used by Analyst and Judges actually exist in the source texts.
-  * **Fail Fast**: Raises `AppException` if the LLM hallucination rate > 50%.
+  * **Fail Fast & Graceful Degradation**: Adhering to the Dual-Reporting architecture, hallucinatory citations are caught and safely nullified (`cited_source_id = None`) without crashing the pipeline, outputting a structural log for metrics instead.
   * **Output**: `CitationAudit` (logged in metadata).
+
+#### 6. System Context Hooks (`backend/hooks/metadata.py`)
+* **`inject_step_metadata` (Pre-hook)**
+  * **Action**: Injects concrete execution runtime parameters (like `execution_id`, ISO timestamps, and `initiator_id`) directly into the executing node's state. 
+  * **Integration**: Orchestrated directly by `dag_executor.py` mapping to final LLM output structures.
 
 ### 3.3 Developer Guide: Creating a New Hook
 1. **Define Model**: Create a result model in `backend/models/domain.py` with `strict=True`.

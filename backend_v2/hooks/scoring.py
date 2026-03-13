@@ -95,11 +95,15 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
     if not data:
         return {}
 
+    # V2 Architecture Isolation: Attempt to find context in isolated data,
+    # or explicitly fetch from the global context variables wrapper if provided by DAGExecutor.
+    context = data.get("_sys_context_vars", data)
+
     # 1. Security Penalty Check (Guard)
-    security_threat = _extract_guard_flag(data)
+    security_threat = _extract_guard_flag(context)
 
     # 2. Falsifier Penalty Check
-    falsifier_data = _extract_falsifier_data(data)
+    falsifier_data = _extract_falsifier_data(context)
     is_post_hoc = _calculate_falsifier_penalty(falsifier_data)
 
     if not falsifier_data:
@@ -114,8 +118,8 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
     candidates = []
 
     for judge_key in ["step_judge", "step_judge_cognitive"]:
-        if judge_key in data:
-            judge_model = data.get(judge_key)
+        if judge_key in context:
+            judge_model = context.get(judge_key)
             if not judge_model:
                 continue
             candidates.append(judge_model)
@@ -125,9 +129,11 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
             continue
 
         # Handle both dicts and inflated models robustly
+        # Handle both dicts and inflated models robustly
         if isinstance(item, dict):
+            # Check for legacy nested score_card
             score_card = item.get("score_card", {})
-            if isinstance(score_card, dict):
+            if isinstance(score_card, dict) and "total_score" in score_card:
                 # Normalize and aggregate
                 total_score = score_card.get("total_score", 0.0)
                 scale_min = score_card.get("scale_min", 0.0)
@@ -141,7 +147,18 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
                 total_score_accum += normalized
                 count += 1
                 scores_found.append(normalized)
-        elif hasattr(item, "score_card"):
+            else:
+                # Direct Matrix Evaluation (V2 Flat Schema) - e.g. "matrix_judge": 5.0
+                for k, v in item.items():
+                    # We look for normalized _raw outputs or just base keys
+                    if k.startswith("matrix_") and not k.endswith("_justification") and not k.endswith("_id") and not k.endswith("_quote") and not k.endswith("_raw"):
+                        if isinstance(v, (int, float)):
+                            # If it's a matrix key, we assume 1-5 scale by default unless specified
+                            normalized = normalize_score_to_100(score=float(v), scale_min=1.0, scale_max=5.0)
+                            total_score_accum += normalized
+                            count += 1
+                            scores_found.append(normalized)
+        elif hasattr(item, "score_card") and item.score_card:
             normalized = normalize_score_to_100(
                 score=item.score_card.total_score,
                 scale_min=item.score_card.scale_min,
@@ -150,6 +167,16 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
             total_score_accum += normalized
             count += 1
             scores_found.append(normalized)
+        elif hasattr(item, "model_dump"):
+            # Direct Matrix Evaluation (V2 Flat Schema) for Inflated Pydantic Models
+            dumped_item = item.model_dump()
+            for k, v in dumped_item.items():
+                if k.startswith("matrix_") and not k.endswith("_justification") and not k.endswith("_id") and not k.endswith("_quote") and not k.endswith("_raw"):
+                    if isinstance(v, (int, float)):
+                        normalized = normalize_score_to_100(score=float(v), scale_min=1.0, scale_max=5.0)
+                        total_score_accum += normalized
+                        count += 1
+                        scores_found.append(normalized)
 
     if count == 0:
         logger.warning("[ScoringHook] No valid scores found from Judge/Evaluation steps.")
@@ -191,7 +218,11 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
 
     # 5. Create Result
     # Strict Dict -> Dict Return
-    result = {"penalties_applied": penalties}
+    result = {
+        "total_score": final_score,
+        "final_score": final_score,
+        "penalties_applied": penalties
+    }
 
     logger.info(f"[ScoringHook] Scoring complete. Score: {final_score}")
     return {"scoring_result": result}
@@ -367,74 +398,102 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
     if not data:
         return {}
 
+    # V2 Architecture Isolation: Fetch keys from global context wrapper if available
+    context = data.get("_sys_context_vars", data)
+
     updates_needed = False
     new_data: dict[str, Any] = {}
 
     for judge_key in ["step_judge", "step_judge_cognitive"]:
-        if judge_key not in data:
+        if judge_key not in context:
             continue
 
-        judge_model = data.get(judge_key)
+        judge_model = context.get(judge_key)
 
         if not judge_model:
             continue
 
         is_dict = isinstance(judge_model, dict)
         score_card = judge_model.get("score_card", {}) if is_dict else getattr(judge_model, "score_card", None)
+        
+        # Strategy 1: Legacy Dimensions
+        if score_card:
+            scale_min = score_card.get("scale_min", 0.0) if is_dict else score_card.scale_min
+            dimensions = score_card.get("dimensions", []) if is_dict else score_card.dimensions
+    
+            penalty_triggered = False
+    
+            for dim in dimensions:
+                dim_score = dim.get("score", 0.0) if is_dict else getattr(dim, "score", 0.0)
+                dim_id = dim.get("dimension_id", "") if is_dict else getattr(dim, "dimension_id", "")
+    
+                if dim_score <= scale_min:
+                    penalty_triggered = True
+                    logger.warning(
+                        f"[ScoringHook] Passive/Low Quality detected in {judge_key} dimension '{dim_id}'"
+                    )
+                    break
+    
+            if penalty_triggered:
+                logger.info(f"[ScoringHook] Applying Passivity Penalty to {judge_key} (Factor {multiplier}).")
+    
+                current_score = score_card.get("total_score", 0.0) if is_dict else score_card.total_score
+                new_score = current_score * multiplier
+    
+                if new_score < scale_min:
+                    logger.warning(
+                        f"[ScoringHook] Passivity penalty reduced score ({new_score}) "
+                        f"below min ({scale_min}). Clamping."
+                    )
+                    new_score = scale_min
+    
+                if is_dict:
+                    new_card = score_card.copy()
+                    new_card["total_score"] = new_score
+                    new_card["verdict"] = str(new_card.get("verdict", "")) + f" [PASSIVITY PENALTY x{multiplier:.2f}]"
+                    new_judge = judge_model.copy()
+                    new_judge["score_card"] = new_card
+                else:
+                    new_card = score_card.model_copy(
+                        update={
+                            "total_score": new_score,
+                            "verdict": score_card.verdict + f" [PASSIVITY PENALTY x{multiplier:.2f}]",
+                        }
+                    )
+                    new_judge = judge_model.model_copy(update={"score_card": new_card})
+    
+                new_data[judge_key] = new_judge
+                updates_needed = True
 
-        if not score_card:
-            continue
-
-        scale_min = score_card.get("scale_min", 0.0) if is_dict else score_card.scale_min
-        dimensions = score_card.get("dimensions", []) if is_dict else score_card.dimensions
-
-        # Check for Passivity (Min Score in Dimensions)
-        penalty_triggered = False
-
-        for dim in dimensions:
-            dim_score = dim.get("score", 0.0) if is_dict else getattr(dim, "score", 0.0)
-            dim_id = dim.get("dimension_id", "") if is_dict else getattr(dim, "dimension_id", "")
-
-            # Floating point safety? Use epsilon or exact match if integer-like.
-            if dim_score <= scale_min:
-                penalty_triggered = True
-                logger.warning(
-                    f"[ScoringHook] Passive/Low Quality detected in {judge_key} dimension '{dim_id}'"
-                )
-                break
-
-        if penalty_triggered:
-            # Apply Penalty
-            logger.info(f"[ScoringHook] Applying Passivity Penalty to {judge_key} (Factor {multiplier}).")
-
-            current_score = score_card.get("total_score", 0.0) if is_dict else score_card.total_score
-            new_score = current_score * multiplier
-
-            # Constraint Check: Respect scale_min
-            if new_score < scale_min:
-                logger.warning(
-                    f"[ScoringHook] Passivity penalty reduced score ({new_score}) "
-                    f"below min ({scale_min}). Clamping."
-                )
-                new_score = scale_min
-
-            if is_dict:
-                new_card = score_card.copy()
-                new_card["total_score"] = new_score
-                new_card["verdict"] = str(new_card.get("verdict", "")) + f" [PASSIVITY PENALTY x{multiplier:.2f}]"
-                new_judge = judge_model.copy()
-                new_judge["score_card"] = new_card
-            else:
-                new_card = score_card.model_copy(
-                    update={
-                        "total_score": new_score,
-                        "verdict": score_card.verdict + f" [PASSIVITY PENALTY x{multiplier:.2f}]",
-                    }
-                )
-                new_judge = judge_model.model_copy(update={"score_card": new_card})
-
-            new_data[judge_key] = new_judge
-            updates_needed = True
+        # Strategy 2: V2 Matrix (Flat Schema)
+        elif is_dict:
+            penalty_triggered = False
+            scale_min = 1.0 # Default BARS scale minimum
+            
+            for k, v in judge_model.items():
+                if k.startswith("matrix_") and not k.endswith("_justification") and not k.endswith("_id") and not k.endswith("_quote") and not k.endswith("_raw"):
+                    if isinstance(v, (int, float)):
+                        if v <= scale_min:
+                             penalty_triggered = True
+                             logger.warning(f"[ScoringHook] Passive/Low Quality detected in V2 Matrix '{k}'")
+                             break
+                             
+            if penalty_triggered:
+                 logger.info(f"[ScoringHook] Applying V2 Passivity Penalty to {judge_key} (Factor {multiplier}).")
+                 new_judge = judge_model.copy()
+                 for k, v in new_judge.items():
+                      if k.startswith("matrix_") and not k.endswith("_justification") and not k.endswith("_id") and not k.endswith("_quote") and not k.endswith("_raw"):
+                           if isinstance(v, (int, float)):
+                                new_score = v * multiplier
+                                if new_score < scale_min:
+                                     new_score = scale_min
+                                new_judge[k] = new_score
+                                # Add a penalty trace to validation string if available
+                                just_key = f"{k}_justification"
+                                if just_key in new_judge:
+                                     new_judge[just_key] = f"[PASSIVITY PENALTY x{multiplier:.2f}] " + str(new_judge[just_key])
+                 new_data[judge_key] = new_judge
+                 updates_needed = True
 
     if updates_needed:
         return new_data
@@ -460,13 +519,34 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
         logger.warning("[ScoringHook] No repository provided. Skipping normalization.")
         return state
 
-    # Get the last event to identify the current step
-    last_event = state.execution_trace[-1] if state.execution_trace else None
-    if not last_event or last_event.event_type != "output":
-        logger.debug("[ScoringHook] No valid output event found in trace.")
-        return state
+    # V2 Fast-Fail Architecture: State is now a strictly isolated dictionary (DAGExecutor final_dict)
+    # We depend on _sys_step_id being injected during the execution context.
+    if isinstance(state, dict):
+        step_id = state.get("_sys_step_id")
+        content_payload = state
+    else:
+        # Legacy fallback if anyone still executes V1 orchestration loops
+        last_event = state.execution_trace[-1] if hasattr(state, "execution_trace") and state.execution_trace else None
+        if not last_event or last_event.event_type != "output":
+            logger.debug("[ScoringHook] No valid output event found in trace.")
+            return state
 
-    step_id = last_event.step_name
+        step_id = last_event.step_name
+        content_payload = state.context_variables.get(step_id)
+        if not content_payload:
+            content_payload = last_event.content
+
+        if not isinstance(content_payload, dict):
+            # Try to convert Pydantic to dict
+            if hasattr(content_payload, "model_dump"):
+                content_payload = content_payload.model_dump()
+            else:
+                logger.debug(f"[ScoringHook] Step '{step_id}' output is not a dict/model. Skipping.")
+                return state
+
+    if not step_id:
+         logger.debug("[ScoringHook] No step_id found in execution context. Skipping.")
+         return state
 
     try:
         step_obj = await repository.get_step_by_id(step_id)
@@ -479,19 +559,6 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
             if isinstance(step_obj, dict)
             else getattr(step_obj, "prompt_blocks", [])
         )
-
-        # Get content payload from context variables (it represents the current mutated state if updated locally)
-        content_payload = state.context_variables.get(step_id)
-        if not content_payload:
-            content_payload = last_event.content
-
-        if not isinstance(content_payload, dict):
-            # Try to convert Pydantic to dict
-            if hasattr(content_payload, "model_dump"):
-                content_payload = content_payload.model_dump()
-            else:
-                logger.debug(f"[ScoringHook] Step '{step_id}' output is not a dict/model. Skipping.")
-                return state
 
         updates_made = False
         new_payload = content_payload.copy()
@@ -552,13 +619,15 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
                 )
 
         if updates_made:
-            # Update state context directly (mutable dict)
-            state.context_variables[step_id] = new_payload
-
-            # Since the engine also copies it to step_slug:
-            step_slug = step_obj.get("slug") if isinstance(step_obj, dict) else getattr(step_obj, "slug", None)
-            if step_slug and step_slug in state.context_variables:
-                state.context_variables[step_slug] = new_payload
+            if isinstance(state, dict):
+                 # V2 Dict direct mutation
+                 state.update(new_payload)
+            else:
+                 # Legacy V1 context mutation
+                 state.context_variables[step_id] = new_payload
+                 step_slug = step_obj.get("slug") if isinstance(step_obj, dict) else getattr(step_obj, "slug", None)
+                 if step_slug and step_slug in state.context_variables:
+                     state.context_variables[step_slug] = new_payload
 
     except Exception as e:
         logger.error(f"[ScoringHook] Failed to normalize matrix scores: {e}", exc_info=True)
@@ -568,7 +637,7 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
         raise AppException(
             message=f"Normalization failed for step '{step_id}': {e}",
             status_code=500,
-            details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED},
+            details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value},
         ) from e
 
     return state

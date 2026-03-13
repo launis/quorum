@@ -8,7 +8,7 @@ For the overarching platform documentation, architecture, and backend details, p
 
 The Cognitive Quorum Client is designed with the same **"Zero-Magic"** philosophy as the backend:
 - **Strict DTOs**: UI state is driven by explicit data contracts from the backend. 
-- **Fail-Fast UI**: Errors are not swallowed. The UI gracefully degrades into Error Cards utilizing the RFC 7807 problem details standard.
+- **Fail-Fast UI & Graceful Degradation**: Errors are not swallowed. The UI gracefully degrades into Error Cards utilizing the RFC 7807 problem details standard. Additionally, missing properties (e.g. `null` citations) are rendered away using `SizedBox.shrink()` without hardcoded textual fallbacks ("No String Mandate").
 - **Real-Time Polling**: Leverages Server-Sent Events (SSE) and Riverpod async streams to track deep reasoning execution in real-time.
 
 ## 🏗️ Architecture

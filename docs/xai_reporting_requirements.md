@@ -51,11 +51,17 @@ Analysoi käyttäjän valtasuhdetta ja ohjausmandaattia tekoälyn kanssa käytä
 **Miksi näen joskus `null`, `N/A` tai `?` -arvoja (esim. Bloom on 0/6 vaikka teksti oli fiksua)?**  
 Tämä on tarkoituksellinen **"Fail-Fast" Data Integrity** -ominaisuus backendissä. Järjestelmä käyttää tiukkoja Pydantic-tietorakenteita varmistaakseen raportin laadun. Jos asiantuntija-agentti (LLM) tuottaa vastausta generoidessaan vääränlaista dataa (esim. kirjaimen numeron sijaan, tai selitteen ilman vaadittua numeroa), järjestelmä "kaatuu hallitusti" vain kyseisen mittarin kohdalla, asettaen sen turvallisesti `null`-arvoksi. Tämä estää koko sovellusta ja raporttia kaatumasta yhteen huonoon LLM-vastaukseen.
 
+**Miksi "Lähdeviite" (Citation) uupuu tai katosi tekstistäni?**  
+"No-String Mandate" -arkkitehtuurin myötä (jossa käyttöliittymä ei saa hyödyntää kovakoodattuja varatekstejä), backend validoidessaan havaitsi LLM:n generoiman lähdeviitteen keksityksi ("hallusinaatio"). Tällöin hook-suojaus (kuten `verify_citation_integrity`) devalvoi viitteen arvoon `null`. Käyttöliittymä kuuntelee tätä `null`-arvoa ja nätisti supistaa UI:ta komennolla `SizedBox.shrink()` (Graceful Degradation). Näin emme koskaan esitä keksittyä tai virheellistä lähdettä tieteellisenä faktana.
+
 **Miksi kontrolliratio voi olla `0%`, mutta rooli silti "Matkustaja" eikä "Invalid"?**  
 Jos käyttäjä lähettää pelkän yksittäisen PDF:n ja painaa "Analysoi" ilman ainuttakaan saatesanaa, suorien käskyjen ja aloitteellisuuden määrä on teknisesti 0. Algoritmi tunnistaa tämän passiiviseksi toiminnaksi ja määrittää validisti rooliksi "Matkustajan", jolloin "0" on aito analyyttinen havainto, ei virhe.
 
 **Mitä "Flattened Scores" tarkoittaa?**  
 Raportin taustalla lasketaan kymmeniä eri ala-arvoja (kuten "synteesi", "falsification", "agency"). Nämä aggregoidaan ja muunnetaan 0-100 pisteen asteikolle, josta muodostetaan raportin lopullinen pääarvosana (Score Total) sekä "Top Strength" (vahvuus) ja "Top Weakness" (heikkous). Flattened scores on tarkoitettu ulkoisille BI-työkaluille raportoinnin helpottamiseksi.
+
+**Eikö Tekoäly (LLM) näe suoraan UI-skaaloja (kuten 1-3 tai 1-5)?**
+Ei. Tämä on ehdoton tietoturva- ja arkkitehtuurilinjaus (**Cognitive Separation of Concerns**). Tekoäly näkee Pydanticin skeemakuvauksissa ainoastaan **alkuperäisen pisteytysmatriisin (BARS)** numeroarvot (esim. 1, 2, 3...) ja niihin liittyvät tekstiväitteet. Tekoäly arvioi syötteen tuottamalla raa'an arvon sallien yhden desimaalin (esim. 2.5 mielivaltaisen arvon kahden ankkurin välistä). Se ei saa koskaan nähdä tai tietää käyttöliittymän spesifejä UI-arvoja (`barsConf50`, käyttöliittymään tulevat asteikot kuten 4-10). Python-backend poimii LLM:n tuottamat puhtaat BARS-arvot ja skaalaa/kääntää ne UI:n ymmärtämään muotoon dynaamisesti (esim. arvosta 2.5 -> arvo 70) täysin tekoälyn ulottumattomissa Pydantic-mallien vakauttamiseksi.
 
 ---
 
