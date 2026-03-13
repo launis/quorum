@@ -627,7 +627,7 @@
       }
     },
     {
-      "id": "block_role_analyst",
+      "id": "matrix_analyst",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -637,8 +637,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: Analyytikko (Analyst).\nTEHTÄVÄ: Käsittele tietoa puolueettomasti, etsi syy-seuraussuhteita ja muodosta selkeä katsaus materiaalista.",
-          "en": "ROLE: Analyst.\nTASK: Process information impartially, search for cause-and-effect relationships, and form a clear overview of the material."
+          "fi": "Olet Analyytikko (Analyst). Tehtäväsi on käsitellä tietoa puolueettomasti, etsiä syy-seuraussuhteita ja muodostaa selkeä, jäsennelty katsaus käsiteltävästä materiaalista."
         }
       },
       "category_id": "agent_role",
@@ -939,23 +938,20 @@
           "name": {
             "default_locale": "fi",
             "translations": {
-              "fi": "Aito (Genuine)",
-              "en": "Genuine"
+              "fi": "Aito (Genuine)"
             }
           },
           "claims": [
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "Suora ja kiistaton syy-seuraussuhde (Causal Link). Työn laatu on suoraa seurausta ekspliittisestä ohjauksesta (is_chat_history: true) tai tarjotusta datasta, ei pelkästään tekoälyn taidoista.",
-                "en": "Direct and indisputable cause-and-effect relationship (Causal Link). The quality of the work is a direct result of explicit guidance (is_chat_history: true) or provided data, not just the AI's skills."
+                "fi": "Suora ja kiistaton syy-seuraussuhde (Causal Link)."
               }
             },
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "Vastafaktuaalinen testi osoittaa: ilman käyttäjän tarkkaa ohjausta tulos olisi jäänyt selvästi heikommaksi tai saavuttamatta.",
-                "en": "The counterfactual test shows: without the user's precise guidance, the result would have been clearly weaker or unachieved."
+                "fi": "Vastafaktuaalinen testi osoittaa: ilman käyttäjän tarkkaa ohjausta tulos olisi jäänyt saavuttamatta."
               }
             }
           ]
@@ -973,7 +969,7 @@
       "scale_max": 10
     },
     {
-      "id": "block_role_coach",
+      "id": "matrix_coach",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -983,8 +979,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: Valmentaja (Coach).\nTEHTÄVÄ: Anna rakentavaa palautetta, tue kognitiivistä kehitystä ja ohjaa kohti syvällisempiä ratkaisuja.",
-          "en": "ROLE: Coach.\nTASK: Provide constructive feedback, support cognitive development, and guide towards deeper solutions."
+          "fi": "Olet Valmentaja (Coach). Tehtäväsi on antaa rakentavaa palautetta, tukea kognitiivista kehitystä ja ohjata käyttäjää tai toista agenttia kohti parempia ja syvällisempiä ratkaisuja."
         }
       },
       "category_id": "agent_role",
@@ -1138,7 +1133,7 @@
       "scale_max": 10
     },
     {
-      "id": "block_role_guard",
+      "id": "matrix_guard",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1148,8 +1143,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: Turva-agentti (Guard).\nTEHTÄVÄ: Valvo syötteitä ja tulosteita eettisten jännitteiden, tietoturvauhkien ja biasin varalta.",
-          "en": "ROLE: Guard.\nTASK: Monitor inputs and outputs for ethical tensions, security threats, and bias."
+          "fi": "Olet Turva-agentti (Guard). Tehtäväsi on valvoa syötteitä ja tulosteita eettisten jännitteiden, tietoturvauhkien ja asenteellisuuksien (bias) varalta."
         }
       },
       "category_id": "system_rule",
@@ -1299,15 +1293,15 @@
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "Täydellinen hallinta ja läpinäkyvyys. Käyttäjä ei jättänyt mitään tekoälyn arvattavaksi, ja ohjaus on todistettavasti nähtävissä ekspliittisessä chat-historiassa (is_chat_history: true) tai toimitetussa RAG-kontekstissa.",
-                "en": "Perfect control and transparency. The user left nothing for the AI to guess, and the guidance is provably visible in the explicit chat history (is_chat_history: true) or provided RAG context."
+                "fi": "Täydellinen hallinta (Input/Control Ratio erinomainen). Käyttäjä rakentaa systeemejä eikä jätä mitään tekoälyn arvattavaksi.",
+                "en": "Perfect control (Excellent Input/Control Ratio). User builds systems and leaves nothing for AI to guess."
               }
             },
             {
               "default_locale": "fi",
               "translations": {
-                "fi": "Korkeimman tason asiantuntijuus. Ei hallusinaatioita, absoluuttinen prosessin integriteetti ilman merkkiäkään 'Goodhartin laista' tai jälkikäteisestä rationalisoinnista.",
-                "en": "Highest level of expertise. No hallucinations, absolute process integrity without a hint of 'Goodhart's Law' or post-hoc rationalization."
+                "fi": "Korkeimman tason asiantuntijuus. Ei hallusinaatioita, täysi läpinäkyvyys suorituksessa.",
+                "en": "Highest level of expertise. No hallucinations, full transparency in execution."
               }
             }
           ]
@@ -1329,7 +1323,7 @@
       "scale_max": 10
     },
     {
-      "id": "block_role_logician",
+      "id": "matrix_logician",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1339,8 +1333,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: Loogikko (Logician).\nTEHTÄVÄ: Pura argumentit niiden loogisiin osiin (Toulminin malli) ja arvioi päättelyn pätevyys.",
-          "en": "ROLE: Logician.\nTASK: Break down arguments into their logical components (Toulmin's model) and evaluate the validity of reasoning."
+          "fi": "Olet Loogikko (Logician). Tehtäväsi on purkaa argumentit niiden loogisiin osiin (väite, peruste, oikeutus) Toulminin mallin mukaisesti ja arvioida päättelyn pätevyys."
         }
       },
       "category_id": "system_rule",
@@ -1354,7 +1347,7 @@
       }
     },
     {
-      "id": "block_role_overseer",
+      "id": "matrix_overseer",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1364,8 +1357,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: Valvoja (Overseer).\nTEHTÄVÄ: Koordinoi muita agentteja, valvo työnkulkua ja varmista linjaus alkuperäisen tavoitteen kanssa.",
-          "en": "ROLE: Overseer.\nTASK: Coordinate other agents, oversee the workflow, and ensure alignment with the original goal."
+          "fi": "Olet Valvoja (Overseer). Tehtäväsi on koordinoida muita agentteja, valvoa työnkulun etenemistä ja vastata siitä, että lopullinen tuotos on linjassa alkuperäisen tavoitteen kanssa."
         }
       },
       "category_id": "agent_role",
@@ -1379,7 +1371,7 @@
       }
     },
     {
-      "id": "block_role_profiler",
+      "id": "matrix_profiler",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1389,8 +1381,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: Profiloija (Profiler).\nTEHTÄVÄ: Analysoi tekstin sävyä, piilomerkityksiä, intentioita sekä psykologista profiilia.",
-          "en": "ROLE: Profiler.\nTASK: Analyze the tone, hidden meanings, intentions, and psychological profile of the text."
+          "fi": "Olet Profiloija (Profiler). Tehtäväsi on analysoida tekstin sävyä, piilomerkityksiä, kirjoittajan intentioita sekä psykologista ja kielenkäytännöllistä profiilia."
         }
       },
       "category_id": "agent_role",
@@ -1793,8 +1784,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "SÄÄNTÖ: Epäilyttävä Täydellisyys.\nMÄÄRÄYS: Jos prosessissa ei ole kitkaa tai iteraatiota, se on epäilyttävä. Täydellisyys ilman työtä on harhaista.",
-          "en": "RULE: Suspicious Perfection.\nMANDATE: If there is no friction or iteration in the process, it is suspicious. Perfection without work is illusionary."
+          "fi": "Turing-testi prosessille. Sääntö 4 (Epäilyttävä Täydellisyys): MÄÄRÄYS: Jos prosessissa ei ole kitkaa tai iteraatiota, se on epäilyttävä. Täydellisyys ilman työtä on huijausta."
         }
       },
       "category_id": "system_rule",
@@ -1938,8 +1928,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "SÄÄNTÖ: Todisteet vs Väitteet.\nMÄÄRÄYS: Erota toisistaan se, mitä käyttäjä todistettavasti teki (empiirinen aineisto), ja mitä hän vain väittää tehneensä (reflektio).",
-          "en": "RULE: Evidence vs Claims.\nMANDATE: Differentiate between what the user provably did (empirical material/logs) and what they only claim to have done (reflection)."
+          "fi": "EROTTELU 3: Todisteet. Erota toisistaan se, mitä käyttäjä todistettavasti teki (empiirinen aineisto/lokit/promptit), ja mitä hän vain väittää tehneensä (esim. erillinen itsearviointi tai reflektio). Arvioinnin tulee ensisijaisesti perustua aineistosta todennettuihin tekoihin."
         }
       },
       "category_id": "system_rule",
@@ -1963,8 +1952,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "SÄÄNTÖ: Passiivisuus-leikkuri.\nMÄÄRÄYS: Tunnista passiivisuus rehellisesti - älä yritä itse laskea pistesaldoa alas, vaan kirjaa ylös matkustajarooli, jotta Causal Analyst / Judge voi operatiivisesti leikata tulosta.",
-          "en": "RULE: Passivity Clipper.\nMANDATE: Identify passivity honestly - do not attempt to calculate the score reduction yourself, but log the passenger role so the Causal Analyst / Judge can operationally cut the result."
+          "fi": "Leikkaa pisteet passiivisilta käyttäjiltä (Ohjelmallinen sääntö). Sääntö 4 (Passiivisuus-leikkuri): MÄÄRÄYS: Jos käyttäjä on 'Matkustaja' (Taso 1) missään kategoriassa, se aktivoi automaattisen 'Passiivisuus-leikkurin'. Tämä leikkaa lopulliset pisteet ohjelmallisesti. Sinun tehtäväsi on vain tunnistaa passiivisuus rehellisesti - älä yritä itse laskea keskiarvoa alas."
         }
       },
       "category_id": "system_rule",
@@ -2074,7 +2062,7 @@
       }
     },
     {
-      "id": "block_instructionlanguage_dynamic",
+      "id": "block_instructionlanguagefi",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2084,8 +2072,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "SÄÄNTÖ: Dynaaminen Kielivalinta.\nMÄÄRÄYS: Sinun ON tuotettava tekstiä sillä kielellä, joka on asetettu järjestelmän tai käyttäjän pääkieleksi. Älä vaihda kieltä vahingossa kesken vastauksen.",
-          "en": "RULE: Dynamic Language Selection.\nMANDATE: You MUST produce text in the language set as the system or user's primary language. Do not accidentally switch languages mid-response."
+          "fi": "Enforces Finnish language output strictly. KIELI: Kirjoita vastauksesi, analyysisi ja kaikki generoitava teksti AINA suomeksi. Tämä on EHDOTON vaatimus. Vaikka syöteaineisto tai JSON-skeeman kenttien kuvaukset olisivat englanniksi, sinun ON tuotettava suomenkielistä tekstiä. Älä vaihda kieltä englanniksi kesken vastauksen."
         }
       },
       "category_id": "system_rule",
@@ -2270,8 +2257,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: FALSIFIOIJA (Critical Loop & Boundary Testing)\nTEHTÄVÄT: Etsi heikkouksia, iteraatiosilmukoita ja testaa väitteiden popperilaista falsifioitavuutta.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `FalsifierOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}\n\nKONTEKSTI: Goodhartin laki ja performatiivisuus.\nKÄSKE: Etsi ohjaus-syötteistä (is_chat_history: true) asioita, joita käyttäjä väittää tehneensä mutta ei oikeasti tehnyt. Sovella tarvittaessa 'Epäilyttävä täydellisyys' -sääntöä.",
-          "en": "ROLE: FALSIFIER (Critical Loop & Boundary Testing)\nTASKS: Find weaknesses, iteration loops, and test Popperian falsifiability of claims.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `FalsifierOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}\n\nCONTEXT: Goodhart's law and performativity.\nMANDATE: Search the communication inputs (is_chat_history: true) for things the user claims to have done but didn't actually do. Apply the 'Suspicious Perfection' rule if necessary."
+          "fi": "ROOLI: FALSIFIOIJA (Critical Loop & Boundary Testing)\nTEHTÄVÄT: Etsi heikkouksia, iteraatiosilmukoita ja testaa väitteiden popperilaista falsifioitavuutta.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `FalsifierOutput` -skeeman mukainen JSON.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: FALSIFIER (Critical Loop & Boundary Testing)\nTASKS: Find weaknesses, iteration loops, and test Popperian falsifiability of claims.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `FalsifierOutput` schema.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -2405,8 +2392,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: KAUSAALINEN ANALYYTIKKO (Impact Verification)\nSinun tehtäväsi on arvioida aineistossa esitettyjen väitteiden ja todennettavan toiminnan (todistusaineiston) välistä syy-seuraussuhdetta.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `CausalOutput` -skeeman mukainen JSON. Varmista erityisesti, että `counterfactual_test` -objekti on täytetty kattavasti sisältäen PÄÄTELMÄSI numeeriset arvot annettujen asteikko-matriisien mukaisesti, sekä Counterfactual Simulaation tulos.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti (CausalOutput).\nVAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'causal_analysis' -objekti, jonka SISÄLLÄ ovat analyysikentät. Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'causal_analysis' -objektin:\n{{SCHEMA_EXAMPLE}}\n\nTÄRKEÄÄ: Sinulle toimitetaan 'search_result' -objekti, joka sisältää Vertex AI:n hakemia empirisiä faktoja. Käytä NÄITÄ FAKTOJA ensisijaisesti syy-seuraussuhteiden paikkansapitävyyden todentamiseen.\n\nKONTEKSTI: Syötteiden dynaaminen tunnistus.\nKIELTO: Älä oleta että tiedosto 'REFLECTION_TEXT' on olemassa. Lue 'ai_description' kenttä tunnistaaksesi tiedostot.\nKÄSKE: Etsi syötteistä 'is_chat_history: true'. Tämä on ainoa todellinen kommunikaatio koonnos. Jos reflektio on olemassa muissa tiedostoissa, vertaa sitä chat-historiaan (Etsi Say-Do kuiluja). Älä rankaise jos reflektio puuttuu kokonaan.",
-          "en": "ROLE: CAUSAL ANALYST (Impact Verification)\nYour task is to evaluate the cause-and-effect relationship between claims made in the context and the verifiable action (evidence).\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `CausalOutput` schema. Ensure the `counterfactual_test` is filled comprehensively, including your numeric scores from the provided matrix scales and the Counterfactual Simulation result.\nMANDATE: Output your response EXACTLY according to the JSON schema (CausalOutput).\nWARNING: DO NOT FLATTEN THE STRUCTURE. You must return a 'causal_analysis' object INSIDE which are the analysis fields. Ensure the response contains a 'reasoning_trace' string and the 'causal_analysis' object:\n{{SCHEMA_EXAMPLE}}\n\nIMPORTANT: You will be provided with a 'search_result' object containing empirical facts retrieved by Vertex AI. Use THESE FACTS primarily to verify the validity of cause-and-effect relationships.\n\nCONTEXT: Dynamic input recognition.\nPROHIBITION: Do NOT assume a file 'REFLECTION_TEXT' exists. Read the 'ai_description' field to identify files.\nMANDATE: Look for inputs flagged with 'is_chat_history: true'. This is the only real communication log. If a reflection exists in other files, compare it to the chat history (Look for Say-Do Gaps). Do not penalize if the reflection is entirely missing."
+          "fi": "ROOLI: KAUSAALINEN ANALYYTIKKO (Impact Verification)\nSinun tehtäväsi on arvioida aineistossa esitettyjen väitteiden ja todennettavan toiminnan (todistusaineiston) välistä syy-seuraussuhdetta.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `CausalOutput` -skeeman mukainen JSON. Varmista erityisesti, että `counterfactual_test` -objekti on täytetty kattavasti sisältäen PÄÄTELMÄSI numeeriset arvot annettujen asteikko-matriisien mukaisesti, sekä Counterfactual Simulaation tulos.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti (CausalOutput).\nVAROITUS: ÄLÄ LITISTÄ (FLATTEN) RAKENNETTA. Sinun on palautettava 'causal_analysis' -objekti, jonka SISÄLLÄ ovat analyysikentät. Varmista, että vastaus sisältää 'reasoning_trace' -merkkijonon ja 'causal_analysis' -objektin:\n{{SCHEMA_EXAMPLE}}\n\nTÄRKEÄÄ: Sinulle toimitetaan 'search_result' -objekti, joka sisältää Vertex AI:n hakemia empirisiä faktoja. Käytä NÄITÄ FAKTOJA ensisijaisesti syy-seuraussuhteiden paikkansapitävyyden todentamiseen.",
+          "en": "ROLE: CAUSAL ANALYST (Impact Verification)\nYour task is to evaluate the cause-and-effect relationship between claims made in the context and the verifiable action (evidence).\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `CausalOutput` schema. Ensure the `counterfactual_test` is filled comprehensively, including your numeric scores from the provided matrix scales and the Counterfactual Simulation result.\nMANDATE: Output your response EXACTLY according to the JSON schema (CausalOutput).\nWARNING: DO NOT FLATTEN THE STRUCTURE. You must return a 'causal_analysis' object INSIDE which are the analysis fields. Ensure the response contains a 'reasoning_trace' string and the 'causal_analysis' object:\n{{SCHEMA_EXAMPLE}}\n\nIMPORTANT: You will be provided with a 'search_result' object containing empirical facts retrieved by Vertex AI. Use THESE FACTS primarily to verify the validity of cause-and-effect relationships."
         }
       },
       "category_id": "instruction",
@@ -2453,8 +2440,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "ROOLI: TUOMARI (Grand Unification)\nTEHTÄVÄT: Yhdistä kaikkien muiden asiantuntijoiden (Analyst, Falsifier jne.) arviot lopulliseksi, painotetuksi tuomioksi.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `JudgeOutput` -skeeman mukainen JSON. Käytä määritettyjä BARS-matriisien arvoja numeeriseen arviointiin.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}\n\nKONTEKSTI: Suuri yhdistäminen ja tuomio.\nKÄSKE: Painota Causal Analystin ja Falsifierin tuloksia. Jos nämä asiantuntijat löytävät 'Performatiivisen reflektion' tai 'Say-Do' kuilun, sinun on rangaistava prosessipisteitä ankarasti skaaloissa, vaikka tuotettu laatu olisi korkea.",
-          "en": "ROLE: JUDGE (Grand Unification)\nTASKS: Unify assessments from all experts into a final, weighted verdict.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `JudgeOutput` schema. Use defined BARS matrices for numeric evaluation.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}\n\nCONTEXT: Grand unification and verdict.\nMANDATE: Heavily weigh the results of the Causal Analyst and Falsifier. If these experts find a 'Performative reflection' or a 'Say-Do gap', you must penalize the process scores severely in your scales, even if the final generated quality is high."
+          "fi": "ROOLI: TUOMARI (Grand Unification)\nTEHTÄVÄT: Yhdistä kaikkien muiden asiantuntijoiden (Analyst, Falsifier jne.) arviot lopulliseksi, painotetuksi tuomioksi.\n\nTUOTOSVAATIMUS:\nVastauksen on oltava `JudgeOutput` -skeeman mukainen JSON. Käytä määritettyjä BARS-matriisien arvoja numeeriseen arviointiin.\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti:\n{{SCHEMA_EXAMPLE}}",
+          "en": "ROLE: JUDGE (Grand Unification)\nTASKS: Unify assessments from all experts into a final, weighted verdict.\n\nOUTPUT REQUIREMENT:\nThe response must be JSON conforming to the `JudgeOutput` schema. Use defined BARS matrices for numeric evaluation.\nMANDATE: Output your response EXACTLY according to the JSON schema:\n{{SCHEMA_EXAMPLE}}"
         }
       },
       "category_id": "system_rule",
@@ -2627,8 +2614,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "SÄÄNTÖ: Negatiivinen Loki.\nMÄÄRÄYS: Kirjaa ylös puutteet. Mitä käyttäjä jätti tekemättä? Etsi aktiivisesti asioita, joita ei kysytty tai haastettu.",
-          "en": "RULE: Negative Audit.\nMANDATE: Record deficiencies. What did the user fail to do? Actively look for things that were not asked or challenged."
+          "fi": "Puutteiden auditointi. Protokolla 1 (Negatiivinen Loki): Kirjaa ylös PUUTTEET. Mitä käyttäjä jätti tekemättä?"
         }
       },
       "category_id": "system_rule",
@@ -2821,8 +2807,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "SÄÄNTÖ: Temporaalinen tarkistus.\nMÄÄRÄYS: Tarkista aikajana. Tuliko oivallus ENNEN tuloksen paranemista (Syy) vai vasta sen jälkeen (Rationalisointi)?",
-          "en": "RULE: Temporal Check.\nMANDATE: Check the timeline. Did the insight come BEFORE the result improved (Cause) or only after (Rationalization)?"
+          "fi": "Syy-seuraus -analyysi. Heuristiikka 1 (Temporaalinen): MÄÄRÄYS: Tarkista aikajana. Tuliko oivallus ENNEN tuloksen paranemista (Syy) vai vasta sen jälkeen (Rationalisointi)?"
         }
       },
       "category_id": "system_rule",
@@ -2846,8 +2831,7 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "SÄÄNTÖ: Kontrafaktuaalinen tarkistus.\nMÄÄRÄYS: Kysy: 'Jos käyttäjä ei olisi tehnyt mitään, olisiko tekoäly ratkaissut tämän silti?'. Jos kyllä, aktiivinen prosessiarvo on matala.",
-          "en": "RULE: Counterfactual Check.\nMANDATE: Ask: 'If the user had done nothing, would the AI have solved this anyway?'. If yes, the active process value is low."
+          "fi": "Lisäarvon mittaus. Heuristiikka 2 (Kontrafaktuaalinen): MÄÄRÄYS: Kysy 'Jos käyttäjä ei olisi tehnyt mitään, olisiko tekoäly ratkaissut tämän silti?'. Jos kyllä -Matkustaja."
         }
       },
       "category_id": "system_rule",
@@ -3386,7 +3370,6 @@
         }
       },
       "prompt_blocks": [
-        "block_role_analyst",
         "block_globalcontext",
         "block_headermandates",
         "block_headerrules",
@@ -3399,7 +3382,7 @@
         "block_instructionbiblicalgrounding",
         "block_instructionnohallucination",
         "block_instructioncitationobligation",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
         "block_taskanalyst"
@@ -3438,7 +3421,7 @@
         "block_headerrules",
         "block_rule5",
         "block_instructionnohallucination",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
         "matrix_archivist",
@@ -3468,8 +3451,6 @@
         }
       },
       "prompt_blocks": [
-        "block_heuristic2",
-        "block_heuristic1",
         "block_globalcontext",
         "block_headermandates",
         "block_mandate5",
@@ -3477,7 +3458,7 @@
         "block_rule5",
         "block_instructionbiblicalgrounding",
         "block_instructionnohallucination",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
         "matrix_causal_analyst",
@@ -3527,7 +3508,7 @@
         "block_heuristic1",
         "block_heuristic2",
         "block_heuristic3",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_taskcoach",
         "block_instructionstrictscale",
@@ -3563,7 +3544,7 @@
         "block_rule5",
         "block_instructionbiblicalgrounding",
         "block_instructionnohallucination",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
         "matrix_goodhart",
@@ -3592,8 +3573,6 @@
         }
       },
       "prompt_blocks": [
-        "block_rule4",
-        "block_protocol1",
         "block_globalcontext",
         "block_headermandates",
         "block_mandate5",
@@ -3601,7 +3580,7 @@
         "block_rule5",
         "block_instructionbiblicalgrounding",
         "block_instructionnohallucination",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
         "matrix_falsifier",
@@ -3641,7 +3620,7 @@
         "block_headerprotocols",
         "block_instructionanon",
         "block_instructionnodataleak",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "matrix_taskguard"
       ],
@@ -3671,8 +3650,6 @@
         }
       },
       "prompt_blocks": [
-        "block_oprule4",
-        "block_oprule3",
         "block_globalcontext",
         "block_headermandates",
         "block_mandate2",
@@ -3680,7 +3657,7 @@
         "block_mandate5",
         "block_principle1",
         "block_requirement1",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
         "matrix_judge",
@@ -3721,7 +3698,7 @@
         "block_instructionbiblicalgrounding",
         "block_instructionnohallucination",
         "block_instructioncitationobligation",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
         "matrix_toulmin",
@@ -3775,7 +3752,7 @@
         "block_protocol4",
         "block_instructionbiblicalgrounding",
         "block_instructionnohallucination",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_instruction_strictness",
         "block_taskoverseer"
@@ -3813,7 +3790,7 @@
         "block_heuristic2",
         "block_instructionbiblicalgrounding",
         "block_instructionnohallucination",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "block_heuristic1",
         "block_instruction_strictness",
@@ -3851,7 +3828,7 @@
         "block_mandate3",
         "block_principle1",
         "block_requirement1",
-        "block_instructionlanguage_dynamic",
+        "block_instructionlanguagefi",
         "block_headerinstructions",
         "matrix_xai_reporter",
         "matrix_taskxai_clarity"
