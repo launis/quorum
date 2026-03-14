@@ -160,15 +160,18 @@ Myös silloin, kun virheen tai tietyn poikkeuksen annetaan mennä läpi ilman ko
 
 Tyypillinen esimerkki tästä on Frontendin SDUI-widget (Server-Driven UI): jos backendistä tullut payload on osittain korruptoitunut ja yksittäisen komponentin rakentaminen failaa, näytämme näkymässä `SizedBox.shrink()` (Graceful Degradation). VAIKKA sovellus ei kaadu, komponentin on pakko ampua vahva virheloki osoittamaan, että fail-fast periaate toteutui osittain ja data oli viallista.
 
+**Käännösvirheet (TRANSLATION_FAILED):** 
+Uusi The Translation Boundary Hook nojaa LLM:ään kääntääkseen dynaamisia tekstejä (kuten `scratchpad`) asiointikielelle lennosta. Jos käännöspalvelu kaatuu tai timeouttaa, sovellus suorittaa Graceful Degradationin: se logittaa rakenteellisen `TRANSLATION_FAILED` -virheen, mutta tulostaa UI:hin datan sen **alkuperäisellä kielellä** (englanniksi) suojellakseen käyttäjäkokemusta ja sallien arvioinnin jatkumisen. Sovelluskokemus ei koskaan saa kaatua rikkoutuneeseen kääntäjään.
+
 **Esimerkki (Dart / Flutter):**
 ```dart
 try {
   return buildDynamicWidget(jsonData);
 } catch (e, st) {
-  // 1. Log with STRUCTURED FORMAT vaikka tilanteen annetaankin mennä läpi
+  // 1. Log with STRUCTURED FORMAT (esim. VALIDATION_FAILED tai TRANSLATION_FAILED) vaikka tilanteen annetaankin mennä läpi
   logger.error('[SDUI Builder] ${ErrorCodes.VALIDATION_FAILED}: Widget render error: $e', e, st);
   // 2. Fallback UI, mutta vain koska backendin dataongelma ei saa rikkoa koko puhelinta
-  return const SizedBox.shrink(); 
+  return const SizedBox.shrink(); // Tai käännösvirheessä: palauta alkuperäinen englanninkielinen teksti
 }
 ```
 
@@ -176,6 +179,11 @@ try {
 * Backendin virhedata (`AppException`) tuodaan sellaisenaan koodina UI:hin (`"VALIDATION_FAILED"`), ilman käännöstä.
 * UI lokalisoi viestin asiakkaalle (`client_app/lib/core/error/app_error_ext.dart`). Sanomaan kirjataan **miksi kävi näin ja mitä käyttäjän pitäisi yrittää seuraavaksi (Actionable Hint).** Ei kuitteja mallia "Tapahtui virhe".
 * **Standardisoitu UI-Komponentti:** Kaikki virheet (`.when(error: ...)`) ohjataan standardoidun kokonäytön tai osittaisen näytön `ErrorView`-widgetin kautta, joka osaa näyttää poikkeuksen vikakoodit siististi ja nätisti. Omia `Text('Error')` vökerryksiä ei tueta.
+
+### 6.5 Separation of Concerns: Framework vs. Domain Errors (Päällekkäisen työn estäminen)
+Päällekkäinen lokalisointityö vältetään ymmärtämällä selkeä rajanveto **Framework-virheiden** ja **Domain-virheiden** välillä:
+* **Framework-tason l10n (Automaattinen):** Flutterin omat SDK-paketit (kuten `flutter_localizations`) ja UI-komponentit hoitavat automaattisesti käyttöjärjestelmätason virheiden ja ilmoitusten lokalisoinnin Riverpodin `Locale`:n pohjalta. Esimerkiksi DatePickerin "Invalid format", leikepöydän "Kopioi/Liitä", tai Form-kenttien natiivit validaatiotekstit hoituvat itse Flutterin moottorista. Näitä *ei koskaan* yritetä kalastaa tai kääntää uudelleen meidän omilla `.arb` tai Exception-luokilla.
+* **Domain-tason l10n (Meidän vastuu / RFC 7807):** Tämä kokonaisuus (`AppErrorExt` ja backendin `exceptions.py`) on varattu **puhtaasti liiketoimintalogiikan** räätälöidyille virheille (esim. `WORKFLOW_EXECUTION_FAILED`, `TRANSLATION_FAILED`, `KNOWLEDGE_NOT_INGESTED`). Me kartoitamme ja käännämme ainoastaan nämä omat Enum-koodimme `.arb`-tiedoston avulla.
 
 ---
 
