@@ -236,8 +236,8 @@ Tämän estämiseksi V2-arkkitehtuuri on institutionalisoinut tiukkuuden ohjelma
 
 Wooldridgen (2009) määritelmän mukaisesti järjestelmä toteuttaa moniagenttiarkkitehtuurin (MAS), joka tässä viitekehyksessä konkretisoituu dynaamisena ”kognitiivisena auditointiverkkona (DAG)”, jossa erikoistuneet agentit prosessoivat informaatiota tiukasti annettujen riippuvuuksien mukaisesti. Taustalla rullaa tarkalleen **15** dynaamisesti reititettyä teknistä DAG-solmua (toimintatila **Courtroom 2.0 Full Audit**), ja tämä arkkitehtuuri noudattaa tieteellisen menetelmän soveltamisen loogista polkua (Cheng 2001):
 
-* **Vaihe 1: Empiirinen havainnointi (Esikäsittely).** Prosessi alkaa todistusaineiston jäsentelyllä ja turvallisuuden varmistuksella (Input Processing -solmu, Vartija-agentti, ks. Luku 2.3.3).
-* **Vaihe 2: Kontekstualisointi ja Analyysi.** Tietotarpeen ankkurointi ja tiedonhaku ulkoisilla työkaluilla sekä raakadatan jäsennys (Retrieval-agentti, Arkistonhoitaja-agentti, Analyytikko-agentti).
+* **Vaihe 1: Empiirinen havainnointi (Esikäsittely ja Hydraatio).** Prosessi alkaa todistusaineiston jäsentelyllä ja turvallisuuden varmistuksella (Input Processing -solmu, Vartija-agentti, ks. Luku 2.3.3). **Tässä vaiheessa järjestelmä suorittaa myös datan deterministisen hydraation ja metadatan injektoinnin (hooks/hydration.py), mikä varmistaa asyklisen verkon (DAG) vaatiman tilan (State) ja DTO-objektien eheyden.**
+* **Vaihe 2: Kontekstualisointi ja Analyysi.** Tietotarpeen ankkurointi ja tiedonhaku ulkoisilla työkaluilla sekä raakadatan jäsennys (Retrieval-agentti, Arkistonhoitaja-agentti, Analyytikko-agentti). **Tässä vaiheessa suoritetaan myös kooditason lingvistinen esianalyysi (hooks/linguistics.py), joka eristää deterministisesti tekstistä metadiskursiiviset piirteet ja tieto-opillisen asemoitumisen (vrt. Hyland 2005) ennen raskaampaa generatiivista LLM-analyysiä.**
 * **Vaihe 3: Hypoteesin luominen.** Jäsennellyn argumentin ja analyysin muodostaminen käyttäjän syvä-oppimisesta (Vuorovaikutuksen analyytikko, Profiloija, Loogikko-agentti, ks. Luku 2.3.4 ja 2.3.5).
 * **Vaihe 4: Falsifiointi.** Argumentti altistetaan systemaattiselle kumoamisyritykselle kriitikkopaneelin toimesta (Falsifioija-agentti, Kausaalinen-agentti, Performatiivisuuden Tunnistaja, Valvoja-agentti, ks. Luku 2.3.6).
 * **Vaihe 5: Synteesi ja Johtopäätökset.** Tulokset kootaan yhteen lopulliseksi arvosanaksi ja palaute rikastetaan formatiivisella tasolla (Tuomari-agentti, Valmentaja-agentti, XAI-Raportoija-agentti, ks. Luku 2.3.7 ja 2.3.8).
@@ -256,9 +256,9 @@ Tämä mekanismi toteuttaa järjestelmän keskeisen turvallisuussäännön (ks. 
 
 ##### **2.3.3.1 Tekninen Arkkitehtuuripäätös: Deterministinen Sivuvaunu-malli (Sidecar Auditor)**
 
-Vartija on toteutettu rinnakkaisena ohjelmallisena tarkastajana (Parallel Audit), ei kielimallipohjaisena suodattimena.
+Vartija on toteutettu rinnakkaisena ohjelmallisena tarkastajana (Parallel Audit), ei **pelkkänä** kielimallipohjaisena suodattimena. **Arkkitehtonisesti Vartija on V2-mallissa kaksiportainen (bipartite) hybridikomponentti. Sillä on suunnatussa asyklisessä verkossa (DAG) oma toimialuemallinsa (models/domain/guard.py), mikä on välttämätöntä tiukasti tyypitettyjen DTO-sopimusten ylläpitämiseksi solmujen välillä.**
 
-* Mekanismi: Vartija analysoi syötteen sääntöpohjaisesti ja palauttaa turvallisuusluokituksen (DATA\_CHECKED\_AND\_SECURED), mutta ei toista alkuperäistä tekstiä.  
+* Mekanismi: Vartija analysoi syötteen **ensin nopeilla, prosessorisidonnaisilla deterministisillä hookeilla (esim. hooks/security.py). Mikäli tämä portti läpäistään, Vartija-agentti suorittaa syvemmän semanttisen analyysin (kuten epäsuorien kehotemurtojen tunnistamisen). Koko komponentti** palauttaa turvallisuusluokituksen (DATA\_CHECKED\_AND\_SECURED), mutta ei toista alkuperäistä tekstiä **uudelleen generoivana syötteenä**.  
 * Perustelu: Tämä täysin deterministinen (CPU-bound) ratkaisu poistaa LLM-hallusinaatioriskin aloituksesta, ehkäisee "Prompt Injection Mirroring" \-hyökkäykset jopa nollapäivän tekniikoissa ja puolittaa ohjelmalliset token-kustannukset massiivisilla syötteillä.  
 * Kill Switch: Jos Vartija havaitsee uhkan (esim. ohjelmallinen osuma kiellettyjen termien rekisteriin), järjestelmä laukaisee välittömän keskeytyksen (Circuit Breaker) nostamalla poikkeuksen, jolloin saastunut data ei koskaan etene tekoälymalleille asti.
 
@@ -499,6 +499,8 @@ XAI-raportti pysäyttää päätöksenteon vaatimalla ihmisvahvistusta ennen lop
 ##### **2.4.4.2 Muut Hallinnolliset Kontrollit**
 
 Tämä kerros hallitsee myös muita systeemisiä riskejä hallinnollisilla käytännöillä. Turvaton tuotoksen käsittely (LLM05:2025) torjutaan tulosteen koodauksella (OWASP Foundation 2025c). Toimitusketjun haavoittuvuuksia (LLM03:2025) hallitaan LLMOps-käytännöillä (Kreuzberger ym. 2023). Opetusdatan myrkyttäminen (LLM04:2025) puolestaan estetään käyttämällä vain ihmisen hyväksymää dataa (D'Angelo 2025).
+
+**Lisäksi järjestelmän eheyden ja auditoitavuuden kriittinen hallinnollinen edellytys on arkkitehtuuriin integroitu identiteetin- ja pääsynhallinta (IAM). Operatiivinen malli toteuttaa moniasiakkuutta tukevan roolipohjaisen pääsynhallinnan (Role-Based Access Control, RBAC) (Sandhu ym. 1996), joka eristää kryptografisesti arvioitavien datan, arviointiagenttien konfiguraatiot ja HITL-valvojien toimintaoikeudet toisistaan, estäen järjestelmän luvattoman manipuloinnin.**
 
 ## **Luku 3: Viitekehyksen Asemointi: Vertaileva Analyysi Akateemisiin ja Kaupallisiin Ratkaisuihin**
 
@@ -742,6 +744,8 @@ Lopullisena varmistuksena arkkitehtuuri pakottaa Hookit suorittamaan validointim
 
 **Jäännösriski**: Automaattisen Pydantic-validoinnin ansiosta kopiointiin ja siirtoon (in-transit error) liittyvä inhimillisen virheen riski on eliminoitu kokonaan. Tyyppitarkastukset ja JSON-validointi eivät kuitenkaan takaa agenttien loogisten tai kielellisten tulkintaerojen poistumista. Tuomari-agentti kirjaa loogiset ja tulkinnalliset erot edelleen Systeemiseksi Epävarmuudeksi lopulliseen XAI-raporttiin.
 
+**Yhteentoimivuuteen liittyy arkkitehtuurissa myös monikielisyyden (lokaalisaation) riski. Koska suuret kielimallit on koulutettu ylivoimaisesti englanninkielisellä datalla, niiden kyky soveltaa hienosyisiä BARS-matriiseja ja tunnistaa monimutkaisia kausaalisia suhteita heikkenee merkittävästi muilla kielillä (Ahuja ym. 2023). Tämä kielellinen ja epistemologinen vinouma voi heikentää Kvoorumin arvioitsijoiden välistä yhdenmukaisuutta, mikäli sisäistä tietoliikennettä ja agenttien välistä argumentaatiota ei pakoteta tapahtumaan englanniksi.**
+
 #### **5.2.5 Riski: Agenttien kognitiivinen ylikuormitus ja käyttäytymisen inversio**
 
 **Riskin kuvaus**: Pääarviointikehotteen analyysi tunnistaa kriittisen pullonkaulan, joka johtuu tiettyjen agenttien kohtuuttomasta kognitiivisesta kuormasta. Erityisesti Prosessiauditoija ja Tuomari-agentti ovat arkkitehtonisesti ylikuormitettuja. Niiden on koostettava koko dataketju ja sovellettava subjektiivisia holistisia sääntöjä. Tämä kasvattaa käsiteltävän kontekstin laajuuden (engl. *context width*) ja pituuden äärimmilleen. Tutkimukset osoittavat, että tehtävän monimutkaisuus (Shen ym. 2023\) sekä monimutkaisuuden ja kontekstin pituuden yhteisvaikutus heikentävät kielimallien suorituskykyä ja ohjeiden noudattamista (*instruction following*) merkittävästi (Wu ym. 2024). Tämän riskin vakavin seuraus ei ole satunnainen virhe, vaan käyttäytymisen inversio. Tutkimuksissa, joissa mallien kognitiivista kuormitusta on kasvatettu monimutkaisilla tehtävillä, mallien on havaittu hylkäävän monimutkaiset, normatiiviset (esim. oikeudenmukaisuus) ohjeet ja siirtyvän yksinkertaisempaan, rationaaliseen maksimointiin (Kirshner ym. 2025). "Kognitiiviselle Kvoorumille" tämä tarkoittaa, että ylikuormitettu Tuomari-agentti voi epäonnistua kaltaisten monimutkaisten, subjektiivisten sääntöjen soveltamisessa ja oikaista yksinkertaisempiin, mutta virheellisiin, ratkaisuihin. Tämä uhkaa suoraan koko järjestelmän pätevyysa.
@@ -824,11 +828,11 @@ Koska viitekehyksen toiminnallinen malli on toteutettu mutta empiirisesti testaa
 
 1. **Viitekehyksen ydinlupauksen todentaminen luotettavuustutkimuksella (kriittinen ja välitön ensisijainen tavoite).** Agenda jakautuu kahteen vaiheeseen:
 
-   * **Ulkoisen validiteetin testaus (arvioijien välinen luotettavuus IRR)**: On välittömästi käynnistettävä vertaileva pilottitutkimus (n=50), joka mittaa Kognitiivisen Kvoorumin arvioitsijareliabiliteetin (IRR) suhteessa ihmisasiantuntijoihin käyttämällä Cohenin Kappa \-kerrointa (McHugh 2012\) ja Intra-Class Correlation (ICC) \-mittaria. Tutkimusasetelmassa:
+   * **Ulkoisen validiteetin testaus (arvioijien välinen luotettavuus IRR)**: On välittömästi käynnistettävä vertaileva pilottitutkimus (n=50), joka mittaa Kognitiivisen Kvoorumin arvioitsijareliabiliteetin (IRR) suhteessa ihmisasiantuntijoihin käyttämällä **Krippendorffin alfa \-kerrointa (Krippendorff 2004) laadullisen luokittelun yhdenmukaisuuden arviointiin**, ja Intra-Class Correlation (ICC) \-mittaria **numeerisen pisteytyksen varianssin mittaamiseen**. Tutkimusasetelmassa:
 
      * **Aineisto:** Kerätään 50 autenttista tekoälyavusteista opiskelijatyötä (sis. keskusteluhistorian).
 
-     * **Ihmisverrokki:** Kolme riippumatonta, sokoutettua ihmisarvioijaa pisteyttää työt Hybridirubriikilla (Cohenin Kappa).
+     * **Ihmisverrokki:** Kolme riippumatonta, sokoutettua ihmisarvioijaa pisteyttää työt Hybridirubriikilla **(arvioijien välinen yhdenmukaisuus varmennetaan Krippendorffin alfalla)**.
 
      * **Kvoorum-ajo:** Sama aineisto syötetään Kognitiiviselle Kvoorumille (heterogeeninen konfiguraatio: GPT-4 & Claude 3.5).
 
@@ -849,6 +853,8 @@ Koska viitekehyksen toiminnallinen malli on toteutettu mutta empiirisesti testaa
 * **Agrawal, Ajay, Gans, Joshua & Goldfarb, Avi 2022\.** *Prediction machines: The simple economics of artificial intelligence*. Boston: Harvard Business Review Press.
 
 * **Ahmad, Sultan ym. 2024\.** *A comprehensive review of retrieval-augmented generation (RAG): Key challenges and future directions*. arXiv preprint arXiv:2410.12837. Saatavilla: [https://doi.org/10.48550/arXiv.2410.12837](https://www.google.com/search?q=https://doi.org/10.48550/arXiv.2410.12837).
+
+* **Ahuja, Kabir ym. 2023\.** *MEGA: Multilingual Evaluation of Generative AI*. arXiv preprint arXiv:2303.12528. Saatavilla: DOI: 10.48550/arXiv.2303.12528.
 
 * **Ahuna, Kelly & Kiener, Michael 2025\.** *Beyond digital literacy: Cultivating “meta AI” skills in students and faculty*. Faculty Focus. Saatavilla: [https://www.facultyfocus.com/articles/teaching-with-technology-articles/beyond-digital-literacy-cultivating-meta-ai-skills-in-students-and-faculty/](https://www.facultyfocus.com/articles/teaching-with-technology-articles/beyond-digital-literacy-cultivating-meta-ai-skills-in-students-and-faculty/).
 
@@ -1038,6 +1044,8 @@ Koska viitekehyksen toiminnallinen malli on toteutettu mutta empiirisesti testaa
 
 * **Kreuzberger, Dominik, Kühl, Niklas & Hirschl, Sebastian 2023\.** *Machine learning operations (MLOps)*. IEEE Access, 11, s. 31866–31879. Saatavilla: [https://doi.org/10.1109/ACCESS.2023.3262138](https://doi.org/10.1109/ACCESS.2023.3262138).
 
+* **Krippendorff, Klaus 2004\.** *Reliability in Content Analysis: Some Common Misconceptions and Recommendations*. Human Communication Research, 30(3), s. 411–433. Saatavilla: DOI: 10.1111/j.1468-2958.2004.tb00738.x.
+
 * **Kruger, Justin & Dunning, David 1999\.** *Unskilled and unaware of it*. Journal of Personality and Social Psychology, 77(6), s. 1121–1134. Saatavilla: [https://doi.org/10.1037/0022-3514.77.6.1121](https://doi.org/10.1037/0022-3514.77.6.1121).
 
 * **Lagnado, David A. & Sloman, Steven A. 2006\.** *Time as a guide to cause*. Journal of Experimental Psychology, 32(3), s. 451–460. Saatavilla: [https://doi.org/10.1037/0278-7393.32.3.451](https://doi.org/10.1037/0278-7393.32.3.451).
@@ -1147,6 +1155,8 @@ Koska viitekehyksen toiminnallinen malli on toteutettu mutta empiirisesti testaa
 * **Saito, Keisuke, Wachi, Akifumi & Akimoto, Youhei 2023\.** *Verbosity bias in preference labeling by LLMs*. arXiv preprint arXiv:2310.10864. Saatavilla: [https://doi.org/10.48550/arXiv.2310.10864](https://www.google.com/search?q=https://doi.org/10.48550/arXiv.2310.10864).
 
 * **Saltzer, Jerome H. & Schroeder, Michael D. 1975\.** *The protection of information in computer systems*. Proceedings of the IEEE, 63(9), s. 1278–1308. Saatavilla: [https://doi.org/10.1109/PROC.1975.9939](https://doi.org/10.1109/PROC.1975.9939).
+
+* **Sandhu, Ravi S., Coyne, Edward J., Feinstein, Hal L. & Youman, Charles E. 1996\.** *Role-based access control models*. IEEE Computer, 29(2), s. 38–47. Saatavilla: DOI: 10.1109/2.485845.  
 
 * **Sgaier, Sema K. ym. 2020\.** *The case for causal AI*. Stanford Social Innovation Review, 18(3), s. 50–55. Saatavilla: [https://doi.org/10.48558/KT81-SN73](https://www.google.com/search?q=https://doi.org/10.48558/KT81-SN73).
 
