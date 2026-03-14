@@ -7,6 +7,10 @@ including Toulmin argumentation analysis and Walton schemes.
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -15,13 +19,16 @@ from backend_v2.services.localization import LocalizationService
 
 
 class LogicianInput(BaseModel):
-    """Strict input schema for LogicianAgent."""
+    """Strict input schema for LogicianAgent.
 
-    history_text: str | None = Field(None, description="Chat history to analyze.")
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="The mandatory conversation history to analyze.", json_schema_extra={"x-ui-label": "Chatlog"})
     step_analyst: AnalystOutput | None = Field(None, description="Analyst hypotheses/timeline.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 
 class ToulminComponent(BaseModel):
@@ -70,7 +77,9 @@ class ToulminComponent(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -109,14 +118,18 @@ class CognitiveLevel(BaseModel):
     @classmethod
     def validate_bloom_score(cls, v: float) -> float:
         if not (0.0 <= v <= 6.0):
-            raise ValueError("Bloom score must be between 0.0 and 6.0.")
+            msg = "Bloom score must be between 0.0 and 6.0."
+            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
     @field_validator("strategic_score")
     @classmethod
     def validate_strategic_score(cls, v: float) -> float:
         if not (1.0 <= v <= 4.0):
-            raise ValueError("Strategic score must be between 1.0 and 4.0.")
+            msg = "Strategic score must be between 1.0 and 4.0."
+            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
     @model_validator(mode="before")
@@ -214,7 +227,9 @@ class WaltonScheme(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Identified scheme cannot be empty.")
+            msg = "Identified scheme cannot be empty."
+            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("critical_questions")
@@ -222,7 +237,9 @@ class WaltonScheme(BaseModel):
     def validate_questions(cls, v: list[str]) -> list[str]:
         for q in v:
             if not q or not q.strip():
-                raise ValueError("Critical questions cannot be empty strings.")
+                msg = "Critical questions cannot be empty strings."
+                logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+                raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
     model_config = ConfigDict(frozen=True, strict=True)
@@ -265,7 +282,9 @@ class LogicianData(BaseModel):
     @classmethod
     def validate_analysis(cls, v: list[ToulminComponent]) -> list[ToulminComponent]:
         if not v:
-            raise ValueError("Toulmin analysis cannot be empty.")
+            msg = "Toulmin analysis cannot be empty."
+            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
     @model_validator(mode="before")

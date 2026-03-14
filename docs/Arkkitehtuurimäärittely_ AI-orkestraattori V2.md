@@ -73,6 +73,18 @@ DAG-verkossa jokaisella askeleella (`step_node_1`) on `input_mappings`-määrity
 
 Tällä taataan, että jokainen Node suoritetaan turvallisessa Pydantic eristyksessä (Fail-Fast), eikä data lipsu vahingossa väärien LLM-kutsujen kontekstiin.
 
+## **4.3. 5-Level Strictness Framework ja Kognitiiviset Injektiot (2D-Moottori)**
+V2-arkkitehtuuri institutionalisoi kognitiivisen arvioinnin tiukkuuden käyttäjän säädettävissä olevalla jatkuvalla 5-portaisella asteikolla. Arviointi on kaksiulotteinen ja jakautuu ohjelmallisesti **Makrotasoon** (Laadullinen roolimuutos) ja **Mikrotasoon** (Määrällinen interpolaatiosäätö). Tiukkuustason (1-5) nostaminen käyttöliittymässä ei ole vain lineaarinen vähennyskerroin, vaan se laukaisee ketjureaktion tietokannassa olevien (esim. `seed_data.json`) PromptBlockien ja ohjelmallisten sääntöjen välillä:
+
+*   **Makrotaso (Laadullinen Asenneinjektio):** Työnkulun rakennuspalikat eivät ole kiinteitä. `DAGExecutor` säätelee ajonaikaisesti suoritusverkon kognitiivista kokoonpanoa muuttamalla käytettyjä PromptBlock-rooleja. 
+    *   *Mekanismi:* Perusajossa (Taso 3) moottori käyttää vakiomuotoisia luovia analyytikoita. Korkeimmalla Makrotasolla 5 (Zero-Trust) moottori tekee laadullisen leikkauksen (Qualitative Shift) ja ohittaa perustason tuomariblokit injektoimalla Syyttäjä-roolin (`block_role_prosecutor`) ja akateemisen kognitiivisen kitkan vaatimuksen (`block_rule_cognitiverequirement`).
+    *   *Tekninen Vaikutus:* Kuten V2 auditoinnit osoittavat, asennemuutos pakottaa kielimallin (Vertex AI) lukemaan syötettä syvemmin falsifiointitavoitteella. Heikkolaatuinen data (Synthetic Garbage) liputetaan välittömästi null-hypoteesin kautta ja Algorithmic Tyranny Kill Switch ohjelmoi lopputulokseksi nollaa. Laadukkaan datan kohdalla Syyttäjä-rooli saattaa jopa *nostaa* kognitiivisia argumentaatiopisteitä (esim. Toulmin/Bloom), koska se pakottaa esiin syvällisemmän analyysin alkuperäisen pinnallisen hyväksynnän sijaan.
+*   **Mikrotaso (Määrällinen Ohjelmallinen Pakotus):** Estääkseen kognitiivisen dissonanssin, moottorin ydinsilmukka (`dag_executor.py`) käyttää valittua tiukkuustasoa skaalaten kunkin yksittäisen askeleen matemaattista joustovaraa.
+    *   *Mekanismi:* Järjestelmä kiertää lennosta kaikki numeeriset arvostelumatriisit ja ylikirjoittaa niiden ohjelmallisen `strictness_level` -arvon tarkan laskennallisen linjauksen mukaisesti asteikolle 0-100 (esim. Taso 5 pakottaa kaikkien matriisien tarkkuudeksi 100).
+    *   *Tekninen Vaikutus:* Mikrotaso toimii kynnysarvona. Se ohjaa BARS-viitekehyksen vektoriprojektiota tiukempiin reunaehtoihin (margin of error). Nolla-arvo (0) sallii tulkinnanvaraisuutta täydellisten osumien puuttuessa, kun taas Lahjomaton arvo (100) johtaa ohjelmalliseen säännönmukaisuuteen, laskien tuloksia useimmissa tapauksissa lievästi 5-10 prosenttiyksikköä rangaisten pienistäkin poikkeamista ohjeistuksessa. Se ei kuitenkaan muuta mallin perusasenneta toisin kuin Makrotaso.
+
+Tämä 2D-mekanismi varmistaa ehdottoman auditointilinjan, ilman että yhtäkään fyysistä perusmatriisia (`seed_data.json`) pitää rakenteessa monistaa eri tasoille. Yhdessä ne pitävät huolta siitä, että rutiiniarviointi (Taso 3, Micro 50) on miellyttävää, ja korkean panoksen laadunvarmistus (Taso 5, Micro 100) on absoluuttisen lahjomatonta.
+
 ## ---
 
 ## **5\. FastAPI Backend ja Suoritusmoottori**

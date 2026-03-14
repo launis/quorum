@@ -13,6 +13,7 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:dio/dio.dart';
 
 part 'new_execution_view.g.dart';
 
@@ -188,15 +189,40 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         }
       } else {
         if (mounted) {
+          String errorMessage = e.toString();
+          if (e is DioException && e.response?.data != null) {
+            final data = e.response!.data;
+            if (data is Map<String, dynamic>) {
+              if (data.containsKey('message')) {
+                errorMessage = data['message'].toString();
+              } else if (data.containsKey('detail')) {
+                final detail = data['detail'];
+                if (detail is List && detail.isNotEmpty) {
+                  final firstError = detail.first;
+                  if (firstError is Map && firstError.containsKey('msg')) {
+                     errorMessage = "${firstError['loc']?.last}: ${firstError['msg']}";
+                  } else {
+                     errorMessage = detail.toString();
+                  }
+                } else {
+                  errorMessage = detail.toString();
+                }
+              }
+            }
+          }
+          
+          // Clean up standard prefixes
+          errorMessage = errorMessage.replaceAll('Exception: ', '').replaceAll('DioException [bad response]: ', '');
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
                 AppLocalizations.of(
                   context,
-                )!.failedToStartExecution(e.toString()),
+                )!.failedToStartExecution(errorMessage),
               ),
               backgroundColor: Theme.of(context).colorScheme.error,
-              duration: const Duration(seconds: 5),
+              duration: const Duration(seconds: 7),
             ),
           );
         }
@@ -592,10 +618,42 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
+              _buildStrictnessWarning(_strictnessLevel),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStrictnessWarning(int level) {
+    if (level < 4) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Theme.of(context).colorScheme.error),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Theme.of(context).colorScheme.error, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              level == 4
+                  ? AppLocalizations.of(context)!.strictnessWarningLvl4
+                  : AppLocalizations.of(context)!.strictnessWarningLvl5,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onErrorContainer,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

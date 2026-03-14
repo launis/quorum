@@ -9,6 +9,10 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -16,13 +20,16 @@ from backend_v2.models.domain.logician import LogicianOutput
 
 
 class OverseerInput(BaseModel):
-    """Strict input schema for FactualOverseerAgent."""
+    """Strict input schema for FactualOverseerAgent.
 
-    history_text: str | None = Field(None, description="Chat history to analyze.")
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="The mandatory conversation history to analyze.", json_schema_extra={"x-ui-label": "Chatlog"})
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 
 class FactCheckRFI(BaseModel):
@@ -54,7 +61,9 @@ class FactCheckRFI(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[OverseerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @model_validator(mode="before")
@@ -98,7 +107,9 @@ class EthicalObservation(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[OverseerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @model_validator(mode="before")

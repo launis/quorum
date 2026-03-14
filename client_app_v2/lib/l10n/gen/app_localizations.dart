@@ -3488,6 +3488,18 @@ abstract class AppLocalizations {
   /// **'Level 5: Zero-Trust'**
   String get strictnessZeroTrust;
 
+  /// No description provided for @strictnessWarningLvl4.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: Level 4 is adversarial and searches for flaws. Expect significantly lower scores.'**
+  String get strictnessWarningLvl4;
+
+  /// No description provided for @strictnessWarningLvl5.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.'**
+  String get strictnessWarningLvl5;
+
   /// No description provided for @barsCompliance1.
   ///
   /// In en, this message translates to:

@@ -22,7 +22,8 @@ async def get_workflow_ui_schema(
     """Retrieve the expected inputs schema for frontend dynamic rendering."""
     workflow_dict = await repository.get_workflow_by_id(workflow_id)
     if not workflow_dict:
-        logger.error(f"[WorkflowRouter] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Error: Workflow {workflow_id} not found.")
+        msg = f"Workflow {workflow_id} not found."
+        logger.error(f"[WorkflowRouter] {ErrorCodes.RESOURCE_NOT_FOUND.name}: {msg}")
         raise ResourceNotFoundError(resource_type="workflow", resource_id=workflow_id)
 
     workflow = Workflow.model_validate(workflow_dict)

@@ -8,6 +8,7 @@ import 'package:client_app/shared/widgets/execution_timeline.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 /// **Live Execution SDUI Screen**
 ///
@@ -64,6 +65,15 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
               stepStatesMap.values.map((e) => SafeCast.safeMap(e)).toList();
 
           final results = SafeCast.safeMap(record['results']);
+
+          final renderableHints = uiHints.where((hint) {
+            final widgetType = hint['component_type']?.toString() ??
+                hint['widget']?.toString() ??
+                'unknown';
+            return widgetType == 'radar_chart' ||
+                widgetType == 'gauge' ||
+                widgetType == 'slider';
+          }).toList();
 
           return CustomScrollView(
             slivers: [
@@ -155,37 +165,34 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   ),
                 ),
 
-              // SDUI Grid
-              if (uiHints.isNotEmpty)
+              // SDUI Grid (Temporarily disabled - UI rendering is a separate future project)
+              /*
+              if (renderableHints.isNotEmpty)
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   sliver: SliverGrid(
                     gridDelegate:
                         const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent:
-                          800, // Breakpoint for Desktop/Tablet responsivity
+                      maxCrossAxisExtent: 800,
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio:
-                          1.5, // General ratio for charts, can be overridden per widget if needed in a more advanced grid
+                      childAspectRatio: 1.5,
                     ),
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final hint = SafeCast.safeMap(uiHints[index]);
+                      final hint = SafeCast.safeMap(renderableHints[index]);
                       final componentType = SafeCast.safeString(
                         hint['field_id'] ?? hint['component'],
                       );
 
-                      // Generate component with Graceful Degradation Protocol
                       try {
                         return SDUIWidgetFactory.buildWidget(
                           hint: hint,
-                          slug: componentType, // Map component type to slug
+                          slug: componentType,
                           results: results,
-                          locale: 'fi', // Default until locale context is added
-                          logger: ref.read(loggerServiceProvider), // Inject Singleton Logger
+                          locale: 'fi',
+                          logger: ref.read(loggerServiceProvider),
                         );
                       } catch (e, st) {
-                        // Protocol V2: MANDATORY LOGGING EVEN IF NON-FATAL
                         ref.read(loggerServiceProvider).error(
                               'SDUIBuilder',
                               'VALIDATION_FAILED: Widget render fatal crash for slug "$componentType": $e',
@@ -194,10 +201,13 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             );
                         return const SizedBox.shrink();
                       }
-                    }, childCount: uiHints.length),
+                    }, childCount: renderableHints.length),
                   ),
-                )
-              else if (status == 'completed' && results.isNotEmpty)
+                ),
+              */
+
+              // ALWAYS show Raw Data JSON on completion 
+              if (status == 'completed' && results.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -234,14 +244,6 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                )
-              else
-                SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      AppLocalizations.of(context)!.noUiHintsAvailable,
                     ),
                   ),
                 ),

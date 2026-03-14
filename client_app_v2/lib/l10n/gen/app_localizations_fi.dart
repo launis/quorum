@@ -1868,6 +1868,14 @@ class AppLocalizationsFi extends AppLocalizations {
   String get strictnessZeroTrust => 'Taso 5: Nollaluottamus (Zero-Trust)';
 
   @override
+  String get strictnessWarningLvl4 =>
+      'Varoitus: Taso 4 on antagonistinen ja etsii virheitä. Arvosanat voivat laskea merkittävästi.';
+
+  @override
+  String get strictnessWarningLvl5 =>
+      'Varoitus: Zero-Trust. Nolla pistettä, ellei ulkoisia viitteitä ja kovaa evidenssiä käytetä virheettömästi.';
+
+  @override
   String get barsCompliance1 =>
       'Critically Misaligned - Täysin satunnainen prosessi';
 

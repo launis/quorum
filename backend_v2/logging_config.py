@@ -75,7 +75,8 @@ def configure_logfire():
         litellm.failure_callback = ["logfire"]
     except Exception as e:
         logging.getLogger(__name__).warning(
-            f"Logfire validation failed (likely no token): {e}. Observability disabled."
+            f"[LoggingConfig] {ErrorCodes.CONFIGURATION_ERROR.name}: Logfire validation failed (likely no token): {e}. Observability disabled.",
+            exc_info=True
         )
 
 
@@ -157,7 +158,7 @@ def setup_logging(log_level=logging.INFO):
             logfire_handler.addFilter(context_filter)
             root_logger.addHandler(logfire_handler)
         except Exception as e:
-            logging.getLogger(__name__).warning(f"Failed to attach Logfire handler: {e}")
+            logging.getLogger(__name__).warning(f"[LoggingConfig] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to attach Logfire handler: {e}", exc_info=True)
 
     # Set external libraries to warning to reduce noise
     # Configure uvicorn to use our format (propagate to root handler)
@@ -249,8 +250,10 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
     elif hasattr(exc, "detail"):
         details = exc.detail  # type: ignore
 
-    extra = {"error_code": error_code}
+    extra = {"error_code": error_code.name if hasattr(error_code, "name") else str(error_code)}
     if details:
         extra["details"] = details
 
-    logger.error(f"{message}: {str(exc)}", exc_info=True, extra=extra)
+    # Build the strict log prefix
+    code_str = error_code.name if hasattr(error_code, "name") else str(error_code)
+    logger.error(f"[App] {code_str}: {message}: {str(exc)}", exc_info=True, extra=extra)

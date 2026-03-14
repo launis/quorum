@@ -9,6 +9,10 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -18,13 +22,16 @@ from backend_v2.services.localization import LocalizationService
 
 
 class PerformativityInput(BaseModel):
-    """Strict input schema for PerformativityDetectorAgent."""
+    """Strict input schema for PerformativityDetectorAgent.
 
-    history_text: str | None = Field(None, description="Chat history to analyze.")
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 
 class PerformativityHeuristic(BaseModel):
@@ -53,7 +60,9 @@ class PerformativityHeuristic(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -149,7 +158,9 @@ class PerformativityAnalysis(BaseModel):
     @classmethod
     def validate_score(cls, v: float) -> float:
         if not (1.0 <= v <= 3.0):
-            raise ValueError("Authenticity score must be between 1.0 and 3.0.")
+            msg = "Authenticity score must be between 1.0 and 3.0."
+            logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
@@ -187,7 +198,9 @@ class PerformativePattern(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 

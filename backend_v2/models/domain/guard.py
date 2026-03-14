@@ -7,33 +7,46 @@ including input validation and security check results.
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.enums import RiskLevel, SimulationType
 
 
 class GuardInput(BaseModel):
-    """Input schema for the Guard Agent, supporting strict validation."""
+    """Input schema for the Guard Agent, supporting strict validation.
 
-    history_text: str | None = Field(None, json_schema_extra={"x-ui-label": "INPUT_HISTORY_TEXT"})
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., json_schema_extra={"x-ui-label": "INPUT_CHATLOG"})
     product_text: str | None = Field(None, json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"})
     reflection_text: str | None = Field(default=None, json_schema_extra={"x-ui-label": "INPUT_REFLECTION_TEXT"})
     last_reasoning_trace: str | None = Field(default=None, json_schema_extra={"x-ui-label": "Last Reasoning Trace"})
 
-    @field_validator("history_text", "product_text")
+    model_config = ConfigDict(frozen=True, extra="allow")
+
+    @field_validator("chat_log", "product_text")
     @classmethod
     def validate_non_empty(cls, v: str | None) -> str | None:
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[GuardModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("reflection_text")
     @classmethod
     def validate_reflection(cls, v: str | None) -> str | None:
         if v is not None and not v.strip():
-            raise ValueError("Reflection text cannot be empty if provided.")
+            msg = "Reflection text cannot be empty if provided."
+            logger.error(f"[GuardModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else None
 
     @model_validator(mode="after")
@@ -53,7 +66,9 @@ class GuardInput(BaseModel):
             if isinstance(value, str):
                 for phrase in banned_phrases:
                     if phrase.lower() in value.lower():
-                        raise ValueError(f"SECURITY_BANNED_PHRASE_DETECTED: Found '{phrase}' in field '{key}'")
+                        msg = f"SECURITY_BANNED_PHRASE_DETECTED: Found '{phrase}' in field '{key}'"
+                        logger.error(f"[GuardModel] {ErrorCodes.FORBIDDEN.name}: {msg}")
+                        raise AppException(message=msg, status_code=403, details={"error_code": ErrorCodes.FORBIDDEN})
         return self
 
 

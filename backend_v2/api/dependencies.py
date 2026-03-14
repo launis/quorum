@@ -1,4 +1,7 @@
 from typing import TYPE_CHECKING, Annotated, Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     pass
@@ -39,9 +42,12 @@ async def get_current_user_from_header(
     token: HTTPAuthorizationCredentials | None = Security(security)
 ) -> TokenData:
     if not token:
+        msg = "Missing authentication token"
+        error_code = "AUTH_TOKEN_MISSING"
+        logger.error(f"[Dependencies] {error_code}: {msg}")
         raise AuthenticationError(
-            message="Missing authentication token",
-            details={"error_code": "AUTH_TOKEN_MISSING"}
+            message=msg,
+            details={"error_code": error_code}
         )
     return await auth_service.verify_token(token.credentials)
 

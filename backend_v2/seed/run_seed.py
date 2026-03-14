@@ -34,7 +34,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+from backend_v2.exceptions import ErrorCodes
+
 def _fail_fast(msg: str, error: Exception) -> None:
+    logger.critical(f"[Seeder] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: [CRITICAL FAIL FAST] {msg} - {str(error)}", exc_info=True)
     print(f"\033[91m[CRITICAL FAIL FAST] {msg}\n{str(error)}\033[0m")
     sys.exit(1)
 
@@ -56,6 +59,7 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
                 shutil.copy2(db_path, backup_path)
                 print(f"[SUCCESS] Backup created: {backup_path}")
             except Exception as e:
+                logger.error(f"[Seeder] {ErrorCodes.FILESYSTEM_VIOLATION.name}: Failed to create db backup: {e}", exc_info=True)
                 print(f"[ERROR] Failed to create db backup: {e}")
                 sys.exit(1)
 
@@ -172,7 +176,8 @@ def seed_database(target: str) -> None:
     print(f"--- V2 SEEDING TARGET: {target.upper()} ---")
 
     if not os.path.exists(SEED_PATH):
-        print(f"CRITICAL: Seed file not found at {SEED_PATH}")
+        logger.critical(f"[Seeder] {ErrorCodes.FILE_NOT_FOUND.name}: Seed file not found at {SEED_PATH}")
+        print(f"\033[91mCRITICAL: Seed file not found at {SEED_PATH}\033[0m")
         sys.exit(1)
 
     with open(SEED_PATH, encoding="utf-8") as f:
@@ -211,7 +216,8 @@ def main() -> None:
         try:
             seed_database(t)
         except Exception as e:
-            print(f"[ERROR] Failed to seed {t}: {e}")
+            logger.critical(f"[Seeder] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to seed {t}: {e}", exc_info=True)
+            print(f"\033[91m[ERROR] Failed to seed {t}: {e}\033[0m")
             sys.exit(1)
 
     print("\n[SUCCESS] All requested targets completed successfully.")

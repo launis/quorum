@@ -62,3 +62,26 @@ Tällä hetkellä `seed_data.json` käyttää Tason 3 pakettia (Causal Analyst +
 3.  Tuomari (Judge) lukisi Causal Analystin diagnoosia Zero-Trust linssin läpi: "Löysikö analyytikko vain tilauksen, vai löysikö analyytikko myös asiakkaan oman älyllisen rationaalin tilauksen takaa?"
 
 Tämä malli mahdollistaa kättäjän valita UI:sta esimerkiksi "Arvioinnin tiukkuus: Griceanilainen (Taso 1) --- Falsifikationisti (Taso 4) --- Zero-Trust (Taso 5)", joka DAGIn alustuksessa vaihtaisi käytettävät `prompt_blocks` ID:t lennosta.
+
+---
+
+## 6. Empiirinen Validointi (SITRA-aineisto) ja Arvosanojen Romahduttaminen (< 50%)
+
+Suoritimme järjestelmässä kaksiulotteisen automaattisen sarja-ajon (Batch Execution), jossa testattiin Tason 3 (Kausaalinen oletus) ja Tason 5 (Zero-Trust) tiukkuuksien eroja asettamalla mikrotaso neutraaliin arvoon (50). Testiaineistona toimi massiivinen laadunvarmistusdata (SITRA Megatrendit: chat-logi 41 218 merkkiä, lopputuote 5 851 merkkiä).
+
+**Testin yllättävä havainto:** Tason 5 Zero-Trust -arkkitehtuuri ei romahduttanut poikkileikkaavia arvosanoja nollaan odotetulla tavalla (suurin osa pysyi 95-100 pisteen tuntumassa, tosin kriittinen `matrix_falsifier` rankaisi jo suoremmin pudoten 95 -> 85 pisteeseen).
+
+### Miksi Taso 5 antoi silti huippupisteitä?
+Korkeat pisteet säälimättömästä "syyttäjästä" (Prosecutor) huolimatta johtuivat itse **lähtödatan laadusta ja poikkeuksellisesta kognitiivisesta kitkasta**. Yli 40 000 merkin mittainen chat-historia sisälsi kättäjältä iterointia, suoria komentoja, ristikuulustelua ja ennen kaikkea eksplisiittisiä "Systeemi 2" -tason perusteluja sille, _miksi_ tekoälyn tuli muokata tekstiä tiettyyn suuntaan. 
+
+Koska Zero-Trust -moottorin päätehtävä on rangaista "Say-Do" -kuilusta ja passiivisuudesta (missä tekoäly tekee työn ohjaajan puolesta), se joutui toteamaan, että tässä nimenomaisessa aineistossa ohjaaja todella teki älyllisen työn. Data oli niin vahvasti perusteltua osana "luovaa prosessia", että se läpäisi antagonistisenkin falsifioinnin ilman null-hypoteesin laukeamista.
+
+### Miten näillä lähtötiedoilla saadaan matalat arvot (< 50 %)?
+Jos haluamme järjestelmän tuottavan kovatasoisia all 50 % arvosanoja nimenomaan *tämän kaltaisella vankalla lähtödatalla*, pelkkä uusi Makrotason 5 "Syyttäjä"-rooli ei riitä. Matalien, armottomien arvosanojen saavuttamiseksi asiantuntijatason lähtödatalla vaaditaan kaksiulotteista konfiguraatiota:
+
+1. **Mikrotason (Matrix Scale) nostaminen 100:aan (Lahjomaton):**
+   Kun yhdistämme Makrotaso 5:n (Zero-Trust) mikrotasoon 100, poistamme LLM-tuomarilta kaiken tulkinnallisen liikkumavaran. Jos yksittäisestä arviointikriteeristä puuttuu yksikin lakitekninen tai formaali osatekijä (esim. tarkka Sanasto tai Synonyymi), hylkäys on välitön. Neutraali mikrotaso 50 on liian myötäilevä näin korkealuokkaiselle aineistolle.
+2. **Kognitiivisen Kitkan vaatimusten absolutismi (`block_rule_cognitiverequirement`):**
+   Tällä hetkellä Taso 5 vaatii, että älyllinen rationaali löytyy logista. Voidaksemme antaa hylättyjä arvosanoja hyvällekin materiaalille, `PromptBlock`-kriteeristöön tulee lisätä vaatimus esimerkiksi *konkreettisesta akateemisesta viittauskäytännöstä* (Citations). Tällöin Systeemi 2 -perustelu ei enää riitä, vaan jos rationaalia ei ole sidottu ulkoisiin asiantuntijalähteisiin, Taso 5 pudottaa arvosanan alle 50 % vetoamalla "epäluotettavaan heuristiikkaan".
+3. **Say-Do -kuilun (Say-Do Gap) synteettinen manipulointi verrokkina:**
+   Todistaaksemme Taso 5:n rankaisuominaisuuden voiman, 41 000 merkin chat-loki tulisi typistää yhteen lauseeseen (esim. *"Tee minulle 5 000 merkin megatrendiraportti Sitran pohjalta"*), tuoden täysin saman lopputuotteen. Tällöin Null-Hypoteesi iskee välittömästi, huomaa passiivisuuden (AI teki kaiken työn ilman kättäjän ohjausta) ja romahduttaa arvosanat absoluuttiseen nollaan puuttuvan kognitiivisen kitkan takia.

@@ -37,10 +37,12 @@ def get_storage_driver() -> FileDriver:
     if backend == StorageBackend.FIRESTORE:
         bucket_name = settings.storage_bucket_name
         if not bucket_name:
+            msg = "CRITICAL: STORAGE_BACKEND=FIRESTORE requires STORAGE_BUCKET_NAME to be set."
+            logger.error(f"[StorageService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
             raise AppException(
-                message="CRITICAL: STORAGE_BACKEND=FIRESTORE requires STORAGE_BUCKET_NAME to be set.",
+                message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_CONFIG_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
         logger.info(f"Initializing GCSFileDriver with bucket: {bucket_name}")
         return GCSFileDriver(bucket_name=bucket_name)

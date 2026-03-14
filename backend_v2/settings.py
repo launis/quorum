@@ -9,7 +9,10 @@ from dotenv import load_dotenv
 from pydantic import BeforeValidator, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+import logging
 from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 # Explicitly load .env to ensure environment variables are populated
 # independent of Pydantic's internal loader (which seems brittle here)
@@ -256,11 +259,13 @@ class Settings(BaseSettings):
         if value == "LOCAL":
             return StorageBackend.LOCAL
 
+        msg = (
+            f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. "
+            "Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True)."
+        )
+        logger.error(f"[Settings] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
         raise AppException(
-            message=(
-                f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. "
-                "Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True)."
-            ),
+            message=msg,
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
         )
@@ -303,9 +308,13 @@ class Settings(BaseSettings):
             )
 
             if not self.google_api_key and not has_vertex:
+                msg = (
+                    "CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). "
+                    "Cannot proceed in Production Mode. Ensure 'service-account.json' exists in root or set env vars."
+                )
+                logger.error(f"[Settings] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
                 raise AppException(
-                    message="CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). "
-                    "Cannot proceed in Production Mode. Ensure 'service-account.json' exists in root or set env vars.",
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )

@@ -7,27 +7,36 @@ including user role classification and input quality assessment.
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 class InteractionInput(BaseModel):
-    """Strict input schema for InteractionAnalystAgent."""
+    """Strict input schema for InteractionAnalystAgent.
 
-    history_text: str = Field(
-        ..., description="The full conversation history to analyze.", json_schema_extra={"x-ui-label": "Chat History"}
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(
+        ..., description="The mandatory conversation history to analyze.", json_schema_extra={"x-ui-label": "Chatlog"}
     )
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
-    @field_validator("history_text")
+    @field_validator("chat_log")
     @classmethod
     def validate_non_empty(cls, v: str | None) -> str | None:
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("History text cannot be empty.")
+            msg = "chat_log cannot be empty or whitespace only."
+            logger.error(f"[InteractionModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 

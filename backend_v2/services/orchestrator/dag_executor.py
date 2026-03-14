@@ -55,21 +55,47 @@ class DAGExecutor:
         # Validate acyclic property (Already validated by Pydantic Model but we ensure it)
         # Note: Pydantic Workflow model handles it on instantiation.
 
-        # Create new execution record
+        # Fetch existing execution record from DB (created by ExecutionService)
+        existing_record_dict = await self.repository.get_execution(execution_id)
+        
         step_states = {
             step.id: ExecutionStepState(id=step.id, label=step.id, status="pending")
             for step in workflow.steps
         }
-        exec_record = ExecutionRecord(
-            id=execution_id,
-            workflow_id=workflow.id,
-            status=ExecutionStatus.RUNNING,
-            raw_inputs=raw_inputs if isinstance(raw_inputs, WorkflowInputs) else WorkflowInputs(**raw_inputs),
-            frozen_context=FrozenContext(),
-            results={},
-            step_states=step_states,
+        
+        if existing_record_dict:
+            exec_record = ExecutionRecord.model_validate(existing_record_dict)
+            exec_record.status = ExecutionStatus.RUNNING
+            # Update step states if they were not already populated
+            if not exec_record.step_states:
+                exec_record.step_states = step_states
+        else:
+            # Fallback if not initialized by service
+            exec_record = ExecutionRecord(
+                id=execution_id,
+                workflow_id=workflow.id,
+                status=ExecutionStatus.RUNNING,
+                raw_inputs=raw_inputs if isinstance(raw_inputs, WorkflowInputs) else WorkflowInputs(**raw_inputs),
+                frozen_context=FrozenContext(),
+                results={},
+                step_states=step_states,
+            )
+            
+        # V2 Strictness Engine Metadata Injection
+        macro_strict = exec_record.strictness_level.value
+        micro_strict = 100 if macro_strict == 5 else 50
+        exec_record.metadata["macro_strictness_level"] = macro_strict
+        exec_record.metadata["micro_strictness_level"] = micro_strict
+
+        # Upsert cleanly
+        await self.repository.update_execution(
+            execution_id,
+            {
+                "status": exec_record.status.value,
+                "metadata": exec_record.metadata,
+                "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
+            }
         )
-        await self.repository.create_execution(exec_record.model_dump())
 
         # Resolve Steps
         steps_by_id = {step.id: step for step in workflow.steps}
@@ -190,20 +216,38 @@ class DAGExecutor:
             return exec_record
 
         except Exception as overall_err:
+            msg = f"Workflow execution {execution_id} failed: {overall_err}"
             logger.error(
-                f"[DAGExecutor] {ErrorCodes.WORKFLOW_EXECUTION_FAILED.name}: "
-                f"Workflow execution {execution_id} failed: {overall_err}",
+                f"[DAGExecutor] {ErrorCodes.WORKFLOW_EXECUTION_FAILED.name}: {msg}",
                 exc_info=True
             )
             exec_record.status = ExecutionStatus.FAILED
             exec_record.error = str(overall_err)
-            await self.repository.update_execution(
-                execution_id,
-                {"status": exec_record.status.value, "error": exec_record.error}
-            )
-            # DO NOT re-raise. This runs in a FastAPI BackgroundTask. Re-raising here
-            # crashes the Uvicorn ASGI server as the response has already been sent.
-            return exec_record
+            
+            # Use safe fire-and-forget sync wrapper for DB update if we're crashing
+            try:
+                # Need a new event loop or run synchronously to ensure it saves before crash
+                loop = asyncio.get_running_loop()
+                loop.create_task(self.repository.update_execution(
+                    execution_id,
+                    {"status": exec_record.status.value, "error": exec_record.error}
+                ))
+            except Exception:
+                pass
+            
+            # RFC 7807 Fail-Fast Mandate: We MUST raise here. BackgroundTasks in FastAPI
+            # actually handle raising exceptions just fine by logging them to stderr.
+            # Suppressing them violates the V2 Zero-Compromise Pledge.
+            
+            from backend_v2.exceptions import AppException
+            if isinstance(overall_err, AppException):
+                 raise overall_err
+                 
+            raise AppException(
+                message=msg,
+                details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
+                status_code=500
+            ) from overall_err
 
     async def _execute_step(self, step: StepRule, shared_state_data: dict[str, Any], frozen_ctx: FrozenContext) -> Any:
         """Executes a single step: hook, agent, or conditional logic."""
@@ -278,23 +322,40 @@ class DAGExecutor:
 
             # Apply Zero-Trust / Falsification dynamic mutations
             if strictness >= 4:
-                # Remove default judge if present and inject prosecutor
+                # Remove default judge completely if present
                 if "block_role_judge" in active_prompt_blocks:
                     active_prompt_blocks.remove("block_role_judge")
+
+                # Falsification First applies to both 4 and 5
+                if "block_rule_falsification_first" not in active_prompt_blocks:
+                    active_prompt_blocks.append("block_rule_falsification_first")
+
+                # Level 5 gets Saboteur, Level 4 gets Prosecutor
+                if strictness == 5:
+                    if "block_role_saboteur" not in active_prompt_blocks:
+                        active_prompt_blocks.append("block_role_saboteur")
+                else:
                     if "block_role_prosecutor" not in active_prompt_blocks:
                         active_prompt_blocks.append("block_role_prosecutor")
 
             if strictness == 5:
-                # Inject absolute Zero-Trust mandates
+                # Inject absolute Zero-Trust mandates and humility check
                 if "block_mandate_zerotrust" not in active_prompt_blocks:
                     active_prompt_blocks.append("block_mandate_zerotrust")
                 if "block_rule_cognitiverequirement" not in active_prompt_blocks:
                     active_prompt_blocks.append("block_rule_cognitiverequirement")
+                if "matrix_epistemic_humility" not in active_prompt_blocks:
+                    active_prompt_blocks.append("matrix_epistemic_humility")
 
             for m_id in active_prompt_blocks:
                 block_dict = block_map.get(m_id)
                 if block_dict:
                     from backend_v2.models.v2_core import PromptBlock
+
+                    # Apply absolute cognitive friction (Scale 100 fallback) for Level 5
+                    if strictness == 5 and block_dict.get("type", "float") == "float":
+                         block_dict["strictness_level"] = 100
+
                     PromptBlock.model_validate(block_dict) # Fail-Fast validation check
                     criteria_blocks.append(block_dict)
                 else:
@@ -360,6 +421,15 @@ class DAGExecutor:
             for key in ["profiler_metrics", "step_metadata", "_audit_signature"]:
                 if key in state_data:
                     final_dict[key] = state_data[key]
+                    
+            # Inject PromptBlock micro strictness metadata into the step result
+            micro_strictness_map = {
+                block["id"]: block.get("strictness_level", 50)
+                for block in criteria_blocks
+            }
+            if "_step_metadata" not in final_dict:
+                final_dict["_step_metadata"] = {}
+            final_dict["_step_metadata"]["micro_strictness_levels"] = micro_strictness_map
 
             return final_dict
 

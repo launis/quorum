@@ -52,7 +52,13 @@ class WebFetcher:
                 # 3. Collapse whitespace
                 text = re.sub(r"\s+", " ", text).strip()
 
-                return text[:5000]  # Limit context size
+                final_text = text[:5000]  # Limit context size
+                
+                # Log success with snippet as requested by user
+                snippet = final_text[:100].replace('\n', ' ') + "..." if len(final_text) > 100 else final_text
+                logger.info(f"[WebFetcher] Successfully fetched '{url}'. Snippet: '{snippet}'")
+
+                return final_text
 
         except ValueError as e:
             # Invalid URL format
@@ -73,13 +79,9 @@ class WebFetcher:
             if isinstance(e, AppException):
                 raise e
 
-            logger.error(
-                f"[WebFetcher] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
-                f"Unexpected error for {url}: {e}",
-                exc_info=True
-            )
+            logger.error(f"[WebFetcher] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Unexpected error for {url}: {e}", exc_info=True)
             raise AppException(
                 message="Unexpected error during web fetch.",
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name}
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
             ) from e

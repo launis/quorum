@@ -4,12 +4,16 @@ This module defines the new Event Sourcing state model, replacing the old mutabl
 It uses an append-only log of `TraceEvent`s and a `ReasoningTrace` to capture cognitive processes.
 """
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 class ReasoningTrace(BaseModel):
     """Stores hidden Chain-of-Thought (preserves "Thinking Tokens")."""
@@ -26,7 +30,9 @@ class ReasoningTrace(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[StateModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
 
@@ -54,7 +60,9 @@ class TraceEvent(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[StateModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
 
@@ -92,7 +100,9 @@ class WorkflowState(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[StateModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
     def add_event(self, event: TraceEvent) -> WorkflowState:

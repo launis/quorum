@@ -10,6 +10,10 @@ from enum import Enum
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 # --- Enums ---
 
@@ -82,14 +86,18 @@ class Organization(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("contact_email", "billing_id")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and (not v or not v.strip()):
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else v
 
     @model_validator(mode="before")
@@ -139,7 +147,9 @@ class UserBase(BaseModel):
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and (not v or not v.strip()):
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else v
 
 
@@ -167,14 +177,18 @@ class User(UserBase):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("created_by")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and (not v or not v.strip()):
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else v
 
     @model_validator(mode="before")
@@ -258,7 +272,9 @@ class OrganizationCreate(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -305,14 +321,18 @@ class TokenData(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("organization_id", "email")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and (not v or not v.strip()):
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else v
 
 class UserDeleteResponse(BaseModel):

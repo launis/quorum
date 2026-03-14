@@ -36,8 +36,10 @@ class StudioService:
         org_id = getattr(initiator, "organization_id", None)
         if initiator.role != "ROOT":
             if data_org_id == "system" and not allow_system:
+                logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify system resources.")
                 raise PermissionDeniedError("Only ROOT can modify system resources.")
             if data_org_id not in [org_id, None]:
+                logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Cannot modify resources outside your organization.")
                 raise PermissionDeniedError("Cannot modify resources outside your organization.")
 
     # --- Workflows ---
@@ -62,6 +64,7 @@ class StudioService:
 
     async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> Workflow:
         if initiator.role != "ROOT":
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify workflows.")
             raise PermissionDeniedError("Only ROOT can modify workflows.")
         self._enforce_modification_rights(initiator, data.organization_id)
 
@@ -72,14 +75,17 @@ class StudioService:
 
         saved = await self.repo.get("workflows", id)
         if not saved:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {id} not found.")
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
         return Workflow.model_validate(saved)
 
     async def delete_workflow(self, initiator: TokenData, id: str) -> None:
         if initiator.role != "ROOT":
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can delete workflows.")
             raise PermissionDeniedError("Only ROOT can delete workflows.")
         data = await self.repo.get("workflows", id)
         if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {id} not found.")
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
 
         self._enforce_modification_rights(initiator, data.get("organization_id"))
@@ -97,6 +103,7 @@ class StudioService:
     async def get_step(self, initiator: TokenData, id: str) -> Step:
         data = await self.repo.get("steps", id)
         if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Step {id} not found.")
             raise ResourceNotFoundError(resource_type="step", resource_id=id)
 
         self._enforce_tenant_isolation(initiator, data, "step")
@@ -104,6 +111,7 @@ class StudioService:
 
     async def save_step(self, initiator: TokenData, id: str, data: Step) -> Step:
         if initiator.role != "ROOT":
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify steps.")
             raise PermissionDeniedError("Only ROOT can modify steps.")
         org_id = getattr(data, "organization_id", None)
         self._enforce_modification_rights(initiator, org_id)
@@ -115,14 +123,17 @@ class StudioService:
 
         saved = await self.repo.get("steps", id)
         if not saved:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Step {id} not found.")
             raise ResourceNotFoundError(resource_type="step", resource_id=id)
         return Step.model_validate(saved)
 
     async def delete_step(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
         if initiator.role != "ROOT":
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can delete steps.")
             raise PermissionDeniedError("Only ROOT can delete steps.")
         data = await self.repo.get("steps", id)
         if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Step {id} not found.")
             raise ResourceNotFoundError(resource_type="step", resource_id=id)
 
         self._enforce_modification_rights(initiator, data.get("organization_id"))
@@ -142,6 +153,7 @@ class StudioService:
     async def get_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
         data = await self.repo.get("prompt_blocks", id)
         if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: PromptBlock {id} not found.")
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
         self._enforce_tenant_isolation(initiator, data, "prompt_block")
@@ -158,12 +170,14 @@ class StudioService:
 
         saved = await self.repo.get("prompt_blocks", id)
         if not saved:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: PromptBlock {id} not found.")
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
         return PromptBlock.model_validate(saved)
 
     async def delete_prompt_block(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
         data = await self.repo.get("prompt_blocks", id)
         if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: PromptBlock {id} not found.")
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
         self._enforce_modification_rights(initiator, data.get("organization_id"))
@@ -179,14 +193,17 @@ class StudioService:
 
     async def get_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
         if initiator.role != "ROOT":
+             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can view system configs.")
              raise PermissionDeniedError("Only ROOT can view system configs.")
         data = await self.repo.get("system_config", id)
         if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         return SystemConfigModelRegistry.model_validate(data)
 
     async def save_system_config(self, initiator: TokenData, id: str, data: SystemConfigModelRegistry) -> SystemConfigModelRegistry:
         if initiator.role != "ROOT":
+             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify system configs.")
              raise PermissionDeniedError("Only ROOT can modify system configs.")
 
         dump = data.model_dump(mode="json")
@@ -196,14 +213,17 @@ class StudioService:
 
         saved = await self.repo.get("system_config", id)
         if not saved:
+             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
              raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         return SystemConfigModelRegistry.model_validate(saved)
 
     async def delete_system_config(self, initiator: TokenData, id: str) -> None:
         if initiator.role != "ROOT":
+             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can delete system configs.")
              raise PermissionDeniedError("Only ROOT can delete system configs.")
 
         data = await self.repo.get("system_config", id)
         if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         await self.repo.delete("system_config", id)

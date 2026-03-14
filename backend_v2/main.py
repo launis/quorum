@@ -157,7 +157,10 @@ from backend_v2.exceptions import AppException, ErrorCodes, format_validation_er
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
     """Catches domain-specific AppExceptions and returns RFC 7807 Problem Details."""
     logger = logging.getLogger("backend.main")
-    logger.error(f"{exc.error_code}: {exc.message} (Status: {exc.status_code})")
+    
+    # Extract the Enum Name if it's an ErrorCode, otherwise use the string.
+    err_name = exc.error_code.name if hasattr(exc.error_code, "name") else str(exc.error_code)
+    logger.error(f"[FastAPI] {err_name}: {exc.message} (Status: {exc.status_code})")
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -175,11 +178,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     readable_detail = format_validation_error(exc)
 
     # 2. Log: Summary first (easy to read), then details
-    logger.error(f"VALIDATION ERROR: {readable_detail}")
-    logger.debug(f"Raw Schema Errors: {exc.errors()}")
-
-    # 3. Return RFC 7807 with Error Code for Client Localization
     error_code = ErrorCodes.VALIDATION_FAILED
+    logger.error(f"[FastAPI] {error_code.name}: VALIDATION ERROR: {readable_detail}")
+    logger.debug(f"[FastAPI] Raw Schema Errors: {exc.errors()}")
 
     return JSONResponse(
         status_code=422,
@@ -216,19 +217,18 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
-    """Catches standard HTTP errors (404, 405) and returns RFC 7807."""
-    logger = logging.getLogger("backend.main")
-    logger.warning(f"HTTP_ERROR: {exc.detail} (Status: {exc.status_code})", exc_info=True)
-
     # Map HTTP status to approximate error code for L10n
+    error_code_enum = None
     if exc.status_code == 404:
-        error_code = ErrorCodes.RESOURCE_NOT_FOUND.value
+        error_code_enum = ErrorCodes.RESOURCE_NOT_FOUND
     elif exc.status_code == 401:
-        error_code = ErrorCodes.AUTHENTICATION_FAILED.value
+        error_code_enum = ErrorCodes.AUTHENTICATION_FAILED
     elif exc.status_code == 403:
-        error_code = ErrorCodes.PERMISSION_DENIED.value
+        error_code_enum = ErrorCodes.PERMISSION_DENIED
     else:
-        error_code = "HTTP_ERROR"
+        error_code_enum = ErrorCodes.UNKNOWN_ERROR
+
+    logger.warning(f"[FastAPI] {error_code_enum.name}: HTTP_ERROR: {exc.detail} (Status: {exc.status_code})", exc_info=True)
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -239,7 +239,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
                 "status": exc.status_code,
                 "detail": exc.detail,
                 "instance": str(request.url.path),
-                "extensions": {"error_code": error_code.value if hasattr(error_code, "value") else error_code},
+                "extensions": {"error_code": error_code_enum.value},
             }
         ),
         media_type="application/problem+json",
@@ -250,13 +250,13 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catches all unhandled exceptions and returns RFC 7807 Problem Details."""
     logger = logging.getLogger("backend.main")
-    logger.error(f"INTERNAL_SERVER_ERROR: {exc}", exc_info=True)
+    logger.error(f"[FastAPI] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Unhandled Exception: {exc}", exc_info=True)
 
     # Create a generic AppException for RFC 7807 formatting
     error = AppException(
         message="An unexpected system error occurred.",
         status_code=500,
-        details={"error_code": "INTERNAL_SERVER_ERROR", "original_error": str(exc)},
+        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "original_error": str(exc)},
     )
 
     return JSONResponse(

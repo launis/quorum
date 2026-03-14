@@ -82,6 +82,10 @@ class LiteLLMProvider(LLMProvider):
 
     Provides a consistent interface.
     """
+    
+    # Class-level cache to prevent litellm callbacks memory leak during bulk executions
+    _router_cache: dict[str, Any] = {}
+    _instructor_cache: dict[str, Any] = {}
 
     def __init__(
         self,
@@ -138,28 +142,6 @@ class LiteLLMProvider(LLMProvider):
             logger.error(f"[LiteLLMProvider] {msg}")
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
-        # 2. Build deployment config
-        model_config = {
-            "model_name": model_name,  # The alias we use
-            "litellm_params": {
-                "model": model_name,  # The actual provider model name
-                "api_key": api_key,
-                "tpm": tpm,
-                "rpm": rpm,
-            },
-        }
-
-        # 3. Initialize Router
-        # set_verbose=False to reduce noise, unless debugging
-        self.router = Router(
-            model_list=[model_config],
-            set_verbose=False,
-        )
-
-        # Initialize Instructor Client checking compatibility with Router
-        # Instructor expects a client-like object or a completion function.
-        # We wrap the router's acompletion method.
-
         # 4. Determine Parsing Mode
         parse_mode = instructor.Mode.MD_JSON
         if self.settings and getattr(self.settings, "parsing_mode", None):
@@ -171,7 +153,36 @@ class LiteLLMProvider(LLMProvider):
                     f"[LiteLLMProvider] Invalid parsing_mode '{mode_str}' in config, falling back to MD_JSON"
                 )
 
-        self.client = instructor.from_litellm(self.router.acompletion, mode=parse_mode)
+        # Use Class Cache for Router and Instructor Client to avoid MAX_CALLBACKS leak
+        cache_key = f"{model_name}_{tpm}_{rpm}_{parse_mode}"
+        
+        if cache_key in self.__class__._router_cache:
+            self.router = self.__class__._router_cache[cache_key]
+            self.client = self.__class__._instructor_cache[cache_key]
+        else:
+            # 2. Build deployment config
+            model_config = {
+                "model_name": model_name,  # The alias we use
+                "litellm_params": {
+                    "model": model_name,  # The actual provider model name
+                    "api_key": api_key,
+                    "tpm": tpm,
+                    "rpm": rpm,
+                },
+            }
+    
+            # 3. Initialize Router
+            # set_verbose=False to reduce noise, unless debugging
+            self.router = Router(
+                model_list=[model_config],
+                set_verbose=False,
+            )
+    
+            self.client = instructor.from_litellm(self.router.acompletion, mode=parse_mode)
+            
+            # Save to class cache
+            self.__class__._router_cache[cache_key] = self.router
+            self.__class__._instructor_cache[cache_key] = self.client
 
     @retry_strategy
     async def generate(  # type: ignore
@@ -712,7 +723,7 @@ class LiteLLMProvider(LLMProvider):
 
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
-                logger.error(f"[LiteLLM] RESOURCE EXHAUSTED (Rate Limit): {error_msg}")
+                logger.error(f"[LiteLLM] {ErrorCodes.RATE_LIMIT_EXCEEDED.name}: RESOURCE EXHAUSTED (Rate Limit): {error_msg}")
                 raise ServiceUnavailableError(
                     message="Model provider rate limit exceeded.",
                     details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg},
@@ -720,7 +731,7 @@ class LiteLLMProvider(LLMProvider):
 
             # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens/Empty Response)
             elif "InstructorRetryException" in error_type or "ResponseParsingError" in error_type:
-                logger.error(f"[LiteLLM] INSTRUCTOR / MODEL FAILURE (Empty choices or schema mismatch): {error_msg}")
+                logger.error(f"[LiteLLM] {ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.name}: INSTRUCTOR / MODEL FAILURE (Empty choices or schema mismatch): {error_msg}")
                 raise AppException(
                     message="Model failed to generate structured output (empty response or looping).",
                     status_code=500,
@@ -729,7 +740,7 @@ class LiteLLMProvider(LLMProvider):
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif "AuthenticationError" in error_type or "401" in error_msg or "invalid_api_key" in error_msg:
-                logger.critical(f"[LiteLLM] AUTH FAILED (Check API Keys): {error_msg}")
+                logger.critical(f"[LiteLLM] {ErrorCodes.CONFIGURATION_ERROR.name}: AUTH FAILED (Check API Keys): {error_msg}")
                 raise ConfigurationError(
                     message="LLM Provider authentication failed.",
                     details={
@@ -746,12 +757,12 @@ class LiteLLMProvider(LLMProvider):
             ):
                 # Often 400 is generic, but combined with length/context keywords matches this.
                 if "context" in error_msg.lower() or "token" in error_msg.lower():
-                    logger.error(f"[LiteLLM] CONTEXT EXCEEDED (Prompt too long): {error_msg}")
+                    logger.error(f"[LiteLLM] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: CONTEXT EXCEEDED (Prompt too long): {error_msg}")
                     raise AgentExecutionError(
                         detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
                     ) from e
                 else:
-                    logger.error(f"[LiteLLM] BAD REQUEST (400): {error_msg}")
+                    logger.error(f"[LiteLLM] {ErrorCodes.AGENT_RESPONSE_MALFORMED.name}: BAD REQUEST (400): {error_msg}")
                     raise AgentExecutionError(
                         detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
                     ) from e
@@ -763,7 +774,7 @@ class LiteLLMProvider(LLMProvider):
                 or "500" in error_msg
                 or "Timeout" in error_type
             ):
-                logger.error(f"[LiteLLM] SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}")
+                logger.error(f"[LiteLLM] {ErrorCodes.UPSTREAM_TIMEOUT.name}: SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}")
                 raise AppException(
                     message="Upstream LLM service timed out or is unavailable.",
                     status_code=503,
@@ -772,7 +783,7 @@ class LiteLLMProvider(LLMProvider):
 
             # 5. CONTENT POLICY (Safety)
             elif "ContentPolicyViolation" in error_type or "blocked" in error_msg.lower():
-                logger.warning(f"[LiteLLM] SAFETY FILTER TRIGGERED: {error_msg}")
+                logger.warning(f"[LiteLLM] {ErrorCodes.SECURITY_VIOLATION.name}: SAFETY FILTER TRIGGERED: {error_msg}")
                 raise SecurityViolationError(
                     message="Content blocked by safety filters.",
                     details={"error_code": ErrorCodes.SECURITY_VIOLATION, "original_error": error_msg},
@@ -782,12 +793,7 @@ class LiteLLMProvider(LLMProvider):
             else:
                 if len(error_msg) > 500:
                     error_msg = error_msg[:500] + "... [TRUNCATED]"
-                logger.error(f"[LiteLLM] Execution Failed ({error_type}): {error_msg}")
-
-                logger.debug(f"[LiteLLM] Full Error Trace: {e}", exc_info=True)
-                import traceback
-
-                traceback.print_exc()
+                logger.error(f"[LiteLLM] {ErrorCodes.UNKNOWN_ERROR.name}: Execution Failed ({error_type}): {error_msg}", exc_info=True)
 
                 # Default to ServiceUnavailable for unknown upstream errors
                 raise ServiceUnavailableError(
@@ -831,13 +837,19 @@ class MockProvider(LLMProvider):
         # STRICT CONFIGURATION (Jan 2026): Reject defaults in Mock too.
         if temperature is None:
             msg = "Strict Mode: 'temperature' must be explicitly provided from configuration. No default allowed."
-            logger.error(f"[MockProvider] {msg}")
-            raise ConfigurationError(msg)
+            logger.error(f"[MockProvider] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+            raise ConfigurationError(
+                message=msg,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+            )
 
         if max_tokens is None:
             msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration. No default allowed."
-            logger.error(f"[MockProvider] {msg}")
-            raise ConfigurationError(msg)
+            logger.error(f"[MockProvider] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+            raise ConfigurationError(
+                message=msg,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+            )
 
         # --- DIAGNOSTIC DUMP ---
         dump_file = os.getenv("DUMP_PROMPTS_FILE")
@@ -967,6 +979,7 @@ class LLMFactory:
             # If Config says "is_active=False", we should have caught this upstream,
             # but we can enforce it here too as a fail-safe.
             if not config.is_active:
+                logger.error(f"[LLMFactory] {ErrorCodes.SERVICE_DISABLED.name}: Provider '{model_name}' is disabled in configuration.")
                 raise ServiceUnavailableError(
                     message=f"Provider '{model_name}' is disabled in configuration.",
                     details={"error_code": ErrorCodes.SERVICE_DISABLED},
@@ -995,9 +1008,13 @@ class LLMFactory:
 
             if has_search_intent:
                 if not config.supports_grounding:
+                    msg = (
+                        f"Grounding/Search requested for '{model_name}' "
+                        "but provider config 'supports_grounding' is False."
+                    )
+                    logger.error(f"[LLMFactory] {ErrorCodes.CAPABILITY_NOT_SUPPORTED.name}: {msg}")
                     raise ConfigurationError(
-                        message=f"Grounding/Search requested for '{model_name}' "
-                        "but provider config 'supports_grounding' is False.",
+                        message=msg,
                         details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED},
                     )
 
@@ -1032,9 +1049,12 @@ class LLMFactory:
                 organization_id=organization_id,
             )
 
-        # STRICT CONFIGURATION: If no model provided, Raise Error.
         if not model_name:
-            raise ValueError("Model name is required for LLMProvider creation.")
+            logger.error(f"[LLMFactory] {ErrorCodes.CONFIGURATION_ERROR.name}: Model name is required for LLMProvider creation.")
+            raise ConfigurationError(
+                message="Model name is required for LLMProvider creation.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+            )
 
         resolved_api_key = api_key
         if not resolved_api_key:

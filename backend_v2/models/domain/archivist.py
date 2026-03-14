@@ -7,19 +7,25 @@ including precedent analysis and compliance checks.
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 class ArchivistInput(BaseModel):
-    """Strict input schema for ArchivistAgent."""
+    """Strict input schema for ArchivistAgent.
 
-    history_text: str | None = Field(None, description="Chat history to analyze.")
-    product_text: str | None = Field(None, description="Product context (optional).")
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="Mandatory chatlog to analyze.")
     archivist_precedents: list[dict[str, Any]] | None = Field(None, description="Retrieved precedents.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 
 class ArchiveCase(BaseModel):
@@ -38,7 +44,9 @@ class ArchiveCase(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[ArchivistModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -86,7 +94,9 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[ArchivistModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @model_validator(mode="before")
@@ -106,7 +116,9 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
             val = data.get("compliance_analysis")
             if val and val not in mapping:
                 # STRICT VALIDATION: No fallback allowed.
-                raise ValueError(f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}")
+                msg = f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}"
+                logger.error(f"[ArchivistModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+                raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
             if val and "compliance_score" not in data:
                 data["compliance_score"] = mapping[val]

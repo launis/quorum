@@ -7,6 +7,10 @@ aggregating results from other specialist agents.
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -20,12 +24,16 @@ from backend_v2.models.domain.retrieval import RetrievalOutput
 
 
 class PanelInput(BaseModel):
-    """Strict input schema for PanelAgent."""
+    """Strict input schema for PanelAgent.
+
+    DEPRECATION WARNING: This domain model is considered obsolete in V2 
+    (replaced by Judge and Hook aggregation) and is pending removal.
+
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
 
     # Context
-    history_text: str | None = Field(None, description="Chat history.")
-    product_text: str | None = Field(None, description="Product description.")
-    reflection_text: str | None = Field(None, description="User reflection.")
+    chat_log: str = Field(..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
 
     # Dependencies (Mandatory in Agent Logic, Optional in Schema for flexibility?)
     # No, strict typing means we should define what we expect.
@@ -51,11 +59,15 @@ class PanelInput(BaseModel):
     step_detector: PerformativityAnalysis | None = Field(None, description="Performativity Audit.")
     step_overseer: OverseerData | None = Field(None, description="Overseer Audit.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 
 class PanelOutputDTO(ReasoningTraceDTO):
-    """DTO for Panel Agent (Content Only)."""
+    """DTO for Panel Agent (Content Only).
+    
+    DEPRECATION WARNING: This domain model is considered obsolete in V2 
+    (replaced by Judge and Hook aggregation) and is pending removal.
+    """
 
     logician_data: LogicianData = Field(
         ...,
@@ -90,6 +102,9 @@ class PanelOutput(PanelOutputDTO, ReasoningTrace):
     """Consolidated Output schema for the Panel Agent (Parallel Step).
 
     Aggregates results from Falsifier, Causal, Detector (Performativity), and Overseer.
+
+    DEPRECATION WARNING: This domain model is considered obsolete in V2 
+    (replaced by Judge and Hook aggregation) and is pending removal.
     """
 
     model_config = ConfigDict(frozen=True, strict=True)

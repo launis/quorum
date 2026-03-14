@@ -7,6 +7,10 @@ including the final report output and context for report generation.
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.judge import JudgeOutput, JudgeScoreCard
@@ -15,8 +19,12 @@ from backend_v2.models.dtos.report import XAIFlatReportDTO
 
 
 class XAIReporterInput(BaseModel):
-    """Strict input schema for XAIReporterAgent."""
+    """Strict input schema for XAIReporterAgent.
 
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
     step_judge: JudgeOutput | None = Field(default=None, description="Standard evaluate output.")
     step_judge_cognitive: JudgeOutput | None = Field(default=None, description="Cognitive Judge output.")
@@ -29,7 +37,7 @@ class XAIReporterInput(BaseModel):
     step_logician: Any | None = Field(default=None, description="Logician Toulmin analysis data.")
     step_causal_analyst: Any | None = Field(default=None, description="Causal Analyst post-hoc and counterfactual data.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
     @model_validator(mode="after")
     def check_judges(self) -> XAIReporterInput:
@@ -143,7 +151,9 @@ class XAIOutputDTO(ReasoningTraceDTO):
     @classmethod
     def validate_score(cls, v: float) -> float:
         if not (0.0 <= v <= 1.0):
-            raise ValueError("Confidence score must be between 0.0 and 1.0.")
+            msg = "Confidence score must be between 0.0 and 1.0."
+            logger.error(f"[XAIModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
@@ -185,5 +195,7 @@ class ReportResult(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Report content cannot be empty.")
+            msg = "Report content cannot be empty."
+            logger.error(f"[XAIModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v

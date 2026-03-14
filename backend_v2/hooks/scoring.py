@@ -131,11 +131,12 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
                         unique_matrices[base_key] = float(v)
                     except (ValueError, TypeError) as e:
                         from backend_v2.exceptions import AppException, ErrorCodes
-                        logger.error(f"[ScoringHook] Invalid Commensurate Score format for '{k}': {v}")
+                        msg = f"Corrupt scoring data: {k} could not be parsed as float (Value: {v})"
+                        logger.error(f"[ScoringHook] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}", exc_info=True)
                         raise AppException(
-                            message=f"Corrupt scoring data: {k} could not be parsed as float.",
+                            message=msg,
                             status_code=500,
-                            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value}
+                            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
                         ) from e
             elif isinstance(v, dict):
                 _extract_scores(v)
@@ -181,6 +182,24 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
                 "[ScoringHook] Post-Hoc Rationalization Detected (Logged Only - Penalty Disabled in Settings)"
             )
 
+    # 4.5 Algorithmic Tyranny Kill Switch (V2 Phase 9)
+    # Extracts profiling metrics and strictness from the isolated Pydantic inputs block
+    inputs = context.get("inputs", {})
+    strictness_level = int(inputs.get("strictness_level", 3))
+
+    if strictness_level == 5:
+        profiler = context.get("profiler_metrics", {})
+        control_ratio = float(profiler.get("control_ratio", 1.0))
+        lexical_diversity = float(profiler.get("lexical_diversity", 1.0))
+
+        if control_ratio > 0.90 or lexical_diversity < 0.40:
+            final_score = 0.0
+            penalties.append("Algorithmic Tyranny Kill Switch Activated (Objective Criteria Failed)")
+            logger.warning(
+                f"[ScoringHook] Algorithmic Tyranny Kill Switch Activated! "
+                f"Control Ratio: {control_ratio}, Lexical Diversity: {lexical_diversity}. Override to 0.0."
+            )
+
     # Safety Clamp (0.0 - 100.0)
     final_score = max(0.0, final_score)
 
@@ -192,7 +211,11 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
         "aggregation_status": f"V2 Commensurate Average of {count} matrices"
     }
 
-    logger.info(f"[ScoringHook] Scoring validation complete. Commensurate Base Average: {average_score:.1f}, Final: {final_score:.1f}. Penalties: {len(penalties)}")
+    logger.info(
+        f"[ScoringHook] Scoring validation complete. "
+        f"Commensurate Base Average: {average_score:.1f}, "
+        f"Final: {final_score:.1f}. Penalties: {len(penalties)}"
+    )
     return {"scoring_result": result}
 
 
@@ -286,9 +309,11 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
 
     # FAIL FAST: If we still don't have a score
     if current_score is None:
-        logger.error(f"[ScoringHook] Could not extract total_score from {type(result).__name__}.")
+        from backend_v2.exceptions import AppException, ErrorCodes
+        msg = f"Strict Scoring: Could not extract 'total_score' from {type(result).__name__}."
+        logger.error(f"[ScoringHook] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}")
         raise AppException(
-            message=f"Strict Scoring: Could not extract 'total_score' from {type(result).__name__}.",
+            message=msg,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
         )
 
@@ -413,7 +438,13 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
             scale_min = 1.0 # Default BARS scale minimum
 
             for k, v in judge_model.items():
-                if k.startswith("matrix_") and not k.endswith("_justification") and not k.endswith("_id") and not k.endswith("_quote") and not k.endswith("_raw"):
+                if (
+                    k.startswith("matrix_")
+                    and not k.endswith("_justification")
+                    and not k.endswith("_id")
+                    and not k.endswith("_quote")
+                    and not k.endswith("_raw")
+                ):
                     if isinstance(v, (int, float)):
                         if v <= scale_min:
                              penalty_triggered = True
@@ -424,7 +455,13 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
                  logger.info(f"[ScoringHook] Applying V2 Passivity Penalty to {judge_key} (Factor {multiplier}).")
                  new_judge = judge_model.copy()
                  for k, v in new_judge.items():
-                      if k.startswith("matrix_") and not k.endswith("_justification") and not k.endswith("_id") and not k.endswith("_quote") and not k.endswith("_raw"):
+                      if (
+                          k.startswith("matrix_")
+                          and not k.endswith("_justification")
+                          and not k.endswith("_id")
+                          and not k.endswith("_quote")
+                          and not k.endswith("_raw")
+                      ):
                            if isinstance(v, (int, float)):
                                 new_score = v * multiplier
                                 if new_score < scale_min:
@@ -433,7 +470,10 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
                                 # Add a penalty trace to validation string if available
                                 just_key = f"{k}_justification"
                                 if just_key in new_judge:
-                                     new_judge[just_key] = f"[PASSIVITY PENALTY x{multiplier:.2f}] " + str(new_judge[just_key])
+                                     new_judge[just_key] = (
+                                         f"[PASSIVITY PENALTY x{multiplier:.2f}] "
+                                         + str(new_judge[just_key])
+                                     )
 
                  if is_post_hook:
                      for k, v in new_judge.items():
@@ -542,7 +582,10 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
                 continue
 
             pb_dict = pb if isinstance(pb, dict) else pb.model_dump()
-            logger.debug(f"[ScoringHook] Found PromptBlock '{slug}' with allowed decimals: {pb_dict.get('allow_decimals')}")
+            logger.debug(
+                f"[ScoringHook] Found PromptBlock '{slug}' "
+                f"with allowed decimals: {pb_dict.get('allow_decimals')}"
+            )
 
             scales = pb_dict.get("scales")
             target_min = pb_dict.get("scale_min")
@@ -600,14 +643,15 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
              state.update(new_payload)
 
     except Exception as e:
-        logger.error(f"[ScoringHook] Failed to normalize matrix scores: {e}", exc_info=True)
         # Fail Fast Requirement
         from backend_v2.exceptions import AppException, ErrorCodes
-
+        msg = f"Normalization failed for step '{step_id}': {e}"
+        logger.error(f"[ScoringHook] {ErrorCodes.HOOK_EXECUTION_FAILED.name}: {msg}", exc_info=True)
+        
         raise AppException(
-            message=f"Normalization failed for step '{step_id}': {e}",
+            message=msg,
             status_code=500,
-            details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value},
+            details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED},
         ) from e
 
     return state

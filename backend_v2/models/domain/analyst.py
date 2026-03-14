@@ -4,18 +4,24 @@ This module contains the schemas for the Analyst Agent, including hypotheses and
 """
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 class AnalystInput(BaseModel):
-    """Strict input schema for AnalystAgent."""
+    """Strict input schema for AnalystAgent.
 
-    history_text: str | None = Field(None, description="Chat history to analyze.")
-    product_text: str | None = Field(None, description="Product context (optional).")
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="Mandatory chatlog to analyze.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 
 class Hypothesis(BaseModel):
@@ -50,7 +56,9 @@ class Hypothesis(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AnalystModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @model_validator(mode="after")
@@ -58,7 +66,9 @@ class Hypothesis(BaseModel):
         if self.evidence_found and not self.quotes:
             # Strict: If evidence is found, quotes MUST be provided.
             # This prevents "hallucinated" evidence flags without backing data.
-            raise ValueError("Hypothesis claims evidence_found=True but provides no quotes.")
+            msg = "Hypothesis claims evidence_found=True but provides no quotes."
+            logger.error(f"[AnalystModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self
 
 
@@ -86,7 +96,9 @@ class AnalystDTO(ReasoningTraceDTO):
     @classmethod
     def validate_hypotheses_not_empty(cls, v: list[Hypothesis]) -> list[Hypothesis]:
         if not v:
-            raise ValueError("Analyst output must contain at least one hypothesis.")
+            msg = "Analyst output must contain at least one hypothesis."
+            logger.error(f"[AnalystModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
@@ -111,7 +123,9 @@ class SearchResultItem(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[AnalystModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 

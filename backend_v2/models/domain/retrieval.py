@@ -4,17 +4,24 @@ This module contains the schemas for the Retrieval Agent, focusing on facts extr
 """
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 class RetrievalInput(BaseModel):
-    """Strict input schema for RetrievalAgent."""
+    """Strict input schema for RetrievalAgent.
 
-    history_text: str | None = Field(None, description="Chat history or prior context.")
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
     product_text: str | None = Field(None, description="Reference text/documents to retrieve from.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 class RetrievedFact(BaseModel):
     """A single fact extracted from the material."""
@@ -46,7 +53,9 @@ class RetrievedFact(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[RetrievalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 class RetrievalDTO(ReasoningTraceDTO):
@@ -69,7 +78,9 @@ class RetrievalDTO(ReasoningTraceDTO):
     @classmethod
     def validate_facts_not_empty(cls, v: list[RetrievedFact]) -> list[RetrievedFact]:
         if not v:
-            raise ValueError("Retrieval output must contain at least one fact.")
+            msg = "Retrieval output must contain at least one fact."
+            logger.error(f"[RetrievalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 class RetrievalOutput(RetrievalDTO, ReasoningTrace):

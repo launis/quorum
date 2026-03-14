@@ -100,9 +100,10 @@ async def render_execution(
     execution = await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
 
     if execution.status != ExecutionStatus.COMPLETED:
-        logger.error(f"[ExecutionRouter] {ErrorCodes.VALIDATION_FAILED.name}: Error: Execution is not in COMPLETED state.")
+        msg = f"Execution is not in COMPLETED state. Current status: {execution.status.value}"
+        logger.error(f"[ExecutionRouter] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
         raise AppException(
-            message=f"Execution is not in COMPLETED state. Current status: {execution.status.value}",
+            message=msg,
             status_code=400,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
@@ -134,9 +135,10 @@ async def render_execution(
         )
 
     else:
-        logger.error(f"[ExecutionRouter] {ErrorCodes.VALIDATION_FAILED.name}: Error: Unsupported format: {format}")
+        msg = f"Unsupported format: {format}"
+        logger.error(f"[ExecutionRouter] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
         raise AppException(
-            message=f"Unsupported format: {format}",
+            message=msg,
             status_code=400,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )

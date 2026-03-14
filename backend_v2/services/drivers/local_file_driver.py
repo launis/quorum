@@ -29,8 +29,10 @@ class LocalFileDriver(FileDriver):
             AppException: If base_path is empty or inaccessible.
         """
         if not base_path:
+            msg = "Local Storage Base Path cannot be empty"
+            logger.error(f"[LocalFileDriver] {ErrorCodes.STORAGE_CONFIG_ERROR.name}: {msg}")
             raise AppException(
-                message="Local Storage Base Path cannot be empty",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.STORAGE_CONFIG_ERROR},
             )
@@ -67,8 +69,10 @@ class LocalFileDriver(FileDriver):
             # clean inputs
             cleaned = path.strip().lstrip("/\\")
             if not cleaned:
+                msg = "Empty path"
+                logger.error(f"[LocalFileDriver] {ErrorCodes.FILESYSTEM_VIOLATION.name}: {msg}")
                 raise AppException(
-                    message="Empty path",
+                    message=msg,
                     status_code=400,
                     details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION}
                 )
@@ -78,8 +82,10 @@ class LocalFileDriver(FileDriver):
 
             # Strict lineage check
             if not full_path.is_relative_to(self.base_path):
+                msg = f"Path traversal attempt detected: {path}"
+                logger.error(f"[LocalFileDriver] {ErrorCodes.FILESYSTEM_VIOLATION.name}: {msg}")
                 raise AppException(
-                    message=f"Path traversal attempt detected: {path}",
+                    message=msg,
                     status_code=400,
                     details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION},
                 )
@@ -87,8 +93,10 @@ class LocalFileDriver(FileDriver):
         except AppException:
             raise
         except Exception as e:
+            msg = f"Invalid file path: {path}"
+            logger.error(f"[LocalFileDriver] {ErrorCodes.FILESYSTEM_VIOLATION.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"Invalid file path: {path}",
+                message=msg,
                 status_code=400,
                 details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION, "info": str(e)},
             ) from e
@@ -125,8 +133,10 @@ class LocalFileDriver(FileDriver):
 
         # FAIL FAST: Check existence before opening
         if not full_path.exists():
+            msg = f"File not found: {path}"
+            logger.error(f"[LocalFileDriver] {ErrorCodes.FILE_NOT_FOUND.name}: {msg}")
             raise AppException(
-                message=f"File not found: {path}", status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND}
+                message=msg, status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND}
             )
 
         try:

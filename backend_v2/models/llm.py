@@ -8,6 +8,10 @@ advanced reasoning tokens and tool calls.
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 
 class LLMResponse(BaseModel):
@@ -177,7 +181,9 @@ class LLMProviderConfig(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[LLMModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -196,7 +202,9 @@ class AdHocTestRequest(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[LLMModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -213,14 +221,18 @@ class AdHocTestResponse(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[LLMModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("latency_ms")
     @classmethod
     def validate_non_negative(cls, v: float) -> float:
         if v < 0:
-            raise ValueError("Latency cannot be negative.")
+            msg = "Latency cannot be negative."
+            logger.error(f"[LLMModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 

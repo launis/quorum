@@ -73,7 +73,9 @@ class LLMClient:
         try:
             registry = inflate(raw_registry, SystemConfigModelRegistry)
         except Exception as e:
-            raise ConfigurationError(f"Failed to parse strict SystemConfigModelRegistry: {e}") from e
+            msg = f"Failed to parse strict SystemConfigModelRegistry: {e}"
+            logger.error(f"[LLMClient] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}", exc_info=True)
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR}) from e
 
         if not registry or not registry.models:
             raise ConfigurationError(f"ModelRegistry is severely corrupted or empty: {registry}")
@@ -216,10 +218,14 @@ class LLMClient:
             return response_model.model_validate(data)
 
         except Exception as e:
-            logger.error(f"[LLMClient] Execution Failed for model {model}: {e}")
-            if "response" in locals() and response:
-                logger.error(f"[LLMClient] Raw content causing error: {response.content}")
-            raise AgentExecutionError(f"Structured Task Failed: {e}") from e
+            msg = f"Execution Failed for model {model}: {e}"
+            logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {msg}", exc_info=True)
+            if "response" in locals() and getattr(locals().get("response"), "content", None):
+                logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: Raw content causing error: {locals()['response'].content}")
+            raise AgentExecutionError(
+                message=f"Structured Task Failed: {e}",
+                details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL}
+            ) from e
 
     async def run_chat(
         self,
@@ -306,5 +312,9 @@ class LLMClient:
             )
             return response.content  # type: ignore
         except Exception as e:
-            logger.error(f"[LLMClient] Chat Execution Failed: {e}")
-            raise AgentExecutionError(f"Chat Task Failed: {e}") from e
+            msg = f"Chat Execution Failed: {e}"
+            logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {msg}", exc_info=True)
+            raise AgentExecutionError(
+                message=f"Chat Task Failed: {e}",
+                details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL}
+            ) from e

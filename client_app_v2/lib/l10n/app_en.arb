@@ -855,6 +855,8 @@
   "strictnessCausal": "Level 3: Causal (Default)",
   "strictnessFalsification": "Level 4: Adversarial (Falsification)",
   "strictnessZeroTrust": "Level 5: Zero-Trust",
+  "strictnessWarningLvl4": "Warning: Level 4 is adversarial and searches for flaws. Expect significantly lower scores.",
+  "strictnessWarningLvl5": "Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.",
   "barsCompliance1": "Critically Misaligned - Completely random process",
   "barsCompliance2": "Misaligned - Scattered process adherence",
   "barsCompliance3": "Neutral - Some process visible",

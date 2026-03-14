@@ -35,15 +35,19 @@ class GCSFileDriver(FileDriver):
             AppException: If bucket_name is empty or library not installed.
         """
         if not bucket_name:
+            msg = "GCS Bucket name cannot be empty"
+            logger.error(f"[GCSFileDriver] {ErrorCodes.STORAGE_BUCKET_NOT_FOUND.name}: {msg}")
             raise AppException(
-                message="GCS Bucket name cannot be empty",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.STORAGE_BUCKET_NOT_FOUND},
             )
 
         if storage is None:
+            msg = "google-cloud-storage library not installed"
+            logger.error(f"[GCSFileDriver] {ErrorCodes.SERVICE_DEPENDENCY_MISSING.name}: {msg}")
             raise AppException(
-                message="google-cloud-storage library not installed",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING},
             )

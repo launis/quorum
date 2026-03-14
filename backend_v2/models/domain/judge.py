@@ -7,6 +7,10 @@ including scorecards and dimension results.
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.archivist import ArchivistOutput
@@ -21,12 +25,13 @@ from backend_v2.models.domain.profiler import ProfilerOutput
 
 
 class JudgeInput(BaseModel):
-    """Strict Input Schema for Judge Agent (Phase 8)."""
+    """Strict Input Schema for Judge Agent (Phase 8).
+
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
 
     # Context / inputs
-    history_text: str | None = Field(None, description="Chat history.")
-    product_text: str | None = Field(None, description="Product content.")
-    reflection_text: str | None = Field(None, description="Reflection content.")
+    chat_log: str = Field(..., description="The mandatory conversation history to evaluate.", json_schema_extra={"x-ui-label": "Chatlog"})
 
     # Preceding Agents (Critics) - Strictly Typed via Forward Refs
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
@@ -42,6 +47,8 @@ class JudgeInput(BaseModel):
     # Legacy/Flexible inputs (for now, until all are strictly mapped)
     step_guard: dict[str, Any] | None = Field(None, description="Guard Output.")
     last_reasoning_trace: str | None = Field(None, description="Previous reasoning trace.")
+
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 
 class DimensionResultItem(BaseModel):
@@ -76,14 +83,18 @@ class DimensionResultItem(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("score")
     @classmethod
     def validate_score(cls, v: int | float) -> int | float:
         if v < 0:
-            raise ValueError("Score cannot be negative.")
+            msg = "Score cannot be negative."
+            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
@@ -132,17 +143,23 @@ class JudgeScoreCard(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @model_validator(mode="after")
     def validate_scores(self) -> JudgeScoreCard:
         if self.scale_min >= self.scale_max:
-            raise ValueError("scale_min must be less than scale_max.")
+            msg = "scale_min must be less than scale_max."
+            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         if not (self.scale_min <= self.total_score <= self.scale_max):
             # Allow small floating point epsilon if needed, but strict is better for now.
-            raise ValueError(f"total_score {self.total_score} is out of range [{self.scale_min}, {self.scale_max}].")
+            msg = f"total_score {self.total_score} is out of range [{self.scale_min}, {self.scale_max}]."
+            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self
 
     model_config = ConfigDict(frozen=True)
@@ -207,5 +224,7 @@ class ScoringResult(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Score summary cannot be empty.")
+            msg = "Score summary cannot be empty."
+            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()

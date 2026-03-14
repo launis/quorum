@@ -49,8 +49,10 @@ class PdfReportService:
             # 1. Fetch Data
             execution = await self.repository.get_execution(execution_id)
             if not execution:
+                msg = f"Execution {execution_id} not found"
+                logger.error(f"[PdfReportService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: {msg}")
                 raise AppException(
-                    message=f"Execution {execution_id} not found",
+                    message=msg,
                     status_code=404,
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 )
@@ -104,9 +106,10 @@ class PdfReportService:
              raise
 
         except Exception as e:
-             logger.error(f"INTERNAL_SERVER_ERROR: PDF generation failed for {execution_id}: {e}", exc_info=True)
+             msg = f"PDF generation failed: {e}"
+             logger.error(f"[PdfReportService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
              raise AppException(
-                 message=f"PDF generation failed: {e}",
+                 message=msg,
                  status_code=500,
                  details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "original_error": str(e)},
              ) from e

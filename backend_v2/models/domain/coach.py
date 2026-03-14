@@ -11,17 +11,22 @@ including coaching plans and bibliography.
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.judge import JudgeOutput
 
 
 class CoachInput(BaseModel):
-    """Strict input schema for CoachAgent."""
+    """Strict input schema for CoachAgent.
 
-    history_text: str | None = Field(None, description="Chat history.")
-    product_text: str | None = Field(default=None, description="Product context.")
-    reflection_text: str | None = Field(default=None, description="User reflection.")
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="Mandatory chatlog.")
     step_judge: JudgeOutput | None = Field(
         default=None, description="The Verdict from Judge Agent.", json_schema_extra={"x-ui-label": "Judge Verdict"}
     )
@@ -40,22 +45,18 @@ class CoachInput(BaseModel):
 
     # Allow extra fields because Coach might receive step_judge, step_judge_cognitive etc.
     # Logic in agent iterates keys.
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="allow")
 
-    @field_validator("history_text")
+    @field_validator("chat_log")
     @classmethod
     def validate_non_empty(cls, v: str | None) -> str | None:
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("History text cannot be empty.")
+            msg = "chat_log cannot be empty or whitespace only."
+            logger.error(f"[CoachModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
-
-    @model_validator(mode="after")
-    def validate_judge_presence(self) -> CoachInput:
-        if not self.step_judge and not self.step_judge_cognitive:
-            raise ValueError("CoachAgent requires at least one judge input (step_judge or step_judge_cognitive).")
-        return self
 
 
 class BibliographyItem(BaseModel):
@@ -76,7 +77,9 @@ class BibliographyItem(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[CoachModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -114,11 +117,15 @@ class CoachingPlanDTO(ReasoningTraceDTO):
     @classmethod
     def validate_list_not_empty(cls, v: list[str]) -> list[str]:
         if not v:
-            raise ValueError("List cannot be empty.")
+            msg = "List cannot be empty."
+            logger.error(f"[CoachModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         # Validate individual items
         cleaned = [item.strip() for item in v if item and item.strip()]
         if not cleaned:
-            raise ValueError("List cannot contain only empty strings.")
+            msg = "List cannot contain only empty strings."
+            logger.error(f"[CoachModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return cleaned
 
 

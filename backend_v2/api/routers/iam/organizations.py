@@ -21,9 +21,10 @@ async def get_all_organizations(current_user: CurrentUserDep, auth_service: Auth
             return [org] if org else []
         return await auth_service.org_repo.list_all()
     except Exception as e:
-        logger.error(f"[OrganizationRouter] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Error: {e}", exc_info=True)
+        msg = f"Error retrieving organizations: {e}"
+        logger.error(f"[OrganizationRouter] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
         raise AppException(
-            message=str(e),
+            message=msg,
             status_code=500,
             details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
         ) from e

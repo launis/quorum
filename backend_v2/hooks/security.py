@@ -141,6 +141,9 @@ async def check_banned_phrases_hook(data: dict[str, Any], repository: Any = None
     # Fetch banned phrases from database (Zero-Fallback compliance)
     banned_phrases: list[str] = []
     fetch_error: str | None = None
+    
+    if not repository:
+        repository = data.get("_sys_repository")
 
     if repository:
         try:
@@ -166,6 +169,10 @@ async def check_banned_phrases_hook(data: dict[str, Any], repository: Any = None
         banned_phrases = DEFAULT_BANNED_PHRASES["en"] + DEFAULT_BANNED_PHRASES["fi"]
 
     inputs = data.get("inputs")
+
+    if not inputs:
+        # V2 Global Fallback: Text inputs might be flat in the root context
+        inputs = {k: v for k, v in data.items() if not k.startswith("_sys_") and isinstance(v, str)}
 
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA

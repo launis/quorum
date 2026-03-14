@@ -40,8 +40,10 @@ class LocalizationService:
         try:
             if not cls.L10N_DIR.exists():
                 # Fail Fast: Missing localization directory is a critical deployment error.
+                msg = f"Localization directory not found: {cls.L10N_DIR}"
+                logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
                 raise AppException(
-                    message=f"Localization directory not found: {cls.L10N_DIR}",
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
@@ -49,8 +51,10 @@ class LocalizationService:
             json_files = list(cls.L10N_DIR.glob("*.json"))
             if not json_files:
                 # Fail Fast: No translation files found.
+                msg = f"No translation files found in {cls.L10N_DIR}"
+                logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
                 raise AppException(
-                    message=f"No translation files found in {cls.L10N_DIR}",
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
@@ -63,8 +67,10 @@ class LocalizationService:
                         cls._translations[lang_code] = data
                 except Exception as e:
                     # Fail Fast: Corrupt translation file.
+                    msg = f"Failed to load translation file {file_path}"
+                    logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg} - {e}")
                     raise AppException(
-                        message=f"Failed to load translation file {file_path}",
+                        message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)},
                     ) from e
@@ -75,8 +81,10 @@ class LocalizationService:
             raise
         except Exception as e:
             # Catch-all for unexpected filesystem errors
+            msg = f"Critical error loading translations: {e}"
+            logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"Critical error loading translations: {e}",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)},
             ) from e
@@ -123,15 +131,19 @@ class LocalizationService:
                 return val.format(**kwargs)
             except KeyError as e:
                 # Fail Fast: Missing interpolation argument is a developer error.
+                msg = f"Localization missing argument '{e.args[0]}' for key '{key}' in lang '{lang}'"
+                logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
                 raise AppException(
-                    message=f"Localization missing argument '{e.args[0]}' for key '{key}' in lang '{lang}'",
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "missing_arg": str(e.args[0])},
                 ) from e
             except Exception as e:
                 # Fail Fast: Invalid format string
+                msg = f"Localization format error for key '{key}': {e}"
+                logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
                 raise AppException(
-                    message=f"Localization format error for key '{key}': {e}",
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)},
                 ) from e

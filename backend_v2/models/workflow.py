@@ -1,7 +1,12 @@
+import logging
 import uuid
 from typing import Any
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowStep(BaseModel):
@@ -58,7 +63,13 @@ class WorkflowStep(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[WorkflowModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(
+                message=msg,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                status_code=400
+            )
         return v.strip()
 
 
@@ -87,7 +98,13 @@ class ComponentScoringRule(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[WorkflowModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(
+                message=msg,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                status_code=400
+            )
         return v.strip()
 
 
@@ -111,7 +128,13 @@ class ScoringLogic(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[WorkflowModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(
+                message=msg,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                status_code=400
+            )
         return v.strip()
 
 

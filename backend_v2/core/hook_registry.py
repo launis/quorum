@@ -51,7 +51,7 @@ class HookRegistry:
         def decorator(func: HookFunction) -> HookFunction:
             if name in self._hooks:
                 msg = f"Hook with name '{name}' is already registered."
-                logger.error(msg)
+                logger.error(f"[HookRegistry] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -78,7 +78,7 @@ class HookRegistry:
         """
         if name not in self._hooks:
             msg = f"Hook '{name}' not found in registry."
-            logger.error(msg)
+            logger.error(f"[HookRegistry] {ErrorCodes.RESOURCE_NOT_FOUND.name}: {msg}")
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -116,7 +116,7 @@ class HookRegistry:
             # Enforce strict return type according to architectural mandate
             if not isinstance(result, dict):
                 msg = f"Hook '{name}' returned invalid type '{type(result).__name__}'. Must return dict."
-                logger.error(msg)
+                logger.error(f"[HookRegistry] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {msg}")
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -130,9 +130,9 @@ class HookRegistry:
             raise
         except Exception as e:
             msg = f"Hook '{name}' execution failed: {e}"
-            logger.error(msg, exc_info=True)
+            logger.error(f"[HookRegistry] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {msg}", exc_info=True)
             raise AppException(
-                message=f"Hook execution failed: {str(e)}",
+                message=msg,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL, "hook": name},
             ) from e

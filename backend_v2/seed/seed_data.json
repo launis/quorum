@@ -652,6 +652,84 @@
       }
     },
     {
+      "id": "block_role_prosecutor",
+      "label": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Syyttäjä (Prosecutor)",
+          "en": "Prosecutor"
+        }
+      },
+      "description": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "ROOLI: Syyttäjä (Prosecutor).\nTEHTÄVÄ: Tavoitteesi on kumota jokainen kättäjän esittämä väite omasta osaamisestaan. Oleta, että kättäjä on laiska ja hallusinoi. Etsi Say-Do-kuiluita.",
+          "en": "ROLE: Prosecutor.\nTASK: Your objective is to refute every claim the user makes about their own competence. Assume the user is lazy and hallucinating. Look for Say-Do gaps."
+        }
+      },
+      "category_id": "agent_role",
+      "type": "instruction",
+      "allow_decimals": false,
+      "strictness_level": 100,
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Ganguli, Deep ym. 2022.",
+        "source_url": "https://doi.org/10.48550/arXiv.2209.07858"
+      }
+    },
+    {
+      "id": "block_mandate_zerotrust",
+      "label": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Zero-Trust Mandate",
+          "en": "Zero-Trust Mandate"
+        }
+      },
+      "description": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "SÄÄNTÖ: Absoluuttinen Zero-Trust (Nollahypoteesi). Älä usko ohjaajaa, ellei hän kykene perustelemaan aukottomasti päätöksiään historiassa. Komento ilman selitettyä logiikkaa on nollan arvoinen.",
+          "en": "RULE: Absolute Zero-Trust (Null Hypothesis). Do not believe the user unless they can soundly justify their decisions in the history. A command without explained logic is worth zero."
+        }
+      },
+      "category_id": "system_rule",
+      "type": "instruction",
+      "allow_decimals": false,
+      "strictness_level": 100,
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Kindervag, John 2010.",
+        "source_url": "https://www.forrester.com/report/build-security-into-your-networks-dna-the-zero-trust-network-architecture"
+      }
+    },
+    {
+      "id": "block_rule_cognitiverequirement",
+      "label": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Cognitive Friction Requirement",
+          "en": "Cognitive Friction Requirement"
+        }
+      },
+      "description": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "SÄÄNTÖ: Omat loogiset perustelut eivät tällä tasolla riitä. Pudota arvosana nollaan, ellei käyttäjä ole todistettavasti käyttänyt akateemisia viittauskäytäntöjä (Citations) tai kytkenyt väitettään kovaan ulkoiseen viitekehykseen.",
+          "en": "RULE: Own logical justifications are not enough at this level. Drop the grade to zero unless the user has verifiably used academic citation practices (Citations) or connected their claim to a hard external framework."
+        }
+      },
+      "category_id": "system_rule",
+      "type": "instruction",
+      "allow_decimals": false,
+      "strictness_level": 100,
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Skinner, B. F. 1957.",
+        "source_url": "https://www.bfskinner.org/product/verbal-behavior/"
+      }
+    },
+    {
       "id": "matrix_archivist",
       "label": {
         "default_locale": "fi",
@@ -3004,6 +3082,183 @@
       "allow_decimals": false,
       "strictness_level": 100,
       "require_justification": false
+    },
+    {
+      "id": "block_role_saboteur",
+      "label": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Red Team (Sabotööri)",
+          "en": "Red Team Saboteur"
+        }
+      },
+      "description": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "ROOLI: Red Team ('Sabotööri').\nTEHTÄVÄ: Olet kilpaileva asiantuntija. Sinun on purettava kilpailijasi argumentti atomitasolle osoittaaksesi oman älyllisen ylivoimasi. Älä myötäile.",
+          "en": "ROLE: Red Team Saboteur.\nTASK: You are a competing expert. You must deconstruct your competitor's argument to the atomic level to prove your intellectual superiority. Do not appease."
+        }
+      },
+      "category_id": "agent_role",
+      "type": "instruction",
+      "allow_decimals": false,
+      "strictness_level": 100,
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Ganguli, Deep ym. 2022. Red teaming language models.",
+        "source_url": "https://doi.org/10.48550/arXiv.2209.07858"
+      }
+    },
+    {
+      "id": "block_rule_falsification_first",
+      "label": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Käänteinen todistustaakka",
+          "en": "Falsification First"
+        }
+      },
+      "description": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "SÄÄNTÖ: Käänteinen todistustaakka. Sinun ON ensin lueteltava kolme (3) kriittistä virhettä suorituksessa. Jos et löydä niitä heti, etsi asioita joista ohjaaja on liian varma.",
+          "en": "RULE: Falsification First. You MUST initially list exactly three (3) critical errors in the execution. If you cannot find them easily, search for areas where the user is overconfident."
+        }
+      },
+      "category_id": "rule",
+      "type": "instruction",
+      "allow_decimals": false,
+      "strictness_level": 100,
+      "require_justification": false,
+      "theory_grounding": {
+        "citation_reference": "Popper, Karl 1959. The Logic of Scientific Discovery.",
+        "source_url": "https://doi.org/10.4324/9780203994627"
+      }
+    },
+    {
+      "id": "matrix_epistemic_humility",
+      "label": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Episteeminen Nöyryys",
+          "en": "Epistemic Humility"
+        }
+      },
+      "description": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Arvioi tunnustaako teksti omat rajoitteensa ja riskinsä, vai puhuuko se ehdottomuuksilla.",
+          "en": "Evaluate whether the text acknowledges its own limitations and risks, or speaks in absolutes."
+        }
+      },
+      "category_id": "scientific_theory",
+      "type": "float",
+      "allow_decimals": true,
+      "strictness_level": 50,
+      "require_justification": true,
+      "scale_min": 1,
+      "scale_max": 5,
+      "theory_grounding": {
+        "citation_reference": "Hüllermeier, E. & Waegeman, W. 2021. Aleatoric and epistemic uncertainty.",
+        "source_url": "https://doi.org/10.1007/s10994-021-05946-3"
+      },
+      "scales": [
+        {
+          "score": 1,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Ylimielinen/Ehdoton",
+              "en": "Arrogant/Absolute"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Teksti esittää asiat 100% faktaan pohjautuen ilman rajoitteiden tunnistamista (Overconfidence).",
+                "en": "The text presents matters based on 100% facts without recognizing limitations (Overconfidence)."
+              }
+            }
+          ]
+        },
+        {
+          "score": 2,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Heikko",
+              "en": "Weak"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Vihjaa olevansa oikeassa jättäen vain häviävän pienen varan tulkinnalle tai kritiikille.",
+                "en": "Implies being right, leaving only a negligible margin for interpretation or criticism."
+              }
+            }
+          ]
+        },
+        {
+          "score": 3,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Neutraali",
+              "en": "Neutral"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Esittää asiat suoraviivaisesti ilman voimakasta ehdottomuutta, mutta myös ilman erityistä itsereflektiota.",
+                "en": "Presents matters straightforwardly without strong absolutes, but also without significant self-reflection."
+              }
+            }
+          ]
+        },
+        {
+          "score": 4,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Tunnustava",
+              "en": "Acknowledging"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Tunnistaa joitakin ulkoisia tai sisäisiä rajoitteita esitettyjen tulosten ja väitteiden osalta.",
+                "en": "Recognizes some external or internal limitations regarding the presented results and claims."
+              }
+            }
+          ]
+        },
+        {
+          "score": 5,
+          "name": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Itsekriittinen",
+              "en": "Self-Critical"
+            }
+          },
+          "claims": [
+            {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Teksti tunnustaa avoimesti omat rajoitteensa ja listaa epävarmuudet sekä riskit osana arviointia.",
+                "en": "The text openly acknowledges its limitations and lists uncertainties and risks as part of the evaluation."
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "workflows": [

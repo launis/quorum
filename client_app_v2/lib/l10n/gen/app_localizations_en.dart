@@ -1861,6 +1861,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get strictnessZeroTrust => 'Level 5: Zero-Trust';
 
   @override
+  String get strictnessWarningLvl4 =>
+      'Warning: Level 4 is adversarial and searches for flaws. Expect significantly lower scores.';
+
+  @override
+  String get strictnessWarningLvl5 =>
+      'Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.';
+
+  @override
   String get barsCompliance1 =>
       'Critically Misaligned - Completely random process';
 

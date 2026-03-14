@@ -1,8 +1,11 @@
 """Context management for Execution and Request IDs."""
 
 from contextvars import ContextVar
+import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 # Global context variable for Execution ID (Workflow Runs)
 execution_id_var: ContextVar[str | None] = ContextVar("execution_id", default=None)
@@ -18,8 +21,10 @@ def set_execution_context(execution_id: str):
         AppException: If execution_id is empty (Fail Fast).
     """
     if not execution_id or not execution_id.strip():
+        msg = "Cannot set empty execution context."
+        logger.error(f"[Context] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}")
         raise AppException(
-            message="Cannot set empty execution context.",
+            message=msg,
             status_code=500,
             details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
         )
@@ -43,8 +48,10 @@ def set_request_context(request_id: str):
         AppException: If request_id is empty (Fail Fast).
     """
     if not request_id or not request_id.strip():
+        msg = "Cannot set empty request context."
+        logger.error(f"[Context] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}")
         raise AppException(
-            message="Cannot set empty request context.",
+            message=msg,
             status_code=500,
             details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
         )

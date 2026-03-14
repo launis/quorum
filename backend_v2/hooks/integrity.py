@@ -74,7 +74,11 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
     source_texts: list[str] = []
 
     if not inputs:
-         logger.warning("[IntegrityHook] Local citation verification requires 'inputs' dictionary. Bypassing safely.")
+        # V2 Global Fallback: If 'inputs' dict isn't explicitly passed, we extract all text fields from the root context
+        inputs = {k: v for k, v in data.items() if not k.startswith("_sys_") and isinstance(v, str)}
+
+    if not inputs:
+         logger.warning("[IntegrityHook] Local citation verification requires some text inputs. Bypassing safely.")
          return data
 
     # Gather all text inputs dynamically

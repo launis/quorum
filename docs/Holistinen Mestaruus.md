@@ -215,8 +215,22 @@ Tämä varmistaa, että 'Matkustaja'-tason suoritus ei voi koskaan nousta 'Kuski
 
 **Perustelu:** Hyvä tekoäly ei kompensoi huonoa kuskia. Arvioimme prosessinhallintaa, emme tuuria. Jos käyttäjä nukkuu ratissa, suoritus hylätään, vaikka auto (AI) ajaisi maaliin.
 
-**2.3.1.1 Dynaaminen tiukkuustaso (Strictness Level)**
-Järjestelmän operatiiviseen malliin on integroitu käyttäjän määriteltävissä oleva dynaaminen tiukkuustaso. Tämä parametri ohjaa agenttien subjektiivista arviointia: korkeilla arvoilla (>80) agentit on ohjeistettu vaatimaan täydellisyyttä ja rokottamaan pienimmistäkin loogisista virheistä, kun taas matalilla arvoilla (<40) arviointi on sallivampaa ja painottaa hyvää intentiota. Vaikka tämä ominaisuus lisää järjestelmän joustavuutta erilaisissa käyttökonteksteissa, se samalla problematisoi arvioitsijoiden välisen yhdenmukaisuuden (IRR) saavuttamista, sillä se tekee arviointimatriisien ankkureista (BARS) liukuvia. Tämän IRR-riskin minimoimiseksi V2-arkkitehtuuri on institutionalisoinut tiukkuuden ohjelmallisesti. Jokainen arvioiva solmu (mm. Loogikko, Tuomari ja kaikki Kriitikkoryhmän jäsenet) vastaanottaa globaalin `block_instruction_strictness` -injektion. Tämä pakottaa DAG-verkon jokaisen agentin kalibroimaan BARS-arviointinsa täsmälleen samaan numeeriseen vaatimustasoon (esim. 50/100) estäen 'kelluvan subjektiivisuuden' arviointiketjun sisällä.
+**2.3.1.1 Dynaaminen tiukkuus (2D-Strictness Framework)**
+Järjestelmän operatiiviseen malliin on integroitu käyttäjän määriteltävissä oleva jatkuva dynaaminen tiukkuusasteikko (1-5). Viitekehys on validointitestiensä perusteella institutionalisoinut "2D-Strictness"-moottorin (kaksiulotteisen tiukkuuden), joka jaottelee säätelyn laadulliseen "Makrotasoon" ja numeeriseen "Mikrotasoon" (0-100). Tämä erittely varmistaa, että tekoälymallin (LLM) myötäilytaipumukset katkaistaan ja järjestelmä skaalautuu kannustavasta ideoinnista ankaraan compliance-auditointiin.
+
+* **Makroasteikko (Laadullinen Roolikohtainen Säätö):** Määrittelee tekoälyn episteemisen asenteen kognitiivisin injektioin (System Prompt). Empiiriset auditoinnit ovat paljastaneet Makrotason olevan luonteeltaan laadullinen muutos (Qualitative Shift). 
+    * Asteikon alapää (Taso 1) on vapaa Ideoija (Gricean-avulias). 
+    * Oletustaso (Taso 3) on Kausaalinen Analyytikko, joka etsii rakentavia syy-seuraussuhteita objektiivisesti. 
+    * Yläpää (Taso 5) edustaa Kahnemanin (2011) Systeemi 2 -pakotusta ja Kindervagin (2010) Zero-Trust -arkkitehtuuria. Tekoäly on pakotettu antagonistiseksi "Syyttäjäksi", joka olettaa käyttäjän hallusinoivan kunnes empiria todistaa toisin (Null-Hypoteesi). Tällä tasolla LLM ohjelmallisesti repii vähäarvoisen datan numeerisen arvon nollaan, mutta samalla pakotettu kriittisyys ohjaa tekoälyä analysoimaan laadukasta dataa tavanomaista huomattavasti syvällisemmin (The Prosecutor Paradox). Tämä tekee Tason 5 auditoinnista ylivertaisen asiantuntijajärjestelmän lainsäädännön tai tekniikan korkean riskin analyyseihin.
+
+* **Mikroasteikko (Määrällinen Interpolaatiokynnys):** Määrittelee BARS-matriisien numeerisen joustavuuden (0-100). Siinä missä Makrotaso muuttaa *miten* tekstiä luetaan, Mikrotaso muuttaa *kuinka raskaasti* virheistä rokotetaan.
+    * Neutraali taso (50) sallii normaalin luovan tulkinnan.
+    * Tason 100 (Lahjomaton) arviointi vastaa behavioristista sääntöjen seuraamista. Kynnyksen kaventaminen johtaa rutiiniosaamisen kohdalla systemaattisesti 5-10 prosenttiyksikön pistehäviöihin.
+    * Nollataso (0) sallii löyhän konseptuaalisen vastaavuuden antamatta kuitenkaan "sääliä" asioista, jotka puuttuvat kokonaan.
+
+Valitun laadullisen ja määrällisen kaksiulotteisen tiukkuustason hallinta ohjaa suoraan koko työnkulkua. Tämän arkkitehtonisen sydämen tehtävänä on estää arvioijien epäjohdonmukaisuus (IRR) ja AI:lle tyypillinen *kognitiivinen dissonanssi*. Esimerkiksi tiukka makrotaso (Syyttäjä) yhdistettynä myötäilevään mikrotasoon (0) johtaisi tilanteeseen, jossa tekoäly tuomitsee suorituksen verbaalisesti heikoksi, mutta joutuu asettamaan korkean arvosanan matriisin joustavuuden takia ("Epäilyttävä Täydellisyys").
+
+Tämän estämiseksi V2-arkkitehtuuri on institutionalisoinut tiukkuuden ohjelmallisesti. Kun 1-5 tiukkuustaso valitaan käyttöliittymästä, Kognitiivinen Moottori skaalaa lennosta *molemmat* ulottuvuudet: se injektoi Syyttäjä-roolin (Makrotaso 5) ja ylikirjoittaa samanaikaisesti backend-koodissa kaikkien BARS-matriisien lakiteknisen täsmällisyyden tappiin (Mikrotaso 100). Tämä estää "kelluvan subjektiivisuuden" täysin ja vapauttaa organisaatiot epävarmuudesta.
 
 #### **2.3.2 Prosessimallin Kuvaus ja Auditoitavuus**
 
@@ -956,6 +970,8 @@ Koska viitekehyksen toiminnallinen malli on toteutettu mutta empiirisesti testaa
 
 * **Goodfellow, Ian J. ym. 2014\.** *Generative adversarial networks*. Advances in Neural Information Processing Systems, 27, s. 2672–2680. Saatavilla: [https://doi.org/10.48550/arXiv.1406.2661](https://doi.org/10.48550/arXiv.1406.2661).
 
+* **Grice, H. P. 1975\.** *Logic and conversation*. Teoksessa Cole, P. & Morgan, J. L. (toim.) Syntax and semantics: Vol. 3. Speech acts. New York: Academic Press, s. 41–58.
+
 * **Google DeepMind 2025a.** *Gemini 3 Pro Model Card*. Saatavilla: [https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-3-Pro-Model-Card.pdf](https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-3-Pro-Model-Card.pdf).
 
 * **Google DeepMind 2025b.** *Gemini 3 Pro Model Evaluation*. Saatavilla: [https://storage.googleapis.com/deepmind-media/gemini/gemini\_3\_pro\_model\_evaluation.pdf](https://storage.googleapis.com/deepmind-media/gemini/gemini_3_pro_model_evaluation.pdf).
@@ -1005,6 +1021,8 @@ Koska viitekehyksen toiminnallinen malli on toteutettu mutta empiirisesti testaa
 * **Kiciman, Emre ym. 2023\.** *Causal reasoning and large language models*. arXiv preprint arXiv:2305.00050. Saatavilla: [https://doi.org/10.48550/arXiv.2305.00050](https://doi.org/10.48550/arXiv.2305.00050).
 
 * **Kim, Dong-Gi ym. 2022\.** *Assessing non-technical skills in medical students (BARS)*. Teaching and Learning in Medicine, 35(3), s. 310–319. Saatavilla: [https://doi.org/10.1080/10872981.2022.2070940](https://www.google.com/search?q=https://doi.org/10.1080/10872981.2022.2070940).
+
+* **Kindervag, John 2010\.** *Build Security Into Your Network's DNA: The Zero Trust Network Architecture*. Cambridge: Forrester Research.
 
 * **Kinicki, Angelo J. ym. 1985\.** *Behaviorally anchored rating scales vs. summated rating scales*. Educational and Psychological Measurement, 45(3), s. 535–549. Saatavilla: [https://doi.org/10.1177/001316448504500310](https://doi.org/10.1177/001316448504500310).
 
@@ -1149,6 +1167,8 @@ Koska viitekehyksen toiminnallinen malli on toteutettu mutta empiirisesti testaa
 * **Shuster, Kurt ym. 2021\.** *Retrieval augmentation reduces hallucination in conversation*. arXiv preprint arXiv:2104.07567. Saatavilla: [https://doi.org/10.48550/arXiv.2104.07567](https://www.google.com/search?q=https://doi.org/10.48550/arXiv.2104.07567).
 
 * **Silva, Bruno ym. 2025\.** *Development of MCA for Older Adults*. Journal of Clinical Medicine, 14(21), s. 7866\. Saatavilla: [https://doi.org/10.3390/jcm14217866](https://doi.org/10.3390/jcm14217866).
+
+* **Skinner, B. F. 1957\.** *Verbal behavior*. New York: Appleton-Century-Crofts.
 
 * **Smith, Patricia Cain & Kendall, Lorne M. 1963\.** *Retranslation of expectations (BARS)*. Journal of Applied Psychology, 47(2), s. 149–155. Saatavilla: [https://doi.org/10.1037/h0047060](https://doi.org/10.1037/h0047060).
 

@@ -236,7 +236,7 @@ class LLMHandler:
                     raise e
 
                 # Otherwise wrap in ServiceUnavailable (upstream failure)
-                logger.error(f"Error fetching/validating Google models: {e}")
+                logger.error(f"[LLMHandler] {ErrorCodes.MODEL_LIST_FAILED.name}: Error fetching/validating Google models: {e}", exc_info=True)
 
                 # STRICT: Do not return error strings. Raise.
                 raise ServiceUnavailableError(
@@ -292,9 +292,12 @@ class LLMHandler:
             models: dict[str, Any] = dump.get("models", {})
             return models
         except Exception as e:
-            from backend_v2.exceptions import ConfigurationError
-            logger.error(f"Failed to parse active model registry: {e}")
-            raise ConfigurationError(f"Model Registry is corrupt: {e}") from e
+            from backend_v2.exceptions import ConfigurationError, ErrorCodes
+            logger.error(f"[LLMHandler] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to parse active model registry: {e}", exc_info=True)
+            raise ConfigurationError(
+                message=f"Model Registry is corrupt: {e}",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+            ) from e
 
     async def get_model_config(self, provider: str, mode: str) -> dict[str, Any] | None:
         """Retrieves a specific model configuration for a provider/mode.
@@ -390,8 +393,11 @@ class LLMHandler:
                         f"is NOT available in the current region ('{settings.vertex_location}'). "
                         f"Available models: {valid_models[:5]}..."
                     )
-                    logger.error(error_msg)
-                    raise ValueError(error_msg)
+                    logger.error(f"[LLMHandler] {ErrorCodes.CONFIGURATION_ERROR.name}: {error_msg}")
+                    raise ConfigurationError(
+                        message=error_msg,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                    )
 
         # Create Provider via Factory (Unified Logic)
         try:
@@ -448,10 +454,11 @@ class LLMHandler:
             # Return content string to maintain backward compatibility for this ad-hoc method
             return response.content
 
-        except ValueError as ve:
-            raise ve  # Re-raise strict validation errors
         except Exception as e:
-            if isinstance(e, (ServiceUnavailableError, ConfigurationError)):
+            if isinstance(e, (AppException, ServiceUnavailableError, ConfigurationError)):
                 raise e
-            logger.error(f"[LLMHandler] Unified Call Failed: {e}", exc_info=True)
-            raise e  # Strict raising instead of returning string error
+            logger.error(f"[LLMHandler] {ErrorCodes.UNKNOWN_ERROR.name}: Unified Call Failed: {e}", exc_info=True)
+            raise ServiceUnavailableError(
+                message=f"LLM Handler Unified Call Failed: {e}",
+                details={"error_code": ErrorCodes.UNKNOWN_ERROR}
+            ) from e

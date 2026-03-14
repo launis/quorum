@@ -87,7 +87,8 @@ class TaskRegistry:
         try:
             cls.agents_map[agent_cls.__name__] = agent_cls()
         except Exception as e:
-            logger.error(f"Could not instantiate {agent_cls.__name__} for metadata: {e}")
+            msg = f"Agent {agent_cls.__name__} instantiation failed: {e}"
+            logger.error(f"[TaskRegistry] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
             from fastapi import status
 
             from backend_v2.exceptions import AppException, ErrorCodes
@@ -134,7 +135,8 @@ class TaskRegistry:
                         config=model_config,
                     )
             except Exception as e:
-                logger.error(f"Failed to configure agent {agent_cls.__name__}: {e}")
+                msg = f"Agent configuration failed: {e}"
+                logger.error(f"[TaskRegistry] {ErrorCodes.AGENT_NOT_CONFIGURED.name}: {msg}", exc_info=True)
                 from fastapi import status
 
                 from backend_v2.exceptions import AppException, ErrorCodes
@@ -266,6 +268,8 @@ class TaskRegistry:
                         resolved_override = await registry.resolve_model_name(override_model)
                         execution_config["model"] = resolved_override
                     except Exception as e:
+                        msg = f"Invalid model override: {e}"
+                        logger.error(f"[TaskRegistry] {ErrorCodes.INVALID_JSON_PAYLOAD.name}: {msg}", exc_info=True)
                         from fastapi import status
 
                         from backend_v2.exceptions import AppException, ErrorCodes

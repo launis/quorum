@@ -9,6 +9,10 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.usage import TokenUsage
 
@@ -29,7 +33,9 @@ class AuditLogEntry(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -83,7 +89,9 @@ class Metadata(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("luontiaika", mode="before")
@@ -132,14 +140,18 @@ class ReasoningTraceDTO(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("confidence_score")
     @classmethod
     def validate_confidence(cls, v: float) -> float:
         if not (0.0 <= v <= 1.0):
-            raise ValueError("Confidence score must be between 0.0 and 1.0.")
+            msg = "Confidence score must be between 0.0 and 1.0."
+            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
@@ -199,19 +211,25 @@ class UsageRecord(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("input_tokens", "output_tokens")
     @classmethod
     def validate_non_negative_int(cls, v: int) -> int:
         if v < 0:
-            raise ValueError("Token count cannot be negative.")
+            msg = "Token count cannot be negative."
+            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
     @field_validator("cost_usd")
     @classmethod
     def validate_non_negative_float(cls, v: float) -> float:
         if v < 0:
-            raise ValueError("Cost cannot be negative.")
+            msg = "Cost cannot be negative."
+            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v

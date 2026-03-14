@@ -8,6 +8,12 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
+
 from backend_v2.models.domain.base import ReasoningTrace
 from backend_v2.models.domain.judge import DimensionResultItem, JudgeScoreCard
 
@@ -30,14 +36,18 @@ class EvaluationCriterion(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("weight")
     @classmethod
     def validate_positive(cls, v: float) -> float:
         if v < 0:
-            raise ValueError("Weight cannot be negative.")
+            msg = "Weight cannot be negative."
+            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
@@ -59,7 +69,9 @@ class EvaluationMatrixConfig(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -109,16 +121,22 @@ class EvaluationResult(ReasoningTrace):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @model_validator(mode="after")
     def validate_scores_range(self) -> EvaluationResult:
         if self.scale_min >= self.scale_max:
-            raise ValueError("scale_min must be strictly less than scale_max.")
+            msg = "scale_min must be strictly less than scale_max."
+            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         if not (self.scale_min <= self.total_score <= self.scale_max):
-            raise ValueError(f"Score {self.total_score} is out of valid range [{self.scale_min}, {self.scale_max}].")
+            msg = f"Score {self.total_score} is out of valid range [{self.scale_min}, {self.scale_max}]."
+            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         return self
 
@@ -136,5 +154,7 @@ class ValidationResult(BaseModel):
     @model_validator(mode="after")
     def validate_logic(self) -> ValidationResult:
         if not self.is_valid and not self.errors:
-            raise ValueError("Invalid result must have errors.")
+            msg = "Invalid result must have errors."
+            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self

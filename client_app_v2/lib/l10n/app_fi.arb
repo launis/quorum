@@ -604,6 +604,8 @@
   "strictnessCausal": "Taso 3: Kausaalinen (Oletus)",
   "strictnessFalsification": "Taso 4: Syyttävä (Falsifikaatio)",
   "strictnessZeroTrust": "Taso 5: Nollaluottamus (Zero-Trust)",
+  "strictnessWarningLvl4": "Varoitus: Taso 4 on antagonistinen ja etsii virheitä. Arvosanat voivat laskea merkittävästi.",
+  "strictnessWarningLvl5": "Varoitus: Zero-Trust. Nolla pistettä, ellei ulkoisia viitteitä ja kovaa evidenssiä käytetä virheettömästi.",
   "barsCompliance1": "Critically Misaligned - Täysin satunnainen prosessi",
   "barsCompliance2": "Misaligned - Hajanaista prosessin noudattamista",
   "barsCompliance3": "Neutral - Jonkinlainen prosessi näkyvissä",

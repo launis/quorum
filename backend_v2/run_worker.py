@@ -7,6 +7,7 @@ from typing import Any, cast
 
 from arq.worker import create_worker
 
+from backend_v2.exceptions import ErrorCodes
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.worker import WorkerSettings
 
@@ -31,9 +32,10 @@ async def main():
         await worker.async_run()
     except KeyboardInterrupt:
         logging.info("Worker stopped by user.")
+        sys.exit(0)
     except Exception as e:
         # 3. Fail Fast with structured error
-        logging.critical(f"Worker startup failed: {e}", exc_info=True)
+        logging.critical(f"[Worker] {ErrorCodes.SERVICE_UNAVAILABLE.name}: Worker startup failed: {e}", exc_info=True)
         # Re-raise as SystemExit to ensure non-zero exit code
         sys.exit(1)
 
@@ -46,5 +48,5 @@ if __name__ == "__main__":
     except SystemExit as e:
         sys.exit(e.code)
     except Exception as e:
-        print(f"CRITICAL: Worker crashed outside main loop: {e}")
+        print(f"CRITICAL [Worker] {ErrorCodes.UNKNOWN_ERROR.name}: Worker crashed outside main loop: {e}")
         sys.exit(1)

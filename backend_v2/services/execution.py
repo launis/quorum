@@ -155,19 +155,14 @@ class ExecutionService:
             for pb_slug in prompt_blocks_refs:
                 pb_dict = await self.repo.get_prompt_block(pb_slug)
                 if not pb_dict:
-                     # For robustness in execution, if a block is removed since deployment,
-                     # log it in executor, skip here mostly. But wait, V2 strictly says Fail Fast.
-                     continue
-
-                # We apply Fail-Fast for missing blocks to guarantee auditability:
-                if not pb_dict:
-                    from backend_v2.exceptions import ConfigurationError
-                    msg = (
-                        f"SDUI Engine Error: PromptBlock '{pb_slug}' is missing "
-                        f"but referenced in step '{step_rule.task_blueprint}'."
-                    )
-                    logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-                    raise ConfigurationError(msg)
+                     # V2 strictly says Fail Fast to guarantee auditability:
+                     from backend_v2.exceptions import ConfigurationError
+                     msg = (
+                         f"SDUI Engine Error: PromptBlock '{pb_slug}' is missing "
+                         f"but referenced in step '{step_rule.task_blueprint}'."
+                     )
+                     logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                     raise ConfigurationError(msg)
 
                 dt = pb_dict.get("type")
 

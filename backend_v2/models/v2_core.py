@@ -8,6 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus, StrictnessLevel
 
 logger = logging.getLogger(__name__)
@@ -466,9 +467,6 @@ class FrozenContext(V2CoreBase):
         default_factory=dict, description="UI rendering instructions.")
 
 
-class WorkflowInputs(V2CoreBase):
-    """Schema for dynamic workflow inputs, allowing any extra keys for dynamic routing."""
-    model_config = ConfigDict(strict=True, extra="allow")
 
 class ExecutionCreate(V2CoreBase):
     """Schema for initiating a new workflow execution."""
@@ -514,6 +512,8 @@ class ExecutionRecord(V2CoreBase):
         default_factory=dict, description="Real-time timeline status of individual nodes")
     results: dict[str, Any] = Field(
         default_factory=dict, description="Step-by-step LLM output results")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Arbitrary metadata for the execution, e.g. macro and micro strictness levels")
     error: str | None = Field(default=None, description="Error message if failed")
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),

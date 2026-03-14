@@ -9,6 +9,10 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -17,14 +21,17 @@ from backend_v2.models.enums import AbductiveConclusion, PlausibilityLevel
 
 
 class CausalInput(BaseModel):
-    """Strict input schema for CausalAnalystAgent."""
+    """Strict input schema for CausalAnalystAgent.
 
-    history_text: str | None = Field(None, description="Chat history to analyze.")
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="Mandatory chatlog to analyze.")
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
     search_result: Any | None = Field(default=None, description="Vertex AI Grounding search results.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 
 class CausalAnalysisData(BaseModel):
@@ -48,7 +55,9 @@ class CausalAnalysisData(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[CausalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
 
@@ -80,7 +89,9 @@ class CounterfactualTest(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[CausalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @model_validator(mode="before")
@@ -97,9 +108,10 @@ class CounterfactualTest(BaseModel):
                     if data.get("plausibility_numeric") is None and enum_val in mapping:
                         data["plausibility_numeric"] = mapping[enum_val]
                 except ValueError as e:
-                    from backend_v2.exceptions import AppException
+                    msg = f"Invalid Plausibility Score: {val}. Allowed: IMPOSSIBLE, PLAUSIBLE, HIGH."
+                    logger.error(f"[CausalModel] VALIDATION_FAILED: {msg} - {str(e)}", exc_info=True)
                     raise AppException(
-                        message=f"Invalid Plausibility Score: {val}. Allowed: IMPOSSIBLE, PLAUSIBLE, HIGH.",
+                        message=msg,
                         status_code=400,
                         details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)}
                     )
@@ -137,7 +149,9 @@ class CausalAnalysis(BaseModel):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[CausalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @model_validator(mode="before")
@@ -158,9 +172,10 @@ class CausalAnalysis(BaseModel):
                     if data.get("abductive_score") is None and enum_val in mapping:
                         data["abductive_score"] = mapping[enum_val]
                 except ValueError as e:
-                    from backend_v2.exceptions import AppException
+                    msg = f"Invalid Abductive Conclusion: {val}. Allowed: POST_HOC, UNCERTAIN, GENUINE."
+                    logger.error(f"[CausalModel] VALIDATION_FAILED: {msg} - {str(e)}", exc_info=True)
                     raise AppException(
-                        message=f"Invalid Abductive Conclusion: {val}. Allowed: POST_HOC, UNCERTAIN, GENUINE.",
+                        message=msg,
                         status_code=400,
                         details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)}
                     )

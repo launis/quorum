@@ -7,19 +7,25 @@ including intent analysis and text metrics.
 
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 class ProfilerInput(BaseModel):
-    """Strict input schema for ProfilerAgent."""
+    """Strict input schema for ProfilerAgent.
 
-    history_text: str | None = Field(None, description="Chat history to profile.")
-    product_text: str | None = Field(None, description="Product context (optional).")
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    """
+
+    chat_log: str = Field(..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
     profiler_metrics: ProfilerMetrics | None = Field(None, description="Injected text metrics.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, extra="allow")
 
 
 class TextMetrics(BaseModel):
@@ -49,14 +55,18 @@ class TextMetrics(BaseModel):
     @classmethod
     def validate_non_negative_int(cls, v: int) -> int:
         if v < 0:
-            raise ValueError("Count cannot be negative.")
+            msg = "Count cannot be negative."
+            logger.error(f"[ProfilerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
     @field_validator("avg_sentence_length", "lexical_diversity", "capitalization_ratio", "control_ratio")
     @classmethod
     def validate_non_negative_float(cls, v: float) -> float:
         if v < 0:
-            raise ValueError("Metric cannot be negative.")
+            msg = "Metric cannot be negative."
+            logger.error(f"[ProfilerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
@@ -85,7 +95,9 @@ class BehavioralMetrics(BaseModel):
     @classmethod
     def validate_non_negative_int(cls, v: int) -> int:
         if v < 0:
-            raise ValueError("Count cannot be negative.")
+            msg = "Count cannot be negative."
+            logger.error(f"[ProfilerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
     model_config = ConfigDict(frozen=True, strict=False)
@@ -126,7 +138,9 @@ class ProfilerDTO(ReasoningTraceDTO):
         if v is None:
             return v
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error(f"[ProfilerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @field_validator("cognitive_biases")
