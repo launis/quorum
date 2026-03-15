@@ -44,9 +44,23 @@ async def test_sanitize_text_fail_fast_missing_inputs():
     assert exc.value.details["error_code"] == ErrorCodes.INVALID_OUTPUT_SCHEMA
 ```
 
-### Script Testing
-We actively use manual execution scripts to audit complete end-to-end setups deterministically:
-*   `python backend_v2/scripts/test_audit_cli.py`: Evaluates the current seed configuration with live inputs and reports characters extracted from real files.
+### Script Testing (System Audits)
+We actively use manual execution scripts in `backend_v2/scripts/` to audit complete end-to-end setups deterministically:
+
+#### 1. Strictness Matrix Audit (`test_audit_cli.py`)
+*   **Purpose**: Runs isolated combinations of Macro (Architectural) and Micro (Matrix-Level) strictness across multiple datasets (SITRA, REKLAMAATIO, SYNTHETIC_GARBAGE) without needing an active API server.
+*   **Outputs**:
+    *   `backend_v2/scripts/strictness_analysis_report.md`: A comprehensive Markdown report detailing score variances and architectural causes.
+    *   `backend_v2/scripts/latest_results_baseline.json`: The raw `ExecutionRecord` payload of the baseline run.
+*   **Command**: `python backend_v2/scripts/test_audit_cli.py`
+
+#### 2. Deep Diagnostic API Execution (`test_api_execution.py`)
+*   **Purpose**: Triggers end-to-end workflows via the live FastAPI server. Performs deep intelligence log analysis (LLM token ping latency, Hook timing, overhead calculations) and cross-validates SSE dropouts.
+*   **Outputs**:
+    *   `backend_v2/scripts/latest_results_SITRA.json`
+    *   `backend_v2/scripts/latest_results_REKLAMAATIO.json`
+    *   `backend_v2/scripts/latest_results_SYNTHETIC_GARBAGE.json`
+*   **Command**: `python backend_v2/scripts/test_api_execution.py` (Requires `uvicorn backend_v2.main:app` running in a separate terminal).
 
 ---
 

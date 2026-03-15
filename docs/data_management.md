@@ -1,10 +1,13 @@
 # Data Management & Databases (V2.5)
 
-The engine is **data-driven**: logic definitions are stored in JSON (the "Mind"), but strict data contracts are enforced via Python/Dart code (the "Body").
+**Status:** Enterprise V2.5 Production Standard
+**Core Philosophy:** The "Mind" (Logic) is Data; The "Spine" (Execution) is Deterministic Code.
+
+The engine is fundamentally **data-driven**: cognitive business logic, evaluating matrices, and UI rules are stored natively as JSON documents (the "Mind"), while strict data contracts and validation are enforced via deterministic Python/Dart code (the "Body/Spine").
 
 > [!IMPORTANT]
-> **Enterprise V2 Standard (Strict Pydantic V2 & Zero-Deploy)**
-> All internal state management MUST use **Pydantic V2 Models**. Dictionary passing (`dict[str, Any]`) is strictly forbidden for inter-component communication. Järjestelmä siirtää kaiken kognitiivisen liiketoimintalogiikan, datareitityksen, arvioinnin kalibroinnin ja käyttöliittymän piirtosäännöt tietokantaan (Zero-Deploy).
+> **Enterprise V2 Standard: Strict Pydantic V2 & Zero-Deploy**
+> All internal state and data transfer MUST use **Pydantic V2 Models** (`ConfigDict(strict=True)`). Dictionary passing or dynamic type coercion is strictly forbidden in the Service and API layers. Järjestelmä siirtää kaiken kognitiivisen liiketoimintalogiikan, datareitityksen, arvioinnin kalibroinnin ja käyttöliittymän piirtosäännöt tietokantaan (Zero-Deploy).
 > 
 > *Tekoälyn säännöstöt ja Single Source of Truth (SSOT) on keskitetty ohjaustiedostoihin:* **`GEMINI.md`** *sekä* **`AGENTS.md`**.
 
@@ -12,102 +15,70 @@ The engine is **data-driven**: logic definitions are stored in JSON (the "Mind")
 
 ## 1. The Blueprint Authority Pattern & Data as Logic
 
-The engine is fundamentally **data-driven**. In Cognitive Quorum V2, the core "reasoning logic" is abstracted into data.
+In Cognitive Quorum V2, the core "reasoning logic" is abstracted into data. Database edits orchestrate the AI without requiring fresh deployments (Zero-Deploy).
 
-### Data as Software Logic
-* **LLM Definitions are Data**: The instructions, matrices, and hooks that constrain the LLM's reasoning are stored entirely as database records in the `prompt_blocks` collection.
-* **Dynamic Programming**: Changing a database record instantly alters how the system "thinks" and evaluates inputs. The database holds the AI's "Mind".
-* **Single Source of Truth (SSOT)**: `data/seed_data.json` acts as the master blueprint for this logic.
-   * **🚨 Recovery Protocol (Data Integrity):** If programmatic patches or seeder scripts crash, developers must *never* blindly revert or overwrite `seed_data.json` with a backup. Script failures must be analyzed, and targeted fixes applied incrementally. Overwriting destroys active manual translation blocks and structural data changes.
+### 1.1 Data as Software Logic
+* **Cognitive Mandates are Data:** The instructions, scoring matrices, hook definitions, and penalty multipliers that constrain the LLM's reasoning are stored entirely as database records within the `prompt_blocks` collection.
+* **Universal Orchestration:** The dynamic Directed Acyclic Graph (DAG) defines how nodes are chained (`workflows`), eliminating hardcoded agent sequences.
+* **Single Source of Truth (SSOT):** `backend_v2/seed/seed_data.json` acts as the master blueprint for the AI's mind.
 
-### Bidirectional Seeding System (V2)
-The Engine employs a robust bidirectional seeding mechanism to enforce the Single Source of Truth (`seed_data.json`) while allowing rapid database iterations.
+### 1.2 The Bidirectional Seeding System
+The engine employs a bidirectional seeding mechanism to enforce the SSOT while allowing structural iteration.
 
-1. **Seeding (Blueprint to Database via `run_seed.py`)**: `seed_data.json` is ingested into the Runtime Database (`data/db_v2.json` or Firestore). This step strictly validates every item via Pydantic models. 
-   - *Safety Feature*: Automatically creates a timestamped backup of the target database in `data/backups/` before clearing any tables.
-2. **Extraction (Database to Blueprint via `migrate_to_seed.py`)**: Allows extracting runtime database modifications back into the SSOT blueprint. 
-   - *Safety Feature*: Automatically creates a timestamped backup of the target file in `backend_v2/seed/backups/` before writing.
-   - *Validation*: Uses `seed_validator.py` with `DeepDiff` to guarantee structural parity (nested lists like `questionnaire_definition` or `claims` are preserved identically, ignoring key-order differences caused by Pydantic serialization).
-3. **Execution Hydration & Universal Routing (Database to Engine)**: When a workflow starts, the DAG Executor queries the database. Pre-hooks like `input_processing.py` dynamically inject semantic intent (`ai_description`) directly into the raw data, decoupling generic agent logic from hardcoded file names.
-4. **State Persistence (Engine to Database)**: As the LLM processes the data, results (strictly validated via Pydantic) are written back to the database as `ExecutionRecords`.
+1. **Seeding (Blueprint $\rightarrow$ Database via `run_seed.py`):** The engine ingests `seed_data.json` directly into the Runtime Database (`db_v2.json` or Firestore). This enforces mathematical Pydantic validation upon entry.
+   - *🚨 Recovery Protocol (Data Integrity):* If programmatic patches or seeder scripts crash, developers must *never* blindly revert or overwrite `seed_data.json` with a backup. Script failures must be analyzed, and targeted fixes applied incrementally. Overwriting destroys active manual translation blocks and structural data changes.
+   - *Safety Feature:* Automatically generates a timestamped backup in `backend_v2/seed/backups/` before clearing target tables. Do not manually edit `db_v2.json` to bypass this.
+2. **Extraction (Database $\rightarrow$ Blueprint via `migrate_to_seed.py`):** Development modifications from the database can be extracted back into the SSOT blueprint, ensuring structural parity.
 
 ---
 
 ## 2. The 3-Tier Data Model
 
-The system utilizes a 3-tier hierarchy to differentiate between development environments.
+Data persists across a 3-tier operational lifecycle:
 
-### Tier 1: Local Testing (`data/db_v2.json` with Mocks)
-*   **Purpose**: Rapid offline UI development.
-*   **Inference**: Uses `USE_MOCK_LLM=true` (Zero-Cost).
+1. **Tier 1 (Local Testing - Mocks):** Rapid offline UI development via local `db_v2.json` and a `USE_MOCK_LLM=true` engine.
+2. **Tier 2 (Local Production - Live):** High-fidelity local database testing utilizing Live Cloud LLMs (e.g., Gemini Vertex integration directly against the local `db_v2.json`).
+3. **Tier 3 (Cloud Production):** Standard multi-tenant ecosystem running solely on Google Cloud Firestore natively.
 
-### Tier 2: Local Production (`data/db_v2.json`)
-*   **Purpose**: High-fidelity verification with **Live Cloud LLMs** but local storage.
-*   **Seeding**: `uv run python backend_v2/seed/run_seed.py local`
-
-### Tier 3: Cloud Production (Firestore)
-*   **Purpose**: Multi-tenant SaaS operations in Google Cloud.
-*   **Storage**: Google Cloud Firestore (Native).
-*   **Seeding**: `uv run python backend_v2/seed/run_seed.py firestore`
+Both Tiers 2 & 3 rely heavily on `system_configs` mappings. Operational strategies (`fast`, `deep` contexts) are entirely decoupled from rigid code, allowing operators to freely shift models in configuration depending on scale requirements without deploying any core code.
 
 ---
 
-## 3. Backend Data Layer (`backend_v2/`)
+## 3. Backend Data Layer ("No-ORM")
 
-### 3.0. The "No-ORM" Pydantic Architecture
-The backend is uniquely designed **without any traditional Object-Relational Mappers (ORMs)**. There is no SQLAlchemy or Prisma. 
+### 3.1 The Gatekeeper (Service Layer)
+The API Layer (`backend_v2/api/`) is strictly anemic. It parses HTTP text into Pydantic models, immediately delegating to the **Domain Service Layer** (`backend_v2/services/`). Only the Service Layer is authorized to compute business relations, isolate tenants, and command the database.
 
-**Pydantic V2 is the Absolute Single Source of Truth (SSOT).**
-*   **Validation**: Pydantic validates incoming API requests.
-*   **Datastore**: Pydantic defines the structure written to the database (Firestore).
-*   **Documentation**: Pydantic generates the OpenAPI specifications.
+### 3.2 Dual Backend Parity
+Object-Relational Mapping (ORM) tools structured for SQL (like SQLAlchemy) are banned. 
+Pydantic V2 generates the schema natively. Any CRUD modification must be perfectly mirrored across:
+1. `backend_v2/database/repository.py` (Local TinyDB logic).
+2. `backend_v2/database/firestore_repo.py` (Cloud Firestore logic).
 
-### Strict Pydantic V2 (Phase 9 Hardening)
-The system utilizes **Pydantic V2** for all internal state management.
-1.  **Strict Models**: Data parsing strictly uses `ConfigDict(strict=True, extra="ignore")`.
-2.  **Strict Enums Only**: Categorical data must match Enum values exactly.
-3.  **Modular Domain**: Models are organized in `backend_v2/models/v2_core.py` to enforce strict separation of concerns.
-
-### 3.1. Unified Workflow Executions
-The core architecture for tracking a workflow in progress is built around the **`ExecutionRecord`** model.
-
-*   **What it is:** The `ExecutionRecord` is an immutable, forward-only ledger. It contains the original inputs, a `frozen_context` guaranteeing auditability of the exact rules used, and the incremental `results` dictionary tracking each step's JSON outcome.
-*   **The Air Gap:** The executor strictly separates generic HTTP inputs from internal Pydantic payloads. Inputs mapped to a specific node only become accessible to the LLM if they pass strict variable resolution logic (`$inputs.x`, `$steps.y`).
+### 3.3 The Strict DTO Pattern (Air Gap)
+To prevent the LLM from manufacturing or mutating relational data, execution relies on the Strict DTO Pattern:
+- The LLM emits a purely substantive JSON object (e.g., scoring array via Structured Outputs).
+- The executed Python Agent intercepts this payload into a Pydantic DTO inside the Hook Ecosystem.
+- The Python layer acts as the absolute authority, injecting server metadata (Execution ID, Timestamp, Organization ID) via pre-hooks like `inject_step_metadata`, sealing the Domain Model before saving it against the `executions` ledger table as `frozen_context` and `results`.
 
 ---
 
-## 4. Client-Side Data Layer (Flutter)
+## 4. NoSQL Design & Firestore Strategy
 
-The Flutter client mirrors the backend's strictness but uses a distinct architectural pattern tailored for UI resilience.
+### 4.1 Polymorphic PromptBlocks
+Because NoSQL architectures like Firestore punish relational JOIN queries, fragmented cognitive components (Instructions, Matrices, Hooks) are deliberately consolidated into a massive single **`prompt_blocks`** collection.
+* The system utilizes a polymorphic `"type"` routing key on the documents.
+* Pydantic instantly reconstructs these JSON payloads back into highly typed Python subclasses (e.g., `PromptBlockMatrix`) upon reading.
 
-### DTOs and Serialization
-*   **Strict Typing**: API responses are mapped to rigid Dart classes using `freezed` and `json_serializable`.
-*   **Parity**: Dart models must exactly match the Pydantic schemas. A mismatch causes a localized UI ErrorBoundary capture, preventing whole-app crashes.
-
-### Defensive Rendering (SafeCast)
-When rendering SDUI rules from PromptBlocks (which may contain legacy bad data), the UI relies on defensive parsing methods (e.g., extracting `I18nText` safely) to guarantee rendering resilience.
-
----
-
-## 5. Model Strategy Architecture (Model Registry)
-
-The system employs an architectural pattern to decouple **Semantic Intent** from **Operational Constraints**. 
-*   **Semantic Strategies**: `fast` (flash tasks) vs `deep` (pro tasks) vs `precise` (judge tasks).
-*   **Global Registry**: The `system_config` table maps these semantic intents to physical cloud models (e.g., `gemini-2.5-pro`).
-*   **Zero-Deploy Downgrades**: If an operational quota is hit, an administrator can edit the DB's `system_config` to route `deep` tasks temporarily to a `flash` model. The code does not change, only the data logic.
+### 4.2 Explicit Isolation Limits
+While configurations are grouped polymorphically, core transactional entities (`users`, `organizations`) exist in rigidly separated collections. This guarantees granular Role-Based Access Control (RBAC) validations at the Domain Service level.
 
 ---
 
-## 6. Database Schema & Firestore Deployment Strategy
+## 5. Client-Side Data Integration (Flutter SDUI)
 
-The database architecture operates fundamentally under NoSQL best practices.
-
-### 6.1. Polymorphic Collections (`prompt_blocks`)
-In a relational model, UI Components, Rules, and Evaluation Matrices might live in distinct SQL tables. In our NoSQL architecture, these are purposefully **consolidated into a single `prompt_blocks` collection** leveraging a polymorphic `"type"` discriminator (`instruction`, `matrix`, `generator`, `hook`).
-
-*   **The NoSQL Join Penalty:** Firestore does not support relational JOINs. Consolidating logic chunks allows for O(1) query patterns.
-*   **Polymorphic Reconstruction:** The backend Pydantic tier seamlessly reconstructs these grouped objects back into their native strongly-typed classes (e.g., `PromptBlockMatrix`) upon reading from the database.
-
-### 6.2. Isolated Entities (Users & Organizations)
-Unlike polymorphic rule blocks, Core Entities (like `users` and `organizations`) are strictly isolated into their own dedicated collections.
-*   **Security & Granular Permissions:** Keeping `users` and `organizations` separated allows the system to enforce explicit ACL boundary rules (e.g., Role-Based Access Control verified at the Domain Service Layer).
+The Flutter UI matches backend rigidity, employing a **Server-Driven UI (SDUI)** approach.
+* **Strict Typing:** API payloads are bound to generated Dart objects utilizing `freezed` and `json_serializable`.
+* **Optimistic Updates:** The Riverpod (`@riverpod`) state engine prioritizes responsive local caching and optimistic UI writes over synchronous database blocking.
+* **Defensive Rendering (Graceful Degradation):** Omni-channel SDUI objects utilize defensive Dart parsing known as `SafeCast`. If an incoming payload corrupts or fundamentally changes shape, the dynamic UI component wraps the failure in a logged RFC 7807 Error code and renders `SizedBox.shrink()`—isolating the crash from the user application.
+* **The No-String Mandate:** Enumerated states from the database (e.g., `"AUTH_ORGANIC"`) are never hard-typed or concatenated. Formatting relies entirely on `.arb` file bindings utilizing standard ICU formatting.

@@ -57,7 +57,7 @@ def clear_logs():
         except Exception as e:
             logger.warning(f"Could not clear {log_path}: {e}")
 
-def save_latest_results(results: dict, exec_id: str):
+def save_latest_results(results: dict, exec_id: str, ds_name: str = ""):
     """
     Simulates the behavior of fetch_results.py by flushing the 
     completed JSON results to disk for manual inspection/diagnostics.
@@ -66,7 +66,8 @@ def save_latest_results(results: dict, exec_id: str):
     logger.info(f"SAVING EXECUTION RESULTS (ID: {exec_id})")
     logger.info("==================================================")
     
-    path = r'c:\src\quorum\docs\latest_results.json'
+    suffix = f"_{ds_name}" if ds_name else ""
+    path = rf"c:\src\quorum\backend_v2\scripts\latest_results{suffix}.json"
     try:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
@@ -300,109 +301,133 @@ def verify_english_mandate_and_blocks(results: dict):
         logger.info(f"[TextMetricsHook] Verified text profiling hook executed (Word count: {metrics.get('word_count')}).")
 
 
+DATASETS = {
+    "SITRA": r"c:\src\quorum\data\files\548d78cd-d540-44a3-bc3e-965064803a40",
+    "REKLAMAATIO": r"c:\src\quorum\data\files\3bc29d99-0093-4175-9629-1e2982c6bb6d", 
+    "SYNTHETIC_GARBAGE": "MOCK",
+}
+
 def main():
     logger.info("--- QUORUM V2 CORE: DEEP DIAGNOSTIC EXECUTION TEST ---")
     
     # Empty logs to prevent parsing data from older runs
     clear_logs()
     
-    start_time = time.time()
     token = create_admin_token()
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     
-    test_dir = r"c:\src\quorum\data\files\548d78cd-d540-44a3-bc3e-965064803a40"
-    logger.info(f"Encoding raw files directly from disk: {test_dir}...")
-    
-    # Send the Native PDFs as Base64 to force the Backend to do the extraction!
-    chat_log_payload = encode_file_to_base64_payload(
-        os.path.join(test_dir, "keskusteluhistoria SITRA.pdf"), 
-        "keskusteluhistoria SITRA.pdf"
-    )
-    product_payload = encode_file_to_base64_payload(
-        os.path.join(test_dir, "lopputuote sitra.pdf"), 
-        "lopputuote sitra.pdf"
-    )
-    
-    # Create the simulated JSON representation of the Flutter UI Questionnaire
-    questionnaire_payload = {
-        "q1": "Mikä oli mielestäsi onnistuneinta tässä vuorovaikutuksessa?",
-        "a1": "Käyttäjä otti aktiivisen roolin ja onnistui purkamaan Sixten Korkmanin haastatteludatan supermegatrendeiksi pelkistämättä sitä.",
-        "q2": "Mitä tekisit toisin ensi kerralla?",
-        "a2": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa."
-    }
-    
     api_url = "http://localhost:8000/api/v2/execution/executions/"
-    payload = {
-        "workflow_id": "workflow_courtroom_20_full_audit",
-        "strictness_level": 3,
-        "target_locale": "fi",
-        "raw_inputs": {
-            "chat_log": chat_log_payload,
-            "product_text": product_payload,
-            "reflection_text": questionnaire_payload
+
+    # Iterate through all 3 configured datasets
+    for ds_name, test_dir in DATASETS.items():
+        start_time = time.time()
+        logger.info(f"\n==================================================")
+        logger.info(f" STARTING EXECUTION FOR DATASET: {ds_name}")
+        logger.info(f"==================================================")
+
+        if ds_name == "SYNTHETIC_GARBAGE":
+             words = "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. " * 15
+             chat_log_payload = words
+             product_payload = words
+             questionnaire_payload = {"q1": words, "a1": words}
+        else:
+             logger.info(f"Encoding raw files directly from disk: {test_dir}...")
+             
+             chat_path = next((f for f in os.listdir(test_dir) if "SITRA" in f.upper() or "DATA" in f.upper()), None)
+             product_path = next((f for f in os.listdir(test_dir) if "lopputuote" in f.lower() or "TULOS" in f.upper()), None)
+
+             # Send the Native PDFs as Base64 to force the Backend to do the extraction!
+             chat_log_payload = encode_file_to_base64_payload(
+                 os.path.join(test_dir, chat_path) if chat_path else "",
+                 chat_path or "fallback.pdf"
+             )
+             product_payload = encode_file_to_base64_payload(
+                 os.path.join(test_dir, product_path) if product_path else "", 
+                 product_path or "fallback.pdf"
+             )
+             
+             # Create the simulated JSON representation of the Flutter UI Questionnaire
+             questionnaire_payload = {
+                 "q1": "Mikä oli mielestäsi onnistuneinta tässä vuorovaikutuksessa?",
+                 "a1": f"Analysoitu {ds_name} -datasetistä.",
+                 "q2": "Mitä tekisit toisin ensi kerralla?",
+                 "a2": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa."
+             }
+        
+        payload = {
+            "workflow_id": "workflow_courtroom_20_full_audit",
+            "strictness_level": 3,
+            "target_locale": "fi",
+            "raw_inputs": {
+                "chat_log": chat_log_payload,
+                "product_text": product_payload,
+                "reflection_text": questionnaire_payload
+            }
         }
-    }
-    
-    logger.info("Sending V2 Raw Structured Payload to Start Execution...")
-    with httpx.Client(timeout=30.0) as client:
-        # Pydantic validates the request structure
-        response = client.post(api_url, json=payload, headers=headers)
-        if response.status_code != 202:
-            logger.error(f"FAILED TO START EXECUTION: {response.status_code}")
-            sys.exit(1)
-            
-        exec_id = response.json()["id"]
-        logger.info(f"Execution initialized successfully in database! Assigned ID: {exec_id}")
         
-        status_url = f"{api_url}{exec_id}"
-        logger.info("Polling for real-time status updates...")
-        
-        failures = 0
-        while True:
-            resp = client.get(status_url, headers=headers)
-            if resp.status_code != 200:
-                logger.error(f"Failed to get status: {resp.status_code}")
-                failures += 1
-                if failures > 3:
-                     sys.exit(1)
-                time.sleep(2)
-                continue
-            
-            data = resp.json()
-            status = data.get("status")
-            
-            if status == "completed":
-                logger.info("EXECUTION COMPLETED SUCCESFULLY!")
-                results = data.get("results", {})
+        logger.info("Sending V2 Raw Structured Payload to Start Execution...")
+        with httpx.Client(timeout=30.0) as client:
+            try:
+                # Pydantic validates the request structure
+                response = client.post(api_url, json=payload, headers=headers)
+                if response.status_code != 202:
+                    logger.error(f"FAILED TO START EXECUTION: {response.status_code}")
+                    continue
+                    
+                exec_id = response.json()["id"]
+                logger.info(f"Execution initialized successfully in database! Assigned ID: {exec_id}")
                 
-                # RUN VERIFICATION
-                verify_english_mandate_and_blocks(results)
+                status_url = f"{api_url}{exec_id}"
+                logger.info("Polling for real-time status updates...")
                 
-                # RUN DEEP LOG ANALYSIS
-                analyze_logs(start_time, exec_id)
-                
-                # SAVE RESULTS TO DISK
-                save_latest_results(results, exec_id)
-                
-                break
-            elif status == "failed":
-                logger.error("EXECUTION FAILED. Aborting.")
-                logger.error(data.get("error"))
-                
-                # RUN DEEP LOG ANALYSIS EVEN ON FAILURE
-                analyze_logs(start_time, exec_id)
-                
-                sys.exit(1)
-            
-            # Formatted status update
-            states = data.get("step_states", {})
-            completed = [k for k,v in states.items() if v == "completed"]
-            logger.info(f"Status: {status} | Completed Steps: {len(completed)}")
-            
-            time.sleep(5)
+                failures = 0
+                while True:
+                    resp = client.get(status_url, headers=headers)
+                    if resp.status_code != 200:
+                        logger.error(f"Failed to get status: {resp.status_code}")
+                        failures += 1
+                        if failures > 3:
+                             break
+                        time.sleep(2)
+                        continue
+                    
+                    data = resp.json()
+                    status = data.get("status")
+                    
+                    if status == "completed":
+                        logger.info(f"EXECUTION COMPLETED SUCCESFULLY FOR {ds_name}!")
+                        results = data.get("results", {})
+                        
+                        # RUN VERIFICATION
+                        verify_english_mandate_and_blocks(results)
+                        
+                        # RUN DEEP LOG ANALYSIS
+                        analyze_logs(start_time, exec_id)
+                        
+                        # SAVE RESULTS TO DISK (with dataset name)
+                        save_latest_results(results, exec_id, ds_name)
+                        
+                        break
+                    elif status == "failed":
+                        logger.error(f"EXECUTION FAILED FOR {ds_name}. Aborting this dataset loop.")
+                        logger.error(data.get("error"))
+                        
+                        # RUN DEEP LOG ANALYSIS EVEN ON FAILURE
+                        analyze_logs(start_time, exec_id)
+                        
+                        break
+                    
+                    # Formatted status update
+                    states = data.get("step_states", {})
+                    completed = [k for k,v in states.items() if v == "completed"]
+                    logger.info(f"Status: {status} | Completed Steps: {len(completed)}")
+                    
+                    time.sleep(5)
+            except Exception as e:
+                logger.error(f"Error during network communication for {ds_name}: {e}")
 
 if __name__ == "__main__":
     main()

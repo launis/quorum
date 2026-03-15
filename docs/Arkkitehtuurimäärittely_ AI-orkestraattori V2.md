@@ -2,124 +2,105 @@
 
 Tämä dokumentti määrittelee dynaamisen, palvelinohjatun (SDUI) ja sataprosenttisesti auditoitavan tekoälyorkestraattorin arkkitehtuurin. Järjestelmä siirtää kaiken kognitiivisen liiketoimintalogiikan, datareitityksen, arvioinnin kalibroinnin ja käyttöliittymän piirtosäännöt tietokantaan, mikä mahdollistaa ominaisuuksien globaalin skaalaamisen välittömästi ilman koodipäivityksiä (Zero-Deploy).
 
-## **1\. Arkkitehtuurin Ydinfilosofiat**
+## **1. Arkkitehtuurin Ydinfilosofiat**
 
-1. **Zero-Deploy, SDUI & Responsiivisuus:** Käyttöliittymä ja tulostemoottorit ovat liiketoimintalogiikasta tietämättömiä renderöijiä. Kaikki syötevaatimukset, arviointikriteerit, tekoälymallit ja käyttöliittymäkomponentit konfiguroidaan tietokannassa. Käyttöliittymä on täysin dynaaminen, responsiivinen ja mukautuu automaattisesti kaikille laitteille (mobiili, tabletti, desktop).  
-2. **Reaktiivinen Tilanhallinta (Riverpod):** Koko käyttöliittymän tilanhallinta ja asynkroniset datavirrat rakennetaan Riverpodilla uusimpien best practice \-mallien mukaisesti (Notifier / AsyncNotifier).  
-3. **Schema-Driven AI (Dynaaminen Pydantic):** Tekoälyltä ei koskaan pyydetä tulosteen muotoa vapaassa tekstissä. Tulostevaatimukset käännetään lennosta validointiluokiksi, joista generoituu OpenAPI JSON Schema. LLM pakotetaan vastaamaan tähän tiukkaan rakenteeseen API-tasolla (`Structured Outputs`).  
-4. **Universaali Mittausarkkitehtuuri ("PromptBlocks"):** Vapaamuotoiset laadulliset analyysit, numeeriset/desimaaliset mittaristot ja ohjeistukset yhdistetään yhdeksi "PromptBlock" \-tietokantamalliksi. Tämä poistaa siilot ja automatisoi LLM-ohjeistuksen erillisten taulujen välillä.  
-5. **Arvioinnin Dynaaminen Kalibrointi (Model Strategy):** Järjestelmä erottaa kognitiiviset intentiot (`fast`, `deep`, `precise`) fyysisistä malleista (`gemini-2.5-pro`). Tämä tapahtuu globaalissa `system_config` rekisterissä.
-6. **Teoriamaadoitettu XAI (Grounded Explainable AI):** Arviointimatriiseihin tallennetaan aina teorialähde (URL) sekä virallinen lähdeviite. Järjestelmä hakee lähteen ja syöttää sen tekoälylle *ennen* arviointia.
-7. **Dynaaminen Datan Reititys (Semantic Data Flow):** Työnkulkuun tulevan datan määrä ja rooli ovat täysin dynaamisia. Askeleet muodostavat suunnatun syklittömän verkon (DAG), jossa data reititetään nimenomaisilla `$inputs.` tai `$steps.` muuttujilla.
-8. **Kognitiivinen Monikielisyys (I18n Fallback):** Järjestelmä on natiivisti monikielinen ja tukee dynaamista käännösten hakua automaattisella varakieleen putoamisella.
-9. **Ikuinen Auditoitavuus (Append-Only & Snapshotting):** Mitään kognitiivista palikkaa ei koskaan ylikirjoiteta ajon aikana. Historialliset ajot jäädyttävät suoritushetken absoluuttisen tilan fyysisenä syväkopiona (`frozen_context`).  
-10. **Single Source of Truth (Domain Service Layer):** API-reitittimet ovat rakenteellisesti aneemisia ja vastaavat vain HTTP-pyyntöjen (Pydantic) parsinnasta. Kaikki tietokantaintegraatiot ja Tenant-eristys tapahtuvat pakotetusti eristetyssä Service-kerroksessa (esim. `StudioService`, `ExecutionService`).
+1. **Zero-Deploy, SDUI & Responsiivisuus:** Käyttöliittymä ja tulostemoottorit ovat liiketoimintalogiikasta tietämättömiä renderöijiä. Kaikki syötevaatimukset, arviointikriteerit, tekoälymallit ja käyttöliittymäkomponentit konfiguroidaan tietokannassa.
+2. **Reaktiivinen Tilanhallinta (Riverpod):** Koko käyttöliittymän tilanhallinta ja asynkroniset datavirrat rakennetaan Riverpodilla uusimpien best practice -mallien mukaisesti.
+3. **Schema-Driven AI (Dynaaminen Pydantic):** Tekoälyltä ei koskaan pyydetä tulosteen muotoa vapaassa tekstissä. Tulostevaatimukset käännetään lennosta OpenAPI JSON Schema -validointiluokiksi (`Structured Outputs`).
+4. **Universaali Mittausarkkitehtuuri ("PromptBlocks"):** Vapaamuotoiset laadulliset analyysit, numeeriset/desimaaliset mittaristot ja ohjeistukset yhdistetään yhdeksi "PromptBlock" -tietokantamalliksi poistaen siilot.
+5. **Arvioinnin Dynaaminen Kalibrointi (Model Strategy):** Järjestelmä erottaa kognitiiviset intentiot (`fast`, `deep`, `strict`, `precise`) fyysisistä malleista globaalissa `system_config` rekisterissä.
+6. **Teoriamaadoitettu XAI (Grounded Explainable AI):** Arviointimatriiseihin tallennetaan aina teorialähde (URL), joka syötetään tekoälylle *ennen* arviointia.
+7. **Dynaaminen Datan Reititys (Semantic Data Flow):** Työnkulkuun tulevan datan määrä on dynaaminen. Askeleet muodostavat suunnatun syklittömän verkon (DAG), jossa data reititetään nimenomaisilla `$inputs.` tai `$steps.` viittauksilla.
+8. **Ikuinen Auditoitavuus (Append-Only & Snapshotting):** Mitään kognitiivista palikkaa ei koskaan ylikirjoiteta ajon aikana. Historialliset ajot jäädyttävät suoritushetken absoluuttisen tilan (frozen_context).
+9. **Single Source of Truth (Domain Service Layer):** API-reitittimet ovat rakenteellisesti aneemisia. Kaikki tietokantaintegraatiot ja Tenant-eristys tapahtuvat suojatussa Service-kerroksessa.
+10. **Strict Pydantic Roolipakotus (Role Enforcement):** Pydantic-skeemat estävät "geneeriset yhteenvedot" aktiivisesti. Kentät (kuten `evaluation_notes`) vaativat kovaa arviointia *vain* kunkin agentin oman roolilinssin läpi, poistaen LLM:n matemaattisen kloonautumisen (cloning effect) rinnakkaissuorituksissa.
+11. **The Anti-Mirror Protocol (Sokkotestaus & Ihmisdatan Eristys):** Järjestelmä ei koskaan salli tekoälyn arvioida toista tekoälyä silloin, kun pisteytetään loppukäyttäjää. Kognitiivisen Groupthinkin estämiseksi kaikki asiantuntija-agentit suoritetaan täysin rinnakkain (Parallel Blind Audit). He lukevat `$inputs`-syötteenä puhtaaksi rajattua "Käyttäjän tekstiä", josta on riisuttu muiden AI-entiteettien tuotokset. Tämä takaa EU:n tekoälyasetuksen (XAI) vaatimukset ihmisen suorituksen selitettävyydestä.
 
-## ---
+---
 
-## **2\. Kognitiivinen Monikielisyys (I18n Fallback)**
+## **2. Kognitiivinen Monikielisyys (I18n Fallback & The 5-Layer Strategy)**
 
-Järjestelmä tukee globaalia monikielisyyttä joustavasti ilman, että kääntäminen on käyttäjälle pakollista. Kaikki tietokannan tekstit tallennetaan I18n JSON-objekteina:
+Quorum V2:n työnkulut irrottavat tekoälyn "kognitiivisen" päättelymekanismin (aina englanniksi laadun maksimoimiseksi) loppukäyttäjän "esitys- ja asiointikielestä" (esim. suomi) hyödyntäen The Holistic Localization Strategy -mallia.
 
-```json
-"instruction": {  
-  "default_locale": "fi",  
-  "translations": {  
-    "fi": "Arvioi innovaatiotaso teoriaan tukeutuen.",  
-    "en": "Evaluate the innovation level based on the theory."  
-  }  
-}
-```
+### Kerros 1: Staattinen Käyttöliittymä (Compile-Time l10n)
+Flutterin luontaiset `.arb`-tiedostot (esim. `app_fi.arb`) on varattu **ainoastaan** käyttöliittymän kiinteille komponenteille (napit, navigaatio, staattiset otsakkeet). Virheenhallinnassa (RFC 7807) käytetään `AppErrorExt` reititintä, joka muuntaa backendin Enum-tunnisteet yhdistetyksi *Actionable Hintiksi* omalla kielellä.
 
-UI päättelee target_localen ja poimii joko käännöksen tai oletuksen dynaamisesti (SafeCast).
+### Kerros 2: SDUI-Tietokanta & Dynaamiset Säännöt (Runtime Payload)
+Kun järjestelmään lisätään matriiseja tai sääntöjä, Pydantic DTO (esim. PromptBlock) tallentaa ne kantaan muodossa `translations: {"fi": "Syyttäjä...", "en": "Prosecutor..."}`. Flutter lukee aina oman lokaalinsa mukaisen käännöksen dynaamisesti (SafeCast).
 
-## ---
+### Kerros 3: Kognitiivinen Moottori & English-Only Mandate (The Deep Engine)
+Tekoälymalli on huomattavasti kyvykkäämpi englanninkielisenä. Asiantuntija-agenttien metatiedot ja PromptBlockien järjestelmätason ohjeet on **pakko kirjoittaa englanniksi** (`translations["en"]`). Malli pakotetaan ajattelemaan (JSON `reasoning_trace`) englanniksi, mutta se on velvoitettu poimimaan käyttäjän alkuperäiset lainaukset täysin koskemattomina alkukielellä.
 
-## **3\. Tietokantamalli (NoSQL Document DB)**
+### Kerros 4: Numeerinen ja Temporaalinen Standardi (Dates, Numbers)
+Numeroita, päivämääriä, kellonaikoja ja valuuttoja ei koskaan lokalisoida backendissä. Kaikki aika kulkee ISO 8601 UTC -muodossa (`"2026-03-14T15:30:00Z"`) ja numerot primitiiveinä (esim. `5.0`). Flutter vastaa formatointilogiikasta käyttäjän laitteen paikalleen Dartin `intl`-kirjaston avulla (ICU).
+
+### Kerros 5: The Translation Boundary & Loppusynteesi 
+Koska `.arb` ei voi kääntää lennossa syntyneitä tekoälyn ajatusketjuja tai raportteja, Backend käyttää tarvittaessa "Translation Hook" -suodatinta. Se kääntää vain askeleen JSON-tuloksen luonnolliset arvot asiakkaan pyytämälle kielelle muuttamatta JSON-avaimia. Lopulta Markdown-tuote muodostetaan tästä lokaalista rakenteesta täysin ihmisluettavaksi.
+
+---
+
+## **3. Tietokantamalli (NoSQL Document DB)**
 
 Tietokanta on suunniteltu Firestoren varaan tuotannossa ja lokaalin `db_v2.json` varaan kehityksessä. 
 
-## **KERROS 1: KIRJASTOT (Peruspalikat)**
+### KERROS 1: KIRJASTOT (Peruspalikat)
+* **system_configs:** Singleton-kokoelma, joka mapittaa kognitiiviset strategiat (fast, deep, strict) fyysisiin LLM-malleihin.
 
-* **system_configs (Globaali rekisteri):** Singleton-kokoelma, joka mapittaa kognitiiviset strategiat (fast, deep, strict) fyysisiin LLM-malleihin erillään agenteista.
+### KERROS 2: ORKESTRAATIO (Äly ja Työnkulut)
+* **prompt_blocks:** Sisältää kaikki kognitiiviset ohjeet (`type`: `instruction`, `matrix`, `hook`).
+* **steps:** Sitovat abstraktin ohjeen (`prompt_block`) kognitiiviseen strategiaan (`model_strategy`) tehden nieluista uudelleenkäytettäviä palikoita verkolle.
+* **workflows:** Määrittelevät dynaamiset syötteet (`expected_inputs`), riippuvuudet (`depends_on`) ja datareitityksen (`input_mappings`).
 
-## **KERROS 2: ORKESTRAATIO (Äly ja Työnkulut)**
+### KERROS 3: HISTORIA JA AUDITOINTI
+* **executions (Ikuinen Jäädytys):** Tallentaa `raw_inputs` (käyttäjän syötteet), `frozen_context` (syväkopio säännöistä ajon hetkellä) ja `results` (Pydantic-validoitu tulos-JSON).
 
-* **prompt_blocks (Ohjeet ja Kriteerit):**  
-  Sisältää KAIKKI kognitiiviset ohjeet, säännöt, otsikot ja numeeriset arvioinnit (`type`: `instruction`, `matrix`, `hook`, `generator`).
-* **steps (Task Blueprints):** Sitovat tietyn abstraktin ohjeen (`prompt_block`) tiettyyn kognitiiviseen strategiaan (`model_strategy`) tehden niistä uudelleenkäytettäviä palikoita verkolle.
-* **workflows (DAG-Työnkulut):** Määrittelee dynaamiset syötteet (`expected_inputs`) ja luovat askeleiden välisen riippuvuustaulukon (`depends_on`) sekä datareitityksen (`input_mappings`).
+---
 
-## **KERROS 3: HISTORIA JA AUDITOINTI**
+## **4. Syötteet, Roolit ja Datan Reititys (Semantic Data Flow)**
 
-* **executions (Ikuinen Jäädytys):**  
-  * `raw_inputs`: Käyttäjän lataamat syötteet.  
-  * `frozen_context`: Täydellinen, muuttumaton syväkopio käännetyistä ohjeista askelepohjaisesti ajon hetkellä.  
-  * `results`: Backendin Pydantic-validoima, askeleittain jaoteltu tulos-JSON.
+### **4.1. Odotetut syötteet (Expected Inputs) ja Universaali Reititys**
+Käyttöliittymä lukee ohjelmallisesti `workflows`-dokumentin `expected_inputs`-taulukon ja piirtää vaaditut ohjaimet. Mukaansa jokainen syöte ottaa tiedon roolista (`ai_description`), joka injektoidaan raakadatan yläpuolelle (Universal Routing). 
 
-## ---
+### **4.2. Routing Variables ($)**
+DAG-verkossa askelilla on `input_mappings`-määritys:
+1. **Globaalit syötteet (`$inputs.chat_log`):** Puhtaaksi eristetty Käyttäjän teksti.
+2. **Aiempien askeleiden tulokset (`$steps.step_node_1.output.risk_score`):** Viittaus jo suoritettuun DAG-nodeen. (HUOM: The Anti-Mirror Protocolin takia ihmisen arviointimatriisit kytketään oletuksena aina rinnakkain saamaan sisäänsä vain `$inputs`).
 
-## **4\. Syötteet, Roolit ja Datan Reititys (Semantic Data Flow)**
+### **4.3. 5-Level Strictness Framework ja Kognitiiviset Injektiot (2D-Moottori)**
+Arviointi mukautuu 5-portaisella tiukkuusasteikolla:
+*   **Makrotaso (Laadullinen Asenneinjektio):** Järjestelmä laukaisee laadullisen leikkauksen (Qualitative Shift) esim. Tasolla 5 ohittaen perustason blokkeja injektoimalla armottoman "Syyttäjä"-roolin ja korkean kognitiivisen kitkan.
+*   **Mikrotaso (Määrällinen Ohjelmallinen Pakotus):** `dag_executor.py` ylikirjoittaa matriisien `strictness_level` -arvon matemaattisesti lennosta (asteikko 0-100). Taso 100 pakottaa matemaattisen joustovaran nolliin ja sallii täyden arvosanan vain täydellisyydestä.
 
-Järjestelmä ei sisällä kovakoodattua vaatimusta pelkästä "keskusteluhistoriasta". Työnkulku itse määrittelee dynaamisesti, mitä dataa tarvitaan ja mikä sen kognitiivinen rooli on.
+### **4.4. Monimallinen Debattiarkkitehtuuri (Adversarial AI Pipeline)**
+DAG-reititys mahdollistaa ihmisen arvioinnista ulos rajatut tekoälyjen väliset "debattityönkulut" (LLM-as-a-Judge vs. LLM-as-a-Judge). Syöttämällä esim. Analyytikon-mallille `strategy: fast` ja Syyttäjä-mallille `strategy: strict`, voidaan ketjuttaa erilaisten kielimallien neuroverkkoja tutkimaan toistensa sokeita pisteitä (`input_mappings: {"ai_report": "$step_analyst"}`). Anti-Mirror protokolla sallii tämäntyyppiset kytkennät vain silloin, kun pisteytyksen kohteena ei enää ole inhimillinen käyttäjä, vaan toisen robotin analyysi.
 
-## **4.1. Odotetut syötteet (Expected Inputs) ja Universaali Reititys**
-`workflows`-dokumentissa on `expected_inputs`-taulukko (Esim. `{"chat_log": "file", "reflection_text": "file"}`). Käyttöliittymä lukee tämän lennosta ja piirtää vaadittujen kenttien Upload/Text-alueet. Mukaansa jokainen syöte ottaa `ai_description`-kentän (esim. "Tämä on Sitran raportti"). `input_processing.py`-hook injektoi tämän kuvauksen suoraan raakadatan yläpuolelle (Universal Routing), jolloin jokainen Pydantic-agentti ymmärtää datan kontekstin ilman, että ohjeita tarvitsee kovakoodata agenteille!
+---
 
-## **4.2. Routing Variables ($)**
-DAG-verkossa jokaisella askeleella (`step_node_1`) on `input_mappings`-määritys:
-1. **Globaalit syötteet (`$inputs.chat_log`):** Käyttäjän antamat tiedostot/tekstit.  
-2. **Aiempien askeleiden tulokset (`$steps.step_node_1.output.risk_score`):** Yksittäiseen Pydantic-tulosavun alikenttään viittaava osoitin.
+## **5. FastAPI Backend ja Suoritusmoottori**
 
-Tällä taataan, että jokainen Node suoritetaan turvallisessa Pydantic eristyksessä (Fail-Fast), eikä data lipsu vahingossa väärien LLM-kutsujen kontekstiin.
+### **5.1. Pydantic SSOT (Strict-DTO Protocol)**
+Kaikki datasiirrot API-reitittimissä ja tietokannassa puskevat tiedon V2 Pydantic-validointimoottorin ja tiukan `extra="ignore"` säännön läpi estäen hallusinaatiot ja mallin väärennökset välittömästi HTTP 422 tai 500 virheellä (Fail Fast).
 
-## **4.3. 5-Level Strictness Framework ja Kognitiiviset Injektiot (2D-Moottori)**
-V2-arkkitehtuuri institutionalisoi kognitiivisen arvioinnin tiukkuuden käyttäjän säädettävissä olevalla jatkuvalla 5-portaisella asteikolla. Arviointi on kaksiulotteinen ja jakautuu ohjelmallisesti **Makrotasoon** (Laadullinen roolimuutos) ja **Mikrotasoon** (Määrällinen interpolaatiosäätö). Tiukkuustason (1-5) nostaminen käyttöliittymässä ei ole vain lineaarinen vähennyskerroin, vaan se laukaisee ketjureaktion tietokannassa olevien (esim. `seed_data.json`) PromptBlockien ja ohjelmallisten sääntöjen välillä:
+### **5.2. Teoriamaadoitus ja RAG (System Prompt)**
+Jos `prompt_block` kriteerissä on `theory_grounding.source_url`, Web Fetcher hakee lähteen, ja se injektoidaan tiukkoihin `<theory_context>` XML-tageihin LLM-promptin sisällä ennen ajatteluketjun muodostamista.
 
-*   **Makrotaso (Laadullinen Asenneinjektio):** Työnkulun rakennuspalikat eivät ole kiinteitä. `DAGExecutor` säätelee ajonaikaisesti suoritusverkon kognitiivista kokoonpanoa muuttamalla käytettyjä PromptBlock-rooleja. 
-    *   *Mekanismi:* Perusajossa (Taso 3) moottori käyttää vakiomuotoisia luovia analyytikoita. Korkeimmalla Makrotasolla 5 (Zero-Trust) moottori tekee laadullisen leikkauksen (Qualitative Shift) ja ohittaa perustason tuomariblokit injektoimalla Syyttäjä-roolin (`block_role_prosecutor`) ja akateemisen kognitiivisen kitkan vaatimuksen (`block_rule_cognitiverequirement`).
-    *   *Tekninen Vaikutus:* Kuten V2 auditoinnit osoittavat, asennemuutos pakottaa kielimallin (Vertex AI) lukemaan syötettä syvemmin falsifiointitavoitteella. Heikkolaatuinen data (Synthetic Garbage) liputetaan välittömästi null-hypoteesin kautta ja Algorithmic Tyranny Kill Switch ohjelmoi lopputulokseksi nollaa. Laadukkaan datan kohdalla Syyttäjä-rooli saattaa jopa *nostaa* kognitiivisia argumentaatiopisteitä (esim. Toulmin/Bloom), koska se pakottaa esiin syvällisemmän analyysin alkuperäisen pinnallisen hyväksynnän sijaan.
-*   **Mikrotaso (Määrällinen Ohjelmallinen Pakotus):** Estääkseen kognitiivisen dissonanssin, moottorin ydinsilmukka (`dag_executor.py`) käyttää valittua tiukkuustasoa skaalaten kunkin yksittäisen askeleen matemaattista joustovaraa.
-    *   *Mekanismi:* Järjestelmä kiertää lennosta kaikki numeeriset arvostelumatriisit ja ylikirjoittaa niiden ohjelmallisen `strictness_level` -arvon tarkan laskennallisen linjauksen mukaisesti asteikolle 0-100 (esim. Taso 5 pakottaa kaikkien matriisien tarkkuudeksi 100).
-    *   *Tekninen Vaikutus:* Mikrotaso toimii kynnysarvona. Se ohjaa BARS-viitekehyksen vektoriprojektiota tiukempiin reunaehtoihin (margin of error). Nolla-arvo (0) sallii tulkinnanvaraisuutta täydellisten osumien puuttuessa, kun taas Lahjomaton arvo (100) johtaa ohjelmalliseen säännönmukaisuuteen, laskien tuloksia useimmissa tapauksissa lievästi 5-10 prosenttiyksikköä rangaisten pienistäkin poikkeamista ohjeistuksessa. Se ei kuitenkaan muuta mallin perusasenneta toisin kuin Makrotaso.
+### **5.3. Hook-Riippuvuuksien Ruiskutus (Dependency Injection)**
+Kaikki tietokanta- ja LLM-yhteydet ruiskutetaan suoraan FastAPIn `Depends` injektiosta Service-kerrokselle. API-kontrolleri on aneeminen mahdollistaen täydellisen eristetyn yksikkötestauksen.
 
-Tämä 2D-mekanismi varmistaa ehdottoman auditointilinjan, ilman että yhtäkään fyysistä perusmatriisia (`seed_data.json`) pitää rakenteessa monistaa eri tasoille. Yhdessä ne pitävät huolta siitä, että rutiiniarviointi (Taso 3, Micro 50) on miellyttävää, ja korkean panoksen laadunvarmistus (Taso 5, Micro 100) on absoluuttisen lahjomatonta.
+### **5.4. Dual-Reporting (RFC 7807)**
+API rajapinnoissa virheet hoidetaan **RFC 7807** standardin mukaisesti:
+1. Poikkeus tulostetaan `logger.error` puolelle teknisen syyn (Stack Trace) kera.
+2. Ulospäin nostetaan asiallinen JSON enumi (Esim. `VALIDATION_FAILED`), estäen teknologiavuodot frontendiin.
 
-## ---
+### **5.5. CoT String-Tuple Pre-Parsing (LLM Decimal Bias Ohitus)**
+Koska LLM Structured Outputs ohjaa vastaukset usein tasakymmeniin tai vahvoihin kokonaislukuihin, V2 soveltaa dynaamista CoT String-Tuple ratkaisua (esim. ohjelmoi LLMn palauttamaan perustelun perään `||DECIMAL: 4.2||`). `normalize_matrix_scores`-hook sieppaa tiedon Pydanticissa, regexaa kätketyn liukuluvun ja ylikirjoittaa "tyhmän" kokonaisluvun tietokantaan säilyttäen API-tyyppiturvallisuuden.
 
-## **5\. FastAPI Backend ja Suoritusmoottori**
+---
 
-Backend (`backend_v2`) on dynaaminen Compiler-moottori, joka ratkaisee DAG-graafin, ajaa askeleet rinnakkain ja suorittaa Pydantic-validoinnin raskaasti tiukalla `extra="ignore"` säännöllä estääkseen LLM hallusinaatiot.
+## **6. Esityskerros (Adaptive SDUI - Flutter)**
 
-## **5.1. Pydantic SSOT (Strict-DTO Protocol)**
-Aivan jokainen työnkulku kulkee tiukan Pydantic `v2_core.py` (Määritelmät) ja `execution.py` (Suoritus) suodattimen läpi. Jos databaseen tallennettu tietue riitelee skeeman kanssa, kutsu katkeaa välittömästi HTTP 422 tai 500 virheeseen poikkeuksetta (Fail Fast).
+Frontend (`client_app_v2`) on joustava, kognition ulkoistanut renderöintimoottori:
 
-## **5.2. Teoriamaadoitus ja RAG (System Prompt)**
-Jos `prompt_block` kriteerissä on `theory_grounding.source_url`, Web Fetcher tai dokumentin lukija (RAG) hakee lähteen. Teksti injektoidaan Promptiin tiukkoihin XML-tageihin `<theory_context>`, ja malli pakotetaan reitittämään vastauksensa Pydantic json schemaan niin, että vastaus sisältää numeerisen arvon ja tarkan lainauksen kirjasta.
-
-## **5.3. Hook-Riippuvuuksien Ruiskutus (Dependency Injection)**
-Kaikki tietokanta- ja LLM-yhteydet ruiskutetaan suoraan FastAPIn `Depends` injektiosta Service-kerrokselle. Reititin (Controller) on aneeminen, mikä mahdollistaa äärimmäisen kattavan ja turvallisen Unit-Testauksen MockDB:llä ilman HTTP mokkauksia.
-
-## **5.4. Dual-Reporting (RFC 7807)**
-Frontend API rajapinnoissa virheet hoidetaan aina **RFC 7807** hengessä: 
-1. Exception napataan
-2. Tulostetaan `logger.error` backend lokeihin kehittäjille teknisen poikkeuksen kera.
-3. Nostetaan ulospäin asiallinen JSON, joka sisältää koneluettavan enumin (Esim. `VALIDATION_FAILED`), estäen koodin pinojen ja salaisuuksien vuotamisen asiakkaalle.
-
-## **5.5. CoT String-Tuple Pre-Parsing (LLM Decimal Bias Ohitus)**
-Koska LLM Structured Outputs (JSON Mode) pakottaa luontaisesti arvot kohti vahvoja kokonaislukuja (esim. 4.0), V2-arkkitehtuuri soveltaa dynaamista Chain-of-Thought (CoT) String-Tuple -ratkaisua (Decimal Override) ohittamaan tekoälyn "pyöristysharhan":
-1. **Injektio (`prompt_compiler.py`)**: LLM:n sanalliseen `justification`-kenttään injektoidaan ohje lennosta, joka pakottaa mallin kirjoittamaan kognitiivisen pohdintansa ensin ja päättämään sen tiukkaan tuple-tekstiin (esim. `||DECIMAL: 4.2||`).
-2. **Sieppaus (`scoring.py`)**: `normalize_matrix_scores`-hook sieppaa Pydantic-tilan juuri ennen sen tallentamista tietokantaan, purkaa tuplesta tarkan desimaalin säännöllisellä lausekkeella (regex), ylikirjoittaa LLM:n antaman "tyhmän" kokonaisluvun uudella liukuluvulla, ja siivoaa tekstin UI:ta varten.
-Tämä takaa aidosti vivahteikkaat desimaaliarvot (esim. 3.8) säilyttäen `db_v2.json` -rakenteen sataprosenttisen puhtaana matemaattisesta yhdenmukaisuudesta (Pydantic V2 float).
-
-## ---
-
-## **6\. Esityskerros (Adaptive SDUI - Flutter)**
-
-Frontend (`client_app_v2`) on "tyhmä" renderöintimoottori, joka on suunniteltu äärimmäisen mukautuvaksi, dynaamiseksi ja reaktiiviseksi.
-
-1. **Riverpod ja Koodigeneroitu Reaktiivisuus:** Sovelluksen tilanhallinta ja datavirrat rakentuvat **Riverpod 3.0** (Notifier, AsyncNotifier) varaan hyödyntäen vahvasti koodigenerointia (`@riverpod`). Tämä turvaa tilojen luonnollisen päivityssyklin ilman manuaalista boilerplatea ja kieltää `ChangeNotifier` -käytöt kokonaan.  
-2. **Hybridiparillinen Datanhallinta (Freezed vs. SafeCast):** 
-   * Kaikki ydintila, navigointireitit (`go_router_builder`) ja staattiset rajapintavastaukset parsitaan ehdottoman tyyppiturvallisesti käyttäen `freezed` ja `json_serializable` koodigeneraattoreita. Tämä ylläpitää Pydantic-tason tyyppiturvallisuutta API-rajapinnassa.
-   * Kuitenkin, kun käsitellään taaksepäin yhteensopimattomia tai erittäin dynaamisia SDUI-määrityksiä (kuten tietokannan vanhoja `prompt_blocks` tai renderöintivihjeitä), järjestelmä nojaa **defensiiviseen parsintaan** (`SafeCast`-luokka). Tämä estää Flutter-sovelluksen täydellisen kaatumisen (Red Screen of Death) yhden väärintypitetyn avaimen takia luottamattomassa datassa.
-3. **Compound Widgets (Grounded UI):** Koska ohjeet ja arvioinnit on yhdistetty `PromptBlock` muotoon, UI rakentaa lennosta komponentteja, joissa arviointislaideri, LLM-perustelu, teoria-citaatio ja ohjetekstit sidotaan visuaalisesti jäännöksettömäksi kokonaisuudeksi, yhden renderöintisyklin sisällä.
+1. **Riverpod ja Koodigeneroitu Reaktiivisuus:** Tilanhallinta rakentuu Riverpod 3.0 (Notifier, AsyncNotifier) varaan hyödyntäen koodigenerointia (`@riverpod`), kieltäen legacy `ChangeNotifier` -käytöt kokonaan.
+2. **Hybridiparillinen Datanhallinta (Freezed vs. SafeCast):** Ydintila parsitaan tiukasti (`freezed`, `json_serializable`). Vahvasti dynaamiset SDUI-määritykset nojaavat defensiiviseen **SafeCast**-parsintaan, jotta ohjelmisto ei kaadu yhteen puuttuvaan avaimeen datassa (Red Screen Mitigation).
+3. **Compound Widgets (Grounded UI):** Dynaamiset arviointislaiderit, the LLM-CoT näkymät ja teoriaväitteet rakennetaan Pydantic-datasta yhdeksi skaalautuvaksi widgetiksi jäännöksettömästi.
