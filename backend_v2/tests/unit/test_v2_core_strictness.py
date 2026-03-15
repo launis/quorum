@@ -6,8 +6,8 @@ from backend_v2.models.v2_core import I18nText, PromptBlock, Step
 
 def test_prompt_block_allow_decimals_requires_numeric():
     # Valid setup
-    label = I18nText(default_locale="fi", translations={"fi": "Testi"})
-    desc = I18nText(default_locale="fi", translations={"fi": "Kuvaus"})
+    label = I18nText(default_locale="fi", translations={"fi": "Testi", "en": "Test"})
+    desc = I18nText(default_locale="fi", translations={"fi": "Kuvaus", "en": "Desc"})
 
     # Should validate since type='string' is allowed for BARS format backwards compatibility
     valid_block = PromptBlock(
@@ -38,7 +38,7 @@ def test_prompt_block_allow_decimals_requires_numeric():
 
 
 def test_step_validation_fails_on_empty_execution_logic():
-    label = I18nText(default_locale="fi", translations={"fi": "Blueprintti"})
+    label = I18nText(default_locale="fi", translations={"fi": "Blueprintti", "en": "Blueprint"})
 
     # Successful: Has prompt blocks
     valid_blueprint = Step(

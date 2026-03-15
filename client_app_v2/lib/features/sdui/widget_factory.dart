@@ -119,7 +119,7 @@ class SDUIWidgetFactory {
         return const SizedBox.shrink();
 
       default:
-        // Silently ignore unsupported widget types (like instructional text blocks, 
+        // Silently ignore unsupported widget types (like instructional text blocks,
         // rules, or undefined components) instead of throwing an error.
         // We only want to log errors for *supported* widgets that failed validation.
         logger.debug(

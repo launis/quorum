@@ -13,8 +13,8 @@ def mock_repo():
     repo.get_all_prompt_blocks.return_value = [
         {
             "id": "block_test",
-            "label": {"default_locale": "fi", "translations": {"fi": "Testi"}},
-            "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus"}},
+            "label": {"default_locale": "fi", "translations": {"fi": "Testi", "en": "Test"}},
+            "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus", "en": "Desc"}},
             "category_id": "test",
             "type": BlockDataType.STRING,
             "allow_decimals": False,
@@ -25,7 +25,7 @@ def mock_repo():
     repo.get_step_by_id.return_value = {
         "id": "bp_1",
         "slug": "task_bp",
-        "name": {"default_locale": "fi", "translations": {}},
+        "name": {"default_locale": "fi", "translations": {"fi": "Vaihe", "en": "Step"}},
         "prompt_blocks": ["block_test"],
         "pre_hooks": []
     }
@@ -68,18 +68,21 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
 
         mock_repo.get_execution.return_value = {
             "id": "exec_123",
+            "workflow_id": "wf_test",
             "strictness_level": 3,
-            "status": "running"
+            "status": "running",
+            "raw_inputs": {"chat_log": "dGVzdA=="},
+            "metadata": {"target_locale": "fi"}
         }
 
         # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(return_value={"inputs": {}})
+            mock_hooks.execute = AsyncMock(return_value={"inputs": {"chat_log": "dGVzdA=="}})
 
             record = await executor.execute_workflow(
                 execution_id="exec_123",
                 workflow=workflow,
-                raw_inputs={"test_input": "data"}
+                raw_inputs={"chat_log": "dGVzdA=="}
             )
 
     # Assert repo called new method instead of get_all_matrices

@@ -141,19 +141,27 @@ async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
                     details={"error_code": "CHAT_PARSING_FAILED"}
                 ) from e
 
-        # 4. Injektoidaan `ai_description` suoraan raakatekstin yläpuolelle (Universal Routing)
-        lang_code = data.get("language", "fi")
+        # 4. Injektoidaan `ai_description` suoraan raakatekstin yläpuolelle (The English-Only Mandate)
         if expected_input.ai_description and hasattr(expected_input.ai_description, "translations"):
-            desc_text = expected_input.ai_description.translations.get(lang_code, expected_input.ai_description.default_locale)
+            # Enforce The English-Only Mandate regardless of client runtime language
+            desc_text = expected_input.ai_description.translations.get("en")
+            
+            # V2 STRICT FAIL-FAST: Missing English instruction is fatal
+            if not desc_text:
+                logger.error(f"[InputProcessingHook] VALIDATION_FAILED: Missing English translation for {key} ai_description.")
+                from backend_v2.exceptions import ErrorCodes
+                raise AppException(
+                    message=f"System Configuration Error: Missing mandatory English translation for '{key}' cognitive prompt block.",
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    error_code=ErrorCodes.VALIDATION_FAILED,
+                    details={"error_code": "MISSING_ENGLISH_PROMPT", "input_key": key}
+                )
+
             if desc_text:
-                logger.info(f"[InputProcessingHook] Injecting ai_description for {key}.")
-                if lang_code == "fi":
-                    header = f"--- TEKOÄLYN OHJEISTUS TÄLLE LÄHTEELLE ({key}) ---\n"
-                    footer = f"\n--- LÄHDE: {key} ---"
-                else:
-                    header = f"--- AI INSTRUCTION FOR THIS SOURCE ({key}) ---\n"
-                    footer = f"\n--- SOURCE: {key} ---"
-                resolved_text = f"{header}{desc_text}{footer}\n{resolved_text}"
+                logger.info(f"[InputProcessingHook] Injecting ai_description for {key} (English-Only Mandate).")
+                header = f"--- AI INSTRUCTION FOR THIS SOURCE ({key}) ---\n"
+                footer = f"\n--- SOURCE: {key} ---"
+                resolved_text = f"{header}{desc_text.strip()}\n{footer}\n\n{resolved_text}"
 
         output_dict[key] = resolved_text.strip()
 

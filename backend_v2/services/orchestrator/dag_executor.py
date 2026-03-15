@@ -118,6 +118,7 @@ class DAGExecutor:
         state_data["_sys_workflow_id"] = workflow.id  # Required by V2 input_processing hook
         state_data["_sys_execution_id"] = execution_id
         state_data["_sys_repository"] = self.repository
+        state_data["_sys_metadata"] = exec_record.metadata
 
         # --- V2 Strict Execution Hydration Phase ---
         # With V2 Shallow Copy Concurrency isolation (Phase 9), pre_hooks mutating state_data
@@ -296,10 +297,16 @@ class DAGExecutor:
 
             # 3.1 Resolving xml context
             system_prompt = "Complete the evaluation according to the provided schema."
+            target_locale = state_data.get("_sys_metadata", {}).get("target_locale")
+            if not target_locale:
+                msg = "Execution metadata is missing the required 'target_locale', violating the Fail-Fast mandate."
+                logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+            
             xml_ctx = self.compiler.build_xml_context(
                 input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},
                 state_data=state_data,
-                target_locale="en"
+                target_locale=target_locale # The LLM outputs in the user's localized language
             )
 
             # 3.2 Criteria Blocks Gathering (prompt_blocks)

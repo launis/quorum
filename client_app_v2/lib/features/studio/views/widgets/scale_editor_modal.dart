@@ -31,7 +31,10 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
   void _addClaim() {
     setState(() {
       final claims = SafeCast.safeList(_editableScale['claims']);
-      claims.add({'default_locale': ''});
+      claims.add({
+        'default_locale': 'en',
+        'translations': <String, dynamic>{'en': ''},
+      });
       _editableScale['claims'] = claims;
     });
   }

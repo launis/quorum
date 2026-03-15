@@ -1660,10 +1660,17 @@ class AppLocalizationsFi extends AppLocalizations {
       'Syötemappaukset (Semanttinen Reititys):';
 
   @override
-  String get workflowAgentInputKey => 'Agentin Syöteavain (esim. source_text)';
+  String get workflowAgentInputKey => 'Agentin Syöteavain (esim. inputs)';
 
   @override
-  String get workflowSourceVarLabel => 'Lähdemuuttuja (esim. \$inputs.data)';
+  String get workflowSourceVarLabel => 'Datalähde (esim. \$inputs)';
+
+  @override
+  String get workflowMappingHelperTitle => 'Miten Semanttinen Reititys Toimii?';
+
+  @override
+  String get workflowMappingHelperDesc =>
+      'Luo tekoälyn datavirta näin:\n\n1. Vasen puoli (Agentin Syöteavain) on nimi (XML-tagi), jolla tekoäly lukee datan. Kirjoita avain aina pienillä kirjaimilla ja käytä alaviivaa välilyöntien sijaan (esim. \'inputs\').\n2. Oikea puoli on datan lähde. \'\$inputs\' nappaa kaiken käyttäjän lomakkeeseen antaman tiedon. \'\$steps.step_x.outputs\' kytkee suoraan edellisen agentin tuottaman valmiin datan.\nJos haluat lähettää vakiona pysyvän yksittäisen sanan (esim. \'asiakas\'), kirjoita se oikealle puolelle ilman dollarimerkkiä.';
 
   @override
   String get workflowAddMappingBtn => 'Lisää Mappaus';
@@ -1949,4 +1956,16 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get rawOutputFallbackTitle => 'Raaka-data (Käyttöliittymä puuttuu)';
+
+  @override
+  String get adminAiDescriptionHint =>
+      'PAKOLLINEN: On kirjoitettava englanniksi. Tämä on kognitiivinen syöte tekoälylle, ei käyttäjädataa.';
+
+  @override
+  String get adminBilingualPromptHint =>
+      'PAKOLLINEN: Englanninkielinen ohjesääntö on annettava. Käytä ÄÄRIMMÄISTÄ TARKKUUTTA, sillä tämä teksti ohjaa suoraan tekoälyn kognitiivista päättelyä ja muodostaa sen ratkaisulogiikan.';
+
+  @override
+  String get adminPromptBestPracticesHint =>
+      'BEST PRACTICE: Käytä englanninkielisiä komentosanoja (ROLE:, TASK:, RULE:, CONTEXT:). ÄLÄ KOSKAAN käännä näitä sanoja suomeksi ohjeen sisällä.';
 }

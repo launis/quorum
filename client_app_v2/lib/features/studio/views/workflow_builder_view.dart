@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
@@ -156,11 +157,20 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
         'input_key': 'new_input_key',
         'label': {
           'default_locale': 'en',
-          'translations': {'en': 'New Input', 'fi': 'Uusi syöte'},
+          'translations': {'en': ''},
         },
-        'required': true,
+        'description': {
+          'default_locale': 'en',
+          'translations': {'en': ''},
+        },
+        'ai_description': {
+          'default_locale': 'en',
+          'translations': {'en': ''},
+        },
+        'required': false,
         'is_chat_history': false,
-        'input_modes': ['file', 'paste'],
+        'input_modes': ['file'],
+        'questionnaire_definition': [],
       });
       _editableWorkflow['expected_inputs'] = inputs;
     });
@@ -173,7 +183,7 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
         'id': 'step_${steps.length + 1}',
         'task_blueprint': '',
         'depends_on': <String>[],
-        'input_mappings': <String, dynamic>{},
+        'input_mappings': <String, dynamic>{'inputs': '\$inputs'},
       });
       _editableWorkflow['steps'] = steps;
     });
@@ -371,6 +381,17 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
             .where((s) => s.isNotEmpty)
             .toList();
 
+    final availableSources = <String>[
+      '\$inputs',
+      ...SafeCast.safeList(_editableWorkflow['expected_inputs'])
+          .map((e) {
+            final key = SafeCast.safeString(SafeCast.safeMap(e)['input_key']);
+            return key.isNotEmpty ? '\$inputs.$key' : '';
+          })
+          .where((s) => s.isNotEmpty),
+      ...previousSteps.map((s) => '\$steps.$s.outputs'),
+    ];
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -484,9 +505,39 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
               ),
 
             const SizedBox(height: 16),
-            Text(
-              l10n.workflowInputMappingsLabel,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Text(
+                  l10n.workflowInputMappingsLabel,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.info_outline, size: 20),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (ctx) => AlertDialog(
+                            title: Text(
+                              // Using hardcoded fallback just in case, but prefer generated l10n
+                              (l10n as dynamic).workflowMappingHelperTitle ??
+                                  'How does Semantic Routing work?',
+                            ),
+                            content: Text(
+                              (l10n as dynamic).workflowMappingHelperDesc ??
+                                  '1. Left side (Agent Input Key) is the XML tag name the AI will use to read the data. Just type "inputs" (snake_case).\n2. Right side is the Data Source. "\$inputs" gets user data, "\$steps.step_x.outputs" connects previous agents.\nTo pass hardcoded text, type without the \$ sign.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                child: Text(l10n.close),
+                              ),
+                            ],
+                          ),
+                    );
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Container(
@@ -523,6 +574,11 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
                                   labelText: l10n.workflowAgentInputKey,
                                   isDense: true,
                                 ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[a-z0-9_]'),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -531,22 +587,82 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
                             child: Icon(Icons.arrow_back),
                           ),
                           Expanded(
-                            child: Focus(
-                              onFocusChange: (f) {
-                                if (!f &&
-                                    targetCtrl.text.isNotEmpty &&
-                                    sourceCtrl.text.isNotEmpty) {
-                                  mappings[targetCtrl.text] = sourceCtrl.text;
-                                  stepDef['input_mappings'] = mappings;
-                                }
-                              },
-                              child: TextField(
-                                controller: sourceCtrl,
-                                decoration: InputDecoration(
-                                  labelText: l10n.workflowSourceVarLabel,
-                                  isDense: true,
-                                ),
+                            child: Autocomplete<String>(
+                              initialValue: TextEditingValue(
+                                text: sourceCtrl.text,
                               ),
+                              optionsBuilder: (textEditingValue) {
+                                if (textEditingValue.text.isEmpty) {
+                                  return availableSources;
+                                }
+                                return availableSources.where(
+                                  (opt) => opt.toLowerCase().contains(
+                                    textEditingValue.text.toLowerCase(),
+                                  ),
+                                );
+                              },
+                              onSelected: (selection) {
+                                setState(() {
+                                  sourceCtrl.text = selection;
+                                  mappings[targetCtrl.text] = selection;
+                                  stepDef['input_mappings'] = mappings;
+
+                                  // Dependency Guard Logic
+                                  if (selection.startsWith('\$steps.')) {
+                                    final parts = selection.split('.');
+                                    if (parts.length > 1) {
+                                      final stepId = parts[1];
+                                      if (!dependsOn.contains(stepId) &&
+                                          previousSteps.contains(stepId)) {
+                                        dependsOn.add(stepId);
+                                        stepDef['depends_on'] = dependsOn;
+                                      }
+                                    }
+                                  }
+                                });
+                              },
+                              fieldViewBuilder: (
+                                context,
+                                textEditingController,
+                                focusNode,
+                                onFieldSubmitted,
+                              ) {
+                                return Focus(
+                                  onFocusChange: (f) {
+                                    if (!f &&
+                                        targetCtrl.text.isNotEmpty &&
+                                        textEditingController.text.isNotEmpty) {
+                                      mappings[targetCtrl.text] =
+                                          textEditingController.text;
+                                      stepDef['input_mappings'] = mappings;
+
+                                      // Dependency Guard Logic
+                                      final sel = textEditingController.text;
+                                      if (sel.startsWith('\$steps.')) {
+                                        final parts = sel.split('.');
+                                        if (parts.length > 1) {
+                                          final stepId = parts[1];
+                                          if (!dependsOn.contains(stepId) &&
+                                              previousSteps.contains(stepId)) {
+                                            setState(() {
+                                              dependsOn.add(stepId);
+                                              stepDef['depends_on'] = dependsOn;
+                                            });
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  child: TextField(
+                                    controller: textEditingController,
+                                    focusNode: focusNode,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.workflowSourceVarLabel,
+                                      isDense: true,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           IconButton(

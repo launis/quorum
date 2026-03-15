@@ -1656,10 +1656,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workflowInputMappingsLabel => 'Input Mappings (Semantic Routing):';
 
   @override
-  String get workflowAgentInputKey => 'Agent Input Key (e.g. source_text)';
+  String get workflowAgentInputKey => 'Agent Input Key (e.g. inputs)';
 
   @override
-  String get workflowSourceVarLabel => 'Source Var (e.g. \$inputs.data)';
+  String get workflowSourceVarLabel => 'Data Source (e.g. \$inputs)';
+
+  @override
+  String get workflowMappingHelperTitle => 'How does Semantic Routing work?';
+
+  @override
+  String get workflowMappingHelperDesc =>
+      '1. Left side (Agent Input Key) is the XML tag name the AI will use to read the data. In V2 Architecture, it is almost always just the word \'inputs\' (lower_snake_case).\n2. Right side is the data source. \'\$inputs\' captures all values provided by the user in the form. \'\$steps.step_x.outputs\' directly connects the previous agent\'s output as an input here.\nTo pass a hardcoded rule (e.g. the word \'doctor\'), simply type it on the right side without a dollar sign.';
 
   @override
   String get workflowAddMappingBtn => 'Add Mapping';
@@ -1941,4 +1948,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rawOutputFallbackTitle => 'Raw Output (UI Missing)';
+
+  @override
+  String get adminAiDescriptionHint =>
+      'MANDATORY: Must be written in English. Cognitive prompt, not user data.';
+
+  @override
+  String get adminBilingualPromptHint =>
+      'MANDATORY: English translation required. Use EXTREME PRECISION. This text directly dictates the AI\'s cognitive reasoning and structural rules.';
+
+  @override
+  String get adminPromptBestPracticesHint =>
+      'BEST PRACTICE: Use command keywords like ROLE:, TASK:, RULE: and CONTEXT:. NEVER translate these keywords into Finnish inside the text.';
 }

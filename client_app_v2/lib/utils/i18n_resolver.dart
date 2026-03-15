@@ -42,24 +42,20 @@ class I18nResolver {
       final directTry = SafeCast.safeString(map[targetLocale]);
       if (directTry.isNotEmpty) return directTry;
 
-      return map.toString(); // Very graceful degradation instead of crash
+      throw FormatException(
+        'Translation missing for required locale "$targetLocale" in flat map. Fallbacks are strictly forbidden.',
+        map,
+      );
     }
 
-    // 1. Try Target Locale
+    // 1. Try Target Locale strictly
     final targetStr = SafeCast.safeString(translations[targetLocale]);
     if (targetStr.isNotEmpty) return targetStr;
 
-    // 2. Try Default Locale
-    if (defaultLocale.isNotEmpty) {
-      final defaultStr = SafeCast.safeString(translations[defaultLocale]);
-      if (defaultStr.isNotEmpty) return defaultStr;
-    }
-
-    // 3. Ultimate Fallback (Grab whatever first translation exists)
-    if (translations.values.isNotEmpty) {
-      return SafeCast.safeString(translations.values.first);
-    }
-
-    return '';
+    // Fail Fast Mandate: No fallbacks allowed.
+    throw FormatException(
+      'Translation missing for required locale "$targetLocale". Fallbacks are strictly forbidden.',
+      map,
+    );
   }
 }

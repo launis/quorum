@@ -3149,14 +3149,26 @@ abstract class AppLocalizations {
   /// No description provided for @workflowAgentInputKey.
   ///
   /// In en, this message translates to:
-  /// **'Agent Input Key (e.g. source_text)'**
+  /// **'Agent Input Key (e.g. inputs)'**
   String get workflowAgentInputKey;
 
   /// No description provided for @workflowSourceVarLabel.
   ///
   /// In en, this message translates to:
-  /// **'Source Var (e.g. \$inputs.data)'**
+  /// **'Data Source (e.g. \$inputs)'**
   String get workflowSourceVarLabel;
+
+  /// No description provided for @workflowMappingHelperTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How does Semantic Routing work?'**
+  String get workflowMappingHelperTitle;
+
+  /// No description provided for @workflowMappingHelperDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Left side (Agent Input Key) is the XML tag name the AI will use to read the data. In V2 Architecture, it is almost always just the word \'inputs\' (lower_snake_case).\n2. Right side is the data source. \'\$inputs\' captures all values provided by the user in the form. \'\$steps.step_x.outputs\' directly connects the previous agent\'s output as an input here.\nTo pass a hardcoded rule (e.g. the word \'doctor\'), simply type it on the right side without a dollar sign.'**
+  String get workflowMappingHelperDesc;
 
   /// No description provided for @workflowAddMappingBtn.
   ///
@@ -3643,6 +3655,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Raw Output (UI Missing)'**
   String get rawOutputFallbackTitle;
+
+  /// No description provided for @adminAiDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'MANDATORY: Must be written in English. Cognitive prompt, not user data.'**
+  String get adminAiDescriptionHint;
+
+  /// No description provided for @adminBilingualPromptHint.
+  ///
+  /// In en, this message translates to:
+  /// **'MANDATORY: English translation required. Use EXTREME PRECISION. This text directly dictates the AI\'s cognitive reasoning and structural rules.'**
+  String get adminBilingualPromptHint;
+
+  /// No description provided for @adminPromptBestPracticesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'BEST PRACTICE: Use command keywords like ROLE:, TASK:, RULE: and CONTEXT:. NEVER translate these keywords into Finnish inside the text.'**
+  String get adminPromptBestPracticesHint;
 }
 
 class _AppLocalizationsDelegate

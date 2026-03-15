@@ -200,9 +200,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 if (detail is List && detail.isNotEmpty) {
                   final firstError = detail.first;
                   if (firstError is Map && firstError.containsKey('msg')) {
-                     errorMessage = "${firstError['loc']?.last}: ${firstError['msg']}";
+                    errorMessage =
+                        "${firstError['loc']?.last}: ${firstError['msg']}";
                   } else {
-                     errorMessage = detail.toString();
+                    errorMessage = detail.toString();
                   }
                 } else {
                   errorMessage = detail.toString();
@@ -210,9 +211,11 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
               }
             }
           }
-          
+
           // Clean up standard prefixes
-          errorMessage = errorMessage.replaceAll('Exception: ', '').replaceAll('DioException [bad response]: ', '');
+          errorMessage = errorMessage
+              .replaceAll('Exception: ', '')
+              .replaceAll('DioException [bad response]: ', '');
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -582,7 +585,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: Theme.of(context).colorScheme.outlineVariant,
@@ -639,7 +644,11 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, color: Theme.of(context).colorScheme.error, size: 20),
+          Icon(
+            Icons.warning_amber_rounded,
+            color: Theme.of(context).colorScheme.error,
+            size: 20,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

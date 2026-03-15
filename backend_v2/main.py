@@ -228,6 +228,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     else:
         error_code_enum = ErrorCodes.UNKNOWN_ERROR
 
+    logger = logging.getLogger("backend.main")
     logger.warning(f"[FastAPI] {error_code_enum.name}: HTTP_ERROR: {exc.detail} (Status: {exc.status_code})", exc_info=True)
 
     return JSONResponse(

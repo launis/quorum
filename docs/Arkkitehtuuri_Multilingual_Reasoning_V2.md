@@ -69,3 +69,16 @@ Ainoa osa, missä käyttöliittymä reagoi, on kyky olla tyhmä ja kaunis render
     *   Jatketaan `AppErrorExt`-mallin käyttöä. Jos uusia käännöspisteitä syntyy moottorin virheille (esim. `TRANSLATION_FAILED`), niille varataan selitykset ja *Actionable Hintit* valmiiksi `.arb`-tiedostoihin.
 4.  **Käyttöliittymän Konfiguraatio-Ohjeet (The English-Only Mandate)**:
     *   Cognitive Admin Studioon (Frontend V2) on lisättävä selkeät ja ohjaavat apu- / vihjetekstit kaikkiin kenttiin, jotka osallistuvat LLM:n syväohjaamiseen (`ai_description`, asiantuntija-agenttien metadatakentät). Esim. l10n:llä `app_en.arb`: *"MANDATORY: Must be written in English. This is a cognitive prompt, not user data."* Näin pakotetaan *System Native Mandate* -ajattelu suoraan loppukäyttäjälle käyttöliittymätasolla ennen tietokantaan kirjausta.
+5.  **PromptBlockien Bilinguaalinen Syöttövaatimus (The Admin Studio)**:
+    *   **Kriittinen Rajoite:** Kun ylläpitäjä luo tai muokkaa sääntöjä (PromptBlocks) Admin Studiossa, `translations`-lohkoon on **aina** syötettävä vähintään UI-kieli (esim. `fi`) JA pakollisena kognitiivinen ohjauskieli (`en`).
+    *   **Äärimmäinen Tarkkuus:** Käyttäjän (insinöörin/ylläpitäjän) on oltava **erittäin tarkka** kirjoittaessaan näitä englanninkielisiä sääntöjä. Koska tämä teksti syötetään sellaisenaan tekoälyn suoritusmoottorille (The Deep Engine), jokainen sana, nyanssi ja rajoite vaikuttaa suoraan tekoälyn kognitiiviseen päättelyyn ja lopputuloksen laatuun.
+    *   **Vaikutus Backendissä:** Loppukäyttäjä näkee käyttöliittymässä suomenkielisen nimen, mutta Backendin Pydantic-moottori rakentaa tekoälyn JSON-skeeman (ohjesäännöt) *yksinomaan* The English-Only Mandaten mukaisesti `translations["en"]` arvoista. 
+    *   **Käyttäjän Ohjeistus:** Tämä mekaniikka on tuotu esiin selkeillä varoituksilla (UI Hints) The Admin Studion PromptBlock-editorissa ("Käytä äärimmäistä tarkkuutta...").
+6.  **Prompt Engineering Parhaat Käytännöt (The "English-Only Mandate" Syntax)**:
+    *   Kun englanninkielisiä ohjeita (PromptBlocks tai asiantuntija-agenttien kuvauksia) luodaan The Deep Engineä varten, on suositeltavaa noudattaa selkeää ohjelmoitavaa syntaksia.
+    *   **Komentosanat (Command Keywords):** Käytä rakenteellisia isoin kirjaimin kirjoitettuja komentosanoja jäsentämään tekoälyn ohjeistusta. Näitä ovat esimerkiksi:
+        *   `ROLE:` (Agentin asiantuntijaprofiili, esim. "ROLE: Chief Data Scientist.")
+        *   `TASK:` (Ydintehtävä, esim. "TASK: Extract cause-and-effect relationships.")
+        *   `RULE:` (Ehdottomat tekniset tai toiminnalliset rajoitteet, esim. "RULE: Do not translate the JSON keys.")
+        *   `CONTEXT:` (Aihepiirin taustoitus.)
+    *   **The Translation Ban (Käännöskielto):** Näitä englanninkielisiä komentosanoja (ROLE, TASK, jne.) tai itse ohjesääntöjä **EI KOSKAAN** saa kääntää suomeksi tekstin seassa, vaikka ne olisivat osana laajempaa suomenkielistä selkokielistä ohjedokumenttia tai UI-näkyvyyttä. The Deep Enginen (kuten Gemini) kognitiivinen tarkkuus riippuu näiden avainsanojen (Keywords) ohjelmallisesta tunnistamisesta juuri englanniksi. Pura aina tekninen struktuuri puhtaalla englannilla.

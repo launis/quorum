@@ -174,7 +174,11 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                                 widget.inputDef['is_chat_history'] = false;
                               }
                             } else {
-                              modes.remove('questionnaire');
+                              if (modes.contains('questionnaire')) {
+                                modes.remove('questionnaire');
+                                widget.inputDef['questionnaire_definition'] =
+                                    [];
+                              }
                               if (!modes.contains(mode)) {
                                 modes.add(mode);
                               }
@@ -225,6 +229,28 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                 widget.inputDef['ai_description'] = val;
                 _notifyChange();
               },
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                l10n.adminAiDescriptionHint,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Text(
+                l10n.adminPromptBestPracticesHint,
+                style: const TextStyle(
+                  color: Colors.blueGrey,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
             ),
 
             if (modes.contains('questionnaire')) ...[
@@ -330,7 +356,10 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               setState(() {
                 questions.add({
                   'question_id': 'q${questions.length + 1}',
-                  'question': {'default_locale': 'en', 'translations': {}},
+                  'question': {
+                    'default_locale': 'en',
+                    'translations': {'en': ''},
+                  },
                   'type': 'text',
                 });
                 widget.inputDef['questionnaire_definition'] = questions;

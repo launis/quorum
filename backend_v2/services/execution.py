@@ -167,8 +167,11 @@ class ExecutionService:
                 dt = pb_dict.get("type")
 
                 # Define component defaults based on Strict Block Types
-                comp_type = ComponentType.TEXT_INPUT
-                if dt in ["float", "int"]:
+                comp_type = ComponentType.HIDDEN
+                if dt in ["float", "int", "string"] and pb_dict.get("scales"):
+                    # Only numeric or scaled blocks map to sliders/gauges
+                    comp_type = ComponentType.SLIDER
+                elif dt in ["float", "int"]:
                     comp_type = ComponentType.SLIDER
                 elif dt == "panel":
                     comp_type = ComponentType.DROPDOWN
@@ -188,9 +191,12 @@ class ExecutionService:
                 ui_hints[pb_slug] = DataDictionaryField(
                     field_id=pb_slug,
                     component_type=comp_type,
-                    options=[label_obj] if label_obj else None,
+                    options=[{"label": label_obj}] if label_obj else None,
                     validation_rules={"max": max_val}
                 )
+
+        # Strict Target Locale from Payload (Fail-Fast)
+        target_locale = payload.target_locale
 
         execution_id = str(uuid4())
         initial_record = ExecutionRecord(
@@ -201,6 +207,7 @@ class ExecutionService:
             raw_inputs=payload.raw_inputs,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             step_states=step_states,
+            metadata={"target_locale": target_locale},
             results={},
         )
         # We append temporary creator tracking using model_dump bypass for now

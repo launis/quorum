@@ -51,6 +51,20 @@ class _PromptBlockBuilderViewState
     if (!_editablePromptBlock.containsKey('criteria')) {
       _editablePromptBlock['criteria'] = [];
     }
+
+    // "The English-Only Mandate": Ensure new blocks have required 'en' structure
+    if (!_editablePromptBlock.containsKey('label')) {
+      _editablePromptBlock['label'] = {
+        'default_locale': 'en',
+        'translations': <String, dynamic>{'en': ''},
+      };
+    }
+    if (!_editablePromptBlock.containsKey('description')) {
+      _editablePromptBlock['description'] = {
+        'default_locale': 'en',
+        'translations': <String, dynamic>{'en': ''},
+      };
+    }
   }
 
   @override
@@ -189,6 +203,7 @@ class _PromptBlockBuilderViewState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -332,14 +347,52 @@ class _PromptBlockBuilderViewState
                       ),
                       const SizedBox(height: 16),
 
-                      // Description (I18N)
+                      // Description (I18N) - Short UI Hint
                       I18nTextField(
-                        label: 'Detailed Prompts / Markdown Instructions',
+                        label: 'Short Description (UI Hint)',
                         initialData: SafeCast.safeMap(
                           _editablePromptBlock['description'],
                         ),
                         onChanged:
                             (val) => _editablePromptBlock['description'] = val,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // AI Description - Core LLM Prompt (English Only)
+                      TextFormField(
+                        initialValue:
+                            _editablePromptBlock['ai_description']?.toString(),
+                        decoration: const InputDecoration(
+                          labelText:
+                              'System Prompt / Cognitive Blueprint (MANDATORY ENGLISH)',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 8,
+                        onChanged: (val) {
+                          _editablePromptBlock['ai_description'] = val;
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          l10n.adminAiDescriptionHint,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          l10n.adminPromptBestPracticesHint,
+                          style: const TextStyle(
+                            color: Colors.blueGrey,
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -701,9 +754,19 @@ class _PromptBlockBuilderViewState
                                 (ctx) => ScaleEditorModal(
                                   initialScale: {
                                     'score': 1,
-                                    'name': {'default_locale': ''},
+                                    'name': {
+                                      'default_locale': 'en',
+                                      'translations': <String, dynamic>{
+                                        'en': '',
+                                      },
+                                    },
                                     'claims': [
-                                      {'default_locale': ''},
+                                      {
+                                        'default_locale': 'en',
+                                        'translations': <String, dynamic>{
+                                          'en': '',
+                                        },
+                                      },
                                     ],
                                   },
                                 ),

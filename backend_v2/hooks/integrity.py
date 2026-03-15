@@ -64,18 +64,29 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
         return data
 
     # 1. Gather Source Text
-    # V2 Isolation Support: Since hooks receive local state, "inputs" might be missing if not injected.
-    # We gracefully degrade citation verification if inputs are inaccessible locally, rather than hard crashing.
+    # V2 Isolation Support: Since hooks receive local state, "inputs" might be missing if not explicitly passed.
     inputs = data.get("inputs")
+
+    if not inputs and "_sys_context_vars" in data:
+        # Pull global inputs injected by DAG executor for post-hook lookups
+        sys_ctx = data.get("_sys_context_vars", {})
+        if "$inputs" in sys_ctx:
+            # Note: $inputs resolves to `inputs.raw_inputs` during execution
+            inputs_obj = sys_ctx["$inputs"]
+            if hasattr(inputs_obj, "model_dump"):
+                inputs = inputs_obj.model_dump()
+            elif hasattr(inputs_obj, "raw_inputs"):
+                inputs = inputs_obj.raw_inputs
+            elif isinstance(inputs_obj, dict):
+                inputs = inputs_obj.get("raw_inputs", inputs_obj)
+            else:
+                inputs = {}
+
     if not inputs and "_sys_repository" in data.keys() and "$inputs" in data.keys():
-          # It might be in global lookup if this is evaluated on global end
-          pass
+        # It might be in global lookup if this is evaluated on global end
+        pass
 
     source_texts: list[str] = []
-
-    if not inputs:
-        # V2 Global Fallback: If 'inputs' dict isn't explicitly passed, we extract all text fields from the root context
-        inputs = {k: v for k, v in data.items() if not k.startswith("_sys_") and isinstance(v, str)}
 
     if not inputs:
          logger.warning("[IntegrityHook] Local citation verification requires some text inputs. Bypassing safely.")

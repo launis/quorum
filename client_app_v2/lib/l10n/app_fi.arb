@@ -547,8 +547,10 @@
   "workflowDependsOnLabel": "Riippuvuudet (DAG-reunat):",
   "workflowNoPrevSteps": "Ei aiempia vaiheita valittavissa.",
   "workflowInputMappingsLabel": "Syötemappaukset (Semanttinen Reititys):",
-  "workflowAgentInputKey": "Agentin Syöteavain (esim. source_text)",
-  "workflowSourceVarLabel": "Lähdemuuttuja (esim. $inputs.data)",
+  "workflowAgentInputKey": "Agentin Syöteavain (esim. inputs)",
+  "workflowSourceVarLabel": "Datalähde (esim. $inputs)",
+  "workflowMappingHelperTitle": "Miten Semanttinen Reititys Toimii?",
+  "workflowMappingHelperDesc": "Luo tekoälyn datavirta näin:\n\n1. Vasen puoli (Agentin Syöteavain) on nimi (XML-tagi), jolla tekoäly lukee datan. Kirjoita avain aina pienillä kirjaimilla ja käytä alaviivaa välilyöntien sijaan (esim. 'inputs').\n2. Oikea puoli on datan lähde. '$inputs' nappaa kaiken käyttäjän lomakkeeseen antaman tiedon. '$steps.step_x.outputs' kytkee suoraan edellisen agentin tuottaman valmiin datan.\nJos haluat lähettää vakiona pysyvän yksittäisen sanan (esim. 'asiakas'), kirjoita se oikealle puolelle ilman dollarimerkkiä.",
   "workflowAddMappingBtn": "Lisää Mappaus",
   "mockLoginSuccess": "Ylläpitokirjautuminen onnistui! Ohjataan...",
   "mockLoginFailed": "Ylläpitokirjautuminen epäonnistui: {error}",
@@ -629,5 +631,8 @@
   "barsRisk1": "Matala riski (Safe)",
   "barsRisk2": "Keskisuuri riski (Medium)",
   "barsRisk3": "Korkea riski (Lazy prompt)",
-  "rawOutputFallbackTitle": "Raaka-data (Käyttöliittymä puuttuu)"
+  "rawOutputFallbackTitle": "Raaka-data (Käyttöliittymä puuttuu)",
+  "adminAiDescriptionHint": "PAKOLLINEN: On kirjoitettava englanniksi. Tämä on kognitiivinen syöte tekoälylle, ei käyttäjädataa.",
+  "adminBilingualPromptHint": "PAKOLLINEN: Englanninkielinen ohjesääntö on annettava. Käytä ÄÄRIMMÄISTÄ TARKKUUTTA, sillä tämä teksti ohjaa suoraan tekoälyn kognitiivista päättelyä ja muodostaa sen ratkaisulogiikan.",
+  "adminPromptBestPracticesHint": "BEST PRACTICE: Käytä englanninkielisiä komentosanoja (ROLE:, TASK:, RULE:, CONTEXT:). ÄLÄ KOSKAAN käännä näitä sanoja suomeksi ohjeen sisällä."
 }

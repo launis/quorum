@@ -13,6 +13,7 @@ from . import (
     scoring,
     search,
     security,
+    translation_hook,
     validation,
 )
 
@@ -29,6 +30,7 @@ __all__ = [
     "scoring",
     "search",
     "security",
+    "translation_hook",
     "validation",
     "metadata",
 ]

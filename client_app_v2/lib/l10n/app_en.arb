@@ -720,8 +720,10 @@
   "workflowDependsOnLabel": "Depends On (DAG Edges):",
   "workflowNoPrevSteps": "No previous steps available.",
   "workflowInputMappingsLabel": "Input Mappings (Semantic Routing):",
-  "workflowAgentInputKey": "Agent Input Key (e.g. source_text)",
-  "workflowSourceVarLabel": "Source Var (e.g. $inputs.data)",
+  "workflowAgentInputKey": "Agent Input Key (e.g. inputs)",
+  "workflowSourceVarLabel": "Data Source (e.g. $inputs)",
+  "workflowMappingHelperTitle": "How does Semantic Routing work?",
+  "workflowMappingHelperDesc": "1. Left side (Agent Input Key) is the XML tag name the AI will use to read the data. In V2 Architecture, it is almost always just the word 'inputs' (lower_snake_case).\n2. Right side is the data source. '$inputs' captures all values provided by the user in the form. '$steps.step_x.outputs' directly connects the previous agent's output as an input here.\nTo pass a hardcoded rule (e.g. the word 'doctor'), simply type it on the right side without a dollar sign.",
   "workflowAddMappingBtn": "Add Mapping",
   "workflowInputKeyLabel": "Input Key/Role (e.g. product_text)",
   "workflowDeleteInputTooltip": "Delete Input",
@@ -880,5 +882,8 @@
   "barsRisk1": "Low risk (Safe)",
   "barsRisk2": "Medium risk (Warning)",
   "barsRisk3": "High risk (Lazy prompt)",
-  "rawOutputFallbackTitle": "Raw Output (UI Missing)"
+  "rawOutputFallbackTitle": "Raw Output (UI Missing)",
+  "adminAiDescriptionHint": "MANDATORY: Must be written in English. Cognitive prompt, not user data.",
+  "adminBilingualPromptHint": "MANDATORY: English translation required. Use EXTREME PRECISION. This text directly dictates the AI's cognitive reasoning and structural rules.",
+  "adminPromptBestPracticesHint": "BEST PRACTICE: Use command keywords like ROLE:, TASK:, RULE: and CONTEXT:. NEVER translate these keywords into Finnish inside the text."
 }

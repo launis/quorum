@@ -24,6 +24,7 @@ class ComponentType(str, Enum):
     TEXT_INPUT = "text_input"
     DROPDOWN = "dropdown"
     CHECKBOX = "checkbox"
+    HIDDEN = "hidden"
 
 class StrictnessLevel(int, Enum):
     """Levels of Cognitive Evaluation Strictness (1-5)."""

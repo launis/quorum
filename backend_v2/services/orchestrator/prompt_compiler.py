@@ -54,17 +54,12 @@ class PromptCompiler:
         if target_locale in translations and translations[target_locale]:
             return str(translations[target_locale])
 
-        # 2. Try Default Locale
-        default_locale = text_obj.get("default_locale")
-        if default_locale and default_locale in translations and translations[default_locale]:
-            return str(translations[default_locale])
-
-        # 3. Fallback to first available translation
-        if translations:
-            first_key = next(iter(translations))
-            return str(translations[first_key])
-
-        return ""
+        from backend_v2.exceptions import ConfigurationError, ErrorCodes
+        
+        # V2 MANDATE: NO FALLBACKS. If a translation is requested, it MUST exist.
+        msg = f"Translation missing for required locale '{target_locale}'. Fallbacks are strictly forbidden."
+        logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}\nPayload: {text_obj}", exc_info=True)
+        raise ConfigurationError(msg)
 
     def build_xml_context(self, input_mappings: dict[str, str], state_data: dict[str, Any], target_locale: str) -> str:
         """Build XML semantic blocks from raw input mappings for LLM context.
@@ -247,7 +242,30 @@ class PromptCompiler:
         """
         # Dictionary of fields to define for create_model
         # Format: field_name: (type, Field(...))
-        fields: dict[str, Any] = {}
+        fields: dict[str, Any] = {
+            "reasoning_trace": (
+                str,
+                Field(
+                    ...,
+                    description=(
+                        "Mandatory Chain-of-Thought. Analyze the user's logic, guidance, and "
+                        "strategic intent step-by-step BEFORE assigning any final values."
+                    )
+                )
+            ),
+            "evaluation_notes": (
+                str,
+                Field(
+                    ...,
+                    description=(
+                        "Comprehensive qualitative synthesis. CRITICAL: You MUST write this strictly "
+                        "from the unique perspective of your assigned Role and Matrices. Do not write a "
+                        "generic summary. Focus exclusively on the human user's actions, agency, and biases "
+                        "through your specific analytical lens."
+                    )
+                )
+            )
+        }
 
         for crit in criteria:
             if crit.get("type") == "instruction":
@@ -265,8 +283,13 @@ class PromptCompiler:
             label_obj = crit.get("label")
             label = self.resolve_i18n(label_obj, "en") if label_obj else crit_id_raw
 
-            desc_obj = crit.get("description")
-            base_desc = self.resolve_i18n(desc_obj, "en") if desc_obj else f"Evaluation for {label}"
+            # Enforce `ai_description` existence (Fail-Fast)
+            base_desc = crit.get("ai_description")
+            if not base_desc:
+                 from backend_v2.exceptions import ConfigurationError
+                 msg = f"PromptBlock '{crit_id}' is missing mandatory 'ai_description'."
+                 logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                 raise ConfigurationError(msg)
 
             # Determine type based on explicit block type, otherwise fallback to BARS scales
             block_type = crit.get("type")
@@ -292,10 +315,10 @@ class PromptCompiler:
                     bars_text += "\n"
                 if crit.get("allow_decimals", False):
                     bars_text += (
-                        "\nKÄSKE: Arvioi ydinkysymystä yllä olevalla matriisilla. "
-                        "Anna lopullinen numeerinen arvio aina yhden desimaalin tarkkuudella (esim. 4.2), "
-                        "jotta arviointi heijastaa suorituksen tarkkaa vivahtekkuutta. "
-                        "Palauta TÄSMÄLLEEN oikeanlainen numeerinen arvo."
+                        "\nINSTRUCTION: Evaluate the core issue using the matrix above. "
+                        "Always return the final numerical evaluation with ONE decimal place (e.g. 4.2), "
+                        "so that the evaluation reflects exact nuance. "
+                        "You MUST return ONLY the exact numeric value."
                     )
                 else:
                     bars_text += (
@@ -343,7 +366,7 @@ class PromptCompiler:
                     # V2 Strict Literal: The LLM can ONLY return this exact string or None
                     source_id_type = Literal[citation_ref] | None  # type: ignore
                     source_id_desc = (
-                        "Jos perustelut viittaavat johonkin ohjeistettuun teoriaan, "
+                        "Jos perustelut pohjautuvat tähän teoriaan, "
                         f"PALAUTA TÄSMÄLLEEN TÄMÄ merkkijono: '{citation_ref}'. "
                         "Muuten palauta null."
                     )
@@ -359,10 +382,11 @@ class PromptCompiler:
                 # 3. Citation Text Quote
                 quote_key = f"{crit_id}_cited_text_quote"
                 quote_desc = (
-                    "JOS valitsit lähteen yllä, liitä tähän tarkka, SUORA ja "
-                    "SANATARKKA lainaus teoriasta/lähteestä, joka tukee perusteluasi. "
-                    "Tekoälyn luoma oma teksti on tässä kielletty. "
-                    "Jos lähdettä ei ole, palauta null."
+                    "Paste an EXACT, DIRECT, and VERBATIM quote from the USER'S RAW INPUT TEXT "
+                    "(the empirical evidence) that proves your score and justification. "
+                    "DO NOT quote the scientific theory. Quote the user's data. "
+                    "AI-generated text is strictly forbidden here. "
+                    "If you cannot find a direct quote from the user to prove your point, return null."
                 )
                 fields[quote_key] = (str | None, Field(default=None, description=quote_desc))
 
@@ -406,7 +430,13 @@ class PromptCompiler:
         for block in blocks:
             if block.get("type") == "instruction":
                 label = self.resolve_i18n(block.get("label"), target_locale)
-                desc = self.resolve_i18n(block.get("description"), target_locale)
+                desc = block.get("ai_description")
+                if not desc:
+                    from backend_v2.exceptions import ConfigurationError
+                    msg = f"PromptBlock '{block.get('id')}' is missing mandatory 'ai_description'."
+                    logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    raise ConfigurationError(msg)
+
                 if label:
                     compiled_lines.append(f"[Instruction {target_locale.upper()}]: ### {label}")
                 if desc:

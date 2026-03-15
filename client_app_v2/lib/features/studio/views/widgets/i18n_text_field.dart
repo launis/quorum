@@ -27,16 +27,29 @@ class _I18nTextFieldState extends State<I18nTextField> {
   late Map<String, String> _translations;
   late String _defaultLocale;
 
+  // Controllers for active inline translations
+  late Map<String, TextEditingController> _translationControllers;
+
   @override
   void initState() {
     super.initState();
-    _defaultLocale = widget.initialData['default_locale']?.toString() ?? 'fi';
+    _defaultLocale = widget.initialData['default_locale']?.toString() ?? 'en';
 
     _translations = {};
+    _translationControllers = {};
+
     if (widget.initialData['translations'] is Map) {
       final t = widget.initialData['translations'] as Map;
       t.forEach((key, value) {
-        _translations[key.toString()] = value.toString();
+        final langCode = key.toString();
+        final text = value.toString();
+        _translations[langCode] = text;
+
+        if (langCode != _defaultLocale) {
+          final ctrl = TextEditingController(text: text);
+          ctrl.addListener(() => _onTranslationChanged(langCode, ctrl.text));
+          _translationControllers[langCode] = ctrl;
+        }
       });
     }
 
@@ -47,11 +60,37 @@ class _I18nTextFieldState extends State<I18nTextField> {
     _defaultController.addListener(_emitChanges);
   }
 
+  void _onTranslationChanged(String langCode, String newText) {
+    if (newText.isEmpty) {
+      // Kept in map so user can type, cleared from emitting mapping later
+      _translations[langCode] = '';
+    } else {
+      _translations[langCode] = newText;
+    }
+    _emitChangesSilent(); // Emit up DAG tree without resetting inputs
+  }
+
+  void _emitChangesSilent() {
+    if (_defaultController.text.isNotEmpty) {
+      _translations[_defaultLocale] = _defaultController.text;
+    } else {
+      _translations.remove(_defaultLocale);
+    }
+
+    // Clean up empty translations before sending
+    final safeTranslations = Map<String, String>.from(_translations);
+    safeTranslations.removeWhere((k, v) => v.isEmpty);
+
+    widget.onChanged({
+      'default_locale': _defaultLocale,
+      'translations': safeTranslations,
+    });
+  }
+
   @override
   void didUpdateWidget(I18nTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Only update if the underlying default locale text genuinely changed from parent
-    final newLocale = widget.initialData['default_locale']?.toString() ?? 'fi';
+    final newLocale = widget.initialData['default_locale']?.toString() ?? 'en';
     final newTranslationsMap = widget.initialData['translations'];
 
     String newDefaultText = '';
@@ -59,21 +98,53 @@ class _I18nTextFieldState extends State<I18nTextField> {
       newDefaultText = newTranslationsMap[newLocale]?.toString() ?? '';
     }
 
+    // Riverpod parent update
     if (oldWidget.initialData != widget.initialData) {
       _defaultLocale = newLocale;
-      _translations.clear();
+
       if (newTranslationsMap is Map) {
-        newTranslationsMap.forEach((key, value) {
-          _translations[key.toString()] = value.toString();
-        });
+        final newMap = Map<String, String>.from(
+          newTranslationsMap.map(
+            (k, v) => MapEntry(k.toString(), v.toString()),
+          ),
+        );
+
+        // Add missing ones from external updates
+        for (final entry in newMap.entries) {
+          if (entry.key != _defaultLocale) {
+            _translations[entry.key] = entry.value;
+            if (!_translationControllers.containsKey(entry.key)) {
+              final ctrl = TextEditingController(text: entry.value);
+              ctrl.addListener(
+                () => _onTranslationChanged(entry.key, ctrl.text),
+              );
+              _translationControllers[entry.key] = ctrl;
+            } else if (_translationControllers[entry.key]!.text !=
+                entry.value) {
+              _translationControllers[entry.key]!
+                  .value = _translationControllers[entry.key]!.value.copyWith(
+                text: entry.value,
+                selection: TextSelection.collapsed(offset: entry.value.length),
+              );
+            }
+          }
+        }
+        // Remove deleted ones externally
+        final keysToRemove =
+            _translationControllers.keys
+                .where((k) => !newMap.containsKey(k))
+                .toList();
+        for (final k in keysToRemove) {
+          _translationControllers[k]?.dispose();
+          _translationControllers.remove(k);
+          _translations.remove(k);
+        }
       }
 
       if (_defaultController.text != newDefaultText) {
         _defaultController.value = _defaultController.value.copyWith(
           text: newDefaultText,
-          selection: TextSelection.collapsed(
-            offset: newDefaultText.length,
-          ), // Keep cursor cursor at the end
+          selection: TextSelection.collapsed(offset: newDefaultText.length),
         );
       }
     }
@@ -83,20 +154,16 @@ class _I18nTextFieldState extends State<I18nTextField> {
   void dispose() {
     _defaultController.removeListener(_emitChanges);
     _defaultController.dispose();
+
+    for (final ctrl in _translationControllers.values) {
+      ctrl.dispose();
+    }
+
     super.dispose();
   }
 
   void _emitChanges() {
-    if (_defaultController.text.isNotEmpty) {
-      _translations[_defaultLocale] = _defaultController.text;
-    } else {
-      _translations.remove(_defaultLocale);
-    }
-
-    widget.onChanged({
-      'default_locale': _defaultLocale,
-      'translations': _translations,
-    });
+    _emitChangesSilent();
   }
 
   void _addTranslation(String langCode, String text) {
@@ -105,6 +172,13 @@ class _I18nTextFieldState extends State<I18nTextField> {
     } else {
       setState(() {
         _translations[langCode] = text;
+        if (!_translationControllers.containsKey(langCode)) {
+          final ctrl = TextEditingController(text: text);
+          ctrl.addListener(() => _onTranslationChanged(langCode, ctrl.text));
+          _translationControllers[langCode] = ctrl;
+        } else {
+          _translationControllers[langCode]!.text = text;
+        }
       });
       _emitChanges();
     }
@@ -113,19 +187,20 @@ class _I18nTextFieldState extends State<I18nTextField> {
   void _removeTranslation(String langCode) {
     setState(() {
       _translations.remove(langCode);
+      _translationControllers[langCode]?.dispose();
+      _translationControllers.remove(langCode);
     });
     _emitChanges();
   }
 
   void _showAddTranslationDialog() {
     final langController = TextEditingController();
-    final textController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Add Translation'),
+          title: const Text('Add Language Version'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -137,10 +212,9 @@ class _I18nTextFieldState extends State<I18nTextField> {
                 maxLength: 2,
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: textController,
-                decoration: const InputDecoration(labelText: 'Translated Text'),
-                maxLines: 3,
+              const Text(
+                'An inline editor box will be added for this language.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
           ),
@@ -151,16 +225,12 @@ class _I18nTextFieldState extends State<I18nTextField> {
             ),
             FilledButton(
               onPressed: () {
-                if (langController.text.isNotEmpty &&
-                    textController.text.isNotEmpty) {
-                  _addTranslation(
-                    langController.text.toLowerCase(),
-                    textController.text,
-                  );
+                if (langController.text.isNotEmpty) {
+                  _addTranslation(langController.text.toLowerCase().trim(), '');
                   Navigator.of(context).pop();
                 }
               },
-              child: const Text('Save'),
+              child: const Text('Create'),
             ),
           ],
         );
@@ -204,63 +274,87 @@ class _I18nTextFieldState extends State<I18nTextField> {
                     'Default Form (${_defaultLocale.toUpperCase()} usually expected)',
                 border: const OutlineInputBorder(),
                 filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
               ),
               maxLines: null,
             ),
-            if (_translations.keys
-                .where((k) => k != _defaultLocale)
-                .isNotEmpty) ...[
+            if (_translationControllers.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Text(
                 'Other Translations:',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              ..._translations.entries
-                  .where((entry) => entry.key != _defaultLocale)
-                  .map((entry) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              entry.key.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+              ..._translationControllers.entries.map((entry) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
                                 color:
                                     Theme.of(
                                       context,
-                                    ).colorScheme.onPrimaryContainer,
+                                    ).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                entry.key.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(entry.value)),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              size: 20,
-                              color: Colors.red,
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: Colors.red,
+                              ),
+                              onPressed: () => _removeTranslation(entry.key),
+                              tooltip: 'Delete translation',
                             ),
-                            onPressed: () => _removeTranslation(entry.key),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: entry.value,
+                          decoration: InputDecoration(
+                            hintText:
+                                'Translate to ${entry.key.toUpperCase()}...',
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
                           ),
-                        ],
-                      ),
-                    );
-                  }),
+                          maxLines: null,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
             ],
           ],
         ),

@@ -66,14 +66,16 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
 
           final results = SafeCast.safeMap(record['results']);
 
-          final renderableHints = uiHints.where((hint) {
-            final widgetType = hint['component_type']?.toString() ??
-                hint['widget']?.toString() ??
-                'unknown';
-            return widgetType == 'radar_chart' ||
-                widgetType == 'gauge' ||
-                widgetType == 'slider';
-          }).toList();
+          final renderableHints =
+              uiHints.where((hint) {
+                final widgetType =
+                    hint['component_type']?.toString() ??
+                    hint['widget']?.toString() ??
+                    'unknown';
+                return widgetType == 'radar_chart' ||
+                    widgetType == 'gauge' ||
+                    widgetType == 'slider';
+              }).toList();
 
           return CustomScrollView(
             slivers: [
@@ -206,7 +208,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                 ),
               */
 
-              // ALWAYS show Raw Data JSON on completion 
+              // ALWAYS show Raw Data JSON on completion
               if (status == 'completed' && results.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
@@ -233,9 +235,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
+                                  Theme.of(context).colorScheme.outlineVariant,
                             ),
                           ),
                           child: SelectableText(
