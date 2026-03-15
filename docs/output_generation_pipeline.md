@@ -100,13 +100,13 @@ Tulosteessa ei koskaan talleteta generoitua kieltä tai käyttöliittymätekstej
 **Matriisien Monikielisyys (The Translation Schema Doctrine):**
 Aivan kuten näimme `seed_data.json` -rakenteessa, jokainen matriisi ja prompt-blokki sisältää `translations`-objektin. Tässä on noudatettava tiukkaa arkkitehtonista kahtiajakoa (Bifurcation):
 *   **LLM Prosessointi (The Brain):** Konepellin alla, kun DAG-moottori rakentaa kehotetta (promptia) LLM:lle, se syöttää matriisien kuvaukset ja skaalat **aina englanniksi** (Language of instructions). Tämä maksimoi LLM:n ymmärryksen, sillä tekoälymallit ovat älykkäimpiä englanninkielisellä datalla.
-*   **Renderöinti (The UI/PDF):** Kun `render_blueprint` käskee moottoria piirtämään matriisin X/Y-akselit ja tulostamaan skaalan "tason 4" kuvauksen, renderöintimoottori (`/render`) lukee Front-endin pyytämän kielen (esim. `Accept-Language: fi`). Moottori hakee tietokannan matriisista vastaavan solmun (esim. skaalan 4 selitteen) ja poimii sieltä `translations.fi` mukaisen arvon näytölle (Language of presentation). 
+*   **Renderöinti (The UI/PDF):** Kun `render_blueprint` käskee moottoria piirtämään matriisin X/Y-akselit ja tulostamaan skaalan "tason 4" kuvauksen, renderöintimoottori (`/render`) lukee Front-endin pyytämän kielen (esim. `Accept-Language: fi`). Moottori hakee tietokannan matriisista vastaavan solmun (esim. skaalan 4 selitteen) ja poimii sieltä `translations.fi` mukaisen arvon näytölle (Language of presentation). **Tämä on arkkitehtuurin erikseen hyväksytty poikkeus No-String -sääntöön. Staattiset UI-tekstit tulevat Frontendin `.arb`-tiedostosta, mutta dynaamiset SDUI-sisällöt resolvoidaan poikkeuksellisesti Backendin BlueprintTransformerissa asiointikielelle.**
 
 Näin yhdestä ja samasta englanninkielisestä "Aivojen" ajosta (Execution) voidaan napin painalluksella renderöidä täydellinen suomenkielinen tai englanninkielinen raportti pelkkää asetteluohjetta (Blueprint) tulkitsemalla.
 
 ### 3.3 The Generic Render Endpoint
 * **Location**: `backend_v2/api/routers/execution/executions.py`
-* **Endpoint**: `GET /executions/{execution_id}/render?format={json|flat|pdf}`
+* **Endpoint**: `GET /executions/{execution_id}/render?format={json|flat}` (Huom: Vain synkroniseen JSON/SDUI-hakuun. PDF-generointi tapahtuu erillisellä `POST /executions/{id}/render_pdf` -reitillä asynkronisesti).
 * **Role**: Serves as the Universal Transformer Hub. Vastaa datan integroinnista (Data + Blueprint) ja toimittaa oikean valmiin esityspaketin eteenpäin.
 
 ---
@@ -217,7 +217,7 @@ Tämän V6.0 SDUI-arkkitehtuurin toteuttaminen vaatii strukturoidun, vaiheittais
 * **Tekniset askeleet:**
   1. Koodaa Python-luokka `BlueprintTransformer`, jossa funktio `build_render_payload(execution_id)`. Se lataa kannasta datan + ohjeen ja nivoo ne yhteen (`{"type": "1d_gauge", "value": 7}`).
   2. Määrittele API-ruuteri: `GET /executions/{id}/render?format=json`.
-  3. Lisää Pydantic Fail-Fast: Jos tietokannan Blueprintissä olevaa kenttää (esim. `$steps.logic.score`) ei löydy tulosdatasta, rajapinta palauttaa välittömästi virheen 7807 Invalid Blueprint Data.
+  3. Lisää Pydantic Fail-Fast **rakenteellisille vioille**: Jos itse Blueprint JSON on korruptoitunut (tuntematon tyyppi), palauta 7807. Mutta jos viitattu kognitiivinen **data** puuttuu (agentti ei tuottanut sitä), Backendin tulee lokittaa `VALIDATION_FAILED` (Dual-Reporting) ja palauttaa kentän arvoksi `null`. Tämä mahdollistaa Frontendin Graceful Degradationin komponenttitasolla.
 * **Hyväksymiskriteeri (DoD):** Rajapintakutsu palauttaa 200 OK kootulla JSON-säännöstöllä, TAI virheen 7807 jos kytkös on viallinen, millisekunneissa ilman Worker-prosessia.
 
 **Vaihe 3: Asynkroninen PDF-Worker (Staattisen Generoinnin Perusta)**
@@ -232,7 +232,7 @@ Tämän V6.0 SDUI-arkkitehtuurin toteuttaminen vaatii strukturoidun, vaiheittais
 * **Tavoite:** Laajentaa Blueprint-järjestelmä tukemaan Cognitive Quorum V2:n The Brain -syväanalyysejä.
 * **Tekniset askeleet:**
   1. Päivitä Blueprint Pydantic -skeemat tukemaan tuotteita: `2d_matrix`, `3d_scatter`, `evaluation_notes_panel` ja `metadata_header`.
-  2. Rakenna Pydantic-Integrity koukku keräämään koko työnkulusta kaikki `citation_reference` arvot yhdeksi yhdistetyksi Global Bibliography -arrayksi.
+  2. Rakenna **100% sanakirjapohjainen (Dictionary-based)** Integrity-koukku (Hook) keräämään koko työnkulusta kaikki `citation_reference` arvot yhdeksi yhdistetyksi Global Bibliography -arrayksi.
   3. Päivitä PDF Workerin tehdas ymmärtämään nämä raskaat graafit ja piirtämään niistä SVG/PNG kuvia dokumentin sivuille tekstin ja viittauksien viereen.
 * **Hyväksymiskriteeri (DoD):** Koodattu PDF pystyy tuottamaan X/Y matriisin ja keräämään lähdeluettelon dokumentin loppuun tyylikkäästi ilman tekstin turhaa duplikaatiota.
 
@@ -240,12 +240,12 @@ Tämän V6.0 SDUI-arkkitehtuurin toteuttaminen vaatii strukturoidun, vaiheittais
 * *(Koska painopiste on arkkitehtuurin todistamisessa, Frontend rakennetaan turvallisesti backendin valmistuttua, luottaen Shared Core Logiciin)*.
 * **Tavoite:** Toteuttaa reaaliaikainen näytönpiirtäjä, joka tottelee sokeasti Blueprintin asetteluohjetta (Zero-Deploy UI).
 * **Tekniset askeleet:**
-  1. Flutter-tehtaan koodaus purkamaan `GET /render` API:n generoima JSON Widget-puuksi.
+  1. Flutter-tehtaan koodaus purkamaan `GET /render` API:n generoima JSON Widget-puuksi. **Käytä WidgetFactoryn toteutuksessa ehdottomasti Dart 3:n Pattern Matchingia (switch expression) JSONin `type`-avaimen purkamiseen ja `SafeCast`-luokkaa tyyppimuunnoksiin.**
   2. Reititä kaikki Blueprintin avaimet (esim. `"report.title_main"`) lennosta lokaalin `app_fi.arb` sanakirjan kautta näkyväksi tekstiksi (The Translation Schema Doctrine).
 * **Hyväksymiskriteeri (DoD):** WidgetFactory rakentaa saman asettelun mobiilinäytölle identtisesti PDF:n kanssa estäen Graceful Degradationilla valkoisen ruudun, jos avaimia uupuu.
 
 **Vaihe 6: The Final Proof: End-to-End API Testiajo (Automatisoitu Todiste)**
-* **Tavoite:** Kirjallinen ja ohjelmallinen takuu siitä, että The Shared Core Architecture toimii ja tuottaa halutun Outputin 100% varmuudella ilman Frontend-asiakasohjelmaa (Clientless Validation).
+* **Tavoite:** Kirjallinen ja ohjelmallinen takuu siitä, että The Shared Core Architecture toimii ja tuottaa halutun Outputin 100% varmuudella ilman Frontend-asiakasohjelmaa (Clientless Validation). **Tästä vaiheesta (PDF/Python proof) ei saa ohjelmallisesti (AI Developer) edetä lainkaan eteenpäin ennen kuin testi menee fyysisesti ja puhtaasti läpi.**
 * **Tekniset askeleet:**
   1. Luo uusi tai muokkaa `backend_v2/scripts/test_api_execution.py` ajoskripti.
   2. Skripti injektoi yhden esimerkkiajon systeemin läpi. Se ajaa työnkulun, tallentaa tuloksen + kovan koodin Bluekuvan.
