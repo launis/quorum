@@ -14,7 +14,7 @@ Select the appropriate instruction block from the text and copy it as a whole to
 ---
 
 ### 🟢 TIER 1: EPIC PLANNER (Planning a large change)
-*Usage: At this tier, the goal is to break down one large entity (multiple files, new agent) into an `implementation_plan.md` or, based on it, generate several more detailed plans before writing any code.*
+*Usage: At this tier, the goal is to break down one large entity (multiple files, new agent) into an `implementation_plan.md` and generate several more detailed plans / milestones before writing any code.*
 
 ```text
 Goal: [WRITE GOAL. Ex: "Design and implement a new reporting module and UI"]
@@ -24,8 +24,8 @@ REFERENCE: `GEMINI.md` or `AGENTS.md` (Read first. Absolute law).
 
 INSTRUCTIONS (LEVEL 1):
 1. READ: Do NOT write code yet. Familiarize yourself with the architectural laws.
-2. PLAN: Create an `implementation_plan.md` breaking this goal into 4-6 independent Milestones.
-3. SEQUENCE: Every milestone MUST strictly follow the V2 architecture sequence (Dependencies -> Pydantic Models -> L10n -> Repo -> API -> Frontend Controller -> UI). Note: Frontend domain data MUST NOT use generated models.
+2. PLAN: Create an `implementation_plan.md` breaking this goal into several smaller independent Milestones.
+3. SEQUENCE: Every milestone MUST strictly follow the V2 architecture sequence (Dependencies -> Pydantic Models -> L10n -> Repo -> API -> Frontend Controller -> UI). Note: Frontend domain data MUST NOT use generated models (See `flutterpromptohje.md` - Section 1.2 Banned Legacy Patterns).
 4. SCOPING: Explicitly map which files are `TARGET (Modify)` and which are `CONTEXT (Read-Only)`.
 5. PAUSE: Present the plan and WAIT for explicit approval ("PERMISSION GRANTED"). Do not implement anything.
 ```
@@ -43,7 +43,7 @@ REFERENCE: `GEMINI.md` or `AGENTS.md`.
 
 INSTRUCTIONS (LEVEL 2):
 1. ISOLATION: Execute the plan ATOMICALLY. Work on one single Milestone/Step at a time.
-2. CONSTRAINTS: For every single step, enforce Strict Typing in backend (`Pydantic`) and the "Fail-Fast" doctrine (No `try-except pass`, use `AppException`). Frontend MUST NOT use `Freezed` for API/Domain data.
+2. CONSTRAINTS: For every single step, enforce Strict Typing in backend (`Pydantic`) and the "Fail-Fast" doctrine (No `try-except pass`, use `AppException`, see `flutterpromptohje.md` - Section 2.1 The Fail-Fast Boundary). Frontend MUST NOT use `Freezed` for API/Domain data.
 3. DUAL-IMPLEMENTATION: If touching backend data, automatically update both TinyDB and Firestore repositories simultaneously.
 4. QUALITY LOOP: Write the code and run verification tools (`ruff`, `mypy`, `dart analyze`).
 5. CHECKPOINT: Mark the step COMPLETE in the markdown tasklist and explain shortly how the code follows the constraints for this single step. Wait for my permission ("PROCEED") before proceeding to the next item on the plan.
@@ -61,8 +61,8 @@ Goal: [WRITE GOAL HERE. Ex: "Create a new tab in settings" OR "Refactor file X t
 ROLE: Senior Developer (2026 Context).
 INSTRUCTIONS (LEVEL 3A):
 1. PLAN: Read related files. Create a quick execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files.
-2. FAIL-FAST: State where `AppException` will be raised if data is missing. Do not use fallbacks.
-3. UI/UX: Output localized keys only via the API. Do not hardcode frontend strings.
+2. FAIL-FAST: State where `AppException` will be raised if data is missing. Do not use fallbacks (Ref: `flutterpromptohje.md` - Section 6.1 Strict RFC 7807 Pattern).
+3. UI/UX: Output localized keys only via the API. Do not hardcode frontend strings (Ref: `flutterpromptohje.md` - Section 8.6 Frontend ICU Formatting).
 4. EXECUTE & PAUSE: Present the root cause or execution plan, get confirmation ("PERMISSION GRANTED"), and write the code adhering strictly to the Single Source of Truth rules defined in `GEMINI.md` or `AGENTS.md`.
 ```
 
@@ -72,7 +72,7 @@ Goal: [WRITE BUG HERE. Ex: "API throws a 500 error on the /profile route"]
 
 ROLE: Lead Security & Quality Auditor (2026 Context).
 INSTRUCTIONS (LEVEL 3B):
-1. IDENTIFY: Trace data flow to its origin. DO NOT patch symptoms. DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.
+1. IDENTIFY: Trace data flow to its origin. DO NOT patch symptoms (Ref: `flutterpromptohje.md` - Section 2.2 Root Cause Mandate). DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.
 2. EXPLAIN: Explain the Root Cause of the bug briefly.
 3. FIX: Propose an atomic code fix that forces the code back into the Pydantic V2 Strict / Fail-Fast paradigm. Wait for "PERMISSION GRANTED" before modifying files.
 ```
@@ -133,8 +133,9 @@ Bypassing these instructions and tinkering with the live DB (`db_v2.json`) corru
      1. **API Ingestion (Generic IN -> Strict OUT)**: The API Routers (`backend_v2/api/`) MUST take raw JSON/Dict from the web and immediately force it into a strict Pydantic DTO before handing it to the Service layer. Services never accept raw dicts from routers.
      2. **Service Layer (Strict IN -> Strict OUT)**: The business logic (`backend_v2/services/`) is the absolute gatekeeper. It ONLY accepts Pydantic models from the routers, and any data it fetches from the `repository` (TinyDB/Firestore) MUST be instantly hydrated into a Pydantic model (`Model.model_validate(data)`) before any logic is applied. 
      3. **DAG/Middleware (Strict IN -> Generic OUT)**: The Execution engine (`DAGExecutor`), Post-Hooks (`backend_v2/hooks/`), and Data Pipelines MUST NEVER accept or check for Pydantic models (e.g., `hasattr(item, "model_dump")`). Agents enforce strict Pydantic V2 on generation (Fail-Fast), but immediately hand off `.model_dump(mode="json")` dictionaries to the rest of the internal engine. Middleware flow is always 100% dictionary-based.
-   - Frontend: Use Riverpod 3.0 code generation (`@riverpod`). **Use Freezed ONLY for static local UI state (e.g. User, Settings). Dynamic SDUI API Payloads and Blueprints MUST use raw `Map<String, dynamic>` (De-Generator Policy)** to maintain Zero-Deploy flexibility. Data management is kept small and concise. All asynchronous data must be rendered in the UI following the formal model. Routing MUST use `GoRouteData`. NO manual `if(isLoading)` checks (Use `.when()`). NO `Future.wait` monoliths for State.
-   - L10N (No-String Policy): Backend MUST return Enum Keys (e.g., `AUTH_ORGANIC`). Raw UI strings are BANNED in Python APIs. Translations live exclusively in Frontend `.arb` files executing ICU formats. No manual string concatenation.
+   - Frontend: Code MUST comply with the rules defined in `c:\src\quorum\docs\flutterpromptohje.md` (See Section 5. FLUTTER CLIENT MANDATES and Section 7. HYBRID SDUI & OMNI-CHANNEL RENDERING). Use Riverpod 3.0 code generation (`@riverpod`). **Use Freezed ONLY for static local UI state (e.g. User, Settings). Dynamic SDUI API Payloads and Blueprints MUST use raw `Map<String, dynamic>` (De-Generator Policy)** to maintain Zero-Deploy flexibility. Data management is kept small and concise. All asynchronous data must be rendered in the UI following the formal model. Routing MUST use `GoRouteData`. NO manual `if(isLoading)` checks (Use `.when()`). NO `Future.wait` monoliths for State.
+   - L10N (No-String Policy & 5-Layer Localization Strategy, defined in `flutterpromptohje.md` - Section 8. INTERNATIONALIZATION POLICY): Backend MUST return Enum Keys (e.g., `AUTH_ORGANIC`). Raw UI strings are BANNED in Python APIs. Backend resolves dynamic translations late in the pipeline (Layer 5) via The Translation Schema Doctrine (`BlueprintTransformer`). Static translations live exclusively in Frontend `.arb` files executing ICU formats. No manual string concatenation.
+   - Error Handling: Errors in UI must be localized and caught using double-reporting following the protocol in `flutterpromptohje.md` (See Section 6. ERROR HANDLING CONTRACT).
 
 3. THE ZERO-COMPROMISE PLEDGE (Fail Fast & Root Cause):
    - If data is invalid or missing, crash immediately at the Service boundary. Do not return `None` or `{}` to silently bypass errors. Fix the root cause.

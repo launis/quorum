@@ -208,20 +208,34 @@ Kaikki erikoisagenttien (kuten Logician tai Archivist) tuottamat erikoistulokset
 
 ## 🌍 8. INTERNATIONALIZATION (I18N) POLICY
 
-**"The No-String Mandate"**
+**"The No-String Mandate" & Kognitiivinen Monikielisyys (The 5-Layer Strategy)**
 
-### 8.1 Late-Binding Omni-Channel (Backend Supplies Data)
-Backend **EI KOSKAAN** palauta API:ssa lokalisointia tai yhdisteltyjä UI-merkkijonoja. Kaikki status- ja tyyppikentät esitetään yksinomaisin ja muuttumattomin Enum-koodein (`"status": "AUTH_ORGANIC"`). Tulosteiden lopullinen muoto (Flutter SDUI, taitettu Jinja2 PDF, litteä CSV/Flat-File export) purkautuu vasta aivan prosessin lopussa myöhäisellä sidonnalla (Late-Binding). Lokalisaatio ja esitysasu ratkaistaan aina kanavakohtaisesti.
+Quorum V2:n työnkulut irrottavat tekoälyn "kognitiivisen" päättelymekanismin (aina englanniksi laadun maksimoimiseksi) loppukäyttäjän "esitys- ja asiointikielestä" (esim. suomi) hyödyntäen Holistic Localization Strategy -mallia.
 
-### 8.2 Frontend ICU Formatting (Ei string-katenointia)
-Manuaalinen ohjelmallinen sanaliitto (`"Score: " + val.toString()`) on ehdottoman **KIELLETTYÄ**. Piste. 
+### 8.1 Kerros 1: Staattinen Käyttöliittymä (Compile-Time l10n)
+Flutterin luontaiset `.arb`-tiedostot (esim. `app_fi.arb`) on varattu **ainoastaan** käyttöliittymän kiinteille komponenteille (napit, navigaatio, staattiset otsakkeet). Virheenhallinnassa (RFC 7807) käytetään `AppErrorExt` reititintä, joka muuntaa backendin Enum-tunnisteet yhdistetyksi *Actionable Hintiksi* omalla kielellä.
+
+### 8.2 Kerros 2: SDUI-Tietokanta & Dynaamiset Säännöt (Runtime Payload)
+Kun järjestelmään lisätään matriiseja tai säännöstöjä, Pydantic DTO tallentaa ne kantaan muodossa `translations: {"fi": "Syyttäjä...", "en": "Prosecutor..."}`. Flutter lukee aina oman lokaalinsa mukaisen käännöksen dynaamisesti Backendin The Translation Schema Doctrine mukaisesti (SafeCast/BlueprintTransformer).
+
+### 8.3 Kerros 3: Kognitiivinen Moottori & English-Only Mandate (The Deep Engine)
+Tekoälymalli on huomattavasti kyvykkäämpi englanninkielisenä. Asiantuntija-agenttien metatiedot ja PromptBlockien järjestelmätason ohjeet on **pakko kirjoittaa englanniksi** (`translations["en"]`). Malli pakotetaan ajattelemaan (JSON `reasoning_trace`) englanniksi, mutta se on velvoitettu poimimaan käyttäjän alkuperäiset lainaukset täysin koskemattomina alkukielellä.
+
+### 8.4 Kerros 4: Numeerinen ja Temporaalinen Standardi (Dates, Numbers)
+Numeroita, päivämääriä, kellonaikoja ja valuuttoja ei koskaan lokalisoida backendissä. Kaikki aika kulkee ISO 8601 UTC -muodossa (`"2026-03-14T15:30:00Z"`) ja numerot primitiiveinä (esim. `5.0`). Flutter vastaa formatointilogiikasta käyttäjän laitteen paikalleen Dartin `intl`-kirjaston avulla (ICU).
+
+### 8.5 Kerros 5: The Translation Boundary & Loppusynteesi (Late-Binding)
+Backend **EI KOSKAAN** palauta API:ssa ohjelmallisesti yhdisteltyjä UI-merkkijonoja. Lopullinen muoto (Flutter SDUI, taitettu Jinja2 PDF) purkautuu vasta aivan prosessin lopussa myöhäisellä sidonnalla (Late-Binding). Tarvittaessa backend käyttää erillistä luonnollisen kielen LLM-käntäjää (Translation Hook) asiakkaan kielelle kääntämiseen ennen payloadin siirtoa eteenpäin dokumenteigenerointiin tai web-käyttöliittymään. Koska UI saa valita kielen, backendin status-kentät tulevat tiukkoina Enum-koodeina (esim. `AUTH_ORGANIC`) Fronttiin tai SDUI:n.
+
+### 8.6 Frontend ICU Formatting (Ei string-katenointia)
+Manuaalinen ohjelmallinen sanaliitto (`"Score: " + val.toString()`) on ehdottoman **KIELLETTYÄ**. 
 Jos sanoilla tai sanamuodoilla joudutaan pelaamaan (monikko, sanajärjestys, viivaukset), kaikki logiikka siirretään kielen omistavaan `.arb`-tiedostoon käyttäen tehokasta ICU-syntaksia:
 `"scoreVal": "Pisteesi on {val}"`. UI saa välittää lauseeseen ainoastaan muuttujan.
 
-### 8.3 Computed Enum Fields (The Safety Check)
+### 8.7 Computed Enum Fields (The Safety Check)
 Kun LLM antaa datakenttään valinnan, kuten `"RISK_LOW"`, tämä ei korreloidu kovakoodattuna numerona koodin seassa. Se ajetaan Pydantic V2 `@computed_field`in läpi `Enum`-mallina varmistaen datan eheyden juuri ennen arvon (`1.0`) lukitsemista.
 
-### 8.4 Studio/Builder Safety ("Edit values, never keys")
+### 8.8 Studio/Builder Safety ("Edit values, never keys")
 * Cognitive Studion "Raw Mode" koskee suoraan kantoihin/siemendataan (`seed_data.json`). Kun editoit ominaisuuksia muista: Et ole Excelissä kirjoittamassa sarakeotsikoita!
 * Kirjaamasi `History Text` on **lokalisointiavain** (Translation Key), ei en-käyttäjän otsikko. Jos käännät sen täällä muotoon `Historiateksti`, särjet englannin käännöksen ja hajotat järjestelmän globaalin lokalisaation. Muokkaa arvoja, älä avaimia sorkkiessasi "SSOT"-rekistereitä.
 
