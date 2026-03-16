@@ -28,6 +28,7 @@ quorum/backend_v2/
 │
 ├── hooks/                      # Puhdas ja deterministinen CPU-logiikka
 │   ├── integrity.py            # Hallusinaatioiden paljastaja (Citation Integrity)
+│   ├── reporting.py            # PDF ja Markdown SDUI -generointi
 │   ├── scoring.py              # LLM-vastausten numeerinen override ja puhdistus
 │   ├── search.py               # Vertex AI haku-integraatiot
 │   └── security.py             # Estettyjen lausekkeiden (Banned Phrases) valvonta
@@ -51,11 +52,12 @@ quorum/backend_v2/
 │   └── seed_data.json          # Itse The DNA: Kaikki järjestelmän säännöt, matriisit ja UI Bluekuvat
 │
 ├── services/                   # Järjestelmän aivot: Liiketoimintalogiikka (Business Services)
+│   ├── auth.py                 # Kirjautumis-, Organisaatio- ja JWT-logiikka
 │   ├── blueprint.py            # Yhdistää UI Bluekuvat DAG-tuloksiin. (SDUI Transformer)
 │   ├── execution.py            # Suorittaa / Alustaa DAG-ajot
 │   ├── orchestrator/           # Laaja kansio: DAGExecutor - Rengastaa askeleet graphina
 │   ├── pdf_generator.py        # Renderöi PDF-dokumentit ajamalla Blueprinttiä palvelussa
-│   └── auth.py                 # Kirjautumis-, Organisaatio- ja JWT-logiikka
+│   └── usage_service.py        # Token-telemetrian, kustannusten ja Logfiren keskitetty käsittely
 │
 ├── tests/                      # Yksikkö/Integraatiotestit (Pytest) joiden kattavuus varmistaa luotettavuuden
 │
@@ -119,7 +121,7 @@ Quorum V2 käyttää modulaarista **Unified Repository** -mallia, jossa abstrakt
 ### 3.1 Pydantic Model -Rakenne (SSOT)
 Kaiken tietokantaan menevän datan ja rakenteen on kuljettava `v2_core.py` (tai muiden Domain mallien) läpi. Kun esimerkiksi luodaan työnkulku, data on validoitu `Workflow` Pydantic-objektina. Olennaisia malleja ovat:
 1.  **SystemConfig**: Määrittelee The Model Registryn (mikä mallipari toimii tagilla `fast` tai `deep`).
-2.  **PromptBlock / EvaluationMatrix**: Tekoälykonfiguraatiot ja matriisit.
+2.  **PromptBlock**: Yhtenäinen tekoälyn ohjeistuskomponentti (yhdistää V1-aikaiset komponentit ja matriisit).
 3.  **TaskBlueprint**: Opettaa askeleen siitä kuinka Input ($inputs) käännetään roolille.
 4.  **Workflow**: Solmii askeleet ($steps) yhteen DAG:iksi (Directed Acyclic Graph). Määrittelee myös visuaalisen asettelun (Render Blueprintin).
 5.  **ExecutionRecord**: Tallentaa joka ainoan suoritetun työn, kognitiivisen `$results` luupin, sekä visuaalisen `render_blueprint` jäädytyksen loogiseksi, peruuttamattomaksi pöytäkirjaksi.

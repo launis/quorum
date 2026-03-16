@@ -141,7 +141,8 @@ class LocalFileDriver(FileDriver):
 
         try:
             async with aiofiles.open(full_path, "rb") as f:
-                return await f.read()
+                data = await f.read()
+                return data if isinstance(data, bytes) else bytes(data, 'utf-8')
         except Exception as e:
             logger.error(
                 f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to read file from {path}: {e}",

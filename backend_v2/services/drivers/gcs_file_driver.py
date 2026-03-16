@@ -6,8 +6,8 @@ import logging
 # Conditional import or type checking if direct dependency is optional,
 # but effectively expected here.
 try:
-    from google.api_core import exceptions as google_exceptions  # type: ignore
-    from google.cloud import storage  # type: ignore
+    from google.api_core import exceptions as google_exceptions
+    from google.cloud import storage
 except ImportError:
     storage = None  # type: ignore
     google_exceptions = None  # type: ignore
@@ -77,7 +77,7 @@ class GCSFileDriver(FileDriver):
             ) from e
 
     async def save(self, path: str, data: bytes | str) -> str:
-        def _sync_save():
+        def _sync_save() -> str:
             bucket = self._get_bucket()
             blob = bucket.blob(path)
 
@@ -104,13 +104,14 @@ class GCSFileDriver(FileDriver):
             ) from e
 
     async def read(self, path: str) -> bytes:
-        def _sync_read():
+        def _sync_read() -> bytes:
             bucket = self._get_bucket()
             blob = bucket.blob(path)
             if not blob.exists():
                 # Raise specific NotFound so we can catch/wrap it
                 raise FileNotFoundError(f"GCS Blob {path} not found")
-            return blob.download_as_bytes()
+            res: bytes = blob.download_as_bytes()
+            return res
 
         try:
             return await asyncio.to_thread(_sync_read)
@@ -138,7 +139,7 @@ class GCSFileDriver(FileDriver):
             ) from e
 
     async def delete(self, path: str) -> bool:
-        def _sync_delete():
+        def _sync_delete() -> bool:
             bucket = self._get_bucket()
             blob = bucket.blob(path)
             if blob.exists():
@@ -174,10 +175,11 @@ class GCSFileDriver(FileDriver):
             ) from e
 
     async def exists(self, path: str) -> bool:
-        def _sync_exists():
+        def _sync_exists() -> bool:
             bucket = self._get_bucket()
             blob = bucket.blob(path)
-            return blob.exists()
+            exists: bool = blob.exists()
+            return exists
 
         try:
             return await asyncio.to_thread(_sync_exists)

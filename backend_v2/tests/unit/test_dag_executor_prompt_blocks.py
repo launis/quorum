@@ -63,7 +63,10 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
     # We mock LLMClient.from_strategy to avoid actual LLM calls
     with patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_strategy:
         mock_bound_client = AsyncMock()
-        mock_bound_client.run_structured_task.return_value = MagicMock(model_dump=lambda **kwargs: {"test_res": 1})
+        mock_bound_client.run_structured_task.return_value = (
+            MagicMock(model_dump=lambda **kwargs: {"test_res": 1}),
+            {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30, "cost_usd": 0.05}
+        )
         mock_strategy.return_value = mock_bound_client
 
         mock_repo.get_execution.return_value = {

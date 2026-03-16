@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/blueprint_editor_view.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/expected_input_editor_box.dart';
 import 'package:client_app/utils/safe_cast.dart';
-import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// **Workflow DAG Builder**
@@ -15,7 +17,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 /// CRUD interface for managing Semantic Routing & DAG structures.
 /// Admin can define global inputs (`expected_inputs`) and sequence
 /// processing steps (`steps`) including `depends_on` and `input_mappings`.
-class WorkflowBuilderView extends ConsumerStatefulWidget {
+class WorkflowBuilderView extends StatefulHookConsumerWidget {
   final Map<String, dynamic> workflow;
 
   const WorkflowBuilderView({super.key, required this.workflow});
@@ -49,106 +51,6 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
   void dispose() {
     _idController.dispose();
     super.dispose();
-  }
-
-  void _saveWorkflow() {
-    final id = _idController.text.trim();
-    if (id.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ID is required.')));
-      return;
-    }
-
-    _editableWorkflow['id'] = id;
-
-    ref
-        .read(workflowsControllerProvider.notifier)
-        .saveWorkflow(id, _editableWorkflow)
-        .then((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Workflow saved (Optimistic update applied).'),
-              ),
-            );
-            Navigator.of(context).pop();
-          }
-        })
-        .catchError((e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to save: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        });
-  }
-
-  void _deleteWorkflow(BuildContext context) {
-    final id = _editableWorkflow['id']?.toString();
-    if (id == null || id.isEmpty) return;
-
-    final l10n = AppLocalizations.of(context)!;
-
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Confirm Delete'),
-            content: Text(l10n.deleteWorkflowConfirmation(id)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(l10n.cancel),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  ref
-                      .read(workflowsControllerProvider.notifier)
-                      .deleteWorkflow(id)
-                      .then((_) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Deleted successfully'),
-                            ),
-                          );
-                          Navigator.of(context).pop();
-                        }
-                      })
-                      .catchError((e) {
-                        if (mounted) {
-                          String errorMsg = e.toString();
-                          if (e is AppError && e is ApiAppError) {
-                            if (e.errorCode == 'RESOURCE_IN_USE') {
-                              errorMsg = l10n.errorResourceInUse;
-                            }
-                          } else if (errorMsg.contains('RESOURCE_IN_USE') ||
-                              errorMsg.contains('400')) {
-                            errorMsg = l10n.errorResourceInUse;
-                          }
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMsg),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      });
-                },
-                child: Text(
-                  l10n.delete,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
-    );
   }
 
   void _addExpectedInput() {
@@ -190,11 +92,83 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
     });
   }
 
+  void _deleteWorkflow(BuildContext context, MutationState<void> deleteMutation) {
+    final id = _idController.text.trim();
+    if (id.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(AppLocalizations.of(context)!.workflowDeleteConfirmTitle),
+            content: Text(AppLocalizations.of(context)!.workflowDeleteConfirmDesc(id)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(AppLocalizations.of(context)!.cancel ?? 'Cancel'),
+              ),
+              MutationButton<void>(
+                mutation: deleteMutation,
+                label: AppLocalizations.of(context)!.delete ?? 'Delete',
+                action: () async {
+                  await ref
+                      .read(workflowsControllerProvider.notifier)
+                      .deleteWorkflow(id);
+                },
+              ),
+            ],
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final stepsAsync = ref.watch(stepsControllerProvider);
     final stepsList = stepsAsync.value ?? [];
+
+    final saveMutation = useMutation<Map<String, dynamic>>(
+      onSuccess: (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Workflow saved successfully.')),
+          );
+          Navigator.of(context).pop();
+        }
+      },
+      onError: (e) {
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${l10n.errorUnknown}: $errorMsg'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+    );
+
+    final deleteMutation = useMutation<void>(
+      onSuccess: (_) {
+         if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text('Deleted successfully')),
+            );
+            Navigator.of(context).pop();
+         }
+      },
+      onError: (e) {
+         if (mounted) {
+           final l10n = AppLocalizations.of(context)!;
+           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text(errorMsg), backgroundColor: Colors.red)
+           );
+         }
+      }
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -207,14 +181,23 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
         actions: [
           if (widget.workflow['id']?.toString().isNotEmpty == true)
             IconButton(
-              onPressed: () => _deleteWorkflow(context),
+              onPressed: () => _deleteWorkflow(context, deleteMutation),
               icon: const Icon(Icons.delete, color: Colors.red),
               tooltip: 'Delete',
             ),
-          FilledButton.icon(
-            onPressed: _saveWorkflow,
-            icon: const Icon(Icons.save),
-            label: const Text('Save'),
+          MutationButton<Map<String, dynamic>>(
+            mutation: saveMutation,
+            label: 'Save',
+            icon: Icons.save,
+            action: () async {
+              final id = _idController.text.trim();
+              if (id.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID is required.')));
+                throw Exception('ID is required');
+              }
+              _editableWorkflow['id'] = id;
+              return ref.read(workflowsControllerProvider.notifier).saveWorkflow(id, _editableWorkflow);
+            },
           ),
           const SizedBox(width: 16),
         ],

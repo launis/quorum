@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.settings import get_settings
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="configure_llm_context")
-def configure_llm_context_hook(data: dict[str, Any]) -> dict[str, Any]:
+def configure_llm_context_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Workflow Data wrapper for configure_llm_context.
 
     Resolve the LLM provider configuration based on the 'model_strategy' in context.
@@ -44,7 +44,7 @@ def configure_llm_context_hook(data: dict[str, Any]) -> dict[str, Any]:
     # We no longer rely on 'step.config' (which violated SSOT).
     # Instead, we look up the target strategy from the workflow's default_model_mapping,
     # or fallback to the system's global default.
-    step_id = ctx.get("step_id", "unknown_agent")
+    step_id = context.step_id or "unknown_agent"
 
     # Since hooks don't easily have 'repository' injected via parameters,
     # we can try to find workflow mapping in state or resolve using registry singleton in real time.

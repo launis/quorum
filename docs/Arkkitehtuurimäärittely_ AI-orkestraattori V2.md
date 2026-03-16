@@ -101,6 +101,7 @@ Koska LLM Structured Outputs ohjaa vastaukset usein tasakymmeniin tai vahvoihin 
 
 Frontend (`client_app_v2`) on joustava, kognition ulkoistanut renderöintimoottori:
 
-1. **Riverpod ja Koodigeneroitu Reaktiivisuus:** Tilanhallinta rakentuu Riverpod 3.0 (Notifier, AsyncNotifier) varaan hyödyntäen koodigenerointia (`@riverpod`), kieltäen legacy `ChangeNotifier` -käytöt kokonaan.
+1. **Riverpod ja Koodigeneroitu Reaktiivisuus:** Tilanhallinta rakentuu Riverpod 3.0 (Notifier, AsyncNotifier) varaan hyödyntäen koodigenerointia (`@riverpod`), kieltäen `ChangeNotifier` -käytöt kokonaan.
 2. **Hybridiparillinen Datanhallinta (Freezed vs. SafeCast):** Ydintila parsitaan tiukasti (`freezed`, `json_serializable`). Vahvasti dynaamiset SDUI-määritykset nojaavat defensiiviseen **SafeCast**-parsintaan, jotta ohjelmisto ei kaadu yhteen puuttuvaan avaimeen datassa (Red Screen Mitigation).
 3. **Compound Widgets (Grounded UI):** Dynaamiset arviointislaiderit, the LLM-CoT näkymät ja teoriaväitteet rakennetaan Pydantic-datasta yhdeksi skaalautuvaksi widgetiksi jäännöksettömästi.
+4. **Riverpod Hybrid Caching (SWR & TTL):** Käyttöliittymä ei lataa näkymiä toistuvasti alusta navigoinnissa. Lukunäkymät (kuten Dashboard-listat) hyödyntävät Stale-While-Revalidate (SWR) -mallia salamannopeaan navigointiin, ja syöttönäkymät (Lomakkeet) käyttävät lyhyttä Time-To-Live (TTL) -aikakatkaisua suojatakseen keskeneräisen datan väliaikaisesti ennen automaattista roskienkeruuta. (Lisätiedot: `flutterpromptohje.md`)

@@ -173,6 +173,7 @@ def setup_logging(log_level=logging.INFO):
     logging.getLogger("google").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("arq").setLevel(logging.WARNING)
+    logging.getLogger("opentelemetry.sdk.trace").setLevel(logging.ERROR)
 
     # LiteLLM is extremely verbose on DEBUG, but we want INFO for Router
     # Explicitly clear handlers to prevent them from writing to console (if they add their own)

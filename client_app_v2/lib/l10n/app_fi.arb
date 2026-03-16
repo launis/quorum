@@ -319,6 +319,8 @@
   "searchSteps": "Etsi vaiheita",
   "stepSelectToEdit": "Valitse muokattava vaihe",
   "deleteWorkflowConfirmation": "Haluatko varmasti poistaa työnkulun {name}?",
+  "workflowDeleteConfirmTitle": "Vahvista poisto",
+  "workflowDeleteConfirmDesc": "Poistetaanko työnkulku \"{id}\"?",
   "noMatricesFound": "PromptBlockeja ei löytynyt. Luo uusi!",
   "stepCreateNew": "Luo Uusi Vaihe",
   "stepEdit": "Muokkaa Vaihetta",

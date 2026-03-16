@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ PERFORMATIVE_PATTERNS: dict[str, list[str]] = {
 
 
 @hook_registry.register(name="detect_performative_patterns")
-def detect_performative_patterns(data: dict[str, Any]) -> dict[str, Any]:
+def detect_performative_patterns(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """HOOK: detect_performative_patterns.
 
     Scans input texts (history, product) for performative/filler language patterns.

@@ -64,6 +64,14 @@ class ExecutionStatusCard extends ConsumerWidget {
 
         // Assuming results exist if there are any
         final results = record['results'] as Map<String, dynamic>? ?? {};
+        
+        // Extract Metrics
+        final cost = (record['cost_estimate'] as num?)?.toDouble() ?? 0.0;
+        final totalT = record['total_tokens'] as int? ?? 0;
+        final promptT = record['prompt_tokens'] as int? ?? 0;
+        final completionT = record['completion_tokens'] as int? ?? 0;
+        final cachedT = record['cached_tokens'] as int? ?? 0;
+        final reasoningT = record['reasoning_tokens'] as int? ?? 0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,6 +94,21 @@ class ExecutionStatusCard extends ConsumerWidget {
               'Execution ID: $executionId',
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            const SizedBox(height: 16),
+            if (totalT > 0 || cost > 0) ...[
+              Text(
+                'Metrics',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 4),
+              Text('Total Tokens: $totalT (Prompt: $promptT, Completion: $completionT)'),
+              if (cachedT > 0)
+                Text('Cached Tokens saved: $cachedT', style: const TextStyle(color: Colors.green)),
+              if (reasoningT > 0)
+                Text('Reasoning Tokens spent: $reasoningT', style: const TextStyle(color: Colors.deepPurple)),
+              Text('Estimated Cost: \$${cost.toStringAsFixed(6)}'),
+              const SizedBox(height: 16),
+            ],
             const SizedBox(height: 8),
             if (status == 'completed' || status == 'failed') ...[
               const Text(

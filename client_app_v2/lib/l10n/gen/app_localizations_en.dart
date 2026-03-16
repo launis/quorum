@@ -1035,6 +1035,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get workflowDeleteConfirmTitle => 'Delete Workflow';
+
+  @override
+  String workflowDeleteConfirmDesc(String id) {
+    return 'Are you sure you want to delete workflow \"$id\"?';
+  }
+
+  @override
   String get noMatricesFound => 'No PromptBlocks found. Create one!';
 
   @override

@@ -9,7 +9,7 @@
 
 This document serves as the definitive scientific and technical specification for the "Heart" of the Quorum V2 Architecture: The Universal Routing pipeline, the deterministic Hook Ecosystem, the Structured Cognitive Architecture, and the **Zero-Deploy Server-Driven UI (SDUI)** rendering engine.
 
-The primary objective of the V2 migration was to systematically eliminate the volatility and inherent hallucination risks of V1, which relied heavily on heuristic LLM instructions ("Ghost Matrices" and narrative descriptions) and opaque logic processing, and to completely **decouple cognitive processing from presentation logic**.
+The primary objective of the architecture is to systematically eliminate volatility and inherent hallucination risks, by completely **decouple cognitive processing from presentation logic**.
 
 V2 fundamentally reconstructs the pipeline around three core principles:
 1.  **Strict Pydantic Enforcement (Fail-Fast):** All data state validation, filtering, math, and constraint verification have been forcefully migrated out of the LLM context into deterministic Python CPU logic. If data does not strictly match the expected semantic structure, the system terminates execution via an RFC 7807 error.
@@ -50,8 +50,8 @@ To prevent LLM hallucinations of system metadata (timestamps, IDs) and guarantee
 
 The execution engine in V2 interprets a dynamic Directed Acyclic Graph (DAG), resolving variables (`$inputs`, `$step_node_X.output`) at runtime. The premier example of this architecture in production is the `workflow_courtroom_20_full_audit` pipeline.
 
-### 3.1 The Eradication of "Ghost Matrices"
-All legacy plain-text "Role Matrices" were programmatically destroyed to eliminate token bloat and LLM confusion. Agents now rely exclusively on concise PromptBlocks paired with a strict `{{SCHEMA_EXAMPLE}}` JSON blueprint injection.
+### 3.1 Strict PromptBlocks
+All plain-text "Role Matrices" were programmatically destroyed to eliminate token bloat and LLM confusion. Agents now rely exclusively on concise PromptBlocks paired with a strict `{{SCHEMA_EXAMPLE}}` JSON blueprint injection.
 
 ### 3.2 Dynamic Input Ingestion
 Raw inputs (PDFs, chat logs) are intercepted by the orchestration engine. Instead of hardcoding instructions for specific filenames into prompts, the system uses **Universal Routing**: a pre-hook injects an `ai_description` header dynamically determined by the workflow configuration directly into the document string. Any generalized AI agent can thus process any input natively without workflow-specific prompt hacks.
@@ -176,7 +176,7 @@ Before any AI model is activated, the context data undergoes vicious mathematica
 -   **`input_processing`**: Normalizes modalities. Converts Base64 PDFs using `PyMuPDF`. Parses legacy questionnaires. Injects universal `ai_description` headers. Can trigger the V2 `ChatParserService`.
 
 ### 6.2 Heuristics and Quantitative Measurement
-In V1, LLMs were instructed to "calculate" bias or word lengths. This is moved to CPU math.
+LLMs are notoriously bad at "calculating" bias or word lengths natively. This is moved entirely to CPU math.
 -   **`metrics`**: Employs classical NLP math to parse `inputs` for Total Word Counts, Average Sentence Lengths, and calculates the absolute mathematical "Input Control Ratio" between Human and AI strings.
 -   **`linguistics`**: Executes raw string matching arrays against user input (e.g. locating "synergy"), cataloging performative buzzwords.
 
@@ -207,8 +207,7 @@ flowchart LR
 ```
 
 1. **PROACTIVE - Analyst Hypothesis Search (`search.py` Hook)**: *Generative Evidence Gathering*. An independent pre-hook intercepts Analyst hypotheses, extracting strings > 3 chars, and searches the web via a dedicated Vertex AI LLM (handling 429 Quotas via Backoff). Snippets are typed into `search_result` Pydantic models.
-2. **REAL-TIME - Dynamic Vertex Grounding (`provider.py`)**: *In-line Fact-Checking*. Placed directly inside the final LLM provider call (`tools=[{"googleSearch": {}}]`) for deep models. Cross-references generated tokens with Google Search in real-time, pulling `grounding_metadata`.
-3. **POST-HOC - Internal Knowledge Base (`references.py` Hook)**: *Compliance Checking*. Executes asynchronously at the end of the workflow to aggregate generated text and cross-reference against local organizational policies (e.g., Brand Book).
+2. **POST-HOC - Internal Knowledge Base (`references.py` Hook)**: *Compliance Checking*. Executes asynchronously at the end of the workflow to aggregate generated text and cross-reference against local organizational policies (e.g., Brand Book).
 
 ---
 

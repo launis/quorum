@@ -8,17 +8,17 @@ echo.
 :: Aggressive cleanup: Kill lingering processes that might hold file locks
 echo [Cleaning orphaned processes...]
 taskkill /F /IM uvicorn.exe >nul 2>&1
-FOR /F "tokens=5" %%P IN ('netstat -a -n -o ^| findstr :8000 ^| findstr LISTENING') DO taskkill /F /PID %%P >nul 2>&1
-taskkill /F /FI "WINDOWTITLE eq CQ Backend V2*" >nul 2>&1
-taskkill /F /FI "WINDOWTITLE eq CQ Worker V2*" >nul 2>&1
-taskkill /F /FI "WINDOWTITLE eq CQ Client*" >nul 2>&1
+FOR /F "tokens=5" %%P IN ('netstat -a -n -o ^| findstr :8000 ^| findstr LISTENING') DO taskkill /F /T /PID %%P >nul 2>&1
+taskkill /F /T /FI "WINDOWTITLE eq CQ Backend V2*" >nul 2>&1
+taskkill /F /T /FI "WINDOWTITLE eq CQ Worker V2*" >nul 2>&1
+taskkill /F /T /FI "WINDOWTITLE eq CQ Client*" >nul 2>&1
 :: Note: Not killing brute python.exe to avoid killing the user's IDE terminal environments.
 
 :: Clear old logs to ensure clean debug session
-if exist backend_debug.log del backend_debug.log
-if exist backend_v2_debug.log del backend_v2_debug.log
-if exist client_debug.log del client_debug.log
-if exist client_app_v2\client_debug.log del client_app_v2\client_debug.log
+if exist backend_debug.log del /F /Q backend_debug.log
+if exist backend_v2_debug.log del /F /Q backend_v2_debug.log
+if exist client_debug.log del /F /Q client_debug.log
+if exist client_app_v2\client_debug.log del /F /Q client_app_v2\client_debug.log
 echo [Logs Cleared]
 
 echo [1/3] Starting Infrastructure (Redis)...

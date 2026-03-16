@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:client_app/core/error/app_error.dart';
+import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -101,6 +103,38 @@ class ErrorView extends StatelessWidget {
               ),
             ),
           ],
+          if (kDebugMode && _getTechnicalDetails(error) != null) ...[
+            const SizedBox(height: 16),
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                title: Text(
+                  'Technical Details',
+                  style: TextStyle(color: iconColor, fontSize: 12),
+                ),
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.all(8),
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: SelectableText(
+                      _getTechnicalDetails(error)!,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                        color: textColor,
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -134,14 +168,24 @@ class ErrorView extends StatelessWidget {
   }
 
   String _formatError(Object error, AppLocalizations l10n) {
-    if (error is AppError) {
-      if (error is UnknownAppError) {
-        final raw = error.error?.toString().replaceAll('Exception: ', '') ?? '';
-        if (raw.isNotEmpty) return raw;
-      }
-      return error.message(l10n);
+    if (error is DioException && error.error is AppException) {
+      return _formatError(error.error!, l10n);
+    }
+    
+    if (error is AppException) {
+      return error.toLocalizedHint(l10n);
     }
     // Keep it clean but detailed enough for debugging if needed
     return error.toString().replaceAll('Exception: ', '');
+  }
+
+  String? _getTechnicalDetails(Object error) {
+    if (error is DioException && error.error is AppException) {
+      return _getTechnicalDetails(error.error!);
+    }
+    if (error is AppException) {
+      return 'Code: ${error.errorCode}\nStatus: ${error.status}\nType: ${error.type}\nInstance: ${error.instance}\nDetail: ${error.detail}';
+    }
+    return null;
   }
 }

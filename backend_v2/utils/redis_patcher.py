@@ -23,16 +23,18 @@ def get_patched_fakeredis_pool() -> ArqRedis:
         import arq.worker
         from fakeredis.aioredis import FakeRedis
     except ImportError as e:
-        from fastapi import status
-
-        from backend_v2.exceptions import AppException, ErrorCodes
-
-        logger.error(f"Failed to import 'fakeredis': {e}")
-        raise AppException(
-            message="Missing dependency 'fakeredis'. Required for MOCK storage backend.",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-        ) from e
+        logger.warning(f"Failed to import 'fakeredis': {e}. Creating a pure Python Mock pool instead.")
+        class MockArqPool:
+            async def enqueue_job(self, function: str, *args: Any, **kwargs: Any) -> Any:
+                logger.debug(f"[MockArqPool] Enqueued virtual job {function}")
+                class MockJob:
+                    job_id = "mock_job_123"
+                return MockJob()
+            def close(self) -> None:
+                pass
+            async def wait_closed(self) -> None:
+                pass
+        return MockArqPool() # type: ignore
 
     # Initialize FakeRedis
     # Arq expects a pool-like object, FakeRedis works as one, but needs 'connection_kwargs' for Arq logging

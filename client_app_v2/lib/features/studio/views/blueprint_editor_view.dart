@@ -56,7 +56,17 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
       appBar: AppBar(
         title: Text(l10n.blueprintEditorTitle),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep),
+            tooltip: 'Clear Form Cache', // Using hardcoded English fallback for now as l10n gen is failing to pick up the key
+            onPressed: () {
+               ref.invalidate(blueprintEditorControllerProvider);
+               _assignedKeys.clear();
+            },
+          ),
+          const SizedBox(width: 8),
           FilledButton.icon(
+
             onPressed: () {
                widget.onSave(blueprint);
                Navigator.of(context).pop();

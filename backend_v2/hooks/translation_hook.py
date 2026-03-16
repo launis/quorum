@@ -13,14 +13,14 @@ import json
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
 
 @hook_registry.register(name="translation_hook")
-async def translation_hook(data: dict[str, Any]) -> dict[str, Any]:
+async def translation_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """HOOK: translation_hook.
     
     Translates the values of the AI output dictionary to the requested target language.
@@ -46,10 +46,10 @@ async def translation_hook(data: dict[str, Any]) -> dict[str, Any]:
         logger.debug("[TranslationHook] Target language is English. Skipping translation.")
         return data
 
-    repo = data.get("_sys_repository")
+    repo = context.repository
     if not repo:
         # Fallback if repository is missing - we cannot initialize LLMClient
-        logger.warning(f"[TranslationHook] Missing _sys_repository context. Cannot translate to {target_language}.")
+        logger.warning(f"[TranslationHook] Missing repository context. Cannot translate to {target_language}.")
         return data
 
     # 1. Isolate the actual payload that needs translation.
@@ -94,7 +94,7 @@ async def translation_hook(data: dict[str, Any]) -> dict[str, Any]:
         # Call LLM for translation. We expect raw JSON back.
         logger.info(f"[TranslationHook] Translating {len(payload_to_translate)} fields to '{target_language}'...")
         # A generic dict string output, not a Pydantic strict model since input is dynamic
-        response_text = await llm_client.run_simple_task(messages=messages)
+        response_text = await llm_client.run_chat(messages=messages)
 
         # Clean potential markdown formatting if LLM didn't listen
         if response_text.startswith("```json"):
@@ -113,9 +113,9 @@ async def translation_hook(data: dict[str, Any]) -> dict[str, Any]:
 
     except json.JSONDecodeError as e:
         # 1. Log with STRUCTURED FORMAT even for non-fatal errors
-        logger.error(f"[TranslationHook] {ErrorCodes.TRANSLATION_FAILED.name}: LLM returned invalid JSON on translation: {e}", exc_info=True)
+        logger.error(f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM returned invalid JSON on translation: {e}", exc_info=True)
         # 2. Graceful Degradation: Return original untranslated data to prevent UI crash
         return data
     except Exception as e:
-        logger.error(f"[TranslationHook] {ErrorCodes.TRANSLATION_FAILED.name}: LLM generation failed for translation: {e}", exc_info=True)
+        logger.error(f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM generation failed for translation: {e}", exc_info=True)
         return data

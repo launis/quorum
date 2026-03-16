@@ -1,10 +1,10 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Query, Request, status
+from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-from backend_v2.api.dependencies import CurrentUserDep, ExecutionServiceDep, RepoDep
+from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, ExecutionServiceDep, RepoDep
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.v2_core import ExecutionCreate, ExecutionRecord, ExecutionStatus
 
@@ -24,7 +24,7 @@ async def list_executions(
 @router.post("/", response_model=ExecutionRecord, status_code=status.HTTP_202_ACCEPTED)
 async def start_execution(
     payload: ExecutionCreate,
-    background_tasks: BackgroundTasks,
+    arq_pool: ArqPoolDep,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> ExecutionRecord:
@@ -32,7 +32,7 @@ async def start_execution(
     return await execution_service.start_execution(
         initiator=current_user,
         payload=payload,
-        background_tasks=background_tasks
+        arq_pool=arq_pool
     )
 
 
@@ -56,7 +56,8 @@ async def stream_execution_status(
     # 1. Authorize connection first
     await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
 
-    async def event_generator():
+    from collections.abc import AsyncGenerator
+    async def event_generator() -> AsyncGenerator[str]:
         try:
             while True:
                 # Poll database (Fallback from Redis Pub/Sub for simpler local portability)
@@ -154,18 +155,17 @@ async def generate_pdf_async(
     execution_id: str,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
-    background_tasks: BackgroundTasks,
-) -> dict:
+    arq_pool: ArqPoolDep,
+) -> dict[str, str]:
     """Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker."""
     # 1. Authorize connection first via Security Dependency
     await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
-    
+
     # 2. Extract locale
     accept_language = request.headers.get("accept-language", None)
 
-    # 3. Queue the background task for PDF Koonti
-    from backend_v2.worker import generate_pdf_task
-    background_tasks.add_task(generate_pdf_task, execution_id, accept_language)
+    # 3. Queue the background task into Redis
+    await arq_pool.enqueue_job("generate_pdf_job", execution_id=execution_id, accept_language=accept_language)
 
     # 4. Return 202 Accepted Fast
     return {"status": "Accepted", "message": "PDF Generation queued", "execution_id": execution_id}

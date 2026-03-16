@@ -4,7 +4,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from backend_v2.exceptions import AgentExecutionError
+from backend_v2.exceptions import AgentExecutionError, ErrorCodes
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.llm import LLMProviderConfig
 
@@ -13,29 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    """Singleton LLM Client wrapper adapting LLMFactory for structured outputs.
+    """LLM Client wrapper adapting LLMFactory for structured outputs.
 
     Replaces legacy Instructor/OpenAI implementation with unified V2.9 LLMProvider.
     """
 
-    _instance = None
-    _config: dict[str, Any] | LLMProviderConfig | None = None
-    model_config: dict[str, Any] | None = None
-
-    def __new__(cls, config: dict[str, Any] | LLMProviderConfig | None = None) -> LLMClient:
-        # We modify Singleton to accept an injected configuration.
-        # Note: If called repeatedly with different configs, a true Singleton might clash.
-        # For Strategy Pattern, we often want fresh bound instances or ContextVars,
-        # but for backward compatibility we return the instance while updating its transient config.
-        # Alternatively, we return a configured wrapper.
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialize()
-
-        if config:
-            cls._instance._config = config
-
-        return cls._instance
+    def __init__(self, config: dict[str, Any] | LLMProviderConfig | None = None) -> None:
+        self._config = config
+        self.model_config: dict[str, Any] | None = None
+        self._initialize()
 
     def _initialize(self) -> None:
         """Initialize the client."""
@@ -55,7 +41,7 @@ class LLMClient:
         Raises:
             ConfigurationError: If the Strategy does not exist.
         """
-        from backend_v2.exceptions import ConfigurationError
+        from backend_v2.exceptions import ConfigurationError, ErrorCodes
         from backend_v2.models.llm import LLMProviderConfig
         from backend_v2.models.v2_core import SystemConfigModelRegistry
         from backend_v2.utils.pydantic_utils import inflate
@@ -120,7 +106,7 @@ class LLMClient:
         response_model: type[T],
         model: str | None = None,
         **kwargs: Any,
-    ) -> T:
+    ) -> tuple[T, dict[str, Any]]:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
 
         Args:
@@ -130,7 +116,7 @@ class LLMClient:
             **kwargs: Additional arguments for the completion call.
 
         Returns:
-            The validated Pydantic model instance.
+            A tuple of (Validated Pydantic Model, Token Usage Dictionary).
         """
         # 1. Parse Messages to prompt/system inputs expected by LLMProvider.generate
         # Note: LLMProvider interface currently takes (prompt, system_instruction).
@@ -210,21 +196,35 @@ class LLMClient:
                 response_schema=response_model,
                 temperature=kwargs.get("temperature"),
                 max_tokens=kwargs.get("max_tokens"),
+                mock_identity=kwargs.get("mock_identity")
             )
 
             # 4. Parse Result
             # response.content is a JSON string (ensured by LiteLLMProvider)
             data = json.loads(response.content)
-            return response_model.model_validate(data)
+            validated_model = response_model.model_validate(data)
+            
+            # Extract usage securely into a simple dictionary from LLMResponse model
+            usage_obj = getattr(response, "token_usage", {})
+            
+            usage_dict = {
+                "prompt_tokens": usage_obj.get("prompt_tokens", 0),
+                "completion_tokens": usage_obj.get("completion_tokens", 0),
+                "total_tokens": usage_obj.get("total_tokens", 0),
+                "cached_tokens": usage_obj.get("cached_tokens", 0),
+                "reasoning_tokens": usage_obj.get("reasoning_tokens", 0),
+                "cost_usd": usage_obj.get("cost_usd", 0.0)
+            }
+            
+            return validated_model, usage_dict
 
         except Exception as e:
-            msg = f"Execution Failed for model {model}: {e}"
-            logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {msg}", exc_info=True)
+            error_msg = f"Execution Failed for model {model}: {e}"
+            logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {error_msg}", exc_info=True)
             if "response" in locals() and getattr(locals().get("response"), "content", None):
                 logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: Raw content causing error: {locals()['response'].content}")
             raise AgentExecutionError(
-                message=f"Structured Task Failed: {e}",
-                details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL}
+                detail=f"Structured Task Failed: {e} [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
             ) from e
 
     async def run_chat(
@@ -310,11 +310,10 @@ class LLMClient:
                 max_tokens=kwargs.get("max_tokens"),
                 **kwargs,
             )
-            return response.content  # type: ignore
+            return response.content
         except Exception as e:
-            msg = f"Chat Execution Failed: {e}"
-            logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {msg}", exc_info=True)
+            error_msg = f"Chat Execution Failed: {e}"
+            logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {error_msg}", exc_info=True)
             raise AgentExecutionError(
-                message=f"Chat Task Failed: {e}",
-                details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL}
+                detail=f"Chat Task Failed: {e} [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
             ) from e

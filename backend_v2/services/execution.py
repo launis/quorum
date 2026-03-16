@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from uuid import uuid4
 
-from fastapi import BackgroundTasks
+from arq.connections import ArqRedis
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
@@ -62,9 +62,10 @@ class ExecutionService:
         if not data:
              logger.error(
                  f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
-                 f"Execution {execution_id} not found."
+                 f"Execution {execution_id} not found or corrupted."
              )
              raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
+
 
         # SSOT MANDATE: Tenant Isolation Check
         org_id = getattr(initiator, "organization_id", None)
@@ -82,8 +83,8 @@ class ExecutionService:
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
         """Securely delete an execution."""
-        # This will also perform the authorization check
-        await self.get_execution(initiator=initiator, execution_id=execution_id)
+        # 1. Authorize via get (Fail-Fast ResourceNotFound / PermissionDenied)
+        await self.get_execution(initiator, execution_id)
 
         try:
             return await self.repo.delete_execution(execution_id)
@@ -100,7 +101,7 @@ class ExecutionService:
         self,
         initiator: TokenData,
         payload: ExecutionCreate,
-        background_tasks: BackgroundTasks
+        arq_pool: ArqRedis
     ) -> ExecutionRecord:
         """Initialize and trigger workflow securely."""
         workflow_dict = await self.repo.get_workflow_by_id(payload.workflow_id)
@@ -216,12 +217,14 @@ class ExecutionService:
 
         await self.repo.create_execution(initial_record.model_dump(mode="json"))
 
-        # Fire Async Process
-        background_tasks.add_task(
-            self.executor.execute_workflow,
+        # Fire Async Process into durable Redis Queue
+        await arq_pool.enqueue_job(
+            "execute_workflow_job",
+            workflow_id=workflow.id,
+            inputs=payload.raw_inputs.model_dump(mode="json"),
             execution_id=execution_id,
-            workflow=workflow,
-            raw_inputs=payload.raw_inputs.model_dump(mode="json")
+            organization_id=getattr(initiator, "organization_id", None),
+            user_id=initiator.id
         )
 
         return initial_record

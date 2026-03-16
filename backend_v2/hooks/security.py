@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes, SecurityViolationError
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ from backend_v2.core.security import check_banned_phrases, sanitize_text
 
 
 @hook_registry.register(name="sanitize_text")
-def sanitize_text_hook(data: dict[str, Any]) -> dict[str, Any]:
+def sanitize_text_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Workflow Data wrapper for sanitize_text.
 
     Sanitizes all text inputs and stores results in context_variables as SanitizationResult.
@@ -124,13 +124,13 @@ DEFAULT_BANNED_PHRASES: dict[str, list[str]] = {
 
 
 @hook_registry.register(name="check_banned_phrases")
-async def check_banned_phrases_hook(data: dict[str, Any], repository: Any = None) -> dict[str, Any]:
+async def check_banned_phrases_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Workflow Data wrapper for check_banned_phrases.
 
     Scans all text inputs for banned phrases fetched from database.
     Updates or creates SanitizationResult in returned dict.
 
-    NOTE: This hook requires repository parameter to fetch banned phrases.
+    NOTE: This hook uses context.repository to fetch banned phrases.
     Falls back to user-provided DEFAULT_BANNED_PHRASES if repository is missing or returns nothing.
     """
     logger.debug("[SecurityHook] Running check_banned_phrases_hook...")
@@ -142,8 +142,7 @@ async def check_banned_phrases_hook(data: dict[str, Any], repository: Any = None
     banned_phrases: list[str] = []
     fetch_error: str | None = None
 
-    if not repository:
-        repository = data.get("_sys_repository")
+    repository = context.repository
 
     if repository:
         try:

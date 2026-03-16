@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
-import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
 import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -16,7 +18,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 ///
 /// Integrates XAI (Explainable AI) controls directly into criteria definitions
 /// and provides a global "Strictness/Kireys" calibration slider.
-class PromptBlockBuilderView extends ConsumerStatefulWidget {
+class PromptBlockBuilderView extends StatefulHookConsumerWidget {
   final Map<String, dynamic> promptBlock;
 
   const PromptBlockBuilderView({super.key, required this.promptBlock});
@@ -73,55 +75,7 @@ class _PromptBlockBuilderViewState
     super.dispose();
   }
 
-  void _savePromptBlock() {
-    final id = _idController.text.trim();
-    if (id.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ID is required.')));
-      return;
-    }
-
-    _editablePromptBlock['id'] = id;
-    _editablePromptBlock['strictness_level'] = _strictnessLevel.round();
-
-    // Ensure nested structures are initialized securely
-    if (_editablePromptBlock['theory_grounding'] == null) {
-      _editablePromptBlock.remove('theory_grounding');
-    }
-
-    ref
-        .read(promptBlocksControllerProvider.notifier)
-        .savePromptBlock(id, _editablePromptBlock)
-        .then((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Prompt Block saved (Optimistic update applied).',
-                ),
-              ),
-            );
-            Navigator.of(context).pop();
-          }
-        })
-        .catchError((e) {
-          if (mounted) {
-            String errorMsg = e.toString();
-            if (e is AppError && e is ApiAppError) {
-              errorMsg = e.detail;
-            }
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to save: $errorMsg'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        });
-  }
-
-  void _deletePromptBlock(BuildContext context) {
+  void _deletePromptBlock(BuildContext context, MutationState<void> deleteMut) {
     final id = _editablePromptBlock['id']?.toString();
     if (id == null || id.isEmpty) return;
 
@@ -141,39 +95,7 @@ class _PromptBlockBuilderViewState
               TextButton(
                 onPressed: () {
                   Navigator.pop(ctx);
-                  ref
-                      .read(promptBlocksControllerProvider.notifier)
-                      .deletePromptBlock(id)
-                      .then((_) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Deleted successfully'),
-                            ),
-                          );
-                          Navigator.of(context).pop();
-                        }
-                      })
-                      .catchError((e) {
-                        if (mounted) {
-                          String errorMsg = e.toString();
-                          if (e is AppError && e is ApiAppError) {
-                            if (e.errorCode == 'RESOURCE_IN_USE') {
-                              errorMsg = l10n.errorResourceInUse;
-                            }
-                          } else if (errorMsg.contains('RESOURCE_IN_USE') ||
-                              errorMsg.contains('400')) {
-                            errorMsg = l10n.errorResourceInUse;
-                          }
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMsg),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      });
+                  deleteMut.mutate(() => ref.read(promptBlocksControllerProvider.notifier).deletePromptBlock(id));
                 },
                 child: Text(
                   l10n.delete,
@@ -204,6 +126,45 @@ class _PromptBlockBuilderViewState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    
+    final saveMutation = useMutation<void>(
+      onSuccess: (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Prompt Block saved (Optimistic).')),
+          );
+          Navigator.of(context).pop();
+        }
+      },
+      onError: (e) {
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${l10n.errorUnknown}: $errorMsg'), backgroundColor: Colors.red),
+          );
+        }
+      },
+    );
+
+    final deleteMutation = useMutation<void>(
+      onSuccess: (_) {
+         if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text('Deleted successfully')),
+            );
+            Navigator.of(context).pop();
+         }
+      },
+      onError: (e) {
+         if (mounted) {
+           final l10n = AppLocalizations.of(context)!;
+           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg), backgroundColor: Colors.red));
+         }
+      }
+    );
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -215,14 +176,27 @@ class _PromptBlockBuilderViewState
         actions: [
           if (widget.promptBlock['id']?.toString().isNotEmpty == true)
             IconButton(
-              onPressed: () => _deletePromptBlock(context),
+              onPressed: () => _deletePromptBlock(context, deleteMutation),
               icon: const Icon(Icons.delete, color: Colors.red),
               tooltip: 'Delete',
             ),
-          FilledButton.icon(
-            onPressed: _savePromptBlock,
-            icon: const Icon(Icons.save),
-            label: const Text('Save'),
+          MutationButton<void>(
+            mutation: saveMutation,
+            label: 'Save',
+            icon: Icons.save,
+            action: () async {
+              final id = _idController.text.trim();
+              if (id.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID is required.')));
+                throw Exception('ID is required');
+              }
+              _editablePromptBlock['id'] = id;
+              _editablePromptBlock['strictness_level'] = _strictnessLevel.round();
+              if (_editablePromptBlock['theory_grounding'] == null) {
+                _editablePromptBlock.remove('theory_grounding');
+              }
+              await ref.read(promptBlocksControllerProvider.notifier).savePromptBlock(id, _editablePromptBlock);
+            },
           ),
           const SizedBox(width: 16),
         ],

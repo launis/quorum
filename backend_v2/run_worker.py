@@ -9,7 +9,18 @@ from arq.worker import create_worker
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.logging_config import configure_logfire, setup_logging
-from backend_v2.worker import WorkerSettings
+
+# 1. Setup Logging immediately as the script starts (Fail-Fast logging)
+setup_logging()
+configure_logfire()
+
+try:
+    # 2. Lazy import the worker settings so that if any module fails to compile, 
+    # it gets caught and written to the newly configured file log!
+    from backend_v2.worker import WorkerSettings
+except Exception as e:
+    logging.critical(f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to import worker module (Crash on start): {e}", exc_info=True)
+    sys.exit(1)
 
 # Force loop policy for Windows if needed, though asyncio.run usually handles it.
 # On Windows, SelectorEventLoop is default in 3.14? Proactor?
@@ -19,10 +30,6 @@ from backend_v2.worker import WorkerSettings
 async def main():
     """Manual entrypoint for Arq Worker to avoid CLI loop issues."""
     try:
-        # 1. Setup Logging (FAIL FAST if config missing)
-        setup_logging()
-        configure_logfire()
-
         logging.info("Starting Arq Worker (Manual Script)...")
 
         # Cast to Any to satisfy type checker if WorkerSettings structure is strict

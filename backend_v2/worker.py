@@ -10,12 +10,13 @@ from typing import Any
 
 from arq.connections import RedisSettings
 
-from backend_v2.core.engine import GraphEngine
 from backend_v2.core.registry import TaskRegistry
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.pdf_generator import PdfReportService
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 
@@ -32,11 +33,11 @@ import backend_v2.hooks  # noqa: F401
 async def execute_workflow_job(
     ctx: Any,
     workflow_id: str,
-    inputs: dict,
+    inputs: dict[str, Any],
     execution_id: str | None = None,
     organization_id: str | None = None,
     user_id: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Background job to execute a workflow using GraphEngine.
 
     Args:
@@ -71,76 +72,90 @@ async def execute_workflow_job(
             inputs["user_id"] = user_id
 
         # Retrieve pre-initialized Engine
-        engine: GraphEngine = ctx["engine"]
+        engine: DAGExecutor = ctx["engine"]
         # Retrieve Repository (for loading definition)
         repository = ctx["repository"]
 
         try:
             # Load Definition
             # We must load the definition to pass it to the engine.
-            workflow_def = await repository.get_workflow(workflow_id)
+            workflow_dict = await repository.get_workflow(workflow_id)
 
-            if not workflow_def:
-                # Fallback for file-based testing if DB is empty (Phase 4.1 context)
-                # This is helpful for the user's immediate "comprehensive_audit.json" testing
+            if not workflow_dict:
+                # Fallback for file-based testing if DB is empty
                 import json
                 import os
-
-                from backend_v2.models.workflow import WorkflowDefinition
 
                 file_path = f"data/workflows/{workflow_id}.json"
                 if os.path.exists(file_path):
                     logger.info(f"Loading workflow {workflow_id} from file system.")
                     with open(file_path, encoding="utf-8") as f:
-                        data = json.load(f)
-                        if "description" not in data:
-                            data["description"] = "File loaded"
-                        workflow_def = WorkflowDefinition(**data)
+                        workflow_dict = json.load(f)
 
-            if not workflow_def:
+            if not workflow_dict:
                 from backend_v2.exceptions import WorkflowNotFoundError
                 raise WorkflowNotFoundError(workflow_id)
 
+            import uuid
+
+            from backend_v2.models.v2_core import Workflow
+
+            # V2 MUST validate strictly before execution
+            workflow_def = Workflow.model_validate(workflow_dict)
+
             start_time = datetime.now(UTC)
 
-            # Execute with Persistence Hook
+            # V2 Strict Context Execution Engine
+            exec_id = execution_id or str(uuid.uuid4())
             result = await engine.execute_workflow(
-                definition=workflow_def, initial_input=inputs, repository=repository, execution_id=execution_id
+                execution_id=exec_id,
+                workflow=workflow_def,
+                raw_inputs=inputs
             )
 
             # Final Status Update (Completed)
             if execution_id:
                 # Extract cost estimate
                 cost_estimate = 0.0
+                prompt_tokens_total = 0
+                completion_tokens_total = 0
+                total_tokens_total = 0
+                cached_tokens_total = 0
+                reasoning_tokens_total = 0
                 models_used: dict[str, int] = {}
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
 
-                if isinstance(result, dict):
-                    trace = result.get("execution_trace", [])
-                    if isinstance(trace, list):
-                        for event in trace:
-                            if isinstance(event, dict) and event.get("event_type") == "output":
-                                content = event.get("content", {})
-                                if isinstance(content, dict):
-                                    meta = content.get("metadata", {})
-                                    if isinstance(meta, dict):
-                                        # Extract Model usage
-                                        m = meta.get("model")
-                                        if m:
-                                            models_used[m] = models_used.get(m, 0) + 1
-
-                                        # Extract Cost per step
-                                        tu = meta.get("token_usage", {})
-                                        if isinstance(tu, dict):
-                                            cost_estimate += tu.get("cost_usd", 0.0)
+                result_dict = result.model_dump(mode="json")
+                
+                # Try to extract metrics from actual results dict
+                results = result_dict.get("results", {})
+                if isinstance(results, dict):
+                    for step_id, step_payload in results.items():
+                        if isinstance(step_payload, dict):
+                            meta = step_payload.get("_step_metadata", {})
+                            if isinstance(meta, dict):
+                                # Extract tokens dynamically injected by Engine
+                                tu = meta.get("token_usage", {})
+                                if isinstance(tu, dict):
+                                    prompt_tokens_total += tu.get("prompt_tokens", 0)
+                                    completion_tokens_total += tu.get("completion_tokens", 0)
+                                    total_tokens_total += tu.get("total_tokens", 0)
+                                    cached_tokens_total += tu.get("cached_tokens", 0)
+                                    reasoning_tokens_total += tu.get("reasoning_tokens", 0)
+                                    cost_estimate += tu.get("cost_usd", 0.0)
 
                 await repository.update_execution(
                     execution_id,
                     {
                         "status": "completed",
-                        "results": result,
+                        "results": result_dict.get("results", {}),
                         "completed_at": datetime.now(UTC).isoformat(),
                         "cost_estimate": cost_estimate,
+                        "prompt_tokens": prompt_tokens_total,
+                        "completion_tokens": completion_tokens_total,
+                        "total_tokens": total_tokens_total,
+                        "cached_tokens": cached_tokens_total,
+                        "reasoning_tokens": reasoning_tokens_total,
                         "duration_ms": duration_ms,
                         "models_used": models_used
                     }
@@ -152,26 +167,14 @@ async def execute_workflow_job(
                     f"C:\\Users\\risto\\Downloads\\debug_output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                 )
                 with open(debug_path, "w", encoding="utf-8") as f:
-                    if hasattr(result, "model_dump_json"):
-                        f.write(result.model_dump_json(indent=2))
-                    else:
-                        import json
-
-                        # Ensure we handle datetime by using a default str converter if needed
-                        # But standard json.dump might fail on datetime.
-                        # Safe approach: use pydantic's adapter or just str() fallback?
-                        # Actually, Engine returns a dict with datetime objects usually.
-                        # Let's use a custom encoder or pydantic's TypeAdapter.
-                        from pydantic import TypeAdapter
-
-                        # We assume it matches WorkflowState structure generally
-                        f.write(TypeAdapter(dict).dump_json(result, indent=2).decode("utf-8"))
+                    import json
+                    json.dump(result_dict, f, indent=2)
                 logger.info(f"[Job] Temporary Debug Dump saved to: {debug_path}")
             except Exception as dump_err:
                 logger.error(f"[Job] Failed to save debug dump: {dump_err}")
             # -------------------------------------------
 
-            return result
+            return result_dict
 
         except Exception as e:
             from backend_v2.exceptions import AppException
@@ -222,31 +225,31 @@ async def execute_workflow_job(
             raise
 
 
-async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
-    """Legacy background job for raw pdf. Replaced by generate_pdf_task but left for compatibility."""
-    return ""
+async def generate_pdf_job(ctx: Any, execution_id: str, accept_language: str | None = None) -> str:
+    """Invoked by Arq Worker to ensure background PDF compilation resilience."""
+    await generate_pdf_task(execution_id, accept_language)
+    return f"PDF Generated for {execution_id}"
 
 async def generate_pdf_task(execution_id: str, accept_language: str | None = None) -> None:
-    """
-    Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
-    Called directly by FastAPI BackgroundTasks without Arq overhead for instant MVP.
+    """Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
+    Called by Arq worker for resilient PDF background compilation.
     """
     logger.info(f"[Task] Starting Async PDF Koonti for execution {execution_id}")
     try:
-        from backend_v2.settings import get_settings
         from backend_v2.database.factory import get_repository
         from backend_v2.services.blueprint import BlueprintTransformer
-        
+        from backend_v2.settings import get_settings
+
         repo = await get_repository(get_settings())
         transformer = BlueprintTransformer(repo)
-        
+
         # 1. Generate Omni-Channel JSON Payload
         payload = await transformer.build_render_payload(execution_id, accept_language)
-        
+
         # 2. Feed structured JSON to PDF Engine instead of DB fetching
         service = PdfReportService(repo)
         pdf_bytes = await service.generate_execution_pdf(execution_id, blueprint_payload=payload)
-        
+
         # 3. Save bytes
         storage = get_storage_driver()
         output_path_rel = f"executions/{execution_id}/report.pdf"
@@ -295,10 +298,9 @@ async def startup(ctx: Any) -> None:
     llm_client = LLMClient()
     # Note: LLMClient is usually stateless or singleton, but good to init here.
 
-    # 3. Initialize GraphEngine
-    # We pass dependencies if GraphEngine accepts them, otherwise we rely on the context/singletons.
-    # Currently GraphEngine() is generic.
-    engine = GraphEngine()
+    # 3. Initialize DAGExecutor (V2 SSOT Enforcer)
+    compiler = PromptCompiler()
+    engine = DAGExecutor(repository=repository, prompt_compiler=compiler)
 
     # 4. Store in Context
     ctx["engine"] = engine

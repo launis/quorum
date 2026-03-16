@@ -97,12 +97,12 @@ class BlueprintTransformer:
             """Resolves the textual scale name (e.g., 'CATASTROPHIC FAILURE') for a given matrix score."""
             if value is None or not data_path:
                 return ""
-            
+
             slug = data_path.split(".")[-1]
             block = blocks_by_slug.get(slug)
             if not block or "scales" not in block:
                 return ""
-                
+
             rounded_val = round(value)
             for scale in block["scales"]:
                 if scale.get("score") == rounded_val:
@@ -121,11 +121,11 @@ class BlueprintTransformer:
             # Handle normalized max values explicitly if the path ends with _normalized
             if slug.endswith("_normalized"):
                 return 100.0
-            
+
             # If the slug ends with _scaled, we can look up the base slug
             if slug.endswith("_scaled"):
                 slug = slug.replace("_scaled", "")
-            
+
             block = blocks_by_slug.get(slug)
             if block:
                 # Dynamically calculate from scales array ALWAYS (scale_max/scale_min in json are for other uses)
@@ -139,7 +139,7 @@ class BlueprintTransformer:
                                 pass
                     if scores:
                         return float(max(scores))
-                        
+
             return default_max
 
         def get_block_title(data_path: str) -> str:
@@ -151,7 +151,7 @@ class BlueprintTransformer:
                  slug = slug.replace("_normalized", "")
             if slug.endswith("_scaled"):
                  slug = slug.replace("_scaled", "")
-                 
+
             block = blocks_by_slug.get(slug)
             if block and "label" in block:
                 label_obj = block["label"]
@@ -187,17 +187,17 @@ class BlueprintTransformer:
             elif comp_type == "2d_matrix":
                 x_val = resolve_data_path(base_dict["x_data_path"])
                 y_val = resolve_data_path(base_dict["y_data_path"])
-                
+
                 base_dict["x_value"] = safe_float_cast(x_val, base_dict["x_data_path"])
                 base_dict["y_value"] = safe_float_cast(y_val, base_dict["y_data_path"])
-                
+
                 if "x_data_path" in base_dict:
                     base_dict["x_scale_text"] = get_scale_text(base_dict["x_value"], base_dict["x_data_path"])
                     base_dict["x_scale_max"] = get_scale_max(base_dict["x_data_path"])
                     base_dict["x_title"] = get_block_title(base_dict["x_data_path"])
                 else:
                     base_dict["x_title"] = ""
-                    
+
                 if "y_data_path" in base_dict:
                     base_dict["y_scale_text"] = get_scale_text(base_dict["y_value"], base_dict["y_data_path"])
                     base_dict["y_scale_max"] = get_scale_max(base_dict["y_data_path"])
@@ -215,25 +215,25 @@ class BlueprintTransformer:
                 x_val = resolve_data_path(base_dict["x_data_path"])
                 y_val = resolve_data_path(base_dict["y_data_path"])
                 z_val = resolve_data_path(base_dict["z_data_path"])
-                
+
                 base_dict["x_value"] = safe_float_cast(x_val, base_dict["x_data_path"])
                 base_dict["y_value"] = safe_float_cast(y_val, base_dict["y_data_path"])
                 base_dict["z_value"] = safe_float_cast(z_val, base_dict["z_data_path"])
-                
+
                 if "x_data_path" in base_dict:
                     base_dict["x_scale_text"] = get_scale_text(base_dict["x_value"], base_dict["x_data_path"])
                     base_dict["x_scale_max"] = get_scale_max(base_dict["x_data_path"])
                     base_dict["x_title"] = get_block_title(base_dict["x_data_path"])
                 else:
                     base_dict["x_title"] = ""
-                    
+
                 if "y_data_path" in base_dict:
                     base_dict["y_scale_text"] = get_scale_text(base_dict["y_value"], base_dict["y_data_path"])
                     base_dict["y_scale_max"] = get_scale_max(base_dict["y_data_path"])
                     base_dict["y_title"] = get_block_title(base_dict["y_data_path"])
                 else:
                     base_dict["y_title"] = ""
-                    
+
                 if "z_data_path" in base_dict:
                     base_dict["z_scale_text"] = get_scale_text(base_dict["z_value"], base_dict["z_data_path"])
                     base_dict["z_scale_max"] = get_scale_max(base_dict["z_data_path"], default_max=100.0)
@@ -247,7 +247,7 @@ class BlueprintTransformer:
                     base_dict["y_note_text"] = resolve_data_path(base_dict["y_axis_note"])
                 if base_dict.get("z_axis_note"):
                     base_dict["z_note_text"] = resolve_data_path(base_dict["z_axis_note"])
-                    
+
                 rendered_components.append(base_dict)
             elif comp_type == "evaluation_notes_panel":
                 resolved_notes = {}

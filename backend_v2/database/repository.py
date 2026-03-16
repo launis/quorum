@@ -7,12 +7,13 @@ I/O to the injected StorageDriver.
 
 import logging
 import uuid
+import copy
 from abc import ABC, abstractmethod
 from typing import Any
 
 from backend_v2.database.driver import Filter, StorageDriver
-from backend_v2.models.v2_core import ExecutionRecord
-from backend_v2.models.v2_core import Workflow as WorkflowDefinition
+from backend_v2.models.v2_core import ExecutionRecord, Workflow as WorkflowDefinition
+from backend_v2.exceptions import ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -225,45 +226,7 @@ class AbstractWorkflowRepository(ABC):
     async def delete_agent(self, agent_id: str) -> bool:
         pass
 
-    @abstractmethod
-    async def get_dimension_by_id(self, dimension_id: str) -> dict[str, Any] | None:
-        pass
 
-    @abstractmethod
-    async def get_all_dimensions(self) -> list[dict[str, Any]]:
-        pass
-
-    @abstractmethod
-    async def create_dimension(self, dimension_data: dict[str, Any]) -> str:
-        pass
-
-    @abstractmethod
-    async def update_dimension(self, dimension_id: str, updates: dict[str, Any]) -> str:
-        pass
-
-    @abstractmethod
-    async def delete_dimension(self, dimension_id: str) -> bool:
-        pass
-
-    @abstractmethod
-    async def get_output_config_by_id(self, config_id: str) -> dict[str, Any] | None:
-        pass
-
-    @abstractmethod
-    async def get_all_output_configs(self) -> list[dict[str, Any]]:
-        pass
-
-    @abstractmethod
-    async def create_output_config(self, config_data: dict[str, Any]) -> str:
-        pass
-
-    @abstractmethod
-    async def update_output_config(self, config_id: str, updates: dict[str, Any]) -> bool:
-        pass
-
-    @abstractmethod
-    async def delete_output_config(self, config_id: str) -> bool:
-        pass
 
     @abstractmethod
     async def update_component(self, component_id: str, updates: dict[str, Any]) -> str:
@@ -437,22 +400,79 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def delete(self, collection: str, doc_id: str) -> bool:
         return await self.driver.delete(collection, doc_id)
 
+    # --- ExternaL BLOB Payloads (Firestore 1MB Limits Mitigation) ---
+
+    async def _offload_payloads(self, doc_id: str, data: dict[str, Any]) -> None:
+        import json
+        import logging
+
+        from backend_v2.services.storage import get_storage_driver
+        driver = get_storage_driver()
+        logger = logging.getLogger(__name__)
+
+        for field in ["execution_trace", "results", "frozen_context", "context_variables"]:
+            if field in data and data[field]:
+                try:
+                    payload = json.dumps(data[field], default=str)
+                    # 100KB Soft Limit to ensure smooth Firestore execution updates
+                    if len(payload) > 100_000:
+                        blob_path = f"executions/{doc_id}/{field}.json"
+                        await driver.save(blob_path, payload.encode("utf-8"))
+                        data[f"{field}_storage_path"] = blob_path
+                        del data[field]
+                except Exception as e:
+                    logger.error(f"[Repository] Failed to offload {field} for {doc_id}: {e}", exc_info=True)
+
+    async def _hydrate_payloads(self, data: dict[str, Any] | None) -> None:
+        if not data:
+            return
+        import json
+        import logging
+
+        from backend_v2.services.storage import get_storage_driver
+        driver = get_storage_driver()
+        logger = logging.getLogger(__name__)
+
+        for field in ["execution_trace", "results", "frozen_context", "context_variables"]:
+            path_key = f"{field}_storage_path"
+            if path_key in data and data[path_key]:
+                try:
+                    blob_data = await driver.read(data[path_key])
+                    data[field] = json.loads(blob_data.decode("utf-8"))
+                except Exception as e:
+                    logger.error(f"[Repository] Failed to hydrate {field} from {data[path_key]}: {e}", exc_info=True)
+
     # --- Executions ---
 
     async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
         data = await self.driver.get("executions", execution_id)
-        return ExecutionRecord(**data) if data else None
+        if data:
+            try:
+                await self._hydrate_payloads(data)
+                return ExecutionRecord(**data)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Data corruption - Failed to parse execution {execution_id}: {e}",
+                    exc_info=True
+                )
+                return None
+        return None
+
 
     async def get_execution_status(self, execution_id: str) -> str | None:
-        exec_record = await self.get_execution(execution_id)
-        return exec_record.status if exec_record else None
+        data = await self.driver.get("executions", execution_id)
+        return data.get("status") if data else None
 
     async def create_execution(self, execution_data: dict[str, Any]) -> str:
         doc_id = execution_data.get("id") or str(uuid.uuid4())
         execution_data["id"] = doc_id
+        await self._offload_payloads(doc_id, execution_data)
         return await self.driver.upsert("executions", execution_data, doc_id)
 
     async def update_execution(self, execution_id: str, updates: dict[str, Any]) -> bool:
+        await self._offload_payloads(execution_id, updates)
         return await self.driver.update("executions", execution_id, updates)
 
     async def delete_execution(self, execution_id: str) -> bool:
@@ -468,7 +488,20 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             filters.append(Filter("user_id", "==", user_id))
 
         results = await self.driver.query("executions", filters)
-        return [ExecutionRecord(**r) for r in results]
+        
+        parsed_results = []
+        for r in results:
+            try:
+                parsed_results.append(ExecutionRecord(**r))
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution {r.get('id')}: {e}",
+                    exc_info=True
+                )
+                
+        return parsed_results
 
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
         filters = [Filter("status", "==", "completed")]
@@ -479,7 +512,20 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             order_by="completed_at",
             descending=True
         )
-        return [ExecutionRecord(**r) for r in results]
+        
+        parsed_results = []
+        for r in results:
+            try:
+                parsed_results.append(ExecutionRecord(**r))
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution {r.get('id')}: {e}",
+                    exc_info=True
+                )
+                
+        return parsed_results
 
     # --- Workflows ---
 
@@ -740,51 +786,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             return False
         return await self.driver.delete("agents", agent_id)
 
-    async def get_dimension_by_id(self, dimension_id: str) -> dict[str, Any] | None:
-        return await self.driver.get("dimensions", dimension_id)
 
-    async def get_all_dimensions(self) -> list[dict[str, Any]]:
-        return await self.driver.query("dimensions")
-
-    async def create_dimension(self, dimension_data: dict[str, Any]) -> str:
-        doc_id = dimension_data["id"]
-        return await self.driver.upsert("dimensions", dimension_data, doc_id)
-
-    async def update_dimension(self, dimension_id: str, updates: dict[str, Any]) -> str:
-        dimension = await self.get_dimension_by_id(dimension_id)
-        if not dimension:
-            from backend_v2.exceptions import ResourceNotFoundError
-            raise ResourceNotFoundError(resource_type="Observation", resource_id=dimension_id)
-        await self.driver.update("dimensions", dimension_id, updates)
-        return dimension_id
-
-    async def delete_dimension(self, dimension_id: str) -> bool:
-        dimension = await self.get_dimension_by_id(dimension_id)
-        if not dimension:
-            return False
-        return await self.driver.delete("dimensions", dimension_id)
-
-    async def get_output_config_by_id(self, config_id: str) -> dict[str, Any] | None:
-        return await self.driver.get("output_configs", config_id)
-
-    async def get_all_output_configs(self) -> list[dict[str, Any]]:
-        return await self.driver.query("output_configs")
-
-    async def create_output_config(self, config_data: dict[str, Any]) -> str:
-        doc_id = config_data["id"]
-        return await self.driver.upsert("output_configs", config_data, doc_id)
-
-    async def update_output_config(self, config_id: str, updates: dict[str, Any]) -> bool:
-        config = await self.get_output_config_by_id(config_id)
-        if not config:
-            return False
-        return await self.driver.update("output_configs", config_id, updates)
-
-    async def delete_output_config(self, config_id: str) -> bool:
-        config = await self.get_output_config_by_id(config_id)
-        if not config:
-            return False
-        return await self.driver.delete("output_configs", config_id)
 
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
         comp = await self.get_component_by_id(component_id)

@@ -7,6 +7,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/shared/widgets/execution_timeline.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/router/router.dart';
 import 'dart:convert';
 
 /// **Live Execution SDUI Screen**
@@ -39,6 +40,19 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
   Widget build(BuildContext context) {
     // Watch the live stream
     final executionState = ref.watch(executionControllerProvider);
+
+    // Auto-navigate to Report when Completed
+    ref.listen<AsyncValue<Map<String, dynamic>?>>(
+      executionControllerProvider,
+      (previous, next) {
+        if (next is AsyncData && next.value != null) {
+          final status = SafeCast.safeString(next.value!['status']).toLowerCase();
+          if (status == 'completed') {
+            ExecutionReportRoute(executionId: widget.executionId).go(context);
+          }
+        }
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(

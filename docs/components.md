@@ -39,9 +39,8 @@ The "Mind" of the system is decoupled from Python logic files. Reusable configur
 ### Component Types (Zero-Deploy)
 1. **`workflows`**: The Structural DAG (Directed Acyclic Graph) determining step sequences and Semantic Data Flow mapping.
 2. **`steps`**: The execution instructions mapped to a specific `Agent`.
-3. **`matrices`**: Scoring rubrics (e.g., `matrix_standard_v2`) containing heavily typed numerical constraints, **Strictness parameters (0-100)**, and Theory URL groundings.
-4. **`components`**: Reusable generic text blocks like System Prompts.
-5. **`output_configs`**: SDUI rendering maps dictating the structure of final views. The *only* place `ui_hints` are permitted.
+3. **`prompt_blocks`**: The universal atomic unit of cognitive instruction, merging legacy text components and evaluation matrices into a single polymorphic concept containing texts, scales, and output_formats.
+4. **`output_configs`**: SDUI rendering maps dictating the structure of final views. The *only* place `ui_hints` are permitted.
 
 ---
 
@@ -61,11 +60,10 @@ The "Mind" of the system is decoupled from Python logic files. Reusable configur
 ### 3.1 Hook Architecture
 
 #### A. Blackboard Pattern (`results`)
-Hooks interact with the `ExecutionRecord` primarily through `results`.
-* **Read**: Hooks read input data from `state.results`.
-    * **Strict Access**: Use `state.get_context(ModelType)` or `inflate()` to ensure type safety. DO NOT access raw dicts.
-* **Write**: Hooks return a **new** state with updated `results` containing their Pydantic result model.
-* **Immutability**: `ExecutionRecord` is frozen. Hooks use `state.model_copy(update=...)`.
+Hooks interact with the execution pipeline via a mutable `data` dictionary representing the current node's state, and a strictly typed `HookExecutionContext`.
+* **Read**: Hooks read input data logically from the `data` dictionary or via global execution variables provided in the context.
+* **Write**: Hooks return a **new** or updated dictionary containing their processing results.
+* **Immutability**: While the dictionary is mutable during the hook sequence, the final result is snapshotted into the immutable `ExecutionRecord` by the orchestrator.
 
 #### B. Strict Pydantic Models (`backend/models/domain.py`)
 Every hook typically has a corresponding result model:
@@ -126,19 +124,19 @@ Hooks do **not** fail silently.
 1. **Define Model**: Create a result model in `backend/models/domain.py` with `strict=True`.
 2. **Implement Hook**: Create a function in `backend/hooks/`.
     ```python
-    def my_hook(state: ExecutionRecord) -> ExecutionRecord:
+    def my_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
         # 1. Validate Input (Fail Fast)
-        inputs = state.results.get("inputs")
+        inputs = data.get("inputs")
         if not inputs:
             raise AppException(message="Missing input data.", error_code=ErrorCodes.VALIDATION_FAILED)
 
         # 2. Logic (Deterministic)
         result = MyHookResult(value=100)
 
-        # 3. Update State (Immutable)
-        new_context = state.results.copy()
-        new_context["my_hook_result"] = result
-        return state.model_copy(update={"results": new_context})
+        # 3. Update State
+        new_data = data.copy()
+        new_data["my_hook_result"] = result.model_dump()
+        return new_data
     ```
 3. **Register**: Add it to `HOOK_MAPPING` in `backend/core/engine.py`.
 

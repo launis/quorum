@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
-import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 
-class StepBuilderView extends ConsumerStatefulWidget {
+class StepBuilderView extends StatefulHookConsumerWidget {
   final Map<String, dynamic> step;
 
   const StepBuilderView({super.key, required this.step});
@@ -48,122 +50,6 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
     super.dispose();
   }
 
-  void _saveBlueprint() {
-    final id = _idController.text.trim();
-    if (id.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ID is required.')));
-      return;
-    }
-
-    final modelStrategy = _editableStep['model_strategy'];
-    if (modelStrategy == null ||
-        modelStrategy.toString().isEmpty ||
-        modelStrategy == 'null') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Fail-Fast: You must explicitly select a Model Strategy.',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    _editableStep['id'] = id;
-    _editableStep['slug'] = _slugController.text.trim();
-
-    ref
-        .read(stepsControllerProvider.notifier)
-        .saveStep(id, _editableStep)
-        .then((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Step saved (Optimistic update applied).'),
-              ),
-            );
-            Navigator.of(context).pop();
-          }
-        })
-        .catchError((e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to save: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        });
-  }
-
-  void _deleteStep(BuildContext context) {
-    final id = _editableStep['id']?.toString();
-    if (id == null || id.isEmpty) return;
-
-    final l10n = AppLocalizations.of(context)!;
-
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(l10n.stepDeleteConfirmTitle),
-            content: Text(l10n.stepDeleteConfirmMessage(id)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(l10n.cancel),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  ref
-                      .read(stepsControllerProvider.notifier)
-                      .deleteStep(id)
-                      .then((_) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Deleted successfully'),
-                            ),
-                          );
-                          Navigator.of(context).pop();
-                        }
-                      })
-                      .catchError((e) {
-                        if (mounted) {
-                          String errorMsg = e.toString();
-                          if (e is AppError && e is ApiAppError) {
-                            if (e.errorCode == 'RESOURCE_IN_USE') {
-                              errorMsg = l10n.errorResourceInUse;
-                            }
-                          } else if (errorMsg.contains('RESOURCE_IN_USE') ||
-                              errorMsg.contains('400')) {
-                            errorMsg = l10n.errorResourceInUse;
-                          }
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMsg),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      });
-                },
-                child: Text(
-                  l10n.delete,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
-
   void _addPromptBlock() {
     setState(() {
       final blocks = SafeCast.safeList(_editableStep['prompt_blocks']);
@@ -180,8 +66,38 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
     });
   }
 
+  void _deleteStep(BuildContext context, MutationState<void> deleteMutation) {
+    final id = _idController.text.trim();
+    if (id.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Step'),
+            content: Text('Are you sure you want to delete step "$id"?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              MutationButton<void>(
+                mutation: deleteMutation,
+                label: 'Delete',
+                action: () async {
+                  await ref
+                      .read(stepsControllerProvider.notifier)
+                      .deleteStep(id);
+                },
+              ),
+            ],
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
     final promptBlocks = promptBlocksAsync.value ?? [];
 
@@ -189,6 +105,49 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
     final modelRegistry = modelRegistryAsync.value ?? {};
     final modelsMap = SafeCast.safeMap(modelRegistry['models']);
     final strategyKeys = modelsMap.keys.toList().cast<String>();
+
+    final saveMutation = useMutation<void>(
+      onSuccess: (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Step saved (Optimistic).')),
+          );
+          Navigator.of(context).pop();
+        }
+      },
+      onError: (e) {
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${l10n.errorUnknown}: $errorMsg'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+    );
+
+    final deleteMutation = useMutation<void>(
+      onSuccess: (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Deleted successfully')));
+          Navigator.of(context).pop();
+        }
+      },
+      onError: (e) {
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+          );
+        }
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -201,14 +160,42 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
         actions: [
           if (widget.step['id']?.toString().isNotEmpty == true)
             IconButton(
-              onPressed: () => _deleteStep(context),
+              onPressed: () => _deleteStep(context, deleteMutation),
               icon: const Icon(Icons.delete, color: Colors.red),
               tooltip: 'Delete',
             ),
-          FilledButton.icon(
-            onPressed: _saveBlueprint,
-            icon: const Icon(Icons.save),
-            label: const Text('Save'),
+          MutationButton<void>(
+            mutation: saveMutation,
+            label: 'Save',
+            icon: Icons.save,
+            action: () async {
+              final id = _idController.text.trim();
+              if (id.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('ID is required.')),
+                );
+                throw Exception('ID is required');
+              }
+              final modelStrategy = _editableStep['model_strategy'];
+              if (modelStrategy == null ||
+                  modelStrategy.toString().isEmpty ||
+                  modelStrategy == 'null') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Fail-Fast: You must explicitly select a Model Strategy.',
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                throw Exception('Missing Strategy');
+              }
+              _editableStep['id'] = id;
+              _editableStep['slug'] = _slugController.text.trim();
+              await ref
+                  .read(stepsControllerProvider.notifier)
+                  .saveStep(id, _editableStep);
+            },
           ),
           const SizedBox(width: 16),
         ],

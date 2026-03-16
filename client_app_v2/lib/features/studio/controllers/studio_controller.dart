@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/studio_client.dart';
-import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 
 // --- Providers ---
@@ -31,6 +32,10 @@ final stepsControllerProvider =
 class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
+    // SWR Strategy for List Views: Keep alive so navigation back is instant.
+    // If it gets disposed intentionally or app memory is low, 
+    // it will be cached for 3 minutes before total garbage collection.
+    ref.cacheFor(const Duration(minutes: 3));
     return _fetchPromptBlocks();
   }
 
@@ -51,8 +56,9 @@ class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
   }
 
   /// Saves a prompt block utilizing Optimistic Updates.
-  Future<void> savePromptBlock(String id, Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> savePromptBlock(String id, Map<String, dynamic> payload) async {
     final previousState = state;
+    Map<String, dynamic> returnData = {...payload, 'id': id};
 
     // 1. Optimistic Update
     if (state.hasValue && state.value != null) {
@@ -81,11 +87,13 @@ class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
           currentList[index] = verifiedPromptBlock;
           state = AsyncValue.data(currentList);
         }
+        returnData = verifiedPromptBlock;
       }
+      return returnData;
     } catch (e) {
       // 4. Rollback on Failure
       state = previousState;
-      if (e is DioException && e.error is AppError) {
+      if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
       // Re-throw to allow view layer to show snackbar
@@ -93,7 +101,7 @@ class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
     }
   }
 
-  /// Deletes a prompt block. Throwing AppError on orphan rejection (RESOURCE_IN_USE)
+  /// Deletes a prompt block. Throwing AppException on orphan rejection (RESOURCE_IN_USE)
   Future<void> deletePromptBlock(String id) async {
     try {
       final client = ref.read(studioClientProvider);
@@ -105,7 +113,7 @@ class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
         state = AsyncValue.data(currentList);
       }
     } catch (e) {
-      if (e is DioException && e.error is AppError) {
+      if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
       throw Exception('Failed to delete prompt block: $e');
@@ -118,6 +126,7 @@ class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
 class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
+    ref.cacheFor(const Duration(minutes: 3));
     return _fetchWorkflows();
   }
 
@@ -138,8 +147,9 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
   }
 
   /// Saves a workflow utilizing Optimistic Updates.
-  Future<void> saveWorkflow(String id, Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> saveWorkflow(String id, Map<String, dynamic> payload) async {
     final previousState = state;
+    Map<String, dynamic> returnData = {...payload, 'id': id};
 
     // 1. Optimistic Update
     if (state.hasValue && state.value != null) {
@@ -168,18 +178,20 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
           currentList[index] = verifiedWorkflow;
           state = AsyncValue.data(currentList);
         }
+        returnData = verifiedWorkflow;
       }
+      return returnData;
     } catch (e) {
       // 4. Rollback on Failure
       state = previousState;
-      if (e is DioException && e.error is AppError) {
+      if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
       throw Exception('Failed to save workflow: $e');
     }
   }
 
-  /// Deletes a workflow. Throwing AppError on orphan rejection (RESOURCE_IN_USE)
+  /// Deletes a workflow. Throwing AppException on orphan rejection (RESOURCE_IN_USE)
   Future<void> deleteWorkflow(String id) async {
     try {
       final client = ref.read(studioClientProvider);
@@ -191,7 +203,7 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
         state = AsyncValue.data(currentList);
       }
     } catch (e) {
-      if (e is DioException && e.error is AppError) {
+      if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
       throw Exception('Failed to delete workflow: $e');
@@ -204,6 +216,7 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
 class StepsController extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
+    ref.cacheFor(const Duration(minutes: 3));
     return _fetchSteps();
   }
 
@@ -224,8 +237,9 @@ class StepsController extends AsyncNotifier<List<Map<String, dynamic>>> {
   }
 
   /// Saves a step utilizing Optimistic Updates.
-  Future<void> saveStep(String id, Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> saveStep(String id, Map<String, dynamic> payload) async {
     final previousState = state;
+    Map<String, dynamic> returnData = {...payload, 'id': id};
 
     // 1. Optimistic Update
     if (state.hasValue && state.value != null) {
@@ -254,18 +268,20 @@ class StepsController extends AsyncNotifier<List<Map<String, dynamic>>> {
           currentList[index] = verifiedStep;
           state = AsyncValue.data(currentList);
         }
+        returnData = verifiedStep;
       }
+      return returnData;
     } catch (e) {
       // 4. Rollback on Failure
       state = previousState;
-      if (e is DioException && e.error is AppError) {
+      if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
       throw Exception('Failed to save step: $e');
     }
   }
 
-  /// Deletes a step. Throwing AppError on orphan rejection
+  /// Deletes a step. Throwing AppException on orphan rejection
   Future<void> deleteStep(String id) async {
     try {
       final client = ref.read(studioClientProvider);
@@ -277,7 +293,7 @@ class StepsController extends AsyncNotifier<List<Map<String, dynamic>>> {
         state = AsyncValue.data(currentList);
       }
     } catch (e) {
-      if (e is DioException && e.error is AppError) {
+      if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
       throw Exception('Failed to delete step: $e');

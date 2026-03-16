@@ -54,6 +54,9 @@ The immutable state of a workflow run.
 - `raw_inputs`: Original uploaded files/text.
 - `frozen_context`: A deep-copy snapshot of all `PromptBlocks` and `Workflows` as they existed at `created_at` to guarantee eternal auditability.
 - `results`: The finalized JSON schema output per step.
+- `cost_estimate`: Estimated USD cost of the execution block.
+- `prompt_tokens`, `completion_tokens`, `total_tokens`: Core semantic token tracking.
+- `cached_tokens`, `reasoning_tokens`: Global advanced provider metadata metrics for diagnostic tracing.
 
 ---
 
@@ -72,10 +75,14 @@ Each specific configuration entity has its own strictly typed API Router.
 
 | Entity | REST URI | Description |
 | :--- | :--- | :--- |
-| **Model Registry** | `/api/v2/studio/system-configs/{id}` | Direct CRUD for the global LLM routing configuration. |
-| **Workflows** | `/api/v2/studio/workflows` | DAG DAG Blueprint management. |
-| **Prompt Blocks** | `/api/v2/studio/prompt-blocks` | Universal cognitive instruction blocks. |
-| **Steps** | `/api/v2/studio/steps` | Reusable TaskBlueprints. |
-| **Executions** | `/api/v2/execution/executions/` | Job submission and status polling. |
+| **Model Registry** | `/api/v2/studio/model-registry/` | Direct CRUD for the global LLM routing configuration. |
+| **Available Models** | `/api/v2/studio/model-registry/available-models` | Dynamic fetch of LLM configurations bypassing cached state. |
+| **Workflows** | `/api/v2/studio/workflows/` | DAG Blueprint management. |
+| **Prompt Blocks** | `/api/v2/studio/prompt-blocks/` | Universal cognitive instruction blocks. |
+| **Steps** | `/api/v2/studio/steps/` | Reusable TaskBlueprints. |
+| **Executions** | `/api/v2/execution/executions/` | Job submission and metadata persistence. |
+| **Execution Streams** | `/api/v2/execution/executions/{id}/stream` | Server-Sent Events (SSE) log of the active DAG execution. |
+| **Markdown Rendering** | `/api/v2/execution/executions/{id}/render?lang={locale}` | SDUI endpoint generating localized Markdown from structured data. |
+| **PDF Rendering** | `/api/v2/execution/executions/{id}/render_pdf` | Asynchronous trigger to bake an execution into a local PDF. |
 
 This API isolation ensures that a schema error instantly triggers an RFC 7807 `422 Unprocessable Entity` via Pydantic on the boundary, protecting downstream logic and the database.

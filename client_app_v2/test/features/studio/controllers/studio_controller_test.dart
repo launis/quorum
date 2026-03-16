@@ -1,5 +1,5 @@
 import 'package:client_app/core/api/studio_client.dart';
-import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,8 +29,8 @@ void main() {
       () async {
         // Arrange
         const id = 'pb1';
-        final appError = const AppError.api(
-          errorCode: 'RESOURCE_IN_USE',
+        final appError = AppException(
+          extensions: const {'error_code': 'RESOURCE_IN_USE'},
           detail: 'Cannot delete block used by a blueprint',
           status: 400,
         );
@@ -52,7 +52,7 @@ void main() {
         expect(
           () => controller.deletePromptBlock(id),
           throwsA(
-            isA<ApiAppError>()
+            isA<AppException>()
                 .having((e) => e.errorCode, 'errorCode', 'RESOURCE_IN_USE')
                 .having((e) => e.status, 'status', 400),
           ),

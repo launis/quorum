@@ -35,7 +35,7 @@ class PdfReportService:
         # Setup Jinja2 env
         template_dir = Path(__file__).parent.parent / "templates"
         self.env = Environment(loader=FileSystemLoader(str(template_dir)))
-        
+
         # Lightweight Custom Markdown Filter for Bold (**) and Italic (*)
         import re
         def md_filter(text: str) -> str:
@@ -46,7 +46,7 @@ class PdfReportService:
             # Convert *italic* to <em>italic</em>
             text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
             return text
-            
+
         self.env.filters["md"] = md_filter
 
     async def generate_execution_pdf(self, execution_id: str, blueprint_payload: dict | None = None) -> bytes:

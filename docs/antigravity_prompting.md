@@ -25,7 +25,7 @@ REFERENCE: `GEMINI.md` or `AGENTS.md` (Read first. Absolute law).
 INSTRUCTIONS (LEVEL 1):
 1. READ: Do NOT write code yet. Familiarize yourself with the architectural laws.
 2. PLAN: Create an `implementation_plan.md` breaking this goal into several smaller independent Milestones.
-3. SEQUENCE: Every milestone MUST strictly follow the V2 architecture sequence (Dependencies -> Pydantic Models -> L10n -> Repo -> API -> Frontend Controller -> UI). Note: Frontend domain data MUST NOT use generated models (See `flutterpromptohje.md` - Section 1.2 Banned Legacy Patterns).
+3. SEQUENCE: Every milestone MUST strictly follow the V2 architecture sequence (Dependencies -> Pydantic Models -> L10n -> Repo -> API -> Frontend Controller -> UI). Note: Frontend domain data MUST NOT use generated models (See `flutterpromptohje.md` - Section 1.2 Banned Patterns).
 4. SCOPING: Explicitly map which files are `TARGET (Modify)` and which are `CONTEXT (Read-Only)`.
 5. PAUSE: Present the plan and WAIT for explicit approval ("PERMISSION GRANTED"). Do not implement anything.
 ```
@@ -52,7 +52,7 @@ INSTRUCTIONS (LEVEL 2):
 ---
 
 ### 🔴 TIER 3: SINGLE OPERATION (Implementation, review, and maintenance)
-*Usage: Situations where a single feature is changed or created, a legacy file is refactored, bugs are hunted in a solution (debugging), or audits/configuration changes are performed. Tier 3 is divided into compartments (A, B, C, D) based on the nature of the work but operates on a direct execution logic.*
+*Usage: Situations where a single feature is changed or created, an existing file is refactored, bugs are hunted in a solution (debugging), or audits/configuration changes are performed. Tier 3 is divided into compartments (A, B, C, D) based on the nature of the work but operates on a direct execution logic.*
 
 #### 3A. FEATURE & REFACTOR (Single implementation or cleanup)
 ```text
@@ -132,7 +132,7 @@ Bypassing these instructions and tinkering with the live DB (`db_v2.json`) corru
    - The Three Pydantic Boundaries (API, Service, Middleware):
      1. **API Ingestion (Generic IN -> Strict OUT)**: The API Routers (`backend_v2/api/`) MUST take raw JSON/Dict from the web and immediately force it into a strict Pydantic DTO before handing it to the Service layer. Services never accept raw dicts from routers.
      2. **Service Layer (Strict IN -> Strict OUT)**: The business logic (`backend_v2/services/`) is the absolute gatekeeper. It ONLY accepts Pydantic models from the routers, and any data it fetches from the `repository` (TinyDB/Firestore) MUST be instantly hydrated into a Pydantic model (`Model.model_validate(data)`) before any logic is applied. 
-     3. **DAG/Middleware (Strict IN -> Generic OUT)**: The Execution engine (`DAGExecutor`), Post-Hooks (`backend_v2/hooks/`), and Data Pipelines MUST NEVER accept or check for Pydantic models (e.g., `hasattr(item, "model_dump")`). Agents enforce strict Pydantic V2 on generation (Fail-Fast), but immediately hand off `.model_dump(mode="json")` dictionaries to the rest of the internal engine. Middleware flow is always 100% dictionary-based.
+     3. **DAG/Middleware (Strict Context -> Generic Data OUT)**: The Execution engine (`DAGExecutor`), Post-Hooks (`backend_v2/hooks/`), and Data Pipelines MUST NEVER accept or check for Pydantic models in the **cognitive payload** (e.g., `hasattr(item, "model_dump")`). Agents enforce strict Pydantic V2 on generation (Fail-Fast), but immediately hand off `.model_dump(mode="json")` dictionaries to the rest of the internal engine. Middleware **data flow** is always 100% dictionary-based for DAG flexibility, BUT **execution context and system dependencies** (like the active repository or execution ID) MUST be strictly typed using explicit objects (like `HookExecutionContext`) to prevent Magic String injections and ensure Fail-Fast dependency injection.
    - Frontend: Code MUST comply with the rules defined in `c:\src\quorum\docs\flutterpromptohje.md` (See Section 5. FLUTTER CLIENT MANDATES and Section 7. HYBRID SDUI & OMNI-CHANNEL RENDERING). Use Riverpod 3.0 code generation (`@riverpod`). **Use Freezed ONLY for static local UI state (e.g. User, Settings). Dynamic SDUI API Payloads and Blueprints MUST use raw `Map<String, dynamic>` (De-Generator Policy)** to maintain Zero-Deploy flexibility. Data management is kept small and concise. All asynchronous data must be rendered in the UI following the formal model. Routing MUST use `GoRouteData`. NO manual `if(isLoading)` checks (Use `.when()`). NO `Future.wait` monoliths for State.
    - L10N (No-String Policy & 5-Layer Localization Strategy, defined in `flutterpromptohje.md` - Section 8. INTERNATIONALIZATION POLICY): Backend MUST return Enum Keys (e.g., `AUTH_ORGANIC`). Raw UI strings are BANNED in Python APIs. Backend resolves dynamic translations late in the pipeline (Layer 5) via The Translation Schema Doctrine (`BlueprintTransformer`). Static translations live exclusively in Frontend `.arb` files executing ICU formats. No manual string concatenation.
    - Error Handling: Errors in UI must be localized and caught using double-reporting following the protocol in `flutterpromptohje.md` (See Section 6. ERROR HANDLING CONTRACT).

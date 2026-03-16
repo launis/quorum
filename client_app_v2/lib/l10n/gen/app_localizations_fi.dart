@@ -1039,6 +1039,14 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
+  String get workflowDeleteConfirmTitle => 'Vahvista poisto';
+
+  @override
+  String workflowDeleteConfirmDesc(String id) {
+    return 'Poistetaanko työnkulku \"$id\"?';
+  }
+
+  @override
   String get noMatricesFound => 'PromptBlockeja ei löytynyt. Luo uusi!';
 
   @override

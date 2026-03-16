@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class CitationAudit(BaseModel):
 
 
 @hook_registry.register(name="verify_citation_integrity")
-def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
+async def verify_citation_integrity_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Workflow Data wrapper for verify_citation_integrity.
 
     Verified dynamic citations against structured texts to enforce the Fail-Fast Protocol
@@ -67,12 +67,12 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
     # V2 Isolation Support: Since hooks receive local state, "inputs" might be missing if not explicitly passed.
     inputs = data.get("inputs")
 
-    if not inputs and "_sys_context_vars" in data:
+    if not inputs:
         # Pull global inputs injected by DAG executor for post-hook lookups
-        sys_ctx = data.get("_sys_context_vars", {})
-        if "$inputs" in sys_ctx:
+        global_vars = context.global_context_vars or {}
+        if "$inputs" in global_vars:
             # Note: $inputs resolves to `inputs.raw_inputs` during execution
-            inputs_obj = sys_ctx["$inputs"]
+            inputs_obj = global_vars["$inputs"]
             if hasattr(inputs_obj, "model_dump"):
                 inputs = inputs_obj.model_dump()
             elif hasattr(inputs_obj, "raw_inputs"):
@@ -81,10 +81,6 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
                 inputs = inputs_obj.get("raw_inputs", inputs_obj)
             else:
                 inputs = {}
-
-    if not inputs and "_sys_repository" in data.keys() and "$inputs" in data.keys():
-        # It might be in global lookup if this is evaluated on global end
-        pass
 
     source_texts: list[str] = []
 
@@ -122,25 +118,32 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
     import json
 
     try:
+        import asyncio
         from pathlib import Path
 
-        seed_path = Path("c:/src/quorum/backend_v2/seed/seed_data.json")
-        if seed_path.exists():
-            with open(seed_path, encoding="utf-8") as f:
-                seed_json = json.load(f)
-                if "prompt_blocks" in seed_json:
-                    for pb in seed_json["prompt_blocks"]:
-                        if "theory_grounding" in pb:
-                            _url = pb["theory_grounding"].get("source_url")
-                            # In production, this would fetch from the web. We rely on exact texts in the inputs mostly.
-                            pass
+        seed_path = Path(__file__).parent.parent / "seed" / "seed_data.json"
+        docs_dir = Path(__file__).parent.parent.parent / "docs"
 
-        # We also read the documentation to verify any theories explicitly named in the documents
-        docs_dir = Path("c:/src/quorum/docs")
-        if docs_dir.exists():
-            for doc_file in docs_dir.glob("*.md"):
-                with open(doc_file, encoding="utf-8") as f:
-                    rag_text += f.read() + "\n"
+        def _read_seed_and_docs() -> str:
+            local_rag = ""
+            if seed_path.exists():
+                with open(seed_path, encoding="utf-8") as f:
+                    seed_json = json.load(f)
+                    if "prompt_blocks" in seed_json:
+                        for pb in seed_json["prompt_blocks"]:
+                            if "theory_grounding" in pb:
+                                _url = pb["theory_grounding"].get("source_url")
+                                # In production, this would fetch from the web. We rely on exact texts in the inputs mostly.
+                                pass
+
+            # We also read the documentation to verify any theories explicitly named in the documents
+            if docs_dir.exists():
+                for doc_file in docs_dir.glob("*.md"):
+                    with open(doc_file, encoding="utf-8") as f:
+                        local_rag += f.read() + "\n"
+            return local_rag
+
+        rag_text += await asyncio.to_thread(_read_seed_and_docs)
     except Exception as e:
         logger.warning(f"[IntegrityHook] Failed to load documents for citation checking: {e}")
 
@@ -233,7 +236,7 @@ def verify_citation_integrity_hook(data: dict[str, Any]) -> dict[str, Any]:
 
 
 @hook_registry.register(name="enforce_hypothesis_linking")
-def enforce_hypothesis_linking_hook(data: dict[str, Any]) -> dict[str, Any]:
+def enforce_hypothesis_linking_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Workflow Data wrapper for enforce_hypothesis_linking.
 
     Ensure that Analyst Hypotheses have sequential, valid IDs (HYP-1, HYP-2...).

@@ -57,6 +57,20 @@ async def lifespan(app: FastAPI) -> Any:
             files = [f for f in os.listdir(workflow_dir) if f.endswith(".json")]
             logger.info(f"[StartupAudit] Workflows Detected: {len(files)} files in {workflow_dir}.")
 
+        # C. Initialize Arq Redis Pool
+        # We attempt to connect to the configured Redis instance, otherwise fallback to in-memory fake redis.
+        from arq.connections import RedisSettings, create_pool
+        try:
+            settings = get_settings()
+            app.state.arq_pool = await create_pool(
+                RedisSettings(host=settings.redis_host, port=settings.redis_port)
+            )
+            logger.info(f"Connected to Arq Redis at {settings.redis_host}:{settings.redis_port}")
+        except Exception as redis_err:
+            logger.warning(f"Failed to connect to real Redis: {redis_err}. Falling back to FakeRedis.")
+            from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
+            app.state.arq_pool = get_patched_fakeredis_pool()
+
         yield
 
     except Exception as e:
@@ -66,6 +80,14 @@ async def lifespan(app: FastAPI) -> Any:
     finally:
         # SHUTDOWN
         logger.info("Shutting down...")
+        if hasattr(app.state, "arq_pool") and app.state.arq_pool:
+            try:
+                # Close real Arq connections
+                if hasattr(app.state.arq_pool, "close"):
+                    app.state.arq_pool.close()
+                    await app.state.arq_pool.wait_closed()
+            except Exception as close_err:
+                logger.error(f"Error closing Arq pool: {close_err}")
 
 
 # --- 2. Application Setup ---

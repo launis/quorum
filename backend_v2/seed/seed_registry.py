@@ -6,10 +6,7 @@ from pydantic import TypeAdapter
 
 from backend_v2.models.auth import Organization, User
 from backend_v2.models.v2_core import (
-    Observation,
-    OutputConfig,
     PromptBlock,
-    Reference,
     Role,
     Step,
     SystemConfigModelRegistry,
@@ -25,10 +22,6 @@ STANDARD_REGISTRY = {
     "prompt_blocks": {"table": "prompt_blocks", "model": TypeAdapter(PromptBlock), "id_field": "id"},
     "steps": {"table": "steps", "model": TypeAdapter(Step), "id_field": "id"},
 
-    # Dynamic Raw V1 Collections Mapping to V2 Strict Types
-    "output_configs": {"table": "output_configs", "model": TypeAdapter(OutputConfig), "id_field": "id"},
-    "dimensions": {"table": "dimensions", "model": TypeAdapter(Observation), "id_field": "id"},
-    "references": {"table": "references", "model": TypeAdapter(Reference), "id_field": "id"},
 
     # IAM remains shared for now until isolated
     "organizations": {"table": "organizations", "model": TypeAdapter(Organization), "id_field": "id"},

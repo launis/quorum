@@ -46,7 +46,7 @@ class App extends ConsumerWidget {
       title: 'Cognitive Quorum',
       locale: locale,
       builder: (context, child) {
-        return AppErrorBoundary(child: child ?? const SizedBox.shrink());
+        return AppExceptionBoundary(child: child ?? const SizedBox.shrink());
       },
 
       // 3. Navigation

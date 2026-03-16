@@ -13,7 +13,7 @@ import fitz
 from fastapi import status
 from fastapi.concurrency import run_in_threadpool
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ async def resolve_input(val: Any) -> str:
 
 
 @hook_registry.register(name="input_processing")
-async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
+async def process_inputs(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """HOOK: input_processing.
 
     Reads raw input modalities passed from the client, normalizes them,
@@ -65,8 +65,8 @@ async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
     logger.info("[InputProcessingHook] Running deterministic input normalizer...")
 
     # Fetch workflow to know about expected_inputs
-    repo = data.get("_sys_repository")
-    workflow_id = data.get("_sys_workflow_id")
+    repo = context.repository
+    workflow_id = context.workflow_id
 
     if not repo or not workflow_id:
         logger.error("[InputProcessingHook] Missing repository or workflow_id in context.")
@@ -149,11 +149,9 @@ async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
             # V2 STRICT FAIL-FAST: Missing English instruction is fatal
             if not desc_text:
                 logger.error(f"[InputProcessingHook] VALIDATION_FAILED: Missing English translation for {key} ai_description.")
-                from backend_v2.exceptions import ErrorCodes
                 raise AppException(
                     message=f"System Configuration Error: Missing mandatory English translation for '{key}' cognitive prompt block.",
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    error_code=ErrorCodes.VALIDATION_FAILED,
                     details={"error_code": "MISSING_ENGLISH_PROMPT", "input_key": key}
                 )
 

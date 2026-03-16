@@ -5,8 +5,7 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import hook_registry
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.utils.pydantic_utils import inflate
 
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 @hook_registry.register(name="retrieve_precedent")
 async def retrieve_precedent_hook(
-    data: dict[str, Any], repository: AbstractWorkflowRepository | None = None
+    data: dict[str, Any], context: HookExecutionContext
 ) -> dict[str, Any]:
     """Workflow Data wrapper for retrieve_precedent.
 
@@ -25,7 +24,7 @@ async def retrieve_precedent_hook(
 
     Args:
         data (dict): Current data.
-        repository (AbstractWorkflowRepository, optional): Data access layer. Defaults to None.
+        context (HookExecutionContext): Strongly typed context.
 
     Returns:
         dict: Updated data with injected precedents.
@@ -38,7 +37,7 @@ async def retrieve_precedent_hook(
     if not data:
         return {}
 
-    repository = repository or data.get("_sys_repository")
+    repository = context.repository
     if not repository:
         # STRICT CONFIG CHECK
         error_code = ErrorCodes.CONFIGURATION_ERROR

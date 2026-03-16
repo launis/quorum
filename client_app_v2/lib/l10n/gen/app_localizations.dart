@@ -2006,6 +2006,18 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete {name}?'**
   String deleteWorkflowConfirmation(String name);
 
+  /// No description provided for @workflowDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Workflow'**
+  String get workflowDeleteConfirmTitle;
+
+  /// No description provided for @workflowDeleteConfirmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete workflow \"{id}\"?'**
+  String workflowDeleteConfirmDesc(String id);
+
   /// No description provided for @noMatricesFound.
   ///
   /// In en, this message translates to:

@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.settings import get_settings
 
@@ -196,7 +196,7 @@ def calculate_behavioral_metrics(metrics: Any) -> Any:
 
 
 @hook_registry.register(name="calculate_control_ratio")
-def calculate_control_ratio_hook(data: dict[str, Any]) -> dict[str, Any]:
+def calculate_control_ratio_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Standalone hook to provide input control ratio if requested explicitly by a DAG step."""
     inputs = data.get("inputs", {})
 
@@ -211,7 +211,7 @@ def calculate_control_ratio_hook(data: dict[str, Any]) -> dict[str, Any]:
 
 
 @hook_registry.register(name="calculate_text_metrics")
-def text_metrics(data: dict[str, Any]) -> dict[str, Any]:
+def text_metrics(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Calculates text metrics and behavioral heuristics from input data.
 
     Expects 'inputs' containing 'history_text' and 'product_text'.

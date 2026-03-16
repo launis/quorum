@@ -3,7 +3,8 @@ import 'package:client_app/features/auth/presentation/providers/firebase_instanc
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
-import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/error/validation_error_reason.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,13 +25,13 @@ class AuthRepository {
     return _firebaseAuth?.authStateChanges() ?? Stream.value(null);
   }
 
-  Future<Either<AppError, User>> signInWithEmailAndPassword(
+  Future<Either<AppException, User>> signInWithEmailAndPassword(
     String email,
     String password,
   ) async {
     try {
       if (_firebaseAuth == null) {
-        return const Left(AppError.unknown());
+        return Left(AppException.unknown());
       }
       // 1. Authenticate with Firebase
       final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
@@ -40,7 +41,7 @@ class AuthRepository {
 
       final firebaseUser = userCredential.user;
       if (firebaseUser == null) {
-        return const Left(AppError.unknown());
+        return Left(AppException.unknown());
       }
 
       // 2. Get Token
@@ -53,7 +54,7 @@ class AuthRepository {
       );
 
       if (response.data == null || response.data!['user'] == null) {
-        return const Left(AppError.server(null));
+        return Left(AppException(detail: ''));
       }
 
       // 4. Return Hydrated User
@@ -62,10 +63,10 @@ class AuthRepository {
       );
     } on firebase.FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found' || e.code == 'wrong-password') {
-        return const Left(AppError.unauthorized());
+        return Left(AppException.unauthorized());
       }
       // Strict Localization: Map generic Auth failure to unknown validation error
-      return const Left(AppError.validation(ValidationErrorReason.unknown));
+      return Left(AppException.validation(ValidationErrorReason.unknown.toString()));
     } on DioException catch (e) {
       if (e.response != null && e.response!.data != null) {
         final data = e.response!.data;
@@ -74,34 +75,32 @@ class AuthRepository {
 
           // Strict Mapping of Backend Error Codes
           if (code == 'HTTP_401' || code == 'AUTH_FAILED') {
-            return const Left(AppError.unauthorized());
+            return Left(AppException.unauthorized());
           }
           if (code == 'HTTP_404') {
-            return const Left(
-              AppError.notFound(''),
-            ); // Empty string or null? mismatch signature. AppError.notFound takes String. Using empty string as placeholder.
+            return Left(AppException.notFound(''));
           }
           // Default to generic server error without dynamic message
-          return const Left(AppError.server(null));
+          return const Left(AppException(detail: ''));
         }
       }
 
       if (e.response?.statusCode == 404) {
-        return const Left(AppError.notFound(''));
+        return Left(AppException.notFound(''));
       }
       if (e.response?.statusCode == 401) {
-        return const Left(AppError.unauthorized());
+        return Left(AppException.unauthorized());
       }
 
-      return const Left(AppError.server(null));
+      return Left(AppException(detail: ''));
     } catch (e) {
-      return const Left(AppError.unknown());
+      return Left(AppException.unknown());
     }
   }
 
   /// **Debug Only**: Bypasses Firebase and authenticates directly with Backend Mock Token.
   /// **Debug Only**: Bypasses Firebase and authenticates directly with Backend Mock Token.
-  Future<Either<AppError, User>> debugSignInWithMockToken(String id) async {
+  Future<Either<AppException, User>> debugSignInWithMockToken(String id) async {
     try {
       // 1. Verify with Backend (using special mock-token prefix logic)
       final response = await _client.post<Map<String, dynamic>>(
@@ -110,7 +109,7 @@ class AuthRepository {
       );
 
       if (response.data == null || response.data!['user'] == null) {
-        return const Left(AppError.server(null));
+        return Left(AppException(detail: ''));
       }
 
       // 2. Return Hydrated User
@@ -122,7 +121,7 @@ class AuthRepository {
       );
     } catch (e) {
       // DEBUG: Return raw error to UI
-      return Left(AppError.server("Debug Login Failed: $e"));
+      return Left(AppException(detail: "Debug Login Failed: $e"));
     }
   }
 

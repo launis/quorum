@@ -4,24 +4,25 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 
 logger = logging.getLogger(__name__)
 
 @hook_registry.register(name="inject_step_metadata")
-def inject_step_metadata(data: dict[str, Any]) -> dict[str, Any]:
+def inject_step_metadata(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Computes execution metadata including timestamps and initiator information.
     
     This fulfills the V2 requirement for providing 'kello' (timestamp) and 'user' 
     information dynamically to the output dictionary without requiring LLM generation.
     """
-    execution_id = data.get("_sys_execution_id", "unknown_execution")
-    step_id = data.get("_sys_step_id", "unknown_step")
-    workflow_id = data.get("_sys_workflow_id", "unknown_workflow")
+    execution_id = context.execution_id or "unknown_execution"
+    step_id = context.step_id or "unknown_step"
+    workflow_id = context.workflow_id or "unknown_workflow"
 
     # Try to grab user/initiator from context if it was passed down from the API/Authentication route
     # Fallback to system user if absent
-    initiator_id = data.get("_sys_initiator_id", "system")
+    global_vars = context.global_context_vars or {}
+    initiator_id = global_vars.get("_sys_initiator_id", "system")
 
     metadata = {
         "execution_id": execution_id,

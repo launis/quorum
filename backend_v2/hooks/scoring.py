@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ def _calculate_falsifier_penalty(falsifier_data: Any | None) -> bool:
 
 
 @hook_registry.register(name="apply_scoring_logic")
-def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
+def apply_scoring_logic_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Workflow Data wrapper for apply_scoring_logic.
 
     Aggregates scores from Judge/Evaluation steps, applies penalties based on
@@ -77,15 +77,16 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
     if not data:
         return {}
 
-    # V2 Architecture Isolation: Attempt to find context in isolated data,
-    # or explicitly fetch from the global context variables wrapper if provided by DAGExecutor.
-    context = data.get("_sys_context_vars", data)
+    # V2 Architecture Isolation: Use the explicit execution context wrapper provided by DAGExecutor.
+    global_vars = context.global_context_vars
+    # Use global vars for lookup if available, otherwise fallback to the isolated node data
+    lookup_ctx = global_vars if global_vars else data
 
     # 1. Security Penalty Check (Guard)
-    security_threat = _extract_guard_flag(context)
+    security_threat = _extract_guard_flag(lookup_ctx)
 
     # 2. Falsifier Penalty Check
-    falsifier_data = _extract_falsifier_data(context)
+    falsifier_data = _extract_falsifier_data(lookup_ctx)
     is_post_hoc = _calculate_falsifier_penalty(falsifier_data)
 
     if not falsifier_data:
@@ -114,14 +115,14 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
     # Let's inspect the entire context for any `_scaled` keys that match the whitelist.
     # The Judge is the final aggregator so by checking context we capture everything.
 
-    candidates = [context]  # Default to full history
-    step_id = context.get("_sys_step_id")
+    candidates = [lookup_ctx]  # Default to full history
+    step_id = context.step_id
     if step_id in ["step_judge", "step_judge_cognitive"]:
         candidates.append(data)
 
     unique_matrices = {}
 
-    def _extract_scores(source: dict):
+    def _extract_scores(source: dict[str, Any]) -> None:
         for k, v in source.items():
             if isinstance(k, str) and k.endswith("_normalized"):
                 base_key = k.replace("_normalized", "")
@@ -183,11 +184,11 @@ def apply_scoring_logic_hook(data: dict[str, Any]) -> dict[str, Any]:
 
     # 4.5 Algorithmic Tyranny Kill Switch (V2 Phase 9)
     # Extracts profiling metrics and strictness from the isolated Pydantic inputs block
-    inputs = context.get("inputs", {})
+    inputs = lookup_ctx.get("inputs", {})
     strictness_level = int(inputs.get("strictness_level", 3))
 
     if strictness_level == 5:
-        profiler = context.get("profiler_metrics", {})
+        profiler = lookup_ctx.get("profiler_metrics", {})
         control_ratio = float(profiler.get("control_ratio", 1.0))
         lexical_diversity = float(profiler.get("lexical_diversity", 1.0))
 
@@ -342,7 +343,7 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
 
 
 @hook_registry.register(name="enforce_passivity_penalty")
-def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
+def enforce_passivity_penalty_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Refined Truth Protocol: Enforces passivity penalty if detected in Judge Output.
 
     Checks if any dimension in the Judge Output has the minimum possible score.
@@ -361,8 +362,9 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
     if not data:
         return {}
 
-    # V2 Architecture Isolation: Fetch keys from global context wrapper if available
-    context = data.get("_sys_context_vars", data)
+    # V2 Architecture Isolation: Use the explicit execution context wrapper
+    global_vars = context.global_context_vars
+    lookup_ctx = global_vars if global_vars else data
 
     updates_needed = False
     new_data: dict[str, Any] = {}
@@ -371,11 +373,11 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
 
     # 1. From context (legacy/global)
     for judge_key in ["step_judge", "step_judge_cognitive"]:
-        if judge_key in context:
-            judges_to_check.append((judge_key, context.get(judge_key), False))
+        if judge_key in lookup_ctx:
+            judges_to_check.append((judge_key, lookup_ctx.get(judge_key), False))
 
     # 2. From V2 Isolation Fix (post-hook)
-    step_id = context.get("_sys_step_id")
+    step_id = context.step_id
     if step_id in ["step_judge", "step_judge_cognitive"]:
         judges_to_check.append((step_id, data, True))
 
@@ -489,7 +491,7 @@ def enforce_passivity_penalty_hook(data: dict[str, Any]) -> dict[str, Any]:
 
 
 @hook_registry.register(name="normalize_matrix_scores")
-async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> Any:
+async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Post-Hook to normalize any raw matrix scores into a user-defined target scale.
 
     It scans the current step's output in the state context.
@@ -498,19 +500,13 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
 
     Args:
         state: WorkflowState
-        repository: The active AbstractWorkflowRepository for fetching schemas.
+        context: The strictly typed HookExecutionContext containing dependencies.
     """
     logger.info("[ScoringHook] Running normalize_matrix_scores_hook...")
 
-    if not repository and isinstance(state, dict):
-        repository = state.get("_sys_repository")
-        if not repository:
-            ctx = state.get("_sys_context_vars", {})
-            if isinstance(ctx, dict):
-                repository = ctx.get("_sys_repository")
-
+    repository = context.repository
     if not repository:
-        logger.warning("[ScoringHook] No repository provided (not in kwargs or state). Skipping normalization.")
+        logger.warning("[ScoringHook] No repository provided in HookExecutionContext. Skipping normalization.")
         return state
 
     # V2 Fast-Fail Architecture: State is now a strictly isolated dictionary (DAGExecutor final_dict)
@@ -519,11 +515,7 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
         logger.debug("[ScoringHook] State is not a dictionary. Skipping.")
         return state
 
-    step_id = state.get("_sys_step_id")
-    if not step_id:
-        ctx = state.get("_sys_context_vars", {})
-        if isinstance(ctx, dict):
-            step_id = ctx.get("_sys_step_id")
+    step_id = context.step_id
 
     content_payload = state
 
@@ -578,14 +570,13 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
                 raw_float_val = float(new_payload[slug])
                 new_payload[slug] = raw_float_val
                 raw_val = raw_float_val
-            except (ValueError, TypeError) as e:
-                # 6.3 Graceful Degradation: Log structured error before passing through
-                from backend_v2.exceptions import ErrorCodes
-                logger.error(
-                    f"[ScoringHook] {ErrorCodes.VALIDATION_FAILED.name}: "
-                    f"LLM returned Corrupted/Non-numeric data for '{slug}', "
-                    f"Gracefully Skipping Normalization. Value: {new_payload[slug]}",
-                    exc_info=True
+            except (ValueError, TypeError):
+                # Graceful Degradation: Log info before skipping.
+                # Non-numeric outputs (like JSON blobs or reasoning traces) are expected for text PromptBlocks. 
+                # Downgraded from ERROR to DEBUG to avoid terrifying the user with stack traces on intentional JSON outputs.
+                logger.debug(
+                    f"[ScoringHook] Non-numeric data for '{slug}', "
+                    f"skipping score normalization. Value snippet: {str(new_payload[slug])[:100]}..."
                 )
                 continue
 

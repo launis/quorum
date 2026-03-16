@@ -27,7 +27,6 @@ from backend_v2.models.domain import (
     Metadata,
     OverseerData,
     OverseerOutput,
-    PanelOutput,
     PerformativityAnalysis,
     PerformativityHeuristic,
     PerformativityOutput,
@@ -163,20 +162,7 @@ MOCK_OVERSEER_OUTPUT = OverseerOutput(
     overseer_data=MOCK_OVERSEER_DATA,
 )
 
-# 2. Panel Role
-MOCK_PANEL_OUTPUT = PanelOutput(
-    thought_process="Mock Panel Trace: Synthesized views.",
-    conclusion="Consensus reached.",
-    confidence_score=0.9,
-    metadata=MOCK_METADATA.model_copy(update={"agentti": "PanelAgent", "vaihe": 3}),
-    logician_data=MOCK_LOGICIAN_DATA,
-    falsifier_data=MOCK_FALSIFIER_DATA,
-    causal_analysis=MOCK_CAUSAL_ANALYSIS,
-    performativity_analysis=MOCK_PERFORMATIVITY_ANALYSIS,
-    overseer_data=MOCK_OVERSEER_DATA,
-)
-
-# 3. Judge Role
+# 2. Judge Role
 MOCK_JUDGE_OUTPUT = EvaluationResult(
     thought_process="Mock Judge Trace: Evaluated all dimensions.",
     conclusion="High quality output.",
@@ -283,7 +269,6 @@ MOCK_GUARD_OUTPUT = GuardOutput(
 
 MOCK_REGISTRY: dict[type[Any], Any] = {
     AnalystOutput: MOCK_ANALYST_OUTPUT,
-    PanelOutput: MOCK_PANEL_OUTPUT,
     GuardOutput: MOCK_GUARD_OUTPUT,
     InteractionAnalysis: MOCK_INTERACTION_OUTPUT,
     ProfilerOutput: MOCK_PROFILER_OUTPUT,
@@ -318,7 +303,6 @@ AGENT_CLASS_TO_MOCK_KEY = {
     "JudgeAgent": "judge_agent",
     "CoachAgent": "coach_agent",
     "XAIReporterAgent": "xai_agent",
-    "PanelAgent": "panel_agent",
 }
 
 
@@ -343,8 +327,6 @@ def get_fallback_data(key: str) -> dict[str, Any]:
         return MOCK_PROFILER_OUTPUT.model_dump()
     elif key == "archivist_agent":
         return MOCK_ARCHIVIST_OUTPUT.model_dump()
-    elif key == "panel_agent":
-        return MOCK_PANEL_OUTPUT.model_dump()
     elif key == "judge_agent":
         return MOCK_JUDGE_OUTPUT.model_dump()
     elif key == "xai_agent":

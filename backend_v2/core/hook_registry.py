@@ -9,6 +9,7 @@ hardcoded domain model dependencies.
 import inspect
 import logging
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
 from typing import Any
 
 from fastapi import status
@@ -17,10 +18,26 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
+from backend_v2.database.repository import AbstractWorkflowRepository
+
+
+@dataclass
+class HookExecutionContext:
+    """Strictly typed execution context for V2 Hooks.
+
+    Prevents Magic String injection of dependencies into the generic state dictionary.
+    """
+    repository: AbstractWorkflowRepository
+    execution_id: str
+    workflow_id: str
+    step_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    global_context_vars: dict[str, Any] = field(default_factory=dict)
+
 # Strict type definition for a hook function
-# It accepts a dictionary of inputs and returns a dictionary of outputs
+# It accepts a dictionary of inputs and a HookExecutionContext, returning a dictionary of outputs
 # It can be either synchronous or asynchronous
-HookFunction = Callable[[dict[str, Any]], dict[str, Any] | Awaitable[dict[str, Any]]]
+HookFunction = Callable[[dict[str, Any], HookExecutionContext], dict[str, Any] | Awaitable[dict[str, Any]]]
 
 
 class HookRegistry:
@@ -86,15 +103,16 @@ class HookRegistry:
             )
         return self._hooks[name]
 
-    async def execute(self, name: str, data: dict[str, Any]) -> dict[str, Any]:
+    async def execute(self, name: str, data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
         """Executes a registered hook securely.
 
         Handles both synchronous and asynchronous functions and enforces
-        the strict input/output format.
+        the strict input/output format and context injection.
 
         Args:
             name (str): The name of the hook to execute.
             data (dict[str, Any]): The input data payload.
+            context (HookExecutionContext): The strictly typed execution context.
 
         Returns:
             dict[str, Any]: The result of the hook execution.
@@ -109,9 +127,9 @@ class HookRegistry:
 
             # Execute taking into account whether it is a coroutine
             if inspect.iscoroutinefunction(hook_func):
-                result = await hook_func(data)
+                result = await hook_func(data, context)
             else:
-                result = hook_func(data)
+                result = hook_func(data, context)
 
             # Enforce strict return type according to architectural mandate
             if not isinstance(result, dict):

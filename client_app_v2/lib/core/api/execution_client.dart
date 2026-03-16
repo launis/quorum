@@ -22,7 +22,7 @@ class ExecutionClient {
   /// Starts a new workflow execution.
   ///
   /// Validates Fail-Fast: Any HTTP errors like 400 or 500 will be caught by
-  /// the ErrorInterceptor and thrown as an AppError.
+  /// the ErrorInterceptor and thrown as an AppException.
   Future<Map<String, dynamic>> startExecution({
     required String workflowId,
     required Map<String, dynamic> rawInputs,

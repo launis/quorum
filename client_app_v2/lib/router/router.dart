@@ -13,6 +13,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/execution/views/dashboard_view.dart';
 import 'package:client_app/features/execution/views/execution_view.dart';
@@ -22,6 +24,9 @@ part 'router.g.dart';
 
 // Private keys for navigator state
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+// Global route observer for RouteAware logic (e.g. Dashboard cache invalidation)
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 // Private keys for navigator state
 
@@ -50,6 +55,14 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: true,
+    observers: [routeObserver],
+    errorBuilder: (context, state) => ErrorView(
+      title: 'Navigation Error',
+      error: AppException.notFound(
+          'Route ${state.uri.toString()} not found or broken. ${state.error?.message ?? ""}'),
+      onAction: () => context.go('/dashboard'),
+      actionLabel: 'Return Home',
+    ),
     redirect: (context, state) {
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';

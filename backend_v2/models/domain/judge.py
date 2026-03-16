@@ -20,7 +20,6 @@ from backend_v2.models.domain.causal import CausalOutput
 from backend_v2.models.domain.falsifier import FalsifierOutput
 from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.domain.overseer import OverseerOutput
-from backend_v2.models.domain.panel import PanelOutput
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
 
@@ -43,7 +42,6 @@ class JudgeInput(BaseModel):
     step_causal: CausalOutput | None = Field(None, description="Causal Output.")
     step_detector: PerformativityOutput | None = Field(None, description="Detector Output.")
     step_overseer: OverseerOutput | None = Field(None, description="Overseer Output.")
-    step_panel: PanelOutput | None = Field(None, description="Panel Output (Fused Mode).")
 
     # Legacy/Flexible inputs (for now, until all are strictly mapped)
     step_guard: dict[str, Any] | None = Field(None, description="Guard Output.")

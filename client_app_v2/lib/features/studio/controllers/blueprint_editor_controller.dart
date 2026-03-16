@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/utils/riverpod_extensions.dart';
 
 part 'blueprint_editor_controller.g.dart';
 
@@ -12,6 +13,12 @@ part 'blueprint_editor_controller.g.dart';
 class BlueprintEditorController extends _$BlueprintEditorController {
   @override
   Map<String, dynamic> build() {
+    // 2. Riverpod TTL Caching (Time-To-Live for Forms)
+    // Keep this form data alive for 3 minutes after the admin leaves the Studio.
+    // If they navigate back within 3 minutes, they don't lose their unsaved blueprint.
+    // If they take longer, Riverpod autoDisposes it to prevent stale sessions.
+    ref.cacheFor(const Duration(minutes: 3));
+
     return {
       'version': '1.0',
       'components': [],

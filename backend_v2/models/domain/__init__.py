@@ -81,7 +81,6 @@ from backend_v2.models.domain.overseer import (
     OverseerInput,
     OverseerOutput,
 )
-from backend_v2.models.domain.panel import PanelInput, PanelOutput, PanelOutputDTO
 from backend_v2.models.domain.performativity import (
     LinguisticsResult,
     PerformativePattern,
@@ -107,7 +106,6 @@ DOMAIN_REGISTRY = {
     "GuardOutput": GuardOutput,
     "AnalystOutput": AnalystOutput,
     "LogicianOutput": LogicianOutput,
-    "PanelOutput": PanelOutput,
     "JudgeInput": JudgeInput,
     "JudgeOutput": JudgeOutput,
     "XAIOutput": XAIOutput,
@@ -212,9 +210,6 @@ __all__ = [
     "XAIScoreItem",
     "ReportContext",
     "ReportResult",
-    "PanelInput",
-    "PanelOutput",
-    "PanelOutputDTO",
     "DOMAIN_REGISTRY",
     "RetrievalInput",
     "RetrievalOutput",

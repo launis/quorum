@@ -79,9 +79,17 @@ class WorkflowState(BaseModel):
     )
 
     execution_trace: list[TraceEvent] = Field(default_factory=list, description="Immutable log of all events.")
+    execution_trace_storage_path: str | None = Field(
+        default=None, description="Path to offloaded trace in Cloud Storage."
+    )
+
     context_variables: dict[str, Any] = Field(
         default_factory=dict, description="Current snapshots of context variables."
     )
+    context_variables_storage_path: str | None = Field(
+        default=None, description="Path to offloaded context JSON in Cloud Storage."
+    )
+
     workflow_name: str | None = Field(default=None, description="Human-readable name of the workflow.")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp.")
 
@@ -160,13 +168,6 @@ class WorkflowState(BaseModel):
         from backend_v2.models.domain.analyst import AnalystOutput
 
         return self.get_context("step_analyst", AnalystOutput)
-
-    @property
-    def step_panel(self) -> Any | None:
-        """Type-Safe Accessor for Panel Output (Fused)."""
-        from backend_v2.models.domain.panel import PanelOutput
-
-        return self.get_context("step_panel", PanelOutput)
 
     @property
     def step_judge(self) -> Any | None:

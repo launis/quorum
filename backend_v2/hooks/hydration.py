@@ -3,13 +3,13 @@
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 
 logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="hydrate_global_inputs")
-def hydrate_global_inputs_hook(data: dict[str, Any]) -> dict[str, Any]:
+def hydrate_global_inputs_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Workflow Data wrapper for hydrate_global_inputs.
 
     Extracts the parsed strings from the InputProcessorAgent's output

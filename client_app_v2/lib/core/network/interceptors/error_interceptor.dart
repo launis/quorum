@@ -1,5 +1,4 @@
-import 'package:client_app/core/error/app_error.dart';
-import 'package:client_app/core/error/problem_detail.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,20 +40,19 @@ class ErrorInterceptor extends Interceptor {
       // RFC 7807 requires 'type' and 'status' fields
       if (data.containsKey('type') && data.containsKey('status')) {
         try {
-          final problem = ProblemDetail.fromJson(data);
-          final appError = AppError.fromProblemDetail(problem);
+          final appException = AppException.fromJson(data);
 
           handler.reject(
             DioException(
               requestOptions: err.requestOptions,
               response: err.response,
               type: err.type,
-              error: appError,
+              error: appException,
             ),
           );
           return;
         } catch (e) {
-          logger.warning('HTTP', 'Failed to parse ProblemDetail: $e');
+          logger.warning('HTTP', 'Failed to parse AppException: $e');
         }
       }
     }
@@ -67,7 +65,7 @@ class ErrorInterceptor extends Interceptor {
           requestOptions: err.requestOptions,
           response: err.response,
           type: err.type,
-          error: AppError.network(err),
+          error: AppException.network(err),
         ),
       );
       return;
@@ -80,7 +78,7 @@ class ErrorInterceptor extends Interceptor {
           requestOptions: err.requestOptions,
           response: err.response,
           type: err.type,
-          error: const AppError.cancelled(),
+          error: AppException.cancelled(),
         ),
       );
       return;
@@ -92,8 +90,9 @@ class ErrorInterceptor extends Interceptor {
         requestOptions: err.requestOptions,
         response: err.response,
         type: err.type,
-        error: AppError.unknown(err),
+        error: AppException.unknown(err),
       ),
     );
   }
 }
+

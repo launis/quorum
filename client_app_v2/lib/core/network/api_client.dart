@@ -21,7 +21,7 @@ import 'dart:convert';
 /// - **Headers**: Default content-type is `application/json`.
 /// - **Accept**: Includes `application/problem+json` for RFC 7807 errors.
 /// - **Security**: Automatically attaches [AuthInterceptor] to sign requests.
-/// - **Error Handling**: [ErrorInterceptor] parses RFC 7807 responses to [AppError].
+/// - **Error Handling**: [ErrorInterceptor] parses RFC 7807 responses to [AppException].
 ///
 /// **Returns**:
 /// A fully configured [Dio] instance ready for network requests.
@@ -67,7 +67,7 @@ final apiClientProvider = Provider<Dio>((ref) {
   // Add Logger (before ErrorInterceptor to capture raw requests)
   dio.interceptors.add(DioLoggerInterceptor(ref));
 
-  // Add Error Interceptor (parses RFC 7807 errors to AppError)
+  // Add Error Interceptor (parses RFC 7807 errors to AppException)
   dio.interceptors.add(ErrorInterceptor(ref));
 
   return dio;

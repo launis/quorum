@@ -81,7 +81,7 @@ class ChatParserService:
 
         try:
             # V2 Strict Output Generation
-            parsed_data = await llm_client.run_structured_task(
+            parsed_data, _ = await llm_client.run_structured_task(
                 messages=messages,
                 response_model=ChatHistoryDTO
             )

@@ -8,7 +8,6 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any
 
-import instructor
 import litellm
 from litellm import Router  # type: ignore
 from pydantic import BaseModel
@@ -85,7 +84,6 @@ class LiteLLMProvider(LLMProvider):
 
     # Class-level cache to prevent litellm callbacks memory leak during bulk executions
     _router_cache: dict[str, Any] = {}
-    _instructor_cache: dict[str, Any] = {}
 
     def __init__(
         self,
@@ -117,6 +115,7 @@ class LiteLLMProvider(LLMProvider):
 
         # litellm general config
         litellm.drop_params = True
+        litellm.num_retries = 0  # CRITICAL: Disable internal retries so Tenacity is in control
 
         # --- Configure Router for Rate Limiting ---
         # We construct a single-item model list for this provider instance
@@ -142,23 +141,11 @@ class LiteLLMProvider(LLMProvider):
             logger.error(f"[LiteLLMProvider] {msg}")
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
-        # 4. Determine Parsing Mode
-        parse_mode = instructor.Mode.MD_JSON
-        if self.settings and getattr(self.settings, "parsing_mode", None):
-            mode_str = self.settings.parsing_mode.upper()
-            if hasattr(instructor.Mode, mode_str):
-                parse_mode = getattr(instructor.Mode, mode_str)
-            else:
-                logger.warning(
-                    f"[LiteLLMProvider] Invalid parsing_mode '{mode_str}' in config, falling back to MD_JSON"
-                )
-
-        # Use Class Cache for Router and Instructor Client to avoid MAX_CALLBACKS leak
-        cache_key = f"{model_name}_{tpm}_{rpm}_{parse_mode}"
+        # Use Class Cache for Router to avoid MAX_CALLBACKS leak
+        cache_key = f"{model_name}_{tpm}_{rpm}"
 
         if cache_key in self.__class__._router_cache:
             self.router = self.__class__._router_cache[cache_key]
-            self.client = self.__class__._instructor_cache[cache_key]
         else:
             # 2. Build deployment config
             model_config = {
@@ -173,16 +160,15 @@ class LiteLLMProvider(LLMProvider):
 
             # 3. Initialize Router
             # set_verbose=False to reduce noise, unless debugging
+            # CRITICAL: Disable internal Router retries (num_retries=0) to allow Fail-Fast Tenacity handling
             self.router = Router(
                 model_list=[model_config],
                 set_verbose=False,
+                num_retries=0, 
             )
-
-            self.client = instructor.from_litellm(self.router.acompletion, mode=parse_mode)
 
             # Save to class cache
             self.__class__._router_cache[cache_key] = self.router
-            self.__class__._instructor_cache[cache_key] = self.client
 
     @retry_strategy
     async def generate(  # type: ignore
@@ -317,21 +303,6 @@ class LiteLLMProvider(LLMProvider):
             logger.info(f"[LiteLLMProvider] Using Vertex Location: {v_loc}")
             call_kwargs["vertex_location"] = v_loc
 
-            # --- DYNAMIC GROUNDING (Google Search) ---
-            # Driven by the settings (UI Model Registry config)
-            if getattr(self, "supports_grounding", False):
-                # Ensure it's a Vertex AI compatible model
-                if self.model_name.startswith("vertex_ai/"):
-                    logger.info(f"[LiteLLMProvider] Google Search Grounding ENABLED for {self.model_name}")
-
-                    # Check if tools are already passed to kwargs
-                    existing_tools = call_kwargs.get("tools", [])
-                    # Append Google Search Tool schema required by Vertex AI
-                    search_tool: dict[str, Any] = {"googleSearch": {}}
-
-                    if search_tool not in existing_tools:
-                        existing_tools.append(search_tool)
-                        call_kwargs["tools"] = existing_tools
 
             # --- DIAGNOSTIC DUMP ---
             dump_file = os.getenv("DUMP_PROMPTS_FILE")
@@ -345,228 +316,7 @@ class LiteLLMProvider(LLMProvider):
 
             start_time = time.perf_counter()
 
-            # --- INSTRUCTOR CALL (Structured) ---
-            if response_schema:
-                # Use Instructor for Pydantic validation
-                # we use 'create' because we wrapped self.router.acompletion in __init__
-                # Note: instructor.from_litellm expects the *function* or client.
-                # Since we wrapped it, we call client.chat.completions.create
-
-                # Instructor might return the Model instance directly, or a tuple/Stream.
-                # We expect the Model instance.
-
-                # Adjust kwargs for Instructor
-                call_kwargs["response_model"] = response_schema
-                # Remove fields not needed or handled by Instructor/LiteLLM mixed
-                call_kwargs.pop("response_format", None)
-
-                # We need to map 'max_tokens' -> 'max_tokens' (standard)
-
-                # EXECUTE
-                # Note: usage/cost tracking with Instructor + Router + LiteLLM is tricky.
-                # We might need to inspect the raw response if available, or rely on LiteLLM callbacks.
-                # For now, let's assume Instructor returns the Pydantic object.
-                # BUT we lose the 'reasoning_token' and 'usage' stats if we just get the object.
-                # Instructor allows `checks` and returning `(model, completion)`?
-                # Let's try to get the raw completion to extract usage/reasoning.
-                # from instructor import Response
-
-                # Actually, standard Instructor usage:
-                # result = await self.client.chat.completions.create(...) # -> returns the Pydantic model.
-
-                # To get usage, we might need to rely on LiteLLM's success callbacks or
-                # use `response_model=[response_schema]` iterable trick (deprecated?)
-                # OR use `instructor.patch()` on a client that returns raw response?
-
-                # Let's stick to the simplest path first: Get the object.
-                # We might lose Usage stats temporarily (or get them from callback logic in future).
-                # For reasoning token, checks provider_specific_fields... strictly, Pydantic model
-                # doesn't have it unless we add it to the model.
-
-                # CRITICAL: We need 'reasoning_token' for chain-of-thought continuity.
-                # If we lose it, we break CoT.
-
-                # Strategy:
-                # 1. We assume 'response_schema' is the content model.
-                # 2. We can ask Instructor to return `(instance, raw_completion)` if configured?
-                #    No, `with_response=True` (in newer versions).
-
-                # Let's try basic implementation and see.
-                # I will wrap the Pydantic result into our LLMResponse.
-
-                logger.info(f"[Instructor] Calling {self.model_name} with schema {schema_name}")
-
-                # HYBRID APPROACH (Feb 2026):
-                # `create_with_completion` extracts Grounding Citations but crashes on Gemini-Flash with 100k+ tokens.
-                # Standard `.create()` is rock solid for big context but swallows the raw headers.
-                # We only use the fragile `create_with_completion` if Grounding is explicitly required.
-
-                try:
-                    if self.settings and getattr(self.settings, "supports_grounding", False):
-                        logger.info("[Instructor] Grounding enabled. Using create_with_completion.")
-                        structured_response, raw_completion = await self.client.chat.completions.create_with_completion(
-                            **call_kwargs
-                        )
-                        parsed_obj = structured_response
-                    else:
-                        logger.info("[Instructor] Standard extraction. Using .create().")
-                        parsed_obj = await self.client.chat.completions.create(**call_kwargs)
-                        # For metrics, attempt to extract the underlying object if available
-                        raw_completion = getattr(parsed_obj, "_raw_response", None)
-                except Exception as e:
-                    # Fail Fast: Catch Instructor empty choices or parsing failures cleanly
-                    error_str = str(e)
-                    if "ResponseParsingError" in type(e).__name__ or "No completion choices found" in error_str:
-                        logger.error(f"[LiteLLMProvider] Instructor JSON Parsing Failure: {error_str}")
-
-                        # Extract safety trigger context if possible
-                        safety_hint = ""
-                        if "safety_ratings" in error_str or "finish_reason: safety" in error_str.lower():
-                            safety_hint = " Additionally, Vertex AI Safety Filters may have blocked the response."
-
-                        raise AppException(
-                            message=(
-                                f"LLM returned an empty or malformed structured response. "
-                                f"This is often caused by a prompt that is too large (Search Data) "
-                                f"or a JSON format configuration error.{safety_hint}"
-                            ),
-                            status_code=500,
-                            details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED, "raw_error": error_str},
-                        ) from e
-                    raise e
-
-                final_content = parsed_obj.model_dump_json()
-
-                latency_ms = int((time.perf_counter() - start_time) * 1000)
-
-                # Extract Usage from raw_completion if available
-                usage: dict[str, Any] = {
-                    "prompt_tokens": 0,
-                    "completion_tokens": 0,
-                    "total_tokens": 0,
-                    "cached_tokens": 0,
-                    "reasoning_tokens": 0,
-                }
-                if hasattr(raw_completion, "usage") and raw_completion.usage:
-                    usage["prompt_tokens"] = getattr(raw_completion.usage, "prompt_tokens", 0) or 0
-                    usage["completion_tokens"] = getattr(raw_completion.usage, "completion_tokens", 0) or 0
-                    usage["total_tokens"] = getattr(raw_completion.usage, "total_tokens", 0) or 0
-
-                    if (
-                        hasattr(raw_completion.usage, "prompt_tokens_details")
-                        and raw_completion.usage.prompt_tokens_details
-                    ):
-                        usage["cached_tokens"] = (
-                            getattr(raw_completion.usage.prompt_tokens_details, "cached_tokens", 0) or 0
-                        )
-
-                    if (
-                        hasattr(raw_completion.usage, "completion_tokens_details")
-                        and raw_completion.usage.completion_tokens_details
-                    ):
-                        usage["reasoning_tokens"] = (
-                            getattr(raw_completion.usage.completion_tokens_details, "reasoning_tokens", 0) or 0
-                        )
-
-                finish_reason = None
-                if hasattr(raw_completion, "choices") and raw_completion.choices:
-                    finish_reason = getattr(raw_completion.choices[0], "finish_reason", None)
-
-                # Extract reasoning token if possible (from provider_specific_fields or model_extra)
-                # Note: raw_completion is a generic Completion object (or ChatCompletion)
-                reasoning_token = None
-
-                # Try locating thought signature in extras
-                if hasattr(raw_completion, "model_extra") and raw_completion.model_extra:
-                    reasoning_token = raw_completion.model_extra.get("thought_signature")
-
-                # If missing, check message provider specific fields (if accessible)
-                # Usually located in choices[0].message
-                if not reasoning_token and hasattr(raw_completion, "choices") and raw_completion.choices:
-                    msg = raw_completion.choices[0].message
-                    if hasattr(msg, "provider_specific_fields") and msg.provider_specific_fields:
-                        reasoning_token = msg.provider_specific_fields.get("thought_signature")
-
-                # --- ADVANCED TELEMETRY & METADATA ---
-                system_fingerprint = getattr(raw_completion, "system_fingerprint", None)
-                if finish_reason in ["stop", "eos"]:
-                    finish_reason = None
-
-                provider_meta = raw_completion.model_dump() if hasattr(raw_completion, "model_dump") else {}
-
-                # Rate limits
-                if hasattr(raw_completion, "_hidden_params") and isinstance(raw_completion._hidden_params, dict):
-                    headers = raw_completion._hidden_params.get("headers", {})
-                    if hasattr(headers, "get"):
-                        rem_reqs = headers.get("x-ratelimit-remaining-requests")
-                        if rem_reqs:
-                            provider_meta["rate_limit_remaining"] = rem_reqs
-                            if str(rem_reqs).isdigit() and int(rem_reqs) < 10:
-                                logger.warning(f"[LiteLLMProvider] QUOTA WARNING: Only {rem_reqs} requests remaining.")
-
-                # Vertex AI Safety & Grounding
-                if hasattr(raw_completion, "model_extra") and isinstance(raw_completion.model_extra, dict):
-                    if "safety_ratings" in raw_completion.model_extra:
-                        provider_meta["safety_ratings"] = raw_completion.model_extra["safety_ratings"]
-                    gm = raw_completion.model_extra.get("grounding_metadata", {})
-                    if isinstance(gm, dict) and "grounding_chunks" in gm:
-                        urls = [
-                            chunk["web"]["uri"]
-                            for chunk in gm["grounding_chunks"]
-                            if isinstance(chunk, dict) and "web" in chunk and "uri" in chunk["web"]
-                        ]
-                        if urls:
-                            provider_meta["grounding_urls"] = urls
-
-                # --- COST TRACKING ---
-                cost = 0.0
-                if self.usage_service:
-                    try:
-                        # Calculate cost using LiteLLM raw_completion, explicitly passing
-                        # model name without provider prefix
-                        base_model_name = (
-                            self.model_name.split("/")[-1] if "/" in self.model_name else self.model_name
-                        )
-                        cost = litellm.completion_cost(
-                            completion_response=raw_completion, model=base_model_name
-                        )
-
-                        # Resolve IDs from kwargs (execution config) or provider instance
-                        target_org = kwargs.get("organization_id") or self.organization_id
-                        target_user = kwargs.get("user_id") or "system_agent"
-
-                        await self.usage_service.track_usage(
-                            org_id=target_org,
-                            user_id=target_user,
-                            model=self.model_name,
-                            input_tokens=int(usage.get("prompt_tokens", 0)),
-                            output_tokens=int(usage.get("completion_tokens", 0)),
-                            cached_tokens=int(usage.get("cached_tokens", 0)),
-                            reasoning_tokens=int(usage.get("reasoning_tokens", 0)),
-                            latency_ms=latency_ms,
-                            finish_reason=str(finish_reason) if finish_reason else None,
-                            system_fingerprint=system_fingerprint,
-                            cost_usd=cost,
-                        )
-                    except Exception as e:
-                        logger.warning(f"[LiteLLMProvider] Usage Tracking Failed: {e}")
-
-                # Inject cost into usage dict so BaseAgent can pick it up
-                usage["cost_usd"] = cost
-
-                return LLMResponse(
-                    content=final_content,
-                    parsed_content=parsed_obj.model_dump(),
-                    reasoning_token=reasoning_token,
-                    token_usage=usage,
-                    provider_metadata=provider_meta,
-                    system_fingerprint=system_fingerprint,
-                    tool_calls=[],
-                    messages=messages,
-                )
-
-            # --- STANDARD CALL (Unstructured) ---
-            # Fallback to self.router.acompletion directly if no schema
+            # --- CALL LiteLLM (Unstructured or Structured Native) ---
             # Remove keys that shouldn't be passed directly
             call_kwargs["model"] = self.model_name
 
@@ -613,17 +363,39 @@ class LiteLLMProvider(LLMProvider):
                         getattr(response.usage.completion_tokens_details, "reasoning_tokens", 0) or 0
                     )
 
-            # Handle Schema Parsing (Validation) - This block is now only for non-Instructor structured output
-            # If schema was requested, we return the JSON string in 'content'
-            # OR we populate 'tool_calls' if that mechanism was used.
-            # For simplicity in this unified response, we ensure 'content' is the stringent result.
-
+            # Handle Schema Parsing (Validation) - V2.5 Native Pydantic Parsing
             final_content = raw_content
-            parsed_obj = None  # Initialize parsed_obj for unstructured path
-            # The original `if response_schema:` block for regex parsing is removed
-            # as Instructor handles structured output.
-            # If response_schema was passed, the `if response_schema:` block above would have handled it.
-            # This means if we reach here, response_schema was None, and we just return raw_content.
+            parsed_obj = None
+
+            if response_schema:
+                try:
+                    # Expecting LiteLLM / Provider to have forced a JSON string into `message.content`
+                    # We just use Pydantic directly to validate it.
+                    if isinstance(response_schema, type) and issubclass(response_schema, BaseModel):
+                        parsed_obj = response_schema.model_validate_json(raw_content)
+                        # We dump it rigidly back to JSON to strip random extra hallucinatory whitespace
+                        final_content = parsed_obj.model_dump_json()
+                    elif isinstance(response_schema, dict):
+                        # Raw Dict Schema handling if needed
+                        parsed_obj = json.loads(raw_content)
+                except Exception as parse_err:
+                    error_str = str(parse_err)
+                    logger.error(
+                        f"[LiteLLMProvider] Native JSON Parsing Failure: {error_str}\nRaw Content: {raw_content[:200]}"
+                    )
+
+                    safety_hint = ""
+                    if finish_reason == "content_filter" or "safety" in error_str.lower():
+                        safety_hint = " The response was likely blocked by Provider Safety Filters."
+
+                    raise AppException(
+                        message=(
+                            f"LLM returned an invalid structured response. "
+                            f"{safety_hint}"
+                        ),
+                        status_code=500,
+                        details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED, "raw_error": error_str},
+                    ) from parse_err
 
             # --- ADVANCED TELEMETRY & METADATA ---
             system_fingerprint = getattr(response, "system_fingerprint", None)
@@ -661,12 +433,15 @@ class LiteLLMProvider(LLMProvider):
 
             # --- COST TRACKING ---
             cost = 0.0
+            try:
+                # Calculate cost using LiteLLM, explicitly passing model name without provider prefix
+                base_model_name = self.model_name.split("/")[-1] if "/" in self.model_name else self.model_name
+                cost = litellm.completion_cost(completion_response=response, model=base_model_name)
+            except Exception as e:
+                logger.warning(f"[LiteLLMProvider] Cost Calculation Failed: {e}")
+
             if self.usage_service:
                 try:
-                    # Calculate cost using LiteLLM, explicitly passing model name without provider prefix
-                    base_model_name = self.model_name.split("/")[-1] if "/" in self.model_name else self.model_name
-                    cost = litellm.completion_cost(completion_response=response, model=base_model_name)
-
                     # Resolve IDs from kwargs (execution config) or provider instance
                     target_org = kwargs.get("organization_id") or self.organization_id
                     target_user = kwargs.get("user_id") or "system_agent"
@@ -723,7 +498,10 @@ class LiteLLMProvider(LLMProvider):
 
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
-                logger.error(f"[LiteLLM] {ErrorCodes.RATE_LIMIT_EXCEEDED.name}: RESOURCE EXHAUSTED (Rate Limit): {error_msg}")
+                logger.error(
+                    f"[LiteLLM] {ErrorCodes.RATE_LIMIT_EXCEEDED.name}: "
+                    f"RESOURCE EXHAUSTED (Rate Limit): {error_msg}"
+                )
                 raise ServiceUnavailableError(
                     message="Model provider rate limit exceeded.",
                     details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg},
@@ -731,7 +509,10 @@ class LiteLLMProvider(LLMProvider):
 
             # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens/Empty Response)
             elif "InstructorRetryException" in error_type or "ResponseParsingError" in error_type:
-                logger.error(f"[LiteLLM] {ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.name}: INSTRUCTOR / MODEL FAILURE (Empty choices or schema mismatch): {error_msg}")
+                logger.error(
+                    f"[LiteLLM] {ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.name}: "
+                    f"INSTRUCTOR / MODEL FAILURE (Empty choices or schema mismatch): {error_msg}"
+                )
                 raise AppException(
                     message="Model failed to generate structured output (empty response or looping).",
                     status_code=500,
@@ -740,7 +521,9 @@ class LiteLLMProvider(LLMProvider):
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif "AuthenticationError" in error_type or "401" in error_msg or "invalid_api_key" in error_msg:
-                logger.critical(f"[LiteLLM] {ErrorCodes.CONFIGURATION_ERROR.name}: AUTH FAILED (Check API Keys): {error_msg}")
+                logger.critical(
+                    f"[LiteLLM] {ErrorCodes.CONFIGURATION_ERROR.name}: AUTH FAILED (Check API Keys): {error_msg}"
+                )
                 raise ConfigurationError(
                     message="LLM Provider authentication failed.",
                     details={
@@ -757,12 +540,17 @@ class LiteLLMProvider(LLMProvider):
             ):
                 # Often 400 is generic, but combined with length/context keywords matches this.
                 if "context" in error_msg.lower() or "token" in error_msg.lower():
-                    logger.error(f"[LiteLLM] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: CONTEXT EXCEEDED (Prompt too long): {error_msg}")
+                    logger.error(
+                        f"[LiteLLM] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: "
+                        f"CONTEXT EXCEEDED (Prompt too long): {error_msg}"
+                    )
                     raise AgentExecutionError(
                         detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
                     ) from e
                 else:
-                    logger.error(f"[LiteLLM] {ErrorCodes.AGENT_RESPONSE_MALFORMED.name}: BAD REQUEST (400): {error_msg}")
+                    logger.error(
+                        f"[LiteLLM] {ErrorCodes.AGENT_RESPONSE_MALFORMED.name}: BAD REQUEST (400): {error_msg}"
+                    )
                     raise AgentExecutionError(
                         detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
                     ) from e
@@ -774,7 +562,10 @@ class LiteLLMProvider(LLMProvider):
                 or "500" in error_msg
                 or "Timeout" in error_type
             ):
-                logger.error(f"[LiteLLM] {ErrorCodes.UPSTREAM_TIMEOUT.name}: SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}")
+                logger.error(
+                    f"[LiteLLM] {ErrorCodes.UPSTREAM_TIMEOUT.name}: "
+                    f"SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}"
+                )
                 raise AppException(
                     message="Upstream LLM service timed out or is unavailable.",
                     status_code=503,
@@ -793,7 +584,11 @@ class LiteLLMProvider(LLMProvider):
             else:
                 if len(error_msg) > 500:
                     error_msg = error_msg[:500] + "... [TRUNCATED]"
-                logger.error(f"[LiteLLM] {ErrorCodes.UNKNOWN_ERROR.name}: Execution Failed ({error_type}): {error_msg}", exc_info=True)
+                logger.error(
+                    f"[LiteLLM] {ErrorCodes.UNKNOWN_ERROR.name}: "
+                    f"Execution Failed ({error_type}): {error_msg}",
+                    exc_info=True
+                )
 
                 # Default to ServiceUnavailable for unknown upstream errors
                 raise ServiceUnavailableError(
@@ -979,7 +774,10 @@ class LLMFactory:
             # If Config says "is_active=False", we should have caught this upstream,
             # but we can enforce it here too as a fail-safe.
             if not config.is_active:
-                logger.error(f"[LLMFactory] {ErrorCodes.SERVICE_DISABLED.name}: Provider '{model_name}' is disabled in configuration.")
+                logger.error(
+                    f"[LLMFactory] {ErrorCodes.SERVICE_DISABLED.name}: "
+                    f"Provider '{model_name}' is disabled in configuration."
+                )
                 raise ServiceUnavailableError(
                     message=f"Provider '{model_name}' is disabled in configuration.",
                     details={"error_code": ErrorCodes.SERVICE_DISABLED},
@@ -1050,7 +848,9 @@ class LLMFactory:
             )
 
         if not model_name:
-            logger.error(f"[LLMFactory] {ErrorCodes.CONFIGURATION_ERROR.name}: Model name is required for LLMProvider creation.")
+            logger.error(
+                f"[LLMFactory] {ErrorCodes.CONFIGURATION_ERROR.name}: Model name is required for LLMProvider creation."
+            )
             raise ConfigurationError(
                 message="Model name is required for LLMProvider creation.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR}

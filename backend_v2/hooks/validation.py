@@ -5,14 +5,14 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="verify_structure")
-def verify_structure(data: dict[str, Any]) -> dict[str, Any]:
+def verify_structure(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """HOOK: verify_structure.
 
     Pre-execution validation check to ensure inputs ('history_text', 'product_text', 'reflection_text')
@@ -23,6 +23,7 @@ def verify_structure(data: dict[str, Any]) -> dict[str, Any]:
 
     Args:
         data (dict): Current workflow data containing 'inputs'.
+        context (HookExecutionContext): The strongly typed execution context.
 
     Returns:
         dict: Updated data with warnings if applicable.

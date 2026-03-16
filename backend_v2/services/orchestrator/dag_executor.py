@@ -1,8 +1,9 @@
 import asyncio
+import copy
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -127,10 +128,6 @@ class DAGExecutor:
         raw_inputs_dict = raw_inputs.model_dump(mode="json") if hasattr(raw_inputs, "model_dump") else dict(raw_inputs)
         state_data = dict(raw_inputs_dict)
         state_data["inputs"] = raw_inputs_dict  # Legacy V1 hooks expect data["inputs"]
-        state_data["_sys_workflow_id"] = workflow.id  # Required by V2 input_processing hook
-        state_data["_sys_execution_id"] = execution_id
-        state_data["_sys_repository"] = self.repository
-        state_data["_sys_metadata"] = exec_record.metadata
 
         # --- V2 Strict Execution Hydration Phase ---
         # With V2 Shallow Copy Concurrency isolation (Phase 9), pre_hooks mutating state_data
@@ -139,7 +136,16 @@ class DAGExecutor:
 
         try:
             logger.info(f"[DAGExecutor] Initiating Step 0 Base64 Pre-Hydration for Workflow {workflow.id}")
-            processed = await hook_registry.execute("input_processing", state_data)
+
+            # Create Hook Context for global hooks
+            global_hook_context = HookExecutionContext(
+                repository=self.repository,
+                execution_id=execution_id,
+                workflow_id=workflow.id,
+                metadata=exec_record.metadata
+            )
+
+            processed = await hook_registry.execute("input_processing", state_data, global_hook_context)
             if isinstance(processed, dict) and "inputs" in processed:
                  state_data["inputs"] = processed["inputs"]
         except Exception as e:
@@ -150,7 +156,7 @@ class DAGExecutor:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 status_code=400
             ) from e
-        state_data["_sys_execution_id"] = execution_id
+
         frozen_ctx = exec_record.frozen_context
 
         try:
@@ -169,7 +175,14 @@ class DAGExecutor:
                         {"step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}}
                     )
 
-                    result = await self._execute_step(step_obj, state_data, frozen_ctx)
+                    result = await self._execute_step(
+                        step=step_obj,
+                        shared_state_data=state_data,
+                        frozen_ctx=frozen_ctx,
+                        execution_id=execution_id,
+                        workflow_id=workflow.id,
+                        metadata=exec_record.metadata
+                    )
                     # State update is atomic per step constraint
                     state_data[step_obj.id] = result
                     exec_record.results[step_obj.id] = result
@@ -253,7 +266,6 @@ class DAGExecutor:
             # actually handle raising exceptions just fine by logging them to stderr.
             # Suppressing them violates the V2 Zero-Compromise Pledge.
 
-            from backend_v2.exceptions import AppException
             if isinstance(overall_err, AppException):
                  raise overall_err
 
@@ -263,21 +275,36 @@ class DAGExecutor:
                 status_code=500
             ) from overall_err
 
-    async def _execute_step(self, step: StepRule, shared_state_data: dict[str, Any], frozen_ctx: FrozenContext) -> Any:
+    async def _execute_step(
+        self,
+        step: StepRule,
+        shared_state_data: dict[str, Any],
+        frozen_ctx: FrozenContext,
+        execution_id: str,
+        workflow_id: str,
+        metadata: dict[str, Any]
+    ) -> Any:
         """Executes a single step: hook, agent, or conditional logic."""
         # 1. Condition Evaluation (Currently unsupported in V2 StepRule schema)
 
-        # Isolate state to prevent concurrency bleeding between async nodes in Phase 9
-        state_data = dict(shared_state_data)
+        # Isolate state deeply to prevent concurrency bleeding between async nodes in Phase 9
+        # Shallow copies (like `dict()`) fail if hooks mutate nested dicts or lists during asyncio.gather
+        state_data = copy.deepcopy(shared_state_data)
 
         # 2. Hook Execution (Deterministic or Async)
         hook_name: str | None = getattr(step, "hook", None)
         if hook_name:
-            # Inject repository for hooks that need database or LLM access
-            state_data["_sys_repository"] = self.repository
+            # Create typed context for the standalone hook
+            hook_ctx = HookExecutionContext(
+                repository=self.repository,
+                execution_id=execution_id,
+                workflow_id=workflow_id,
+                step_id=step.id,
+                metadata=metadata
+            )
 
             logger.debug(f"Executing Hook via Registry: {hook_name}")
-            return await hook_registry.execute(hook_name, state_data)
+            return await hook_registry.execute(hook_name, state_data, hook_ctx)
 
         # 3. Role LLM Execution (Non-Deterministic)
         blueprint_slug: str | None = getattr(step, "task_blueprint", None)
@@ -298,19 +325,24 @@ class DAGExecutor:
             logger.debug(f"Executing Step: {step_obj.id}")
 
             # 3.0 Pre-Hooks Execution
-            state_data["_sys_repository"] = self.repository
-            state_data["_sys_step_id"] = step.id
+            hook_ctx = HookExecutionContext(
+                repository=self.repository,
+                execution_id=execution_id,
+                workflow_id=workflow_id,
+                step_id=step.id,
+                metadata=metadata
+            )
 
             for pre_hook in step_obj.pre_hooks:
                 logger.debug(f"Executing Pre-Hook: {pre_hook}")
                 # We assume pre-hooks modify state_data in-place or return updated dict.
-                result = await hook_registry.execute(pre_hook, state_data)
+                result = await hook_registry.execute(pre_hook, state_data, hook_ctx)
                 if isinstance(result, dict):
                      state_data.update(result)
 
             # 3.1 Resolving xml context
             system_prompt = "Complete the evaluation according to the provided schema."
-            target_locale = state_data.get("_sys_metadata", {}).get("target_locale")
+            target_locale = metadata.get("target_locale")
             if not target_locale:
                 msg = "Execution metadata is missing the required 'target_locale', violating the Fail-Fast mandate."
                 logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
@@ -331,7 +363,6 @@ class DAGExecutor:
             # Extract execution record to determine Strictness Level
             # Default to CAUSAL (V1 max) if not found
             strictness = 3
-            execution_id = state_data.get("_sys_execution_id")
             if execution_id:
                 exec_record_dict = await self.repository.get_execution(execution_id)
                 if exec_record_dict and hasattr(exec_record_dict, 'strictness_level'):
@@ -406,33 +437,32 @@ class DAGExecutor:
             bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
 
             # 3.5 LLM Call (Using Strategy-bound Client wrapper)
-            result = await bound_client.run_structured_task(
+            result, usage_dict = await bound_client.run_structured_task(
                 messages=messages,
                 response_model=dynamic_schema,
+                mock_identity=step.id,
             )
 
             final_dict = result.model_dump(mode="json")
 
             # 3.4 Post-Hooks Execution
-            # V2 Isolation: Provide the isolated final_dict, but inject a lookup hook
-            # for global context if the post-hook needs to aggregate across nodes.
-            # SSOT Mandate (Phase 11): Strict IN -> Generic OUT. Enforce dictionary serialization boundary.
+            # V2 Isolation: Provide the isolated final_dict, and pass global context in the explicit
+            # HookExecutionContext instead of polluting the result JSON directly via _sys_context_vars
+
             safe_context = {
                 k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v
                 for k, v in state_data.items()
             }
-            final_dict["_sys_context_vars"] = safe_context
+
+            # Post hooks use the same scoped HookCtx, but we inject the global state securely
+            hook_ctx.global_context_vars = safe_context
 
             for post_hook in step_obj.post_hooks:
                 logger.debug(f"Executing Post-Hook: {post_hook}")
                 # Pass the LLM output dict to the post hook for manipulation/normalization
-                ph_result = await hook_registry.execute(post_hook, final_dict)
+                ph_result = await hook_registry.execute(post_hook, final_dict, hook_ctx)
                 if isinstance(ph_result, dict):
                     final_dict.update(ph_result)
-
-            # Remove the injected global context immediately to prevent recursive JSON bloat
-            if "_sys_context_vars" in final_dict:
-                del final_dict["_sys_context_vars"]
 
             # 3.5 Merge Python Hook State into Final Result
             # Pre-hooks often return specific statistical metadata keys. By convention,
@@ -450,6 +480,17 @@ class DAGExecutor:
             if "_step_metadata" not in final_dict:
                 final_dict["_step_metadata"] = {}
             final_dict["_step_metadata"]["micro_strictness_levels"] = micro_strictness_map
+            
+            # Inject Usage Metadata into the result for worker.py extraction
+            if usage_dict:
+                final_dict["_step_metadata"]["token_usage"] = {
+                    "prompt_tokens": usage_dict.get("prompt_tokens", 0),
+                    "completion_tokens": usage_dict.get("completion_tokens", 0),
+                    "total_tokens": usage_dict.get("total_tokens", 0),
+                    "cached_tokens": usage_dict.get("cached_tokens", 0),
+                    "reasoning_tokens": usage_dict.get("reasoning_tokens", 0),
+                    "cost_usd": usage_dict.get("cost_usd", 0.0)
+                }
 
             return final_dict
 

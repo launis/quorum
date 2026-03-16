@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any] | None)
 
 
 @hook_registry.register(name="generate_bibliography")
-async def generate_bibliography_hook(data: dict[str, Any], repository: Any = None) -> dict[str, Any]:
+async def generate_bibliography_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
     """Wrap generate_bibliography and inject its results."""
     logger.debug("[ReferenceHook] Running generate_bibliography_hook...")
 

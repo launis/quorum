@@ -6,7 +6,8 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     pass
 
-from fastapi import Depends, Security
+from arq.connections import ArqRedis
+from fastapi import Depends, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend_v2.database.factory import get_repository
@@ -87,4 +88,12 @@ def get_llm_handler(
     return LLMHandler(repo=repo)
 
 LLMHandlerDep = Annotated[Any, Depends(get_llm_handler)]
+
+from typing import cast
+
+
+def get_arq_pool(request: Request) -> ArqRedis:
+    return cast(ArqRedis, request.app.state.arq_pool)
+
+ArqPoolDep = Annotated[ArqRedis, Depends(get_arq_pool)]
 

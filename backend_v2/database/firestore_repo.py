@@ -504,15 +504,20 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         # Assuming CWD is project root.
         if os.path.exists(file_path):
             try:
-                with open(file_path, encoding="utf-8") as f:
-                    data = json.load(f)
-                    # Just in case description is missing in file but required
-                    if "description" not in data:
-                        data["description"] = "Loaded from disk"
+                import asyncio
+                def _load_workflow_json() -> dict[str, Any]:
+                    with open(file_path, encoding="utf-8") as f:
+                        return json.load(f) # type: ignore
 
-                    definition = WorkflowDefinition(**data)
-                    logger.info(f"Loaded workflow '{workflow_id}' from Disk Fallback.")
-                    return definition
+                data = await asyncio.to_thread(_load_workflow_json)
+
+                # Just in case description is missing in file but required
+                if "description" not in data:
+                    data["description"] = "Loaded from disk"
+
+                definition = WorkflowDefinition(**data)
+                logger.info(f"Loaded workflow '{workflow_id}' from Disk Fallback.")
+                return definition
             except Exception as e:
                 logger.error(f"Failed to load workflow from disk '{file_path}': {e}")
 

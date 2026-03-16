@@ -20,8 +20,8 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näi
 * **Backend (Python 3.14.2+, FastAPI 0.128+)**: `pydantic 2.12.5+`, `litellm 1.81.3+`, `tenacity 9.1.2+`.
 * **Frontend (Dart 3.11, Flutter)**: `flutter_riverpod ^3.1.0`, `go_router ^17.0.1+`, `freezed ^3.2.3`.
 
-### 1.2 Banned Legacy Patterns
-| Area | Modern Requirement (MANDATORY) | Legacy Pattern (BANNED) |
+### 1.2 Banned Patterns
+| Area | Modern Requirement (MANDATORY) | Banned Pattern |
 | :--- | :--- | :--- |
 | **State** | Use `@riverpod` (Generator) + `ref.watch()` | `ChangeNotifier`, `StateProvider`, manual `Provider` |
 | **Routing** | Use `GoRouteData` (Type-safe classes) | Raw strings: `context.push('/home')` |
@@ -101,7 +101,7 @@ Tämän ohjeen kiertäminen ja kannan (`db_v2.json`) sorkkiminen lennossa korrup
 * **The Three Pydantic Boundaries (API, Service, Middleware)**: 
   1. **API Ingestion (Generic IN -> Strict OUT)**: Kun data saapuu ulkomaailmasta (Web/Flutter) sisään Backendin API-reitittimiin (`backend_v2/api/`), se ON PAKOTETTAVA välittömästi tiukkaan Pydantic DTO -malliin ennen kuin sitä saa siirtää Service-kerrokselle. Service-kerros ei ota vastaan tyhmiä sanakirjoja.
   2. **Service Layer (Strict IN -> Strict OUT)**: Liiketoimintalogiikka (`backend_v2/services/`) on järjestelmän ehdoton portinvartija. Se ottaa API:lta vastaan vain puhdasta Pydanticia. Kaikki tietokannasta (`repository`) haettava data on myös VÄLITTÖMÄSTI hydratoitava Pydantic-malleihin (`Model.model_validate(data)`) ennen kuin logiikkaa suoritetaan.
-  3. **Middleware (Strict IN -> Generic OUT)**: Koko post-hook arkkitehtuuri (`backend_v2/hooks/`), DAG-putkisto ja tallennuslokit toimivat päinvastoin: ne ovat 100% litetyssä Sanakirja-maailmassa. Middlewaren sisään EI SAA kirjoittaa Pydantic-fallbackeja (esim. `hasattr(item, "model_dump")`). Agentit pakottavat Pydanticin luontihetkellä (Fail-Fast), mutta DAG takaa, että eteenpäin hookeille siirrettävä data on aina turvallisesti riisuttua `.model_dump(mode="json")` muotoa.
+  3. **Middleware (Strict Context -> Generic Data OUT)**: Koko post-hook arkkitehtuuri (`backend_v2/hooks/`), DAG-putkisto ja tallennuslokit toimivat päinvastoin datan suhteen: ne ovat 100% litetyssä Sanakirja-maailmassa. Middlewaren sisään EI SAA kirjoittaa Pydantic-fallbackeja kognitiiviseen dataan (esim. `hasattr(item, "model_dump")`). Agentit pakottavat Pydanticin luontihetkellä (Fail-Fast), mutta DAG takaa, että eteenpäin hookeille siirrettävä tulosdata on aina turvallisesti riisuttua `.model_dump(mode="json")` muotoa. **KUITENKIN: Ohjelman sisäiset riippuvuudet ja kontrollimuuttujat (esim. `_sys_repository`, `execution_id`) EIVÄT OLE sanakirjadataa, vaan ne on pakastettava tiukasti tyypitettyyn `HookExecutionContext` -objektiin Fail-Fast injektion ja tyyppiturvallisuuden takaamiseksi.**
 * **No-ORM**: Ei SQLAlchemyä. Pydantic kuvaa suoraan tietokannan dokumenttirakenteen (NoSQL) 1:1.
 
 ### 4.3 Null-Safety v2.12
@@ -132,26 +132,41 @@ Tämän ohjeen kiertäminen ja kannan (`db_v2.json`) sorkkiminen lennossa korrup
 * **Responsiveness Breakpoint:** Järjestelmä asettaa ehdottoman rajan `600dp` pöytäkone-/tablettikokoonpanon (`NavigationRail`) ja mobiilin (`NavigationBar`) välille.
 * **Teemoitus:** App-teema käyttää yksinomaan dynaamista, automaattisesti generoituvaa `FlexColorScheme` -kirjastoa. Manuaalinen värien ja elementtien hardkoodaus suoraan `ThemeDataan` on kielletty, ellei sitä ole otettu suoraan kontekstista `Theme.of(context)`.
 
+### 5.5 Riverpod Hybrid Caching Strategy (SWR & TTL)
+* Järjestelmän listat ja lomakkeet EIVÄT käytä pelkkää aggressiivista `autoDispose`:a (mikä aiheuttaa hidasta navigointia), vaan tilaa hallitaan älykkäästi kahdella mallilla:
+  1. **Lukunäkymät (Luku-Listat, Dashboard):** Käytetään SWR (Stale-While-Revalidate) -mallia. Riverpod-provider pidetään elossa (`ref.keepAlive()`), jolloin paluunavigointi on välitöntä nollaviiveellä. Tiedot päivittyvät taustalla huomaamattomasti (Silent Background Fetch) ilman blokkaavia latausanimaatioita.
+  2. **Syöttönäkymät (Forms, Uudet Analyysit):** Käytetään TTL (Time-To-Live) välimuistia. Keskeneräiset lomakkeet säilytetään aktiivisina ram-muistissa vain lyhyen turva-ajan (esim. 3 minuuttia) poistumisen jälkeen (`ref.onDispose` Timerilla), jolloin vahinkonavigointi ei hukkaa työtä. Jos käyttäjä palaa myöhemmin uudestaan, lomake on nollautunut automaattisesti roskista tyhjältä pöydältä aloittamista varten. Lomakkeille tarjotaan aina myös manuaalinen Nollaa/Tyhjennä -painike.
+
+### 5.6 UI Mutations Mandate (Mandaatti: Riverpod 3.0 Mutations)
+* Kaikki **sivuvaikutukset (Side Effects)** – asiat kuten painikkeiden painallukset, lomakkeiden tallennukset (POST), tietuieden poistamiset – ovat ohjelmistossa **PAKOTETUSTI** hallittava kokeellisen (mutta stabiilin) Riverpod 3.0 `Mutation<T>` objektin kautta.
+* **Käytäntö:** ÄLÄ tee enää manuaalisia state-lippuja kuten `bool _isLoading` tai hyödynnä sokeasti `AsyncLoading()` Notifiereissa tallennustoimenpiteitä varten. Määrittele sen sijaan napille tai lomakkeelle dedikoitu `final executeXMutation = Mutation<void>();`
+  * UI voi lukea dynaamisesti ja turvallisesti lomakkeen tilan: `MutationIdle`, `MutationPending` (Näytä spinneri), `MutationSuccess` (Näytä Toast ja onnistuminen) tai `MutationError` (Error hint).
+  * Painikkeet laukaisevat suorituksen tyyppiturvallisesti: `mutation.run(ref, (tsx) async { await tsx.get(provider.notifier).saveAction(); });` 
+
 ---
 
-## ⚠️ 6. ERROR HANDLING CONTRACT (RFC 7807)
+## ⚠️ 6. ERROR HANDLING CONTRACT (GLOBAL ERROR HANDLING V3 / RFC 7807)
 
-**SINGLE SOURCE OF TRUTH**: `backend/exceptions.py`
+**SINGLE SOURCE OF TRUTH**: `backend/exceptions.py` & `client_app/lib/core/error/app_exception.dart`
 
 ### 6.1 Strict RFC 7807 Pattern (AppException)
-Backendissä ei saa enää ikinä esiintyä paljaita (`ValueError` / `HTTPException`) nostoja rajapinnoilla tai patchejä. Kaikki poikkeukset tulee heittää paketoituna `AppException` tai sen semanttisilla aliluokilla (kuten `ConfigurationError`, `AgentExecutionError`).
+Backendissä ei saa enää ikinä esiintyä paljaita (`ValueError` / `HTTPException`) nostoja rajapinnoilla. Kaikki poikkeukset tulee heittää paketoituna `AppException` tai sen semanttisilla aliluokilla.
+**Frontend V3 Mandaatti:** Flutter-asiakas on velvoitettu mallintamaan nämä virheet 1:1 `AppException` Freezed-luokkana. Kun HTTP-virhe (Dio) saapuu, ErrorInterceptor **PURSII** RFC 7807 "Problem Details" payloadin tiukasti tähän Freezed-malliin, joka sisältää resoluutiotasot (`errorCode`, `status`, `detail`). Paljaita DioException tai String-virheitä ei saa päätyä käyttöliittymäkerrokselle asti.
 
-### 6.2 Dual-Reporting Mandate
+### 6.2 Dual-Reporting & Telemetry Mandate
 Ainoa sallittu tapa ottaa virhe kiinni ja heittää se ylemmäs on **Kaksinkertainen Raportointi** (Dual-Reporting).
-Ensin rakenteellinen printti serverille, sitten tyyppiturvallisen poikkeuksen nosto. Siihen syötetään virheen syyn erottava Enum-vakio `ErrorCodes`.
+
+**Backendissä:** Ensin rakenteellinen printti serverille (`logger.error(..., exc_info=True)`), sitten tyyppiturvallisen poikkeuksen nosto `AppException(error_code=...)`.
+**Frontendissä:**
+1. Kaikki kiinniotetut HTTP-verkkovirheet, mutaatio-epäonnistumiset ja `ErrorBoundary`-poikkeukset on **kirjattava Riverpod-LoggerServiceen**.
+2. LoggerService välittää kriittiset virheet asynkronisesti Backendin etätelemetria-päätepisteeseen (Logfire/Sentry -injektio), kantaen mukanaan asiakkaan asiointikielen ja session ID:n.
 
 ```python
+# Backend Esimerkki
 try:
     result = some_operation()
 except Exception as e:
-    # 1. Log with STRUCTURED FORMAT  
     logger.error(f"[Component] {ErrorCodes.VALIDATION_FAILED.name}: Error: {e}", exc_info=True)
-    # 2. Raise explicit AppException wrapping the original error
     raise AppException(message=..., error_code=ErrorCodes.VALIDATION_FAILED, ...) from e
 ```
 
@@ -174,16 +189,15 @@ try {
   return const SizedBox.shrink(); // Tai käännösvirheessä: palauta alkuperäinen englanninkielinen teksti
 }
 ```
-
-### 6.4 Mapping Exceptions to the UI (Actionable Hints & ErrorView)
+### 6.4 Mapping Exceptions to the UI (Actionable Hints & GlobalErrorView)
 * Backendin virhedata (`AppException`) tuodaan sellaisenaan koodina UI:hin (`"VALIDATION_FAILED"`), ilman käännöstä.
-* UI lokalisoi viestin asiakkaalle (`client_app/lib/core/error/app_error_ext.dart`). Sanomaan kirjataan **miksi kävi näin ja mitä käyttäjän pitäisi yrittää seuraavaksi (Actionable Hint).** Ei kuitteja mallia "Tapahtui virhe".
-* **Standardisoitu UI-Komponentti:** Kaikki virheet (`.when(error: ...)`) ohjataan standardoidun kokonäytön tai osittaisen näytön `ErrorView`-widgetin kautta, joka osaa näyttää poikkeuksen vikakoodit siististi ja nätisti. Omia `Text('Error')` vökerryksiä ei tueta.
+* UI lokalisoi viestin asiakkaalle `AppExceptionX` laajennuksessa (`app_error_ext.dart`). Sanomaan kirjataan **miksi kävi näin ja mitä käyttäjän pitäisi yrittää seuraavaksi (Actionable Hint).** Ei kuitteja mallia "Tapahtui virhe" tai "Tuntematon virhe". *Kaikki* backend-virheet kuvataan asiakkaalle Actionable Hinteiksi `.arb` -tiedostoissa.
+* **Standardisoitu UI-Komponentti (GlobalErrorView V3):** Kaikki virheet (`.when(error: ...)` ja GoRouter `errorBuilder`) ohjataan **standardoidun** `GlobalErrorView` (asiakkaassa `ErrorView`) komponentin kautta. Se osaa purkaa `AppException`in lokalisoiduksi toimintakehotteeksi. **Ainoastaan kehitystilassa (Debug Mode)** ErrorView paljastaa laajennettavan `Technical Details` -paneelin, joka näyttää koko stack tracen ja raa'an poikkeusdatan. Tuotannossa asiakas näkee vain tyylikkään ja ystävällisen kehotteen.
 
 ### 6.5 Separation of Concerns: Framework vs. Domain Errors (Päällekkäisen työn estäminen)
 Päällekkäinen lokalisointityö vältetään ymmärtämällä selkeä rajanveto **Framework-virheiden** ja **Domain-virheiden** välillä:
-* **Framework-tason l10n (Automaattinen):** Flutterin omat SDK-paketit (kuten `flutter_localizations`) ja UI-komponentit hoitavat automaattisesti käyttöjärjestelmätason virheiden ja ilmoitusten lokalisoinnin Riverpodin `Locale`:n pohjalta. Esimerkiksi DatePickerin "Invalid format", leikepöydän "Kopioi/Liitä", tai Form-kenttien natiivit validaatiotekstit hoituvat itse Flutterin moottorista. Näitä *ei koskaan* yritetä kalastaa tai kääntää uudelleen meidän omilla `.arb` tai Exception-luokilla.
-* **Domain-tason l10n (Meidän vastuu / RFC 7807):** Tämä kokonaisuus (`AppErrorExt` ja backendin `exceptions.py`) on varattu **puhtaasti liiketoimintalogiikan** räätälöidyille virheille (esim. `WORKFLOW_EXECUTION_FAILED`, `TRANSLATION_FAILED`, `KNOWLEDGE_NOT_INGESTED`). Me kartoitamme ja käännämme ainoastaan nämä omat Enum-koodimme `.arb`-tiedoston avulla.
+* **Framework-tason l10n (Automaattinen):** Flutterin omat SDK-paketit ja natiivikomponentit hoitavat OS-tason virheiden ja ilmoitusten lokalisoinnin. Näitä *ei koskaan* yritetä kääntää uudelleen omilla `.arb` tiedostoilla.
+* **Domain-tason l10n (Global Error Handling V3):** Tämä kokonaisuus (`AppException` ja backendin `exceptions.py`) on varattu **puhtaasti liiketoimintalogiikan** räätälöidyille virheille (esim. `WORKFLOW_EXECUTION_FAILED`). Me kartoitamme ja käännämme ainoastaan nämä omat Enum-koodimme Actionable Hinteiksi.
 
 ---
 

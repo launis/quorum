@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
-/// V2 Forensic Boundary Protocol: AppErrorBoundary
+/// V2 Forensic Boundary Protocol: AppExceptionBoundary
 ///
 /// Intercepts severe build or rendering exceptions. Instead of gray/red screen of death
 /// or crashing the client application, it displays a graceful fallback screen.
 /// Extremely critical for the V1 to V2 transition where models (PromptBlocks/SystemConfigs)
 /// might momentarily mismatch in structure while updating.
-class AppErrorBoundary extends StatefulWidget {
+class AppExceptionBoundary extends StatefulWidget {
   final Widget child;
 
-  const AppErrorBoundary({super.key, required this.child});
+  const AppExceptionBoundary({super.key, required this.child});
 
   @override
-  AppErrorBoundaryState createState() => AppErrorBoundaryState();
+  AppExceptionBoundaryState createState() => AppExceptionBoundaryState();
 }
 
-class AppErrorBoundaryState extends State<AppErrorBoundary> {
+class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
   Object? _error;
 
   @override

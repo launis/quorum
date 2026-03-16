@@ -433,6 +433,15 @@
       }
     }
   },
+  "workflowDeleteConfirmTitle": "Delete Workflow",
+  "workflowDeleteConfirmDesc": "Are you sure you want to delete workflow \"{id}\"?",
+  "@workflowDeleteConfirmDesc": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "noMatricesFound": "No PromptBlocks found. Create one!",
   "stepCreateNew": "Create New Step",
   "stepEdit": "Edit Step",

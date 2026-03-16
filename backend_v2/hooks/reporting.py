@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import hook_registry
+from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.view.sdui import ReferenceIntent, ReferenceItem
 from backend_v2.settings import get_settings
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="generate_report")
-def generate_report_hook(data: dict[str, Any]) -> dict[str, Any]:
+def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -> dict[str, Any]:
     """Workflow Data wrapper for generate_report.
 
     Post-execution hook that aggregates results from all agents (Judge, Overseer, Reporter)
@@ -45,7 +45,7 @@ def generate_report_hook(data: dict[str, Any]) -> dict[str, Any]:
     template_dir = Path("backend/templates")
     # Adjust path relative to CWD
     if not template_dir.exists():
-        template_dir = Path("c:/src/quorum/backend/templates")  # Absolute fallback
+        template_dir = Path(__file__).parent.parent.parent.parent / "backend/templates"
 
     if not template_dir.exists():
         error_code = ErrorCodes.CONFIGURATION_ERROR

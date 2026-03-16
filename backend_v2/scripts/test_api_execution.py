@@ -80,17 +80,17 @@ def trigger_and_verify_pdf(exec_id: str, headers: dict):
     logger.info("PHYSICAL PDF GENERATION TEST")
     logger.info("==================================================")
     api_url = f"http://localhost:8000/api/v2/execution/executions/{exec_id}/render_pdf"
-    
+
     with httpx.Client(timeout=10.0) as client:
         logger.info(f"Triggering asynchronous PDF Worker: POST {api_url}")
         response = client.post(api_url, headers=headers)
         if response.status_code != 202:
             logger.error(f"Failed to trigger PDF generation. HTTP {response.status_code}: {response.text}")
             return
-            
+
         logger.info("PDF Generation Queued. Polling disk for physical file creation...")
         pdf_path = rf"c:\src\quorum\data\files\executions\{exec_id}\report.pdf"
-        
+
         attempts = 0
         while attempts < 30:
             if os.path.exists(pdf_path):
@@ -99,7 +99,7 @@ def trigger_and_verify_pdf(exec_id: str, headers: dict):
                 return
             time.sleep(2)
             attempts += 1
-            
+
         logger.error(f"FAILURE! PDF was not found at {pdf_path} after 60 seconds.")
 
 def _parse_log_timestamp(line: str) -> datetime | None:
@@ -194,7 +194,7 @@ def analyze_logs(test_start_time: float, exec_id: str | None = None):
                  for w in backend_warnings[-5:]:
                       logger.warning(f"  -> {w}")
             else:
-                 logger.info("PIPELINE CLEAN: 0 Exceptions or Warnings detected in the backend GraphEngine.")
+                 logger.info("PIPELINE CLEAN: 0 Exceptions or Warnings detected in the backend DAGExecutor.")
 
             # Sub-report B: CPU-Bound Hooks (Modality Extraction)
             logger.info("\n[Hardware Offloading]")

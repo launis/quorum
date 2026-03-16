@@ -72,7 +72,7 @@ class MockPromptBlocksController
   Future<void> refresh() async {}
 
   @override
-  Future<void> savePromptBlock(String id, Map<String, dynamic> payload) async {}
+  Future<Map<String, dynamic>> savePromptBlock(String id, Map<String, dynamic> payload) async { return payload; }
 
   @override
   Future<void> deletePromptBlock(String id) async {}
