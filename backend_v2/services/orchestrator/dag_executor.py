@@ -57,12 +57,12 @@ class DAGExecutor:
 
         # Fetch existing execution record from DB (created by ExecutionService)
         existing_record_dict = await self.repository.get_execution(execution_id)
-        
+
         step_states = {
             step.id: ExecutionStepState(id=step.id, label=step.id, status="pending")
             for step in workflow.steps
         }
-        
+
         if existing_record_dict:
             exec_record = ExecutionRecord.model_validate(existing_record_dict)
             exec_record.status = ExecutionStatus.RUNNING
@@ -80,7 +80,18 @@ class DAGExecutor:
                 results={},
                 step_states=step_states,
             )
-            
+
+        # MVP Blueprint Injection (Hardcoded for Milestone 1)
+        if not exec_record.render_blueprint:
+            exec_record.render_blueprint = {
+                "version": "1.0",
+                "components": [
+                    {"type": "metadata_header"},
+                    {"type": "header", "title": "report.title_main"},
+                    {"type": "bibliography_footer"}
+                ]
+            }
+
         # V2 Strictness Engine Metadata Injection
         macro_strict = exec_record.strictness_level.value
         micro_strict = 100 if macro_strict == 5 else 50
@@ -93,6 +104,7 @@ class DAGExecutor:
             {
                 "status": exec_record.status.value,
                 "metadata": exec_record.metadata,
+                "render_blueprint": exec_record.render_blueprint,
                 "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
             }
         )
@@ -171,6 +183,7 @@ class DAGExecutor:
                         {
                             "results": exec_record.results,
                             "frozen_context": frozen_ctx.model_dump(),
+                            "render_blueprint": exec_record.render_blueprint,
                             "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
                         }
                     )
@@ -224,7 +237,7 @@ class DAGExecutor:
             )
             exec_record.status = ExecutionStatus.FAILED
             exec_record.error = str(overall_err)
-            
+
             # Use safe fire-and-forget sync wrapper for DB update if we're crashing
             try:
                 # Need a new event loop or run synchronously to ensure it saves before crash
@@ -235,15 +248,15 @@ class DAGExecutor:
                 ))
             except Exception:
                 pass
-            
+
             # RFC 7807 Fail-Fast Mandate: We MUST raise here. BackgroundTasks in FastAPI
             # actually handle raising exceptions just fine by logging them to stderr.
             # Suppressing them violates the V2 Zero-Compromise Pledge.
-            
+
             from backend_v2.exceptions import AppException
             if isinstance(overall_err, AppException):
                  raise overall_err
-                 
+
             raise AppException(
                 message=msg,
                 details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
@@ -302,7 +315,7 @@ class DAGExecutor:
                 msg = "Execution metadata is missing the required 'target_locale', violating the Fail-Fast mandate."
                 logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                 raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-            
+
             xml_ctx = self.compiler.build_xml_context(
                 input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},
                 state_data=state_data,
@@ -428,7 +441,7 @@ class DAGExecutor:
             for key in ["profiler_metrics", "step_metadata", "_audit_signature"]:
                 if key in state_data:
                     final_dict[key] = state_data[key]
-                    
+
             # Inject PromptBlock micro strictness metadata into the step result
             micro_strictness_map = {
                 block["id"]: block.get("strictness_level", 50)

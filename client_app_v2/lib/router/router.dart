@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/execution/views/dashboard_view.dart';
 import 'package:client_app/features/execution/views/execution_view.dart';
+import 'package:client_app/features/execution/views/execution_report_view.dart';
 
 part 'router.g.dart';
 
@@ -117,6 +118,7 @@ class SplashRoute extends GoRouteData with $SplashRoute {
           path: '/dashboard',
           routes: [
             TypedGoRoute<ExecutionRoute>(path: 'executions/:executionId'),
+            TypedGoRoute<ExecutionReportRoute>(path: 'executions/:executionId/report'),
           ],
         ),
       ],
@@ -164,6 +166,15 @@ class ExecutionRoute extends GoRouteData with $ExecutionRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) =>
       ExecutionView(executionId: executionId);
+}
+
+class ExecutionReportRoute extends GoRouteData with $ExecutionReportRoute {
+  const ExecutionReportRoute({required this.executionId});
+  final String executionId;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      ExecutionReportView(executionId: executionId);
 }
 
 class NewAnalysisBranch extends StatefulShellBranchData {

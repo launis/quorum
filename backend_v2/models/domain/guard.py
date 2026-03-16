@@ -4,10 +4,11 @@ This module contains the strict schemas for the Guard Agent,
 including input validation and security check results.
 """
 
+import logging
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
-import logging
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
@@ -67,8 +68,8 @@ class GuardInput(BaseModel):
                 for phrase in banned_phrases:
                     if phrase.lower() in value.lower():
                         msg = f"SECURITY_BANNED_PHRASE_DETECTED: Found '{phrase}' in field '{key}'"
-                        logger.error(f"[GuardModel] {ErrorCodes.FORBIDDEN.name}: {msg}")
-                        raise AppException(message=msg, status_code=403, details={"error_code": ErrorCodes.FORBIDDEN})
+                        logger.error(f"[GuardModel] {ErrorCodes.PERMISSION_DENIED.name}: {msg}")
+                        raise AppException(message=msg, status_code=403, details={"error_code": ErrorCodes.PERMISSION_DENIED})
         return self
 
 

@@ -141,7 +141,7 @@ async def check_banned_phrases_hook(data: dict[str, Any], repository: Any = None
     # Fetch banned phrases from database (Zero-Fallback compliance)
     banned_phrases: list[str] = []
     fetch_error: str | None = None
-    
+
     if not repository:
         repository = data.get("_sys_repository")
 

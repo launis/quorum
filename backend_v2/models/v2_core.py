@@ -4,7 +4,7 @@ Implements dynamic, append-only, and I18N-capable models according to V2 specs.
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class V2CoreBase(BaseModel):
     """Base model enforcing Pydantic strict mode across all V2 schemas."""
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=True, extra="forbid")
 
 __all__ = [
     "I18nText",
@@ -52,20 +52,22 @@ class I18nText(V2CoreBase):
     )
 
     @model_validator(mode="after")
-    def validate_i18n(self) -> "I18nText":
-        from backend_v2.exceptions import AppException, ErrorCodes
+    def validate_i18n(self) -> I18nText:
         import logging
+
+        from backend_v2.exceptions import AppException, ErrorCodes
         logger = logging.getLogger(__name__)
-        
+
         # Enforce English-Only Mandate: 'en' translation must ALWAYS exist.
-        if "en" not in self.translations or not self.translations.get("en").strip():
+        en_trans = self.translations.get("en")
+        if not en_trans or not en_trans.strip():
             msg = "I18nText must contain a valid English ('en') translation due to the English-Only Mandate."
             logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-            
+
         if self.default_locale not in self.translations or not self.translations.get(self.default_locale):
             logger.warning(f"[V2Core] I18nText missing translation for default_locale '{self.default_locale}'. Will fallback to 'en'.")
-            
+
         return self
 
 
@@ -101,6 +103,7 @@ class PromptBlock(V2CoreBase):
             "(letters, numbers, underscores, starting with letter) to guarantee dynamic schema compilation."
         )
     )
+    slug: str = Field(description="Fallback slug identifier if id changes or for URL routing")
     label: I18nText = Field(description="Localizable label for the UI.")
     description: I18nText = Field(description="Localizable description or help text for the UI.")
     ai_description: str | None = Field(
@@ -152,6 +155,10 @@ class PromptBlock(V2CoreBase):
     def pre_validate_type_enum(cls, data: Any) -> Any:
         """Parse string to Enum before strict mode rejects it."""
         if isinstance(data, dict):
+            # Fallback for seed data missing the slug
+            if "slug" not in data and "id" in data:
+                data["slug"] = data["id"]
+                
             t = data.get("type")
             if isinstance(t, str):
                 try:
@@ -263,6 +270,7 @@ class ModelProfile(V2CoreBase):
     provider: str = Field(description="E.g., 'google', 'openai'")
     model_name: str = Field(description="The underlying API model name")
     temperature: float | None = Field(default=None, description="Generation temperature")
+    top_p: float | None = Field(default=None, description="Nucleus sampling probability")
     tpm_limit: int | None = Field(default=None, description="Tokens per minute limit")
     rpm_limit: int | None = Field(default=None, description="Requests per minute limit")
     max_tokens: int | None = Field(default=None, description="Max generated tokens")
@@ -270,6 +278,7 @@ class ModelProfile(V2CoreBase):
     supports_grounding: bool = Field(default=False, description="Supports Google Search Grounding")
     api_key: str | None = Field(default=None, description="Optional override API key")
     parsing_mode: str | None = Field(default=None, description="Parser logic flag (e.g. 'GEMINI_JSON')")
+    is_active: bool = Field(default=True, description="Whether the model is actively available")
 
 class SystemConfigModelRegistry(V2CoreBase):
     """V2 Flattened Model Registry System Config."""
@@ -330,6 +339,12 @@ class StepRule(V2CoreBase):
     model_strategy: str | None = Field(
         default=None,
         description="Logical strategy profile from model registry (e.g., 'fast', 'deep')"
+    )
+    pre_hooks: list[str] = Field(
+        default_factory=list, description="Optional hooks running before step execution"
+    )
+    post_hooks: list[str] = Field(
+        default_factory=list, description="Optional hooks running after step execution"
     )
 
 class Role(V2CoreBase):
@@ -420,6 +435,52 @@ class ExpectedInput(V2CoreBase):
 
         return self
 
+class BlueprintComponentBase(V2CoreBase):
+    """Base class for all SDUI Blueprint components."""
+    pass
+
+class HeaderComponent(BlueprintComponentBase):
+    type: Literal["header"]
+    title: str = Field(description="Translation key or static title string")
+
+class MetadataHeaderComponent(BlueprintComponentBase):
+    type: Literal["metadata_header"]
+
+class BibliographyFooterComponent(BlueprintComponentBase):
+    type: Literal["bibliography_footer"]
+
+class Gauge1DComponent(BlueprintComponentBase):
+    type: Literal["1d_gauge"]
+    data_path: str = Field(description="Path to the value in $results (e.g. $steps.logic.score)")
+    title: str | None = Field(default=None, description="Translation key for the gauge title")
+
+class Matrix2DComponent(BlueprintComponentBase):
+    type: Literal["2d_matrix"]
+    x_data_path: str = Field(description="Path to X axis score")
+    y_data_path: str = Field(description="Path to Y axis score")
+    x_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for X")
+    y_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for Y")
+
+class Scatter3DComponent(BlueprintComponentBase):
+    type: Literal["3d_scatter"]
+    x_data_path: str = Field(description="Path to X axis score")
+    y_data_path: str = Field(description="Path to Y axis score")
+    z_data_path: str = Field(description="Path to Z axis score (e.g. confidence or radius)")
+    x_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for X")
+    y_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for Y")
+    z_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for Z")
+
+class EvaluationNotesPanelComponent(BlueprintComponentBase):
+    type: Literal["evaluation_notes_panel"]
+    data_paths: list[str] = Field(description="Paths to evaluation_notes in $results")
+
+BlueprintComponentType = HeaderComponent | MetadataHeaderComponent | BibliographyFooterComponent | Gauge1DComponent | Matrix2DComponent | Scatter3DComponent | EvaluationNotesPanelComponent
+
+class RenderBlueprint(V2CoreBase):
+    """The Complete SDUI blueprint defining how to render execution results."""
+    version: str = Field(default="1.0", description="Blueprint definition version")
+    components: list[BlueprintComponentType] = Field(default_factory=list, description="Ordered list of layout components")
+
 class Workflow(V2CoreBase):
     """Dynamic Directed Acyclic Graph orchestrator model."""
     id: str
@@ -432,11 +493,18 @@ class Workflow(V2CoreBase):
     organization_id: str | None = Field(default=None)
     scoring_logic: list[Any] = Field(default_factory=list)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
+    render_blueprint: RenderBlueprint | None = Field(default=None, description="V6.0 Blueprint Editor layout schema.")
     expected_inputs: list[ExpectedInput] = Field(
         default_factory=list,
         description="List of dynamic expected inputs required by the workflow",
     )
     steps: list[StepRule] = Field(default_factory=list)
+    pre_hooks: list[str] = Field(
+        default_factory=list, description="Optional hooks running before entire workflow"
+    )
+    post_hooks: list[str] = Field(
+        default_factory=list, description="Optional hooks running after entire workflow"
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -513,7 +581,7 @@ class ExecutionCreate(V2CoreBase):
         description="Cognitive strictness level (1-5). Determines the injection of Zero-Trust or Falsification blocks."
     )
     target_locale: str = Field(description="Desired target locale for output generated by the workflow (e.g., 'fi'). Must be explicitly provided.")
-    raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")
+    raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")  # type: ignore
 
     @model_validator(mode="before")
     @classmethod
@@ -543,8 +611,12 @@ class ExecutionRecord(V2CoreBase):
         description="Cognitive strictness level used for this execution."
     )
     status: ExecutionStatus = Field(description="Current status of execution")
+    render_blueprint: dict[str, Any] | None = Field(
+        default=None,
+        description="Dynamic SDUI definition dictionary, locking the workflow visual layout."
+    )
     raw_inputs: WorkflowInputs = Field(
-        default_factory=WorkflowInputs, description="Raw user inputs by role")
+        default_factory=WorkflowInputs, description="Raw user inputs by role")  # type: ignore
     frozen_context: FrozenContext = Field(
         default_factory=FrozenContext, description="Immutable snapshot of context")
     step_states: dict[str, ExecutionStepState] = Field(
@@ -560,6 +632,8 @@ class ExecutionRecord(V2CoreBase):
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="UTC update timestamp")
+    created_by: str | None = Field(default=None, description="ID of the user who started the execution")
+    organization_id: str | None = Field(default=None, description="ID of the organization for this execution")
 
     @model_validator(mode="before")
     @classmethod

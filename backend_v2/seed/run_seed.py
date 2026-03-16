@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 from backend_v2.exceptions import ErrorCodes
 
+
 def _fail_fast(msg: str, error: Exception) -> None:
     logger.critical(f"[Seeder] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: [CRITICAL FAIL FAST] {msg} - {str(error)}", exc_info=True)
     print(f"\033[91m[CRITICAL FAIL FAST] {msg}\n{str(error)}\033[0m")

@@ -73,6 +73,10 @@ RouteBase get $appShellRoute => StatefulShellRouteData.$route(
               path: 'executions/:executionId',
               factory: $ExecutionRoute._fromState,
             ),
+            GoRouteData.$route(
+              path: 'executions/:executionId/report',
+              factory: $ExecutionReportRoute._fromState,
+            ),
           ],
         ),
       ],
@@ -130,6 +134,31 @@ mixin $ExecutionRoute on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/dashboard/executions/${Uri.encodeComponent(_self.executionId)}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $ExecutionReportRoute on GoRouteData {
+  static ExecutionReportRoute _fromState(GoRouterState state) =>
+      ExecutionReportRoute(executionId: state.pathParameters['executionId']!);
+
+  ExecutionReportRoute get _self => this as ExecutionReportRoute;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/dashboard/executions/${Uri.encodeComponent(_self.executionId)}/report',
   );
 
   @override

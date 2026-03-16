@@ -45,4 +45,16 @@ class ExecutionClient {
     final response = await _dio.get('/execution/executions/$executionId');
     return response.data as Map<String, dynamic>;
   }
+
+  /// Retrieves the dynamically assembled SDUI render blueprint for an execution.
+  Future<Map<String, dynamic>> renderExecution(
+    String executionId, {
+    String lang = 'fi',
+  }) async {
+    final response = await _dio.get(
+      '/execution/executions/$executionId/render',
+      queryParameters: {'lang': lang},
+    );
+    return response.data as Map<String, dynamic>;
+  }
 }

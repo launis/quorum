@@ -799,6 +799,12 @@
       }
     }
   },
+  "reportTitleMain": "Execution Report",
+  "reportMetrics": "Performance Metrics",
+  "reportScore": "Total Score",
+  "xAxisLabel": "X-Axis",
+  "yAxisLabel": "Y-Axis",
+  "zAxisLabel": "Z-Axis",
   "selectWorkflowPrompt": "Select a workflow from the list to begin.",
   "noInputsRequired": "No inputs strictly required for \n{id}",
   "@noInputsRequired": {
@@ -885,5 +891,34 @@
   "rawOutputFallbackTitle": "Raw Output (UI Missing)",
   "adminAiDescriptionHint": "MANDATORY: Must be written in English. Cognitive prompt, not user data.",
   "adminBilingualPromptHint": "MANDATORY: English translation required. Use EXTREME PRECISION. This text directly dictates the AI's cognitive reasoning and structural rules.",
-  "adminPromptBestPracticesHint": "BEST PRACTICE: Use command keywords like ROLE:, TASK:, RULE: and CONTEXT:. NEVER translate these keywords into Finnish inside the text."
+  "adminPromptBestPracticesHint": "BEST PRACTICE: Use command keywords like ROLE:, TASK:, RULE: and CONTEXT:. NEVER translate these keywords into Finnish inside the text.",
+  "blueprintEditorTitle": "Blueprint Editor",
+  "blueprintComponentsTitle": "Components",
+  "blueprintAddComponentBtn": "Add Component",
+  "blueprintEmptyStateMsg": "No components added yet. Add a component to start building the report.",
+  "blueprintComponentHeader": "Header",
+  "blueprintComponentMetadataHeader": "Metadata Header",
+  "blueprintComponentBibliography": "Bibliography",
+  "blueprintComponent1dGauge": "1D Gauge",
+  "blueprintComponent2dMatrix": "2D Matrix",
+  "blueprintComponent3dScatter": "3D Scatter",
+  "blueprintComponentEvaluationNotes": "Evaluation Notes",
+  "blueprintSettingsTitle": "Component Settings",
+  "blueprintSettingsSave": "Save Component",
+  "blueprintSaveBlueprint": "Save Blueprint",
+  "blueprintSaveSuccess": "Blueprint saved successfully",
+  "blueprintSaveFailed": "Failed to save blueprint: {error}",
+  "@blueprintSaveFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "blueprintPropertyDataPath": "Data Path ($results.X)",
+  "blueprintPropertyXAxis": "X Axis Path",
+  "blueprintPropertyYAxis": "Y Axis Path",
+  "blueprintPropertyZAxis": "Z Axis Path",
+  "blueprintPropertyXAxisNote": "X Axis Note Path",
+  "blueprintPropertyYAxisNote": "Y Axis Note Path",
+  "blueprintPropertyTitle": "Title (i18n Key or Text)",
+  "blueprintPropertyDataPathsInfo": "Comma-separated paths"
 }

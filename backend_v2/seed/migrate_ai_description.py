@@ -15,7 +15,7 @@ def migrate():
     print(f"Backed up to {backup_path}")
 
     # 2. Read
-    with open(SEED_PATH, 'r', encoding='utf-8') as f:
+    with open(SEED_PATH, encoding='utf-8') as f:
         data = json.load(f)
 
     # 3. Migrate prompt_blocks
@@ -27,14 +27,14 @@ def migrate():
             translations = desc.get("translations", {})
             en_text = translations.get("en", "")
             fi_text = translations.get("fi", "")
-            
+
             # If there's an active English prompt masquerading as a translation...
             if en_text and en_text != fi_text and not en_text.startswith("Auto-filled"):
                 # Move to ai_description at the root
                 block["ai_description"] = en_text
-                # Reset description.en to be a translation of the FI UI string 
+                # Reset description.en to be a translation of the FI UI string
                 # (or just use the FI string so the UI doesn't look completely empty or strange on EN mode)
-                translations["en"] = fi_text + " (EN)" 
+                translations["en"] = fi_text + " (EN)"
                 migrated_count += 1
             else:
                 # Provide a null placeholder or leave empty
@@ -44,7 +44,7 @@ def migrate():
     # 4. Write back
     with open(SEED_PATH, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
-        
+
     print(f"Successfully migrated {migrated_count} PromptBlocks.")
 
 if __name__ == '__main__':

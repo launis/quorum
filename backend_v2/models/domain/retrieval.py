@@ -3,8 +3,10 @@
 This module contains the schemas for the Retrieval Agent, focusing on facts extracted from sources.
 """
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 import logging
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

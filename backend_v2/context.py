@@ -1,7 +1,7 @@
 """Context management for Execution and Request IDs."""
 
-from contextvars import ContextVar
 import logging
+from contextvars import ContextVar
 
 from backend_v2.exceptions import AppException, ErrorCodes
 

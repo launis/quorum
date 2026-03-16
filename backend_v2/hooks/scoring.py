@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 from backend_v2.core.hook_registry import hook_registry
-from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -572,7 +571,24 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
                         pass
             # ---------------------------------
 
-            raw_val = new_payload[slug]
+            # --- Raw Float Cast Enforcement (V8 Pipeline) ---
+            # Ensure the raw value itself is cast to a strict float so it hits the database
+            # as a number, not a string representation of a number.
+            try:
+                raw_float_val = float(new_payload[slug])
+                new_payload[slug] = raw_float_val
+                raw_val = raw_float_val
+            except (ValueError, TypeError) as e:
+                # 6.3 Graceful Degradation: Log structured error before passing through
+                from backend_v2.exceptions import ErrorCodes
+                logger.error(
+                    f"[ScoringHook] {ErrorCodes.VALIDATION_FAILED.name}: "
+                    f"LLM returned Corrupted/Non-numeric data for '{slug}', "
+                    f"Gracefully Skipping Normalization. Value: {new_payload[slug]}",
+                    exc_info=True
+                )
+                continue
+
             if not isinstance(raw_val, (int, float)):
                 continue
 
@@ -647,7 +663,7 @@ async def normalize_matrix_scores_hook(state: Any, repository: Any = None) -> An
         from backend_v2.exceptions import AppException, ErrorCodes
         msg = f"Normalization failed for step '{step_id}': {e}"
         logger.error(f"[ScoringHook] {ErrorCodes.HOOK_EXECUTION_FAILED.name}: {msg}", exc_info=True)
-        
+
         raise AppException(
             message=msg,
             status_code=500,

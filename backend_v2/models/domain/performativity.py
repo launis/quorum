@@ -6,10 +6,11 @@ including linguistics analysis and heuristics.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-import logging
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

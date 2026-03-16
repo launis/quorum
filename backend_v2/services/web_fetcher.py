@@ -53,7 +53,7 @@ class WebFetcher:
                 text = re.sub(r"\s+", " ", text).strip()
 
                 final_text = text[:5000]  # Limit context size
-                
+
                 # Log success with snippet as requested by user
                 snippet = final_text[:100].replace('\n', ' ') + "..." if len(final_text) > 100 else final_text
                 logger.info(f"[WebFetcher] Successfully fetched '{url}'. Snippet: '{snippet}'")

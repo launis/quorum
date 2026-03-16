@@ -157,7 +157,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, format_validation_er
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
     """Catches domain-specific AppExceptions and returns RFC 7807 Problem Details."""
     logger = logging.getLogger("backend.main")
-    
+
     # Extract the Enum Name if it's an ErrorCode, otherwise use the string.
     err_name = exc.error_code.name if hasattr(exc.error_code, "name") else str(exc.error_code)
     logger.error(f"[FastAPI] {err_name}: {exc.message} (Status: {exc.status_code})")

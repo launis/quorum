@@ -1814,6 +1814,24 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
+  String get reportTitleMain => 'Suoritusraportti';
+
+  @override
+  String get reportMetrics => 'Suorituskykymittarit';
+
+  @override
+  String get reportScore => 'Kokonaispisteet';
+
+  @override
+  String get xAxisLabel => 'X-akseli';
+
+  @override
+  String get yAxisLabel => 'Y-akseli';
+
+  @override
+  String get zAxisLabel => 'Z-akseli';
+
+  @override
   String get selectWorkflowPrompt =>
       'Valitse työnkulku luettelosta aloittaaksesi.';
 
@@ -1968,4 +1986,79 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get adminPromptBestPracticesHint =>
       'BEST PRACTICE: Käytä englanninkielisiä komentosanoja (ROLE:, TASK:, RULE:, CONTEXT:). ÄLÄ KOSKAAN käännä näitä sanoja suomeksi ohjeen sisällä.';
+
+  @override
+  String get blueprintEditorTitle => 'Blueprint Editori';
+
+  @override
+  String get blueprintComponentsTitle => 'Komponentit';
+
+  @override
+  String get blueprintAddComponentBtn => 'Lisää Komponentti';
+
+  @override
+  String get blueprintEmptyStateMsg =>
+      'Ei vielä komponentteja. Lisää komponentti aloittaaksesi tulosteen asettelun.';
+
+  @override
+  String get blueprintComponentHeader => 'Otsikko (Header)';
+
+  @override
+  String get blueprintComponentMetadataHeader => 'Metatiedot (Metadata)';
+
+  @override
+  String get blueprintComponentBibliography => 'Lähdeluettelo (Bibliography)';
+
+  @override
+  String get blueprintComponent1dGauge => '1D Mittari';
+
+  @override
+  String get blueprintComponent2dMatrix => '2D Matriisi';
+
+  @override
+  String get blueprintComponent3dScatter => '3D Hajonta';
+
+  @override
+  String get blueprintComponentEvaluationNotes => 'Arviointimuistiot';
+
+  @override
+  String get blueprintSettingsTitle => 'Komponentin Asetukset';
+
+  @override
+  String get blueprintSettingsSave => 'Tallenna Komponentti';
+
+  @override
+  String get blueprintSaveBlueprint => 'Tallenna Blueprint';
+
+  @override
+  String get blueprintSaveSuccess => 'Blueprint tallennettu onnistuneesti';
+
+  @override
+  String blueprintSaveFailed(String error) {
+    return 'Blueprintin tallennus epäonnistui: $error';
+  }
+
+  @override
+  String get blueprintPropertyDataPath => 'Datan Polku (\$results.X)';
+
+  @override
+  String get blueprintPropertyXAxis => 'X-akselin Polku';
+
+  @override
+  String get blueprintPropertyYAxis => 'Y-akselin Polku';
+
+  @override
+  String get blueprintPropertyZAxis => 'Z-akselin Polku';
+
+  @override
+  String get blueprintPropertyXAxisNote => 'X-akselin Huomion Polku';
+
+  @override
+  String get blueprintPropertyYAxisNote => 'Y-akselin Huomion Polku';
+
+  @override
+  String get blueprintPropertyTitle => 'Otsikko (i18n-avain tai teksti)';
+
+  @override
+  String get blueprintPropertyDataPathsInfo => 'Pilkuilla erotetut polut';
 }

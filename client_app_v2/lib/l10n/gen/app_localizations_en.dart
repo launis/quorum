@@ -1807,6 +1807,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get reportTitleMain => 'Execution Report';
+
+  @override
+  String get reportMetrics => 'Performance Metrics';
+
+  @override
+  String get reportScore => 'Total Score';
+
+  @override
+  String get xAxisLabel => 'X-Axis';
+
+  @override
+  String get yAxisLabel => 'Y-Axis';
+
+  @override
+  String get zAxisLabel => 'Z-Axis';
+
+  @override
   String get selectWorkflowPrompt =>
       'Select a workflow from the list to begin.';
 
@@ -1960,4 +1978,79 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get adminPromptBestPracticesHint =>
       'BEST PRACTICE: Use command keywords like ROLE:, TASK:, RULE: and CONTEXT:. NEVER translate these keywords into Finnish inside the text.';
+
+  @override
+  String get blueprintEditorTitle => 'Blueprint Editor';
+
+  @override
+  String get blueprintComponentsTitle => 'Components';
+
+  @override
+  String get blueprintAddComponentBtn => 'Add Component';
+
+  @override
+  String get blueprintEmptyStateMsg =>
+      'No components added yet. Add a component to start building the report.';
+
+  @override
+  String get blueprintComponentHeader => 'Header';
+
+  @override
+  String get blueprintComponentMetadataHeader => 'Metadata Header';
+
+  @override
+  String get blueprintComponentBibliography => 'Bibliography';
+
+  @override
+  String get blueprintComponent1dGauge => '1D Gauge';
+
+  @override
+  String get blueprintComponent2dMatrix => '2D Matrix';
+
+  @override
+  String get blueprintComponent3dScatter => '3D Scatter';
+
+  @override
+  String get blueprintComponentEvaluationNotes => 'Evaluation Notes';
+
+  @override
+  String get blueprintSettingsTitle => 'Component Settings';
+
+  @override
+  String get blueprintSettingsSave => 'Save Component';
+
+  @override
+  String get blueprintSaveBlueprint => 'Save Blueprint';
+
+  @override
+  String get blueprintSaveSuccess => 'Blueprint saved successfully';
+
+  @override
+  String blueprintSaveFailed(String error) {
+    return 'Failed to save blueprint: $error';
+  }
+
+  @override
+  String get blueprintPropertyDataPath => 'Data Path (\$results.X)';
+
+  @override
+  String get blueprintPropertyXAxis => 'X Axis Path';
+
+  @override
+  String get blueprintPropertyYAxis => 'Y Axis Path';
+
+  @override
+  String get blueprintPropertyZAxis => 'Z Axis Path';
+
+  @override
+  String get blueprintPropertyXAxisNote => 'X Axis Note Path';
+
+  @override
+  String get blueprintPropertyYAxisNote => 'Y Axis Note Path';
+
+  @override
+  String get blueprintPropertyTitle => 'Title (i18n Key or Text)';
+
+  @override
+  String get blueprintPropertyDataPathsInfo => 'Comma-separated paths';
 }

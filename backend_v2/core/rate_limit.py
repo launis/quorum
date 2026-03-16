@@ -30,7 +30,7 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Res
     # Create an AppException wrapper to leverage strict RFC 7807 formatting
     msg = f"Rate limit exceeded: {exc.detail}"
     logger.warning(f"[RateLimit] {ErrorCodes.RATE_LIMIT_EXCEEDED.name}: {msg}")
-    
+
     error = AppException(
         message=msg,
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,

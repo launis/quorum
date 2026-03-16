@@ -1,10 +1,13 @@
 import sys
+
 sys.path.insert(0, r'c:\src\quorum')
-import httpx
-import jwt
 import json
 import time
-from backend_v2.services.auth import JWT_SECRET, JWT_ALGORITHM
+
+import httpx
+import jwt
+
+from backend_v2.services.auth import JWT_ALGORITHM, JWT_SECRET
 
 token = jwt.encode(
     {'sub': '10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b', 'exp': time.time()+3600, 'type': 'impersonation'},

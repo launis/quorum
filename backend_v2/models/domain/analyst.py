@@ -3,8 +3,10 @@
 This module contains the schemas for the Analyst Agent, including hypotheses and search results.
 """
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 import logging
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

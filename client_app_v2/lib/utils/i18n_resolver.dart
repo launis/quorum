@@ -31,8 +31,7 @@ class I18nResolver {
     final map = SafeCast.safeMap(data);
     if (map.isEmpty) return '';
 
-    // Extract default locale and translations Map
-    final String defaultLocale = SafeCast.safeString(map['default_locale']);
+    // Extract translations Map (default_locale is no longer used due to exact matching)
     final Map<String, dynamic> translations = SafeCast.safeMap(
       map['translations'],
     );

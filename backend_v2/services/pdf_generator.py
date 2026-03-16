@@ -35,12 +35,26 @@ class PdfReportService:
         # Setup Jinja2 env
         template_dir = Path(__file__).parent.parent / "templates"
         self.env = Environment(loader=FileSystemLoader(str(template_dir)))
+        
+        # Lightweight Custom Markdown Filter for Bold (**) and Italic (*)
+        import re
+        def md_filter(text: str) -> str:
+            if not isinstance(text, str):
+                return text
+            # Convert **bold** to <strong>bold</strong>
+            text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+            # Convert *italic* to <em>italic</em>
+            text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
+            return text
+            
+        self.env.filters["md"] = md_filter
 
-    async def generate_execution_pdf(self, execution_id: str) -> bytes:
+    async def generate_execution_pdf(self, execution_id: str, blueprint_payload: dict | None = None) -> bytes:
         """Generates a dynamic PDF for the given execution ID using SDUI block constraints.
 
         Args:
             execution_id: The execution UUID.
+            blueprint_payload: Optional pre-assembled blueprint dictionary (from Async Worker).
 
         Returns:
             bytes: The generated PDF data.
@@ -85,6 +99,7 @@ class PdfReportService:
                 workflow_name=workflow_name,
                 frozen_context=frozen_context,
                 results=results,
+                rendered_blueprint=blueprint_payload,
                 printed_at=printed_at
             )
 

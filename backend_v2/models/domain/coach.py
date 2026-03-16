@@ -8,10 +8,11 @@ including coaching plans and bibliography.
 # To avoid potential circular imports (though judge doesn't import coach), we can use forward refs or just imports
 # But let's check if we can import JudgeOutput from backend_v2.models.domain.judge
 
+import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-import logging
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

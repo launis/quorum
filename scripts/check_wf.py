@@ -1,10 +1,11 @@
 import json
 
+
 def get_wf_from_db():
     try:
         data = json.load(open('c:/src/quorum/backend/seed/seed_data.json', encoding="utf-8"))
         wf = next((w for w in data.get('workflows', []) if w.get('id') == 'ca09d8a4-a694-4aab-95d0-770535d44f85'), None)
-        
+
         if wf:
             print(f"Name: {wf.get('name')}")
             for sid in wf.get('steps', []):

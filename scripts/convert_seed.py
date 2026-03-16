@@ -4,7 +4,7 @@ import os
 src_path = 'c:/src/quorum/backend/seed/seed_data.json'
 dst_path = 'c:/src/quorum/backend_v2/seed/seed_data.json'
 
-with open(src_path, 'r', encoding='utf-8') as f:
+with open(src_path, encoding='utf-8') as f:
     v1_data = json.load(f)
 
 # Extract only SystemConfig (model registry)

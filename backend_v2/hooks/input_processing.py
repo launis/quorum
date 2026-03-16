@@ -145,7 +145,7 @@ async def process_inputs(data: dict[str, Any]) -> dict[str, Any]:
         if expected_input.ai_description and hasattr(expected_input.ai_description, "translations"):
             # Enforce The English-Only Mandate regardless of client runtime language
             desc_text = expected_input.ai_description.translations.get("en")
-            
+
             # V2 STRICT FAIL-FAST: Missing English instruction is fatal
             if not desc_text:
                 logger.error(f"[InputProcessingHook] VALIDATION_FAILED: Missing English translation for {key} ai_description.")

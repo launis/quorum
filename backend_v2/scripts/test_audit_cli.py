@@ -1,10 +1,10 @@
 import asyncio
+import copy
+import json
 import os
+import statistics
 import sys
 import traceback
-import copy
-import statistics
-import json
 from collections import defaultdict
 
 # Provide path to backend rules
@@ -23,8 +23,9 @@ def get_pdf_text(filepath):
             reader = PyPDF2.PdfReader(f)
             return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
     except Exception as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
         import logging
+
+        from backend_v2.exceptions import ErrorCodes
         logger = logging.getLogger(__name__)
         logger.error(f"[TestAuditCLI] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Error reading {filepath}: {e}")
         return ""
@@ -32,7 +33,7 @@ def get_pdf_text(filepath):
 # Definitions
 DATASETS = {
     "SITRA": r"c:\src\quorum\data\files\548d78cd-d540-44a3-bc3e-965064803a40",
-    "REKLAMAATIO": r"c:\src\quorum\data\files\3bc29d99-0093-4175-9629-1e2982c6bb6d", 
+    "REKLAMAATIO": r"c:\src\quorum\data\files\3bc29d99-0093-4175-9629-1e2982c6bb6d",
     "SYNTHETIC_GARBAGE": "MOCK", # Will be intercepted in the loop
 }
 
@@ -50,20 +51,17 @@ async def main():
     setup_logging(log_level=logging.WARNING)
 
     from fastapi import BackgroundTasks
+
     from backend_v2.api.dependencies import TokenData
+
+    # Initialize Hooks
     from backend_v2.database.factory import get_repository
+    from backend_v2.models.auth import UserRole
     from backend_v2.models.v2_core import ExecutionCreate, WorkflowInputs
     from backend_v2.services.execution import ExecutionService
     from backend_v2.services.orchestrator.dag_executor import DAGExecutor
     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
     from backend_v2.settings import get_settings
-    from backend_v2.models.auth import UserRole
-    
-    # Initialize Hooks
-    from backend_v2.core.hook_registry import hook_registry
-    import backend_v2.hooks.input_processing  # registers hook
-    import backend_v2.hooks.scoring  # registers hook
-    import backend_v2.hooks.reporting # registers hook
 
     # Extract all dataset texts
     dataset_texts = {}
@@ -80,15 +78,15 @@ async def main():
                 "reflection_text": words
             }
             continue
-        
+
         chat_path = next((os.path.join(test_dir, f) for f in os.listdir(test_dir) if "SITRA" in f.upper() or "DATA" in f.upper()), None)
         product_path = next((os.path.join(test_dir, f) for f in os.listdir(test_dir) if "lopputuote" in f.lower() or "TULOS" in f.upper()), None)
         reflection_path = next((os.path.join(test_dir, f) for f in os.listdir(test_dir) if "Reflektio" in f.upper() or "INTENTIO" in f.upper()), None)
-        
+
         chat_log = get_pdf_text(chat_path) if chat_path else ""
         product = get_pdf_text(product_path) if product_path else ""
         reflection = get_pdf_text(reflection_path) if reflection_path else ""
-        
+
         dataset_texts[ds_name] = {
             "chat_log": chat_log,
             "product_text": product,
@@ -110,7 +108,7 @@ async def main():
     compiler = PromptCompiler()
     executor = DAGExecutor(repo, compiler)
     service = ExecutionService(repo=repo, executor=executor)
-    
+
     # Patch the repository to manipulate Micro strictness levels on the fly
     original_get_all_blocks = repo.get_all_prompt_blocks
     current_micro_level = [50] # Mutable state for the patch
@@ -145,24 +143,24 @@ async def main():
                 for micro in MICRO_LEVELS:
                     current_micro_level[0] = micro
                     print(f"\n--- Testing Combo: Aineisto={ds_name}, Macro={macro.value}, Micro={micro} ---")
-                    
+
                     for i in range(ITERATIONS):
                         current_run += 1
                         print(f"[{current_run}/{total_runs}] Running iteration {i+1}/{ITERATIONS}...")
-                        
+
                         payload = ExecutionCreate(
                             workflow_id="workflow_courtroom_20_full_audit",
                             strictness_level=macro,
                             raw_inputs=WorkflowInputs(**texts)
                         )
-                        
+
                         bt = BackgroundTasks()
                         record = await service.start_execution(user, payload, bt)
-                        
+
                         # Wait for execution graph
                         for task in bt.tasks:
                             await task.func(*task.args, **task.kwargs)
-                        
+
                         # Verify it finished correctly
                         final_record = await service.get_execution(user, record.id)
                         if final_record.status.value == "failed":
@@ -180,29 +178,29 @@ async def main():
                                 print(f"   -> Tallennettiin referenssi JSON-tuloste kohteeseen: {out_path}")
                                 with open(out_path, 'w', encoding='utf-8') as f:
                                     json.dump(final_record.results, f, indent=2, ensure_ascii=False)
-                        
+
                         exec_history[ds_name][macro.value][micro].append(record.id)
-                        
+
                         # Wait 1s between runs to avoid rate limits
                         await asyncio.sleep(1)
-        
+
         # EXTRACT AND ANALYZE
         print("\n=======================================================")
         print(" ANALYZING RESULTS ")
         print("=======================================================\n")
-        
+
         # Data format: results[dataset][macro][micro][matrix_name] = [scores...]
         analysis_data = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
-        
+
         for ds_name in exec_history:
             for macro_val in exec_history[ds_name]:
                 for micro_val in exec_history[ds_name][macro_val]:
                     for exec_id in exec_history[ds_name][macro_val][micro_val]:
-                        
+
                         record = await service.get_execution(user, exec_id)
                         if not record or not getattr(record, "results", None):
                             continue
-                            
+
                         # VERIFY METADATA INJECTION WORKS natively from backend orchestrator
                         if not hasattr(record, "metadata") or not record.metadata:
                             print(f"[!] Warning: Execution {record.id} missing strictness metadata!")
@@ -211,7 +209,7 @@ async def main():
                             saved_micro = record.metadata.get("micro_strictness_level")
                             if saved_macro != macro_val or saved_micro != micro_val:
                                 print(f"[?] Notice: DB metadata differs from loop: Loop({macro_val}/{micro_val}) vs DB({saved_macro}/{saved_micro})")
-                            
+
                         # Search for `_normalized` scores in all node results
                         # AND extract the top-level `final_score`
 
@@ -227,15 +225,15 @@ async def main():
                                     if k.endswith("_normalized") and isinstance(v, (int, float)):
                                         matrix_name = k.replace("_normalized", "")
                                         analysis_data[ds_name][macro_val][micro_val][matrix_name].append(float(v))
-        
+
         # Generate Markdown Report
         report_lines = []
         report_lines.append("# Cognitive Evaluation Strictness Framework: Analyysiraportti")
-        report_lines.append(f"Tämä on automaattisesti generoitu raportti kaksiulotteisen tiukkuustestauksen tuloksista.")
+        report_lines.append("Tämä on automaattisesti generoitu raportti kaksiulotteisen tiukkuustestauksen tuloksista.")
         report_lines.append("Testausajossa varioitiin kahta päämuuttujaa:")
         report_lines.append(f"1. **Makrotaso (Arkkitehtuurinen Tiukkuus):** {', '.join(str(l.value) for l in MACRO_LEVELS)}. Vaikuttaa rooleihin (esim. Syyttäjä) ja poikkeusmoduulien (esim. Zero-Trust Null-Hypothesis) käyttöön.")
         report_lines.append(f"2. **Mikrotaso (Matriisikohtainen Skaala):** {', '.join(str(l) for l in MICRO_LEVELS)} (0=Armelias, 100=Lahjomaton). Vaikuttaa prompt-tason ohjeistuksiin.")
-        
+
         report_lines.append("\n## Johdon Yhteenveto (Executive Summary)")
         report_lines.append("Quorum V2:n uusittu \"Strictness\"-moottori on suunniteltu ohjaamaan tekoälyn suorittamaa kognitiivista arviointia kaksiulotteisesti. Raportti todentaa empiirisesti, miten tiukkuustason kiristäminen (Makrotasot 1-5) yhdistettynä matriisikohtaiseen säätöön (0-100) laskee odotetusti arvosanoja ja pakottaa LLM:n vaatimaan vahvempaa näyttöä väitteiden tueksi. Tämä \"Tiukkuuden Kalibrointi\" on pakollinen ominaisuus erikoistuneissa laadunvarmistus- ja auditoinneissa, poistaen tekoälymalleille tyypillisen myötäilevyyden ja ylioptimistisuuden. Pääasiallinen löydös on, että **Tason 5 Zero-Trust -arkkitehtuuri** toimii halutulla tavalla: se romauttaa arvosanat automaattisesti Null-hypoteesiin, mikäli väitteen tueksi ei löydy todistettavasti validia, tekstivelvoitteet täyttävää näyttöä.")
 
@@ -245,7 +243,7 @@ async def main():
         report_lines.append("- **Makrotaso 3 (Kausaalinen / Oletus) - *Peruskäyttäjät*:** Suosittelemme tätä päivittäiseen työhön. Se on luotettava baseline, joka etsii rakentavasti syy-seuraussuhteita ilman vihamielistä asennetta. Arvioi reilusti sitä mitä on kirjoitettu.")
         report_lines.append("- **Makrotaso 4 (Falsifikaatio / Syyttäjä) - *Sisäinen Auditointi ja Laadunvarmistus*:** Kohderyhmänä esihenkilöt, asiantuntijat ja QA. Tehokas etsimään piileviä virheitä ja haastamaan ylioptimistisia lausuntoja asettamalla tekoälyn antagonistiseen rooliin.")
         report_lines.append("- **Makrotaso 5 (Zero-Trust) - *Compliance, Lakiosasto ja Turvallisuus*:** Tarkoitettu vain äärimmäiseen validointiin, jossa oletusarvoisesti *mikään* väite ei pidä paikkaansa ilman aukotonta tieteellistä tai dokumentaarista todistetta (Kognitiivinen kitka). Käytä tätä kun virheiden hinta on äärimmäisen korkea.")
-        
+
         report_lines.append("\n### Matriisi-tason hienosäätö (Mikrotaso 0-100)")
         report_lines.append("Mikrotaso ohjaa tekoälyn armollisuutta yksittäisten asteikkojen sisällä.")
         report_lines.append("- **0 (Armelias):** Käytä jos haluat sallia tulkinnanvaraisuutta ja palkita yrityksestä. Sopii sisäisiin raportteihin omien alojen asiantuntijoiden kesken.")
@@ -253,60 +251,60 @@ async def main():
         report_lines.append("- **100 (Lahjomaton):** Käytä vain kun jokaisen sanamuodon ja pilkun on oltava lakiteknisesti tai tieteellisesti kohdallaan. Yhdistettynä Zero-Trust makrotasoon tämä usein romahduttaa normaalin tekstin arvosanat minimiin.")
 
         report_lines.append("\n## 2. Numeerinen Analyysi Aineistoittain")
-        
+
         for ds_name in analysis_data:
             report_lines.append(f"\n### Aineisto: {ds_name}")
             report_lines.append(f"*(Aineisto-otannan koko: {ITERATIONS} iteratiota per kombinaatio)*\n")
-            
+
             # Find all unique matrices for this dataset
             all_matrices = set()
             for macro in analysis_data[ds_name]:
                 for micro in analysis_data[ds_name][macro]:
                     all_matrices.update(analysis_data[ds_name][macro][micro].keys())
-            
+
             for matrix in sorted(list(all_matrices)):
                 report_lines.append(f"\n#### Matriisi: `{matrix}`")
                 report_lines.append("| Macro Level | Micro Level | Mean Score | Std Dev | Variance | Deltas (vs 3/50) |")
                 report_lines.append("|---|---|---|---|---|---|")
-                
+
                 # Baseline for delta (Macro 3, Micro 50)
                 baseline_mean = None
                 if 3 in analysis_data[ds_name] and 50 in analysis_data[ds_name][3]:
                     scores = analysis_data[ds_name][3][50].get(matrix, [])
                     if scores:
                         baseline_mean = statistics.mean(scores)
-                
+
                 for macro_val in sorted(analysis_data[ds_name].keys()):
                     for micro_val in sorted(analysis_data[ds_name][macro_val].keys()):
                         scores = analysis_data[ds_name][macro_val][micro_val].get(matrix, [])
                         if not scores:
                             continue
-                        
+
                         count = len(scores)
                         mean_val = statistics.mean(scores)
                         stdev_val = statistics.stdev(scores) if count > 1 else 0.0
                         variance_val = statistics.variance(scores) if count > 1 else 0.0
-                        
+
                         delta_str = "-"
                         if baseline_mean is not None:
                             delta = mean_val - baseline_mean
                             delta_str = f"{delta:+.2f}"
-                        
+
                         report_lines.append(f"| {macro_val} | {micro_val} | **{mean_val:.2f}** | {stdev_val:.2f} | {variance_val:.2f} | {delta_str} |")
 
         report_lines.append("\n## 3. Quorum V2 Arkkitehtuurin ja Tietokannan Syy-Seuraus Analyysi (Deep Dive)")
         report_lines.append("Yllä oleva empiirinen data vahvistaa Quorum V2 -arkkitehtuurin (Strictness Framework) toimivuuden. Alla eriteltynä tekniset ja kognitiiviset syyt havaittuihin tuloseroihin:\n")
-        
+
         report_lines.append("### 3.1. Makrotason (Macro) Vaikutusmekanismit")
         report_lines.append("Makrotasot (3=Causal, 5=Zero_Trust) on määritelty `strictness_level` -käsitteenä `backend_v2/models/enums.py` -tiedostossa ja tallennettu tietokantaan. Niiden tekninen vaikutus on kaksijakoinen:")
         report_lines.append("- **Prompt Block (Rooliohjaus):** Tasolla 5 (Zero-Trust) `prompt_compiler.py` ohjaa tekoälyagentteja (esim. Falsifioija) omaksumaan syyttäjän (Prosecutor) roolin. Koodikanta estää perusarvioinnit ja pakottaa agentin etsimään aktiivisesti poikkeuksia (Null-Hypothesis) alkuperäisdatasta. Tästä syystä tason 5 keskiarvot (`Mean Score`) laskevat luonnostaan, sillä tekoäly on valmis hyväksymään vain aukotonta evidenssiä.")
         report_lines.append("- **Kill Switch (FINAL_SCORE_KILL_SWITCH):** Aineistoissa kuten `SYNTHETIC_GARBAGE` tuomarikomponentti näkee, että kaikki alikriteeristö romuttuu Makrotasolla 5. Tuomarin kooste usein aktivoi hylkäyksen ennemmin tasolla 5 kuin 3, koska tason 5 sallitut toleranssit (Database Penalty Thresholds) ovat minimaaliset.\n")
-        
+
         report_lines.append("### 3.2. Mikrotason (Micro 0-100) Matematiikka ja LLM Bias")
         report_lines.append("Mikrotaso (0, 50, 100) ohittaa LLM:n oman vapaan arviointikoordinaatiston (CoT Decimal Bias Override).")
         report_lines.append("- **Armollisuus (0):** Pakottaa asteikkoja skaalautumaan ylöspäin kohti täysiä pisteitä `prompt_compiler.py` injektion ansiosta (esim. 'if you see any effort, give points').")
         report_lines.append("- **Lahjomaton (100):** Nollaa LLM:n toleranssin ohjelmallisesti (The Deterministic Straightjacket). Vaikka Makrotaso olisi vain 3 (Lempeä), Micro 100 romahduttaa perusarvosanat (`Mean Score` droppaa `Deltas` -sarakkeeseen nähden) koska jokaisesta sanavalinnasta irrotetaan osapisteet. Tämä kumoaa Generatiivisen Tekoälyn myötäilevän (sycophantic) bias-ongelman.")
-        
+
         report_lines.append("\n### 3.3. Datan Laadun (Datasets) Ohjelmistollinen Vaikutus")
         report_lines.append("Testiajon kolme datasettiä paljastavat `DAGExecutor` -reitityksen kyvyn eristää virheet:")
         report_lines.append("- **SITRA (Laadukas):** Korkea sanavarasto ja looginen rakenne. LLM-agentit (esim. Logician) kykenevät löytämään Toulmin-rakenteita, jolloin arvot tasoittuvat Makrotasoilla 3-4 korkeiksi ja kestävät jopa Micro 100:n rangaistukset yllättävän hyvin.")
@@ -317,13 +315,14 @@ async def main():
         report_path = r"c:\src\quorum\backend_v2\scripts\strictness_analysis_report.md"
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(report_content)
-            
+
         print(f"\nRaportti tallennettu: {report_path}")
         print("Suoritus valmis!")
 
     except Exception as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
         import logging
+
+        from backend_v2.exceptions import ErrorCodes
         logger = logging.getLogger(__name__)
         logger.critical(f"[TestAuditCLI] {ErrorCodes.UNKNOWN_ERROR.name}: BATCH SCRIPT FATAL ERROR: {e}", exc_info=True)
         print("\n--- FAST-FAIL TRACE ---")

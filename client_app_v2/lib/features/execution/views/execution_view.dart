@@ -8,7 +8,6 @@ import 'package:client_app/shared/widgets/execution_timeline.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 
 /// **Live Execution SDUI Screen**
 ///
@@ -55,27 +54,12 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
 
           final status = SafeCast.safeString(record['status']).toLowerCase();
           final frozenContext = SafeCast.safeMap(record['frozen_context']);
-          final uiHints =
-              SafeCast.safeMap(
-                frozenContext['ui_hints_snapshot'],
-              ).values.toList();
 
           final stepStatesMap = SafeCast.safeMap(record['step_states']);
           final stepStatesList =
               stepStatesMap.values.map((e) => SafeCast.safeMap(e)).toList();
 
           final results = SafeCast.safeMap(record['results']);
-
-          final renderableHints =
-              uiHints.where((hint) {
-                final widgetType =
-                    hint['component_type']?.toString() ??
-                    hint['widget']?.toString() ??
-                    'unknown';
-                return widgetType == 'radar_chart' ||
-                    widgetType == 'gauge' ||
-                    widgetType == 'slider';
-              }).toList();
 
           return CustomScrollView(
             slivers: [
@@ -167,31 +151,29 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   ),
                 ),
 
-              // SDUI Grid (Temporarily disabled - UI rendering is a separate future project)
-              /*
-              if (renderableHints.isNotEmpty)
+              // SDUI Grid (Milestone 6: V6.0 Render Blueprint Integration)
+              if (record.containsKey('render_blueprint') && record['render_blueprint'] != null)
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 800,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.5,
-                    ),
+                  sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final hint = SafeCast.safeMap(renderableHints[index]);
+                      final blueprint = SafeCast.safeMap(record['render_blueprint']);
+                      final components = SafeCast.safeList(blueprint['components']);
+                      if (index >= components.length) return const SizedBox.shrink();
+                      
+                      final componentDef = SafeCast.safeMap(components[index]);
                       final componentType = SafeCast.safeString(
-                        hint['field_id'] ?? hint['component'],
+                        componentDef['type'],
                       );
+                      // Use data_path as the slug if available, else a generated index slug
+                      final slug = SafeCast.safeString(componentDef['data_path']).replaceAll(r'$results.', '').replaceAll(r'$results', 'results_root') + '_$index';
 
                       try {
                         return SDUIWidgetFactory.buildWidget(
-                          hint: hint,
-                          slug: componentType,
+                          hint: componentDef, // The V6 component definition acts as the hint
+                          slug: slug,
                           results: results,
-                          locale: 'fi',
+                          locale: Localizations.localeOf(context).languageCode,
                           logger: ref.read(loggerServiceProvider),
                         );
                       } catch (e, st) {
@@ -203,10 +185,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             );
                         return const SizedBox.shrink();
                       }
-                    }, childCount: renderableHints.length),
+                    }, childCount: SafeCast.safeList(SafeCast.safeMap(record['render_blueprint'])['components']).length),
                   ),
                 ),
-              */
 
               // ALWAYS show Raw Data JSON on completion
               if (status == 'completed' && results.isNotEmpty)

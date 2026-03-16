@@ -20,8 +20,8 @@ def mock_get_current_user_root():
 def mock_studio_service_manager():
     service = AsyncMock(spec=StudioService)
     # Configure mock responses for failing non-root mutations
-    service.save_workflow.side_effect = PermissionDeniedError("Only ROOT can modify workflows.")
-    service.delete_workflow.side_effect = PermissionDeniedError("Only ROOT can delete workflows.")
+    service.save_workflow.side_effect = PermissionDeniedError("Only ADMIN or MANAGER can modify resources.")
+    service.delete_workflow.side_effect = PermissionDeniedError("Only ADMIN or MANAGER can modify resources.")
     return service
 
 @pytest.fixture
@@ -44,7 +44,7 @@ def test_workflow_rbac_save_member_forbidden(client_member):
         response = client_member.put("/studio/workflows/new_wf", json=payload)
 
     assert response.status_code == 403
-    assert "Permission" in response.json()["detail"] or "ROOT" in response.json()["detail"]
+    assert "Permission" in response.json()["detail"] or "ADMIN" in response.json()["detail"]
 
 def test_workflow_rbac_delete_member_forbidden(client_member):
     response = client_member.delete("/api/v2/studio/workflows/some_id")

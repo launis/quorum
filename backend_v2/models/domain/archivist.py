@@ -4,10 +4,11 @@ This module contains the schemas for the Archivist Agent,
 including precedent analysis and compliance checks.
 """
 
+import logging
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-import logging
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

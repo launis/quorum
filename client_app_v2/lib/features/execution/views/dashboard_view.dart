@@ -88,7 +88,11 @@ class DashboardView extends ConsumerWidget {
                   isThreeLine: true,
                   onTap: () {
                     // Navigate to details safely using GoRouter codegen
-                    ExecutionRoute(executionId: id).go(context);
+                    if (status.toLowerCase() == 'completed') {
+                      ExecutionReportRoute(executionId: id).go(context);
+                    } else {
+                      ExecutionRoute(executionId: id).go(context);
+                    }
                   },
                 ),
               );

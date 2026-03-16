@@ -1,6 +1,5 @@
-import re
 
-with open("backend_v2/services/auth.py", "r", encoding="utf-8") as f:
+with open("backend_v2/services/auth.py", encoding="utf-8") as f:
     content = f.read()
 
 # 1. Imports

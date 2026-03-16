@@ -4,10 +4,11 @@ This module contains the schemas for the Interaction Agent,
 including user role classification and input quality assessment.
 """
 
+import logging
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-import logging
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

@@ -13,10 +13,8 @@ import json
 import logging
 from typing import Any
 
-from fastapi import status
-
 from backend_v2.core.hook_registry import hook_registry
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.exceptions import ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -33,16 +31,16 @@ async def translation_hook(data: dict[str, Any]) -> dict[str, Any]:
 
     # Data is expected to be a dict (the flattened output of the node)
     # The original inputs (including target_language and repository) should be passed in kwargs or accessible
-    
+
     # Check if this is the generic flat data payload or if we have full kwargs context
     # Usually hooks receive the merged dict, so we need to find the target_language
-    
+
     target_language = data.get("language")
     if not target_language:
         # If no language is specified, we assume no translation is needed
         logger.debug("[TranslationHook] No 'language' found in payload. Skipping translation.")
         return data
-        
+
     if target_language == "en":
         # English is the native output of the AI, no translation needed
         logger.debug("[TranslationHook] Target language is English. Skipping translation.")
@@ -58,7 +56,7 @@ async def translation_hook(data: dict[str, Any]) -> dict[str, Any]:
     # We don't want to translate system keys starting with '_' or known metadata fields.
     payload_to_translate = {}
     preserved_fields = {}
-    
+
     for k, v in data.items():
         if k.startswith("_") or k in ("language", "repository", "inputs", "node_id", "workflow_id"):
             preserved_fields[k] = v
@@ -97,7 +95,7 @@ async def translation_hook(data: dict[str, Any]) -> dict[str, Any]:
         logger.info(f"[TranslationHook] Translating {len(payload_to_translate)} fields to '{target_language}'...")
         # A generic dict string output, not a Pydantic strict model since input is dynamic
         response_text = await llm_client.run_simple_task(messages=messages)
-        
+
         # Clean potential markdown formatting if LLM didn't listen
         if response_text.startswith("```json"):
             response_text = response_text[7:]
@@ -105,9 +103,9 @@ async def translation_hook(data: dict[str, Any]) -> dict[str, Any]:
             response_text = response_text[3:]
         if response_text.endswith("```"):
             response_text = response_text[:-3]
-            
+
         translated_payload = json.loads(response_text.strip())
-        
+
         # Merge back with preserved fields
         final_data = {**preserved_fields, **translated_payload}
         logger.info("[TranslationHook] Translation successful.")

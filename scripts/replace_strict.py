@@ -1,7 +1,7 @@
-import glob, os
+import glob
 
 for filepath in glob.glob("backend/models/domain/*.py"):
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         content = f.read()
 
     if "strict=False" in content:

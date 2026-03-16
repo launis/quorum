@@ -82,7 +82,7 @@ class LiteLLMProvider(LLMProvider):
 
     Provides a consistent interface.
     """
-    
+
     # Class-level cache to prevent litellm callbacks memory leak during bulk executions
     _router_cache: dict[str, Any] = {}
     _instructor_cache: dict[str, Any] = {}
@@ -155,7 +155,7 @@ class LiteLLMProvider(LLMProvider):
 
         # Use Class Cache for Router and Instructor Client to avoid MAX_CALLBACKS leak
         cache_key = f"{model_name}_{tpm}_{rpm}_{parse_mode}"
-        
+
         if cache_key in self.__class__._router_cache:
             self.router = self.__class__._router_cache[cache_key]
             self.client = self.__class__._instructor_cache[cache_key]
@@ -170,16 +170,16 @@ class LiteLLMProvider(LLMProvider):
                     "rpm": rpm,
                 },
             }
-    
+
             # 3. Initialize Router
             # set_verbose=False to reduce noise, unless debugging
             self.router = Router(
                 model_list=[model_config],
                 set_verbose=False,
             )
-    
+
             self.client = instructor.from_litellm(self.router.acompletion, mode=parse_mode)
-            
+
             # Save to class cache
             self.__class__._router_cache[cache_key] = self.router
             self.__class__._instructor_cache[cache_key] = self.client

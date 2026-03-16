@@ -1,12 +1,13 @@
 import json
 from pathlib import Path
 
+
 def patch_model_strategies():
     v1_path = Path("c:/src/quorum/data/github_seed_data.json")
     v2_path = Path("c:/src/quorum/backend_v2/seed/seed_data.json")
 
     print(f"Loading V1 data from {v1_path}...")
-    with open(v1_path, "r", encoding="utf-8") as f:
+    with open(v1_path, encoding="utf-8") as f:
         v1_data = json.load(f)
 
     # Extract model strategies from V1 system_config
@@ -44,7 +45,7 @@ def patch_model_strategies():
     }
 
     print(f"Loading V2 data from {v2_path}...")
-    with open(v2_path, "r", encoding="utf-8") as f:
+    with open(v2_path, encoding="utf-8") as f:
         v2_data = json.load(f)
 
     patched_count = 0
@@ -54,12 +55,12 @@ def patch_model_strategies():
     for workflow in v2_data.get("workflows", []):
         for step_node in workflow.get("steps", []):
             blueprint_slug = step_node.get("task_blueprint")
-            
+
             if blueprint_slug in slug_to_agent_key:
                 agent_key = slug_to_agent_key[blueprint_slug]
                 # Fallback to 'fast' if not found in config
                 strategy = model_config.get(agent_key, "fast")
-                
+
                 # Apply the strategy
                 step_node["model_strategy"] = strategy
                 patched_count += 1
@@ -67,7 +68,7 @@ def patch_model_strategies():
                 missing_mappings.add(blueprint_slug)
 
     print(f"Patched {patched_count} step nodes with new model_strategy.")
-    
+
     if missing_mappings:
         print(f"Warning: No mapping found for the following task blueprints: {missing_mappings}")
 

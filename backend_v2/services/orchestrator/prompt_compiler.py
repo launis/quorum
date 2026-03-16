@@ -55,7 +55,7 @@ class PromptCompiler:
             return str(translations[target_locale])
 
         from backend_v2.exceptions import ConfigurationError, ErrorCodes
-        
+
         # V2 MANDATE: NO FALLBACKS. If a translation is requested, it MUST exist.
         msg = f"Translation missing for required locale '{target_locale}'. Fallbacks are strictly forbidden."
         logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}\nPayload: {text_obj}", exc_info=True)

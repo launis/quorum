@@ -32,6 +32,7 @@
             margin-bottom: 20px;
             border-radius: 12px;
             background-color: #f8f9fa;
+            page-break-inside: avoid;
         }
 
         .card {
@@ -40,7 +41,7 @@
             padding: 12px;
             margin-bottom: 12px;
             background-color: #fff;
-            break-inside: avoid;
+            page-break-inside: avoid;
         }
 
         .label {
@@ -63,6 +64,7 @@
             padding: 10px;
             margin-top: 8px;
             border-radius: 4px;
+            page-break-inside: avoid;
         }
         .citation-box {
             background-color: #FFF3E0;
@@ -74,70 +76,289 @@
             color: #E65100;
         }
 
-        .grid-container { display: flex; flex-wrap: wrap; gap: 8px; }
-        .grid-item { flex: 1; min-width: 140px; padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #eee; }
+        .grid-container { 
+            width: 100%; 
+            display: block;
+            page-break-inside: avoid;
+        }
+        .grid-item { 
+            display: inline-block; 
+            vertical-align: top; 
+            width: 30%; 
+            padding: 8px; 
+            background: #f5f5f5; 
+            border-radius: 4px; 
+            border: 1px solid #eee; 
+            margin-right: 2%;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
 
-    <div class="header-card">
-        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-            <div>
-                <h1 style="margin: 0;">{{ workflow_name }}</h1>
-                <div style="font-size: 11px; color: #444; margin-top: 5px;">Printed: {{ printed_at }}</div>
-            </div>
-            <div style="font-size: 10px; color: #666; margin-left: 15px; text-align: right;">ID: {{ execution_id }}</div>
-        </div>
-    </div>
+    <!-- Dynamic SDUI Block Render (V6.0 Blueprint Preference) -->
+    {% if rendered_blueprint and rendered_blueprint.get('blueprint') %}
+        
+        {% set lang = rendered_blueprint.target_locale | default('en') %}
+        {% set t_2d_matrix = '2D Arviointimatriisisynteesi' if lang == 'fi' else '2D Evaluation Matrix Synthesis' %}
+        {% set t_3d_scatter = '3D Systeeminen Hajontatila' if lang == 'fi' else '3D Scatter System State' %}
+        {% set t_notes = 'Analyyttiset Perustelut' if lang == 'fi' else 'Analytic Justifications' %}
+        {% set t_biblio = 'Lähteistetty Epistemologia (Lähdeluettelo)' if lang == 'fi' else 'Sourced Epistemology (Bibliography)' %}
+        {% set t_no_notes = 'Ajolle ei toimitettu perusteluja.' if lang == 'fi' else 'No justifications provided for this execution.' %}
+        {% set t_no_biblio = 'Ajossa ei viitattu auktorisoituihin lähteisiin.' if lang == 'fi' else 'No authoritative sources cited during execution.' %}
+        {% set t_printed = 'Tulostettu' if lang == 'fi' else 'Printed' %}
+        {% set t_locale = 'Kieliversio' if lang == 'fi' else 'Locale' %}
+        {% set t_x_axis = 'X-Akseli' if lang == 'fi' else 'X-Axis' %}
+        {% set t_y_axis = 'Y-Akseli' if lang == 'fi' else 'Y-Axis' %}
+        {% set t_z_factor = 'Z-Tekijä' if lang == 'fi' else 'Z Factor' %}
+        {% set t_justification = 'Perustelu' if lang == 'fi' else 'Justification' %}
+        {% set t_gauge = 'Mittari' if lang == 'fi' else 'Gauge' %}
+        {% set t_source_node = 'Lähdenoodi' if lang == 'fi' else 'Source Node' %}
+        
+        {% for comp in rendered_blueprint.blueprint.components %}
 
-    <!-- Dynamic SDUI Block Render -->
-    {% if frozen_context and frozen_context.get('ui_hints_snapshot') %}
-        {% for block_key, hint in frozen_context['ui_hints_snapshot'].items() %}
-        <div class="card">
-            <h2>{{ hint.get('label', block_key) }}</h2>
             
-            {% set val = results.get(block_key) %}
+            {% if comp.type == 'header' %}
+                <div class="header-card">
+                    <div style="display: table; width: 100%; align-items: baseline;">
+                        <div style="display: table-cell; vertical-align: top;">
+                            <h1 style="margin: 0; text-align: left;">{{ comp.title }}</h1>
+                            <div style="font-size: 11px; color: #444; margin-top: 5px;">{{ t_printed }}: {{ printed_at }}</div>
+                        </div>
+                        <div style="display: table-cell; font-size: 10px; color: #666; text-align: right; vertical-align: top;">ID: {{ execution_id }}<br>{{ t_locale }}: {{ rendered_blueprint.target_locale }}</div>
+                    </div>
+                </div>
             
-            <!-- Handle Nested Objects or Primitives safely -->
-            {% if val is mapping %}
-                <div class="grid-container">
-                {% for k, v in val.items() %}
-                    <!-- Ignore XAI injected values here (they are rendered below) -->
-                    {% if not k.endswith('_justification') and not k.endswith('_citation') %}
-                    <div class="grid-item">
-                        <div class="label">{{ k }}</div>
-                        <div class="value">{{ v }}</div>
+            {% elif comp.type == 'metadata_header' %}
+                <!-- Handled primarily by the main header or left empty if not needed visually -->
+
+            {% elif comp.type == '1d_gauge' %}
+                {% set raw1d = comp.value | float if comp.value else 0 %}
+                {% set max1d = comp.scale_max | float | default(100.0, true) %}
+                {% set pct1d = (raw1d / max1d * 100) if raw1d <= max1d else 100 %}
+                <div class="card">
+                    <h2>{{ comp.title or t_gauge }}</h2>
+                    <div style="text-align: center; margin-bottom: 25px; margin-top: 15px;">
+                        <span class="value" style="font-size: 52px; color: #1E88E5;">
+                            {{ "%.1f / %.1f"|format(raw1d, max1d) if raw1d else 'N/A' }}
+                        </span>
+                        {% if comp.scale_text %}
+                        <div style="font-size: 16px; font-weight: 600; color: #555; margin-top: 8px;">{{ comp.scale_text }}</div>
+                        {% endif %}
+                    </div>
+                    {% if raw1d %}
+                    <div style="background: #e0e0e0; border-radius: 12px; height: 32px; width: 100%; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="background: linear-gradient(90deg, #2196F3, #4CAF50); height: 100%; width: {{ pct1d }}%; border-radius: 12px;"></div>
                     </div>
                     {% endif %}
-                {% endfor %}
                 </div>
-            {% else %}
-                <div class="value">{{ val if val is not none else 'N/A' }}</div>
+
+            {% elif comp.type == '2d_matrix' %}
+                <div class="card" style="page-break-inside: avoid;">
+                    <h2>{{ t_2d_matrix }}</h2>
+                    
+                    <div style="display: table; width: 100%; margin-top: 25px;">
+                        <!-- Graphical Matrix (Left) -->
+                        <div style="display: table-cell; width: 220px; vertical-align: top; padding-right: 20px;">
+                            <div style="width: 200px; height: 200px; background: #fafafa; border: 1px solid #ddd; position: relative;">
+                                <!-- Simple Grid -->
+                                <div style="position: absolute; left: 0; top: 33.3%; width: 100%; border-top: 1px dashed #ccc;"></div>
+                                <div style="position: absolute; left: 0; top: 66.6%; width: 100%; border-top: 1px dashed #ccc;"></div>
+                                <div style="position: absolute; top: 0; left: 33.3%; height: 100%; border-left: 1px dashed #ccc;"></div>
+                                <div style="position: absolute; top: 0; left: 66.6%; height: 100%; border-left: 1px dashed #ccc;"></div>
+                                
+                                {% if comp.x_value is number and comp.y_value is number %}
+                                    {% set max_x = comp.x_scale_max | float | default(6.0, true) %}
+                                    {% set max_y = comp.y_scale_max | float | default(6.0, true) %}
+                                    {% set clamped_x = comp.x_value if comp.x_value <= max_x else max_x %}
+                                    {% set clamped_y = comp.y_value if comp.y_value <= max_y else max_y %}
+                                    {# map [0, max] to [0%, 100%] #}
+                                    {% set x_pct = (clamped_x / max_x) * 100 %}
+                                    {% set y_pct = 100 - ((clamped_y / max_y) * 100) %}
+                                    
+                                    <div style="position: absolute; left: {{ x_pct }}%; top: {{ y_pct }}%; width: 20px; height: 20px; background: #E91E63; border-radius: 50%; border: 2px solid white; transform: translate(-10px, -10px); box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>
+                                {% endif %}
+                                
+                                <!-- Axis Labels -->
+                                <div style="position: absolute; bottom: -24px; text-align: center; width: 100%; font-size: 10px; color: #666; font-weight: bold;">{{ t_x_axis }}{{ ': ' ~ comp.x_title if comp.x_title else '' }}</div>
+                                <div style="position: absolute; left: -110px; top: 90px; width: 200px; transform: rotate(-90deg); text-align: center; font-size: 10px; color: #666; font-weight: bold;">{{ t_y_axis }}{{ ': ' ~ comp.y_title if comp.y_title else '' }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Textual Data (Right) -->
+                        <div style="display: table-cell; vertical-align: top;">
+                            <div class="grid-container" style="margin-bottom: 15px;">
+                                <div class="grid-item" style="border-top: 3px solid #4CAF50;">
+                                    <div class="label" style="font-size: 11px;">{{ t_x_axis }}</div>
+                                    <div class="value" style="font-size: 26px; color: #4CAF50; padding: 5px 0;">
+                                        {% set max_x = comp.x_scale_max | float | default(6.0, true) %}
+                                        {{ "%.1f / %.1f"|format(comp.x_value, max_x) if comp.x_value is number else (comp.x_value if comp.x_value is not none else 'N/A') }}
+                                    </div>
+                                    {% if comp.x_scale_text %}
+                                    <div style="font-size: 10px; font-weight: 600; color: #4CAF50; line-height: 1.2;">{{ comp.x_scale_text }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="grid-item" style="border-top: 3px solid #FF9800;">
+                                    <div class="label" style="font-size: 11px;">{{ t_y_axis }}</div>
+                                    <div class="value" style="font-size: 26px; color: #FF9800; padding: 5px 0;">
+                                        {% set max_y = comp.y_scale_max | float | default(6.0, true) %}
+                                        {{ "%.1f / %.1f"|format(comp.y_value, max_y) if comp.y_value is number else (comp.y_value if comp.y_value is not none else 'N/A') }}
+                                    </div>
+                                    {% if comp.y_scale_text %}
+                                    <div style="font-size: 10px; font-weight: 600; color: #FF9800; line-height: 1.2;">{{ comp.y_scale_text }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Textual Notes (Full Width) -->
+                    {% if comp.x_note_text %}
+                        {% set max_x = comp.x_scale_max | float | default(6.0, true) %}
+                        {% set x_lbl = comp.x_title if comp.x_title else (comp.x_data_path.split('.')[-2] if comp.x_data_path else '') %}
+                        <div class="justify-box" style="margin-top: 15px; margin-bottom: 10px; padding: 12px; page-break-inside: avoid;">
+                            <strong style="color:#4CAF50; font-size: 11px; text-transform: uppercase;">{{ t_x_axis }} {{ t_justification }} &mdash; {{ x_lbl }} ({{ "%.1f"|format(comp.x_value) if comp.x_value is number else 'N/A' }} / {{ "%.1f"|format(max_x) }}):</strong><br>
+                            <div style="font-size: 13px; line-height: 1.6; color: #333; margin-top: 4px;">{{ comp.x_note_text | md | safe }}</div>
+                        </div>
+                    {% endif %}
+                    {% if comp.y_note_text %}
+                        {% set max_y = comp.y_scale_max | float | default(6.0, true) %}
+                        {% set y_lbl = comp.y_title if comp.y_title else (comp.y_data_path.split('.')[-2] if comp.y_data_path else '') %}
+                        <div class="justify-box" style="padding: 12px; page-break-inside: avoid;">
+                            <strong style="color:#FF9800; font-size: 11px; text-transform: uppercase;">{{ t_y_axis }} {{ t_justification }} &mdash; {{ y_lbl }} ({{ "%.1f"|format(comp.y_value) if comp.y_value is number else 'N/A' }} / {{ "%.1f"|format(max_y) }}):</strong><br>
+                            <div style="font-size: 13px; line-height: 1.6; color: #333; margin-top: 4px;">{{ comp.y_note_text | md | safe }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+
+            {% elif comp.type == '3d_scatter' %}
+                <div class="card" style="page-break-inside: avoid;">
+                    <h2>{{ t_3d_scatter }}</h2>
+                    <div style="display: table; width: 100%; margin-top: 25px;">
+                        <!-- Graphical 3D Base (Left) -->
+                        <div style="display: table-cell; width: 220px; vertical-align: top; padding-right: 20px;">
+                            <div style="width: 200px; height: 200px; background: #fafafa; border: 1px solid #ddd; position: relative; border-left: 2px solid #555; border-bottom: 2px solid #555;">
+                                <!-- Grid Lines -->
+                                <div style="position: absolute; left: 0; top: 25%; width: 100%; border-top: 1px dashed #eee;"></div>
+                                <div style="position: absolute; left: 0; top: 50%; width: 100%; border-top: 1px dashed #ddd;"></div>
+                                <div style="position: absolute; left: 0; top: 75%; width: 100%; border-top: 1px dashed #eee;"></div>
+                                <div style="position: absolute; top: 0; left: 25%; height: 100%; border-left: 1px dashed #eee;"></div>
+                                <div style="position: absolute; top: 0; left: 50%; height: 100%; border-left: 1px dashed #ddd;"></div>
+                                <div style="position: absolute; top: 0; left: 75%; height: 100%; border-left: 1px dashed #eee;"></div>
+
+                                {% if comp.x_value is number and comp.y_value is number %}
+                                    {% set max_x = comp.x_scale_max | float | default(6.0, true) %}
+                                    {% set max_y = comp.y_scale_max | float | default(6.0, true) %}
+                                    {% set max_z = comp.z_scale_max | float | default(100.0, true) %}
+                                    
+                                    {% set clamped_x = comp.x_value if comp.x_value <= max_x else max_x %}
+                                    {% set clamped_y = comp.y_value if comp.y_value <= max_y else max_y %}
+                                    {% set raw_z = comp.z_value | float if comp.z_value else 0 %}
+                                    {% set x_pct = (clamped_x / max_x) * 100 %}
+                                    {% set y_pct = 100 - ((clamped_y / max_y) * 100) %}
+                                    
+                                    {# Z factor determines the size of the bubble, say 15px to 50px base on 1-100% #}
+                                    {% set z_pct = (raw_z / max_z * 100) if raw_z <= max_z else 100 %}
+                                    {% set z_size = 15 + ((z_pct / 100.0) * 35) %}
+                                    {% set offset = z_size / 2 %}
+                                    
+                                    <div style="position: absolute; left: {{ x_pct }}%; top: {{ y_pct }}%; width: {{ z_size }}px; height: {{ z_size }}px; background: rgba(63, 81, 181, 0.75); border-radius: 50%; border: 2px solid #3F51B5; transform: translate(-{{ offset }}px, -{{ offset }}px); box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 10;"></div>
+                                    
+                                    <!-- Projection Lines -->
+                                    <div style="position: absolute; left: {{ x_pct }}%; top: {{ y_pct }}%; width: 0px; height: {{ 100 - y_pct }}%; border-left: 2px dotted #999; z-index: 1;"></div>
+                                    <div style="position: absolute; left: 0; top: {{ y_pct }}%; width: {{ x_pct }}%; height: 0px; border-top: 2px dotted #999; z-index: 1;"></div>
+                                {% endif %}
+                                
+                                <!-- Axis Labels -->
+                                <div style="position: absolute; bottom: -24px; text-align: center; width: 100%; font-size: 10px; color: #666; font-weight: bold;">{{ t_x_axis }}{{ ': ' ~ comp.x_title if comp.x_title else '' }}</div>
+                                <div style="position: absolute; left: -110px; top: 90px; width: 200px; transform: rotate(-90deg); text-align: center; font-size: 10px; color: #666; font-weight: bold;">{{ t_y_axis }}{{ ': ' ~ comp.y_title if comp.y_title else '' }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Textual Data -->
+                        <div style="display: table-cell; vertical-align: top;">
+                            <div class="grid-container" style="display: block; width: 100%;">
+                                <div class="grid-item" style="border-top: 4px solid #E91E63; display: block; width: 95%; margin-bottom: 12px;">
+                                    {% set max_x = comp.x_scale_max | float | default(6.0, true) %}
+                                    <div class="label" style="font-size: 11px;">{{ t_x_axis }} {%- if comp.x_title %} ({{ comp.x_title }}){% endif -%}</div>
+                                    <div class="value" style="font-size: 24px; color: #E91E63; padding: 4px 0;">{{ "%.1f / %.1f"|format(comp.x_value, max_x) if comp.x_value is number else (comp.x_value if comp.x_value is not none else 'N/A') }}</div>
+                                    {% if comp.x_scale_text %}
+                                    <div style="font-size: 10px; font-weight: 600; color: #E91E63; line-height: 1.2;">{{ comp.x_scale_text }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="grid-item" style="border-top: 4px solid #9C27B0; display: block; width: 95%; margin-bottom: 12px;">
+                                    {% set max_y = comp.y_scale_max | float | default(6.0, true) %}
+                                    <div class="label" style="font-size: 11px;">{{ t_y_axis }} {%- if comp.y_title %} ({{ comp.y_title }}){% endif -%}</div>
+                                    <div class="value" style="font-size: 24px; color: #9C27B0; padding: 4px 0;">{{ "%.1f / %.1f"|format(comp.y_value, max_y) if comp.y_value is number else (comp.y_value if comp.y_value is not none else 'N/A') }}</div>
+                                    {% if comp.y_scale_text %}
+                                    <div style="font-size: 10px; font-weight: 600; color: #9C27B0; line-height: 1.2;">{{ comp.y_scale_text }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="grid-item" style="border-top: 4px solid #3F51B5; display: block; width: 95%;">
+                                    {% set max_z = comp.z_scale_max | float | default(100.0, true) %}
+                                    <div class="label" style="font-size: 11px;">{{ t_z_factor }} <b>(Volume)</b> {%- if comp.z_title %} ({{ comp.z_title }}){% endif -%}</div>
+                                    {% set raw_z = comp.z_value | float if comp.z_value else 0 %}
+                                    <div class="value" style="font-size: 24px; color: #3F51B5; padding: 4px 0;">{{ "%.1f / %.1f"|format(raw_z, max_z) if raw_z else 'N/A' }}</div>
+                                    {% if comp.z_scale_text %}
+                                    <div style="font-size: 10px; font-weight: 600; color: #3F51B5; line-height: 1.2; margin-bottom: 4px;">{{ comp.z_scale_text }}</div>
+                                    {% endif %}
+                                    {% if raw_z %}
+                                        <div style="background: #e0e0e0; border-radius: 4px; height: 8px; width: 100%; margin-top: 5px;">
+                                            {% set z_pct = (raw_z / max_z * 100) if raw_z <= max_z else 100 %}
+                                            <div style="background: #3F51B5; height: 100%; width: {{ z_pct }}%; border-radius: 4px;"></div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            {% elif comp.type == 'evaluation_notes_panel' %}
+                <div class="card" style="page-break-inside: auto;">
+                    <h2>{{ t_notes }}</h2>
+                    {% if comp.resolved_notes %}
+                        {% for path, note in comp.resolved_notes.items() %}
+                            {% if note %}
+                                <div class="justify-box" style="margin-bottom: 16px; background-color: #f8fbff; border-left: 4px solid #2196F3; padding: 14px; page-break-inside: avoid;">
+                                    <div class="label" style="color: #1565C0; font-weight: bold; font-size: 11px; margin-bottom: 6px; text-transform: uppercase;">{{ t_source_node }}: {{ path.split('.')[-2] if path.split('.')|length >= 2 else path }}</div>
+                                    <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ note | md | safe }}</div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="value" style="font-size: 13px; font-style: italic; color: #757575;">{{ t_no_notes }}</div>
+                    {% endif %}
+                </div>
+
+            {% elif comp.type == 'bibliography_footer' %}
+                <div class="card" style="border-top: 2px solid #607D8B;">
+                    <h2>{{ t_biblio }}</h2>
+                    {% if rendered_blueprint.bibliography|length > 0 %}
+                        <ul style="padding-left: 20px; margin-top: 10px;">
+                        {% for ref in rendered_blueprint.bibliography %}
+                            <li style="font-size: 10px; margin-bottom: 6px; color: #455A64; line-height: 1.3;">{{ ref }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div style="font-size: 10px; color: #78909C; margin-top: 10px;">{{ t_no_biblio }}</div>
+                    {% endif %}
+                </div>
+
             {% endif %}
 
-            <!-- XAI Justification Resolution Logic (V2 Mandate) -->
-            {% set justification = results.get(block_key ~ '_justification') %}
-            {% set citation = results.get(block_key ~ '_citation') %}
-
-            {% if justification %}
-            <div class="justify-box">
-                <div class="label" style="color: #1565C0;">AI Reasoning</div>
-                <div>{{ justification }}</div>
-            </div>
-            {% endif %}
-
-            {% if citation %}
-            <div class="citation-box">
-                <strong style="color: #E65100;">Source Citation:</strong> {{ citation }}
-            </div>
-            {% endif %}
-
-        </div>
         {% endfor %}
+
     {% else %}
-        <div class="card" style="border-left: 4px solid #F44336;">
-            <h2>RAW RESULTS (No UI Hints Available)</h2>
-            <pre style="font-size: 10px; white-space: pre-wrap;">{{ results | string }}</pre>
+        <div class="card" style="border-left: 4px solid #F44336; background-color: #ffebee;">
+            <h2 style="color: #c62828;">V2 ARCHITECTURE VIOLATION</h2>
+            <p style="font-size: 12px; color: #b71c1c;">
+                <strong>FAIL-FAST MANDATE:</strong> This execution lacks an explicit <code>RenderBlueprint</code> configuration. 
+                Legacy automatic "fallback" rendering (dictionary iteration) has been permanently outlawed in V2. 
+                <br><br>
+                Please ensure the executing Workflow definition in `db_v2.json` contains a valid `render_blueprint`.
+            </p>
         </div>
     {% endif %}
 

@@ -7,7 +7,7 @@ from typing import Any
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
-from backend_v2.models.auth import TokenData
+from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigModelRegistry, Workflow
 
 logger = logging.getLogger(__name__)
@@ -33,8 +33,12 @@ class StudioService:
 
     def _enforce_modification_rights(self, initiator: TokenData, data_org_id: str | None, allow_system: bool = False) -> None:
         """Helper to enforce modification boundaries (e.g. only ROOT can modify system)."""
+        if initiator.role not in ["ROOT", "ADMIN", "MANAGER", UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ADMIN or MANAGER can modify resources.")
+            raise PermissionDeniedError("Only ADMIN or MANAGER can modify resources.")
+
         org_id = getattr(initiator, "organization_id", None)
-        if initiator.role != "ROOT":
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
             if data_org_id == "system" and not allow_system:
                 logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify system resources.")
                 raise PermissionDeniedError("Only ROOT can modify system resources.")
@@ -63,9 +67,6 @@ class StudioService:
         return Workflow.model_validate(data)
 
     async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> Workflow:
-        if initiator.role != "ROOT":
-            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify workflows.")
-            raise PermissionDeniedError("Only ROOT can modify workflows.")
         self._enforce_modification_rights(initiator, data.organization_id)
 
         dump = data.model_dump(mode="json")
@@ -80,9 +81,6 @@ class StudioService:
         return Workflow.model_validate(saved)
 
     async def delete_workflow(self, initiator: TokenData, id: str) -> None:
-        if initiator.role != "ROOT":
-            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can delete workflows.")
-            raise PermissionDeniedError("Only ROOT can delete workflows.")
         data = await self.repo.get("workflows", id)
         if not data:
             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {id} not found.")
@@ -110,9 +108,6 @@ class StudioService:
         return Step.model_validate(data)
 
     async def save_step(self, initiator: TokenData, id: str, data: Step) -> Step:
-        if initiator.role != "ROOT":
-            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify steps.")
-            raise PermissionDeniedError("Only ROOT can modify steps.")
         org_id = getattr(data, "organization_id", None)
         self._enforce_modification_rights(initiator, org_id)
 
@@ -128,9 +123,6 @@ class StudioService:
         return Step.model_validate(saved)
 
     async def delete_step(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
-        if initiator.role != "ROOT":
-            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can delete steps.")
-            raise PermissionDeniedError("Only ROOT can delete steps.")
         data = await self.repo.get("steps", id)
         if not data:
             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Step {id} not found.")

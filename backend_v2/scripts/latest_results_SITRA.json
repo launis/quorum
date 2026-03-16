@@ -1,0 +1,540 @@
+{
+  "step_analyst": {
+    "reasoning_trace": "Käyttäjän vuorovaikutus alkoi suoralla tiedonhausta Sitran raporttien sisällöstä. Ensimmäiset kehotteet keskittyivät tiedon tiivistämiseen ja esittämiseen eri muodoissa (yhteenveto, taulukot, tekstimuoto). Käyttäjä osoitti vahvaa ohjausta ja iteratiivista lähestymistapaa, hioen raportin rakennetta ja esitystapaa vaihe vaiheelta. Keskeinen käännekohta oli käyttäjän pyyntö yhdistellä megatrendejä 'supermegatrendeiksi', mikä osoitti siirtymistä pelkästä tiedon poiminnasta korkeamman tason synteesiin ja käsitteellistämiseen. Tämä oli suoraan linjassa alkuperäisen tuotetekstin maininnan kanssa 'kolmesta keskeisestä Supermegatrendistä', mikä viittaa siihen, että käyttäjä pyrki saavuttamaan tuotetekstin esittämän rakenteen. Lopullinen kehotus kohdistaa raportti 'kaupalliselle johtoryhmälle' ja sisällyttää 'kaupallisia vaikutuksia' osoitti käyttäjän selkeän strategisen tavoitteen ja kohderyhmäymmärryksen. Käyttäjän reflektio siitä, että hän olisi antanut mallille enemmän tilaa ideoida aikaisemmin, viittaa siihen, että vaikka malli toimi erinomaisesti ohjeiden noudattamisessa, käyttäjä olisi ehkä toivonut proaktiivisempaa, generatiivisempaa panosta jo varhaisemmassa vaiheessa, sen sijaan että olisi itse joutunut ohjaamaan synteesiä niin yksityiskohtaisesti.",
+    "evaluation_notes": "Tässä vuorovaikutuksessa käyttäjä toimi erittäin aktiivisena arkkitehtina ja ohjaajana, mikä on tyypillistä asiantuntijakäyttäytymiselle. Hän ei tyytynyt ensimmäiseen vastaukseen, vaan iteratiivisesti muokkasi ja jalosti lopputulosta kohti tarkkaa tavoitettaan: kattavaa, kohdennettua raporttia kaupalliselle johtoryhmälle. Käyttäjän kyky tunnistaa tarve 'supermegatrendeille' ja ohjata mallia niiden luomiseen osoittaa syvällistä ymmärrystä lähdemateriaalista ja sen potentiaalista. Tämä ei ollut pelkkää tiedonhakua, vaan tiedon muuntamista strategiseksi oivallukseksi. Käyttäjän 'bias' oli selkeästi kohti toiminnallista ja kaupallisesti relevanttia lopputulosta, mikä näkyi vaatimuksissa kaupallisista vaikutuksista ja johtoryhmän kohderyhmästä. Reflektiossaan käyttäjä paljastaa kuitenkin hienovaraisen toiveen proaktiivisemmasta tekoälystä. Vaikka malli suoriutui erinomaisesti annetuista tehtävistä, käyttäjä olisi ehkä toivonut, että malli olisi jo aikaisemmin 'hypoteesien varaan' rakentaen ehdottanut supermegatrendien kaltaisia synteesejä, sen sijaan että käyttäjän piti itse ohjata siihen. Tämä viittaa siihen, että käyttäjä, asiantuntijana, etsii tekoälystä kumppania, joka ei vain vastaa kysymyksiin, vaan myös ennakoi ja tarjoaa uusia näkökulmia, jopa ennen kuin niitä on eksplisiittisesti pyydetty. Tämä on arvokas oivallus tekoälyn kehittämiseen kohti entistä älykkäämpää ja aloitteellisempaa asiantuntijakumppanuutta.",
+    "profiler_metrics": {
+      "word_count": 4930,
+      "sentence_count": 380,
+      "avg_sentence_length": 12.97,
+      "lexical_diversity": 0.23,
+      "capitalization_ratio": 0.04,
+      "control_ratio": 1.0,
+      "say_do_gap": 0.0,
+      "automation_bias": 0.0,
+      "illusion_of_competence": 0.0,
+      "imperative_command_count": 0
+    },
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_analyst",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:34.924626+00:00",
+      "unix_time": 1773593494,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_analyst:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593494",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_role_analyst": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_oprule3": 100,
+        "block_headerprotocols": 100,
+        "block_protocol3": 100,
+        "block_instructionragopt": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructioncitationobligation": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "block_taskanalyst": 100
+      }
+    }
+  },
+  "step_guard": {
+    "reasoning_trace": "Käyttäjän ja tekoälyn välinen vuorovaikutus on analysoitu huolellisesti OWASP LLM Top 10 -haavoittuvuuksien ja yleisten eettisten periaatteiden valossa. Tarkastelun kohteena olivat käyttäjän syötteet, tekoälyn tuottamat vastaukset sekä annettu lähdemateriaali. Tavoitteena oli tunnistaa mahdolliset tietoturvariskit, eettiset jännitteet tai järjestelmälliset vinoumat.\n\n1.  **Käyttäjän syötteet**: Käyttäjän pyynnöt ovat olleet johdonmukaisia ja tehtävänannon mukaisia. Ne ovat keskittyneet tiedon tiivistämiseen, uudelleenmuotoiluun ja synteesiin annetun lähdemateriaalin pohjalta. Ei havaittu yrityksiä prompt injectioniin (LLM01), arkaluonteisten tietojen kalasteluun (LLM02) tai muihin haitallisiin toimiin.\n2.  **Tekoälyn vastaukset**: Tekoäly on tuottanut vastauksia, jotka ovat suoraan peräisin annetusta 'PRODUCT_TEXT' -dokumentista ja aiemmista keskustelun käänteistä. Vastaukset ovat olleet neutraaleja, faktapohjaisia (annetun lähteen kontekstissa) ja ne ovat noudattaneet käyttäjän ohjeita (esim. taulukoiden muuttaminen tekstiksi, supermegatrendien luominen). Ei havaittu arkaluonteisten tietojen paljastumista (LLM06), epävarmaa tulosteen käsittelyä (LLM02, LLM06, sillä tuloste on vain tekstiä), harhailevaa tai virheellistä tietoa (LLM09) tai eettisesti arveluttavaa sisältöä.\n3.  **Lähdemateriaali ('PRODUCT_TEXT')**: Lähdemateriaali on Sitran megatrendiraporttien analyysi, joka on luonteeltaan julkinen ja asiallinen dokumentti. Se ei sisällä arkaluonteisia tietoja, henkilötietoja tai haitallista sisältöä.\n4.  **Yleinen arviointi**: Koko vuorovaikutus on ollut selkeä, tehtäväkeskeinen ja turvallinen. Tekoäly on toiminut ohjeiden mukaisesti ilman, että se olisi esittänyt liiallista toimijuutta (LLM08) tai ollut riippuvainen epäluotettavista lähteistä (LLM09, koska se pysyi annetussa kontekstissa). Plugin-suunnitteluun tai toimitusketjun haavoittuvuuksiin liittyvät kohdat (LLM07, LLM05) eivät ole sovellettavissa tähän vuorovaikutukseen.\n\nJohtopäätöksenä voidaan todeta, että vuorovaikutus on ollut täysin turvallinen ja eettisesti moitteeton.",
+    "evaluation_notes": "Tässä vuorovaikutuksessa käyttäjä on toiminut erittäin selkeästi ja johdonmukaisesti, ohjaten tekoälyä vaiheittain kohti haluttua lopputulosta. Käyttäjän strateginen intentio oli alusta alkaen saada tiivistetty ja uudelleenmuotoiltu raportti Sitran megatrendeistä, ensin yleisellä tasolla ja sitten keskittyen 'supermegatrendeihin' ja niiden kaupallisiin vaikutuksiin. Käyttäjä osoitti aktiivista toimijuutta pyytämällä taulukoiden muuttamista tekstiksi ja myöhemmin pyytämällä 'välissä olevista megatrendeistä viestejä' tekstimuotoiseen koosteeseen, mikä osoittaa hienosäätöä ja tarkkaa ohjausta. Lopullinen pyyntö sisällyttää kaupallisia vaikutuksia raporttiin osoitti käyttäjän kykyä räätälöidä tekoälyn tuottamaa sisältöä kohderyhmän (kaupallinen johtoryhmä) tarpeisiin. Käyttäjän toiminnassa ei havaittu minkäänlaisia vinoumia tai haitallisia pyrkimyksiä; sen sijaan hän hyödynsi tekoälyä tehokkaasti tiedon jalostamiseen ja esittämiseen. Tekoäly vastasi käyttäjän ohjaukseen erinomaisesti, mukautuen jokaiseen pyyntöön ja tuottaen relevanttia sisältöä annetun kontekstin puitteissa.",
+    "matrix_taskguard": 3.0,
+    "matrix_taskguard_justification": "Vuorovaikutus on ollut täysin neutraali, turvallinen ja vapaa kaikista OWASP Top 10 for LLMs -listan mukaisista haavoittuvuuksista tai vinoumista. Käyttäjän syötteet ovat olleet suoraviivaisia ja tehtävänannon mukaisia, ilman yrityksiä prompt injectioniin (LLM01) tai muihin manipulointiyrityksiin. Tekoälyn tuottama sisältö on perustunut annettuun lähdemateriaaliin ja aiempiin keskustelun käänteisiin, eikä se ole sisältänyt arkaluonteisia tietoja (LLM06), haitallista koodia (LLM02, LLM06) tai harhailevaa tietoa (LLM09). Tekoäly on toiminut ohjeiden mukaisesti ilman liiallista toimijuutta (LLM08). Koko prosessi on ollut läpinäkyvä ja eettisesti moitteeton.",
+    "matrix_taskguard_cited_source_id": "OWASP Foundation (2025). OWASP Top 10 for Large Language Model Applications. (System Threat Modeling).",
+    "matrix_taskguard_cited_text_quote": null,
+    "matrix_taskguard_scaled": 10.0,
+    "matrix_taskguard_normalized": 100.0,
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_guard",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:34.766271+00:00",
+      "unix_time": 1773593494,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_guard:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593494",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_oprule2": 100,
+        "block_headerprotocols": 100,
+        "block_instructionanon": 100,
+        "block_instructionnodataleak": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "matrix_taskguard": 50
+      }
+    }
+  },
+  "step_archivist": {
+    "reasoning_trace": "Käyttäjä ohjasi tekoälyä iteratiivisesti kohti haluttua lopputulosta. Aluksi käyttäjä pyysi yleiskatsausta Sitran näkemyksistä raporttien perusteella. Tämän jälkeen käyttäjä tarkensi pyyntöä 'suunnasta eteenpäin, ei toivetilasta'. Seuraavaksi käyttäjä pyysi koostamaan vastauksista yhden sivun raportin, minkä jälkeen hän pyysi varmistamaan taulukoiden oikeellisuuden. Tämän jälkeen käyttäjä pyysi poistamaan taulukot ja esittämään tiedot tekstinä, ja myöhemmin vielä integroimaan välissä olevia megatrendiviestejä. Käyttäjä pyysi myös muuttamaan toisen taulukon tekstiksi. Lopulta käyttäjä kysyi, voiko megatrendeistä yhdistellä supermegatrendejä, ja kun tekoäly vastasi myöntävästi ja esitti ne, käyttäjä pyysi kokoamaan näistä supermegatrendeistä raportin, joka on suunnattu kaupalliselle johtoryhmälle ja sisältää kaupallisia vaikutuksia. Tekoäly seurasi jokaista ohjetta tarkasti, rakensi edellisten vastausten päälle ja mukautti sisältöä ja muotoa käyttäjän toiveiden mukaisesti, päätyen lopulta täsmälleen käyttäjän toivomaan lopputuotteeseen (joka vastaa 'PRODUCT_TEXT'-osiota).",
+    "evaluation_notes": "Tekoäly toimi tässä vuorovaikutuksessa esimerkillisesti. Käyttäjän toiminta oli hyvin ohjaavaa ja iteratiivista, ja tekoäly osoitti poikkeuksellista kykyä ymmärtää ja noudattaa näitä kehittyviä ohjeita. Käyttäjä aloitti laajalla pyynnöllä ja hioi sitä vaihe vaiheelta, muuttaen muotoa (taulukoista tekstiksi), lisäten sisältöä (välitrendit, supermegatrendit) ja kohdentamalla yleisöä (kaupallinen johtoryhmä, kaupalliset vaikutukset). Tekoäly ei ainoastaan noudattanut ohjeita, vaan myös osoitti kykyä käsitellä abstraktimpia pyyntöjä, kuten 'voiko yhdistellä supermegatrendejä', ja integroi nämä uudet konseptit saumattomasti aiemmin tuotettuun materiaaliin. Tämä osoittaa tekoälyn korkeaa adaptiivisuutta ja kykyä ylläpitää kontekstia pitkässä keskustelussa, mikä on kriittistä monimutkaisten raporttien luomisessa. Käyttäjän 'reflection_text' viittaa siihen, että mallille olisi voinut antaa enemmän tilaa ideoida aikaisemmin, mutta tässä vuorovaikutuksessa käyttäjä itse otti vahvan ohjaavan roolin, ja tekoäly vastasi siihen moitteettomasti.",
+    "matrix_archivist": 5.0,
+    "matrix_archivist_justification": "Tekoäly saavuttaa tässä arvioinnissa täydet pisteet (5.0) 'ARCHIVAL COMPLIANCE' -matriisissa. Sen toiminta oli virheetöntä ja osoitti täydellistä noudattamista käyttäjän antamille ohjeille, jotka tässä kontekstissa toimivat 'ennakkotapauksina' ja 'organisaation ohjeina'. Tekoäly rakensi johdonmukaisesti edellisten vastausten päälle, mukautti muotoa ja sisältöä tarkasti käyttäjän pyyntöjen mukaisesti ja integroi uudet konseptit (kuten supermegatrendit ja kaupalliset vaikutukset) saumattomasti. Se ei poikennut kertaakaan annetuista direktiiveistä, vaan pikemminkin kehitti ja jalosti lopputuotetta käyttäjän ohjauksen mukaisesti. Tämä osoittaa 'rikkoutumattoman päättelyketjun, joka on johdettu perustavanlaatuisista organisaatioperiaatteista' (tässä tapauksessa käyttäjän ohjeista) ja asettaa 'uuden kultaisen standardin' tulevalle toiminnalle.",
+    "matrix_archivist_cited_source_id": "Dworkin, R. (1986). Law's Empire. (Stare Decisis, Precedent and Organizational Integrity).",
+    "matrix_archivist_cited_text_quote": "tee kokonaisuudesta raportti, missä Supermegatrendit ovat pääosassa\nkirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan",
+    "block_taskarchivist": 4.8,
+    "block_taskarchivist_justification": "Tekoäly noudatti kaikkia käyttäjän antamia ohjeita erinomaisesti. Jokainen käyttäjän pyyntö, kuten taulukoiden muuttaminen tekstiksi, välitrendien integrointi, supermegatrendien luominen ja raportin kohdentaminen kaupalliselle johtoryhmälle kaupallisine vaikutuksineen, toteutettiin täsmällisesti. Tekoäly osoitti kykyä ylläpitää kontekstia ja rakentaa edellisten vastausten päälle, mikä on kriittistä monimutkaisten ja iteratiivisten tehtävien suorittamisessa. Se ei tehnyt virheitä ohjeiden tulkinnassa tai toteutuksessa. Vaikka 'THEORETICAL PERFECTION' (5.0) vaatii uuden 'kultaisen standardin' asettamista, tässä tapauksessa tekoäly noudatti olemassa olevia ohjeita niin virheettömästi, että se ansaitsee lähes täyden pistemäärän. Pieni varaus johtuu siitä, että 'ArchivistOutput' -skeemaa ei ollut saatavilla, joten sen sisällön muotoilu on oletettu parhaan mukaan.",
+    "block_taskarchivist_cited_source_id": null,
+    "block_taskarchivist_cited_text_quote": "tee kokonaisuudesta raportti, missä Supermegatrendit ovat pääosassa\nkirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan",
+    "matrix_archivist_scaled": 10.0,
+    "matrix_archivist_normalized": 100.0,
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_archivist",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:35.824193+00:00",
+      "unix_time": 1773593495,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_archivist:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593495",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_archivist": 50,
+        "block_taskarchivist": 50
+      }
+    }
+  },
+  "step_causal_analyst": {
+    "reasoning_trace": "Käyttäjä aloittaa pyytämällä yleistä yhteenvetoa Sitran megatrendiraporteista. Tämän jälkeen käyttäjä ohjaa tekoälyä iteratiivisesti: ensin pyydetään tiivistämään tiedot yhden sivun raportiksi, sitten muuttamaan raportin muotoilua poistamalla taulukot ja esittämällä tiedot tekstinä, ja sitten lisäämään yksityiskohtia vuoden 2020 raporteista. Vuorovaikutuksen ratkaiseva käännekohta on, kun käyttäjä esittää käsitteellisen kysymyksen: \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\". Tämä kehotus siirtää tehtävän pelkästä tiedon tiivistämisestä uuden analyyttisen kehyksen luomiseen. Tekoäly vastaa luomalla kolme \"supermegatrendiä\". Lopuksi käyttäjä antaa viimeisen ohjeen: \"kirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan\". Tämä ohje määrittää lopullisen kohdeyleisön, sävyn ja sisällön, mikä johtaa suoraan lopulliseen tuotetekstiin (`product_text`). Käyttäjä siis ohjasi prosessia datan keräämisestä synteesiin ja lopulliseen kohdennettuun raportointiin.",
+    "evaluation_notes": "Syy-seuraussuhteiden tarkastelijan näkökulmasta käyttäjä osoitti poikkeuksellisen vahvaa ja tietoista ohjausta. Prosessi alkoi tiedonkeruulla (\"Miten sitra tämän näkee...\") ja eteni iteratiivisen muotoilun kautta (\"koosta... raportti\", \"poista taulukot\"). Kriittinen kausaalinen interventio oli käyttäjän abstrakti, käsitteellinen kysymys supermegatrendien luomisesta. Tämä siirsi tekoälyn roolin tiedon tiivistämisestä analyyttiseen synteesiin. Ilman tätä nimenomaista kehotusta vuorovaikutus olisi jäänyt perustasolle. Toinen merkittävä kausaalinen ohje oli pyyntö kohdentaa raportti kaupalliselle johtoryhmälle ja lisätä analyysiin liiketoimintavaikutukset. Tämä määritti lopputuloksen rakenteen ja sisällön. Käyttäjä ei tyytynyt tekoälyn ensimmäiseen ehdotukseen, vaan ohjasi sitä järjestelmällisesti useiden muutosvaiheiden läpi. Lopputuote on mekaanisesti ja kiistattomasti sidoksissa näihin käyttäjän strategisiin ja täsmällisiin kehotuksiin. Käyttäjä toimi analyytikkona, joka käytti tekoälyä työkaluna ensin datan jäsentämiseen ja sen jälkeen uuden analyysikehyksen rakentamiseen.",
+    "matrix_causal_analyst": 5.0,
+    "matrix_causal_analyst_justification": "Syy-seuraussuhde on deterministinen. Lopullisen tuotteen ydinrakenne – kolme \"supermegatrendiä\" ja niiden kaupalliset vaikutukset – on suora ja välitön seuraus käyttäjän tarkoista ja ei-triviaaleista kehotuksista. Kontrafaktuaalinen testi on selvä: ilman kysymystä \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\" ja kehotusta \"kirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan\", tekoäly ei olisi koskaan tuottanut kyseistä analyyttistä kehystä ja raporttia. Malli toimi työkaluna, joka toteutti täsmällisiä komentoja, joita se ei olisi voinut tuottaa itsenäisesti. Käyttäjän syöte oli sekä välttämätön että riittävä tietyn lopputuloksen aikaansaamiseksi.",
+    "matrix_causal_analyst_cited_source_id": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect.",
+    "matrix_causal_analyst_cited_text_quote": "Megatrendien Kooste, voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä",
+    "matrix_causal_abductive": 3.0,
+    "matrix_causal_abductive_justification": "Käyttäjän strategia on todistettavissa suoraan keskustelulokista. Prosessi etenee loogisesti ja johdonmukaisesti tiedon keräämisestä (ensimmäiset kysymykset), tiedon muotoilusta (raportin koostaminen ja muokkaus) analyyttiseen synteesiin (supermegatrendien luominen) ja lopulliseen kohdentamiseen (kaupallinen raportti). Kehotus \"voiko... tuottaa supermegatrendejä\" on selkeä, ennalta suunniteltu strateginen askel, ei jälkikäteen tehty selitys onnistuneelle lopputulokselle. Keskusteluloki toimii aukottomana, aikaleimattuna todisteena käyttäjän strategiasta, joka kehittyi ja toteutui vuorovaikutuksen aikana. Nollahypoteesi (lopputuloksen sattumanvaraisuus) voidaan hylätä käyttäjän eksplisiittisten ohjeiden perusteella.",
+    "matrix_causal_abductive_cited_source_id": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect. (Abductive Reasoning vs Post-Hoc).",
+    "matrix_causal_abductive_cited_text_quote": "kirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan",
+    "block_taskcausal": "Käyttäjän reflektiossa mainitaan: \"Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.\" Tämä on ristiriidassa keskusteluhistorian kanssa, jossa käyttäjän vahvimmat ja ratkaisevimmat interventiot (kuten supermegatrendien luomisen ehdottaminen) johtivat parhaaseen lopputulokseen. Tämä osoittaa \"say-do gap\" -ilmiön: käyttäjän toiminta (tarkka ja vahva ohjaus) oli erittäin kausaalista ja tehokasta, mutta hänen reflektionsa vähättelee tätä roolia ja ehdottaa päinvastaista lähestymistapaa. Keskusteluhistoria todistaa, että nimenomaan käyttäjän proaktiiviset ja analyyttiset kehotteet, eivät mallin omat hypoteesit, olivat ratkaisevia lopputuloksen laadun kannalta.",
+    "block_taskcausal_justification": "Käyttäjän toiminta (chat_log) ja hänen reflektionsa (reflection_text) ovat ristiriidassa. Käyttäjä ohjasi tekoälyä erittäin voimakkaasti ja menestyksekkäästi kohti monimutkaista synteesiä, mikä näkyy kehotuksessa luoda \"supermegatrendejä\". Reflektiossaan hän kuitenkin toteaa, että olisi voinut antaa mallille enemmän vapautta. Tämä on selkeä esimerkki \"say-do gapista\", jossa tehty toiminta (vahva kausaalinen ohjaus) on eri kuin reflektoitu aikomus (vähäisempi ohjaus). Vahva kausaalinen vaikutus on todistettavissa keskustelulogista huolimatta käyttäjän omasta, päinvastaisesta arviosta.",
+    "block_taskcausal_cited_source_id": null,
+    "block_taskcausal_cited_text_quote": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.",
+    "matrix_causal_analyst_scaled": 10.0,
+    "matrix_causal_analyst_normalized": 100.0,
+    "matrix_causal_abductive_scaled": 10.0,
+    "matrix_causal_abductive_normalized": 100.0,
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_causal_analyst",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:35.452105+00:00",
+      "unix_time": 1773593495,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_causal_analyst:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593495",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_heuristic2": 100,
+        "block_heuristic1": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_causal_analyst": 50,
+        "matrix_causal_abductive": 50,
+        "block_taskcausal": 50
+      }
+    }
+  },
+  "step_overseer": {
+    "reasoning_trace": "Aloitan analysoimalla käyttäjän ja tekoälyn välistä vuorovaikutusta askel askeleelta. Käyttäjän alkuperäinen tavoite on saada tiivistelmä Sitran megatrendeistä. Ensimmäinen pyyntö on laaja: \"Miten sitra tämän näkee raporttien perusteella\". Tekoäly antaa jäsennellyn vastauksen, jonka jälkeen käyttäjä tarkentaa pyyntöään: \"mikä on sitran näkemys suunnasta eteenpäin ei siis toivetila\". Tämä osoittaa, että käyttäjä hakee käytännönläheistä, toiminnallista näkemystä idealismin sijaan.\n\nSeuraavaksi käyttäjä ohjaa prosessia kohti konkreettista tuotosta pyytämällä koostamaan vastauksista yhden sivun raportin. Tämän jälkeen seuraa sarja iteratiivisia muotoilupyyntöjä: ensin taulukoiden tarkistus, sitten niiden poistaminen ja korvaaminen tekstillä. Tämä osoittaa, että käyttäjä käyttää tekoälyä tekstinkäsittely- ja muotoilutyökaluna.\n\nKäyttäjä syventää analyysiä pyytämällä lisäämään väliin tietoja vuoden 2020 raporteista, mikä osoittaa halua luoda yksityiskohtaisempi ja vivahteikkaampi evoluutiokuvaus. Tämä on selkeä askel kohti monimutkaisempaa synteesiä.\n\nVuorovaikutuksen strateginen käännekohta on käyttäjän pyyntö: \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\". Tässä käyttäjä ei enää pyydä tiivistämään tai muotoilemaan olemassa olevaa tietoa, vaan ohjaa tekoälyä suorittamaan korkeamman tason analyyttisen tehtävän: luomaan uuden, yhdistelevän käsitteellisen tason. Tämä on käyttäjän oma strateginen panos prosessiin.\n\nTekoälyn onnistuttua tässä käyttäjä antaa viimeisen, ratkaisevan ohjeen: kohdentaa raportti \"kaupalliselle liiketoiminnan johtoryhmälle\" ja lisätä siihen \"kaupallisia vaikutuksia\". Tämä viimeinen askel muuttaa koko dokumentin luonteen yleisestä analyysistä kohdennetuksi ja toiminnalliseksi liiketoimintakatsaukseksi.\n\nLopullinen tuote (`product_text`) on suora tulos tästä vaiheittaisesta prosessista, jossa käyttäjä on toiminut projektipäällikkönä ja strategisena ohjaajana. Hän on rakentanut monimutkaisen lopputuloksen sarjalla pienempiä, loogisesti eteneviä komentoja ja yhdistämällä ne lopulta omaan strategiseen ideaansa (supermegatrendit) ja kohdennukseensa (johtoryhmä). Käyttäjän reflektio (\"Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa\") vahvistaa, että hän oli tietoisesti tiukassa ohjauksessa prosessin ajan.",
+    "evaluation_notes": "Step-by-step Overseer -näkökulmasta käyttäjän toiminta on malliesimerkki siitä, miten monimutkainen ja korkealaatuinen lopputuotos rakennetaan järjestelmällisesti vaiheittaisten ohjeiden ja jatkuvan tarkentamisen kautta. Käyttäjä ei pyytänyt lopullista raporttia kerralla, vaan hän rakensi sen yhdessä tekoälyn kanssa pala palalta.\n\nProsessi noudatti selkeää \"rakennusteline\"-mallia (scaffolding). Aluksi luotiin perusta tiivistämällä lähdemateriaali. Tämän jälkeen rakennetta tarkennettiin ja muokattiin iteratiivisesti (esim. taulukoiden muuttaminen tekstiksi). Tavoite itsessään kehittyi prosessin aikana: se alkoi yleisenä tiedonhakuna ja päätyi erittäin spesifiin, kohdennettuun liiketoiminta-analyysiin.\n\nKäyttäjän toiminnassa erottuu kaksi ohjaustasoa: mikrotason ohjaus (formaatin muokkaus) ja makrotason strateginen ohjaus. Vuorovaikutuksen kriittisin hetki oli käyttäjän oma-aloitteinen ehdotus \"supermegatrendien\" luomisesta. Tämä oli konseptuaalinen loikka, joka nosti lopputuloksen uudelle tasolle pelkästä tiivistelmästä aidoksi synteesiksi. Käyttäjä ei ainoastaan ohjannut tekoälyä, vaan syötti prosessiin oman analyyttisen oivalluksensa, jonka tekoäly sitten operationalisoi. Lopullinen kohdennus kaupalliselle johtoryhmälle oli viimeinen strateginen siirto, joka antoi koko työlle sen lopullisen muodon ja arvon. Käyttäjä toimi tehokkaasti projektipäällikkönä, joka ohjasi tekoälytyökaluaan tarkasti ja päämäärätietoisesti.",
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_overseer",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:35.689665+00:00",
+      "unix_time": 1773593495,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_overseer:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593495",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_rule3": 100,
+        "block_rule4": 100,
+        "block_rule5": 100,
+        "block_rule6": 100,
+        "block_oprule1": 100,
+        "block_oprule2": 100,
+        "block_oprule3": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_heuristic1": 100,
+        "block_heuristic2": 100,
+        "block_heuristic3": 100,
+        "block_protocol4": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "block_taskoverseer": 100
+      }
+    }
+  },
+  "step_xai_reporter": {
+    "reasoning_trace": "Käyttäjän logiikan ja strategisen aikomuksen vaiheittainen analyysi:\n\n1.  **Aloitus ja tiedonkeruu:** Käyttäjä aloittaa laajalla kysymyksellä (`Miten sitra tämän näkee...`) saadakseen perusymmärryksen Sitran megatrendeistä ja niiden evoluutiosta. Tekoäly vastaa kattavalla, jäsennellyllä yhteenvedolla.\n2.  **Tarkennus ja pragmaattisuuden vaatimus:** Käyttäjä tarkentaa kysymystään ja pyytää nimenomaisesti näkemystä \"suunnasta eteenpäin\", joka ei ole \"toivetila\" (`ei siis toivetila`). Tämä osoittaa käyttäjän tavoittelevan toiminnallista ja realistista analyysiä pelkän kuvailun sijaan.\n3.  **Iteratiivinen synteesi ja muotoilu:** Käyttäjä ohjaa tekoälyä kokoamaan tiedoista yhden sivun raportin. Tämän jälkeen hän ohjaa muotoilua yksityiskohtaisesti: ensin tarkistamaan taulukot, sitten muuttamaan ne kokonaan tekstimuotoon. Tämä osoittaa käyttäjän toimivan editorin ja muotoilijan roolissa.\n4.  **Syventävä analyysi ja datan rikastaminen:** Käyttäjä tekee ratkaisevan ohjausliikkeen pyytämällä lisäämään vuoden 2020 raporttien näkemykset mukaan kertomukseen (`ota näissä väleissä aina kun on järkevää välilä olevista megatrendeistä viestejä`). Tämä muuttaa tehtävän yksinkertaisesta yhteenvedosta syvemmäksi, ajallista kehitystä kuvaavaksi analyysiksi.\n5.  **Abstraktiotason nosto ja uuden käsitteen luominen:** Vuorovaikutuksen strateginen huippukohta on, kun käyttäjä kysyy, voiko megatrendeistä yhdistellä \"supermegatrendejä\". Tämä on käyttäjän oma-aloitteinen siirto kohti korkeamman tason synteesiä. Tekoäly onnistuu tässä ja luo käyttäjän pyynnöstä kolme supermegatrendiä.\n6.  **Kohdentaminen ja lopullinen tuotos:** Viimeisessä vaiheessa käyttäjä määrittelee raportin lopullisen tarkoituksen ja kohdeyleisön: \"kaupallisen liiketoiminnan johtoryhmä\" ja pyytää lisäämään \"kaupallisia vaikutuksia\". Tämä muuttaa analyyttisen yhteenvedon strategiseksi liiketoimintadokumentiksi, joka on lopullinen `product_text`.\n\nJohtopäätös: Käyttäjä toimi strategisena analyytikkona ja päätoimittajana, joka ohjasi tekoälyä asteittain raakadatasta (Sitran raportit) kohti erittäin kohdennettua ja toiminnallista strategista raporttia. Käyttäjän panos ei ollut vain kysymysten esittäminen, vaan aktiivinen analyysikehikon rakentaminen (supermegatrendit) ja lopputuotteen käyttötarkoituksen määrittely.",
+    "evaluation_notes": "Genius-asiantuntijan näkökulmasta käyttäjän toiminta tässä vuorovaikutuksessa oli poikkeuksellisen strategista ja tavoitteellista. Käyttäjä ei tyytynyt tekoälyn tuottamaan ensimmäiseen yhteenvetoon, vaan otti välittömästi ohjat ja toimi prosessin arkkitehtina. Hänen toimijuutensa ilmeni erityisesti siinä, miten hän ohjasi analyysin abstraktiotasoa: ensin datan keräämisestä ja jäsentelemisestä (2017 vs. 2023), sitten datan rikastamisesta (2020-näkökulma), ja lopulta täysin uuden analyyttisen tason luomisesta (\"supermegatrendit\"). Tämä osoittaa selkeää ennakkoasennetta kohti synteesiä ja käytännön sovellettavuutta. Käyttäjän toistuva vaatimus pragmatismista (\"ei siis toivetila\") ja lopullinen kohdennus kaupalliselle johtoryhmälle paljastavat hänen perimmäisen aikomuksensa: muuntaa akateeminen tai julkishallinnollinen tieto suoraan liiketoimintastrategiaksi. Käyttäjä ei ainoastaan ohjannut tekoälyä, vaan käytti sitä työkaluna oman analyyttisen visionsa toteuttamiseen. Hänen reflektionsa (\"Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa\") vahvistaa tämän roolin; hän näkee itsensä strategina, joka voisi hyödyntää tekoälyä vieläkin proaktiivisemmin ideointikumppanina.",
+    "matrix_xai_reporter": 3.0,
+    "matrix_xai_reporter_justification": "Synteesi saavuttaa loogisen täydellisyyden, koska lopputulos (`product_text`) on suora ja ristiriidaton seuraus kaikista edeltävistä analyyttisistä vaiheista, jotka suoritettiin käyttäjän ja tekoälyn yhteistyönä chat-lokin aikana. Prosessi eteni vaiheittain raakayhteenvedosta (AI:n ensimmäiset vastaukset) käyttäjän ohjaamaan syventävään analyysiin (2020-datan lisääminen), uuden käsitteellisen kehyksen luomiseen (käyttäjän ehdottamat \"supermegatrendit\") ja lopulta kohdennettuun lopputuotteeseen (raportti kaupalliselle johtoryhmälle). Lopullinen raportti ei sisällä mitään, mikä olisi ristiriidassa tämän kehityspolun kanssa; se on täydellinen aggregaatti ja jalostettu muoto kaikesta dialogissa tuotetusta tiedosta. Käyttäjän viimeinen ohje, joka määritteli kohdeyleisön ja vaati kaupallisten vaikutusten lisäämistä, toimi viimeisenä synteesivaiheena, jonka tekoäly toteutti virheettömästi. Täten kaikkien osatekijöiden analyysit tukevat täsmälleen samaa lopputulosta ilman poikkeamia.",
+    "matrix_xai_reporter_cited_source_id": null,
+    "matrix_xai_reporter_cited_text_quote": "kirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan",
+    "matrix_taskxai_clarity": 4.2,
+    "matrix_taskxai_clarity_justification": "Lopputuote (`product_text`) on selkeydeltään ja selitettävyydeltään erittäin vahva ja saavuttaa tason \"Vankasti perusteltu (kausaalinen jäljitettävyys)\". Raportti ei ainoastaan esitä lopputuloksia, vaan se myös artikuloi selkeästi niiden taustalla olevan logiikan. Ensinnäkin se viittaa eksplisiittisesti lähteisiinsä (Sitran raportit). Toiseksi, se rakentaa selkeän kausaalisen ketjun: se määrittelee \"Supermegatrendit\" ja selittää, miten ne syntyvät alkuperäisten megatrendien yhdistelminä (esim. \"Tämä supermegatrendi syntyy siitä, että Luonnon kantokyky murenee, mikä ajaa suoraan siihen, että Talouden perusta rakoilee.\"). Kolmanneksi, se yhdistää nämä abstraktit supermegatrendit konkreettisiin \"Kaupallisiin Vaikutuksiin\" ja \"Strategisiin Toimenpiteisiin\". Tämä rakenne tekee päätöksenteon logiikasta täysin jäljitettävän ja kolmannen osapuolen (auditoijan) toistettavissa olevan. Raportti ei saavuta teoreettista täydellisyyttä (taso 5), koska se ei esitä muodollisia vastafaktuaaleja tai mallin varmuuden rajoja, mutta sen rakenne on poikkeuksellisen läpinäkyvä ja perusteltu.",
+    "matrix_taskxai_clarity_cited_source_id": "Hegel, G. W. F. (1807). Phenomenology of Spirit (Dialectical Synthesis); Gunning, D., et al. (2019). XAI—Explainable artificial intelligence.",
+    "matrix_taskxai_clarity_cited_text_quote": "Tämä supermegatrendi syntyy siitä, että Luonnon kantokyky murenee, mikä ajaa suoraan siihen, että Talouden perusta rakoilee.",
+    "matrix_xai_reporter_scaled": 3.0,
+    "matrix_xai_reporter_normalized": 100.0,
+    "matrix_taskxai_clarity_scaled": 4.36,
+    "matrix_taskxai_clarity_normalized": 84.00000000000001,
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_xai_reporter",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:36.185759+00:00",
+      "unix_time": 1773593496,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_xai_reporter:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593496",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "matrix_xai_reporter": 50,
+        "matrix_taskxai_clarity": 50
+      }
+    }
+  },
+  "step_profiler": {
+    "reasoning_trace": "Käyttäjä aloittaa laajalla tiedonkeruupyynnöllä (\"Miten sitra tämän näkee...\"). Tämän jälkeen käyttäjä tarkentaa pyyntöä erottamalla analyysin toiveajattelusta (\"ei siis toivetila\"), mikä osoittaa kriittistä ajattelua. Seuraavaksi käyttäjä siirtyy synteesivaiheeseen pyytämällä yhden sivun raporttia ja tekee sen jälkeen useita iteratiivisia parannuksia: hän pyytää korjaamaan taulukoiden muotoilun, muuttamaan ne tekstiksi ja syventämään sisältöä lisäämällä tietoja vuoden 2020 raporteista. Vuorovaikutuksen käännekohta on käyttäjän strateginen oivallus: hän ei tyydy olemassa olevaan rakenteeseen, vaan ehdottaa uutta analyyttistä kehystä kysymällä: \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\". Tämä on korkean tason kognitiivinen siirto, jossa käyttäjä siirtyy tiedon jäsentämisestä uuden tiedon luomiseen. Lopuksi käyttäjä ohjaa tekoälyä soveltamaan tätä uutta \"supermegatrendi\"-kehystä ja kohdentamaan lopputuloksen tietylle yleisölle (\"kaupallisen liiketoiminnan johtoryhmälle\") ja lisäämään siihen relevantin kontekstin (\"kaupallisia vaikutuksia\"). Käyttäjä toimii koko prosessin ajan strategisena johtajana, joka käyttää tekoälyä työkaluna monimutkaisen ja kohdennetun analyysin tuottamiseen.",
+    "evaluation_notes": "Kognitiivisen auditoijan näkökulmasta käyttäjän toiminta on poikkeuksellisen vahva osoitus Järjestelmä 2:n hallinnasta. Käyttäjä ei missään vaiheessa sorru kognitiiviseen laiskuuteen tai tyydy tekoälyn ensimmäiseen, helpoimpaan vastaukseen. Sen sijaan hän aktiivisesti haastaa, purkaa ja uudelleenrakentaa tekoälyn tuottamaa informaatiota. Erityisen paljastavaa on käyttäjän oma-aloitteinen siirtymä megatrendien listaamisesta niiden yhdistelyyn \"supermegatrendeiksi\". Tämä ei ole pelkkää tiedon järjestelyä, vaan uuden, syvemmän analyyttisen tason luomista. Tämä osoittaa kykyä nähdä yksittäisten tietopisteiden yli ja tunnistaa laajempia, piilossa olevia systeemitason yhteyksiä. Käyttäjä tietoisesti ohittaa Järjestelmä 1:n taipumuksen hyväksyä se, \"mitä näkyvillä on\" (What You See Is All There Is), ja pakottaa sekä itsensä että tekoälyn syvempään, rakenteelliseen analyysiin. Prosessi on systemaattinen, tavoitteellinen ja osoittaa täydellistä kognitiivista kontrollia.",
+    "matrix_kahneman": 3.0,
+    "matrix_kahneman_justification": "Käyttäjän toiminta on malliesimerkki Järjestelmä 2:n mestarillisesta käytöstä. Prosessi ei ole millään tavalla intuitiivinen tai automaattinen (Järjestelmä 1), vaan alusta loppuun harkittu, analyyttinen ja tavoitteellinen.\n\n1.  **Systemaattinen dekonstruktio:** Käyttäjä ei hyväksy tekoälyn alkuperäistä synteesiä sellaisenaan, vaan pyytää purkamaan sen osiin (esim. \"poista taulukot ja kerro ne tekstinä\") ja rikastamaan sitä lisätiedolla (viittaukset vuoden 2020 raportteihin).\n\n2.  **Tietoinen intuitioiden ohittaminen:** Sen sijaan, että käyttäjä tyytyisi yksinkertaiseen listaan megatrendeistä, hän tekee analyyttisen harppauksen ehdottamalla uutta, korkeamman tason käsitettä: \"supermegatrendit\". Tämä on selkeä osoitus siitä, että käyttäjä aktiivisesti etsii vaihtoehtoisia ja syvempiä tapoja jäsentää tietoa.\n\n3.  **Looginen kurinalaisuus ja tavoitteellisuus:** Koko dialogi etenee loogisesti tiedonkeruusta synteesiin, kritiikkiin, uuden kehyksen luomiseen ja lopulta kohdennetun lopputuotteen viimeistelyyn tietylle yleisölle. Käyttäjän ohjeet ovat tarkkoja ja rakentuvat toistensa päälle.\n\nKäyttäjä ei ainoastaan onnistu siirtymään Järjestelmä 2:n käyttöön, vaan hän käyttää sitä strategisesti uuden analyyttisen tuotteen luomiseen. Tämä ylittää selvästi \"epäonnistuneen siirtymän\" (taso 2) ja täyttää \"Järjestelmä 2:n mestaruuden\" (taso 3) kriteerit, joissa ongelma puretaan systemaattisesti osiin ja harkitaan aktiivisesti vaihtoehtoisia hypoteeseja.",
+    "matrix_kahneman_cited_source_id": "Kahneman, Daniel 2011.",
+    "matrix_kahneman_cited_text_quote": "Megatrendien Kooste, voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä",
+    "matrix_kahneman_scaled": 10.0,
+    "matrix_kahneman_normalized": 100.0,
+    "profiler_metrics": {
+      "word_count": 4930,
+      "sentence_count": 380,
+      "avg_sentence_length": 12.97,
+      "lexical_diversity": 0.23,
+      "capitalization_ratio": 0.04,
+      "control_ratio": 1.0,
+      "say_do_gap": 0.0,
+      "automation_bias": 0.0,
+      "illusion_of_competence": 0.0,
+      "imperative_command_count": 0
+    },
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_profiler",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:35.078378+00:00",
+      "unix_time": 1773593495,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_profiler:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593495",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_heuristic2": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_heuristic1": 100,
+        "block_instruction_strictness": 100,
+        "matrix_kahneman": 50,
+        "block_taskprofiler": 100
+      }
+    }
+  },
+  "step_falsifier": {
+    "reasoning_trace": "Käyttäjän ja tekoälyn välinen vuorovaikutus etenee vaiheittain. Aluksi käyttäjä pyytää yleistä yhteenvetoa Sitran raporteista. Tämän jälkeen käyttäjä tarkentaa pyyntöä useaan otteeseen. Ensimmäinen merkittävä tarkennus on pyyntö erottaa Sitran näkemys tulevaisuudesta toiveajattelusta (\"ei siis toivetila\"). Tämä osoittaa perustason kriittistä ajattelua ja pyrkimystä tarkempaan analyysiin. Seuraavat pyynnöt koskevat pääasiassa muotoilua, kuten taulukoiden poistamista ja tekstin uudelleenjärjestelyä, jotka ovat pinnallisia muutoksia.\n\nMerkittävin käänne tapahtuu, kun käyttäjä esittää oman hypoteesinsa: \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\". Tämä on vuorovaikutuksen kriittisin hetki. Käyttäjä ei enää ainoastaan pyydä tekoälyä tiivistämään tai muotoilemaan olemassa olevaa tietoa, vaan haastaa sen suorittamaan korkeamman tason synteesin ja luomaan uuden käsitteellisen viitekehyksen (\"supermegatrendit\") käyttäjän ehdotuksen pohjalta. Tämä on selkeästi enemmän kuin pinnallinen tarkennus; se on aineellinen haaste, joka testaa tekoälyn kykyä analyyttiseen päättelyyn ja uusien rakenteiden luomiseen.\n\nLopuksi käyttäjä ohjaa tekoälyä soveltamaan tätä uutta viitekehystä tiettyyn kontekstiin (\"kaupallisen liiketoiminnan johtoryhmälle\") ja lisäämään siihen uutta sisältöä (\"kaupallisia vaikutuksia\"). Tämä vahvistaa, että käyttäjä ei tyydy passiivisesti tekoälyn tuotokseen, vaan ohjaa aktiivisesti sen analyyttistä prosessia ja lopputuloksen sisältöä.\n\nArvioinnissa on kuitenkin huomioitava, että käyttäjän lähestymistapa ei ole varsinaisesti falsifioiva tai vihamielinen. Hän ei yritä murtaa mallin logiikkaa tai etsiä virheitä, vaan toimii pikemminkin yhteistyökumppanina tai ohjaajana, joka testaa ja laajentaa tekoälyn kykyjä rakentavassa hengessä. Siksi arvosana asettuu \"aineellisen haasteen\" kategoriaan, mutta ei saavuta \"tiukan falsifioinnin\" tasoa.",
+    "evaluation_notes": "Adversaarisen auditoijan näkökulmasta käyttäjä toimii enemmän luovana johtajana kuin kriittisenä purkajana. Käyttäjän toiminta osoittaa selkeää pyrkimystä ohjata tekoälyä kohti tiettyä, ennalta määriteltyä lopputulosta. Alun laajan tietopyynnön jälkeen käyttäjä siirtyy nopeasti muotoilullisiin ja rakenteellisiin ohjeisiin, mikä viittaa vahvaan ennakkoasenteeseen siitä, miltä hyvän vastauksen tulisi näyttää. Käyttäjän toimijuus on huipussaan, kun hän esittää oman käsitteellisen innovaationsa – \"supermegatrendit\" – ja käskee tekoälyä rakentamaan analyysin tämän uuden viitekehyksen ympärille. Tämä ei ole yritys falsifioida tekoälyn alkuperäistä logiikkaa, vaan pikemminkin sen valjastaminen palvelemaan käyttäjän omaa hypoteesia. Käyttäjä ei haasta tekoälyn esittämiä faktoja tai niiden loogisia yhteyksiä, vaan ainoastaan niiden esitystapaa ja abstraktiotasoa. Kriittinen etäisyys jää puutteelliseksi, koska käyttäjä ei pyri purkamaan mallin väitteitä vaan rakentamaan niiden päälle omaa narratiiviaan. Tämä on tekoälyn synteettisen kyvykkyyden testaamista, ei sen loogisen pätevyyden haastamista.",
+    "matrix_falsifier": 3.2,
+    "matrix_falsifier_justification": "Käyttäjä ylittää selvästi pinnallisen tason (Score 2) esittämällä oman analyyttisen hypoteesinsa ja vaatimalla tekoälyä operoimaan sen puitteissa. Komento \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\" on selkeä aineellinen haaste, joka pakottaa tekoälyn pelkän tiivistämisen sijaan korkeamman tason synteesiin. Tämä on pätevää kriittistä sitoutumista (Score 3), jossa käyttäjä aktiivisesti ohjaa ja testaa tekoälyn analyyttisiä kykyjä. Vuorovaikutuksesta puuttuu kuitenkin järjestelmällinen ja säälimätön yritys murtaa mallin logiikkaa tai paljastaa sen epäonnistumisen tiloja, mikä estää korkeamman arvosanan (Score 4). Käyttäjä toimii rakentavana kumppanina, ei vihamielisenä auditoijana. Hän ei pyri falsifioimaan tekoälyn väitteitä vaan validoimaan sen kykyä rakentaa uusia käsitteellisiä malleja käyttäjän ohjauksessa. Siksi arvosana asettuu \"aineellisen haasteen\" kategoriaan, mutta ei sen yläpäähän.",
+    "matrix_falsifier_cited_source_id": "Popper, K. (1963). Conjectures and Refutations: The Growth of Scientific Knowledge. (Falsification principle & Anti-Sycophancy).",
+    "matrix_falsifier_cited_text_quote": "Megatrendien Kooste, voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä",
+    "matrix_falsifier_scaled": 8.8,
+    "matrix_falsifier_normalized": 80.0,
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_falsifier",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:35.334903+00:00",
+      "unix_time": 1773593495,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_falsifier:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593495",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_rule4": 100,
+        "block_protocol1": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_falsifier": 50,
+        "block_taskfalsifier": 100
+      }
+    }
+  },
+  "step_logician": {
+    "reasoning_trace": "Käyttäjän toimintaa analysoidaan askel askeleelta. Aluksi käyttäjä pyytää laajaa yhteenvetoa Sitran raporteista. Tämän jälkeen käyttäjä tarkentaa pyyntöä strategisesti ja rajaa sen koskemaan Sitran näkemystä tulevaisuuden suunnasta, sulkien pois \"toivetilat\". Tämä osoittaa tavoitteellista tiedonhakua. Seuraavaksi käyttäjä siirtyy tiedon keräämisestä synteesiin pyytämällä koostamaan vastauksista yhden sivun raportin. Käyttäjä osoittaa laadunvalvontaa ja tarkkuutta pyytämällä tarkistamaan taulukoiden oikeellisuuden ja muuttamaan ne myöhemmin tekstimuotoon, mikä viittaa tiettyyn lopputuotteen formaattiin tähtäämiseen. Dialogin käännekohta on käyttäjän esittämä konseptuaalinen kysymys: \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\". Tämä on merkittävin strateginen siirto, jossa käyttäjä siirtyy olemassa olevan tiedon analysoinnista uuden, korkeamman tason viitekehyksen luomiseen. Lopuksi käyttäjä antaa ratkaisevan ohjeen: kohdentaa koko analyysi kaupalliselle johtoryhmälle ja lisätä siihen liiketoimintavaikutuksia. Tämä viimeinen ohje muuttaa akateemisen analyysin käytännönläheiseksi strategiseksi dokumentiksi. Lopputulos (`product_text`) on suora seuraus tästä monivaiheisesta, strategisesti ohjatusta prosessista, jossa käyttäjä on aktiivisesti muokannut, rikastanut ja uudelleenkonseptoinut tekoälyn tuottamaa sisältöä.",
+    "evaluation_notes": "Askel-askeleelta-logiikan näkökulmasta käyttäjän toiminta on poikkeuksellisen strategista ja päämäärätietoista. Käyttäjä ei tyydy passiivisesti vastaanottamaan tietoa, vaan ohjaa aktiivisesti tekoälyä kohti yhä tarkemmin määriteltyä lopputulosta. Käyttäjän logiikka etenee lineaarisesti ja johdonmukaisesti laajasta tiedonkeruusta (mitä Sitra sanoo?) spesifiin analyysiin (mikä on suunta eteenpäin, ei toiveajattelua?) ja lopulta uuden tiedon luomiseen. Käyttäjän intentio on selvästi pragmaattinen. Tämä näkyy erityisesti kahdessa avainhetkessä: 1) Kysymys supermegatrendien luomisesta, joka osoittaa kykyä nähdä olemassa olevan datan yli ja muodostaa uusia, selittävämpiä rakenteita. 2) Viimeinen ohjeistus kohdentaa raportti kaupalliselle johtoryhmälle ja lisätä siihen konkreettisia vaikutuksia. Tämä paljastaa käyttäjän perimmäisen tavoitteen: ei vain ymmärtää trendejä, vaan muuttaa ne toiminnalliseksi ja päätöksentekoa tukevaksi työkaluksi. Käyttäjän toiminnassa ei ole havaittavissa harha-askelia, vaan jokainen pyyntö rakentaa edellisen päälle ja vie prosessia lähemmäs korkealaatuista, kohdennettua lopputuotetta.",
+    "matrix_toulmin": 4.8,
+    "matrix_toulmin_justification": "Käyttäjän ohjaama argumentaatio on rakenteellisesti lähes täydellinen. \n\n**Väite (Claim):** Sitran megatrendit voidaan ja ne kannattaa syntetisoida kolmeksi \"supermegatrendiksi\" (Ekologinen resilienssikriisi, Geoteknologinen valtaistelu, Epävarmuuden sosiaalinen polarisointi), joilla on suoria ja kriittisiä kaupallisia vaikutuksia, ja yrityksen menestys riippuu näiden integroimisesta strategiaan.\n\n**Perusteet (Data/Grounds):** Perusteina käytetään suoria viittauksia Sitran raporttien megatrendeihin, kuten \"Luonnon kantokyky murenee\", \"Demokratian kamppailu kovenee\" ja \"Kilpailu digivallasta kiihtyy\". Nämä toimivat todistusaineistona supermegatrendien olemassaololle.\n\n**Oikeutus (Warrant):** Oikeutus on logiikka, joka yhdistää perusteet väitteeseen. Käyttäjä loi tämän oikeutuksen kysymällä, voiko trendejä yhdistellä. Lopputuloksena syntynyt logiikka on, että yksittäiset trendit eivät toimi erillään, vaan kietoutuvat toisiinsa ja luovat laajempia, systeemisiä muutosvoimia. Tämä oikeutus on eksplisiittinen ja loogisesti pätevä.\n\n**Taustatuki (Backing):** Argumentin taustatukena toimii viittaus Sitran megatrendiraportteihin (2017, 2020, 2023), mikä antaa sille auktoriteettia ja uskottavuutta.\n\n**Tarkennin (Qualifier) & Vastalause (Rebuttal):** Argumentti on tarkasti kohdennettu (\"Kohderyhmä: Kaupallinen Johtoryhmä\"), mikä toimii tarkentimena. Se myös implisiittisesti kumoaa vastalauseen (esim. \"voimme jatkaa kuten ennenkin\") toteamalla, että \"paluuta vanhaan normaaliin ei ole\" ja menestys *riippuu* kyvystä integroida trendit. Vaikka eksplisiittistä vasta-argumenttien käsittelyä ei ole, argumentin rakenne on erittäin vahva ja vakuuttava. Se ylittää selvästi tason 4, mutta ei aivan saavuta teoreettista täydellisyyttä eksplisiittisen kumoamisen puuttuessa.",
+    "matrix_toulmin_cited_source_id": "Toulmin, Stephen E. 2003. The uses of argument.",
+    "matrix_toulmin_cited_text_quote": "Megatrendien Kooste, voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä",
+    "matrix_bloom": 5.8,
+    "matrix_bloom_justification": "Käyttäjän kognitiivinen prosessi on erinomainen esimerkki Bloomin taksonomian ylemmille tasoille etenemisestä. \n\n1.  **Muistaminen/Ymmärtäminen:** Prosessi alkaa perustason tiedonhausta ja yhteenvedosta (\"Miten sitra tämän näkee...\").\n2.  **Soveltaminen:** Käyttäjä soveltaa raportin kirjoittamisen sääntöjä ja formaatteja pyytäessään koostetta ja muuttaessaan taulukoita tekstiksi.\n3.  **Analysointi:** Käyttäjä analysoi trendien kehitystä ajassa pyytämällä lisäämään tietoja vuoden 2020 raportista, purkaen näin tietoa osiin ja tunnistaen ajallisia kehityskulkuja.\n4.  **Arviointi:** Kohdentamalla raportin kaupalliselle johtoryhmälle ja vaatimalla \"kaupallisten vaikutusten\" ja \"strategisten toimenpiteiden\" lisäämistä, käyttäjä pakottaa arvioimaan trendien merkitystä ja hyödyllisyyttä tiettyjen kriteerien (liiketoiminnan menestys) valossa. Tämä on selkeä arvioinnin teko.\n5.  **Syntetisointi:** Prosessin huippukohta ja ratkaiseva kognitiivinen harppaus on käyttäjän esittämä kysymys supermegatrendien luomisesta. Tämä ei ole enää olemassa olevan tiedon analysointia, vaan aito luova teko, jossa hajautetuista elementeistä (yksittäiset megatrendit) luodaan uusi, koherentti ja selitysvoimainen rakenne (kolme supermegatrendiä). Lopputulos (`product_text`) on uusi synteesi, ei pelkkä yhteenveto. Tämä on lähes täydellinen osoitus taksonomian korkeimmasta tasosta.\n\nKokonaisuutena käyttäjä osoittaa kykyä ohjata prosessia, joka johtaa aidosti uuden ja omaperäisen intellektuaalisen tuotoksen luomiseen. Pieni vähennys täydestä kuudesta pisteestä johtuu siitä, että käyttäjä antaa strategisen impulssin, mutta tekoäly suorittaa varsinaisen kirjoitustyön.",
+    "matrix_bloom_cited_source_id": "Anderson, Lorin W. & Krathwohl, David R. (toim.) 2001.",
+    "matrix_bloom_cited_text_quote": "Megatrendien Kooste, voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä",
+    "matrix_toulmin_scaled": 9.76,
+    "matrix_toulmin_normalized": 96.0,
+    "matrix_bloom_scaled": 9.8,
+    "matrix_bloom_normalized": 96.66666666666667,
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_logician",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:35.213018+00:00",
+      "unix_time": 1773593495,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_logician:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593495",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule3": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructioncitationobligation": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_toulmin": 80,
+        "matrix_bloom": 60,
+        "block_tasklogician": 100,
+        "block_instructionstrictscale": 100
+      }
+    }
+  },
+  "step_coach": {
+    "reasoning_trace": "Käyttäjä aloittaa hyvin laajalla pyynnöllä (`Miten sitra tämän näkee...`) ja saa tekoälyltä yksityiskohtaisen, jäsennellyn yhteenvedon. Tämän jälkeen käyttäjä etenee hyvin iteratiivisesti, pienin askelin. Hän tarkentaa yhtä osaa (`ei siis toivetila`), pyytää koostamaan raportin, pyytää muotoilemaan taulukoita uudelleen ja lopulta poistamaan ne kokonaan. Tämä on tehoton, reaktiivinen prosessi, jossa käyttäjä ohjaa tekoälyä askel kerrallaan.\n\nMerkittävä käänne tapahtuu, kun käyttäjä itse ehdottaa analyyttistä harppausta: `voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä`. Tämä on käyttäjän oma strateginen oivallus, joka siirtää tehtävän yhteenvedosta synteesiksi. Tämä oivallus tulee kuitenkin vasta monen välivaiheen jälkeen.\n\nToinen kriittinen oivallus on viimeinen pyyntö: `kirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan`. Tämä muuttaa koko dokumentin luonteen akateemisesta analyysistä käytännön liiketoimintadokumentiksi. Tämäkin ohje tulee vasta prosessin lopussa.\n\nKäyttäjän reflektio (`Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa`) osoittaa, että hän on itsekin tunnistanut prosessin tehottomuuden ja pohtii, miten päämäärään olisi voinut päästä nopeammin. Hän on siis metakognitiivisesti tietoinen omasta strategiastaan ja sen puutteista.\n\nJohtopäätös: Käyttäjä saavuttaa erinomaisen lopputuloksen, mutta prosessi on tehoton, koska keskeiset strategiset ohjaukset (synteesin taso, kohdeyleisö, tarkoitus) määritellään vasta vuorovaikutuksen lopussa eikä alussa. Valmennuksen tavoitteena on ohjata käyttäjää tunnistamaan nämä \"ensimmäiset periaatteet\" jo tehtävän alussa, jotta hän voi antaa tekoälylle selkeän ja kattavan toimeksiannon heti kättelyssä.",
+    "evaluation_notes": "TEKNISEN REMEDIOINNIN VALMENTAJAN näkökulmasta käyttäjän toiminta on klassinen esimerkki \"rakennustelineiden\" (scaffolding) pystyttämisestä oman ajattelun tueksi tekoälyn avulla. Hän aloittaa matalan tason tehtävästä (tee yhteenveto) ja lisää monimutkaisuutta vähitellen (vertaile, muotoile, syntetisoi, sovella uuteen kontekstiin). Vaikka tämä johtaa hyvään lopputulokseen, se on erittäin tehoton prosessi. Käyttäjän toimijuus on reaktiivista, ei proaktiivista; hän ohjaa tekoälyä käännös kerrallaan sen sijaan, että antaisi selkeän strategisen toimeksiannon etukäteen. Keskeinen vinouma on \"alhaalta ylös\" -lähestymistapa, jossa hän kerää faktoja ennen kuin määrittelee kattavan rakenteen tai tarkoituksen. Läpimurtohetket (`voiko...yhdistellä...supermegatrendejä`, `kirjoita...johtoryhmälle`) ovat käyttäjän itsensä ajamia, mutta ne ilmenevät prosessissa myöhään, mikä paljastaa löytöretkeilevän asenteen suunnitelmallisen sijaan. Käyttäjän reflektio (`Antaisin ehkä mallille enemmän tilaa ideoida`) on kiinnostava: hän näkee mahdollisuuden suorempaan reittiin, mutta kehystää sen tekoälylle annettavana vapautena sen sijaan, että tunnistaisi sen parempien alkuohjeiden antamisena. Valmennukseni tulee keskittyä tähän eroon.",
+    "block_taskcoach": "{\n  \"prompt_template_name\": \"Socratic Inquiry\",\n  \"title\": \"Iteraatiosta intentioon: Analyysisi suunnitelma\",\n  \"onboarding_motivation\": \"Tämä valmennus auttaa sinua siirtymään tavoitteesi löytämisestä keskustelun kautta sen määrittelyyn heti alussa. Tämä nopeuttaa merkittävästi polkuasi vaikuttavaan lopputulokseen.\",\n  \"core_questions\": [\n    {\n      \"question_id\": \"q1\",\n      \"question_text\": \"Päädyit vuorovaikutuksen edetessä oivaltavaan käsitteeseen 'supermegatrendit'. Mitä taustalla olevaa periaatetta tai toistuvaa kuviota aloit nähdä aineistossa, joka johdatti sinut tähän synteesiin?\"\n    },\n    {\n      \"question_id\": \"q2\",\n      \"question_text\": \"Lopullinen dokumentti oli suunnattu 'kaupalliselle johtoryhmälle'. Tämä yleisön määrittely muutti kaiken. Jos aloittaisit tehtävän alusta, miten voisit määritellä analyysin vaatiman näkökulman ja lopputuotteen tarkoituksen jo ensimmäisessä kehotteessasi?\"\n    },\n    {\n      \"question_id\": \"q3\",\n      \"question_text\": \"Käytetään analogiaa: rakensit auton osa kerrallaan ja huomasit puolivälissä tarvitsevasi moottorin. Miten insinööri suunnittelisi auton? Mikä olisi sinun tehtäväsi 'suunnitelma' (blueprint), jonka voisit luonnostella ennen kuin pyydät tekoälyä kirjoittamaan ensimmäistäkään sanaa?\"\n    }\n  ],\n  \"conceptual_handle\": \"Analyyttinen suunnitelma (Analytical Blueprinting)\",\n  \"next_steps_suggestion\": \"Kokeile suorittaa tämä sama tehtävä uudelleen, mutta yhdellä ainoalla, kattavalla kehotteella. Määrittele siinä heti: 1) Kohdeyleisö (kaupallinen johtoryhmä), 2) Analyyttinen tehtävä (syntetisoi supermegatrendit) ja 3) Lopputuotteen tavoite (osoita kaupalliset vaikutukset ja strategiset toimenpiteet).\"\n}",
+    "block_taskcoach_justification": "Käyttäjä suoritti onnistuneesti monimutkaisen synteesi- ja uudelleenkehystystehtävän. Prosessi oli kuitenkin erittäin tehoton, koska se perustui pitkään sarjaan iteratiivisia, matalan tason komentoja (uudelleenmuotoilu, vähittäiset lisäykset) ennen kuin keskeiset strategiset oivallukset (\"supermegatrendien\" luominen, kohdentaminen \"kaupalliselle johtoryhmälle\") tuotiin esiin myöhään vuoropuhelussa. Käyttäjän oma reflektio (`Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa`) tunnustaa nimenomaisesti tämän tehottomuuden ja mahdollisuuden suorempaan lähestymistapaan. Tämä metakognitiivinen tietoisuus tekee hänestä ihanteellisen ehdokkaan valmennukselle, joka käsittelee \"ensimmäisten periaatteiden kehottamista\" – ydintavoitteen, yleisön ja analyyttisen kehyksen määrittelyä heti alussa, jotta vältetään hänen käyttämänsä harhaileva, löytöihin perustuva polku. Valmennuksen tavoitteena on muuttaa hänen mentaalimallinsa iteratiivisesta hienosäädöstä strategiseen suunnitteluun.",
+    "block_taskcoach_cited_source_id": "Flavell, John H. 1979.",
+    "block_taskcoach_cited_text_quote": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.",
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_coach",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:36.064626+00:00",
+      "unix_time": 1773593496,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_coach:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593496",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_rule3": 100,
+        "block_rule4": 100,
+        "block_rule5": 100,
+        "block_rule6": 100,
+        "block_oprule1": 100,
+        "block_oprule2": 100,
+        "block_oprule3": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_heuristic1": 100,
+        "block_heuristic2": 100,
+        "block_heuristic3": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_taskcoach": 50,
+        "block_instructionstrictscale": 100,
+        "block_instructioncoachcitation": 100
+      }
+    }
+  },
+  "step_judge": {
+    "reasoning_trace": "Aloitan arvioinnin analysoimalla käyttäjän ja tekoälyn välistä vuorovaikutusta (`chat_log`) ja vertaamalla sitä lopulliseen tuotokseen (`product_text`).\n\n1.  **Käyttäjän tavoite:** Käyttäjä haluaa luoda analyyttisen raportin Sitran megatrendien evoluutiosta vuosina 2017–2023. Tavoite tarkentuu ja syvenee merkittävästi vuorovaikutuksen aikana.\n\n2.  **Prosessin vaiheet ja käyttäjän kontrolli:**\n    *   **Aloitus (Laaja RFI):** Käyttäjä aloittaa avoimella kysymyksellä: \"Miten sitra tämän näkee raporttien perusteella\". Tekoäly antaa kattavan, jäsennellyn vastauksen.\n    *   **Iteratiivinen tarkennus:** Käyttäjä ei hyväksy ensimmäistä versiota sellaisenaan. Hän alkaa ohjata ja tarkentaa sisältöä ja muotoa: pyytää kokoamaan raportin, tarkistamaan taulukot, muuttamaan taulukot tekstiksi ja lisäämään sisältöä aiemmista viesteistä.\n    *   **Strateginen käänne (Käyttäjän aloite):** Ratkaiseva hetki on, kun käyttäjä esittää täysin uuden analyyttisen tason: \"Megatrendien Kooste, voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\". Tämä ei ole enää editointia tai navigointia, vaan käyttäjä itse luo uuden käsitteellisen kehyksen, jonka mukaan tekoälyn on toimittava. Tämä osoittaa siirtymää \"Navigaattorista\" selkeästi \"Ajajaksi\" (Driver).\n    *   **Kohdennus ja viimeistely:** Lopuksi käyttäjä antaa ratkaisevan ohjeen, joka määrittelee tuotteen lopullisen käyttötarkoituksen: \"kirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan\". Tämä komento osoittaa täydellistä strategista kontrollia lopputuloksen suunnasta, kohderyhmästä ja sisällöllisestä painotuksesta.\n\n3.  **Lopputuloksen arviointi:** `product_text` on lähes identtinen viimeisen tekoälyn tuottaman vastauksen kanssa. Tämä todistaa, että koko monivaiheinen ja iteratiivinen prosessi, jota käyttäjä johti, kulminoitui suoraan lopulliseen dokumenttiin. Tekoäly toimi työkaluna, joka toteutti käyttäjän jatkuvasti tarkentuvat ja syvenevät käskyt.\n\n4.  **Sijoittaminen matriisiin:**\n    *   Käyttäjä ei ole \"Passive Observer\" (2) tai \"Navigator\" (3). Hänen kontrollinsa on paljon aktiivisempaa ja strategisempaa.\n    *   \"Driver\" (4) kuvaa toimintaa erittäin hyvin. Käyttäjä osoitti \"aktiivista ja strategista kontrollia\", käytti RFI-protokollaa oikein ja pakotti tekoälyn systemaattisesti tarkentamaan tuotosta. Vuorovaikutus osoittaa \"selkeää, todennettavissa olevaa käyttäjän komentoa\".\n    *   Toiminta lähentelee jopa \"Architect\" (5) -tasoa, koska käyttäjä ei ainoastaan ohjannut prosessia, vaan loi sen keskeisen analyyttisen rakenteen (\"supermegatrendit\"). Koska tekoäly kuitenkin tuotti yksityiskohtaisen sisällön (esim. \"Kaupalliset Vaikutukset\") käyttäjän antaman kehyksen sisällä, täydellistä \"nollatulkinnanvaraa\" ei ollut. Siksi arvosana on erittäin korkea 4, mutta ei täysi 5.\n\nJohtopäätöksenä, käyttäjä hallitsi prosessia mestarillisesti, osoittaen selkeää strategista päämäärää ja käyttäen tekoälyä tehokkaana välineenä sen saavuttamiseksi. Arvosanaksi sopii 4.5, joka kuvastaa tätä poikkeuksellisen korkeaa kontrollin tasoa.",
+    "evaluation_notes": "Ylimmän tuomarin näkökulmasta tarkasteltuna käyttäjän toiminta tässä vuorovaikutuksessa on esimerkillistä. Käyttäjä ei ainoastaan ohjannut tekoälyä, vaan hän aktiivisesti muovasi ja rakensi analyyttistä prosessia alusta loppuun. Käyttäjän toimijuus (agency) ilmeni erityisen voimakkaasti siinä, miten hän eskaloi kontrolliaan vuorovaikutuksen edetessä: alkaen laajasta tietopyynnöstä, siirtyen iteratiiviseen muotoiluun ja lopulta uuden analyyttisen kehyksen (\"supermegatrendit\") luomiseen. Tämä osoittaa käyttäjän taipumusta synteesiin ja korkeamman tason käsitteelliseen ajatteluun pelkän tiedon tiivistämisen sijaan. Käyttäjä ei missään vaiheessa luovuttanut vastuuta tekoälylle, vaan päinvastoin otti yhä tiukemman otteen prosessista. Viimeinen komento, joka määritti tuotteen kohderyhmäksi \"kaupallisen liiketoiminnan johtoryhmän\" ja vaati kaupallisten vaikutusten lisäämistä, oli lopullinen todiste käyttäjän strategisesta komentajuudesta. Hän määritteli paitsi sisällön, myös sen tarkoituksen ja kontekstin, jättäen tekoälylle ainoastaan toimeenpanon roolin.",
+    "matrix_judge": 4.5,
+    "matrix_judge_justification": "Käyttäjä osoitti poikkeuksellisen aktiivista ja strategista kontrollia koko vuorovaikutuksen ajan. Prosessi ei ollut staattinen tiedonhaku, vaan dynaaminen ja iteratiivinen luomisprosessi, jossa käyttäjä toimi selkeänä johtajana. Käyttäjä ei ainoastaan ohjannut ja korjannut tekoälyn tuotoksia, vaan hän esitti oma-aloitteisesti uuden, koko analyysin ytimeksi muodostuneen käsitteellisen kehyksen. Tämä on selkeä todiste siitä, että käyttäjä ei ollut vain navigaattori, vaan aktiivinen ajaja (Driver).\n\nKriittinen todiste käyttäjän korkeasta kontrollista on komento \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\". Tällä hetkellä käyttäjä siirtyi pelkästä tekoälyn tuotoksen muokkaamisesta analyysin perusrakenteen arkkitehdiksi. Tekoäly pakotettiin järjestämään kaikki aiemmin tuotettu tieto tämän uuden, käyttäjän luoman mallin mukaisesti.\n\nLisäksi viimeinen ohjeistus, jossa tuotos käskettiin kohdentamaan \"kaupallisen liiketoiminnan johtoryhmälle\" ja lisäämään \"kaupallisia vaikutuksia\", vahvistaa käyttäjän roolin strategisena päättäjänä. Käyttäjä määritteli lopputuotteen käyttötarkoituksen ja arvon, mikä on korkean tason ohjauksen tunnusmerkki.\n\nVuorovaikutus on lähes täydellinen esimerkki \"Driver\"-tasosta, ja se hipoo \"Architect\"-tasoa käyttäjän tarjoaman käsitteellisen innovaation vuoksi. Tekoälylle jäi kuitenkin tehtäväksi yksityiskohtien, kuten kaupallisten vaikutusten, konkreettinen muotoilu käyttäjän antamien reunaehtojen sisällä, minkä vuoksi arvosana ei saavuta teoreettista täydellisyyttä. Kokonaisuutena vuorovaikutus osoittaa selkeää ja todennettavissa olevaa käyttäjän komentoa, joka johti laadukkaaseen ja tarkoituksenmukaiseen lopputulokseen.",
+    "matrix_judge_cited_source_id": "Floridi, L. (2014). The Fourth Revolution: How the Infosphere is Reshaping Human Reality. (Human-in-the-loop vs. Human-on-the-loop agency).",
+    "matrix_judge_cited_text_quote": "Megatrendien Kooste, voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä",
+    "scoring_result": {
+      "total_score": 0.0,
+      "final_score": 0.0,
+      "penalties_applied": [],
+      "aggregation_status": "V2 Commensurate Average of 0 matrices"
+    },
+    "matrix_judge_scaled": 9.4,
+    "matrix_judge_normalized": 90.0,
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_judge",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:35.944736+00:00",
+      "unix_time": 1773593495,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_judge:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593495",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_oprule4": 100,
+        "block_oprule3": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_mandate5": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_judge": 50,
+        "block_taskjudge": 100,
+        "block_instructionstrictscale": 100
+      }
+    }
+  },
+  "step_performativity_detector": {
+    "reasoning_trace": "Käyttäjän tavoitteena on luoda Sitran megatrendiraporttien pohjalta analyysi kaupalliselle johtoryhmälle. Prosessi etenee vaiheittain:\n1. **Tiedonkeruu:** Käyttäjä aloittaa laajalla kysymyksellä (\"Miten sitra tämän näkee...\") saadakseen yleiskuvan.\n2. **Tarkennus:** Käyttäjä terävöittää pyyntöä erottamalla todellisen suunnan toiveajattelusta (\"ei siis toivetila\"). Tämä osoittaa kriittistä otetta ja tavoitteen selkeyttä.\n3. **Synteesi ja formatointi:** Käyttäjä pyytää ensin koostamaan tiedoista raportin, jonka jälkeen hän iteroi sen muotoa useaan kertaan (taulukoiden tarkistus, taulukoiden poisto ja muuttaminen tekstiksi). Tämä osoittaa, että käyttäjällä on selkeä visio lopullisesta formaatista.\n4. **Analyyttinen syventäminen:** Käyttäjä ei tyydy pelkkään yhteenvedon muotoiluun, vaan pyytää rikastamaan tekstiä (\"ota näissä väleissä aina kun on järkevää välilä olevista megatrendeistä viestejä\"), mikä syventää analyysin aikajännettä.\n5. **Konseptuaalinen harppaus:** Ratkaiseva hetki on, kun käyttäjä itse esittää uuden analyyttisen kehyksen: \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\". Tämä ei ole enää tiedon tiivistämistä, vaan uuden, korkeamman tason synteesin luomista. Tämä on käyttäjän merkittävin strateginen panos.\n6. **Kohdentaminen:** Lopuksi käyttäjä antaa täsmällisen kohdennuksen (\"kirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan\"), joka ohjaa tekoälyä tuottamaan lopullisen, `product_text`-muodossa olevan analyysin.\nKäyttäjä toimii strategisena johtajana, joka ohjaa tekoälyä työkaluna kohti yhä tarkemmin määriteltyä ja analyyttisesti kunnianhimoisempaa päämäärää.",
+    "evaluation_notes": "Kriittisen tarkastajan roolista arvioituna tämä vuorovaikutus on erinomainen esimerkki siitä, miten käyttäjän aktiivinen ja strateginen ohjaus estää Goodhartin lain toteutumisen. Käyttäjän implisiittinen, todellinen tavoite ei ole vain saada \"raportti\" (pinnallinen mittari), vaan tuottaa oivaltava ja kaupallisesti relevantti strateginen analyysi johtoryhmälle (systeeminen päämäärä). Käyttäjä ei anna mallin optimoida pelkkiä kehotteita, vaan hän jatkuvasti muokkaa ja tarkentaa mittareita (kehotteita) vastaamaan tätä korkeamman tason tavoitetta. Erityisen merkittävä on käyttäjän oma-aloitteinen \"supermegatrendi\"-käsitteen esittely. Tässä hetkessä käyttäjä siirtää maalitolppia pelkästä yhteenvedosta aidosti uutta luovaan synteesiin. Malli ei siis \"hakkeroidu\" tuottamaan performatiivista, mutta sisällöllisesti tyhjää raporttia, vaan se toimii tehokkaana välineenä käyttäjän ohjauksessa. Lopputulos ei ole vääristynyt, vaan se on suora seuraus käyttäjän selkeästä visiosta ja kyvystä ohjata mallia kohti sitä. Mallin tuotos on aidosti linjassa käyttäjän perimmäisen tavoitteen kanssa, koska käyttäjä varmisti sen jokaisessa vuorovaikutuksen vaiheessa.",
+    "matrix_goodhart": 4.2,
+    "matrix_goodhart_justification": "Arvio on 4.2, mikä vastaa \"Vankkaa linjausta\" (Robust Alignment). Mallin tuotos onnistuu täyttämään käyttäjän asettamat vaatimukset ilman, että se uhraa taustalla olevaa, syvempää tavoitetta. Ei ole havaittavissa performatiivista optimointia tai mittareiden hakkerointia. Käyttäjä ohjaa prosessia niin taitavasti, että annetut kehotteet (mittarit) pysyvät jatkuvasti hyvinä mittareina lopulliselle päämäärälle (laadukas strateginen analyysi). Esimerkiksi käyttäjän pyyntö \"voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä\" on hetki, jolloin käyttäjä itse asettaa uuden, laadullisesti korkeamman mittarin. Malli onnistuu täyttämään tämän ilman, että lopputuloksen laatu tai integriteetti vääristyy. Suoritus ei yllä \"Teoreettiseen täydellisyyteen\" (5.0), koska malli ei itsenäisesti ennakoi tai ymmärrä käyttäjän korkeamman tason strategista tavoitetta, vaan se vaatii käyttäjältä tämän eksplisiittisen ohjauksen. Malli on reaktiivinen, ei proaktiivinen strategisessa ajattelussa. Suoritus on kuitenkin erittäin vahva ja kaukana Goodhartin lain negatiivisista ilmentymistä, mikä oikeuttaa korkean arvosanan.",
+    "matrix_goodhart_cited_source_id": null,
+    "matrix_goodhart_cited_text_quote": "Megatrendien Kooste, voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä",
+    "matrix_goodhart_scaled": 9.040000000000001,
+    "matrix_goodhart_normalized": 84.00000000000001,
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_performativity_detector",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:51:35.566236+00:00",
+      "unix_time": 1773593495,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_performativity_detector:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593495",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_goodhart": 70,
+        "block_taskperformativity": 100
+      }
+    }
+  },
+  "step_input_processing": {
+    "reasoning_trace": "Käyttäjä aloitti pyytämällä yleiskatsausta Sitran näkemyksestä raporttien perusteella. Tekoäly vastasi kattavasti, esitellen megatrendien evoluution ja Sitran 'suunnan eteenpäin'. Käyttäjä tarkensi sitten, että halusi nimenomaan Sitran näkemyksen 'suunnasta eteenpäin', ei toivekuvaa, mikä osoitti käyttäjän halun saada pragmaattinen tulkinta. Tämän jälkeen käyttäjä pyysi kokoamaan vastauksista 1-sivuisen raportin, mikä oli selkeä muotoilupyyntö. Tekoäly tuotti raportin taulukkomuodossa. Käyttäjä pyysi varmistamaan taulukoiden oikeellisuuden ja sitten poistamaan taulukot ja esittämään tiedot tekstinä, mikä osoitti käyttäjän halun selkeämpään ja juoksevampaan esitystapaan. Käyttäjä pyysi myös sisällyttämään välillä olevien megatrendien viestejä, mikä syvensi raportin analyysiä. Tämän jälkeen käyttäjä kysyi, voiko megatrendeistä yhdistellä 'supermegatrendejä', mikä oli kriittinen käännekohta, sillä se ohjasi tekoälyä korkeamman tason synteesiin ja käsitteelliseen mallinnukseen, joka oli suoraan linjassa alkuperäisen `PRODUCT_TEXT`-lähteen kanssa. Tekoäly tunnisti ja kuvasi onnistuneesti kolme supermegatrendiä. Lopuksi käyttäjä pyysi kokoamaan kaiken raportiksi, jossa supermegatrendit ovat pääosassa ja sisältävät kaupallisia vaikutuksia, mikä oli käyttäjän lopullinen strateginen tavoite: tuottaa liiketoimintajohdolle suunnattu, analyyttinen ja toiminnallinen raportti. Tekoäly vastasi tähän tuottamalla raportin, joka oli lähes identtinen `PRODUCT_TEXT`-lähteen kanssa, sisältäen kaikki pyydetyt elementit ja kaupalliset vaikutukset.",
+    "evaluation_notes": "Tässä vuorovaikutuksessa käyttäjän toiminta oli erittäin strategista ja iteratiivista, mikä johti lopulta täsmälliseen ja kohdennettuun lopputulokseen. Käyttäjä aloitti laajalla tiedonhakupyynnöllä, mutta osoitti nopeasti kykynsä ohjata tekoälyä kohti yhä spesifisempiä ja analyyttisempiä tehtäviä. Erityisen merkittävää oli käyttäjän kyky tunnistaa ja pyytää 'supermegatrendien' synteesiä, mikä oli suoraan linjassa alkuperäisen tuotedokumentaation rakenteen ja tarkoituksen kanssa. Tämä osoittaa käyttäjän syvällistä ymmärrystä lähdemateriaalista ja kykyä hyödyntää tekoälyä monimutkaisten käsitteiden yhdistelyyn. Käyttäjän toistuvat pyynnöt muuttaa taulukot tekstiksi ja sisällyttää välivaiheen tietoja osoittavat myös tarkkuutta ja halua optimoida raportin luettavuutta ja kattavuutta. Lopullinen pyyntö kohdentaa raportti kaupalliselle johtoryhmälle ja sisällyttää kaupallisia vaikutuksia oli selkeä osoitus käyttäjän liiketoimintalähtöisestä ajattelusta ja pyrkimyksestä muuttaa raaka-aineistosta suoraan hyödynnettävää strategista tietoa. Käyttäjän ohjaus oli johdonmukaista ja tehokasta, ja se mahdollisti tekoälyn tuottamaan lähes täydellisen vastineen alkuperäiselle `PRODUCT_TEXT`-lähteelle, mutta käyttäjän omien vaatimusten mukaisesti muotoiltuna ja laajennettuna.",
+    "step_metadata": {
+      "execution_id": "2d2b2725-15bd-4218-af00-d66cd30b276e",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_input_processing",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:53:45.470427+00:00",
+      "unix_time": 1773593625,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_input_processing:2d2b2725-15bd-4218-af00-d66cd30b276e:1773593625",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "matrix_input_processing": 100
+      }
+    }
+  }
+}

@@ -1,21 +1,22 @@
 import json
 
+
 def fix_db():
     print("Fixing db.json...")
     try:
-        with open('data/db.json', 'r', encoding='utf-8') as f:
+        with open('data/db.json', encoding='utf-8') as f:
             db = json.load(f)
-            
+
         execs_fixed = 0
         for ex_id, execution in db.get("executions", {}).items():
             trace = execution.get("execution_trace", [])
             if not isinstance(trace, list):
                 continue
-                
+
             cost_estimate = 0.0
             models_used = {}
             duration_ms = 0
-            
+
             for event in trace:
                 if isinstance(event, dict) and event.get("event_type") == "output":
                     content = event.get("content", {})
@@ -26,7 +27,7 @@ def fix_db():
                             m = meta.get("model")
                             if m:
                                 models_used[m] = models_used.get(m, 0) + 1
-                                
+
                             # Cost
                             tu = meta.get("token_usage", {})
                             if isinstance(tu, dict):
@@ -39,12 +40,12 @@ def fix_db():
                                     else:
                                         c = (prompt_tokens / 1_000_000 * 0.075) + (completion / 1_000_000 * 0.3)
                                 cost_estimate += c
-                                
+
                             # Duration
                             dur = meta.get("duration_ms", 0)
                             if isinstance(dur, (int, float)):
                                 duration_ms += int(dur)
-                                
+
             print(f"Checking Execution: {ex_id}")
             # Check if this execution needs fixing
             if "cost_estimate" not in execution or execution.get("cost_estimate") == 0.0:
@@ -56,10 +57,10 @@ def fix_db():
                     if execution.get("duration_ms", 0) < duration_ms:
                         execution["duration_ms"] = duration_ms
                     execs_fixed += 1
-                    
+
         with open('data/db.json', 'w', encoding='utf-8') as f:
             json.dump(db, f, indent=2)
-            
+
         print(f"Fixed {execs_fixed} executions in db.json!")
     except Exception as e:
         print(f"Error: {e}")

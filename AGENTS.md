@@ -7,8 +7,11 @@ Your Single Sources of Truth for this project are:
 
 1. FRONTEND / GENERAL: `c:\src\quorum\docs\flutterpromptohje.md`
 2. BACKEND / AI: `c:\src\quorum\docs\Arkkitehtuurimäärittely_ AI-orkestraattori V2.md`
-3. BACKEND / V2: `c:\src\quorum\docs\Architecture_Universal_Routing_and_Hooks_V2.md`
-4`
+3. REFERENCE & STRUCTURE: `c:\src\quorum\docs\reference.md` (Detailed directory, CLI, DB, and Model specs)
+
+**LIVE LOGGING (Single Source of Runtime Truth):**
+- **BACKEND LOGS:** `c:\src\quorum\backend_debug.log` (FastAPI routing, CPU hooks, Pydantic validation errors, and Worker background tasks. Check this first for backend failures.)
+- **CLIENT LOGS:** `c:\src\quorum\client_debug.log` (Flutter Riverpod states, GoRouter navigation, and HTTP requests. Check this for UI/Network failures.)
 
 🛑 MANDATORY: Before proposing or writing ANY code, you MUST read the relevant document above using your file reading tools to understand:
 - The Strict V2 Architecture (SSOT, Event Sourcing, Fail-Fast).

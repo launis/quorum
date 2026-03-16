@@ -1,6 +1,5 @@
-import re
 
-with open("backend/api/routes/config/workflows.py", "r", encoding="utf-8") as f:
+with open("backend/api/routes/config/workflows.py", encoding="utf-8") as f:
     content = f.read()
 
 # 1. Imports

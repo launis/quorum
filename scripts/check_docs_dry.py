@@ -1,9 +1,10 @@
 import os
 import re
 
+
 def check_docs_dry_violations(docs_dir="c:/src/quorum/docs"):
     violations = {}
-    
+
     # Patterns that we explicitly removed or migrated to specific places.
     # We want to make sure they aren't lingering in other files.
     patterns = {
@@ -17,11 +18,11 @@ def check_docs_dry_violations(docs_dir="c:/src/quorum/docs"):
         "Optimistic_Update": r"(?i)Optimistic\s*Update",
         "Matrix_Approach": r"(?i)Matrix\s*Approach"
     }
-    
-    # Files we already updated and know are correct. We skip scanning them for "good" terms, 
+
+    # Files we already updated and know are correct. We skip scanning them for "good" terms,
     # but might scan them for "bad" terms just in case.
     updated_files = [
-        "architecture.md", 
+        "architecture.md",
         "STRICT MANDATES & ARCHITECTURE PRINCIPLES.md",
         "STRICT FRONTEND MANDATES & ARCHITECTURE PRINCIPLES.md",
         "data_management.md",
@@ -29,15 +30,15 @@ def check_docs_dry_violations(docs_dir="c:/src/quorum/docs"):
         "index.md",
         "alku.md"
     ]
-    
+
     for filename in os.listdir(docs_dir):
         if not filename.endswith(".md"):
             continue
-            
+
         filepath = os.path.join(docs_dir, filename)
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, encoding='utf-8') as f:
             content = f.read()
-            
+
         file_violations = []
         for pat_name, pat_regex in patterns.items():
             matches = re.finditer(pat_regex, content)
@@ -46,10 +47,10 @@ def check_docs_dry_violations(docs_dir="c:/src/quorum/docs"):
                 # If it's a file we DIDN'T update, but it mentions a core concept, it might be a DRY violation
                 if filename not in updated_files:
                      file_violations.append(f"Found {count} instances of '{pat_name}'")
-                     
+
         if file_violations:
             violations[filename] = file_violations
-            
+
     if violations:
         print("Potential DRY Violations Found in Un-updated Files:")
         for filename, vils in violations.items():

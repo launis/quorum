@@ -3404,6 +3404,42 @@ abstract class AppLocalizations {
   /// **'Failed to delete execution: {error}'**
   String failedToDeleteExecution(String error);
 
+  /// No description provided for @reportTitleMain.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution Report'**
+  String get reportTitleMain;
+
+  /// No description provided for @reportMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance Metrics'**
+  String get reportMetrics;
+
+  /// No description provided for @reportScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Score'**
+  String get reportScore;
+
+  /// No description provided for @xAxisLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'X-Axis'**
+  String get xAxisLabel;
+
+  /// No description provided for @yAxisLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Y-Axis'**
+  String get yAxisLabel;
+
+  /// No description provided for @zAxisLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Z-Axis'**
+  String get zAxisLabel;
+
   /// No description provided for @selectWorkflowPrompt.
   ///
   /// In en, this message translates to:
@@ -3673,6 +3709,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'BEST PRACTICE: Use command keywords like ROLE:, TASK:, RULE: and CONTEXT:. NEVER translate these keywords into Finnish inside the text.'**
   String get adminPromptBestPracticesHint;
+
+  /// No description provided for @blueprintEditorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Blueprint Editor'**
+  String get blueprintEditorTitle;
+
+  /// No description provided for @blueprintComponentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Components'**
+  String get blueprintComponentsTitle;
+
+  /// No description provided for @blueprintAddComponentBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Component'**
+  String get blueprintAddComponentBtn;
+
+  /// No description provided for @blueprintEmptyStateMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'No components added yet. Add a component to start building the report.'**
+  String get blueprintEmptyStateMsg;
+
+  /// No description provided for @blueprintComponentHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Header'**
+  String get blueprintComponentHeader;
+
+  /// No description provided for @blueprintComponentMetadataHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata Header'**
+  String get blueprintComponentMetadataHeader;
+
+  /// No description provided for @blueprintComponentBibliography.
+  ///
+  /// In en, this message translates to:
+  /// **'Bibliography'**
+  String get blueprintComponentBibliography;
+
+  /// No description provided for @blueprintComponent1dGauge.
+  ///
+  /// In en, this message translates to:
+  /// **'1D Gauge'**
+  String get blueprintComponent1dGauge;
+
+  /// No description provided for @blueprintComponent2dMatrix.
+  ///
+  /// In en, this message translates to:
+  /// **'2D Matrix'**
+  String get blueprintComponent2dMatrix;
+
+  /// No description provided for @blueprintComponent3dScatter.
+  ///
+  /// In en, this message translates to:
+  /// **'3D Scatter'**
+  String get blueprintComponent3dScatter;
+
+  /// No description provided for @blueprintComponentEvaluationNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluation Notes'**
+  String get blueprintComponentEvaluationNotes;
+
+  /// No description provided for @blueprintSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Component Settings'**
+  String get blueprintSettingsTitle;
+
+  /// No description provided for @blueprintSettingsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Component'**
+  String get blueprintSettingsSave;
+
+  /// No description provided for @blueprintSaveBlueprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Blueprint'**
+  String get blueprintSaveBlueprint;
+
+  /// No description provided for @blueprintSaveSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Blueprint saved successfully'**
+  String get blueprintSaveSuccess;
+
+  /// No description provided for @blueprintSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save blueprint: {error}'**
+  String blueprintSaveFailed(String error);
+
+  /// No description provided for @blueprintPropertyDataPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Path (\$results.X)'**
+  String get blueprintPropertyDataPath;
+
+  /// No description provided for @blueprintPropertyXAxis.
+  ///
+  /// In en, this message translates to:
+  /// **'X Axis Path'**
+  String get blueprintPropertyXAxis;
+
+  /// No description provided for @blueprintPropertyYAxis.
+  ///
+  /// In en, this message translates to:
+  /// **'Y Axis Path'**
+  String get blueprintPropertyYAxis;
+
+  /// No description provided for @blueprintPropertyZAxis.
+  ///
+  /// In en, this message translates to:
+  /// **'Z Axis Path'**
+  String get blueprintPropertyZAxis;
+
+  /// No description provided for @blueprintPropertyXAxisNote.
+  ///
+  /// In en, this message translates to:
+  /// **'X Axis Note Path'**
+  String get blueprintPropertyXAxisNote;
+
+  /// No description provided for @blueprintPropertyYAxisNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Y Axis Note Path'**
+  String get blueprintPropertyYAxisNote;
+
+  /// No description provided for @blueprintPropertyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title (i18n Key or Text)'**
+  String get blueprintPropertyTitle;
+
+  /// No description provided for @blueprintPropertyDataPathsInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Comma-separated paths'**
+  String get blueprintPropertyDataPathsInfo;
 }
 
 class _AppLocalizationsDelegate

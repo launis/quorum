@@ -6,8 +6,10 @@ including intent analysis and text metrics.
 
 
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 import logging
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

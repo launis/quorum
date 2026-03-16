@@ -1,101 +1,134 @@
-# Reference Manual & API (V2.5)
+# Reference Manual & Directory Structure (V2.5)
 
-This document serves as the technical reference for **Cognitive Quorum V2026**. It covers the directory structure, CLI commands, Data Lifecycle, and the Backend API.
+Tämä dokumentti on tekninen viiteopas (Reference Manual) **Cognitive Quorum V2026** -arkkitehtuurille. Se kuvaa poikkeuksellisen tarkasti järjestelmän hakemistorakenteen, hakemistojen roolit Pydantic Fail-Fast/Zero-Deploy -arkkitehtuurissa, tietokannan mallin sekä ohjelmien suoritusreitit.
 
 ---
 
-## 1. Directory Structure (V2)
+## 1. Directory Structure (V2) - The Modular Async Monolith
 
-The project follows a **Modular Async Monolith** architecture with **Strict Pydantic V2** enforcement.
+Quorum V2 on jaettu tiukasti erillisiin kerroksiin (Backend "Aivot / The Spine" ja Frontend "Näyttö / Display Tier"). Backendissä noudatetaan vankkaa kansio-ohjattua sääntöä, jossa mikään kognitio ei saa vuotaa rajapintoihin, ja reititysliberaalit rakenteet on sidottu Pydantic V2 -malleihin.
 
+### 1.1 `backend_v2/` - The Core Engine (Python 3.14)
+
+```text
+quorum/backend_v2/
+├── api/                        # FastAPI Control Plane
+│   └── routers/                # Eriytetyt HTTP REST V2 -ruuterit
+│       ├── execution/          # DAG-ajojen hallinta ja /render SDUI-päätepiste
+│       ├── iam/                # Identiteetin ja roolien hallinta
+│       └── studio/             # CRUD-rajapinnat säännöstölle (Blueprints, Workflows)
+│
+├── core/                       # Keskitetyt konfiguraatiot ja luokat (BaseException, Dependency Injection)
+│
+├── database/                   # The Unified Repository (Storage Engine)
+│   ├── firestore_repo.py       # Tuotannon (Google Cloud) repo-implementaatio
+│   ├── repository.py           # Abstrakti base-luokka (AbstractWorkflowRepository)
+│   ├── db_v2.json              # Local-kehityksen tietokantatiedosto (TinyDB dokumenttikanta)
+│   └── wrapper.py              # Turvamuuri abstraktion ja konkreettisten ajurien välillä
+│
+├── hooks/                      # Puhdas ja deterministinen CPU-logiikka
+│   ├── integrity.py            # Hallusinaatioiden paljastaja (Citation Integrity)
+│   ├── scoring.py              # LLM-vastausten numeerinen override ja puhdistus
+│   ├── search.py               # Vertex AI haku-integraatiot
+│   └── security.py             # Estettyjen lausekkeiden (Banned Phrases) valvonta
+│
+├── llm/                        # Integroidut AI-mallien soittimet (LiteLLM, GenAI)
+│
+├── models/                     # Single Source of Truth (SSOT) Datamallit (Pydantic V2)
+│   ├── auth.py                 # TokenData ja User/Organization Skeemat
+│   ├── domain/                 # Vahvat liiketoimintamallit
+│   ├── dtos/                   # DTO-mallit (LLM-päätepisteiden sisään/ulostulo)
+│   ├── enums.py                # Status-, Rooli-, ja Moodi-Enumeraatiot
+│   ├── state.py                # DAG Moottorin ajonaikainen tila
+│   ├── v2_core.py              # Arkkitehtuurimallit (Workflow, PromptBlock, RenderBlueprint jne.)
+│   └── workflow.py             # Työnkulkujen rakennemallit
+│
+├── scripts/                    # Työkalut, E2E-testit ja One-off migraatiot
+│
+├── seed/                       # Järjestelmän konfiguraation koti (Zero-Deploy DNA)
+│   ├── run_seed.py             # Alustustyökalu: Lataa säännöstön ja rakentaa DB:n
+│   ├── seed_registry.py        # Kytkee JSON-avaimet Pydantic-kokoelmiin
+│   └── seed_data.json          # Itse The DNA: Kaikki järjestelmän säännöt, matriisit ja UI Bluekuvat
+│
+├── services/                   # Järjestelmän aivot: Liiketoimintalogiikka (Business Services)
+│   ├── blueprint.py            # Yhdistää UI Bluekuvat DAG-tuloksiin. (SDUI Transformer)
+│   ├── execution.py            # Suorittaa / Alustaa DAG-ajot
+│   ├── orchestrator/           # Laaja kansio: DAGExecutor - Rengastaa askeleet graphina
+│   ├── pdf_generator.py        # Renderöi PDF-dokumentit ajamalla Blueprinttiä palvelussa
+│   └── auth.py                 # Kirjautumis-, Organisaatio- ja JWT-logiikka
+│
+├── tests/                      # Yksikkö/Integraatiotestit (Pytest) joiden kattavuus varmistaa luotettavuuden
+│
+├── main.py                     # FastAPI ohjelman käynnistystiedosto ja reititysten aktivointi
+├── worker.py                   # ARQ (Asynchronous Redis Queue) Worker. Ajaa DAG-jonot ja PDF-luonnit taustalla
+└── settings.py                 # Pydantic BaseSettings: HALLITSEE ENV-muttujat ja polut.
 ```
-quorum/
-├── backend_v2/             # Async Python 3.12+ Core
-│   ├── api/                # FastAPI Routers (The Control Plane)
-│   │   ├── routers/
-│   │   │   ├── studio/     # CRUD for Rules, Matrices, Workflows
-│   │   │   ├── execution/  # Job Submission & Status
-│   │   │   └── iam/        # Tenant mapping and identity
-│   ├── core/               # DAG Execution Engine
-│   ├── database/           # Unified Repository (Firestore)
-│   ├── hooks/              # Deterministic CPU Logic (Security, Validation, Pipeline Logic)
-│   ├── models/             # Pydantic V2 Schemas (SSOT)
-│   │   ├── execution.py    # Execution states
-│   │   └── v2_core.py      # Core Models (Workflows, Blocks, SystemConfig)
-│   ├── services/           # Business Logic (Auth, Studio, Execution)
-│   ├── scripts/            # Database migration utilities
-│   ├── seed/               # Data Seeding Logic (SSOT)
-│   │   ├── run_seed.py     # Execution Script
-│   │   └── seed_registry.py# Model to Collection mapping
-│   ├── settings.py         # Environment Settings
-│   └── main.py             # FastAPI App Entry
-├── data/                   # Local Configuration
-│   ├── db_v2.json          # Local V2 JSON Database
-│   ├── seed_data.json      # V2 blueprint configuration
-│   └── files/              # Local uploaded files
-├── docs/                   # Documentation (MkDocs)
-├── client_app_v2/          # Flutter Client (Cognitive Studio V2)
-│   ├── lib/
-│   │   ├── features/       # Feature-driven module architecture
-│   │   ├── core/           # Routing and Networking
-│   │   └── shared/         # Common DTOs and Logic
-├── run_local.bat           # Local Development Startup
-└── pyproject.toml          # Python Dependencies (uv)
+
+### 1.2 `client_app_v2/` - The Cognitive Studio (Flutter / Dart)
+
+Järjestelmän käyttöliittymä, joka noudattaa vahvasti Riverpod (State Management) ja GoRouter (Navigaatio) konsepteja. Näyttökerros lukee puhtaasti JSON-dataa, eikä sisällä AI-kognition vaatimaa tilatietoa.
+
+```text
+quorum/client_app_v2/
+├── lib/
+│   ├── core/                   # Ydinjärjestelmät (Verkkoasiakas, Riverpod-loggeri, Error Boundaries)
+│   ├── features/               # Ominaisuuksiin jaetut sovellusalueet (Feature-First Architecture)
+│   │   ├── auth/               # IAM Kirjautumisnäkymät ja Logiikka
+│   │   ├── execution/          # DAG Ajojen seurantanäkymä. Riippuvainen SDUI:sta.
+│   │   └── sdui/               # Server-Driven UI: WidgetFactory lukemaan render_blueprinttiä
+│   │
+│   ├── l10n/                   # Lokalisointi (app_en.arb, app_fi.arb) No-String -säännön mukaisesti
+│   ├── router/                 # GoRouter URL-reitittimet ja Guardit
+│   ├── shared/                 # Jaetut widgetit, DTO-purkajat ja SafeCast (Defensive Parsing) mallit
+│   └── theme/                  # Material 3 Design System - Värit ja muotokieli (Ei koskaan Blueprinteissä)
+│
+├── main.dart                   # Flutter App Entry point
+└── app.dart                    # App Shell (AppErrorBoundary wrapper)
 ```
 
 ---
 
-## 2. CLI Command Reference
+## 2. Järjestelmän Tärkeimmät Ohjelmat ja Skriptit
 
-### Operational Commands (Windows)
+Näitä työkaluja ja moottoreita järjestelmä käyttää toimintansa varmentamiseen.
 
-| Command | Description |
-| :--- | :--- |
-| `run_local.bat` | Starts Uvicorn API (`8000`), Riverpod Dart server (`8001`), and Flutter UI. Handles mock vs production ENV variables automatically. |
+### 2.1 The Seed CLI Tool (Konfiguraatioiden siirto kannaksi)
+Kaikki Quorum V2 joustavuus piilee `backend_v2/seed/seed_data.json` -tiedostossa. Sitä mukaa kun `seed_data.json`:ia päivitetään (esim. lisätään uusi PromptBlock tai uusi Layout Blueprint), järjestelmä täytyy "Alustaa" (Seed).
 
-### Data Management (Seeding)
-Managed via `backend_v2/seed/run_seed.py`. **Seeding is the Single Source of Truth.**
+*   **Lokaali Alustus:** `uv run python backend_v2/seed/run_seed.py local`
+    Tämä tyhjentää paikallisen `db_v2.json` kantaan liitetyt komponentit ja kirjoittaa SSOT tiedon `seed_data.json`:ista suoraan kantaan.
+*   **Pilvi Alustus (Firestore):** `uv run python backend_v2/seed/run_seed.py firestore`
+    **(Kriittinen operaatio)**. Tuhoaa ja korvaa tuotannon matriisit.
 
-| Target | Command | Purpose |
-| :--- | :--- | :--- |
-| **Local** | `uv run python backend_v2/seed/run_seed.py local` | Resets `data/db_v2.json` from `data/seed_data.json`. Use for offline development. |
-| **Cloud** | `uv run python backend_v2/seed/run_seed.py firestore` | **DANGER**. Destructive operation. Overwrites Production Firestore with local rules. |
+### 2.2 Taustaprosessointi (The ARQ Worker)
+Quorum käyttää asynkroniseen työhön Redis-pohjaista `arq` -kirjastoa (joka tukee myös paikallista simulointia ilman Redistä testiajoissa).
+*   Ohjelmisto: `backend_v2/worker.py`
+*   Sisältää Taskit: `execute_workflow_job` (Ajaa raskaat LLM Graph -kutsut reitittimellä) ja `generate_pdf_job` (Rakentaa PDF-raportit lokaalisti asynkronisena taustatehtävänä estämättä FastAPI/Uvicorn -ruutereita).
+*   *Worker on itsenäinen aivo.* Sillä on suora yhteys `repository.py` rajapintaan mutta se asuu irtaallaan HTTP API:sta.
 
-### Backend Development (uv)
-We use `uv` for ultra-fast dependency management and virtual isolated Python environments.
-*   **Sync Dependencies**: `uv sync`
-*   **Run Backend Only**: `uv run uvicorn backend_v2.main:app --reload`
-*   **Execute Script**: `uv run python backend_v2/scripts/[script_name].py`
-
----
-
-## 3. Configuration & Metadata (`seed_data.json`)
-
-`data/seed_data.json` is the **Immutable Source of Truth (SSOT)** for all configuration, logic, and structure.
-
-### Schema Structure
-1.  **`system_config`**: The Model Registry mapping logic (`fast`, `deep`) to actual cloud endpoints.
-2.  **`prompt_blocks`**: Reusable Prompts, Instructions, and evaluation Matrices.
-3.  **`steps`**: Reusable TaskBlueprints connecting a model strategy to a PromptBlock.
-4.  **`workflows`**: Directed Acyclic Graph (DAG) flow tying steps together.
+### 2.3 Paikallinen Kehitys (run_local.bat)
+*   **Ohjelma:** `./run_local.bat`
+*   Ajaa rinnakkain kehitysympäristön Python Uvicorn-palvelinta portissa `8000` sekä asynkronista Dart Flutter pavelinta portissa `8001`. Se latautuu automaattisesti `.env` tiedoston arvoilla kytkemällä `USE_MOCK_DB=true`.
 
 ---
 
-## 4. Environment Variables
+## 3. Tietokanta ja Ympäristöt
 
-Managed by `backend_v2/settings.py`.
+Quorum V2 käyttää modulaarista **Unified Repository** -mallia, jossa abstraktio sallii saumattoman kytkennän joko offline-kehityskantaan (TinyDB) tai pilveen (Firestore).
 
-| Variable | Description | Valid Values | Default |
-| :--- | :--- | :--- | :--- |
-| `ENVIRONMENT` | Environment Mode. | `development` / `production` | `development` |
-| `USE_MOCK_DB` | Determines Storage Engine. | `true` (Local JSON) / `false` (Firestore) | `true` |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Absolute path to Firebase Service Account if `USE_MOCK_DB=false`. | String | - |
+### 3.1 Pydantic Model -Rakenne (SSOT)
+Kaiken tietokantaan menevän datan ja rakenteen on kuljettava `v2_core.py` (tai muiden Domain mallien) läpi. Kun esimerkiksi luodaan työnkulku, data on validoitu `Workflow` Pydantic-objektina. Olennaisia malleja ovat:
+1.  **SystemConfig**: Määrittelee The Model Registryn (mikä mallipari toimii tagilla `fast` tai `deep`).
+2.  **PromptBlock / EvaluationMatrix**: Tekoälykonfiguraatiot ja matriisit.
+3.  **TaskBlueprint**: Opettaa askeleen siitä kuinka Input ($inputs) käännetään roolille.
+4.  **Workflow**: Solmii askeleet ($steps) yhteen DAG:iksi (Directed Acyclic Graph). Määrittelee myös visuaalisen asettelun (Render Blueprintin).
+5.  **ExecutionRecord**: Tallentaa joka ainoan suoritetun työn, kognitiivisen `$results` luupin, sekä visuaalisen `render_blueprint` jäädytyksen loogiseksi, peruuttamattomaksi pöytäkirjaksi.
 
----
+### 3.2 Lokaali vs. Tuotantokanta
+Polussa `backend_v2/database/wrapper.py` alustetaan joko Firestore- tai TinyDB-ajuri riippuen ympäristömuuttujasta.
 
-## 5. Development Workflow (New Feature)
-1. **Define Block**: Add a new `prompt_block` to `data/seed_data.json`.
-2. **Bind Context**: Add a `step` referencing the block and defining input mappings (`$inputs.chat_log`).
-3. **Route Workflow**: Create a `workflow` that places the step in a DAG sequence.
-4. **Seed**: Run `uv run python backend_v2/seed/run_seed.py local`.
-5. **Verify**: Open `http://localhost:8000/api/v2/studio/workflows` to verify the DB representation.
+*   **`USE_MOCK_DB=true`** -> Lukee/Kirjoittaa tiedostoon `backend_v2/database/db_v2.json`. Kaikki suoritettu data, tiimit, luvat (IAM) ovet vapaasti modifioitavissa. Suosittu ohjelmistokehittäjien lokaalissa ympäristössä.
+*   **`USE_MOCK_DB=false`** -> Yhdistyy Google Cloud Firestoreen osoittaen `GOOGLE_APPLICATION_CREDENTIALS` polun kautta valtakirjoihin. Toimii tiukoilla Security Ruleseilla ja Tenant-eristelyllä.
+
+### 3.3 Fail-Fast ja Error Codes (RFC 7807)
+Koko järjestelmä (Tietokannasta Frontend-renderöitiin) on sidottu yhteen deterministiseen Error Code -avaruuteen. Mallit kuten `AppException(ErrorCodes.VALIDATION_FAILED)` varmistavat, että datavirheet pysäyttävät suorituksen sekunnin murto-osassa ja palauttavat yhtenäisen viestin rajapinnasta, jonka asiakasohjelma (Flutter) parsii Pydantic-standardien mukaisesti, estäen hallusinoinnit järjestelmän omiin sisäänrakennettuihin luuppeihin.

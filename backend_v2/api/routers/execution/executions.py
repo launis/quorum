@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Query, status
+from fastapi import APIRouter, BackgroundTasks, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from backend_v2.api.dependencies import CurrentUserDep, ExecutionServiceDep, RepoDep
@@ -89,6 +89,7 @@ async def delete_execution(
 
 @router.get("/{execution_id}/render")
 async def render_execution(
+    request: Request,
     execution_id: str,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
@@ -112,8 +113,12 @@ async def render_execution(
     fmt = format.lower()
 
     if fmt == "json":
-        # Native V2 strict Pydantic dump
-        return JSONResponse(content=execution.model_dump(mode="json"))
+        from backend_v2.services.blueprint import BlueprintTransformer
+        accept_language = request.headers.get("accept-language", None)
+        # We pass execution_id as Transformer fetches again, or we could pass execution natively.
+        transformer = BlueprintTransformer(repository)
+        payload = await transformer.build_render_payload(execution_id, accept_language)
+        return JSONResponse(content=payload)
 
     elif fmt == "flat":
         from backend_v2.services.flattener import FlatFileService
@@ -122,7 +127,7 @@ async def render_execution(
 
     elif fmt == "pdf":
         from backend_v2.services.pdf_generator import PdfReportService
-        # Passing repository inside PDF generator is safe as the execution was already authorized above
+        # Passing repository inside PDF generator is safe as the execution was authorized
         pdf_service = PdfReportService(repository)
         pdf_bytes = await pdf_service.generate_execution_pdf(execution_id)
 
@@ -142,3 +147,25 @@ async def render_execution(
             status_code=400,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
+
+@router.post("/{execution_id}/render_pdf", status_code=status.HTTP_202_ACCEPTED)
+async def generate_pdf_async(
+    request: Request,
+    execution_id: str,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker."""
+    # 1. Authorize connection first via Security Dependency
+    await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
+    
+    # 2. Extract locale
+    accept_language = request.headers.get("accept-language", None)
+
+    # 3. Queue the background task for PDF Koonti
+    from backend_v2.worker import generate_pdf_task
+    background_tasks.add_task(generate_pdf_task, execution_id, accept_language)
+
+    # 4. Return 202 Accepted Fast
+    return {"status": "Accepted", "message": "PDF Generation queued", "execution_id": execution_id}

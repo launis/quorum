@@ -223,58 +223,39 @@ async def execute_workflow_job(
 
 
 async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
-    """Background job to generate a PDF report for an execution.
+    """Legacy background job for raw pdf. Replaced by generate_pdf_task but left for compatibility."""
+    return ""
 
-    Args:
-        ctx: Arq worker context.
-        execution_id: The execution UUID.
-
-    Returns:
-        str: Path to the generated file.
+async def generate_pdf_task(execution_id: str, accept_language: str | None = None) -> None:
     """
-    logger.info(f"[Job] Generating PDF for execution: {execution_id}")
-
+    Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
+    Called directly by FastAPI BackgroundTasks without Arq overhead for instant MVP.
+    """
+    logger.info(f"[Task] Starting Async PDF Koonti for execution {execution_id}")
     try:
-        # 1. Instantiate Repository
-        # We reuse the one in context if available, or factory if needed.
-        # Startup initializes ctx["repository"]
-        repository = ctx["repository"]
-
-        # 2. Instantiate ProgressService (Currently unused directly here but reserved)
-        # redis = ctx["redis"]
-        # progress = ProgressService(redis)
-
-        # 3. Instantiate PdfReportService
-        service = PdfReportService(repository)
-
-        # 4. Generate PDF
-        pdf_bytes = await service.generate_execution_pdf(execution_id)
-
-        # 5. Save Result via StorageService
+        from backend_v2.settings import get_settings
+        from backend_v2.database.factory import get_repository
+        from backend_v2.services.blueprint import BlueprintTransformer
+        
+        repo = await get_repository(get_settings())
+        transformer = BlueprintTransformer(repo)
+        
+        # 1. Generate Omni-Channel JSON Payload
+        payload = await transformer.build_render_payload(execution_id, accept_language)
+        
+        # 2. Feed structured JSON to PDF Engine instead of DB fetching
+        service = PdfReportService(repo)
+        pdf_bytes = await service.generate_execution_pdf(execution_id, blueprint_payload=payload)
+        
+        # 3. Save bytes
         storage = get_storage_driver()
-        # Relative path: executions/{id}/report.pdf
         output_path_rel = f"executions/{execution_id}/report.pdf"
-
-        # Returns absolute path (if local) or URI (if cloud)
         saved_path = await storage.save(output_path_rel, pdf_bytes)
-
-        logger.info(f"[Job] PDF generated successfully: {saved_path}")
-        return saved_path
+        logger.info(f"[Task] PDF generated successfully: {saved_path}")
 
     except Exception as e:
-        from backend_v2.exceptions import AppException
-        if not isinstance(e, AppException):
-            msg = f"PDF generation failed for {execution_id}. Cause: {e}"
-            logger.error(
-                f"[Worker] {ErrorCodes.PDF_GENERATION_FAILED.name}: {msg}",
-                exc_info=True
-            )
-            e = AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.PDF_GENERATION_FAILED}
-            )
-        raise e
+        logger.error(f"[Task] PDF generation failed for {execution_id}. Cause: {e}", exc_info=True)
+
 
 
 # --- Lifecycle ---

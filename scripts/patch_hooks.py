@@ -1,23 +1,24 @@
 import json
 from pathlib import Path
 
+
 def patch_hooks():
     v1_path = Path("c:/src/quorum/data/github_seed_data.json")
     v2_path = Path("c:/src/quorum/backend_v2/seed/seed_data.json")
 
     print(f"Loading V1 data from {v1_path}...")
-    with open(v1_path, "r", encoding="utf-8") as f:
+    with open(v1_path, encoding="utf-8") as f:
         v1_data = json.load(f)
 
     print(f"Loading V2 data from {v2_path}...")
-    with open(v2_path, "r", encoding="utf-8") as f:
+    with open(v2_path, encoding="utf-8") as f:
         v2_data = json.load(f)
 
     # Build a lookup for V1 step hooks mapped by their original name/slug since the UUIDs change slightly.
     # We will use the 'task_key' or 'slug' or 'name' as a reliable mapping key.
     # It seems in V2 stitch script, the V2 step id is directly generated from V1 step id (they are identical objects in workflow.steps array but actual step IDs might be different).
     # Wait, in the stitch_v2.py, V2 steps use the exact same 'id' as V1 steps? Let's check.
-    
+
     # Let's map by slug just to be safe.
     v1_hooks_by_slug = {}
     for step in v1_data.get("steps", []):

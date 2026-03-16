@@ -1,9 +1,10 @@
 import json
 from pathlib import Path
 
+
 def fix_prompt_ids():
     seed_file = Path(r"c:\src\quorum\backend\seed\seed_data.json")
-    with open(seed_file, 'r', encoding='utf-8') as f:
+    with open(seed_file, encoding='utf-8') as f:
         data = json.load(f)
 
     # Build slug -> id map for components
@@ -12,7 +13,7 @@ def fix_prompt_ids():
         for comp in data["components"]:
             if "slug" in comp and "id" in comp:
                 comp_map[comp["slug"]] = comp["id"]
-                
+
     # Also for workflows etc if any references remain, but mostly steps and llm_prompts
     changes_made = 0
     if "steps" in data:
@@ -34,9 +35,9 @@ def fix_prompt_ids():
                     if mat_id in comp_map:
                         config["matrix_id"] = comp_map[mat_id]
                         changes_made += 1
-                        
+
     print(f"Made {changes_made} replacements in steps.")
-    
+
     if changes_made > 0:
         with open(seed_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)

@@ -5,10 +5,11 @@ various LLM providers (Google Gemini, OpenAI, etc.), including support for
 advanced reasoning tokens and tool calls.
 """
 
+import logging
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-import logging
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

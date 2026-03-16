@@ -3,13 +3,12 @@
 This module contains models related to evaluation matrices and structure validation.
 """
 
+import logging
 from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-import logging
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

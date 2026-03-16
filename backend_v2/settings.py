@@ -1,5 +1,6 @@
 """Application Settings Module (V2 Isolated)."""
 
+import logging
 import os
 from enum import Enum
 from functools import lru_cache
@@ -9,7 +10,6 @@ from dotenv import load_dotenv
 from pydantic import BeforeValidator, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-import logging
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

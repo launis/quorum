@@ -4,12 +4,13 @@ This module contains the foundational Pydantic models used by all other domain e
 It includes Metadata, ReasoningTrace, and UsageRecord.
 """
 
+import logging
 import uuid
 from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-import logging
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)

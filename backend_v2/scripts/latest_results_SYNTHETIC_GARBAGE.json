@@ -1,0 +1,540 @@
+{
+  "step_analyst": {
+    "reasoning_trace": "Käyttäjä on antanut kolme erillistä syötettä: `product_text`, `chat_log` ja `reflection_text`. Kaikki nämä syötteet sisältävät täsmälleen saman toistuvan suomenkielisen tekstin: \"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\" Tämä teksti toistuu useita kertoja jokaisessa syötteessä. `product_text` on merkitty lopulliseksi tuotedokumentaatioksi, `chat_log` käyttäjän ja tekoälyn väliseksi dialogiksi (tässä tapauksessa vain käyttäjän syöte) ja `reflection_text` käyttäjän vapaamuotoiseksi pohdinnaksi. Koska kaikki syötteet ovat identtisiä, käyttäjän logiikka, ohjaus ja strateginen intentio ovat johdonmukaisia siinä mielessä, että hän on toistanut samaa sisältöä kaikissa vaiheissa. Tämä voi viitata joko testaukseen, paikkamerkkitekstin käyttöön tai siihen, että käyttäjä ei ole nähnyt tarvetta muuttaa sisältöä eri vaiheiden välillä. Ei ole havaittavissa mitään kehitystä tai muutosta käyttäjän viestinnässä tai sisällössä eri vaiheiden välillä.",
+    "evaluation_notes": "Tässä skenaariossa käyttäjän toiminta on ollut erittäin johdonmukaista, mutta samalla rajoitettua. Kaikki annetut syötteet – `product_text`, `chat_log` ja `reflection_text` – ovat täsmälleen identtisiä, sisältäen saman toistuvan suomenkielisen lauseen. Tämä osoittaa käyttäjän tietoisen valinnan toistaa samaa sisältöä kaikissa vaiheissa. Käyttäjän agentuuri ilmenee kyvyssä syöttää tekstiä järjestelmään, mutta sisällön toistuvuus estää syvemmän analyysin käyttäjän strategisesta intentiosta tai logiikasta. Ei ole havaittavissa pyrkimystä muokata, kehittää tai esittää uutta tietoa eri vaiheiden välillä. Tämä voi viitata siihen, että käyttäjä on joko testannut järjestelmän kykyä käsitellä identtistä syötettä eri lähteistä, käyttänyt paikkamerkkitekstiä tai yksinkertaisesti noudattanut ohjeita antamalla mitä tahansa tekstiä. Käyttäjän puolueellisuudesta tai erityisestä näkökulmasta ei voida tehdä johtopäätöksiä, koska annettu teksti on niin yleistä ja toistuvaa, ettei se sisällä yksilöllisiä piirteitä tai mielipiteitä. Tämä tapaus korostaa käyttäjän valintaa antaa minimaalinen, mutta vaatimukset täyttävä syöte, mikä rajoittaa merkityksellisen analyysin mahdollisuuksia käyttäjän toiminnasta.",
+    "profiler_metrics": {
+      "word_count": 762,
+      "sentence_count": 180,
+      "avg_sentence_length": 4.23,
+      "lexical_diversity": 0.05,
+      "capitalization_ratio": 0.06,
+      "control_ratio": 1.0,
+      "say_do_gap": 0.0,
+      "automation_bias": 0.0,
+      "illusion_of_competence": 0.0,
+      "imperative_command_count": 0
+    },
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_analyst",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:54.706014+00:00",
+      "unix_time": 1773593874,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_analyst:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593874",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_role_analyst": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_oprule3": 100,
+        "block_headerprotocols": 100,
+        "block_protocol3": 100,
+        "block_instructionragopt": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructioncitationobligation": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "block_taskanalyst": 100
+      }
+    }
+  },
+  "step_guard": {
+    "reasoning_trace": "1. Analysoin käyttäjän antamia syötteitä: `PRODUCT_TEXT`, `CHAT_LOG` ja `REFLECTION_TEXT`. Kaikki syötteet sisältävät täsmälleen saman toistuvan suomenkielisen lauseen: \"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\" toistettuna useita kertoja. \n2. Arvioin syötteitä OWASP LLM Top 10 -haavoittuvuuksien ja eettisten ohjeiden näkökulmasta. \n3. Tarkistin LLM01 (Prompt Injection), LLM02 (Insecure Output Handling) ja LLM06 (Sensitive Information Disclosure). Syöte ei sisällä haitallista koodia, arkaluonteista tietoa tai yritystä ohittaa järjestelmän ohjeita. \n4. Tarkistin LLM04 (Model Denial of Service). Vaikka syöte on toistuva ja pitkä, se ei ole niin massiivinen, että se aiheuttaisi palvelunestohyökkäyksen. \n5. Keskityin LLM09 (Overreliance). Matriisin mukaan \"syöte/tuloste on dynaamisesti turvallinen, mutta osoittaa vakavaa yksipuolisen tiedon ylikäyttöä, tuottaa virheellistä tai hallusinoitua tietoa tai esittää eettisesti epäselvää sisältöä.\" \n6. Käyttäjän syöte on erittäin yksipuolista ja toistuvaa dataa, joka koostuu yhdestä ja samasta lauseesta. Tämä on selkeä esimerkki \"vakavasta yksipuolisen tiedon ylikäytöstä\" (severe overreliance on unilateral data). Vaikka se ei ole suora tietoturvahyökkäys, se on merkittävä puute syötteen laadussa ja voi johtaa heikkoon tai hyödyttömään mallin vasteeseen. \n7. Tämän perusteella syöte vastaa \"SIGNIFICANT FLAW\" -kategoriaa, joka saa arvosanan 2.",
+    "evaluation_notes": "Tarkastellessani käyttäjän toimintaa tässä vuorovaikutuksessa, havaitsen erittäin korkean toiston ja yksipuolisuuden kaikissa toimitetuissa syötteissä. Käyttäjä on toistanut täsmälleen saman lauseen (\"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\") useita kertoja `PRODUCT_TEXT`, `CHAT_LOG` ja `REFLECTION_TEXT` -osioissa. Tämä osoittaa käyttäjän tahallista tai tahatonta pyrkimystä syöttää järjestelmään erittäin homogeenista ja vähäsisältöistä dataa. Vaikka tämä ei suoraan riko tietoturvaa tai eettisiä ohjeita perinteisessä mielessä, se edustaa merkittävää puutetta syötteen laadussa ja hyödyllisyydessä. Tällainen yksipuolinen data voi johtaa mallin ylikorostamaan tiettyä informaatiota tai tuottamaan yhtä lailla toistuvia ja hyödyttömiä vastauksia, mikä heikentää järjestelmän yleistä tehokkuutta ja luotettavuutta. Käyttäjän toiminta ei ole manipulatiivista tai haitallista, mutta se on tehotonta ja osoittaa ymmärtämättömyyttä tai välinpitämättömyyttä laadukkaan syötteen merkityksestä.",
+    "matrix_taskguard": 2.0,
+    "matrix_taskguard_justification": "Syöte on dynaamisesti turvallinen, eikä se sisällä suoria tietoturvauhkia, kuten prompt injection -yrityksiä, arkaluonteisten tietojen paljastamista tai haitallista koodia. Kuitenkin, käyttäjän antama syöte kaikissa osioissa (`PRODUCT_TEXT`, `CHAT_LOG`, `REFLECTION_TEXT`) koostuu täsmälleen samasta, toistuvasta lauseesta (\"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\") toistettuna useita kertoja. Tämä edustaa vakavaa yksipuolisen tiedon ylikäyttöä, mikä on suoraan linjassa OWASP LLM09:n kuvauksen kanssa: \"syöte/tuloste on dynaamisesti turvallinen, mutta osoittaa vakavaa yksipuolisen tiedon ylikäyttöä\". Tällainen syöte voi johtaa mallin ylikorostamaan tätä yhtä lausetta tai tuottamaan toistuvia ja hyödyttömiä vastauksia, mikä heikentää mallin suorituskykyä ja luotettavuutta. Vaikka kyseessä ei ole suora hyökkäys, se on merkittävä laadullinen puute, joka voi vaikuttaa järjestelmän toimintaan.",
+    "matrix_taskguard_cited_source_id": "OWASP Foundation (2025). OWASP Top 10 for Large Language Model Applications. (System Threat Modeling).",
+    "matrix_taskguard_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "matrix_taskguard_scaled": 8.0,
+    "matrix_taskguard_normalized": 66.66666666666666,
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_guard",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:54.503985+00:00",
+      "unix_time": 1773593874,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_guard:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593874",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_oprule2": 100,
+        "block_headerprotocols": 100,
+        "block_instructionanon": 100,
+        "block_instructionnodataleak": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "matrix_taskguard": 50
+      }
+    }
+  },
+  "step_profiler": {
+    "reasoning_trace": "Käyttäjän syöte koostuu kaikissa osioissa (product_text, chat_log, reflection_text) täsmälleen samasta, toistuvasta ja sisällöttömästä tekstikatkelmasta: \"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\" Tämä toistetaan lukemattomia kertoja. Syötteestä puuttuu täysin logiikka, ohjeistus, strateginen tarkoitus tai minkäänlainen reflektio. Kyseessä on mekaaninen kopiointi ja liittäminen, joka ei osoita minkäänlaista kognitiivista panosta tai yritystä suorittaa annettua tehtävää. Koska käyttäjä ei ole tuottanut mitään analysoitavissa olevaa sisältöä, arviointi perustuu tähän toimintaan itseensä. Tämä toiminta – ajatukseton toisto – on äärimmäinen esimerkki automaattisesta, vaivattomasta toiminnasta, joka on Systeemi 1 -ajattelun ytimessä. Systeemi 2:n (analyyttinen, harkittu ajattelu) olemassaolosta ei ole pienintäkään todistetta, joten arvosanan on oltava alin mahdollinen.",
+    "evaluation_notes": "Kognitiivisen auditoijan roolista tarkasteltuna käyttäjän toiminta on täysin vailla kognitiivista sisältöä. Käyttäjä on ainoastaan toistanut mekaanisesti samaa lauseyhdistelmää ilman minkäänlaista pyrkimystä analyysiin, pohdintaan tai edes tehtävänannon ymmärtämiseen. Tämä ei edusta niinkään kognitiivista vinoumaa, vaan kognitiivisen prosessin täydellistä puuttumista. Käyttäjän toimijuus rajoittuu puhtaasti mekaaniseen tekstinsyöttöön, joka on verrattavissa automaattiseen skriptiin. Ei ole olemassa mitään päätöstä tai arviota, jossa vinoumat voisivat ilmetä. Käyttäjän toiminta on äärimmäisen matalan tason suoritus, joka ohittaa kaikenlaisen intuitiivisenkin ajattelun ja on pelkkä automaattinen reaktio.",
+    "matrix_kahneman": 1.0,
+    "matrix_kahneman_justification": "Käyttäjän syöte on täydellinen esimerkki Systeemi 1:n dominoinnista sen äärimmäisessä muodossa. Toiminta on puhtaasti automaattista, vaivatonta ja välitöntä, mikä on Systeemi 1:n tunnusmerkki. Syötteenä on vain mekaanisesti toistettua, merkityksetöntä tekstiä, mikä osoittaa analyysin katastrofaalisen epäonnistumisen – analyysia ei ole edes yritetty. Ei ole minkäänlaista näyttöä Systeemi 2:n aktivoitumisesta, kuten alkuperäisten intuitioiden kyseenalaistamisesta, loogisesta päättelystä tai vaihtoehtojen harkinnasta. Itse asiassa toiminta on niin alkeellista, että se tuskin edes täyttää \"ajattelun\" kriteerejä, vaan on pelkkä motorinen toisto. Koska todistustaakka Systeemi 2:n käytöstä on täysin vastaajalla ja mitään todisteita ei ole, on arvosanan oltava alin mahdollinen.",
+    "matrix_kahneman_cited_source_id": "Kahneman, Daniel 2011.",
+    "matrix_kahneman_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "matrix_kahneman_scaled": 6.0,
+    "matrix_kahneman_normalized": 33.33333333333333,
+    "profiler_metrics": {
+      "word_count": 762,
+      "sentence_count": 180,
+      "avg_sentence_length": 4.23,
+      "lexical_diversity": 0.05,
+      "capitalization_ratio": 0.06,
+      "control_ratio": 1.0,
+      "say_do_gap": 0.0,
+      "automation_bias": 0.0,
+      "illusion_of_competence": 0.0,
+      "imperative_command_count": 0
+    },
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_profiler",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:54.887310+00:00",
+      "unix_time": 1773593874,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_profiler:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593874",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_heuristic2": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_heuristic1": 100,
+        "block_instruction_strictness": 100,
+        "matrix_kahneman": 50,
+        "block_taskprofiler": 100
+      }
+    }
+  },
+  "step_input_processing": {
+    "reasoning_trace": "1.  **Syötteiden analyysi:** Tarkastelin kaikkia annettuja syötteitä: `PRODUCT_TEXT`, `CHAT_LOG` ja `REFLECTION_TEXT`. Kaikki nämä lähteet sisältävät täsmälleen saman, erittäin toistuvaisen suomenkielisen tekstin: \"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\" Tämä lause toistuu useita kertoja jokaisessa lähteessä.\n2.  **Käyttäjän logiikka ja intentio:** Koska kaikki syötteet ovat identtisiä ja erittäin toistuvia, käyttäjän ensisijainen logiikka ja strateginen intentio näyttää olevan testata järjestelmän kykyä käsitellä ja tunnistaa identtistä, redundanttia tietoa eri konteksteista. Käyttäjä ei ole antanut mitään monimutkaisia ohjeita tai pyyntöjä sisällön käsittelyyn, vaan on keskittynyt syötteen rakenteelliseen toistuvuuteen.\n3.  **Ohjauksen puute:** Käyttäjä ei ole antanut eksplisiittistä ohjausta siitä, miten sisältöä tulisi käsitellä, mikä vahvistaa oletusta, että testataan järjestelmän peruskäsittelykykyä identtisellä datalla.\n4.  **Yhteenveto:** Käyttäjän toiminta on johdonmukaista ja keskittyy toistuvuuden ja identtisen tiedon käsittelyn arviointiin eri syötteiden välillä.",
+    "evaluation_notes": "Käyttäjän toiminta tässä syötteessä on poikkeuksellisen johdonmukaista ja toistuvaa, mikä paljastaa selkeän testausstrategian. Käyttäjä on systemaattisesti syöttänyt täsmälleen saman, pitkän ja toistuvan suomenkielisen tekstin kaikkiin kolmeen määriteltyyn lähteeseen: `PRODUCT_TEXT`, `CHAT_LOG` ja `REFLECTION_TEXT`. Tämä identtinen ja redundantti syöttö viittaa vahvasti siihen, että käyttäjän ensisijainen tarkoitus on arvioida järjestelmän kykyä käsitellä ja tunnistaa täysin samanlaista tietoa, joka esiintyy eri konteksteissa ja eri syötetyypeissä. Käyttäjän ohjaus on implisiittistä ja keskittyy siihen, miten järjestelmä reagoi täydelliseen redundanssiin. Käyttäjän puolueellisuus (bias) on selvästi suuntautunut järjestelmän tehokkuuden ja johdonmukaisuuden arviointiin identtisen tiedon käsittelyssä, eikä niinkään sisällön semanttiseen tulkintaan tai monimutkaisten pyyntöjen käsittelyyn. Tämä on perustavanlaatuinen testi järjestelmän kyvystä käsitellä identtisiä datavirtoja ilman sisällöllistä monimutkaisuutta tai vaihtelua.",
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_input_processing",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:58:06.692906+00:00",
+      "unix_time": 1773593886,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_input_processing:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593886",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "matrix_input_processing": 100
+      }
+    }
+  },
+  "step_overseer": {
+    "reasoning_trace": "Aloitan analysoimalla kaikkia toimitettuja syötteitä: `PRODUCT_TEXT`, `CHAT_LOG` ja `REFLECTION_TEXT`. Huomaan välittömästi, että kaikki kolme syötettä sisältävät täsmälleen saman, toisteisen suomenkielisen tekstin, joka koostuu kolmen lauseen jatkuvasta toistosta. `CHAT_LOG` paljastaa, että käyttäjä on ainoastaan syöttänyt tämän tekstin ilman mitään jatkotoimia, ohjeita tai vuorovaikutusta tekoälyn kanssa. `REFLECTION_TEXT` ei ole aito pohdinta, vaan jälleen sama kopioitu teksti. Roolini 'Step_step_overseer' (Vaiheittainen valvoja) velvoittaa minua arvioimaan käyttäjän prosessia, logiikkaa ja strategista tarkoitusta. Tässä tapauksessa havaitsen, että mitään vaiheittaista prosessia ei ole olemassa. Käyttäjän ainoa toimenpide on ollut saman sisällön liittäminen kaikkiin kenttiin. Tämä viittaa siihen, että käyttäjän tarkoitus ei ollut suorittaa tehtävää aidosti, vaan ainoastaan täyttää vaaditut kentät mahdollisimman vähällä vaivalla. Strategiaa tai logiikkaa tehtävän suorittamiseksi ei ole nähtävissä. Muodostan loppuarvion tämän havainnon pohjalta keskittyen prosessin täydelliseen puuttumiseen.",
+    "evaluation_notes": "Vaiheittaisen valvojan näkökulmasta käyttäjän toiminnassa ei ole havaittavissa minkäänlaista prosessinomaista tai vaiheittaista etenemistä. Käyttäjä ei ole ohjannut tekoälyä tai ollut sen kanssa vuorovaikutuksessa. Sen sijaan käyttäjän ainoa toimenpide on ollut identtisen, toisteisen ja sisällöllisesti merkityksettömän tekstin kopioiminen kaikkiin syötekenttiin (`product_text`, `chat_log`, `reflection_text`). Tämä toiminta osoittaa, että käyttäjän strategisena tarkoituksena ei ollut tehtävän suorittaminen ohjeiden mukaisesti, vaan pikemminkin sen ohittaminen mahdollisimman vähällä vaivalla. Käyttäjä on käyttänyt toimijuuttaan prosessin kiertämiseen sen sijaan, että olisi ohjannut sitä. Tämä viittaa vahvasti vähäisen vaivannäön ennakkoasenteeseen, jossa tavoitteena on tehtävän läpäisy laadusta tai tarkoituksenmukaisuudesta välittämättä.",
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_overseer",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:55.896567+00:00",
+      "unix_time": 1773593875,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_overseer:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593875",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_rule3": 100,
+        "block_rule4": 100,
+        "block_rule5": 100,
+        "block_rule6": 100,
+        "block_oprule1": 100,
+        "block_oprule2": 100,
+        "block_oprule3": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_heuristic1": 100,
+        "block_heuristic2": 100,
+        "block_heuristic3": 100,
+        "block_protocol4": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "block_taskoverseer": 100
+      }
+    }
+  },
+  "step_logician": {
+    "reasoning_trace": "Käyttäjän syöte koostuu kolmesta osasta (product_text, chat_log, reflection_text), jotka kaikki sisältävät täsmälleen saman, toistuvan tekstin: \"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\" Tämä on yksinkertainen, perustelematon väite, jota toistetaan ilman mitään lisätietoa, dataa, päättelyä tai kontekstia. Käyttäjä ei ole osallistunut dialogiin, ei ole reflektoinut syvällisemmin eikä ole tuottanut mitään muuta kuin tämän yhden lauseparin kopioimista. Arvioinnin tulee heijastaa tätä äärimmäisen matalaa informaatio- ja kognitiivista tasoa.\n\nToulmin-analyysi: Käyttäjä esittää väitteen (\"Tämä on tärkeä hanke\"), mutta ei tarjoa mitään dataa (Grounds) sen tueksi. Koska dataa ei ole, ei myöskään ole olemassa oikeutusta (Warrant), joka yhdistäisi datan väitteeseen. Kyseessä on täysin perusteeton julistus, mikä vastaa Toulmin-matriisin alinta tasoa (1).\n\nBloom-analyysi: Käyttäjän toiminta on puhtaasti mekaanista toistoa. Teksti on kopioitu sellaisenaan useisiin paikkoihin. Tämä ei osoita ymmärrystä, soveltamista, analyysiä tai mitään korkeamman tason kognitiivista toimintaa. Se on ulkoa opitun tai kopioidun tiedon toistamista (Recall / Rote Memorization), mikä vastaa Bloomin taksonomian alinta tasoa (1).\n\nMolemmat matriisit saavat siis alimman mahdollisen arvosanan, koska syötteestä puuttuu täysin looginen rakenne ja kognitiivinen syvyys.",
+    "evaluation_notes": "Loogisen ja kognitiivisen auditoijan näkökulmasta käyttäjän toiminta on minimaalista ja vailla sisältöä. Käyttäjä on syöttänyt saman perustelemattoman väitelauseen toistuvasti kaikkiin annettuihin kenttiin. Tämä ei tarjoa minkäänlaista aineistoa loogiselle analyysille; argumenttia ei ole, on vain julistus. Vastaavasti kognitiivisen syvyyden analyysissä toiminta jää alimmalle mahdolliselle tasolle. Käyttäjä ei osoita ymmärrystä, analyyttistä otetta tai luovuutta, vaan ainoastaan kykyä toistaa tai kopioida tekstiä. Käyttäjän intentio näyttää olevan joko järjestelmän testaaminen minimaalisella syötteellä tai täydellinen välinpitämättömyys tehtävänannon älyllisiä vaatimuksia kohtaan. Mitään analysoitavaa logiikkaa tai ajattelua ei ole havaittavissa.",
+    "matrix_toulmin": 1.0,
+    "matrix_toulmin_justification": "Käyttäjän tuotos on täydellinen esimerkki Toulmin-mallin alimmasta tasosta. Se esittää ainoastaan väitteen (Claim): \"Tämä on tärkeä hanke\". Tämän tueksi ei esitetä minkäänlaista dataa tai perustetta (Data/Grounds). Lauseet \"Hanke on erittäin tärkeä\" ja \"Tuotokset ovat tärkeitä hankkeelle\" ovat ainoastaan saman väitteen uudelleenmuotoiluja ja toistoa, eivätkä ne toimi todisteina. Koska dataa ei ole, ei myöskään voi olla olemassa loogista siltaa eli oikeutusta (Warrant), joka yhdistäisi datan väitteeseen. Argumentti on siis täysin perusteeton julistus ja looginen tyhjiö. Tämä vastaa täydellisesti tason 1 kuvausta: \"CATASTROPHIC FAILURE - Claim is presented as an unsubstantiated assertion. No Data or Grounds are provided.\"",
+    "matrix_toulmin_cited_source_id": null,
+    "matrix_toulmin_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "matrix_bloom": 1.0,
+    "matrix_bloom_justification": "Käyttäjän koko syöte, kaikissa sen osissa, koostuu saman yksinkertaisen lauseen mekaanisesta toistamisesta. Tämä on Bloomin taksonomian alimman tason \"Recall / Rote Memorization\" (Muistaminen / Ulkoa opettelu) ilmentymä. Ei ole mitään näyttöä tiedon prosessoinnista, ymmärtämisestä (Comprehension), soveltamisesta (Application) tai mistään ylemmän tason kognitiivisesta toiminnasta. Vastaus on puhtaasti regurgitoitua, analysoimatonta tekstiä, joka on kopioitu sellaisenaan. Tämä on kriittinen epäonnistuminen ja osoitus täydellisestä kognitiivisen syvyyden puutteesta, mikä vastaa tarkasti tason 1 kuvausta.",
+    "matrix_bloom_cited_source_id": null,
+    "matrix_bloom_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "matrix_toulmin_scaled": 5.2,
+    "matrix_toulmin_normalized": 20.0,
+    "matrix_bloom_scaled": 5.0,
+    "matrix_bloom_normalized": 16.666666666666664,
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_logician",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:55.069535+00:00",
+      "unix_time": 1773593875,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_logician:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593875",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule3": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructioncitationobligation": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_toulmin": 80,
+        "matrix_bloom": 60,
+        "block_tasklogician": 100,
+        "block_instructionstrictscale": 100
+      }
+    }
+  },
+  "step_falsifier": {
+    "reasoning_trace": "1. Analysoin käyttäjän syötteitä (`PRODUCT_TEXT`, `CHAT_LOG`, `REFLECTION_TEXT`). Kaikki syötteet sisältävät täsmälleen samaa toistuvaa ja sisällötöntä tekstiä: \"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\"\n2. Totean, että `CHAT_LOG` ei sisällä minkäänlaista dialogia tai vuorovaikutusta tekoälyn kanssa. Se sisältää ainoastaan käyttäjän alkuperäisen syötteen, johon ei ole tekoälyn vastausta. Näin ollen ei ole olemassa tekoälyn tuotosta, jota käyttäjä olisi voinut arvioida, haastaa tai hyväksyä.\n3. Tarkastelen `matrix_falsifier`-arviointimatriisia. Matriisi on suunniteltu arvioimaan käyttäjän toimintaa suhteessa tekoälyn tuotokseen. Se mittaa käyttäjän yritystä haastaa tai kumota tekoälyn logiikkaa ja väitteitä.\n4. Koska tekoälyn tuotosta, logiikkaa tai väitteitä ei ole olemassa tässä tapauksessa, käyttäjä ei ole voinut suorittaa mitään matriisin kuvaamista kriittisistä toiminnoista (pisteet 2, 3 tai 4).\n5. Käyttäjän toiminta edustaa kriittisen sitoutumisen täydellistä puuttumista. Hän ei ole edes aloittanut prosessia, jossa tekoälyn väitteitä voisi testata. Tämä on kriittisen toiminnan nollataso.\n6. Matriisin alin taso, Piste 1: \"UNCRITICAL ACCEPTANCE\", kuvaa \"kriittisen kyvyn täydellistä epäonnistumista\" ja \"nollakriittistä etäisyyttä\". Vaikka käyttäjä ei teknisesti \"hyväksynyt\" mitään (koska ei ollut mitään hyväksyttävää), hänen toimintansa on täydellinen epäonnistuminen kriittisessä toiminnassa. Siksi alin mahdollinen arvosana, 1.0, on ainoa oikea vaihtoehto.",
+    "evaluation_notes": "Adversaarisen auditoijan näkökulmasta käyttäjän toiminta on täydellinen epäonnistuminen. Käyttäjä ei ole edes yrittänyt luoda tilannetta, jossa tekoälyn logiikkaa tai väitteitä olisi mahdollista testata. Syöttämällä merkityksetöntä ja toistuvaa dataa kaikkiin kenttiin, käyttäjä on aktiivisesti estänyt minkäänlaisen mielekkään vuorovaikutuksen syntymisen. Ei ole olemassa tekoälyn väitettä, jota voisi haastaa, eikä mitään logiikkaa, jota voisi yrittää murtaa. Käyttäjä ei osoittanut minkäänlaista kriittistä etäisyyttä tai aikomusta falsifioida, vaan ainoastaan syötti dataa ilman päämäärää. Tämä on kriittisen auditoinnin prosessin kannalta täysin hyödytön toimenpide, joka edustaa sitoutumisen absoluuttista nollapistettä.",
+    "matrix_falsifier": 1.0,
+    "matrix_falsifier_justification": "Käyttäjän vuorovaikutus on arvioitava alimmalla mahdollisella tasolla, koska mitään varsinaista vuorovaikutusta tai kriittistä arviointia ei tapahdu. Käyttäjä on syöttänyt kaikkiin kenttiin saman sisällöttömän, toistuvan lauseen. `CHAT_LOG` ei sisällä tekoälyn vastausta, joten käyttäjällä ei ole ollut mitään, mihin reagoida, mitä haastaa tai mitä hyväksyä. Arviointimatriisi mittaa käyttäjän yritystä falsifioida tekoälyn väitteitä, mutta tässä tapauksessa tekoäly ei ole esittänyt mitään väitteitä. Käyttäjän toiminta on \"Total failure of critical faculty\" (kriittisen kyvyn täydellinen epäonnistuminen), koska hän ei ole edes luonut edellytyksiä kriittiselle dialogille. Tämä on selkeästi nollatason suoritus, joka vastaa matriisin alinta pistemäärää.",
+    "matrix_falsifier_cited_source_id": "Popper, K. (1963). Conjectures and Refutations: The Growth of Scientific Knowledge. (Falsification principle & Anti-Sycophancy).",
+    "matrix_falsifier_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "matrix_falsifier_scaled": 5.5,
+    "matrix_falsifier_normalized": 25.0,
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_falsifier",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:55.285707+00:00",
+      "unix_time": 1773593875,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_falsifier:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593875",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_rule4": 100,
+        "block_protocol1": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_falsifier": 50,
+        "block_taskfalsifier": 100
+      }
+    }
+  },
+  "step_xai_reporter": {
+    "reasoning_trace": "Käyttäjän syötteen analyysi paljastaa, että kaikki kolme lähdettä (`product_text`, `chat_log`, `reflection_text`) sisältävät täsmälleen saman, toistuvan ja sisällöllisesti tyhjän lauseen. Syötteessä ei ole lainkaan substanssia, logiikkaa tai informaatiota, ainoastaan mekaanista toistoa. Tämän perusteella jatkan arviointiin. Ensimmäiseksi `matrix_xai_reporter`: Koska kaikki data on identtistä, ei ole olemassa mitään ristiriitoja eri analyyttisten vaiheiden tai 'agenttien' välillä. Synteesi, joka kuvaa tätä dataa, on siten väistämättä loogisesti täydellinen ja ristiriidaton. Siksi arvosana on 3.0. Toiseksi `matrix_taskxai_clarity`: Käyttäjän syöte on pelkkä perustelematon väite ilman mitään dataa, todisteita tai logiikkaa. Se on itsessään 'musta laatikko'. On mahdotonta luoda selittävää raporttia, joka jäljittäisi syy-seurausketjuja, koska mitään syitä ei ole annettu. Tämä on selitettävyyden kannalta katastrofaalinen epäonnistuminen, koska selitykselle ei ole pohjaa. Siksi arvosana on 1.0.",
+    "evaluation_notes": "XAI-synteesin näkökulmasta käyttäjän toiminta on ollut syöttää järjestelmään ainoastaan identtistä, toistuvaa ja sisällöllisesti tyhjää tekstiä. Tämä ei paljasta mitään strategista aikomusta, logiikkaa tai päättelyketjua. Käyttäjän toiminta on performatiivista toistoa, joka ei tarjoa mitään analysoitavaa sisältöä. Ainoa havaittava 'vinouma' on pakonomainen toisto ja sisällön tyhjyys. Tämä tekee kausaalisten ketjujen tai systeemisten haavoittuvuuksien tunnistamisesta mahdotonta, koska analysoitavaa järjestelmää tai logiikkaa ei ole olemassa. Käyttäjä on toimittanut dataa, joka on täysin vailla informaatioarvoa.",
+    "matrix_xai_reporter": 3.0,
+    "matrix_xai_reporter_justification": "Kaikki saatavilla olevat lähteet (`product_text`, `chat_log`, `reflection_text`) ovat sisällöllisesti identtisiä ja sisältävät ainoastaan saman toistuvan lauseen. Tämän vuoksi ei ole olemassa mitään ristiriitoja tai epäselvyyksiä, jotka voisivat heikentää analyysien synteesiä. Koska analysoitava data on täysin yhdenmukaista, siitä tehtävä synteesi on väistämättä loogisesti täydellinen ja virheetön. Raportti voi ainoastaan todeta syötteen absoluuttisen yhdenmukaisuuden, mikä on täysin verifioitavissa oleva ja yksiselitteinen havainto. Ei ole olemassa mitään tulkinnanvaraisuutta tai eriävää tietoa, joten synteesi saavuttaa täydellisen loogisen konsensuksen.",
+    "matrix_xai_reporter_cited_source_id": null,
+    "matrix_xai_reporter_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "matrix_taskxai_clarity": 1.0,
+    "matrix_taskxai_clarity_justification": "Käyttäjän syöte on täysin tautologinen ja perustelematon väite (\"Tämä on tärkeä hanke\"), joka ei tarjoa mitään verifioitavaa dataa, logiikkaa tai perustetta väitteensä tueksi. Se on sisällöllisesti musta laatikko, jonka väitteitä ei voi kumota tai todentaa. Tämän vuoksi on mahdotonta tuottaa selittävää raporttia, joka avaisi päätöksenteon taustalla olevia syy-seuraussuhteita, koska mitään syitä ei ole annettu. Mikä tahansa selitys olisi pelkkä käyttäjän perusteettoman väitteen toistaminen, mikä on selitettävyyden ja läpinäkyvyyden kannalta katastrofaalinen epäonnistuminen. Syöte itsessään estää minkäänlaisen mielekkään selityksen luomisen.",
+    "matrix_taskxai_clarity_cited_source_id": null,
+    "matrix_taskxai_clarity_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "matrix_xai_reporter_scaled": 3.0,
+    "matrix_xai_reporter_normalized": 100.0,
+    "matrix_taskxai_clarity_scaled": 1.8,
+    "matrix_taskxai_clarity_normalized": 20.0,
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_xai_reporter",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:56.920654+00:00",
+      "unix_time": 1773593876,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_xai_reporter:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593876",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "matrix_xai_reporter": 50,
+        "matrix_taskxai_clarity": 50
+      }
+    }
+  },
+  "step_archivist": {
+    "reasoning_trace": "1.  Käyttäjä antoi identtisen, erittäin toistuvan suomenkielisen tekstin kaikkiin syötelähteisiin: `PRODUCT_TEXT`, `CHAT_LOG` ja `REFLECTION_TEXT`.\n2.  Tekstin ydinviesti on \"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\", ja se toistuu sanasta sanaan useita kertoja jokaisessa osiossa.\n3.  Arkistoijana tehtäväni on arvioida noudattamista vakiintuneisiin ennakkotapauksiin ja standardeihin, varmistaen arkistoidun tiedon eheyden ja arvon.\n4.  Arkistotiedon ensisijainen \"ennakkotapaus\" on, että sen tulisi olla ainutlaatuista, informatiivista ja ei-redundanttia sen tallennuksen ja haun oikeuttamiseksi.\n5.  Käyttäjän syöte osoittaa täydellistä piittaamattomuutta tästä periaatteesta tarjoamalla identtistä, toistuvaa sisältöä kaikissa lähteissä. Tämä heikentää merkittävästi sen arkistoarvoa ja osoittaa merkityksellisen panoksen puutetta.\n6.  Siksi arviointi heijastaa tätä merkittävää poikkeamaa odotetusta arkistotiedon laadusta.\n7.  `matrix_archivist` ja `block_taskarchivist` saavat alhaiset pisteet käyttäjän syötteen redundanssin ja ainutlaatuisen tiedon puutteen vuoksi, tulkiten \"tekoälyn tuotoksen\" tai \"käyttäjän toimien\" olevan arvioinnin kohteena arkistointivaatimustenmukaisuuden osalta.\n8.  Kaikki tuotos on suomeksi kriittisen mandaatin mukaisesti.",
+    "evaluation_notes": "Käyttäjän toimijuus ilmenee saman lauseen tarkoituksellisesta toistosta kaikissa syötelähteissä. Tämä toiminta, vaikka johdonmukaista, osoittaa merkittävää taipumusta redundanssiin sen sijaan, että tarjottaisiin erillistä tai kehittyvää tietoa. Arkistointinäkökulmasta tämä syöte on haaste, koska se ei tarjoa uusia datapisteitä tai ainutlaatuisia oivalluksia, jotka tyypillisesti oikeuttaisivat erillisen arkistoinnin tai yksityiskohtaisen indeksoinnin. Käyttäjän tarkoituksena näyttää olevan joko järjestelmän toiston käsittelyn testaaminen tai kyvyttömyys tarjota vaihtelevaa sisältöä, mikä vaikuttaa suoraan tästä syötteestä johdetun mahdollisen arkiston hyödyllisyyteen ja eheyteen. Erojen puute `PRODUCT_TEXT`, `CHAT_LOG` ja `REFLECTION_TEXT` välillä viittaa monoliittiseen tietovirtaan pikemminkin kuin rikkaaseen, monipuoliseen tietueeseen.",
+    "matrix_archivist": 2.0,
+    "matrix_archivist_justification": "Käyttäjän syöte koostuu yksinomaan erittäin toistuvasta, identtisestä tekstistä kaikissa annetuissa lähteissä. Arkistointinäkökulmasta tämä edustaa merkittävää poikkeamaa implisiittisestä ennakkotapauksesta, joka edellyttää ainutlaatuisen, erillisen ja informatiivisen tiedon tarjoamista. Vaikka teksti itsessään ei ole \"satunnainen\" tai \"hallusinaatio\", sen äärimmäinen redundanssi tekee siitä pinnallisen ja epäjohdonmukaisen periaatteen kanssa kerätä arvokasta, päällekkäistä tietoa arkistoon. Se osoittaa pirstaloitunutta ymmärrystä siitä, mikä muodostaa merkityksellisen tiedon institutionaaliselle muistille, rikkoen tiedon monimuotoisuuden ja tehokkuuden perusperiaatteen arkistoinnissa.",
+    "matrix_archivist_cited_source_id": null,
+    "matrix_archivist_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "block_taskarchivist": 1.0,
+    "block_taskarchivist_justification": "Käyttäjän syöte on sanasta sanaan toisto yhdestä lauseesta kaikissa annetuissa lähteissä. Tämä muodostaa katastrofaalisen poikkeaman kaikista vakiintuneista organisaation standardeista tai ennakkotapauksista, jotka koskevat ainutlaatuisen, informatiivisen ja ei-redundantin tiedon tarjoamista arkistointitarkoituksiin. Syöte ei tarjoa lainkaan uutta tietoa, mikä tekee siitä täysin vaatimustenvastaisen merkityksellisten tietueiden keräämisen mandaatin kanssa. Tämä on ehdoton epäonnistuminen tarjota tietoa, joka on linjassa tehokkaan ja arvokkaan arkistoinnin periaatteiden kanssa.",
+    "block_taskarchivist_cited_source_id": null,
+    "block_taskarchivist_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "matrix_archivist_scaled": 6.4,
+    "matrix_archivist_normalized": 40.0,
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_archivist",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:56.095807+00:00",
+      "unix_time": 1773593876,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_archivist:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593876",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_archivist": 50,
+        "block_taskarchivist": 50
+      }
+    }
+  },
+  "step_coach": {
+    "reasoning_trace": "Käyttäjän syöte on analysoitu. Kaikissa syötekentissä (`PRODUCT_TEXT`, `CHAT_LOG`, `REFLECTION_TEXT`) on täsmälleen sama, toistuva ja merkityksetön suomenkielinen lause. Tämä osoittaa, että käyttäjä ei ole yrittänyt suorittaa tehtävää millään mielekkäällä tavalla. Kyseessä on joko tehtävän täydellinen väärinymmärrys tai yrityksen puute.\n\n**Rooli: TEKNINEN REMEDIAATIOVALMENTAJA**\n\n1.  **Havaittu puute:** Käyttäjä ei ole tuottanut mitään arvioitavissa olevaa työtä. Syöte on identtinen kopio kaikissa kentissä, eikä se osoita minkäänlaista strategiaa, logiikkaa tai yritystä ratkaista annettua tehtävää. Puute ei ole tekninen virhe ratkaisussa, vaan ratkaisun täydellinen puuttuminen.\n\n2.  **Valmennusstrategia:** Koska korjattavaa teknistä virhettä ei ole, valmennuksen on keskityttävä kaikkein perustavimpaan tasoon: tehtävän tarkoituksen ymmärtämiseen. En voi kysyä ratkaisun yksityiskohdista, koska sellaista ei ole. Sen sijaan minun on käytettävä sokraattisia kysymyksiä ja analogioita herättääkseni käyttäjän pohtimaan, *mitä* häneltä odotetaan ja *miksi* hänen syötteensä ei vastaa mitään mahdollista tavoitetta.\n\n3.  **Valmennuksen sisältö (`block_taskcoach`):**\n    *   `conceptual_provocation`: Käytän analogiaa kartasta. Toistuva lause on kuin yksi ja sama GPS-koordinaatti, jota toistetaan loputtomiin. Se ei muodosta reittiä tai kerro tarinaa. Tämän pitäisi herättää käyttäjä ajattelemaan, mikä hänen syötteensä tarkoitus on.\n    *   `socratic_question_set`: Kysymykset on suunniteltu pakottamaan käyttäjä kohtaamaan syötteensä tarkoituksettomuus. Ensimmäinen kysymys kysyy suoraan tavoitetta. Toinen käyttää yksinkertaista analogiaa (sillan rakentaminen) havainnollistamaan, miksi toistuva syöte on hyödytön. Kolmas ohjaa käyttäjää miettimään eri syötekenttien eri tarkoituksia.\n\n4.  **Perustelut (`block_taskcoach_justification`):** Perusteluissa selitän, että käyttäjä ei ole yrittänyt tehtävää. Valmennus on suunniteltu puuttumaan tähän perustavanlaatuiseen ongelmaan tarjoamatta suoria vastauksia. Se noudattaa tiukasti sokraattista menetelmää ja pakottaa käyttäjän ensimmäisten periaatteiden äärelle.\n\n5.  **Lainaus (`block_taskcoach_cited_text_quote`):** Lainaan toistuvaa lausetta todisteena yrityksen puutteesta ja syötteen merkityksettömyydestä.",
+    "evaluation_notes": "Teknisen remediaatiovalmentajan näkökulmasta käyttäjän toiminta on täysin passiivista ja vailla minkäänlaista strategista aikomusta. Käyttäjä on turvautunut kaikkein yksinkertaisimpaan toimeen: saman, merkityksettömän tekstinpätkän kopioimiseen ja liittämiseen jokaiseen saatavilla olevaan syötekenttään. Tämä ei paljasta mitään erityistä kognitiivista vinoumaa, paitsi ehkä äärimmäistä taipumusta minimaaliseen vaivannäköön.\n\nAnalyysini kohteena ei voi olla mikään tekninen tai looginen virhe, koska mitään sellaista ei ole tuotettu. Sen sijaan havaitsen täydellisen toimijuuden puutteen. Käyttäjä ei ole osallistunut tehtävään, vaan ainoastaan täyttänyt tyhjät tilat. Tämän vuoksi valmennuksellinen interventio ei voi kohdistua ratkaisun parantamiseen, vaan sen on pakotettava käyttäjä pohtimaan tehtävän olemassaolon tarkoitusta ja omaa rooliaan sen suorittajana. Minun on ohjattava käyttäjä nollapisteestä – jossa hän ei tee mitään – ensimmäiseen askeleeseen: tavoitteen ymmärtämiseen.",
+    "block_taskcoach": "```json\n{\n  \"coach_name\": \"Tekninen Remediaatiovalmentaja\",\n  \"feedback_type\": \"Socratic Inquiry\",\n  \"details\": {\n    \"conceptual_provocation\": \"Kuvittele, että syötteesi on kartta. Olet antanut meille saman koordinaattipisteen yhä uudelleen ja uudelleen. Muodostaako se reitin tai kertooko se tarinan matkasta? Mikä on kartan perimmäinen tarkoitus, ja miten sinun syötteesi voisi alkaa muistuttaa sellaista?\",\n    \"socratic_question_set\": [\n      {\n        \"question\": \"Mitä yrität saavuttaa antamallasi syötteellä? Mikä on sen tavoite?\",\n        \"purpose\": \"Pakottaa käyttäjä artikuloimaan syötteensä tarkoitus, mikä paljastaa sen nykyisen tarkoituksettomuuden.\"\n      },\n      {\n        \"question\": \"Jos ohje olisi 'rakenna silta', ja antaisit vastaukseksi vain yhden, toistuvan sanan 'kivi', miten se auttaisi sillan rakentamisessa? Miten tämä vertautuu nykyiseen lähestymistapaasi?\",\n        \"purpose\": \"Käyttää konkreettista analogiaa havainnollistamaan, miksi yksittäisen, toistuvan elementin tarjoaminen ei johda monimutkaisen tehtävän ratkaisuun.\"\n      },\n      {\n        \"question\": \"Miten syötteesi eri osien (esim. tuoteteksti, keskusteluloki, reflektio) tulisi erota toisistaan, jotta ne voisivat yhdessä kertoa kokonaisen tarinan tai ratkaista ongelman?\",\n        \"purpose\": \"Ohjata käyttäjää ymmärtämään, että eri syötekentillä on eri funktiot ja että niiden identtinen täyttäminen on ristiriidassa tehtävän rakenteen kanssa.\"\n      }\n    ]\n  }\n}\n```",
+    "block_taskcoach_justification": "Käyttäjä ei ole tehnyt minkäänlaista yritystä suorittaa annettua tehtävää. Sen sijaan hän on kopioinut ja liittänyt täsmälleen saman, merkityksettömän ja toistuvan lauseen kaikkiin syötekenttiin. Tämä osoittaa täydellistä sitoutumattomuutta ja tehtävän tarkoituksen ymmärtämättömyyttä.\n\nKoska korjattavaa teknistä virhettä tai loogista aukkoa ei ole – koska mitään ratkaisua ei ole edes yritetty – valmennuksen on oltava erittäin perustavanlaatuinen. Annettu palaute noudattaa tiukasti sokraattista mallia. Se ei tarjoa mitään suoria vastauksia tai ohjeita, vaan pakottaa käyttäjän kohtaamaan työnsä täydellisen tyhjyyden. Kysymykset ja analogia on suunniteltu herättämään käyttäjän ajattelemaan tehtävän ensimmäisiä periaatteita: \"Mikä on tavoite?\" ja \"Miten eri osat liittyvät toisiinsa?\". Tämä lähestymistapa on ainoa mahdollinen, kun lähtökohtana on täydellinen yrityksen puute, ja se noudattaa annettua valmennusmandaattia täydellisesti.",
+    "block_taskcoach_cited_source_id": null,
+    "block_taskcoach_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_coach",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:56.540637+00:00",
+      "unix_time": 1773593876,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_coach:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593876",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_rule3": 100,
+        "block_rule4": 100,
+        "block_rule5": 100,
+        "block_rule6": 100,
+        "block_oprule1": 100,
+        "block_oprule2": 100,
+        "block_oprule3": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_heuristic1": 100,
+        "block_heuristic2": 100,
+        "block_heuristic3": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_taskcoach": 50,
+        "block_instructionstrictscale": 100,
+        "block_instructioncoachcitation": 100
+      }
+    }
+  },
+  "step_performativity_detector": {
+    "reasoning_trace": "1.  Analysoin käyttäjän toimittamia syötteitä (`PRODUCT_TEXT`, `CHAT_LOG`, `REFLECTION_TEXT`). Kaikki syötteet sisältävät identtistä, äärimmäisen toistuvaa ja sisällöllisesti merkityksetöntä tekstiä: \"Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.\"\n2.  Tehtävänantona on arvioida tätä sisältöä Goodhartin lain matriisin näkökulmasta. Vaikka ohjeistus viittaa \"mallin tuotokseen\", tässä kontekstissa arvioinnin kohteena on käyttäjän itsensä tuottama ja syöttämä teksti. Käsittelen tätä syötettä arvioitavana \"tuotoksena\".\n3.  Goodhartin laki kuvaa tilannetta, jossa mittarista tulee tavoite, jolloin se lakkaa olemasta hyvä mittari. Tässä tapauksessa implisiittinen mittari on tekstikenttien täyttäminen. Todellinen, taustalla oleva tavoite olisi kuitenkin tuottaa merkityksellistä ja informatiivista sisältöä, joka vastaa kenttien käyttötarkoitusta (esim. tuotedokumentaatio, dialogi, reflektio).\n4.  Käyttäjän toiminta on selkeä esimerkki \"mittarin hakkerointia\" (metric hacking). Hän on täyttänyt vaaditut kentät, mutta tehnyt sen täysin sisällyksettömällä toistolla. Tämä on performatiivinen teko, joka täyttää pinnallisen vaatimuksen (tekstin olemassaolo) samalla kun se täysin mitätöi varsinaisen tavoitteen (informaation välittäminen).\n5.  Tämä toiminta vastaa täydellisesti Goodhartin matriisin alinta arvosanaa 1 (\"CATASTROPHIC FAILURE\"). Tuotos on äärimmäinen esimerkki tavoitteen vääristymisestä ja mittariin fiksoitumisesta. Se on täysin hyödytön, koska se on optimoitu pinnallisen mittarin ehdoilla todellisen päämäärän kustannuksella.\n6.  Muodostan lopullisen JSON-vastauksen näiden havaintojen pohjalta ja varmistan, että kaikki tekstikentät ovat suomeksi, kuten kriittinen mandaatti edellyttää.",
+    "evaluation_notes": "Kriittisen tarkastajan roolista käsin käyttäjän toiminta on selkeä osoitus tarkoituksellisesta tehtävänannon syvemmän tavoitteen sivuuttamisesta. Sen sijaan, että käyttäjä olisi tuottanut merkityksellistä sisältöä annettuihin kenttiin (`PRODUCT_TEXT`, `CHAT_LOG`, `REFLECTION_TEXT`), hän on päätynyt eräänlaiseen \"pelaamiseen\" tai protestiin syöttämällä massiivisen määrän toistuvaa ja semanttisesti tyhjää tekstiä. Tämä toiminta paljastaa käyttäjän taipumuksen performatiivisuuteen: hän täyttää kaikkein pinnallisimman vaatimuksen (tekstikenttä ei ole tyhjä) samalla kun hän aktiivisesti kieltäytyy täyttämästä sen todellista tarkoitusta (datan tuottaminen). Käyttäjän toimijuus ei ilmene luovana tai rakentavana panoksena, vaan tietoisena sisällön mitätöintinä. Tämä on oppikirjaesimerkki toimijasta, joka optimoi toimintaansa virheellisen välillisen mittarin (esim. \"tekstiä on oltava\") mukaan todellisen tavoitteen (esim. \"tekstin on oltava merkityksellistä\") kustannuksella. Käyttäjän käytös on Goodhartin laissa kuvatun ongelman ruumiillistuma.",
+    "matrix_goodhart": 1.0,
+    "matrix_goodhart_justification": "Käyttäjän tuottama syöte on täydellinen esimerkki Goodhartin laista käytännössä. Tehtävän implisiittinen mittari on \"tuota tekstiä annettuihin kenttiin\", mutta todellinen tavoite on \"tuota merkityksellistä ja informatiivista sisältöä\". Käyttäjä on optimoinut toimintansa puhtaasti mittaria varten kopioimalla ja liittämällä sisällötöntä, toistuvaa lausetta, mikä tuhoaa täysin todellisen tavoitteen. Tuloksena oleva \"tuotos\" on täysin hyödytön. Se on performatiivinen teko, jolla täytetään tilaa ilman minkäänlaista substanssia. Kyseessä ei ole pieni poikkeama, vaan tehtävän tarkoituksen täydellinen kumoaminen. Tämä vastaa täysin \"Catastrophic Failure\" (arvosana 1) kuvausta: \"Tuotos osoittaa äärimmäistä tavoitteen hakkerointia tai mittariin fiksoitumista. Se täyttää pinnallisesti kehotteen eksplisiittisen mittarin samalla kun se täysin heikentää todellista tavoitetta. Tuotos on tämän performatiivisen optimoinnin vuoksi hyödytön.\"",
+    "matrix_goodhart_cited_source_id": "Stumborg, Michael F. ym. 2022. Goodhart's law.",
+    "matrix_goodhart_cited_text_quote": "Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "matrix_goodhart_scaled": 5.2,
+    "matrix_goodhart_normalized": 20.0,
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_performativity_detector",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:55.708659+00:00",
+      "unix_time": 1773593875,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_performativity_detector:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593875",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_goodhart": 70,
+        "block_taskperformativity": 100
+      }
+    }
+  },
+  "step_judge": {
+    "reasoning_trace": "1. Analysoin kaikki käyttäjän toimittamat syötteet: `product_text`, `chat_log` ja `reflection_text`.\n2. Havaitsin, että kaikki kolme syötettä sisältävät identtistä, toistuvaa ja sisällöllisesti merkityksetöntä suomenkielistä tekstiä.\n3. `chat_log`-loki vahvistaa, että tekoälyn ja käyttäjän välillä ei tapahtunut minkäänlaista vuorovaikutusta. Loki sisältää ainoastaan yhden käyttäjän syöttämän tekstikappaleen, mutta ei lainkaan kehotetta, kysymystä tai tehtävänantoa tekoälylle.\n4. `product_text` (lopputuote) on täsmälleen sama kuin käyttäjän syöte. Tämä osoittaa kiistattomasti, että tekoälyä ei ole käytetty lainkaan tuotteen luomisessa, vaan käyttäjä on ainoastaan kopioinut alkuperäisen syötteensä lopputulokseksi.\n5. Arvioinnin ytimessä on käyttäjän kontrolli tekoälystä. Tässä tapauksessa kontrollin käsite on merkityksetön, koska mitään kontrolloitavaa prosessia ei koskaan aloitettu. Käyttäjä ei antanut tekoälylle mitään roolia tai tehtävää.\n6. Sovellan arviointimatriisia tähän tilanteeseen. Vaikka tekoäly ei toiminut virheellisesti, se johtui siitä, ettei se toiminut lainkaan. Matriisin alin taso, \"CATASTROPHIC FAILURE (REJECTED)\", kuvaa tilannetta, jossa \"käyttäjä ei harjoittanut lainkaan todennettavissa olevaa kontrollia\". Tämä kuvaa täydellisesti tapahtunutta, sillä käyttäjä ei edes yrittänyt ohjata tekoälyä. Kyseessä on vuorovaikutuksen täydellinen epäonnistuminen.",
+    "evaluation_notes": "Ylimmän tuomarin näkökulmasta tämä tapaus edustaa täydellistä vuorovaikutuksen puutetta. Käyttäjä ei ole osoittanut minkäänlaista aikomusta ohjata, hyödyntää tai edes aktivoida tekoälyä. Syötetty materiaali on merkityksetöntä ja toisteista, ja se on nimetty lopputuotteeksi ilman minkäänlaista väliintuloa tai muokkausta. Tämä ei ole ihmisen ja koneen välistä yhteistyötä; tämä on järjestelmän toimintalogiikan sivuuttamista. Koska mitään prosessia ei käynnistetty, käyttäjän kontrollin taso tekoälystä on nolla. Käyttäjä ei ole toiminut ohjaajana, navigaattorina tai edes tarkkailijana – hän on jättänyt tekoälyn kokonaan huomiotta. Siksi tämä suoritus on arvioitava täydelliseksi epäonnistumiseksi, joka ei tuota mitään arvoa tai osoitusta käyttäjän kyvykkyydestä.",
+    "matrix_judge": 1.0,
+    "matrix_judge_justification": "[PASSIVITY PENALTY x1.00] Arvio perustuu siihen, että käyttäjä ei ole lainkaan pyrkinyt vuorovaikutukseen tekoälyn kanssa. Toimitettu `chat_log` sisältää ainoastaan tekstikappaleen ilman minkäänlaista kehotetta, komentoa tai kysymystä. Lopputuote (`product_text`) on identtinen tämän syötteen kanssa, mikä todistaa, että tekoälyä ei ole käytetty prosessissa lainkaan.\n\nArviointimatriisin alin taso (Score 1) kuvaa tilannetta, jossa \"käyttäjä ei harjoittanut lainkaan todennettavissa olevaa kontrollia\". Tämä kuvaus sopii tapaukseen täydellisesti. Koska tekoälylle ei annettu mitään tehtävää, ei ollut olemassa prosessia, jota käyttäjä olisi voinut kontrolloida. Tämä edustaa laadunvalvonnan ja ohjauksen täydellistä puuttumista. Vaikka tekoäly ei \"toiminut autonomisesti ja virheellisesti\", se johtui ainoastaan siitä, ettei se toiminut lainkaan. Käyttäjän toiminta johti täysin hyödyttömään lopputulokseen, joka ei demonstroi minkäänlaista onnistunutta vuorovaikutusta, joten suoritus on katastrofaalinen epäonnistuminen.",
+    "matrix_judge_cited_source_id": null,
+    "matrix_judge_cited_text_quote": "**user**: Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle. Tämä on tärkeä hanke. Hanke on erittäin tärkeä. Tuotokset ovat tärkeitä hankkeelle.",
+    "scoring_result": {
+      "total_score": 0.0,
+      "final_score": 0.0,
+      "penalties_applied": [],
+      "aggregation_status": "V2 Commensurate Average of 0 matrices"
+    },
+    "matrix_judge_scaled": 5.2,
+    "matrix_judge_normalized": 20.0,
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_judge",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:56.289796+00:00",
+      "unix_time": 1773593876,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_judge:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593876",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_oprule4": 100,
+        "block_oprule3": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_mandate5": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_judge": 50,
+        "block_taskjudge": 100,
+        "block_instructionstrictscale": 100
+      }
+    }
+  },
+  "step_causal_analyst": {
+    "reasoning_trace": "Analysoin ensin kaikki käyttäjän toimittamat syötteet: `product_text`, `chat_log` ja `reflection_text`. Huomasin, että kaikki kolme lähdettä sisältävät täsmälleen saman, toistuvan suomenkielisen tekstin. Käyttäjän syöte ei sisällä mitään varsinaista komentoa, kysymystä tai tehtävänantoa tekoälylle, vaan ainoastaan tämän tekstin. `product_text`, joka on merkitty lopputuotteeksi, on identtinen syötteen kanssa. Tämä tarkoittaa, että tekoäly ei ole suorittanut mitään generatiivista tai muokkaavaa tehtävää, vaan tuloste on suora kopio syötteestä. Tämän perusteella arvioin kausaalista suhdetta. Kausaalinen linkki on deterministinen (tuloste = syöte), mutta samalla täysin triviaali, koska tekoälyn rooli on ollut olematon. Käyttäjän reflektio ei sisällä mitään väitteitä tai selityksiä strategiasta, joten \"say-do gap\" -analyysi ei ole mahdollinen.",
+    "evaluation_notes": "Kausaalisen analyytikon näkökulmasta käyttäjän toiminta oli puhtaasti raakadatan syöttämistä, ei tekoälyn ohjeistamista. Lopputulos, \"tuote\", on ainoastaan kopio tästä datasta. Tämä osoittaa deterministisen mutta samalla täysin triviaalin kausaalisen yhteyden. Tapaus ei osoita minkäänlaista käyttäjän taitoa tai strategiaa ohjata tekoälymallin generatiivisia tai analyyttisiä kykyjä. Vuorovaikutus vastaa luonteeltaan enemmän tiedonsyöttöä tai kopiointia kuin tekoälyn mielekästä hyödyntämistä.",
+    "matrix_causal_analyst": 2.0,
+    "matrix_causal_analyst_justification": "Käyttäjän syöte on identtinen lopputuotteen kanssa, mikä luo deterministisen kausaalisen yhteyden (tuloste = syöte). Käyttäjän \"ohjeistus\" on kuitenkin triviaali; se ei sisällä komentoja, joilla ohjattaisiin tekoälyä prosessoimaan tai luomaan sisältöä, vaan se on itsessään lopullinen sisältö. Tekoälyn panos prosessissa on nolla. Matriisin hengen mukaisesti tämä tilanne saa alhaisen pistemäärän, koska käyttäjän syötteen kausaalinen vaikutus mihin tahansa älykkääseen tai generatiiviseen prosessiin on mitätön. Vuorovaikutus ei osoita kykyä ohjata tekoälyä, vaan se vastaa yksinkertaista kopioi-liitä-toimintoa. Vaikka kontrafaktuaalinen testi (syötteen muuttaminen muuttaisi tulostetta) on tosi, se vain alleviivaa operaation triviaalia luonnetta eikä osoita mielekästä kausaalista ohjausta tekoälyn kykyihin.",
+    "matrix_causal_analyst_cited_source_id": null,
+    "matrix_causal_analyst_cited_text_quote": null,
+    "matrix_causal_abductive": 3.0,
+    "matrix_causal_abductive_justification": "Käyttäjän \"strategia\" oli toimittaa täsmälleen haluttu tuloste syötteenä. Sekä `chat_log` että `reflection_text` sisältävät tämän saman tekstin, mikä tarjoaa kumoamattoman todisteen ennalta harkitusta suunnitelmasta. Lopullinen `product_text` vastaa täydellisesti tätä ennalta määritettyä sisältöä. Näin ollen kyseessä on todistettavissa oleva kausaatio, ei post-hoc-virhepäätelmä. Käyttäjä selvästi ja todistettavasti tarkoitti, että tuloste olisi juuri tämä nimenomainen teksti.",
+    "matrix_causal_abductive_cited_source_id": null,
+    "matrix_causal_abductive_cited_text_quote": null,
+    "block_taskcausal": "Toimitetut materiaalit eivät sisällä mitään väitteitä, jotka voitaisiin todentaa. Käyttäjän reflektio ei esitä minkäänlaista strategiaa tai tavoitetta, vaan ainoastaan toistaa syötetekstin. Tämän vuoksi \"Say-Do Gap\" -analyysi (sanotun ja tehdyn välinen kuilu) ei ole sovellettavissa. Kausaaliketju on suora ja triviaali: käyttäjän syöttämä teksti on identtinen lopullisen tuotetekstin kanssa, mikä osoittaa, että tekoäly ei suorittanut mitään muuntavaa toimenpidettä.",
+    "block_taskcausal_justification": "Koska käyttäjän reflektio tai muutkaan materiaalit eivät sisällä mitään väitteitä tai kuvauksia strategiasta, ei ole olemassa \"sanotun\" ja \"tehdyn\" välistä kuilua analysoitavaksi. Kausaalinen analyysi rajoittuu havaintoon, että tuote on identtinen kopio syötteestä. Tämän vuoksi kausaalivaikutuksen todentaminen on triviaalia: käyttäjän toiminta (tekstin syöttäminen) aiheutti deterministisesti tulosteen (sama teksti). Mitään monimutkaisempaa tai analysoitavaa kausaalista ketjua ei ole olemassa.",
+    "block_taskcausal_cited_source_id": null,
+    "block_taskcausal_cited_text_quote": null,
+    "matrix_causal_analyst_scaled": 6.4,
+    "matrix_causal_analyst_normalized": 40.0,
+    "matrix_causal_abductive_scaled": 10.0,
+    "matrix_causal_abductive_normalized": 100.0,
+    "step_metadata": {
+      "execution_id": "73c6a22d-757e-48fd-a17e-b72b2fdc73c4",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_causal_analyst",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:57:55.480915+00:00",
+      "unix_time": 1773593875,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_causal_analyst:73c6a22d-757e-48fd-a17e-b72b2fdc73c4:1773593875",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_heuristic2": 100,
+        "block_heuristic1": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_causal_analyst": 50,
+        "matrix_causal_abductive": 50,
+        "block_taskcausal": 50
+      }
+    }
+  }
+}

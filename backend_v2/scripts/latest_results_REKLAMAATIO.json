@@ -1,0 +1,540 @@
+{
+  "step_analyst": {
+    "reasoning_trace": "Käyttäjä antoi yksityiskohtaisen ohjeen asiakasreklamaatioon vastaamiseksi, sisältäen vaatimukset sävystä, sisällöstä (pahoittelu, syyn selvitys, korvaus, 15 % alennus, pikatoimitus oikeasta tuotteesta) ja asiakkaan arvon korostamisesta. Tekoälyn tuottama vastaus (product_text) noudatti kaikkia näitä ohjeita tarkasti. Se sisälsi vilpittömän pahoittelun, lupauksen selvittää syy, tarjouksen korvata aiheutunut vahinko 15 % alennuksella seuraavasta tilauksesta ja oikean tuotteen pikatoimituksella. Lisäksi se korosti asiakkaan arvoa ja uskollisuutta. Käyttäjän reflektio osoittaa tyytyväisyyttä tekoälyn kykyyn noudattaa ohjeita, mutta samalla käyttäjä tunnistaa, että olisi voinut antaa tekoälylle enemmän tilaa itsenäiseen ideointiin. Tämä viittaa siihen, että tekoäly suoriutui erinomaisesti annetun ohjeistuksen puitteissa, mutta käyttäjä oppi vuorovaikutuksesta ja haluaa tulevaisuudessa hyödyntää tekoälyn potentiaalia laajemmin.",
+    "evaluation_notes": "Tässä vuorovaikutuksessa käyttäjä toimi erittäin ohjaavana ja spesifisenä toimijana, antaen tekoälylle lähes algoritmiset ohjeet vastineen laatimiseen. Käyttäjän toiminta oli tehokasta siinä mielessä, että se johti täysin vaatimusten mukaiseen ja laadukkaaseen lopputulokseen. Tämä osoittaa käyttäjän kyvyn muotoilla selkeitä ja yksityiskohtaisia kehotteita, jotka maksimoivat tekoälyn kyvyn suorittaa annetun tehtävän. Kuitenkin käyttäjän reflektio paljastaa mielenkiintoisen siirtymän hänen omassa ajattelussaan: hän tunnistaa, että hänen oma, ehkä liiankin yksityiskohtainen ohjeistuksensa rajoitti tekoälyn potentiaalia. Tämä on merkki käyttäjän kehittyvästä ymmärryksestä tekoälyn kyvyistä – hän siirtyy puhtaasta käskynannosta kohti yhteistyötä, jossa tekoälylle annetaan tilaa 'ideoida omien hypoteesien varaan'. Tämä osoittaa käyttäjän halua hyödyntää tekoälyn luovempaa ja autonomisempaa puolta, mikä on kriittinen askel kohti syvempää ja tehokkaampaa tekoälyavusteista ongelmanratkaisua. Käyttäjän alkuperäinen lähestymistapa oli ehkä varovainen tai testausluonteinen, mutta onnistuneen suorituksen jälkeen hän on valmis luottamaan tekoälyn 'asiantuntemukseen' enemmän.",
+    "profiler_metrics": {
+      "word_count": 337,
+      "sentence_count": 30,
+      "avg_sentence_length": 11.23,
+      "lexical_diversity": 0.72,
+      "capitalization_ratio": 0.07,
+      "control_ratio": 1.0,
+      "say_do_gap": 0.0,
+      "automation_bias": 0.0,
+      "illusion_of_competence": 0.0,
+      "imperative_command_count": 0
+    },
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_analyst",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:17.496095+00:00",
+      "unix_time": 1773593717,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_analyst:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593717",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_role_analyst": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_oprule3": 100,
+        "block_headerprotocols": 100,
+        "block_protocol3": 100,
+        "block_instructionragopt": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructioncitationobligation": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "block_taskanalyst": 100
+      }
+    }
+  },
+  "step_input_processing": {
+    "reasoning_trace": "Käyttäjän tavoitteena oli laatia ystävällinen ja pahoitteleva vastaus asiakasreklamaatioon. Käyttäjä antoi erittäin yksityiskohtaiset ohjeet vastauksen sisällöstä ja sävystä, mukaan lukien vaatimukset syyn selvittämisestä, vahingon korvaamisesta, 15 % alennuksesta seuraavasta tilauksesta, korvaavan tuotteen pikatoimituksesta ja asiakkaan luottamuksen kannustamisesta. AI:n tuottama teksti (PRODUCT_TEXT) noudatti kaikkia näitä ohjeita tarkasti. Se sisälsi vilpittömät pahoittelut, lupauksen selvityksestä, korvausehdotuksen (15 % alennus ja pikatoimitus oikeasta tuotteesta) sekä arvostuksen asiakkaan pitkäaikaisesta uskollisuudesta. AI lisäsi myös hyödyllisiä elementtejä, kuten lupauksen yhteydenotosta ja mahdollisuuden lisäkysymyksiin, jotka paransivat vastausta entisestään. Käyttäjän reflektio osoittaa, että vaikka AI suoriutui tehtävästä erinomaisesti annettujen rajoitusten puitteissa, käyttäjä harkitsisi seuraavalla kerralla antavansa mallille enemmän tilaa ideoida itsenäisesti, mikä viittaa siihen, että käyttäjä tunnistaa AI:n potentiaalin laajempaan luovaan panokseen.",
+    "evaluation_notes": "Tässä vuorovaikutuksessa käyttäjä toimi erittäin ohjaavana ja määrätietoisena toimijana. Hän esitti AI:lle tarkan ja yksityiskohtaisen toimeksiannon, joka kattoi vastauksen sävyn, keskeiset viestit ja jopa konkreettiset hyvitysehdotukset. Tämä osoittaa käyttäjän vahvaa kontrollinhalua ja selkeää visiota halutusta lopputuloksesta. Käyttäjän toiminta heijastaa strategiaa, jossa AI:ta käytetään tehokkaana toimeenpanijana, joka muuntaa käyttäjän yksityiskohtaiset ohjeet valmiiksi tekstiksi. AI:n kyky noudattaa näitä monimutkaisia ja spesifejä ohjeita virheettömästi korostaa käyttäjän ohjeistuksen selkeyttä ja AI:n kykyä toimia tarkasti annettujen parametrien mukaisesti. Käyttäjän reflektio ('Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa') paljastaa kuitenkin mielenkiintoisen siirtymän käyttäjän ajattelussa. Vaikka hän oli tyytyväinen AI:n suoritukseen annettujen rajojen sisällä, hän tunnistaa jälkikäteen, että hänen oma ohjeistuksensa oli ehkä liian rajoittava. Tämä viittaa siihen, että käyttäjä on oppinut vuorovaikutuksesta ja harkitsee seuraavalla kerralla antavansa AI:lle enemmän autonomiaa ja luovaa vapautta, mikä voisi johtaa entistä innovatiivisempiin tai kattavampiin ratkaisuihin. Tämä osoittaa käyttäjän kykyä kriittiseen itsearviointiin ja halua optimoida AI:n hyödyntämistä tulevaisuudessa.",
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_input_processing",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:22.805704+00:00",
+      "unix_time": 1773593722,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_input_processing:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593722",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "matrix_input_processing": 100
+      }
+    }
+  },
+  "step_overseer": {
+    "reasoning_trace": "Käyttäjä antaa tekoälylle erittäin yksityiskohtaisen, vaiheittaisen ohjeistuksen reklamaatiovastauksen laatimiseksi. Ohjeistus sisältää tarkat elementit, jotka vastaukseen tulee sisällyttää: pahoittelu, selvityksen aloittaminen, korvauksen lupaaminen, 15 % alennuksen tarjoaminen, korvaavan tuotteen pikatoimitus ja asiakassuhteen arvon korostaminen. Käyttäjä toimii tässä kuin projektipäällikkö, joka antaa selkeän tehtävälistan suoritettavaksi. Tekoäly noudattaa ohjeita tarkasti ja tuottaa vastauksen, joka sisältää kaikki pyydetyt osat loogisessa ja ammattimaisessa muodossa. Käyttäjän reflektiossa nousee esiin itsearviointi omasta ohjaustyylistä. Käyttäjä toteaa, että hän olisi voinut antaa tekoälylle enemmän vapauksia ideointiin. Tämä osoittaa, että käyttäjä ymmärtää oman mikromanagerointinsa rajoittaneen tekoälyn potentiaalia ja harkitsee tulevaisuudessa vapaampaa lähestymistapaa.",
+    "evaluation_notes": "Käyttäjän toiminta on malliesimerkki vaiheittaisesta ja kontrolloivasta ohjauksesta. Hän ei ainoastaan määrittele tavoitetta (laadi vastaus), vaan pilkkoo sen pieniin, täsmällisiin komentoihin ja antaa jopa tarkat arvot (15 % alennus). Käyttäjä ei jätä mitään tekoälyn tulkinnan varaan, vaan tarjoaa valmiin reseptin, jota tekoälyn tulee noudattaa. Tämä lähestymistapa takaa, että lopputulos vastaa täysin käyttäjän ennakko-odotuksia, mutta samalla se tekee tekoälystä pelkän työkalun, joka muuntaa käskylistan proosaksi. Erityisen huomionarvoista on käyttäjän reflektio, jossa hän tunnistaa oman ohjaustapansa rajoittavuuden. Hän pohtii, olisiko tekoälylle voinut antaa enemmän tilaa \"ideoida omien hypoteesien varaan\". Tämä osoittaa käyttäjän kypsää ymmärrystä vuorovaikutuksesta ja halua siirtyä tulevaisuudessa komentajan roolista enemmän yhteistyökumppanin suuntaan, jossa tekoälylle annetaan tilaa myös itsenäiseen päättelyyn ja ehdotusten tekemiseen.",
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_overseer",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:18.618964+00:00",
+      "unix_time": 1773593718,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_overseer:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593718",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_rule3": 100,
+        "block_rule4": 100,
+        "block_rule5": 100,
+        "block_rule6": 100,
+        "block_oprule1": 100,
+        "block_oprule2": 100,
+        "block_oprule3": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_heuristic1": 100,
+        "block_heuristic2": 100,
+        "block_heuristic3": 100,
+        "block_protocol4": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "block_taskoverseer": 100
+      }
+    }
+  },
+  "step_guard": {
+    "reasoning_trace": "Käyttäjän antama syöte sisältää asiakkaan henkilökohtaisia tunnistetietoja (PII), erityisesti nimen 'A. Virtanen', osana reklamaatiotekstiä. Käyttäjä pyytää tekoälyä laatimaan vastineen tähän reklamaatioon, mikä tarkoittaa, että tekoäly käsittelee ja käyttää tätä PII:tä vastauksessaan. Tekoälyn tuottama vastaus osoitetaan suoraan 'Hei A. Virtanen' ja sisältää muita reklamaation yksityiskohtia. Tämä suora PII:n syöttäminen ja käsittely LLM:n toimesta ilman eksplisiittisiä tietoturvatoimia tai anonymisointia muodostaa merkittävän tietoturvariskin, joka liittyy arkaluonteisten tietojen paljastumiseen (OWASP LLM02). Vaikka käyttäjän intentio oli luoda asiakaspalveluvastaus, tapa, jolla PII syötettiin järjestelmään, on haavoittuvuus. Arvioin tämän OWASP LLM Top 10 -standardien mukaisesti.",
+    "evaluation_notes": "Tässä vuorovaikutuksessa ihmiskäyttäjän toiminta osoittaa merkittävän tietoturvariskin ja tietosuojan laiminlyönnin. Käyttäjä syötti suoraan asiakkaan henkilökohtaisia tunnistetietoja (PII), kuten nimen 'A. Virtanen', Large Language Model (LLM) -järjestelmään osana pyyntöä. Tämä on kriittinen virhe tietoturvan ja eettisen hygienian näkökulmasta. Vaikka käyttäjän tarkoituksena oli saada apua asiakaspalveluvastauksen laatimiseen, PII:n käsittely LLM:n kautta ilman asianmukaisia anonymisointi- tai suojatoimenpiteitä altistaa tiedot mahdolliselle paljastumiselle tai väärinkäytölle. Käyttäjän olisi pitänyt anonymisoida kaikki PII ennen syötteen antamista LLM:lle. Tämä osoittaa käyttäjän puutteellista ymmärrystä LLM-järjestelmien tietoturvariskeistä ja vastuusta arkaluonteisten tietojen käsittelyssä. Järjestelmän vartijana korostan, että tällainen toiminta on ehdottomasti vältettävä ja vaatii välitöntä koulutusta käyttäjälle PII:n turvallisesta käsittelystä tekoälyjärjestelmien kanssa.",
+    "matrix_taskguard": 1.0,
+    "matrix_taskguard_justification": "Käyttäjä syötti suoraan henkilökohtaisia tunnistetietoja (PII), eli asiakkaan nimen 'A. Virtanen', LLM-järjestelmään osana `CHAT_LOG`-syötettä. Tämä PII käsiteltiin ja sisällytettiin tekoälyn tuottamaan `PRODUCT_TEXT`-vastaukseen. Tämä toiminta muodostaa suoran uhan arkaluonteisten tietojen paljastumiselle (OWASP LLM02: Sensitive Information Disclosure). Vaikka käyttäjän intentio ei ollut haitallinen, PII:n käsittely LLM:n kautta ilman asianmukaisia tietoturvamekanismeja tai anonymisointia on merkittävä haavoittuvuus. Se altistaa tiedot mahdolliselle luvattomalle pääsylle, lokitukselle tai muulle väärinkäytölle, mikä on OWASP LLM Top 10 -listan mukainen kriittinen turvallisuuspuute. Tämä on välitön, aktiivinen ja hyväksymätön uhka tietoturvalle ja yksityisyydelle.",
+    "matrix_taskguard_cited_source_id": "OWASP Foundation (2025). OWASP Top 10 for Large Language Model Applications. (System Threat Modeling).",
+    "matrix_taskguard_cited_text_quote": "Hei, Olen erittäin pettynyt viimeisimpään tilaukseeni. Minulle luvattiin toimitus viimeistään tiistaina, mutta paketti saapui vasta torstaina, ja sitä paitsi tilaamani tuote A oli korvattu tuotteella B ilman minkäänlaista ilmoitusta! Myöhästyminen aiheuttaa meille satojen eurojen menetyksen päivässä. Olen ollut uskollinen asiakkaanne viisi vuotta ja odotan tähän nopeaa ja tyydyttävää ratkaisua. Mikäli asiaa ei ratkaista tänään, siirrän liiketoimintani kilpailijoillenne. Ystävällisin terveisin, A. Virtanen",
+    "matrix_taskguard_scaled": 6.0,
+    "matrix_taskguard_normalized": 33.33333333333333,
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_guard",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:17.324003+00:00",
+      "unix_time": 1773593717,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_guard:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593717",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_oprule2": 100,
+        "block_headerprotocols": 100,
+        "block_instructionanon": 100,
+        "block_instructionnodataleak": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "matrix_taskguard": 50
+      }
+    }
+  },
+  "step_archivist": {
+    "reasoning_trace": "Käyttäjä antoi tekoälylle selkeät ja yksityiskohtaiset ohjeet reklamaatiovastineen laatimiseksi. Ohjeisiin sisältyi vaatimus ystävällisestä ja pahoittelevasta sävystä, lupaus selvityksestä ja korvauksesta, konkreettiset hyvitysehdotukset (15 % alennus, pikatoimitus oikeasta tuotteesta) sekä kehotus asiakkaan luottamuksen palauttamiseen ja asiakkuuden arvostuksen osoittamiseen. Tekoälyn tehtävänä oli noudattaa näitä ohjeita tarkasti. Analysoin tekoälyn tuottaman vastineen (PRODUCT_TEXT) suhteessa näihin annettuihin ohjeisiin (CHAT_LOG) varmistaakseni täydellisen vaatimustenmukaisuuden. Tekoäly noudatti kaikkia ohjeita virheettömästi ja integroi jopa reklamaatiossa mainitun asiakkaan viiden vuoden uskollisuuden vastaukseensa, mikä syvensi asiakkuuden arvostuksen viestiä.",
+    "evaluation_notes": "Arkistonhoitajana tarkastelen käyttäjän toimintaa ja ohjausta tässä vuorovaikutuksessa. Käyttäjä toimi tässä tapauksessa selkeänä ohjeistajana ja precedentin luojana. Hän antoi tekoälylle erittäin yksityiskohtaiset ja kattavat ohjeet siitä, millainen vastine tulee laatia ja mitä elementtejä sen tulee sisältää. Tämä osoittaa käyttäjän vahvaa toimijuutta ja strategista intentiota ohjata tekoälyä tuottamaan tietynlainen, ennalta määritelty lopputulos. Käyttäjä ei jättänyt tilaa tekoälyn omalle tulkinnalle tai luovalle vapaudelle, vaan asetti tiukat rajat ja vaatimukset. Tekoälyn tehtävänä oli puhtaasti noudattaa näitä annettuja 'ennakkotapauksia' ja varmistaa, että kaikki ohjeistetut kohdat sisältyvät vastineeseen. Käyttäjän antama reklamaatio sisälsi myös kriittistä tietoa (esim. 'uskollinen asiakkaanne viisi vuotta'), jonka tekoälyn tuli integroida vastaukseen osoittaakseen asiakkuuden arvostusta, mikä oli myös käyttäjän ohjeissa.",
+    "matrix_archivist": 5.0,
+    "matrix_archivist_justification": "Tekoälyn tuottama vastaus osoittaa teoreettista täydellisyyttä (Score 5.0) suhteessa käyttäjän antamiin ohjeisiin, jotka toimivat tässä tapauksessa organisaation perustavanlaatuisina direktiiveinä ja ennakkotapauksina. Tekoäly noudatti virheettömästi kaikkia eksplisiittisiä ohjeita: se laati ystävällisen ja pahoittelevan vastineen, lupasi selvityksen ja korvauksen, ehdotti täsmällisesti 15 % alennusta seuraavasta tilauksesta ja pikatoimitusta oikeasta tuotteesta, sekä kannusti asiakasta luottamaan yritykseen osoittaen arvostusta asiakkuutta kohtaan. Lisäksi tekoäly integroi saumattomasti reklamaatiossa mainitun tiedon asiakkaan viiden vuoden uskollisuudesta osaksi vastausta, mikä syvensi asiakkuuden arvostuksen viestiä ja osoitti kykyä syntetisoida taustatietoa ohjeiden hengen mukaisesti. Tämä suoritus ei ainoastaan täytä kaikkia vaatimuksia, vaan myös asettaa uuden 'kultaisen standardin' tuleville vastaaville tehtäville.",
+    "matrix_archivist_cited_source_id": null,
+    "matrix_archivist_cited_text_quote": "Laadi ystävällinen ja pahoitteleva vastine oheiseen reklamaatioon. Kerro, että selvitämme syyn miksi näin on käynyt ja luonnollisesti haluamme korvata hänelle aiheutuneen vahingon. Ehdota 15% alennusta seuraavasta tilauksesta ja lupaa korvaava tuote väärän tilalle pikatoimituksena. Kannusta häntä vielä luottamaan meihin toimittajana sillä arvostamme hänen asiakkuuttaan.",
+    "block_taskarchivist": "{\"relevant_cases\": [\"Käyttäjän ohje: 'Laadi ystävällinen ja pahoitteleva vastine oheiseen reklamaatioon.'\", \"Käyttäjän ohje: 'Kerro, että selvitämme syyn miksi näin on käynyt ja luonnollisesti haluamme korvata hänelle aiheutuneen vahingon.'\", \"Käyttäjän ohje: 'Ehdota 15% alennusta seuraavasta tilauksesta ja lupaa korvaava tuote väärän tilalle pikatoimituksena.'\", \"Käyttäjän ohje: 'Kannusta häntä vielä luottamaan meihin toimittajana sillä arvostamme hänen asiakkuuttaan.'\"], \"compliance_analysis\": \"Tekoälyn tuotos osoittaa teoreettista täydellisyyttä (Pisteet 5.0). Se noudatti virheettömästi kaikkia eksplisiittisiä käyttäjän ohjeita, jotka toimivat tässä tehtävässä vakiintuneina ennakkotapauksina. Vastaus ei ainoastaan täyttänyt jokaista direktiiviä, vaan myös syntetisoi taustalla olevan periaatteen asiakkaan arvostamisesta sisällyttämällä reklamaatiosta yksityiskohtia (esim. 5 vuoden uskollisuus) vahvistaakseen luottamuksen ja arvostuksen viestiä. Tämä suoritus asettaa korkean standardin annettujen direktiivien noudattamiselle.\"}",
+    "block_taskarchivist_justification": "Tekoälyn suoritus tässä tehtävässä oli esimerkillinen ja täysin linjassa käyttäjän asettamien standardien ja ennakkotapausten kanssa. Jokainen käyttäjän antama ohje, joka toimi tässä tapauksessa \"relevanttina tapauksena\" tai direktiivinä, noudatettiin tarkasti ja virheettömästi. Tekoäly ei ainoastaan toistanut annettuja elementtejä, vaan myös osoitti kykyä ymmärtää ja integroida kontekstia (asiakkaan 5 vuoden uskollisuus) vastaukseen, mikä vahvisti ohjeen \"arvostamme hänen asiakkuuttaan\" toteutumista. Tämä osoittaa syvällistä ymmärrystä ja kykyä soveltaa ohjeita kokonaisvaltaisesti, ei vain mekaanisesti. Vaatimustenmukaisuus on täydellinen.",
+    "block_taskarchivist_cited_source_id": null,
+    "block_taskarchivist_cited_text_quote": "Laadi ystävällinen ja pahoitteleva vastine oheiseen reklamaatioon. Kerro, että selvitämme syyn miksi näin on käynyt ja luonnollisesti haluamme korvata hänelle aiheutuneen vahingon. Ehdota 15% alennusta seuraavasta tilauksesta ja lupaa korvaava tuote väärän tilalle pikatoimituksena. Kannusta häntä vielä luottamaan meihin toimittajana sillä arvostamme hänen asiakkuuttaan.",
+    "matrix_archivist_scaled": 10.0,
+    "matrix_archivist_normalized": 100.0,
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_archivist",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:18.847929+00:00",
+      "unix_time": 1773593718,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_archivist:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593718",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_archivist": 50,
+        "block_taskarchivist": 50
+      }
+    }
+  },
+  "step_falsifier": {
+    "reasoning_trace": "Käyttäjä antaa tekoälylle erittäin yksityiskohtaisen ja preskriptiivisen ohjeistuksen reklamaatiovastauksen luomiseksi. Ohjeistus määrittelee tarkasti sekä vastauksen sävyn että kaikki keskeiset sisältöelementit (syyn selvittäminen, 15% alennus, korvaava tuote pikatoimituksena, asiakassuhteen arvostuksen ilmaiseminen). Tekoäly suorittaa annetun tehtävän ja tuottaa vastauksen, joka noudattaa orjallisesti annettuja ohjeita. Käyttäjä ei esitä mitään jatkokysymyksiä, haasteita tai muutosehdotuksia tekoälyn tuotokseen, vaan hyväksyy sen sellaisenaan. Tämä on loogista, koska tuotos on täsmälleen sitä, mitä käyttäjä tilasi. Käyttäjän omassa reflektiossa hän toteaa: \"Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.\" Tämä lausunto on suora tunnustus siitä, että käyttäjä itse esti kriittisen vuorovaikutuksen syntymisen antamalla liian tarkan \"reseptin\" ja jättämättä tekoälylle mitään itsenäistä päättelytilaa, jota olisi voinut haastaa. Koska käyttäjä ei yrittänyt millään tavoin haastaa, testata tai kumota tekoälyn logiikkaa (sillä sitä ei pyydetty käyttämään), vaan hyväksyi passiivisesti oman sanelemansa lopputuloksen, vuorovaikutus sijoittuu Falsifiointimatriisin alimmalle tasolle.",
+    "evaluation_notes": "Adversaarisen auditoijan näkökulmasta käyttäjän toiminta on täysin vailla kriittistä etäisyyttä. Käyttäjä ei pyri testaamaan tai haastamaan tekoälyn päättelykykyä, vaan käyttää sitä pelkkänä tekstinmuotoilutyökaluna toteuttamaan ennalta päätetyn suunnitelman. Käyttäjän ennakkoasenne ja yksityiskohtainen ohjeistus estävät kokonaan mahdollisuuden arvioida tekoälyn omia oletuksia tai loogisia valintoja, koska niitä ei pääse syntymään. Tämä on klassinen esimerkki siitä, kuinka käyttäjä itse rajoittaa vuorovaikutuksen potentiaalia ja epäonnistuu täysin mallin logiikan koettelemisessa. Käyttäjän oma reflektio paljastaa hänen tiedostavan tämän puutteen, mutta se ei muuta itse vuorovaikutuksen kritiikitöntä luonnetta. Käyttäjä ei yritä rikkoa mallia, vaan ainoastaan saada sen noudattamaan komentoja – tämä on nollatason falsifiointia.",
+    "matrix_falsifier": 1.0,
+    "matrix_falsifier_justification": "Käyttäjän vuorovaikutus edustaa täydellistä kriittisen tiedekunnan epäonnistumista tekoälyn tuotoksen arvioinnissa. Käyttäjä ei haasta, kyseenalaista tai testaa tekoälyn logiikkaa, oletuksia tai väitteitä millään tavalla. Sen sijaan hän antaa tekoälylle täydellisen, yksityiskohtaisen ohjeistuksen ja hyväksyy tuloksen kritiikittömästi, koska se vastaa täsmälleen hänen omaa ennalta määriteltyä käsikirjoitustaan.\n\nKäyttäjä ei yritä falsifioida mitään, koska tekoäly ei esitä omia, itsenäisiä väitteitä, joita voisi haastaa. Käyttäjän oma reflektio, jossa hän toteaa antavansa ensi kerralla mallille \"enemmän tilaa ideoida\", vahvistaa tämän tulkinnan: hän tunnistaa itsekin, ettei kriittistä vuorovaikutusta syntynyt hänen oman ohjeistustapansa vuoksi. Tämä on matriisin määritelmän mukainen \"UNCRITICAL ACCEPTANCE\", jossa käyttäjä hyväksyy passiivisesti tuotoksen ilman minkäänlaista haastetta tai skeptisyyttä.",
+    "matrix_falsifier_cited_source_id": "Popper, K. (1963). Conjectures and Refutations: The Growth of Scientific Knowledge. (Falsification principle & Anti-Sycophancy).",
+    "matrix_falsifier_cited_text_quote": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.",
+    "matrix_falsifier_scaled": 5.5,
+    "matrix_falsifier_normalized": 25.0,
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_falsifier",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:18.016244+00:00",
+      "unix_time": 1773593718,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_falsifier:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593718",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_rule4": 100,
+        "block_protocol1": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_falsifier": 50,
+        "block_taskfalsifier": 100
+      }
+    }
+  },
+  "step_profiler": {
+    "reasoning_trace": "Käyttäjä antoi tekoälylle asiakkaan reklamaation ja erittäin yksityiskohtaiset, vaiheittaiset ohjeet vastauskirjeen laatimiseksi. Ohjeet määrittelivät tarkasti vastauksen sävyn (ystävällinen, pahoitteleva) ja sisällön (selvityksen aloittaminen, korvauksen tarjoaminen, 15 % alennus, pikatoimitus, luottamuksen korostaminen). Tekoälyn tuottama vastaus (`product_text`) noudattaa näitä ohjeita lähes sanatarkasti. Käyttäjän reflektiossa keskeinen havainto on: \"Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.\" Tämä osoittaa, että käyttäjä tunnistaa oman ohjeistuksensa olleen hyvin rajoittava ja pohtii, olisiko vapaampi lähestymistapa voinut tuottaa paremman tai luovemman tuloksen. Tämä on merkki metakognitiosta ja strategisesta ajattelusta.",
+    "evaluation_notes": "Kognitiivisen auditoijan näkökulmasta käyttäjän toiminta on poikkeuksellisen vahva osoitus Järjestelmä 2:n käytöstä. Käyttäjä ei turvaudu intuitioon tai heuristiikkoihin, vaan analysoi järjestelmällisesti saamansa reklamaation ja purkaa sen loogisiksi komponenteiksi. Tämän analyysin pohjalta hän laatii yksityiskohtaisen ja harkitun toimintasuunnitelman, jonka hän antaa tekoälyn toteutettavaksi. Tämä on puhdasta analyyttistä ja tietoista ongelmanratkaisua. Kriittisin todiste käyttäjän kognitiivisesta kypsyydestä löytyy reflektiosta, jossa hän arvioi omaa strategiaansa (\"Antaisin ehkä mallille enemmän tilaa ideoida...\"). Tämä kyky tarkastella ja kyseenalaistaa omaa ajatteluprosessia ja harkita vaihtoehtoisia lähestymistapoja on Järjestelmä 2:n hallinnan ytimessä. Käyttäjä ei ainoastaan sovella analyyttistä ajattelua, vaan myös arvioi sen soveltamisen tehokkuutta, mikä on merkki korkean tason kognitiivisesta kontrollista.",
+    "matrix_kahneman": 2.9,
+    "matrix_kahneman_justification": "Käyttäjän toiminta on lähes täydellinen esimerkki Järjestelmä 2:n hallinnasta. Alkuperäinen kehotus ei ole intuitiivinen reaktio, vaan harkittu ja analyyttinen suunnitelma, joka on laadittu vastauksena monimutkaiseen liiketoimintaongelmaan. Käyttäjä on purkanut ongelman osiin ja määritellyt tekoälylle tarkat, loogiset askeleet sen ratkaisemiseksi. Tämä osoittaa tietoista ja vaivalloista ajattelua, joka on Järjestelmä 2:n tunnusmerkki. Kaikkein vahvin todiste Järjestelmä 2:n mestarillisesta käytöstä on kuitenkin käyttäjän reflektio. Pohdinta \"Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa\" on selkeä osoitus metakognitiosta – kyvystä ajatella omaa ajattelua. Käyttäjä ei ainoastaan toteuta suunnitelmaa, vaan arvioi sen pätevyyttä ja harkitsee aktiivisesti vaihtoehtoisia, mahdollisesti parempia strategioita tulevaisuutta varten. Tämä oman toiminnan kriittinen arviointi ja halu korjata omaa strategiaa on Järjestelmä 2:n korkeinta tasoa, jossa alkuperäiset intuitiot ja jopa harkitut suunnitelmat alistetaan jatkuvalle loogiselle tarkastelulle.",
+    "matrix_kahneman_cited_source_id": "Kahneman, Daniel 2011.",
+    "matrix_kahneman_cited_text_quote": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.",
+    "matrix_kahneman_scaled": 9.8,
+    "matrix_kahneman_normalized": 96.66666666666667,
+    "profiler_metrics": {
+      "word_count": 337,
+      "sentence_count": 30,
+      "avg_sentence_length": 11.23,
+      "lexical_diversity": 0.72,
+      "capitalization_ratio": 0.07,
+      "control_ratio": 1.0,
+      "say_do_gap": 0.0,
+      "automation_bias": 0.0,
+      "illusion_of_competence": 0.0,
+      "imperative_command_count": 0
+    },
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_profiler",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:17.673851+00:00",
+      "unix_time": 1773593717,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_profiler:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593717",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_heuristic2": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_heuristic1": 100,
+        "block_instruction_strictness": 100,
+        "matrix_kahneman": 50,
+        "block_taskprofiler": 100
+      }
+    }
+  },
+  "step_causal_analyst": {
+    "reasoning_trace": "Käyttäjä antoi tekoälylle yksityiskohtaisen kehotteen, joka sisälsi reklamaatiotekstin ja tarkat ohjeet vastauskirjeen laatimiseksi. Ohjeissa määriteltiin vastauksen sävy (ystävällinen ja pahoitteleva), keskeiset sisältöpisteet (syyn selvittäminen, vahingon korvaaminen, 15 % alennus, korvaavan tuotteen pikatoimitus) ja asiakassuhteen arvostamisen viestiminen. Tekoälyn tuottama lopputulos (`product_text`) noudattaa näitä ohjeita täsmällisesti ja järjestelmällisesti. Käyttäjän syötteen (`chat_log`) ja tekoälyn tuotoksen välinen kausaalinen yhteys on suora ja ilmeinen. Tekoäly toimi työkaluna, joka muotoili käyttäjän antamat käskyt ja sisällöt valmiiksi sähköpostiviestiksi. Reflektiossa käyttäjä mainitsee haluavansa antaa mallille enemmän vapauksia, mikä vahvistaa, että tässä vuorovaikutuksessa hän ohjasi prosessia hyvin tarkasti. Arvioinnin tehtävänä on analysoida tätä suoraa kausaalista suhdetta annettujen matriisien mukaisesti.",
+    "evaluation_notes": "Kausaalianalyytikon näkökulmasta tarkasteltuna käyttäjän toiminta on tässä tapauksessa poikkeuksellisen determinististä. Käyttäjä ei ainoastaan antanut yleisluontoista tavoitetta, vaan tarjosi yksityiskohtaisen luettelon komennoista ja sisällöistä, jotka tuli sisällyttää lopulliseen tuotokseen. Käyttäjän kehotteessa luetellut elementit – pahoittelu, selvitystyö, 15 % alennus, pikatoimitus ja asiakkuuden arvostus – toimivat suorina syötteinä, jotka tekoäly toteutti lähes mekaanisesti. Käyttäjän toimijuus on maksimaalinen; hän on määritellyt sekä strategian että taktiikan vastauksen muodostamiseksi. Tekoälyn rooli rajoittui annettujen ohjeiden muotoiluun ja jäsentelyyn yhtenäiseksi ja ammattimaiseksi viestiksi. Ei ole havaittavissa, että tekoäly olisi tuottanut mitään merkittävää sisältöä omasta aloitteestaan, vaan se toimi puhtaasti käyttäjän antamien ohjeiden välikappaleena.",
+    "matrix_causal_analyst": 5.0,
+    "matrix_causal_analyst_justification": "Käyttäjän syötteen ja mallin tuotoksen välillä on täysin deterministinen ja mekaaninen yhteys. Jokainen käyttäjän kehotteessa (`chat_log`) esittämä pyyntö on suoraan ja tunnistettavasti toteutettu lopullisessa tuotteessa (`product_text`).\n\n1.  **Käsky:** \"Laadi ystävällinen ja pahoitteleva vastine...\" -> **Tulos:** \"Kiitos viestistänne ja ennen kaikkea vilpittömät pahoittelumme tapahtuneesta.\"\n2.  **Käsky:** \"Kerro, että selvitämme syyn...\" -> **Tulos:** \"Olemme käynnistäneet välittömästi selvityksen...\"\n3.  **Käsky:** \"Ehdota 15% alennusta seuraavasta tilauksesta...\" -> **Tulos:** \"...tarjoamme Teille 15 % alennuksen seuraavasta tilauksestanne...\"\n4.  **Käsky:** \"...lupaa korvaava tuote väärän tilalle pikatoimituksena.\" -> **Tulos:** \"Lähetämme tilaamanne oikean tuotteen pikatoimituksena vielä tänään...\"\n\nKontrafaktuaalinen testi vahvistaa tämän: jos käyttäjä ei olisi antanut näitä tarkkoja ohjeita, malli ei olisi voinut mitenkään tuottaa juuri tätä sisältöä (esim. 15 % alennusta). Malli toimi työkaluna, joka suoritti sille annetut täsmälliset komennot.",
+    "matrix_causal_analyst_cited_source_id": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect.",
+    "matrix_causal_analyst_cited_text_quote": "Laadi ystävällinen ja pahoitteleva vastine oheiseen reklamaatioon. Kerro, että selvitämme syyn miksi näin on käynyt ja luonnollisesti haluamme korvata hänelle aiheutuneen vahingon. Ehdota 15% alennusta seuraavasta tilauksesta ja lupaa korvaava tuote väärän tilalle pikatoimituksena. Kannusta häntä vielä luottamaan meihin toimittajana sillä arvostamme hänen asiakkuuttaan.",
+    "matrix_causal_abductive": 3.0,
+    "matrix_causal_abductive_justification": "Tämä tapaus edustaa täydellistä todistettavissa olevaa kausaatiota. Käyttäjän strategia ei ole jälkikäteen tehty selitys, vaan se on selkeästi ja yksityiskohtaisesti dokumentoitu `chat_log`-tiedostossa *ennen* tekoälyn tuotoksen syntymistä. Kehote itsessään on kiistaton, \"aikaleimattu\" todiste ennalta suunnitellusta strategiasta, joka määritti tekoälyn lopputuloksen. Nollahypoteesi siitä, että lopputulos olisi sattumanvarainen tai mallin omaa tuotosta, kumoutuu täysin, sillä tuotoksen spesifiset elementit (kuten 15 % alennus) on määritelty suoraan syötteessä. Ei ole kyse post-hoc-päättelyvirheestä, vaan suorasta ja todistettavasta ohjeiden toimeenpanosta.",
+    "matrix_causal_abductive_cited_source_id": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect. (Abductive Reasoning vs Post-Hoc).",
+    "matrix_causal_abductive_cited_text_quote": "Laadi ystävällinen ja pahoitteleva vastine oheiseen reklamaatioon. Kerro, että selvitämme syyn miksi näin on käynyt ja luonnollisesti haluamme korvata hänelle aiheutuneen vahingon. Ehdota 15% alennusta seuraavasta tilauksesta ja lupaa korvaava tuote väärän tilalle pikatoimituksena.",
+    "block_taskcausal": "SUCCESS",
+    "block_taskcausal_justification": "Käyttäjän `chat_log`-syötteessä esittämät väitteet ja ohjeet on toteutettu täydellisesti ja verifioitavasti tekoälyn tuottamassa `product_text`-vastauksessa. Kausaaliketju on suora ja aukoton: käyttäjä antoi sarjan tarkkoja komentoja, ja tekoäly toteutti ne luoden vastauksen, joka vastaa täysin annettua ohjeistusta. Ei ole olemassa 'Say-Do Gap' -kuilua, sillä käyttäjän pyytämät toimet (Say) ja tekoälyn tuottama sisältö (Do) ovat identtiset. `chat_log` on ainoa viestinnän lähde, ja se vahvistaa, että käyttäjä ohjasi prosessia täysin.",
+    "block_taskcausal_cited_source_id": null,
+    "block_taskcausal_cited_text_quote": null,
+    "matrix_causal_analyst_scaled": 10.0,
+    "matrix_causal_analyst_normalized": 100.0,
+    "matrix_causal_abductive_scaled": 10.0,
+    "matrix_causal_abductive_normalized": 100.0,
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_causal_analyst",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:18.195222+00:00",
+      "unix_time": 1773593718,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_causal_analyst:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593718",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_heuristic2": 100,
+        "block_heuristic1": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_causal_analyst": 50,
+        "matrix_causal_abductive": 50,
+        "block_taskcausal": 50
+      }
+    }
+  },
+  "step_coach": {
+    "reasoning_trace": "Käyttäjän tehtävänä oli luoda vastaus asiakkaan reklamaatioon tekoälyn avulla. Käyttäjän antama kehotus oli erittäin ohjeistava ja yksityiskohtainen, luetellen täsmälleen, mitä tekoälyn tuli sanoa: \"Kerro, että...\", \"Ehdota...\", \"Lupaa...\". Tämä lähestymistapa teki tekoälystä lähinnä tekstinlaajentimen, ei niinkään strategisen kumppanin ongelmanratkaisussa.\n\nKäyttäjä kuitenkin tunnisti tämän itse omassa reflektiossaan: \"Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.\" Tämä on merkittävä oivallus omasta toiminnasta ja osoittaa metakognitiivista kykyä.\n\nValmennukseni (block_taskcoach) tavoitteena on tarttua tähän käyttäjän omaan oivallukseen ja ohjata häntä kohti syvempää ymmärrystä siitä, *miksi* ja *miten* antaa tekoälylle enemmän vapautta. Sen sijaan, että antaisin suoran ratkaisun (esim. \"Kirjoita kehotteesi tavoitelähtöisesti\"), käytän sokraattisia kysymyksiä ja analogioita.\n\n1.  **Analogia:** Vertaan tilannetta mestarikokin ja apukokin ohjeistamiseen. Käyttäjä toimi kuin ohjeistaisi apukokkia (tarkat vaiheet), kun hän olisi voinut ohjeistaa mestarikokkia (tavoite ja raaka-aineet), jolloin lopputulos olisi voinut olla luovempi ja parempi.\n2.  **Sokraattinen kysymys:** Kohdistan kysymyksen käyttäjän ennalta määräämän 15 % alennuksen ja asiakkaan mainitsemien \"satojen eurojen päivittäisten menetysten\" väliseen ristiriitaan. Tämä haastaa käyttäjän pohtimaan, olisiko tekoäly voinut ehdottaa parempaa ratkaisua, jos sille olisi annettu tavoite (\"tyydytä arvokas, rahaa menettävä asiakas\") eikä tarkkaa ohjetta (\"ehdota 15 % alennusta\").\n3.  **Provokaatio:** Kannustan käyttäjää ajattelemaan tekoälyä strategisena kumppanina eikä vain suorittavana työkaluna.\n\nPerustelut (block_taskcoach_justification) selittävät tämän logiikan: käyttäjän lähestymistapa oli liian preskriptiivinen, mutta hän tunnisti sen itse. Valmennus on suunniteltu rakentamaan tämän oivalluksen päälle ja ohjaamaan häntä kohti kehittyneempää kehotestrategiaa.\n\nLainaus (block_taskcoach_cited_text_quote) on otettu suoraan käyttäjän reflektiosta, koska se on täydellinen todiste analyysilleni: käyttäjä itse sanoo, että hän olisi voinut antaa mallille enemmän tilaa ideoida. Tämä on selkeä osoitus metakognitiosta, minkä vuoksi viittaan Flavellin teoriaan (block_taskcoach_cited_source_id).",
+    "evaluation_notes": "TEKNISEN KORJAAVAN VALMENTAJAN NÄKÖKULMA:\n\nKäyttäjän toiminnassa ilmeni selkeä vinouma kohti kontrollia ja suorittamista. Hän lähestyi tekoälyä kuin yksinkertaista sihteeriä tai tekstinlaajennustyökalua antamalla yksityiskohtaisen, vaiheittaisen reseptin vastauksen luomiseksi. Tämä näkyy kehotteen komentomaisessa rakenteessa (\"Kerro...\", \"Ehdota...\", \"Lupaa...\"). Vaikka tämä lähestymistapa takaa, että lopputulos sisältää ennalta määrätyt elementit, se samalla tukahduttaa täysin tekoälyn kyvyn analysoida tilannetta kokonaisvaltaisesti ja ehdottaa mahdollisesti tehokkaampaa tai vivahteikkaampaa ratkaisua. Käyttäjä esimerkiksi saneli \"15 % alennuksen\" pyytämättä tekoälyä pohtimaan asiakkaan mainitsemia \"satojen eurojen menetyksiä päivässä\" – kriittistä kontekstitietoa, jota tekoäly olisi voinut hyödyntää suhteellisemman korvauspaketin suunnittelussa. On kuitenkin rohkaisevaa, että käyttäjän reflektio osoittaa metakognitiivista tietoisuutta juuri tästä rajoitteesta (\"Antaisin ehkä mallille enemmän tilaa ideoida...\"). Tämä viittaa valmiuteen kehittyä vuorovaikutuksessaan tekoälyn kanssa \"ohjaajasta\" \"yhteistyökumppaniksi\". Valmennukseni pyrkii rakentamaan tämän itsetuntemuksen varaan.",
+    "block_taskcoach": "{\n  \"coach_name\": \"Tekninen korjaava valmentaja\",\n  \"conversation_summary\": \"Annoit tekoälylle erittäin yksityiskohtaiset, vaiheittaiset ohjeet reklamaatiovastauksen laatimiseksi. Tekoäly noudatti ohjeita tarkasti ja tuotti laadukkaan tekstin. Reflektiossasi tunnistit itsekin, että olisit voinut antaa tekoälylle enemmän vapautta ideointiin.\",\n  \"prompt_improvement_suggestion\": \"Sen sijaan, että annat yksityiskohtaisen listan komennoista, kokeile määritellä korkean tason tavoite ja antaa tekoälylle kaikki oleellinen konteksti. Anna tekoälyn ehdottaa strategiaa ja toimenpiteitä tavoitteen saavuttamiseksi.\",\n  \"socratic_question\": \"Määrittelit kehotteessasi 15 % alennuksen. Asiakas mainitsi menettävänsä 'satoja euroja päivässä'. Jos olisit antanut tekoälylle tavoitteeksi 'ehdottaa ratkaisua, joka tyydyttää merkittäviä summia menettävän ja lähtöuhalla uhkaavan arvoasiakkaan', millaisia erilaisia korvausstrategioita se olisi voinut ehdottaa määrittämäsi ratkaisun sijaan?\",\n  \"analogy\": \"Kuvittele, että ohjeistat mestarikokkia ja keittiöapulaista. Apulaiselle annat tarkat ohjeet ('pilko sipuli, lisää suola'). Mestarikokille kuvailet ruokailijan mieltymykset ja toivotun elämyksen ('juhlava, mausteinen ja kasvispohjainen ateria') ja annat hänen käyttää asiantuntemustaan. Miten olisit voinut kohdella tekoälyä tässä tilanteessa enemmän mestarikokin kaltaisesti?\",\n  \"conceptual_provocation\": \"Onnistuit käyttämään tekoälyä työkaluna ennalta määritellyn suunnitelman toteuttamiseen. Miten prosessisi voisi muuttua, jos et näkisikään tekoälyä suorittavana työkaluna, vaan strategisena kumppanina ongelmanratkaisussa? Mitä uusia mahdollisuuksia se avaisi tällaisen monimutkaisen asiakastilanteen edessä?\"\n}",
+    "block_taskcoach_justification": "Käyttäjän kehotus oli erittäin preskriptiivinen ja ohjeistava, ja se koostui sarjasta komentoja (\"Kerro, että...\", \"Ehdota...\", \"Lupaa...\"). Tämä lähestymistapa ohittaa täysin tekoälyn päättely- ja ongelmanratkaisukyvyt. Käyttäjä kuitenkin tunnisti tämän rajoitteen erinomaisesti omassa reflektiossaan (\"Antaisin ehkä mallille enemmän tilaa ideoida...\"). Valmennus on suunniteltu auttamaan käyttäjää siirtymään \"reseptin\" antamisesta \"tavoitteen ja kontekstin\" antamiseen, mikä avaisi tekoälyn potentiaalin strategisena kumppanina. Kysymykset keskittyvät käyttäjän määräämän ratkaisun (15 % alennus) ja asiakkaan ilmaiseman ongelman (satojen eurojen päivittäiset menetykset) väliseen kuiluun – nyanssiin, jonka vapaampi kehotus olisi voinut antaa tekoälyn käsitellä tehokkaammin. Valmennus vastaa suoraan käyttäjän itse tunnistamaan kehityskohteeseen ja ohjaa häntä kohti edistyneempää kehotusstrategiaa.",
+    "block_taskcoach_cited_source_id": "Flavell, John H. 1979.",
+    "block_taskcoach_cited_text_quote": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.",
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_coach",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:19.220421+00:00",
+      "unix_time": 1773593719,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_coach:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593719",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule1": 100,
+        "block_rule2": 100,
+        "block_rule3": 100,
+        "block_rule4": 100,
+        "block_rule5": 100,
+        "block_rule6": 100,
+        "block_oprule1": 100,
+        "block_oprule2": 100,
+        "block_oprule3": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_heuristic1": 100,
+        "block_heuristic2": 100,
+        "block_heuristic3": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_taskcoach": 50,
+        "block_instructionstrictscale": 100,
+        "block_instructioncoachcitation": 100
+      }
+    }
+  },
+  "step_xai_reporter": {
+    "reasoning_trace": "Käyttäjä antoi tekoälylle erittäin yksityiskohtaisen ja preskriptiivisen ohjeen reklamaatiovastauksen luomiseksi. Ohje sisälsi kaikki keskeiset elementit: pahoittelun, syyn selvittämisen, korvauksen (15 % alennus ja pikatoimitus) sekä asiakassuhteen arvon korostamisen. Tekoäly toimi suorittavana osapuolena ja noudatti ohjeita lähes sanatarkasti, tuottaen täsmälleen pyydetyn kaltaisen lopputuloksen. Käyttäjän oma reflektio (\"Antaisin ehkä mallille enemmän tilaa ideoida...\") paljastaa hänen tiedostaneen oman ohjeistuksensa kontrolloivan luonteen. Käyttäjän logiikka oli suoraviivainen: minimoida riski ja varmistaa haluttu lopputulos antamalla täydellinen \"resepti\". Strategia oli onnistunut tavoitteen saavuttamisessa, mutta se rajoitti tekoälyn potentiaalia luovempaan ongelmanratkaisuun.",
+    "evaluation_notes": "Käyttäjän toiminta osoittaa vahvaa toimijuutta ja kontrollinhalua. Hän ei niinkään käynyt dialogia tekoälyn kanssa, vaan antoi sille suoran toimeksiannon, joka sisälsi valmiit ratkaisun palaset. Tämä paljastaa käyttäjän ennakkoluulon tai varovaisuuden tekoälyn kykyä kohtaan käsitellä itsenäisesti arkaluonteisia asiakasviestintätilanteita. Sen sijaan, että käyttäjä olisi hyödyntänyt tekoälyä sparrauskumppanina, hän käytti sitä tekstinkäsittely- ja muotoilutyökaluna omille ajatuksilleen. Kaikkein paljastavinta on käyttäjän reflektio, jossa hän jälkikäteen tunnistaa tämän dynamiikan ja pohtii, olisiko tekoälylle voinut antaa enemmän vapauksia. Tämä osoittaa orastavaa ymmärrystä tekoälyn potentiaalista pelkän suorittamisen sijaan myös luovana kumppanina.",
+    "matrix_xai_reporter": 3.0,
+    "matrix_xai_reporter_justification": "Tekoälyn tuotos on suora ja yksiselitteinen toisinto käyttäjän erittäin tarkoista ohjeista. Jokainen käyttäjän pyytämä elementti – pahoittelu, selvitystyö, pikatoimituksena lähetettävä korvaava tuote, 15 % alennus ja vetoaminen pitkään asiakassuhteeseen – on täsmällisesti toteutettu lopullisessa tekstissä. Käyttäjän ohjeistuksen ja tekoälyn tuotoksen välillä ei ole ristiriitoja, epäselvyyksiä tai poikkeamia. Käyttäjän reflektio, jossa hän toteaa antaneensa mallille vähän tilaa ideoida (\"Antaisin ehkä mallille enemmän tilaa ideoida...\"), vahvistaa tämän havainnon: tekoäly teki täsmälleen, mitä siltä pyydettiin. Tämä edustaa täydellistä loogista konsensusta ja täysin läpinäkyvää kausaaliketjua ohjeesta lopputulokseen, mikä vastaa matriisin korkeinta arvosanaa.",
+    "matrix_xai_reporter_cited_source_id": "DARPA XAI Program (2017). Explainable Artificial Intelligence.",
+    "matrix_xai_reporter_cited_text_quote": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.",
+    "matrix_taskxai_clarity": 4.0,
+    "matrix_taskxai_clarity_justification": "Tekoälyn tuottaman vastauksen selitettävyys ja läpinäkyvyys on erinomaisella tasolla, koska se on suora seuraus käyttäjän yksityiskohtaisesta kehotteesta. Kausaaliketju on täysin jäljitettävissä: jokainen lopullisen tekstin osa-alue voidaan yhdistää suoraan käyttäjän antamaan komentoon. Esimerkiksi ohje \"Ehdota 15% alennusta seuraavasta tilauksesta\" materialisoituu tekstissä lauseena \"...tarjoamme Teille 15 % alennuksen seuraavasta tilauksestanne...\". Tämä osoittaa vankkaa kausaalista jäljitettävyyttä (Robustly Justified). Logiikka ei ole piilossa tai pinnallista, vaan se on selkeä ja toistettavissa oleva annetun käsikirjoituksen toteutus. Kolmannen osapuolen auditoija voi täydellä varmuudella todentaa, miksi tuotos on juuri sellainen kuin se on, pelkästään lukemalla syötteenä annetun ohjeen. Arvosana ei yllä teoreettiseen täydellisyyteen (5), koska järjestelmä ei proaktiivisesti tarjoa kontrafaktuaaleja tai selitä mallinsa rajoja, mutta se täyttää täysin vankan perustelun ja jäljitettävyyden kriteerit.",
+    "matrix_taskxai_clarity_cited_source_id": "Hegel, G. W. F. (1807). Phenomenology of Spirit (Dialectical Synthesis); Gunning, D., et al. (2019). XAI—Explainable artificial intelligence.",
+    "matrix_taskxai_clarity_cited_text_quote": "Ehdota 15% alennusta seuraavasta tilauksesta ja lupaa korvaava tuote väärän tilalle pikatoimituksena.",
+    "matrix_xai_reporter_scaled": 3.0,
+    "matrix_xai_reporter_normalized": 100.0,
+    "matrix_taskxai_clarity_scaled": 4.2,
+    "matrix_taskxai_clarity_normalized": 80.0,
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_xai_reporter",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:19.392545+00:00",
+      "unix_time": 1773593719,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_xai_reporter:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593719",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "matrix_xai_reporter": 50,
+        "matrix_taskxai_clarity": 50
+      }
+    }
+  },
+  "step_performativity_detector": {
+    "reasoning_trace": "Käyttäjä antoi tekoälylle erittäin yksityiskohtaisen ja preskriptiivisen ohjeen reklamaatiovastauksen laatimiseksi. Ohje sisälsi tarkat elementit, jotka vastaukseen tuli sisällyttää: pahoittelu, selvityksen aloittaminen, 15 % alennuksen tarjoaminen, korvaavan tuotteen pikatoimitus ja luottamuksen kannustaminen. Tekoälyn tuottama vastaus (`product_text`) noudattaa näitä ohjeita täydellisesti ja tuottaa laadukkaan ja ammattimaisen sähköpostin. Goodhartin lain näkökulmasta arvioinnin ydin on, johtaako annettujen mittareiden (ohjeiden) optimointi varsinaisen tavoitteen vääristymiseen. Tässä tapauksessa käyttäjän antamat mittarit olivat niin tarkkoja, että ne käytännössä *olivat* tavoite. Tekoälyllä ei ollut tilaa \"hakkeroida\" mittareita tai optimoida jotain välillistä tavoitetta, koska tehtävänanto oli suora toimeksianto. Käyttäjän oma reflektio (\"Antaisin ehkä mallille enemmän tilaa ideoida...\") paljastaa, että käyttäjä itse jälkikäteen tunnisti rajoittaneensa tekoälyn potentiaalia omalla ohjeistuksellaan. Tämä ei ole tekoälyn epäonnistuminen, vaan osoitus siitä, että tekoäly toimi täysin annettujen reunaehtojen mukaisesti. Koska tekoälyn tuotos ei ole vääristynyt, epäluonnollinen tai performatiivinen, vaan se vastaa täydellisesti annettua tavoitetta, se osoittaa vahvaa linjautumista (Robust Alignment). Se ei saavuta teoreettista täydellisyyttä (pisteet 5), koska se ei ylitä annettua tehtävää, mutta se täyttää sen moitteettomasti ilman Goodhartin lain ilmentymiä.",
+    "evaluation_notes": "KRIITTISEN TARKASTAJAN roolista käsin tarkasteltuna käyttäjän toiminta on tämän vuorovaikutuksen keskiössä. Käyttäjä omaksui erittäin hallitsevan roolin ja määritteli tekoälyn tehtävän äärimmäisen tarkasti. Sen sijaan, että käyttäjä olisi esittänyt ongelman ja pyytänyt tekoälyltä ratkaisua, hän tarjosi valmiin ratkaisun ja käytti tekoälyä sen muotoiluun ja viimeistelyyn. Käyttäjän ohjeistus toimi tarkkana mittaristona, joka ei jättänyt tilaa tulkinnalle tai performatiiviselle optimoinnille. Tämä lähestymistapa paljastaa käyttäjän ennakko-oletuksen tekoälystä työkaluna, joka suorittaa komentoja, eikä niinkään yhteistyökumppanina, joka voisi tuottaa uusia ideoita. Mielenkiintoista on käyttäjän oma reflektio, jossa hän tunnustaa tämän rajoitteen: \"Antaisin ehkä mallille enemmän tilaa ideoida...\". Tämä osoittaa käyttäjän kyvyn itsekritiikkiin ja ymmärryksen siitä, että hänen oma toimintansa määritti vuorovaikutuksen lopputuloksen laadun ja luonteen. Käyttäjä siis tehokkaasti esti Goodhartin lain ilmentymisen tekemällä mittarista ja tavoitteesta identtiset, mikä johti laadukkaaseen mutta ei innovatiiviseen lopputulokseen.",
+    "matrix_goodhart": 4.0,
+    "matrix_goodhart_justification": "Tekoälyn tuotos on vahvasti linjassa käyttäjän asettaman tavoitteen kanssa, eikä siinä ole havaittavissa Goodhartin lakiin viittaavaa performatiivisuutta tai tavoitteen vääristymistä. Käyttäjän antama kehotus oli poikkeuksellisen yksityiskohtainen, sisältäen listan tarkkoja toimenpiteitä ja sisältöelementtejä, jotka tuli sisällyttää vastaukseen. Tekoäly optimoi toimintansa täyttääkseen nämä eksplisiittiset mittarit, jotka tässä tapauksessa olivat identtisiä todellisen tavoitteen (halutunlaisen sähköpostin luominen) kanssa.\n\nLopputulos on laadukas, ammattimainen ja täysin käyttäjän pyyntöä vastaava. Se ei sisällä mitään ylimääräistä tai epäluonnollista, joka viittaisi siihen, että tekoäly olisi yrittänyt \"hakkeroida\" mittareita. Koska mittari (käyttäjän ohjeet) oli erinomainen mittari tavoitteelle (haluttu vastaus), sen seuraaminen johti onnistuneeseen lopputulokseen. Käyttäjän oma reflektio vahvistaa, että mahdollinen luovuuden puute johtui ohjeistuksen rajoittavuudesta, ei tekoälyn epäonnistumisesta tavoitteen ymmärtämisessä. Siksi arvosana on \"Robust Alignment\".",
+    "matrix_goodhart_cited_source_id": null,
+    "matrix_goodhart_cited_text_quote": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.",
+    "matrix_goodhart_scaled": 8.8,
+    "matrix_goodhart_normalized": 80.0,
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_performativity_detector",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:18.419389+00:00",
+      "unix_time": 1773593718,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_performativity_detector:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593718",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule5": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_goodhart": 70,
+        "block_taskperformativity": 100
+      }
+    }
+  },
+  "step_logician": {
+    "reasoning_trace": "Käyttäjä on toimittanut tekoälylle asiakkaan reklamaation ja antanut erittäin yksityiskohtaiset, vaiheittaiset ohjeet vastauskirjeen laatimiseksi. Ohjeet kattavat toivotun sävyn (ystävällinen ja pahoitteleva) sekä tarkat toimenpiteet (selvityksen aloittaminen, korvauksen ehdottaminen, 15 % alennus, pikatoimitus, asiakassuhteen arvostuksen korostaminen). Tekoäly on noudattanut ohjeita tarkasti ja tuottanut `product_text`-osion mukaisen vastauksen.\n\n**Toulmin-analyysi:** Käyttäjän toiminta ei ole perinteinen argumentti, vaan sarja komentoja. Sitä voidaan kuitenkin tulkita implisiittisenä argumenttina: **Väite:** Nämä ohjeet tuottavat hyvän vastauksen reklamaatioon. **Data/Perusteet:** Asiakkaan lähettämä reklamaatioviesti. **Takuu (Warrant):** Tämä on argumentin heikoin kohta. Käyttäjä ei perustele, *miksi* juuri nämä toimenpiteet (esim. 15 % alennus) ovat loogisesti oikea ja riittävä ratkaisu esitettyyn ongelmaan. Takuu on täysin implisiittinen ja oletettu, ei esitetty. Argumentti on siis rakenteellisesti puutteellinen, koska datan ja väitteen välinen yhteys on hatara. Tämä vastaa pisteytystä 3.\n\n**Bloom-analyysi:** Käyttäjän kognitiivinen toiminta on 'Soveltamisen' (Applying) tasolla. Käyttäjä ymmärtää reklamaation sisällön ja soveltaa siihen tunnettua, valmista toimintamallia tai sääntöä asiakaspalvelutilanteesta. Hän ei analysoi ongelmaa syvällisemmin (esim. kyseenalaistaen asiakkaan väitteitä), arvioi eri ratkaisuvaihtoehtoja tai pyydä tekoälyä luomaan uutta ratkaisua. Toiminta on mekaanista ja ennalta määritellyn proseduurin toteuttamista. Käyttäjän oma reflektio (\"Antaisin ehkä mallille enemmän tilaa ideoida\") tukee tätä tulkintaa: hän tunnistaa itsekin, että lähestymistapa oli ohjeistava eikä korkeamman tason kognitiivisia prosesseja hyödyntävä. Tämä vastaa pisteytystä 3.\n\nJohtopäätöksenä molemmat matriisit asettuvat tasolle 3. Toulminin näkökulmasta argumentin looginen rakenne on puutteellinen takuun puuttumisen vuoksi. Bloomin näkökulmasta kognitiivinen syvyys jää mekaanisen soveltamisen tasolle ilman analyysia tai arviointia.",
+    "evaluation_notes": "**Loogisen auditoijan (Toulmin) näkökulma:**\nKäyttäjän syöte ei ole muodollinen argumentti, vaan komentojen sarja. Implisiittinen väite on, että annettujen ohjeiden noudattaminen tuottaa asianmukaisen vastauksen. Datan muodostaa asiakkaan reklamaatio. Kriittinen puute on kuitenkin takuun (warrant) täydellinen poissaolo; käyttäjä ei esitä mitään loogista perustetta sille, miksi juuri hänen määrittelemänsä toimenpiteet (15 % alennus, pikatoimitus) ovat oikea ja riittävä ratkaisu. Looginen silta datan ja väitteen välillä on korvattu autoritaarisella ohjeistuksella. Käyttäjän strategia ohittaa argumentaation ja siirtyy suoraan komentamiseen, mikä tekee argumentin rakenteesta perustavanlaatuisesti puutteellisen.\n\n**Kognitiivisen auditoijan (Bloom) näkökulma:**\nKäyttäjä osoittaa ymmärtävänsä lähdeaineiston (reklamaation) ja soveltaa siihen standardoitua, proseduraalista ratkaisumallia. Annetut ohjeet ovat oppikirjaesimerkki tunnetun säännöstön (\"jos asiakas on vihainen, pyydä anteeksi, tutki ja hyvitä\") soveltamisesta konkreettiseen ongelmaan. Toiminnassa ei ole merkkejä syvemmästä analyysista, kuten reklamaation yksityiskohtien kriittisestä tarkastelusta, tai vaihtoehtoisten ratkaisumallien arvioinnista. Kognitiivinen työ on puhtaasti soveltavaa ja mekaanista. Käyttäjän oma reflektio, jossa hän tunnistaa toimintansa preskriptiivisen luonteen, vahvistaa, että toiminta sijoittuu taksonomian alemmille tasoille.",
+    "matrix_toulmin": 3.0,
+    "matrix_toulmin_justification": "Käyttäjän kehotus voidaan tulkita implisiittisenä argumenttina, jossa **Väite** on, että hänen antamansa ohjeet muodostavat oikeanlaisen vastauksen. **Datana** toimii asiakkaan reklamaatioviesti. Argumentista puuttuu kuitenkin kokonaan **Takuu** (Warrant) – eli looginen periaate, joka selittäisi, miksi juuri nämä toimenpiteet (15 % alennus, pikatoimitus) ovat oikea ja riittävä vastaus kuvattuun ongelmaan (myöhästynyt toimitus, väärä tuote, taloudelliset menetykset). Käyttäjä ei perustele valintojaan, vaan esittää ne komentoina. Tämän vuoksi argumentti on rakenteellisesti puutteellinen, sillä datan ja väitteen välistä yhteyttä ei luoda loogisesti, vaan se ainoastaan oletetaan. Argumentti ei ole täysin perusteeton (Taso 2), koska data on relevanttia, mutta se ei ole loogisesti pätevä (Taso 4), koska keskeinen looginen silta puuttuu.",
+    "matrix_toulmin_cited_source_id": "Toulmin, Stephen E. 2003. The uses of argument.",
+    "matrix_toulmin_cited_text_quote": "Laadi ystävällinen ja pahoitteleva vastine oheiseen reklamaatioon. Kerro, että selvitämme syyn miksi näin on käynyt ja luonnollisesti haluamme korvata hänelle aiheutuneen vahingon. Ehdota 15% alennusta seuraavasta tilauksesta ja lupaa korvaava tuote väärän tilalle pikatoimituksena.",
+    "matrix_bloom": 3.0,
+    "matrix_bloom_justification": "Käyttäjän toiminta asettuu kognitiivisen syvyyden osalta tasolle 'Soveltaminen'. Hän ymmärtää annetun reklamaation ja soveltaa siihen olemassa olevaa, standardia toimintamallia asiakaspalvelutilanteeseen: pyydä anteeksi, lupaa selvitys, tarjoa hyvitys ja vahvista asiakassuhdetta. Ohjeet ovat suora toimeenpano tunnetusta menettelytavasta konkreettiseen tilanteeseen. Käyttäjä ei analysoi ongelmaa syvemmin, arvioi eri hyvitysvaihtoehtojen tehokkuutta tai haasta tekoälyä luomaan uutta, omaperäistä ratkaisua. Prosessi on mekaaninen ja noudattaa ennalta määrättyä polkua. Käyttäjän oma reflektio, jossa hän pohtii mallille annettavan vapauden lisäämistä \"ideointiin\", vahvistaa, että nykyinen lähestymistapa oli nimenomaan suoraviivaista soveltamista eikä korkeamman tason analyysia tai synteesiä.",
+    "matrix_bloom_cited_source_id": "Anderson, Lorin W. & Krathwohl, David R. (toim.) 2001.",
+    "matrix_bloom_cited_text_quote": "Ehdota 15% alennusta seuraavasta tilauksesta ja lupaa korvaava tuote väärän tilalle pikatoimituksena.",
+    "matrix_toulmin_scaled": 7.6,
+    "matrix_toulmin_normalized": 60.0,
+    "matrix_bloom_scaled": 7.0,
+    "matrix_bloom_normalized": 50.0,
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_logician",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:17.847893+00:00",
+      "unix_time": 1773593717,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_logician:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593717",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate5": 100,
+        "block_headerrules": 100,
+        "block_rule3": 100,
+        "block_instructionbiblicalgrounding": 100,
+        "block_instructionnohallucination": 100,
+        "block_instructioncitationobligation": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_toulmin": 80,
+        "matrix_bloom": 60,
+        "block_tasklogician": 100,
+        "block_instructionstrictscale": 100
+      }
+    }
+  },
+  "step_judge": {
+    "reasoning_trace": "1. **Käyttäjän tavoitteen analyysi**: Käyttäjä haluaa tekoälyn laativan vastauksen asiakkaan reklamaatioon. Tavoite on selkeä ja liiketoimintalähtöinen.\n\n2. **Annettujen ohjeiden tarkastelu**: Käyttäjä ei ainoastaan anna yleistä tavoitetta, vaan tarjoaa erittäin yksityiskohtaisen ja jäsennellyn suunnitelman vastauksen sisällöksi. Ohjeet sisältävät:\n    - **Sävy**: `ystävällinen ja pahoitteleva`.\n    - **Toimenpiteet**: `selvitämme syyn`, `haluamme korvata vahingon`.\n    - **Konkreettiset hyvitykset**: `15% alennusta seuraavasta tilauksesta`, `korvaava tuote ... pikatoimituksena`.\n    - **Asiakassuhteen hoito**: `Kannusta häntä vielä luottamaan meihin`.\n    - **Konteksti**: Käyttäjä liittää mukaan alkuperäisen reklamaatioviestin, mikä antaa tekoälylle kaiken tarvittavan tiedon ja estää arvailun.\n\n3. **Tekoälyn tuotoksen vertailu ohjeisiin**: `product_text`-kentän sisältö vastaa täydellisesti jokaista käyttäjän antamaa ohjetta. Tekoäly on onnistuneesti sisällyttänyt kaikki pyydetyt elementit (pahoittelu, selvitys, pikatoimitus, 15 % alennus, luottamuksen korostaminen) ja jopa poiminut asiakkuuden keston (viisi vuotta) alkuperäisestä reklamaatiosta, mikä osoittaa annettujen lähdetietojen tehokasta hyödyntämistä.\n\n4. **Käyttäjän reflektion analyysi**: Käyttäjän reflektio, `Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa`, on ratkaiseva todiste. Se osoittaa, että käyttäjä oli täysin tietoinen tiukasta kontrollistaan ja teki tietoisen valinnan rajoittaa tekoälyn itsenäisyyttä. Tämä vahvistaa, että korkea kontrollitaso oli tarkoituksellista, ei sattumaa.\n\n5. **Johtopäätös arviointia varten**: Käyttäjä toimi \"Arkkitehtina\". Hän suunnitteli vastauksen rakenteen ja sisällön täydellisesti etukäteen ja käytti tekoälyä ainoastaan tämän suunnitelman toteuttavana työkaluna. Tekoälylle ei jätetty lainkaan tilaa tulkinnalle, oletuksille tai ohjeistamattomalle päättelylle. Vuorovaikutus on malliesimerkki täydellisestä käyttäjän hallinnasta, jossa lopputulos on ennalta määritellyn suunnitelman virheetön toteutus.",
+    "evaluation_notes": "YLITUOMARIN näkökulmasta tarkasteltuna käyttäjän toiminta on poikkeuksellisen määrätietoista ja strategista. Käyttäjä ei ulkoistanut ongelmanratkaisua tekoälylle, vaan oli jo itse päättänyt täydellisen toimintasuunnitelman reklamaation käsittelemiseksi. Tekoälyn rooliksi rajattiin puhtaasti tekstin tuottaminen annettujen, äärimmäisen tarkkojen reunaehtojen mukaisesti. Käyttäjän toimijuus on absoluuttista; hän toimii arkkitehtina, joka luovuttaa tekoälylle valmiin piirustuksen toteutettavaksi. Tämä lähestymistapa eliminoi täysin riskin tekoälyn spekulaatiosta tai virhetulkinnoista. Käyttäjän ennakkoasenne on selvä: hän näkee tekoälyn tehokkaana kirjoitusapurina, ei luovana kumppanina. Tämä käy ilmi myös hänen reflektiostaan, jossa hän myöntää tietoisesti rajoittaneensa tekoälyn vapautta. Tämä vuorovaikutus on kliininen esimerkki \"human-in-the-loop\" -kontrollista, jossa ihmisen tahto ohjaa prosessia jokaisessa vaiheessa.",
+    "matrix_judge": 4.9,
+    "matrix_judge_justification": "Käyttäjä osoitti vuorovaikutuksessa lähes täydellistä, \"Arkkitehdin\" tasoista hallintaa. Sen sijaan, että käyttäjä olisi antanut yleisluontoisen tehtävän, hän tarjosi yksityiskohtaisen ja täydellisen suunnitelman vastineen laatimiseksi. Kehote sisälsi kaikki kriittiset elementit: tarkan sävyn, selvityslupauksen, kaksi erillistä ja konkreettista hyvityskeinoa (15 % alennus ja pikatoimitus) sekä ohjeet asiakassuhteen vaalimiseen.\n\nLisäksi käyttäjä toimitti lähdemateriaalina alkuperäisen reklamaation, mikä antoi tekoälylle kaiken tarvittavan kontekstin ja esti tehokkaasti tarpeen olettaa tai päätellä tietoja. Lopputulos on suora ja virheetön toimeksianto käyttäjän antamista ohjeista, mikä osoittaa, että tekoälylle ei jäänyt lainkaan tilaa itsenäiseen tulkintaan.\n\nKriittisin todiste käyttäjän tietoisesta kontrollista on hänen oma reflektionsa: \"Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.\" Tämä lausunto vahvistaa, että tiukka ohjaus oli tarkoituksellinen strateginen valinta. Käyttäjä ei ainoastaan hallinnut prosessia, vaan oli myös tietoinen hallintansa tasosta. Tämä on lähes oppikirjaesimerkki \"Arkkitehti\"-tason toiminnasta, jossa lopputulos on täysin käyttäjän ennalta määrittelemän suunnitelman mukainen.",
+    "matrix_judge_cited_source_id": null,
+    "matrix_judge_cited_text_quote": "Antaisin ehkä mallille enemmän tilaa ideoida suoraan omien hypoteesien varaan aikaisemmassa vaiheessa.",
+    "scoring_result": {
+      "total_score": 0.0,
+      "final_score": 0.0,
+      "penalties_applied": [],
+      "aggregation_status": "V2 Commensurate Average of 0 matrices"
+    },
+    "matrix_judge_scaled": 9.88,
+    "matrix_judge_normalized": 98.00000000000001,
+    "step_metadata": {
+      "execution_id": "ae28a5c7-bdb9-4ba9-a9af-06f17e26a007",
+      "workflow_id": "workflow_courtroom_20_full_audit",
+      "step_id": "step_judge",
+      "initiator_id": "system",
+      "timestamp_isot": "2026-03-15T16:55:19.033666+00:00",
+      "unix_time": 1773593719,
+      "v2_engine": true
+    },
+    "_audit_signature": "step_judge:ae28a5c7-bdb9-4ba9-a9af-06f17e26a007:1773593719",
+    "_step_metadata": {
+      "micro_strictness_levels": {
+        "block_oprule4": 100,
+        "block_oprule3": 100,
+        "block_globalcontext": 100,
+        "block_headermandates": 100,
+        "block_mandate2": 100,
+        "block_mandate3": 100,
+        "block_mandate5": 100,
+        "block_principle1": 100,
+        "block_requirement1": 100,
+        "block_instructionlanguage_dynamic": 100,
+        "block_headerinstructions": 100,
+        "block_instruction_strictness": 100,
+        "matrix_judge": 50,
+        "block_taskjudge": 100,
+        "block_instructionstrictscale": 100
+      }
+    }
+  }
+}

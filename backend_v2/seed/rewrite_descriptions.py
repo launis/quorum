@@ -1,12 +1,13 @@
-import json
-import os
 import asyncio
+import json
+
 from dotenv import load_dotenv
+
 load_dotenv(r"c:\src\quorum\backend_v2\.env")
 
-from openai import AsyncOpenAI
 from litellm import acompletion
 from pydantic import BaseModel
+
 
 class DescriptionRewrite(BaseModel):
     fi_descriptive: str
@@ -17,7 +18,7 @@ async def rewrite_block(block, semaphore):
         fi_orig = block.get('description', {}).get('translations', {}).get('fi', '')
         en_orig = block.get('description', {}).get('translations', {}).get('en', '')
         ai_desc = block.get('ai_description', '')
-        
+
         prompt = f"""
 You are rewriting prompt block descriptions for a UI.
 Currently, the descriptions were written as commands for an LLM (e.g. "Arvioi argumentti...").
@@ -34,7 +35,7 @@ Original EN: {en_orig}
 Provide the descriptive text in both Finnish (fi_descriptive) and English (en_descriptive).
 Make them short (1-2 sentences), professional, and neutral.
 """
-        
+
         try:
             response = await acompletion(
                 model="gpt-4o-mini",
@@ -42,12 +43,12 @@ Make them short (1-2 sentences), professional, and neutral.
                 response_format=DescriptionRewrite,
             )
             res = DescriptionRewrite.model_validate_json(response.choices[0].message.content)
-            
+
             if "description" not in block:
                 block["description"] = {"default_locale": "fi", "translations": {}}
             if "translations" not in block["description"]:
                 block["description"]["translations"] = {}
-                
+
             block["description"]["translations"]["fi"] = res.fi_descriptive
             block["description"]["translations"]["en"] = res.en_descriptive
             print(f"Rewrote: {fi_orig[:30]}... -> {res.fi_descriptive[:30]}...")
@@ -58,22 +59,22 @@ Make them short (1-2 sentences), professional, and neutral.
 
 async def main():
     path = r"c:\src\quorum\backend_v2\seed\seed_data.json"
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         data = json.load(f)
-        
+
     blocks = data.get("prompt_blocks", [])
     semaphore = asyncio.Semaphore(10)
-    
+
     tasks = [rewrite_block(b, semaphore) for b in blocks if "description" in b]
-    
+
     await asyncio.gather(*tasks)
-    
+
     # Save back
     import shutil
     shutil.copy2(path, path + ".bak_rewrite")
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
-        
+
     print(f"Finished rewriting {len(tasks)} blocks.")
 
 if __name__ == "__main__":

@@ -43,10 +43,10 @@ class ExecutionService:
                 # Currently simple filtering, will evolve as data schema strictly bounds executions to orgs
                 executions = [
                     e for e in executions
-                    if e.get("organization_id") == org_id or e.get("created_by") == initiator.id
-                ] # type: ignore
+                    if e.organization_id == org_id or e.created_by == initiator.id
+                ]
 
-            return [ExecutionRecord.model_validate(x) for x in executions]
+            return executions
         except Exception as e:
             msg = f"Failed to list executions: {str(e)}"
             logger.error(f"[ExecutionService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
@@ -69,8 +69,8 @@ class ExecutionService:
         # SSOT MANDATE: Tenant Isolation Check
         org_id = getattr(initiator, "organization_id", None)
         if (initiator.role != "ROOT" and
-            data.get("organization_id") != org_id and
-            data.get("created_by") != initiator.id): # type: ignore
+            data.organization_id != org_id and
+            data.created_by != initiator.id):
             msg = "You do not have permission to view this execution."
             logger.error(
                 f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.name}: "
@@ -78,7 +78,7 @@ class ExecutionService:
             )
             raise PermissionDeniedError(msg)
 
-        return ExecutionRecord.model_validate(data)
+        return data
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
         """Securely delete an execution."""
@@ -204,18 +204,17 @@ class ExecutionService:
             workflow_id=workflow.id,
             strictness_level=payload.strictness_level,
             status=ExecutionStatus.PENDING,
+            render_blueprint=workflow.render_blueprint.model_dump(mode="json") if workflow.render_blueprint else None,
             raw_inputs=payload.raw_inputs,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             step_states=step_states,
             metadata={"target_locale": target_locale},
             results={},
+            created_by=initiator.id,
+            organization_id=getattr(initiator, "organization_id", None)
         )
-        # We append temporary creator tracking using model_dump bypass for now
-        dump = initial_record.model_dump(mode="json")
-        dump["created_by"] = initiator.id
-        dump["organization_id"] = getattr(initiator, "organization_id", None)
 
-        await self.repo.create_execution(dump)
+        await self.repo.create_execution(initial_record.model_dump(mode="json"))
 
         # Fire Async Process
         background_tasks.add_task(

@@ -1,13 +1,14 @@
 import json
 
+
 def update_limits(filepath):
     print(f"Updating limits in {filepath}...")
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, encoding='utf-8') as f:
             data = json.load(f)
-            
+
         updated = False
-        
+
         # Etsitään system_config
         system_configs = []
         if isinstance(data, dict) and "system_config" in data:
@@ -15,7 +16,7 @@ def update_limits(filepath):
         elif isinstance(data, list):
             # Mahdollisesti lista suoraan
             system_configs = data
-            
+
         for config in system_configs:
             if isinstance(config, dict) and config.get("type") == "model_registry":
                 models = config.get("models", {}).get("google", {})
@@ -33,14 +34,14 @@ def update_limits(filepath):
                             model_props["tpm_limit"] = 100000
                             model_props["rpm_limit"] = 10
                             updated = True
-             
+
         if updated:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
             print("Päivitys onnistui.")
         else:
             print("Ei päivitettävää löytynyt tai tietorakenne ei vastannut oletusta.")
-            
+
     except FileNotFoundError:
         print(f"Tiedostoa ei löytynyt: {filepath}")
     except Exception as e:

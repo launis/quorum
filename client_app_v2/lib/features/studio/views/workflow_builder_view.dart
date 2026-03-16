@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/views/blueprint_editor_view.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/expected_input_editor_box.dart';
 import 'package:client_app/utils/safe_cast.dart';
@@ -259,6 +260,32 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
                       ),
                     ],
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Render Blueprint
+              Card(
+                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                child: ListTile(
+                  title: Text(l10n.blueprintEditorTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Configure the Zero-Deploy SDUI layout for this workflow.'),
+                  trailing: const Icon(Icons.edit_document),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (ctx) => BlueprintEditorView(
+                          initialBlueprint: SafeCast.safeMap(_editableWorkflow['render_blueprint']),
+                          onSave: (updatedBlueprint) {
+                            setState(() {
+                              _editableWorkflow['render_blueprint'] = updatedBlueprint;
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
 
