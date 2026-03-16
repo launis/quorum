@@ -20,6 +20,7 @@ def mock_studio_service():
     # Configure mock responses
     pb = PromptBlock(
         id="mock_pb_1",
+        slug="mock_pb_1",
         label=I18nText(default_locale="en", translations={"en": "Test Label"}),
         description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
         category_id="test_cat",

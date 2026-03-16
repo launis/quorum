@@ -33,7 +33,7 @@ class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
     // SWR Strategy for List Views: Keep alive so navigation back is instant.
-    // If it gets disposed intentionally or app memory is low, 
+    // If it gets disposed intentionally or app memory is low,
     // it will be cached for 3 minutes before total garbage collection.
     ref.cacheFor(const Duration(minutes: 3));
     return _fetchPromptBlocks();
@@ -56,7 +56,10 @@ class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
   }
 
   /// Saves a prompt block utilizing Optimistic Updates.
-  Future<Map<String, dynamic>> savePromptBlock(String id, Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> savePromptBlock(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
     final previousState = state;
     Map<String, dynamic> returnData = {...payload, 'id': id};
 
@@ -147,7 +150,10 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
   }
 
   /// Saves a workflow utilizing Optimistic Updates.
-  Future<Map<String, dynamic>> saveWorkflow(String id, Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> saveWorkflow(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
     final previousState = state;
     Map<String, dynamic> returnData = {...payload, 'id': id};
 
@@ -237,7 +243,10 @@ class StepsController extends AsyncNotifier<List<Map<String, dynamic>>> {
   }
 
   /// Saves a step utilizing Optimistic Updates.
-  Future<Map<String, dynamic>> saveStep(String id, Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> saveStep(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
     final previousState = state;
     Map<String, dynamic> returnData = {...payload, 'id': id};
 

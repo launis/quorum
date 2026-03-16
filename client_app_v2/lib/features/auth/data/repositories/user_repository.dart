@@ -20,8 +20,7 @@ class UserRepository {
       if (response.data == null) return Left(const AppException(detail: ''));
       return Right(User.fromJson(response.data!));
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404)
-        return Left(AppException.notFound(''));
+      if (e.response?.statusCode == 404) return Left(AppException.notFound(''));
       if (e.response?.statusCode == 401)
         return Left(AppException.unauthorized());
       return Left(AppException(detail: ''));
@@ -42,7 +41,9 @@ class UserRepository {
       return Right(User.fromJson(response.data!));
     } on DioException catch (e) {
       if (e.response?.statusCode == 400)
-        return Left(AppException.validation(ValidationErrorReason.unknown.toString()));
+        return Left(
+          AppException.validation(ValidationErrorReason.unknown.toString()),
+        );
       return Left(AppException(detail: ''));
     } catch (e) {
       return Left(AppException.unknown());

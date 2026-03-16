@@ -27,7 +27,9 @@ class Gauge1DWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              component.title.isNotEmpty ? SduiTranslator.translate(context, component.title) : 'Gauge',
+              component.title.isNotEmpty
+                  ? SduiTranslator.translate(context, component.title)
+                  : 'Gauge',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -62,7 +64,7 @@ class Gauge1DWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 25),
-            
+
             // The Gauge Bar
             Container(
               height: 32,
@@ -75,7 +77,7 @@ class Gauge1DWidget extends StatelessWidget {
                     blurRadius: 4,
                     offset: Offset(0, 2),
                     blurStyle: BlurStyle.inner,
-                  )
+                  ),
                 ],
               ),
               clipBehavior: Clip.antiAlias,

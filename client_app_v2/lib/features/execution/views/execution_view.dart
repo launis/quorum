@@ -42,17 +42,17 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
     final executionState = ref.watch(executionControllerProvider);
 
     // Auto-navigate to Report when Completed
-    ref.listen<AsyncValue<Map<String, dynamic>?>>(
-      executionControllerProvider,
-      (previous, next) {
-        if (next is AsyncData && next.value != null) {
-          final status = SafeCast.safeString(next.value!['status']).toLowerCase();
-          if (status == 'completed') {
-            ExecutionReportRoute(executionId: widget.executionId).go(context);
-          }
+    ref.listen<AsyncValue<Map<String, dynamic>?>>(executionControllerProvider, (
+      previous,
+      next,
+    ) {
+      if (next is AsyncData && next.value != null) {
+        final status = SafeCast.safeString(next.value!['status']).toLowerCase();
+        if (status == 'completed') {
+          ExecutionReportRoute(executionId: widget.executionId).go(context);
         }
-      },
-    );
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -166,40 +166,65 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                 ),
 
               // SDUI Grid (Milestone 6: V6.0 Render Blueprint Integration)
-              if (record.containsKey('render_blueprint') && record['render_blueprint'] != null)
+              if (record.containsKey('render_blueprints') &&
+                  record['render_blueprints'] != null &&
+                  record['render_blueprints'].containsKey('default'))
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final blueprint = SafeCast.safeMap(record['render_blueprint']);
-                      final components = SafeCast.safeList(blueprint['components']);
-                      if (index >= components.length) return const SizedBox.shrink();
-                      
-                      final componentDef = SafeCast.safeMap(components[index]);
-                      final componentType = SafeCast.safeString(
-                        componentDef['type'],
-                      );
-                      // Use data_path as the slug if available, else a generated index slug
-                      final slug = SafeCast.safeString(componentDef['data_path']).replaceAll(r'$results.', '').replaceAll(r'$results', 'results_root') + '_$index';
-
-                      try {
-                        return SDUIWidgetFactory.buildWidget(
-                          hint: componentDef, // The V6 component definition acts as the hint
-                          slug: slug,
-                          results: results,
-                          locale: Localizations.localeOf(context).languageCode,
-                          logger: ref.read(loggerServiceProvider),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final blueprint = SafeCast.safeMap(
+                          record['render_blueprints']['default'],
                         );
-                      } catch (e, st) {
-                        ref.read(loggerServiceProvider).error(
-                              'SDUIBuilder',
-                              'VALIDATION_FAILED: Widget render fatal crash for slug "$componentType": $e',
-                              e,
-                              st,
-                            );
-                        return const SizedBox.shrink();
-                      }
-                    }, childCount: SafeCast.safeList(SafeCast.safeMap(record['render_blueprint'])['components']).length),
+                        final components = SafeCast.safeList(
+                          blueprint['components'],
+                        );
+                        if (index >= components.length)
+                          return const SizedBox.shrink();
+
+                        final componentDef = SafeCast.safeMap(
+                          components[index],
+                        );
+                        final componentType = SafeCast.safeString(
+                          componentDef['type'],
+                        );
+                        // Use data_path as the slug if available, else a generated index slug
+                        final slug =
+                            SafeCast.safeString(componentDef['data_path'])
+                                .replaceAll(r'$results.', '')
+                                .replaceAll(r'$results', 'results_root') +
+                            '_$index';
+
+                        try {
+                          return SDUIWidgetFactory.buildWidget(
+                            hint:
+                                componentDef, // The V6 component definition acts as the hint
+                            slug: slug,
+                            results: results,
+                            locale:
+                                Localizations.localeOf(context).languageCode,
+                            logger: ref.read(loggerServiceProvider),
+                          );
+                        } catch (e, st) {
+                          ref
+                              .read(loggerServiceProvider)
+                              .error(
+                                'SDUIBuilder',
+                                'VALIDATION_FAILED: Widget render fatal crash for slug "$componentType": $e',
+                                e,
+                                st,
+                              );
+                          return const SizedBox.shrink();
+                        }
+                      },
+                      childCount:
+                          SafeCast.safeList(
+                            SafeCast.safeMap(
+                              record['render_blueprints']['default'],
+                            )['components'],
+                          ).length,
+                    ),
                   ),
                 ),
 

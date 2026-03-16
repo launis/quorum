@@ -29,8 +29,8 @@ class BlueprintTransformer:
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND}
             )
 
-        if not execution.render_blueprint:
-            msg = f"Execution {execution_id} is missing render_blueprint."
+        if not execution.render_blueprints or "default" not in execution.render_blueprints:
+            msg = f"Execution {execution_id} is missing render_blueprints['default']."
             logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
             raise AppException(
                 message=msg,
@@ -40,7 +40,7 @@ class BlueprintTransformer:
 
         # Validate blueprint structure
         try:
-            blueprint = RenderBlueprint.model_validate(execution.render_blueprint)
+            blueprint = RenderBlueprint.model_validate(execution.render_blueprints["default"])
         except Exception as e:
             msg = f"Invalid render_blueprint structure in Execution {execution_id}: {e}"
             logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)

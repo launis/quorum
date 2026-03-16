@@ -572,7 +572,7 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
                 raw_val = raw_float_val
             except (ValueError, TypeError):
                 # Graceful Degradation: Log info before skipping.
-                # Non-numeric outputs (like JSON blobs or reasoning traces) are expected for text PromptBlocks. 
+                # Non-numeric outputs (like JSON blobs or reasoning traces) are expected for text PromptBlocks.
                 # Downgraded from ERROR to DEBUG to avoid terrifying the user with stack traces on intentional JSON outputs.
                 logger.debug(
                     f"[ScoringHook] Non-numeric data for '{slug}', "

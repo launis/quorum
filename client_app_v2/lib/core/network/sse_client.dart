@@ -50,7 +50,7 @@ class SseClient {
 
       final stream = response.data?.stream;
       if (stream == null) {
-        throw const AppException.unknown('SSE stream was null.');
+        throw AppException.unknown('SSE stream was null.');
       }
 
       // Convert byte stream to string stream, splitting by lines
@@ -82,9 +82,7 @@ class SseClient {
             // RFC 7807 Fail-Fast applies at the service boundary, but here
             // we are receiving a corrupted chunk. Let's yield an error object
             // or re-throw if needed.
-            throw AppException.serverParsingError(
-              'Failed to parse SSE line: $jsonString',
-            );
+            throw AppException.unknown('Failed to parse SSE line: $jsonString');
           }
         }
       }
@@ -93,7 +91,7 @@ class SseClient {
       // which attaches RFC 7807 problem details if available.
       rethrow;
     } catch (e) {
-      throw AppException.networkError('SSE stream failed: $e');
+      throw AppException.unknown('SSE stream failed: $e');
     }
   }
 }

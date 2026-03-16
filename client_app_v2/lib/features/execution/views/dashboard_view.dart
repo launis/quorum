@@ -6,23 +6,23 @@ import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
-import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 
 // Provider to fetch executions using SafeCast (No Freezed API DTOs)
-final executionListProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-      // 1. Riverpod SWR Caching (Stale-While-Revalidate)
-      // Keep this list in RAM for 5 minutes after leaving the screen.
-      // Next time the user quickly navigates back, they see immediate cached data.
-      ref.cacheFor(const Duration(minutes: 5));
+final executionListProvider = FutureProvider.autoDispose<
+  List<Map<String, dynamic>>
+>((ref) async {
+  // 1. Riverpod SWR Caching (Stale-While-Revalidate)
+  // Keep this list in RAM for 5 minutes after leaving the screen.
+  // Next time the user quickly navigates back, they see immediate cached data.
+  ref.cacheFor(const Duration(minutes: 5));
 
-      final dio = ref.watch(apiClientProvider);
-      final response = await dio.get('/execution/executions');
+  final dio = ref.watch(apiClientProvider);
+  final response = await dio.get('/execution/executions');
 
-      final List<dynamic> data = SafeCast.safeList(response.data);
-      return data.map((e) => SafeCast.safeMap(e)).toList();
-    });
+  final List<dynamic> data = SafeCast.safeList(response.data);
+  return data.map((e) => SafeCast.safeMap(e)).toList();
+});
 
 class DashboardView extends ConsumerStatefulWidget {
   const DashboardView({super.key});
@@ -102,7 +102,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
               final workflowId = SafeCast.safeString(exec['workflow_id']);
               final createdAt = SafeCast.safeString(exec['created_at']);
 
-                // Formatting date
+              // Formatting date
               String dateStr = createdAt;
               if (createdAt.isNotEmpty) {
                 try {
@@ -115,10 +115,11 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
               // Metrics
               final costEstimate = SafeCast.safeDouble(exec['cost_estimate']);
               final totalTokens = SafeCast.safeInt(exec['total_tokens']);
-              
+
               String metricsStr = '';
-               if (totalTokens > 0 || costEstimate > 0) {
-                 metricsStr = '\nCost: \$${costEstimate.toStringAsFixed(6)} | Tokens: $totalTokens';
+              if (totalTokens > 0 || costEstimate > 0) {
+                metricsStr =
+                    '\nCost: \$${costEstimate.toStringAsFixed(6)} | Tokens: $totalTokens';
               }
 
               return Card(
@@ -214,9 +215,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                l10n.failedToDeleteExecution(errorMsg),
-              ),
+              content: Text(l10n.failedToDeleteExecution(errorMsg)),
               backgroundColor: Colors.red,
             ),
           );

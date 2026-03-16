@@ -20,7 +20,7 @@ abstract class AppException with _$AppException implements Exception {
     @Default(<String, dynamic>{}) Map<String, dynamic> extensions,
   }) = _AppException;
 
-  factory AppException.fromJson(Map<String, Object?> json) => 
+  factory AppException.fromJson(Map<String, Object?> json) =>
       _$AppExceptionFromJson(json);
 
   /// Extracts error code from type URI or extensions for localization lookup.
@@ -39,50 +39,50 @@ abstract class AppException with _$AppException implements Exception {
   // --- Helper constructors for frontend-generated fallbacks ---
 
   factory AppException.network([Object? error]) => AppException(
-        type: 'https://api.quorum.fi/errors/network-fatal',
-        title: 'Network Error',
-        status: 0,
-        detail: error?.toString() ?? 'Network connection failed.',
-        extensions: const {'error_code': 'NETWORK_FATAL'},
-      );
+    type: 'https://api.quorum.fi/errors/network-fatal',
+    title: 'Network Error',
+    status: 0,
+    detail: error?.toString() ?? 'Network connection failed.',
+    extensions: const {'error_code': 'NETWORK_FATAL'},
+  );
 
   factory AppException.unknown([Object? error]) => AppException(
-        type: 'https://api.quorum.fi/errors/unknown-error',
-        title: 'Unknown Error',
-        status: 500,
-        detail: error?.toString() ?? 'An unknown error occurred.',
-        extensions: const {'error_code': 'UNKNOWN_ERROR'},
-      );
+    type: 'https://api.quorum.fi/errors/unknown-error',
+    title: 'Unknown Error',
+    status: 500,
+    detail: error?.toString() ?? 'An unknown error occurred.',
+    extensions: const {'error_code': 'UNKNOWN_ERROR'},
+  );
 
   factory AppException.unauthorized() => const AppException(
-        type: 'https://api.quorum.fi/errors/authentication-failed',
-        title: 'Unauthorized',
-        status: 401,
-        detail: 'Authentication is required.',
-        extensions: const {'error_code': 'AUTHENTICATION_FAILED'},
-      );
+    type: 'https://api.quorum.fi/errors/authentication-failed',
+    title: 'Unauthorized',
+    status: 401,
+    detail: 'Authentication is required.',
+    extensions: const {'error_code': 'AUTHENTICATION_FAILED'},
+  );
 
   factory AppException.notFound(String message) => AppException(
-        type: 'https://api.quorum.fi/errors/resource-not-found',
-        title: 'Not Found',
-        status: 404,
-        detail: message,
-        extensions: const {'error_code': 'RESOURCE_NOT_FOUND'},
-      );
+    type: 'https://api.quorum.fi/errors/resource-not-found',
+    title: 'Not Found',
+    status: 404,
+    detail: message,
+    extensions: const {'error_code': 'RESOURCE_NOT_FOUND'},
+  );
 
   factory AppException.cancelled() => const AppException(
-        type: 'https://api.quorum.fi/errors/cancelled',
-        title: 'Cancelled',
-        status: 499,
-        detail: 'The request was cancelled.',
-        extensions: const {'error_code': 'CANCELLED'},
-      );
-      
+    type: 'https://api.quorum.fi/errors/cancelled',
+    title: 'Cancelled',
+    status: 499,
+    detail: 'The request was cancelled.',
+    extensions: const {'error_code': 'CANCELLED'},
+  );
+
   factory AppException.validation(String message) => AppException(
-        type: 'https://api.quorum.fi/errors/validation-failed',
-        title: 'Validation Error',
-        status: 400,
-        detail: message,
-        extensions: const {'error_code': 'VALIDATION_FAILED'},
-      );
+    type: 'https://api.quorum.fi/errors/validation-failed',
+    title: 'Validation Error',
+    status: 400,
+    detail: message,
+    extensions: const {'error_code': 'VALIDATION_FAILED'},
+  );
 }

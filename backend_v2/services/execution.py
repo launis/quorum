@@ -205,7 +205,7 @@ class ExecutionService:
             workflow_id=workflow.id,
             strictness_level=payload.strictness_level,
             status=ExecutionStatus.PENDING,
-            render_blueprint=workflow.render_blueprint.model_dump(mode="json") if workflow.render_blueprint else None,
+            render_blueprints={k: v.model_dump(mode="json") for k, v in workflow.render_blueprints.items()} if workflow.render_blueprints else {},
             raw_inputs=payload.raw_inputs,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             step_states=step_states,

@@ -83,14 +83,16 @@ class DAGExecutor:
             )
 
         # MVP Blueprint Injection (Hardcoded for Milestone 1)
-        if not exec_record.render_blueprint:
-            exec_record.render_blueprint = {
-                "version": "1.0",
-                "components": [
-                    {"type": "metadata_header"},
-                    {"type": "header", "title": "report.title_main"},
-                    {"type": "bibliography_footer"}
-                ]
+        if not exec_record.render_blueprints:
+            exec_record.render_blueprints = {
+                "default": {
+                    "version": "1.0",
+                    "components": [
+                        {"type": "metadata_header"},
+                        {"type": "header", "title": "report.title_main"},
+                        {"type": "bibliography_footer"}
+                    ]
+                }
             }
 
         # V2 Strictness Engine Metadata Injection
@@ -105,7 +107,7 @@ class DAGExecutor:
             {
                 "status": exec_record.status.value,
                 "metadata": exec_record.metadata,
-                "render_blueprint": exec_record.render_blueprint,
+                "render_blueprints": exec_record.render_blueprints,
                 "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
             }
         )
@@ -196,7 +198,7 @@ class DAGExecutor:
                         {
                             "results": exec_record.results,
                             "frozen_context": frozen_ctx.model_dump(),
-                            "render_blueprint": exec_record.render_blueprint,
+                            "render_blueprints": exec_record.render_blueprints,
                             "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
                         }
                     )
@@ -480,7 +482,7 @@ class DAGExecutor:
             if "_step_metadata" not in final_dict:
                 final_dict["_step_metadata"] = {}
             final_dict["_step_metadata"]["micro_strictness_levels"] = micro_strictness_map
-            
+
             # Inject Usage Metadata into the result for worker.py extraction
             if usage_dict:
                 final_dict["_step_metadata"]["token_usage"] = {

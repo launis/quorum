@@ -64,7 +64,7 @@ class ExecutionStatusCard extends ConsumerWidget {
 
         // Assuming results exist if there are any
         final results = record['results'] as Map<String, dynamic>? ?? {};
-        
+
         // Extract Metrics
         final cost = (record['cost_estimate'] as num?)?.toDouble() ?? 0.0;
         final totalT = record['total_tokens'] as int? ?? 0;
@@ -96,16 +96,21 @@ class ExecutionStatusCard extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             if (totalT > 0 || cost > 0) ...[
-              Text(
-                'Metrics',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+              Text('Metrics', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 4),
-              Text('Total Tokens: $totalT (Prompt: $promptT, Completion: $completionT)'),
+              Text(
+                'Total Tokens: $totalT (Prompt: $promptT, Completion: $completionT)',
+              ),
               if (cachedT > 0)
-                Text('Cached Tokens saved: $cachedT', style: const TextStyle(color: Colors.green)),
+                Text(
+                  'Cached Tokens saved: $cachedT',
+                  style: const TextStyle(color: Colors.green),
+                ),
               if (reasoningT > 0)
-                Text('Reasoning Tokens spent: $reasoningT', style: const TextStyle(color: Colors.deepPurple)),
+                Text(
+                  'Reasoning Tokens spent: $reasoningT',
+                  style: const TextStyle(color: Colors.deepPurple),
+                ),
               Text('Estimated Cost: \$${cost.toStringAsFixed(6)}'),
               const SizedBox(height: 16),
             ],

@@ -16,7 +16,7 @@ class Scatter3DWidget extends StatelessWidget {
     final xMax = component.xScaleMax > 0 ? component.xScaleMax : 6.0;
     final yMax = component.yScaleMax > 0 ? component.yScaleMax : 6.0;
     final zMax = component.zScaleMax > 0 ? component.zScaleMax : 100.0;
-    
+
     final x = component.xValue.clamp(0.0, xMax);
     final y = component.yValue.clamp(0.0, yMax);
     final z = component.zValue.clamp(0.0, zMax);
@@ -51,23 +51,19 @@ class Scatter3DWidget extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 24),
-            
+
             LayoutBuilder(
               builder: (context, constraints) {
                 final isSmall = constraints.maxWidth < 500;
-                
+
                 final graph = _buildGraph(context, xPct, yPct, zSize);
                 final dataBoxes = _buildDataBoxes(context, xMax, yMax, zMax);
 
                 if (isSmall) {
-                   return Column(
-                     crossAxisAlignment: CrossAxisAlignment.center,
-                     children: [
-                       graph,
-                       const SizedBox(height: 32),
-                       dataBoxes,
-                     ],
-                   );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [graph, const SizedBox(height: 32), dataBoxes],
+                  );
                 }
 
                 return Row(
@@ -84,21 +80,46 @@ class Scatter3DWidget extends StatelessWidget {
             const SizedBox(height: 24),
             // Justifications
             if (component.xNoteText.isNotEmpty)
-              _buildJustificationBox(SduiTranslator.translate(context, component.xTitle), component.xNoteText, const Color(0xFFE91E63), x, xMax),
+              _buildJustificationBox(
+                SduiTranslator.translate(context, component.xTitle),
+                component.xNoteText,
+                const Color(0xFFE91E63),
+                x,
+                xMax,
+              ),
             if (component.yNoteText.isNotEmpty)
-              _buildJustificationBox(SduiTranslator.translate(context, component.yTitle), component.yNoteText, const Color(0xFF9C27B0), y, yMax),
+              _buildJustificationBox(
+                SduiTranslator.translate(context, component.yTitle),
+                component.yNoteText,
+                const Color(0xFF9C27B0),
+                y,
+                yMax,
+              ),
             if (component.zNoteText.isNotEmpty)
-              _buildJustificationBox(SduiTranslator.translate(context, component.zTitle), component.zNoteText, const Color(0xFF3F51B5), z, zMax),
+              _buildJustificationBox(
+                SduiTranslator.translate(context, component.zTitle),
+                component.zNoteText,
+                const Color(0xFF3F51B5),
+                z,
+                zMax,
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildGraph(BuildContext context, double xPct, double yPct, double zSize) {
+  Widget _buildGraph(
+    BuildContext context,
+    double xPct,
+    double yPct,
+    double zSize,
+  ) {
     final l10n = AppLocalizations.of(context);
-    final xLabel = '${l10n?.xAxisLabel ?? "X-Axis"} - ${SduiTranslator.translate(context, component.xTitle)}';
-    final yLabel = '${l10n?.yAxisLabel ?? "Y-Axis"} - ${SduiTranslator.translate(context, component.yTitle)}';
+    final xLabel =
+        '${l10n?.xAxisLabel ?? "X-Axis"} - ${SduiTranslator.translate(context, component.xTitle)}';
+    final yLabel =
+        '${l10n?.yAxisLabel ?? "Y-Axis"} - ${SduiTranslator.translate(context, component.yTitle)}';
 
     return Container(
       width: 200,
@@ -117,13 +138,43 @@ class Scatter3DWidget extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           // 4-Quadrant Grid Lines (25%, 50%, 75%)
-          Positioned(top: 200 * 0.25, left: 0, right: 0, child: _dashedLine(horizontal: true)),
-          Positioned(top: 200 * 0.50, left: 0, right: 0, child: _dashedLine(horizontal: true, color: Colors.grey.shade400)),
-          Positioned(top: 200 * 0.75, left: 0, right: 0, child: _dashedLine(horizontal: true)),
-          
-          Positioned(left: 200 * 0.25, top: 0, bottom: 0, child: _dashedLine(horizontal: false)),
-          Positioned(left: 200 * 0.50, top: 0, bottom: 0, child: _dashedLine(horizontal: false, color: Colors.grey.shade400)),
-          Positioned(left: 200 * 0.75, top: 0, bottom: 0, child: _dashedLine(horizontal: false)),
+          Positioned(
+            top: 200 * 0.25,
+            left: 0,
+            right: 0,
+            child: _dashedLine(horizontal: true),
+          ),
+          Positioned(
+            top: 200 * 0.50,
+            left: 0,
+            right: 0,
+            child: _dashedLine(horizontal: true, color: Colors.grey.shade400),
+          ),
+          Positioned(
+            top: 200 * 0.75,
+            left: 0,
+            right: 0,
+            child: _dashedLine(horizontal: true),
+          ),
+
+          Positioned(
+            left: 200 * 0.25,
+            top: 0,
+            bottom: 0,
+            child: _dashedLine(horizontal: false),
+          ),
+          Positioned(
+            left: 200 * 0.50,
+            top: 0,
+            bottom: 0,
+            child: _dashedLine(horizontal: false, color: Colors.grey.shade400),
+          ),
+          Positioned(
+            left: 200 * 0.75,
+            top: 0,
+            bottom: 0,
+            child: _dashedLine(horizontal: false),
+          ),
 
           // Projection Lines matching HTML dotted
           Positioned(
@@ -133,7 +184,13 @@ class Scatter3DWidget extends StatelessWidget {
             child: Container(
               width: 2,
               decoration: const BoxDecoration(
-                border: Border(left: BorderSide(color: Colors.grey, width: 2, style: BorderStyle.solid)), // Using solid for simplicity
+                border: Border(
+                  left: BorderSide(
+                    color: Colors.grey,
+                    width: 2,
+                    style: BorderStyle.solid,
+                  ),
+                ), // Using solid for simplicity
               ),
             ),
           ),
@@ -144,7 +201,13 @@ class Scatter3DWidget extends StatelessWidget {
             child: Container(
               height: 2,
               decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey, width: 2, style: BorderStyle.solid)),
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.grey,
+                    width: 2,
+                    style: BorderStyle.solid,
+                  ),
+                ),
               ),
             ),
           ),
@@ -153,16 +216,29 @@ class Scatter3DWidget extends StatelessWidget {
           Positioned(
             left: (xPct * 200) - (zSize / 2),
             top: (yPct * 200) - (zSize / 2),
-            child: Container(
-              width: zSize,
-              height: zSize,
-              decoration: BoxDecoration(
-                color: const Color(0xFF3F51B5).withValues(alpha: 0.75),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF3F51B5), width: 2),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black45, blurRadius: 8, offset: Offset(0, 4)),
-                ],
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => _showNotesModal(context),
+                child: Container(
+                  width: zSize,
+                  height: zSize,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3F51B5).withValues(alpha: 0.75),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF3F51B5),
+                      width: 2,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black45,
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -175,7 +251,11 @@ class Scatter3DWidget extends StatelessWidget {
             child: Text(
               xLabel,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black54),
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -189,7 +269,11 @@ class Scatter3DWidget extends StatelessWidget {
               child: Text(
                 yLabel,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black54),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black54,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -214,7 +298,9 @@ class Scatter3DWidget extends StatelessWidget {
             return SizedBox(
               width: horizontal ? 2.5 : 1,
               height: horizontal ? 1 : 2.5,
-              child: DecoratedBox(decoration: BoxDecoration(color: color ?? Colors.grey.shade300)),
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: color ?? Colors.grey.shade300),
+              ),
             );
           }),
         );
@@ -222,28 +308,61 @@ class Scatter3DWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildDataBoxes(BuildContext context, double xMax, double yMax, double zMax) {
+  Widget _buildDataBoxes(
+    BuildContext context,
+    double xMax,
+    double yMax,
+    double zMax,
+  ) {
     final l10n = AppLocalizations.of(context);
     final xTitle = SduiTranslator.translate(context, component.xTitle);
     final yTitle = SduiTranslator.translate(context, component.yTitle);
     final zTitle = SduiTranslator.translate(context, component.zTitle);
-    
+
     final xLabel = l10n?.xAxisLabel ?? "X-Axis";
     final yLabel = l10n?.yAxisLabel ?? "Y-Axis";
     final zLabel = l10n?.zAxisLabel ?? "Z-Axis";
 
     return Column(
       children: [
-        _buildDataBox(xLabel, xTitle, component.xValue, xMax, const Color(0xFFE91E63), component.xScaleText),
+        _buildDataBox(
+          xLabel,
+          xTitle,
+          component.xValue,
+          xMax,
+          const Color(0xFFE91E63),
+          component.xScaleText,
+        ),
         const SizedBox(height: 12),
-        _buildDataBox(yLabel, yTitle, component.yValue, yMax, const Color(0xFF9C27B0), component.yScaleText),
+        _buildDataBox(
+          yLabel,
+          yTitle,
+          component.yValue,
+          yMax,
+          const Color(0xFF9C27B0),
+          component.yScaleText,
+        ),
         const SizedBox(height: 12),
-        _buildDataBox(zLabel, zTitle, component.zValue, zMax, const Color(0xFF3F51B5), component.zScaleText),
+        _buildDataBox(
+          zLabel,
+          zTitle,
+          component.zValue,
+          zMax,
+          const Color(0xFF3F51B5),
+          component.zScaleText,
+        ),
       ],
     );
   }
 
-  Widget _buildDataBox(String axisName, String axisTitle, double val, double max, Color color, String scaleText) {
+  Widget _buildDataBox(
+    String axisName,
+    String axisTitle,
+    double val,
+    double max,
+    Color color,
+    String scaleText,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: Container(
@@ -263,31 +382,53 @@ class Scatter3DWidget extends StatelessWidget {
                 children: [
                   Text(
                     axisName.toUpperCase(),
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black54,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (axisTitle.isNotEmpty)
                     Text(
                       axisTitle.toUpperCase(),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   const SizedBox(height: 12),
                   Text(
                     '${val.toStringAsFixed(1)} /',
-                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: color, height: 1.0),
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                      height: 1.0,
+                    ),
                   ),
                   Text(
                     (max > 0 ? max : 6.0).toStringAsFixed(1),
-                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: color, height: 1.0),
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                      height: 1.0,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   if (scaleText.isNotEmpty)
                     Text(
                       scaleText,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
                     ),
                 ],
               ),
@@ -298,14 +439,18 @@ class Scatter3DWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildJustificationBox(String title, String note, Color color, double val, double max) {
+  Widget _buildJustificationBox(
+    String title,
+    String note,
+    Color color,
+    double val,
+    double max,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: Container(
         margin: const EdgeInsets.only(top: 8, bottom: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
-        ),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.05)),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -319,22 +464,30 @@ class Scatter3DWidget extends StatelessWidget {
                     children: [
                       RichText(
                         text: TextSpan(
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
                           children: [
                             TextSpan(text: "$title "),
                             TextSpan(
-                              text: '(${val.toStringAsFixed(1)} / ${(max > 0 ? max : 6.0).toStringAsFixed(1)}):',
+                              text:
+                                  '(${val.toStringAsFixed(1)} / ${(max > 0 ? max : 6.0).toStringAsFixed(1)}):',
                               style: const TextStyle(color: Colors.black87),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 6),
-                      // Markdown for rich text notes
                       MarkdownBody(
                         data: note,
                         styleSheet: MarkdownStyleSheet(
-                          p: const TextStyle(fontSize: 13, height: 1.5, color: Colors.black87),
+                          p: const TextStyle(
+                            fontSize: 13,
+                            height: 1.5,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ],
@@ -345,6 +498,72 @@ class Scatter3DWidget extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showNotesModal(BuildContext context) {
+    if (component.xNoteText.isEmpty &&
+        component.yNoteText.isEmpty &&
+        component.zNoteText.isEmpty) {
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context)!.detailedBreakdown),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (component.xNoteText.isNotEmpty) ...[
+                  Text(
+                    SduiTranslator.translate(context, component.xTitle),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFE91E63),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  MarkdownBody(data: component.xNoteText),
+                  const SizedBox(height: 16),
+                ],
+                if (component.yNoteText.isNotEmpty) ...[
+                  Text(
+                    SduiTranslator.translate(context, component.yTitle),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF9C27B0),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  MarkdownBody(data: component.yNoteText),
+                  const SizedBox(height: 16),
+                ],
+                if (component.zNoteText.isNotEmpty) ...[
+                  Text(
+                    SduiTranslator.translate(context, component.zTitle),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF3F51B5),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  MarkdownBody(data: component.zNoteText),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(AppLocalizations.of(context)!.close),
+            ),
+          ],
+        );
+      },
     );
   }
 }

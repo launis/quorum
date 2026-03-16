@@ -164,7 +164,7 @@ class LiteLLMProvider(LLMProvider):
             self.router = Router(
                 model_list=[model_config],
                 set_verbose=False,
-                num_retries=0, 
+                num_retries=0,
             )
 
             # Save to class cache

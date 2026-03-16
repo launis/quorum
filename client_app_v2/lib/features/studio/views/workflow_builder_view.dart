@@ -8,7 +8,6 @@ import 'package:client_app/features/studio/views/blueprint_editor_view.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/expected_input_editor_box.dart';
 import 'package:client_app/utils/safe_cast.dart';
-import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -45,6 +44,18 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
     if (!_editableWorkflow.containsKey('steps')) {
       _editableWorkflow['steps'] = [];
     }
+
+    // Migrate legacy render_blueprint if modifying an older seed state
+    if (!_editableWorkflow.containsKey('render_blueprints')) {
+      if (_editableWorkflow.containsKey('render_blueprint') &&
+          _editableWorkflow['render_blueprint'] != null) {
+        _editableWorkflow['render_blueprints'] = {
+          'default': _editableWorkflow.remove('render_blueprint'),
+        };
+      } else {
+        _editableWorkflow['render_blueprints'] = <String, dynamic>{};
+      }
+    }
   }
 
   @override
@@ -79,6 +90,46 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
     });
   }
 
+  void _addBlueprintVariant(BuildContext context) {
+    final variantController = TextEditingController();
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Add Blueprint Variant'),
+            content: TextField(
+              controller: variantController,
+              decoration: const InputDecoration(
+                labelText: 'Variant Key (e.g., executive, default)',
+              ),
+              autofocus: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(AppLocalizations.of(context)!.cancel),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final key = variantController.text.trim();
+                  if (key.isNotEmpty) {
+                    setState(() {
+                      final blueprints = SafeCast.safeMap(
+                        _editableWorkflow['render_blueprints'],
+                      );
+                      blueprints[key] = {'version': '1.0', 'components': []};
+                      _editableWorkflow['render_blueprints'] = blueprints;
+                    });
+                    Navigator.of(ctx).pop();
+                  }
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          ),
+    );
+  }
+
   void _addStep() {
     setState(() {
       final steps = SafeCast.safeList(_editableWorkflow['steps']);
@@ -92,7 +143,10 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
     });
   }
 
-  void _deleteWorkflow(BuildContext context, MutationState<void> deleteMutation) {
+  void _deleteWorkflow(
+    BuildContext context,
+    MutationState<void> deleteMutation,
+  ) {
     final id = _idController.text.trim();
     if (id.isEmpty) return;
 
@@ -100,16 +154,20 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.workflowDeleteConfirmTitle),
-            content: Text(AppLocalizations.of(context)!.workflowDeleteConfirmDesc(id)),
+            title: Text(
+              AppLocalizations.of(context)!.workflowDeleteConfirmTitle,
+            ),
+            content: Text(
+              AppLocalizations.of(context)!.workflowDeleteConfirmDesc(id),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text(AppLocalizations.of(context)!.cancel ?? 'Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               MutationButton<void>(
                 mutation: deleteMutation,
-                label: AppLocalizations.of(context)!.delete ?? 'Delete',
+                label: AppLocalizations.of(context)!.delete,
                 action: () async {
                   await ref
                       .read(workflowsControllerProvider.notifier)
@@ -152,22 +210,22 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
 
     final deleteMutation = useMutation<void>(
       onSuccess: (_) {
-         if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('Deleted successfully')),
-            );
-            Navigator.of(context).pop();
-         }
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Deleted successfully')));
+          Navigator.of(context).pop();
+        }
       },
       onError: (e) {
-         if (mounted) {
-           final l10n = AppLocalizations.of(context)!;
-           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text(errorMsg), backgroundColor: Colors.red)
-           );
-         }
-      }
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+          );
+        }
+      },
     );
 
     return Scaffold(
@@ -192,11 +250,15 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
             action: () async {
               final id = _idController.text.trim();
               if (id.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID is required.')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('ID is required.')),
+                );
                 throw Exception('ID is required');
               }
               _editableWorkflow['id'] = id;
-              return ref.read(workflowsControllerProvider.notifier).saveWorkflow(id, _editableWorkflow);
+              return ref
+                  .read(workflowsControllerProvider.notifier)
+                  .saveWorkflow(id, _editableWorkflow);
             },
           ),
           const SizedBox(width: 16),
@@ -248,29 +310,89 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
 
               const SizedBox(height: 16),
 
-              // Render Blueprint
-              Card(
-                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
-                child: ListTile(
-                  title: Text(l10n.blueprintEditorTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Configure the Zero-Deploy SDUI layout for this workflow.'),
-                  trailing: const Icon(Icons.edit_document),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (ctx) => BlueprintEditorView(
-                          initialBlueprint: SafeCast.safeMap(_editableWorkflow['render_blueprint']),
-                          onSave: (updatedBlueprint) {
+              // Render Blueprints (Dictionary Variants)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l10n.blueprintEditorTitle,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _addBlueprintVariant(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text(
+                      'Add Variant',
+                    ), // Fallback English for Dev
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...SafeCast.safeMap(
+                _editableWorkflow['render_blueprints'],
+              ).entries.map((entry) {
+                final variantKey = entry.key;
+                final variantData = entry.value;
+
+                return Card(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    title: Text(
+                      'Variant: $variantKey',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text(
+                      'Configure the Zero-Deploy SDUI layout.',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          tooltip: 'Delete Variant',
+                          onPressed: () {
                             setState(() {
-                              _editableWorkflow['render_blueprint'] = updatedBlueprint;
+                              final blueprints = SafeCast.safeMap(
+                                _editableWorkflow['render_blueprints'],
+                              );
+                              blueprints.remove(variantKey);
+                              _editableWorkflow['render_blueprints'] =
+                                  blueprints;
                             });
                           },
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+                        const Icon(Icons.edit_document),
+                      ],
+                    ),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder:
+                              (ctx) => BlueprintEditorView(
+                                initialBlueprint: SafeCast.safeMap(variantData),
+                                onSave: (updatedBlueprint) {
+                                  setState(() {
+                                    final blueprints = SafeCast.safeMap(
+                                      _editableWorkflow['render_blueprints'],
+                                    );
+                                    blueprints[variantKey] = updatedBlueprint;
+                                    _editableWorkflow['render_blueprints'] =
+                                        blueprints;
+                                  });
+                                },
+                              ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }),
 
               const SizedBox(height: 24),
 

@@ -33,7 +33,6 @@ async def report_client_error(payload: ClientErrorPayload) -> None:
     This fulfills the Dual-Reporting Telemetry Mandate. Errors logged here will be
     forwarded to Logfire/Sentry automatically via the backend's logging configuration.
     """
-    
     # We log it with the specific ErrorCodes.CLIENT_ERROR tag so it stands out in logs
     log_msg = (
         f"[{ErrorCodes.CLIENT_ERROR.name}] "

@@ -5,7 +5,6 @@ import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
-import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
 import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
@@ -95,7 +94,11 @@ class _PromptBlockBuilderViewState
               TextButton(
                 onPressed: () {
                   Navigator.pop(ctx);
-                  deleteMut.mutate(() => ref.read(promptBlocksControllerProvider.notifier).deletePromptBlock(id));
+                  deleteMut.mutate(
+                    () => ref
+                        .read(promptBlocksControllerProvider.notifier)
+                        .deletePromptBlock(id),
+                  );
                 },
                 child: Text(
                   l10n.delete,
@@ -126,7 +129,7 @@ class _PromptBlockBuilderViewState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     final saveMutation = useMutation<void>(
       onSuccess: (_) {
         if (mounted) {
@@ -141,7 +144,10 @@ class _PromptBlockBuilderViewState
           final l10n = AppLocalizations.of(context)!;
           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${l10n.errorUnknown}: $errorMsg'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('${l10n.errorUnknown}: $errorMsg'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       },
@@ -149,20 +155,22 @@ class _PromptBlockBuilderViewState
 
     final deleteMutation = useMutation<void>(
       onSuccess: (_) {
-         if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('Deleted successfully')),
-            );
-            Navigator.of(context).pop();
-         }
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Deleted successfully')));
+          Navigator.of(context).pop();
+        }
       },
       onError: (e) {
-         if (mounted) {
-           final l10n = AppLocalizations.of(context)!;
-           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg), backgroundColor: Colors.red));
-         }
-      }
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+          );
+        }
+      },
     );
 
     return Scaffold(
@@ -187,15 +195,20 @@ class _PromptBlockBuilderViewState
             action: () async {
               final id = _idController.text.trim();
               if (id.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID is required.')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('ID is required.')),
+                );
                 throw Exception('ID is required');
               }
               _editablePromptBlock['id'] = id;
-              _editablePromptBlock['strictness_level'] = _strictnessLevel.round();
+              _editablePromptBlock['strictness_level'] =
+                  _strictnessLevel.round();
               if (_editablePromptBlock['theory_grounding'] == null) {
                 _editablePromptBlock.remove('theory_grounding');
               }
-              await ref.read(promptBlocksControllerProvider.notifier).savePromptBlock(id, _editablePromptBlock);
+              await ref
+                  .read(promptBlocksControllerProvider.notifier)
+                  .savePromptBlock(id, _editablePromptBlock);
             },
           ),
           const SizedBox(width: 16),

@@ -127,6 +127,23 @@ async def render_execution(
         return JSONResponse(content=flat_data)
 
     elif fmt == "pdf":
+        # 1. First check if async worker has already generated and offloaded the PDF
+        if execution.results_storage_path:
+            from backend_v2.services.storage import get_storage_driver
+            storage = get_storage_driver()
+            try:
+                pdf_bytes = await storage.read(execution.results_storage_path)
+                return Response(
+                    content=pdf_bytes,
+                    media_type="application/pdf",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="execution_{execution_id}.pdf"'
+                    }
+                )
+            except Exception as strg_err:
+                logger.warning(f"Failed to fetch pre-generated PDF from storage, falling back to sync generation: {strg_err}")
+
+        # 2. Fallback to Synchronous generation if not yet ready
         from backend_v2.services.pdf_generator import PdfReportService
         # Passing repository inside PDF generator is safe as the execution was authorized
         pdf_service = PdfReportService(repository)

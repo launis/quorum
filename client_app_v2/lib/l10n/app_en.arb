@@ -929,5 +929,6 @@
   "blueprintPropertyXAxisNote": "X Axis Note Path",
   "blueprintPropertyYAxisNote": "Y Axis Note Path",
   "blueprintPropertyTitle": "Title (i18n Key or Text)",
-  "blueprintPropertyDataPathsInfo": "Comma-separated paths"
+  "blueprintPropertyDataPathsInfo": "Comma-separated paths",
+  "downloadSuccess": "PDF Downloaded Successfully"
 }

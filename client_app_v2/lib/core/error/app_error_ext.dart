@@ -13,24 +13,24 @@ extension AppExceptionX on AppException {
       return l10n.errorUnauthorized;
     }
     if (this.errorCode == 'CANCELLED') return l10n.cancel;
-    
+
     // Map specific structured payloads or error codes
     final locCode = _localizeErrorCode(this.errorCode, l10n);
     if (locCode != l10n.errorUnknown) {
       return locCode;
     }
-    
+
     // Fallback status code mapping
     if (this.status == 404) {
       return '${l10n.errorNotFound}\n\n${l10n.actionHintContactSupport}';
     }
     if (this.status >= 500) return l10n.errorServer;
-    
+
     return l10n.errorUnknown;
   }
 
   /// Extracts a localized hint from a generic error object (e.g., [DioException] or [AppException]).
-  /// 
+  ///
   /// The [ErrorInterceptor] usually wraps [AppException] inside [DioException.error].
   static String extractLocalizedHint(Object? error, AppLocalizations l10n) {
     if (error == null) return l10n.errorUnknown;
@@ -38,17 +38,17 @@ extension AppExceptionX on AppException {
     if (error is AppException) {
       return error.toLocalizedHint(l10n);
     }
-    
+
     if (error is DioException) {
       if (error.error is AppException) {
         return (error.error as AppException).toLocalizedHint(l10n);
       }
       // Fallbacks if not wrapped correctly
-      if (error.type == DioExceptionType.connectionTimeout || 
+      if (error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.connectionError) {
         return l10n.errorNetwork;
       }
-      return l10n.errorUnknown; 
+      return l10n.errorUnknown;
     }
 
     return l10n.errorUnknown;
@@ -63,7 +63,7 @@ extension AppExceptionX on AppException {
       'INTERNAL_SERVER_ERROR' =>
         '${l10n.errorServer}\n\n${l10n.actionHintTryAgainLater}',
       'UNKNOWN_ERROR' => l10n.errorUnknown,
-      
+
       // Workflow errors
       'WORKFLOW_NOT_FOUND' => l10n.errorNotFound,
       'WORKFLOW_EXECUTION_FAILED' => l10n.errorServer,
@@ -104,4 +104,3 @@ extension AppExceptionX on AppException {
     };
   }
 }
-

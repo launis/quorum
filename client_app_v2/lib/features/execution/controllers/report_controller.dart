@@ -1,4 +1,3 @@
-
 import 'dart:isolate';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/core/api/execution_client.dart';
@@ -13,10 +12,12 @@ part 'report_controller.g.dart';
 @riverpod
 class ReportController extends _$ReportController {
   @override
-  Future<SduiRenderPayload> build(String executionId, {String lang = 'fi'}) async {
+  Future<SduiRenderPayload> build(
+    String executionId, {
+    String lang = 'fi',
+  }) async {
     final client = ref.watch(executionClientProvider);
     final rawData = await client.renderExecution(executionId, lang: lang);
     return await Isolate.run(() => SduiRenderPayload.fromJson(rawData));
   }
 }
-

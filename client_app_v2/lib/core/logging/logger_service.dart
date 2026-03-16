@@ -29,14 +29,16 @@ class LoggerService {
       ), // Temporary sink until init() is called
       filter: ProductionFilter(),
     );
-    
+
     // Setup isolated Dio for telemetry to avoid circular dependencies
-    _telemetryDio = Dio(BaseOptions(
-      baseUrl: Env.apiUrl,
-      connectTimeout: const Duration(seconds: 5),
-      sendTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5),
-    ));
+    _telemetryDio = Dio(
+      BaseOptions(
+        baseUrl: Env.apiUrl,
+        connectTimeout: const Duration(seconds: 5),
+        sendTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+      ),
+    );
   }
 
   Future<void> init() async {
@@ -94,13 +96,17 @@ class LoggerService {
       error: error,
       stackTrace: stack,
     );
-    
+
     // Dual-Reporting Telemetry Sync
     _sendTelemetry(context, message, error, stack);
   }
 
   Future<void> _sendTelemetry(
-      String context, String message, Object? error, StackTrace? stack) async {
+    String context,
+    String message,
+    Object? error,
+    StackTrace? stack,
+  ) async {
     // Prevent spamming in debug mode unless strictly needed, but RFC wants it on
     // In dev, maybe skip to avoid noise if API is down, but we wrap in try-catch.
     try {
@@ -108,7 +114,8 @@ class LoggerService {
         'platform': kIsWeb ? 'web' : Platform.operatingSystem,
         'app_version': '1.0.0', // Could be fetched via package_info_plus later
         'session_id': 'flutter_client',
-        'error_message': '[$context] $message ${error != null ? "- $error" : ""}',
+        'error_message':
+            '[$context] $message ${error != null ? "- $error" : ""}',
         'stack_trace': stack?.toString(),
         'severity': 'error',
       };

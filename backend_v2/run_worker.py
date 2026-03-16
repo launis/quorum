@@ -15,7 +15,7 @@ setup_logging()
 configure_logfire()
 
 try:
-    # 2. Lazy import the worker settings so that if any module fails to compile, 
+    # 2. Lazy import the worker settings so that if any module fails to compile,
     # it gets caught and written to the newly configured file log!
     from backend_v2.worker import WorkerSettings
 except Exception as e:

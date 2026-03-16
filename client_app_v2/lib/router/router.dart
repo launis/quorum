@@ -26,7 +26,8 @@ part 'router.g.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 // Global route observer for RouteAware logic (e.g. Dashboard cache invalidation)
-final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
 
 // Private keys for navigator state
 
@@ -56,13 +57,15 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     debugLogDiagnostics: true,
     observers: [routeObserver],
-    errorBuilder: (context, state) => ErrorView(
-      title: 'Navigation Error',
-      error: AppException.notFound(
-          'Route ${state.uri.toString()} not found or broken. ${state.error?.message ?? ""}'),
-      onAction: () => context.go('/dashboard'),
-      actionLabel: 'Return Home',
-    ),
+    errorBuilder:
+        (context, state) => ErrorView(
+          title: 'Navigation Error',
+          error: AppException.notFound(
+            'Route ${state.uri.toString()} not found or broken. ${state.error?.message ?? ""}',
+          ),
+          onAction: () => context.go('/dashboard'),
+          actionLabel: 'Return Home',
+        ),
     redirect: (context, state) {
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
@@ -131,7 +134,9 @@ class SplashRoute extends GoRouteData with $SplashRoute {
           path: '/dashboard',
           routes: [
             TypedGoRoute<ExecutionRoute>(path: 'executions/:executionId'),
-            TypedGoRoute<ExecutionReportRoute>(path: 'executions/:executionId/report'),
+            TypedGoRoute<ExecutionReportRoute>(
+              path: 'executions/:executionId/report',
+            ),
           ],
         ),
       ],

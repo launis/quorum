@@ -20,25 +20,38 @@ class SduiRenderer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Loop through the components and build the UI
     final components = payload.blueprint.components;
-    
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800), // Max width for sanity
+          constraints: const BoxConstraints(
+            maxWidth: 800,
+          ), // Max width for sanity
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-            itemCount: components.length + 1, // +1 for the notes panel at the bottom
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 24.0,
+            ),
+            itemCount:
+                components.length + 1, // +1 for the notes panel at the bottom
             itemBuilder: (context, index) {
               final logger = ref.read(loggerServiceProvider);
-              
+
               if (index == components.length) {
                 try {
                   return NotesPanelWidget(
                     notes: payload.resolvedNotes,
-                    locale: payload.targetLocale, // Passed but unused for fallback titles now
+                    locale:
+                        payload
+                            .targetLocale, // Passed but unused for fallback titles now
                   );
                 } catch (e, st) {
-                  logger.error('SDUI Builder', 'VALIDATION_FAILED: NotesPanel render error', e, st);
+                  logger.error(
+                    'SDUI Builder',
+                    'VALIDATION_FAILED: NotesPanel render error',
+                    e,
+                    st,
+                  );
                   return const SizedBox.shrink();
                 }
               }
@@ -50,7 +63,12 @@ class SduiRenderer extends ConsumerWidget {
                   child: _buildComponent(context, comp, payload.targetLocale),
                 );
               } catch (e, st) {
-                logger.error('SDUI Builder', 'VALIDATION_FAILED: Widget render error for component ${comp.type}', e, st);
+                logger.error(
+                  'SDUI Builder',
+                  'VALIDATION_FAILED: Widget render error for component ${comp.type}',
+                  e,
+                  st,
+                );
                 return const SizedBox.shrink();
               }
             },
@@ -60,7 +78,11 @@ class SduiRenderer extends ConsumerWidget {
     );
   }
 
-  Widget _buildComponent(BuildContext context, SduiComponent comp, String locale) {
+  Widget _buildComponent(
+    BuildContext context,
+    SduiComponent comp,
+    String locale,
+  ) {
     switch (comp.type) {
       case 'header':
         return _buildHeader(context, comp);
@@ -81,7 +103,8 @@ class SduiRenderer extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context, SduiComponent comp) {
-    final localizedTitle = SduiTranslator.translate(context, comp.title).toUpperCase();
+    final localizedTitle =
+        SduiTranslator.translate(context, comp.title).toUpperCase();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

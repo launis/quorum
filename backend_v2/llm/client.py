@@ -41,7 +41,7 @@ class LLMClient:
         Raises:
             ConfigurationError: If the Strategy does not exist.
         """
-        from backend_v2.exceptions import ConfigurationError, ErrorCodes
+        from backend_v2.exceptions import ConfigurationError
         from backend_v2.models.llm import LLMProviderConfig
         from backend_v2.models.v2_core import SystemConfigModelRegistry
         from backend_v2.utils.pydantic_utils import inflate
@@ -203,10 +203,10 @@ class LLMClient:
             # response.content is a JSON string (ensured by LiteLLMProvider)
             data = json.loads(response.content)
             validated_model = response_model.model_validate(data)
-            
+
             # Extract usage securely into a simple dictionary from LLMResponse model
             usage_obj = getattr(response, "token_usage", {})
-            
+
             usage_dict = {
                 "prompt_tokens": usage_obj.get("prompt_tokens", 0),
                 "completion_tokens": usage_obj.get("completion_tokens", 0),
@@ -215,7 +215,7 @@ class LLMClient:
                 "reasoning_tokens": usage_obj.get("reasoning_tokens", 0),
                 "cost_usd": usage_obj.get("cost_usd", 0.0)
             }
-            
+
             return validated_model, usage_dict
 
         except Exception as e:

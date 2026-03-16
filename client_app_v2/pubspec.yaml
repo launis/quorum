@@ -41,7 +41,7 @@ dependencies:
   pdf:
   printing:
   file_saver:
-  url_launcher:
+  url_launcher: ^6.3.2
   flutter_hooks:
   hooks_riverpod:
   logger:

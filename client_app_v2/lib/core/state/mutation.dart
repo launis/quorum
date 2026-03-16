@@ -12,7 +12,8 @@ class MutationState<T> {
   bool get isIdle => state == null;
   bool get isLoading => state?.isLoading ?? false;
   bool get hasError => state?.hasError ?? false;
-  bool get isSuccess => state?.hasValue ?? false && !state!.isLoading && !state!.hasError;
+  bool get isSuccess =>
+      (state?.hasValue ?? false) && !state!.isLoading && !state!.hasError;
 
   Object? get error => state?.error;
   StackTrace? get stackTrace => state?.stackTrace;
@@ -20,7 +21,7 @@ class MutationState<T> {
 }
 
 /// Standardized Hook for Riverpod UI Mutations.
-/// 
+///
 /// Replaces manual `bool isLoading` flags and ad-hoc error catching.
 /// Ensures all side-effects follow: Idle -> Pending -> Success / Error.
 MutationState<T> useMutation<T>({

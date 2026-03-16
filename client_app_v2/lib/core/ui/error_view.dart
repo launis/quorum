@@ -106,7 +106,9 @@ class ErrorView extends StatelessWidget {
           if (kDebugMode && _getTechnicalDetails(error) != null) ...[
             const SizedBox(height: 16),
             Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 title: Text(
                   'Technical Details',
@@ -130,7 +132,7 @@ class ErrorView extends StatelessWidget {
                         color: textColor,
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -171,7 +173,7 @@ class ErrorView extends StatelessWidget {
     if (error is DioException && error.error is AppException) {
       return _formatError(error.error!, l10n);
     }
-    
+
     if (error is AppException) {
       return error.toLocalizedHint(l10n);
     }

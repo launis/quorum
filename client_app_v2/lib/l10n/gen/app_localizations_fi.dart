@@ -2069,4 +2069,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get blueprintPropertyDataPathsInfo => 'Pilkuilla erotetut polut';
+
+  @override
+  String get downloadSuccess => 'PDF ladattu onnistuneesti';
 }

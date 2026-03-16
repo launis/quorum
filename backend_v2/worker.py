@@ -15,8 +15,8 @@ from backend_v2.exceptions import ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
-from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 
@@ -126,7 +126,7 @@ async def execute_workflow_job(
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
 
                 result_dict = result.model_dump(mode="json")
-                
+
                 # Try to extract metrics from actual results dict
                 results = result_dict.get("results", {})
                 if isinstance(results, dict):
@@ -160,6 +160,15 @@ async def execute_workflow_job(
                         "models_used": models_used
                     }
                 )
+
+                # TRIGGER ASYNC PDF GENERATION (Milestone 2)
+                redis = ctx.get("redis")
+                if redis:
+                    # Enqueue job to generate the static PDF report
+                    await redis.enqueue_job("generate_pdf_job", execution_id)
+                    logger.info(f"[Job] Enqueued PDF generation for {execution_id}")
+                else:
+                    logger.warning(f"[Job] Redis context missing. Could not enqueue PDF generation for {execution_id}")
 
             # --- TEMPORARY DEBUG DUMP (User Request) ---
             try:
@@ -243,6 +252,13 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         repo = await get_repository(get_settings())
         transformer = BlueprintTransformer(repo)
 
+        # 0. Get explicit locale via Execution
+        execution_dict = await repo.get_execution(execution_id)
+        if hasattr(execution_dict, "metadata") and execution_dict.metadata:
+            loc = execution_dict.metadata.get("target_locale")
+            if loc and not accept_language:
+                accept_language = loc
+
         # 1. Generate Omni-Channel JSON Payload
         payload = await transformer.build_render_payload(execution_id, accept_language)
 
@@ -254,7 +270,15 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         storage = get_storage_driver()
         output_path_rel = f"executions/{execution_id}/report.pdf"
         saved_path = await storage.save(output_path_rel, pdf_bytes)
-        logger.info(f"[Task] PDF generated successfully: {saved_path}")
+
+        # 4. Save path to DB so frontend can fetch it
+        await repo.update_execution(
+            execution_id,
+            {
+                "results_storage_path": saved_path
+            }
+        )
+        logger.info(f"[Task] PDF generated successfully and path saved: {saved_path}")
 
     except Exception as e:
         logger.error(f"[Task] PDF generation failed for {execution_id}. Cause: {e}", exc_info=True)

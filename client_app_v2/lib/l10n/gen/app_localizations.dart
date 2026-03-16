@@ -3865,6 +3865,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Comma-separated paths'**
   String get blueprintPropertyDataPathsInfo;
+
+  /// No description provided for @downloadSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF Downloaded Successfully'**
+  String get downloadSuccess;
 }
 
 class _AppLocalizationsDelegate

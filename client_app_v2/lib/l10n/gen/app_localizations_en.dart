@@ -2061,4 +2061,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get blueprintPropertyDataPathsInfo => 'Comma-separated paths';
+
+  @override
+  String get downloadSuccess => 'PDF Downloaded Successfully';
 }

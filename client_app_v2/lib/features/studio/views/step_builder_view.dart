@@ -5,7 +5,6 @@ import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
-import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
@@ -97,7 +96,6 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
     final promptBlocks = promptBlocksAsync.value ?? [];
 

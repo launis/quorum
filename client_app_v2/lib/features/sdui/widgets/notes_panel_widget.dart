@@ -6,7 +6,11 @@ class NotesPanelWidget extends StatelessWidget {
   final Map<String, String> notes;
   final String locale;
 
-  const NotesPanelWidget({super.key, required this.notes, required this.locale});
+  const NotesPanelWidget({
+    super.key,
+    required this.notes,
+    required this.locale,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +27,7 @@ class NotesPanelWidget extends StatelessWidget {
             color: Colors.black12,
             blurRadius: 10,
             offset: Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -36,46 +40,47 @@ class NotesPanelWidget extends StatelessWidget {
               border: Border(bottom: BorderSide(color: Colors.black12)),
             ),
             child: Row(
-              children: const [
-                Icon(Icons.notes, color: Color(0xFF424242)),
-              ],
+              children: const [Icon(Icons.notes, color: Color(0xFF424242))],
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: notes.entries.map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.key, // Node / Edge ID
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1976D2),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Markdown content rendered natively
-                      MarkdownBody(
-                        data: entry.value,
-                        styleSheet: MarkdownStyleSheet(
-                          p: const TextStyle(
-                            fontSize: 14,
-                            height: 1.6,
-                            color: Color(0xFF333333),
+              children:
+                  notes.entries.map((entry) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry.key, // Node / Edge ID
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1976D2),
+                            ),
                           ),
-                          listBullet: const TextStyle(color: Color(0xFF333333)),
-                        ),
+                          const SizedBox(height: 8),
+                          // Markdown content rendered natively
+                          MarkdownBody(
+                            data: entry.value,
+                            styleSheet: MarkdownStyleSheet(
+                              p: const TextStyle(
+                                fontSize: 14,
+                                height: 1.6,
+                                color: Color(0xFF333333),
+                              ),
+                              listBullet: const TextStyle(
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
           ),
         ],

@@ -19,10 +19,7 @@ class BlueprintEditorController extends _$BlueprintEditorController {
     // If they take longer, Riverpod autoDisposes it to prevent stale sessions.
     ref.cacheFor(const Duration(minutes: 3));
 
-    return {
-      'version': '1.0',
-      'components': [],
-    };
+    return {'version': '1.0', 'components': []};
   }
 
   /// Initializes the editor with an existing blueprint, or creates a clean slate.
@@ -34,10 +31,7 @@ class BlueprintEditorController extends _$BlueprintEditorController {
       }
       state = newState;
     } else {
-      state = {
-        'version': '1.0',
-        'components': [],
-      };
+      state = {'version': '1.0', 'components': []};
     }
   }
 
@@ -46,21 +40,23 @@ class BlueprintEditorController extends _$BlueprintEditorController {
   void addComponent(String type) {
     final components = SafeCast.safeList(state['components']);
     final newComponent = <String, dynamic>{'type': type};
-    
+
     if (type == 'header') {
       newComponent['title'] = '';
     } else if (type == '1d_gauge') {
-      newComponent['data_path'] = '\$steps.';
-    } else if (type == '2d_matrix' || type == '3d_scatter') {
-      newComponent['x_data_path'] = '\$steps.';
-      newComponent['y_data_path'] = '\$steps.';
-      if (type == '3d_scatter') {
-        newComponent['z_data_path'] = '\$steps.';
-      }
+      newComponent['data_path'] = r'$steps.';
+    } else if (type == '2d_matrix') {
+      newComponent['x_data_path'] = r'$steps.';
+      newComponent['y_data_path'] = r'$steps.';
+    } else if (type == '3d_scatter') {
+      newComponent['x_data_path'] = r'$steps.';
+      newComponent['y_data_path'] = r'$steps.';
+      newComponent['z_data_path'] = r'$steps.';
     } else if (type == 'evaluation_notes_panel') {
       newComponent['data_paths'] = <String>[];
     }
-    
+    // `metadata_header` and `bibliography_footer` need no extra properties.
+
     components.add(newComponent);
     state = {...state, 'components': components};
   }
@@ -82,7 +78,7 @@ class BlueprintEditorController extends _$BlueprintEditorController {
       state = {...state, 'components': components};
     }
   }
-  
+
   /// Reorders a component, supporting the Drag-and-Drop Editor interface.
   void reorderComponent(int oldIndex, int newIndex) {
     final components = SafeCast.safeList(state['components']);

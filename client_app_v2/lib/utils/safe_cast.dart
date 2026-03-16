@@ -94,9 +94,9 @@ class SafeCast {
     if (value is int) {
       // Assuming it could be milliseconds since epoch from JSON
       try {
-         return DateTime.fromMillisecondsSinceEpoch(value);
+        return DateTime.fromMillisecondsSinceEpoch(value);
       } catch (_) {
-         return null;
+        return null;
       }
     }
     return null;
@@ -104,13 +104,20 @@ class SafeCast {
 
   /// Safely converts a String value to an Enum.
   /// Returns the provided default value if parsing fails or value is missing.
-  static T safeEnum<T extends Enum>(dynamic value, Iterable<T> values, T defaultValue) {
+  static T safeEnum<T extends Enum>(
+    dynamic value,
+    Iterable<T> values,
+    T defaultValue,
+  ) {
     if (value == null) return defaultValue;
     if (value is T) return value;
     final strValue = value.toString().toLowerCase();
-    
+
     try {
-      return values.firstWhere((e) => e.name.toLowerCase() == strValue, orElse: () => defaultValue);
+      return values.firstWhere(
+        (e) => e.name.toLowerCase() == strValue,
+        orElse: () => defaultValue,
+      );
     } catch (_) {
       return defaultValue;
     }
@@ -121,21 +128,23 @@ class SafeCast {
   /// preventing unintended mutations of cached states via nested map references.
   static Map<String, dynamic> safeDeepCopyMap(Map<String, dynamic>? source) {
     if (source == null) return <String, dynamic>{};
-    
+
     final copy = <String, dynamic>{};
     for (final entry in source.entries) {
       if (entry.value is Map<String, dynamic>) {
         copy[entry.key] = safeDeepCopyMap(entry.value as Map<String, dynamic>);
       } else if (entry.value is Map) {
-         // Handle untyped maps safely
-         try {
-           copy[entry.key] = safeDeepCopyMap(Map<String, dynamic>.from(entry.value as Map));
-         } catch (_) {
-           copy[entry.key] = entry.value;
-         }
+        // Handle untyped maps safely
+        try {
+          copy[entry.key] = safeDeepCopyMap(
+            Map<String, dynamic>.from(entry.value as Map),
+          );
+        } catch (_) {
+          copy[entry.key] = entry.value;
+        }
       } else if (entry.value is List) {
-         // Deep copy lists to prevent nested reference mutations inside lists
-         copy[entry.key] = List.from(entry.value as List);
+        // Deep copy lists to prevent nested reference mutations inside lists
+        copy[entry.key] = List.from(entry.value as List);
       } else {
         copy[entry.key] = entry.value;
       }

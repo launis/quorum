@@ -7,13 +7,13 @@ I/O to the injected StorageDriver.
 
 import logging
 import uuid
-import copy
 from abc import ABC, abstractmethod
 from typing import Any
 
 from backend_v2.database.driver import Filter, StorageDriver
-from backend_v2.models.v2_core import ExecutionRecord, Workflow as WorkflowDefinition
 from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.v2_core import ExecutionRecord
+from backend_v2.models.v2_core import Workflow as WorkflowDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -488,7 +488,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             filters.append(Filter("user_id", "==", user_id))
 
         results = await self.driver.query("executions", filters)
-        
+
         parsed_results = []
         for r in results:
             try:
@@ -500,7 +500,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                     f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution {r.get('id')}: {e}",
                     exc_info=True
                 )
-                
+
         return parsed_results
 
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
@@ -512,7 +512,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             order_by="completed_at",
             descending=True
         )
-        
+
         parsed_results = []
         for r in results:
             try:
@@ -524,7 +524,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                     f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution {r.get('id')}: {e}",
                     exc_info=True
                 )
-                
+
         return parsed_results
 
     # --- Workflows ---

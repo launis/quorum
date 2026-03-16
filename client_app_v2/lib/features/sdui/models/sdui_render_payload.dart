@@ -17,13 +17,17 @@ class SduiRenderPayload {
   factory SduiRenderPayload.fromJson(Map<String, dynamic> json) {
     return SduiRenderPayload(
       blueprint: SduiBlueprint.fromJson(SafeCast.safeMap(json['blueprint'])),
-      targetLocale: SafeCast.safeString(json['target_locale']).isNotEmpty 
-          ? SafeCast.safeString(json['target_locale']) 
-          : 'fi',
-      resolvedNotes: SafeCast.safeMap(json['resolved_notes']).map(
-        (key, value) => MapEntry(key, SafeCast.safeString(value)),
-      ),
-      bibliography: SafeCast.safeList(json['bibliography']).map(SafeCast.safeString).toList(),
+      targetLocale:
+          SafeCast.safeString(json['target_locale']).isNotEmpty
+              ? SafeCast.safeString(json['target_locale'])
+              : 'fi',
+      resolvedNotes: SafeCast.safeMap(
+        json['resolved_notes'],
+      ).map((key, value) => MapEntry(key, SafeCast.safeString(value))),
+      bibliography:
+          SafeCast.safeList(
+            json['bibliography'],
+          ).map(SafeCast.safeString).toList(),
     );
   }
 }
@@ -36,9 +40,10 @@ class SduiBlueprint {
 
   factory SduiBlueprint.fromJson(Map<String, dynamic> json) {
     return SduiBlueprint(
-      components: SafeCast.safeList(json['components'])
-          .map((c) => SduiComponent.fromJson(SafeCast.safeMap(c)))
-          .toList(),
+      components:
+          SafeCast.safeList(
+            json['components'],
+          ).map((c) => SduiComponent.fromJson(SafeCast.safeMap(c))).toList(),
     );
   }
 }
@@ -46,7 +51,7 @@ class SduiBlueprint {
 /// A parsed SDUI Component adhering to strictly bound attributes without assuming logic.
 class SduiComponent {
   final String type;
-  
+
   // Header / Common
   final String title;
 
@@ -59,7 +64,7 @@ class SduiComponent {
   final String xTitle;
   final String yTitle;
   final String zTitle;
-  
+
   // Coordinates for Matrices & Scatters
   final double xValue;
   final double yValue;

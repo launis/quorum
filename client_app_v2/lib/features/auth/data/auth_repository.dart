@@ -66,7 +66,9 @@ class AuthRepository {
         return Left(AppException.unauthorized());
       }
       // Strict Localization: Map generic Auth failure to unknown validation error
-      return Left(AppException.validation(ValidationErrorReason.unknown.toString()));
+      return Left(
+        AppException.validation(ValidationErrorReason.unknown.toString()),
+      );
     } on DioException catch (e) {
       if (e.response != null && e.response!.data != null) {
         final data = e.response!.data;

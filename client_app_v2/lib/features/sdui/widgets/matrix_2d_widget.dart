@@ -12,16 +12,17 @@ class Matrix2DWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Data constraints clamping safely without Math assumptions 
+    // 1. Data constraints clamping safely without Math assumptions
     final xMax = component.xScaleMax > 0 ? component.xScaleMax : 6.0;
     final yMax = component.yScaleMax > 0 ? component.yScaleMax : 6.0;
-    
+
     final x = component.xValue.clamp(0.0, xMax);
     final y = component.yValue.clamp(0.0, yMax);
 
     // 2. Percentage plotting
     final double xPct = x / xMax;
-    final double yPct = 1.0 - (y / yMax); // Inverted Y-axis in CSS/Flutter (0 is top)
+    final double yPct =
+        1.0 - (y / yMax); // Inverted Y-axis in CSS/Flutter (0 is top)
 
     return Card(
       elevation: 0,
@@ -44,24 +45,20 @@ class Matrix2DWidget extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 24),
-            
+
             // Flex Layout: Graph on Left, Data on Right
             LayoutBuilder(
               builder: (context, constraints) {
                 final isSmall = constraints.maxWidth < 500;
-                
+
                 final graph = _buildGraph(context, xPct, yPct);
                 final dataBoxes = _buildDataBoxes(context);
 
                 if (isSmall) {
-                   return Column(
-                     crossAxisAlignment: CrossAxisAlignment.center,
-                     children: [
-                       graph,
-                       const SizedBox(height: 32),
-                       dataBoxes,
-                     ],
-                   );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [graph, const SizedBox(height: 32), dataBoxes],
+                  );
                 }
 
                 return Row(
@@ -74,13 +71,25 @@ class Matrix2DWidget extends StatelessWidget {
                 );
               },
             ),
-            
+
             const SizedBox(height: 24),
             // Justifications
             if (component.xNoteText.isNotEmpty)
-              _buildJustificationBox(SduiTranslator.translate(context, component.xTitle), component.xNoteText, const Color(0xFF4CAF50), x, xMax),
+              _buildJustificationBox(
+                SduiTranslator.translate(context, component.xTitle),
+                component.xNoteText,
+                const Color(0xFF4CAF50),
+                x,
+                xMax,
+              ),
             if (component.yNoteText.isNotEmpty)
-              _buildJustificationBox(SduiTranslator.translate(context, component.yTitle), component.yNoteText, const Color(0xFFFF9800), y, yMax),
+              _buildJustificationBox(
+                SduiTranslator.translate(context, component.yTitle),
+                component.yNoteText,
+                const Color(0xFFFF9800),
+                y,
+                yMax,
+              ),
           ],
         ),
       ),
@@ -89,8 +98,10 @@ class Matrix2DWidget extends StatelessWidget {
 
   Widget _buildGraph(BuildContext context, double xPct, double yPct) {
     final l10n = AppLocalizations.of(context);
-    final xLabel = '${l10n?.xAxisLabel ?? "X-Axis"} - ${SduiTranslator.translate(context, component.xTitle)}';
-    final yLabel = '${l10n?.yAxisLabel ?? "Y-Axis"} - ${SduiTranslator.translate(context, component.yTitle)}';
+    final xLabel =
+        '${l10n?.xAxisLabel ?? "X-Axis"} - ${SduiTranslator.translate(context, component.xTitle)}';
+    final yLabel =
+        '${l10n?.yAxisLabel ?? "Y-Axis"} - ${SduiTranslator.translate(context, component.yTitle)}';
 
     return Container(
       width: 200,
@@ -104,25 +115,55 @@ class Matrix2DWidget extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           // Grid lines
-          Positioned(top: 200 / 3, left: 0, right: 0, child: _dashedLine(horizontal: true)),
-          Positioned(top: (200 / 3) * 2, left: 0, right: 0, child: _dashedLine(horizontal: true)),
-          Positioned(left: 200 / 3, top: 0, bottom: 0, child: _dashedLine(horizontal: false)),
-          Positioned(left: (200 / 3) * 2, top: 0, bottom: 0, child: _dashedLine(horizontal: false)),
+          Positioned(
+            top: 200 / 3,
+            left: 0,
+            right: 0,
+            child: _dashedLine(horizontal: true),
+          ),
+          Positioned(
+            top: (200 / 3) * 2,
+            left: 0,
+            right: 0,
+            child: _dashedLine(horizontal: true),
+          ),
+          Positioned(
+            left: 200 / 3,
+            top: 0,
+            bottom: 0,
+            child: _dashedLine(horizontal: false),
+          ),
+          Positioned(
+            left: (200 / 3) * 2,
+            top: 0,
+            bottom: 0,
+            child: _dashedLine(horizontal: false),
+          ),
 
           // The Dot
           Positioned(
             left: (xPct * 200) - 10,
             top: (yPct * 200) - 10,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE91E63),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-                ],
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => _showNotesModal(context),
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE91E63),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -135,7 +176,11 @@ class Matrix2DWidget extends StatelessWidget {
             child: Text(
               xLabel,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black54),
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -149,7 +194,11 @@ class Matrix2DWidget extends StatelessWidget {
               child: Text(
                 yLabel,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black54),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black54,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -165,7 +214,8 @@ class Matrix2DWidget extends StatelessWidget {
       builder: (context, constraints) {
         final boxHeight = horizontal ? 1.0 : constraints.constrainHeight();
         final boxWidth = horizontal ? constraints.constrainWidth() : 1.0;
-        final dashCount = (horizontal ? boxWidth : boxHeight) / 5.0; // 5 = dash + space
+        final dashCount =
+            (horizontal ? boxWidth : boxHeight) / 5.0; // 5 = dash + space
 
         return Flex(
           direction: horizontal ? Axis.horizontal : Axis.vertical,
@@ -174,7 +224,9 @@ class Matrix2DWidget extends StatelessWidget {
             return SizedBox(
               width: horizontal ? 2.5 : 1,
               height: horizontal ? 1 : 2.5,
-              child: const DecoratedBox(decoration: BoxDecoration(color: Colors.black26)),
+              child: const DecoratedBox(
+                decoration: BoxDecoration(color: Colors.black26),
+              ),
             );
           }),
         );
@@ -186,21 +238,46 @@ class Matrix2DWidget extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final xTitle = SduiTranslator.translate(context, component.xTitle);
     final yTitle = SduiTranslator.translate(context, component.yTitle);
-    
+
     final xLabel = l10n?.xAxisLabel ?? "X-Axis";
     final yLabel = l10n?.yAxisLabel ?? "Y-Axis";
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildDataBox(xLabel, xTitle, component.xValue, component.xScaleMax, const Color(0xFF4CAF50), component.xScaleText)),
+        Expanded(
+          child: _buildDataBox(
+            xLabel,
+            xTitle,
+            component.xValue,
+            component.xScaleMax,
+            const Color(0xFF4CAF50),
+            component.xScaleText,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildDataBox(yLabel, yTitle, component.yValue, component.yScaleMax, const Color(0xFFFF9800), component.yScaleText)),
+        Expanded(
+          child: _buildDataBox(
+            yLabel,
+            yTitle,
+            component.yValue,
+            component.yScaleMax,
+            const Color(0xFFFF9800),
+            component.yScaleText,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildDataBox(String axisName, String axisTitle, double val, double max, Color color, String scaleText) {
+  Widget _buildDataBox(
+    String axisName,
+    String axisTitle,
+    double val,
+    double max,
+    Color color,
+    String scaleText,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: Container(
@@ -220,31 +297,53 @@ class Matrix2DWidget extends StatelessWidget {
                 children: [
                   Text(
                     axisName.toUpperCase(),
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black54,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (axisTitle.isNotEmpty)
                     Text(
                       axisTitle.toUpperCase(),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   const SizedBox(height: 12),
                   Text(
                     '${val.toStringAsFixed(1)} /',
-                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: color, height: 1.0),
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                      height: 1.0,
+                    ),
                   ),
                   Text(
                     (max > 0 ? max : 6.0).toStringAsFixed(1),
-                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: color, height: 1.0),
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                      height: 1.0,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   if (scaleText.isNotEmpty)
                     Text(
                       scaleText,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
                     ),
                 ],
               ),
@@ -255,14 +354,18 @@ class Matrix2DWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildJustificationBox(String title, String note, Color color, double val, double max) {
+  Widget _buildJustificationBox(
+    String title,
+    String note,
+    Color color,
+    double val,
+    double max,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: Container(
         margin: const EdgeInsets.only(top: 8, bottom: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
-        ),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.05)),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -276,22 +379,30 @@ class Matrix2DWidget extends StatelessWidget {
                     children: [
                       RichText(
                         text: TextSpan(
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
                           children: [
                             TextSpan(text: "$title "),
                             TextSpan(
-                              text: '(${val.toStringAsFixed(1)} / ${(max > 0 ? max : 6.0).toStringAsFixed(1)}):',
+                              text:
+                                  '(${val.toStringAsFixed(1)} / ${(max > 0 ? max : 6.0).toStringAsFixed(1)}):',
                               style: const TextStyle(color: Colors.black87),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 6),
-                      // Markdown for rich text notes
                       MarkdownBody(
                         data: note,
                         styleSheet: MarkdownStyleSheet(
-                          p: const TextStyle(fontSize: 13, height: 1.5, color: Colors.black87),
+                          p: const TextStyle(
+                            fontSize: 13,
+                            height: 1.5,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ],
@@ -302,6 +413,58 @@ class Matrix2DWidget extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showNotesModal(BuildContext context) {
+    if (component.xNoteText.isEmpty && component.yNoteText.isEmpty) {
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context)!.detailedBreakdown),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (component.xNoteText.isNotEmpty) ...[
+                  Text(
+                    SduiTranslator.translate(context, component.xTitle),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF4CAF50),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  MarkdownBody(data: component.xNoteText),
+                  const SizedBox(height: 16),
+                ],
+                if (component.yNoteText.isNotEmpty) ...[
+                  Text(
+                    SduiTranslator.translate(context, component.yTitle),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFFF9800),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  MarkdownBody(data: component.yNoteText),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(AppLocalizations.of(context)!.close),
+            ),
+          ],
+        );
+      },
     );
   }
 }

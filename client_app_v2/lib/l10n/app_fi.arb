@@ -666,5 +666,6 @@
   "reportScore": "Kokonaispisteet",
   "xAxisLabel": "X-akseli",
   "yAxisLabel": "Y-akseli",
-  "zAxisLabel": "Z-akseli"
+  "zAxisLabel": "Z-akseli",
+  "downloadSuccess": "PDF ladattu onnistuneesti"
 }
