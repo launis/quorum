@@ -84,6 +84,8 @@ class SduiRenderer extends ConsumerWidget {
     String locale,
   ) {
     switch (comp.type) {
+      case 'grid_row':
+        return _buildGridRow(context, comp, locale);
       case 'header':
         return _buildHeader(context, comp);
       case '1d_gauge':
@@ -124,6 +126,27 @@ class SduiRenderer extends ConsumerWidget {
           textAlign: TextAlign.center,
         ),
       ),
+    );
+  }
+
+  Widget _buildGridRow(
+    BuildContext context,
+    SduiComponent comp,
+    String locale,
+  ) {
+    if (comp.children.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children:
+          comp.children.map((child) {
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: _buildComponent(context, child, locale),
+              ),
+            );
+          }).toList(),
     );
   }
 }

@@ -162,34 +162,41 @@ class BlueprintTransformer:
             # Fallback to just the raw slug if no translation available
             return slug
 
-        rendered_components = []
-
-        for comp in blueprint.components:
-            base_dict = comp.model_dump(mode="json")
-            comp_type = base_dict["type"]
+        def resolve_component(base_dict: dict) -> dict | None:
+            comp_type = base_dict.get("type")
+            if not comp_type:
+                return base_dict
 
             if comp_type == "header":
-                rendered_components.append(base_dict)
+                return base_dict
             elif comp_type == "metadata_header":
-                rendered_components.append(base_dict)
+                return base_dict
             elif comp_type == "bibliography_footer":
-                rendered_components.append(base_dict)
+                return base_dict
+            elif comp_type == "grid_row":
+                children = base_dict.get("children", [])
+                resolved_children = []
+                for child in children:
+                    resolved_child = resolve_component(child)
+                    if resolved_child:
+                        resolved_children.append(resolved_child)
+                base_dict["children"] = resolved_children
+                return base_dict
             elif comp_type == "1d_gauge":
-                val = resolve_data_path(base_dict["data_path"])
-                base_dict["value"] = safe_float_cast(val, base_dict["data_path"])
+                val = resolve_data_path(base_dict.get("data_path", ""))
+                base_dict["value"] = safe_float_cast(val, base_dict.get("data_path", ""))
                 if "data_path" in base_dict:
                     base_dict["scale_text"] = get_scale_text(base_dict["value"], base_dict["data_path"])
                     base_dict["scale_max"] = get_scale_max(base_dict["data_path"])
-                    # Use provided title from DB if it exists, otherwise resolve it from block translations
                     if "title" not in base_dict or not base_dict["title"]:
                         base_dict["title"] = get_block_title(base_dict["data_path"])
-                rendered_components.append(base_dict)
+                return base_dict
             elif comp_type == "2d_matrix":
-                x_val = resolve_data_path(base_dict["x_data_path"])
-                y_val = resolve_data_path(base_dict["y_data_path"])
+                x_val = resolve_data_path(base_dict.get("x_data_path", ""))
+                y_val = resolve_data_path(base_dict.get("y_data_path", ""))
 
-                base_dict["x_value"] = safe_float_cast(x_val, base_dict["x_data_path"])
-                base_dict["y_value"] = safe_float_cast(y_val, base_dict["y_data_path"])
+                base_dict["x_value"] = safe_float_cast(x_val, base_dict.get("x_data_path", ""))
+                base_dict["y_value"] = safe_float_cast(y_val, base_dict.get("y_data_path", ""))
 
                 if "x_data_path" in base_dict:
                     base_dict["x_scale_text"] = get_scale_text(base_dict["x_value"], base_dict["x_data_path"])
@@ -210,15 +217,15 @@ class BlueprintTransformer:
                 if base_dict.get("y_axis_note"):
                     base_dict["y_note_text"] = resolve_data_path(base_dict["y_axis_note"])
 
-                rendered_components.append(base_dict)
+                return base_dict
             elif comp_type == "3d_scatter":
-                x_val = resolve_data_path(base_dict["x_data_path"])
-                y_val = resolve_data_path(base_dict["y_data_path"])
-                z_val = resolve_data_path(base_dict["z_data_path"])
+                x_val = resolve_data_path(base_dict.get("x_data_path", ""))
+                y_val = resolve_data_path(base_dict.get("y_data_path", ""))
+                z_val = resolve_data_path(base_dict.get("z_data_path", ""))
 
-                base_dict["x_value"] = safe_float_cast(x_val, base_dict["x_data_path"])
-                base_dict["y_value"] = safe_float_cast(y_val, base_dict["y_data_path"])
-                base_dict["z_value"] = safe_float_cast(z_val, base_dict["z_data_path"])
+                base_dict["x_value"] = safe_float_cast(x_val, base_dict.get("x_data_path", ""))
+                base_dict["y_value"] = safe_float_cast(y_val, base_dict.get("y_data_path", ""))
+                base_dict["z_value"] = safe_float_cast(z_val, base_dict.get("z_data_path", ""))
 
                 if "x_data_path" in base_dict:
                     base_dict["x_scale_text"] = get_scale_text(base_dict["x_value"], base_dict["x_data_path"])
@@ -248,13 +255,22 @@ class BlueprintTransformer:
                 if base_dict.get("z_axis_note"):
                     base_dict["z_note_text"] = resolve_data_path(base_dict["z_axis_note"])
 
-                rendered_components.append(base_dict)
+                return base_dict
             elif comp_type == "evaluation_notes_panel":
                 resolved_notes = {}
-                for rp in base_dict["data_paths"]:
+                for rp in base_dict.get("data_paths", []):
                     resolved_notes[rp] = resolve_data_path(rp)
                 base_dict["resolved_notes"] = resolved_notes
-                rendered_components.append(base_dict)
+                return base_dict
+            else:
+                return base_dict
+
+        rendered_components = []
+        for comp in blueprint.components:
+            base_dict = comp.model_dump(mode="json")
+            resolved = resolve_component(base_dict)
+            if resolved:
+                rendered_components.append(resolved)
             else:
                 rendered_components.append(base_dict)
 

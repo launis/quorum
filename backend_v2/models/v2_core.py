@@ -481,10 +481,19 @@ class EvaluationNotesPanelComponent(BlueprintComponentBase):
     type: Literal["evaluation_notes_panel"]
     data_paths: list[str] = Field(description="Paths to evaluation_notes in $results")
 
-BlueprintComponentType = (
+BlueprintComponentWithoutGridType = (
     HeaderComponent | MetadataHeaderComponent | BibliographyFooterComponent
     | Gauge1DComponent | Matrix2DComponent | Scatter3DComponent | EvaluationNotesPanelComponent
 )
+
+class GridRowComponent(BlueprintComponentBase):
+    type: Literal["grid_row"]
+    columns: int = Field(default=2, ge=1, le=4, description="Number of horizontal columns for the grid (e.g. 2, 3)")
+    children: list[BlueprintComponentWithoutGridType] = Field(
+        default_factory=list, description="List of components inside this grid row (nested grids forbidden)."
+    )
+
+BlueprintComponentType = BlueprintComponentWithoutGridType | GridRowComponent
 
 class RenderBlueprint(V2CoreBase):
     """The Complete SDUI blueprint defining how to render execution results."""

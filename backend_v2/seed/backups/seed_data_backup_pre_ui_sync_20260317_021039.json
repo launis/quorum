@@ -3904,58 +3904,7 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ],
-            "render_blueprints": {
-                "default": {
-                    "version": "1.0",
-                    "components": [
-                        {
-                            "type": "header",
-                            "title": "Comprehensive V2 Execution Report"
-                        },
-                        {
-                            "type": "metadata_header"
-                        },
-                        {
-                            "type": "1d_gauge",
-                            "data_path": "$results.step_profiler.matrix_kahneman_normalized",
-                            "title": "Overall System Profile"
-                        },
-                        {
-                            "type": "grid_row",
-                            "columns": 2,
-                            "children": [
-                                {
-                                    "type": "2d_matrix",
-                                    "x_data_path": "$results.step_logician.matrix_toulmin",
-                                    "y_data_path": "$results.step_logician.matrix_bloom",
-                                    "x_axis_note": "$results.step_logician.matrix_toulmin_justification",
-                                    "y_axis_note": "$results.step_logician.matrix_bloom_justification"
-                                },
-                                {
-                                    "type": "3d_scatter",
-                                    "x_data_path": "$results.step_xai_reporter.matrix_xai_reporter",
-                                    "y_data_path": "$results.step_xai_reporter.matrix_taskxai_clarity",
-                                    "z_data_path": "$results.step_judge.matrix_judge_normalized",
-                                    "x_axis_note": "$results.step_xai_reporter.matrix_xai_reporter_justification",
-                                    "y_axis_note": "$results.step_xai_reporter.matrix_taskxai_clarity_justification",
-                                    "z_axis_note": "$results.step_judge.matrix_judge_justification"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "evaluation_notes_panel",
-                            "data_paths": [
-                                "$results.step_judge.evaluation_notes",
-                                "$results.step_falsifier.evaluation_notes"
-                            ]
-                        },
-                        {
-                            "type": "bibliography_footer"
-                        }
-                    ]
-                }
-            }
+            ]
         }
     ],
     "steps": [

@@ -27,7 +27,8 @@ When executing changes, strictly follow the Tier instructions in `docs\antigravi
 * **TIER 3 (Single Operation):** Use for single file edits, bug fixes, refactoring, code quality audits, or seed data changes.
 
 ## 🚨 CONFIGURATION BACKUP PROTOCOL
-**MANDATORY:** Whenever you are about to make changes to `backend_v2\seed\seed_data.json`, you MUST ALWAYS first:
+**MANDATORY:** Whenever you intend to make changes to the `data\db_v2.json` database, they MUST ALWAYS be done via the `backend_v2\seed\seed_data.json` database file first. Follow these steps strictly:
 1. Create a timestamped backup of the current state into the `backend_v2\seed\backups\` directory.
 2. Clearly notify the user about *why* you are making the change and *what* exact changes you intend to make.
-3. **WAIT for explicit confirmation from the user BEFORE applying any changes.** Do not proceed without permission.
+3. Verify the changes technically after modification (e.g., check that the array length or row count increased exactly as intended).
+4. **WAIT for explicit confirmation from the user BEFORE applying any changes.** Do not proceed to run `backend_v2\seed\run_seed.py local` to update the `data\db_v2.json` database without permission.

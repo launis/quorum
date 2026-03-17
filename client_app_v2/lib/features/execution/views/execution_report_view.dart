@@ -41,7 +41,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       await FileSaver.instance.saveAs(
         name: 'Report_${widget.executionId}',
         bytes: bytes,
-        ext: 'pdf',
+        fileExtension: 'pdf',
         mimeType: MimeType.pdf,
       );
 

@@ -140,8 +140,43 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            subtitle: Text(
-                              '${l10n.blueprintPropertyDataPath}: ${SafeCast.safeString(comp['data_path'])}',
+                            subtitle: Builder(
+                              builder: (context) {
+                                String text = '';
+                                if (type == 'grid_row') {
+                                  final children = SafeCast.safeList(
+                                    comp['children'],
+                                  );
+                                  final cols = SafeCast.safeInt(
+                                    comp['columns'],
+                                    2,
+                                  );
+                                  text =
+                                      'Grid Row ($cols saraketta) | Lapsikomponentteja: ${children.length}';
+                                } else if (comp.containsKey('data_path')) {
+                                  text =
+                                      '${l10n.blueprintPropertyDataPath}: ${SafeCast.safeString(comp['data_path'])}';
+                                } else if (comp.containsKey('x_data_path')) {
+                                  text =
+                                      'X: ${SafeCast.safeString(comp['x_data_path'])} | Y: ${SafeCast.safeString(comp['y_data_path'])}';
+                                  if (comp.containsKey('z_data_path')) {
+                                    text +=
+                                        ' | Z: ${SafeCast.safeString(comp['z_data_path'])}';
+                                  }
+                                } else if (comp.containsKey('title')) {
+                                  text =
+                                      '${l10n.blueprintPropertyTitle}: ${SafeCast.safeString(comp['title'])}';
+                                }
+
+                                if (text.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Text(
+                                  text,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              },
                             ),
                             leading: const Icon(Icons.drag_handle),
                             trailing: IconButton(
@@ -219,6 +254,10 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
                         value: 'metadata_header',
                         child: Text(l10n.blueprintComponentMetadataHeader),
                       ),
+                      const DropdownMenuItem(
+                        value: 'grid_row',
+                        child: Text('Grid Row (Rinnakkainen)'),
+                      ),
                       DropdownMenuItem(
                         value: 'bibliography_footer',
                         child: Text(l10n.blueprintComponentBibliography),
@@ -238,6 +277,98 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
                 FilledButton(
                   onPressed: () {
                     controller.addComponent(selectedType);
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Text(l10n.save),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAddChildDialog(
+    BuildContext context,
+    Map<String, dynamic> comp,
+    List<Map<String, dynamic>> children,
+    ValueChanged<Map<String, dynamic>> onChanged,
+    AppLocalizations l10n,
+  ) {
+    String selectedType = '1d_gauge';
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Lisää lapsikomponentti'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedType,
+                    decoration: const InputDecoration(labelText: 'Type'),
+                    items: [
+                      DropdownMenuItem(
+                        value: '1d_gauge',
+                        child: Text(l10n.blueprintComponent1dGauge),
+                      ),
+                      DropdownMenuItem(
+                        value: '2d_matrix',
+                        child: Text(l10n.blueprintComponent2dMatrix),
+                      ),
+                      DropdownMenuItem(
+                        value: '3d_scatter',
+                        child: Text(l10n.blueprintComponent3dScatter),
+                      ),
+                      DropdownMenuItem(
+                        value: 'evaluation_notes_panel',
+                        child: Text(l10n.blueprintComponentEvaluationNotes),
+                      ),
+                      DropdownMenuItem(
+                        value: 'header',
+                        child: Text(l10n.blueprintComponentHeader),
+                      ),
+                      DropdownMenuItem(
+                        value: 'metadata_header',
+                        child: Text(l10n.blueprintComponentMetadataHeader),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => selectedType = val);
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final newChild = <String, dynamic>{'type': selectedType};
+                    if (selectedType == '1d_gauge') {
+                      newChild['value'] = 0.0;
+                    } else if (selectedType == '2d_matrix' ||
+                        selectedType == '3d_scatter') {
+                      newChild['x_value'] = 0.0;
+                      newChild['y_value'] = 0.0;
+                      if (selectedType == '3d_scatter')
+                        newChild['z_value'] = 0.0;
+                    }
+
+                    final newComp = Map<String, dynamic>.from(comp);
+                    final newChildren = List<Map<String, dynamic>>.from(
+                      children,
+                    );
+                    newChildren.add(newChild);
+                    newComp['children'] = newChildren;
+
+                    onChanged(newComp);
                     Navigator.of(ctx).pop();
                   },
                   child: Text(l10n.save),
@@ -352,6 +483,111 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
             labelText: l10n.blueprintPropertyDataPathsInfo,
           ),
         ),
+      );
+    } else if (type == 'grid_row') {
+      final children = SafeCast.safeList(comp['children']);
+      final cols = SafeCast.safeInt(comp['columns'], 2);
+      final ctrl = TextEditingController(text: cols.toString());
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Focus(
+            onFocusChange: (f) {
+              if (!f) {
+                final newComp = Map<String, dynamic>.from(comp);
+                newComp['columns'] = int.tryParse(ctrl.text) ?? 2;
+                onChanged(newComp);
+              }
+            },
+            child: TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Sarakkeiden määrä (Columns)',
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Rinnakkaiset lapsikomponentit (${children.length}):',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          ...children.asMap().entries.map((entry) {
+            final childIndex = entry.key;
+            final childMap = SafeCast.safeMap(entry.value);
+            final childType = SafeCast.safeString(childMap['type']);
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8.0),
+              color: Colors.blueGrey.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '[$childIndex] $childType',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            color: Colors.red,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            final newComp = Map<String, dynamic>.from(comp);
+                            final currentChildrenList = SafeCast.safeList(
+                              newComp['children'],
+                            );
+                            final newChildren = List<Map<String, dynamic>>.from(
+                              currentChildrenList.map(
+                                (e) => SafeCast.safeMap(e),
+                              ),
+                            );
+                            newChildren.removeAt(childIndex);
+                            newComp['children'] = newChildren;
+                            onChanged(newComp);
+                          },
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    _buildComponentEditor(context, childMap, (updatedChild) {
+                      final newComp = Map<String, dynamic>.from(comp);
+                      final currentChildrenList = SafeCast.safeList(
+                        newComp['children'],
+                      );
+                      final newChildren = List<Map<String, dynamic>>.from(
+                        currentChildrenList.map((e) => SafeCast.safeMap(e)),
+                      );
+                      newChildren[childIndex] = updatedChild;
+                      newComp['children'] = newChildren;
+                      onChanged(newComp);
+                    }, l10n),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text('Lisää lapsikomponentti'),
+            onPressed: () {
+              final currentChildrenList = SafeCast.safeList(comp['children']);
+              final childMapList = List<Map<String, dynamic>>.from(
+                currentChildrenList.map((e) => SafeCast.safeMap(e)),
+              );
+              _showAddChildDialog(context, comp, childMapList, onChanged, l10n);
+            },
+          ),
+        ],
       );
     } else {
       return Center(

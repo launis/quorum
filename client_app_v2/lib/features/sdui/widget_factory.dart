@@ -36,6 +36,7 @@ class SDUIWidgetFactory {
 
     // V6 MVP Component Renderer using Dart 3 Pattern Matching
     Widget coreWidget = switch (widgetType) {
+      'grid_row' => _buildGridRow(hint, slug, results, locale, logger),
       'header' => _buildHeader(hint, locale),
       'metadata_header' => _buildMetadataHeader(hint, results, locale),
       'bibliography_footer' => _buildBibliographyFooter(hint, results, locale),
@@ -350,6 +351,37 @@ class SDUIWidgetFactory {
         description: label,
         displayValue: displayVal,
       ),
+    );
+  }
+
+  static Widget _buildGridRow(
+    Map<String, dynamic> hint,
+    String slug,
+    Map<String, dynamic> results,
+    String locale,
+    LoggerService logger,
+  ) {
+    final childrenHints = SafeCast.safeList(hint['children']);
+    if (childrenHints.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children:
+          childrenHints.map((childHint) {
+            final Map<String, dynamic> childMap = SafeCast.safeMap(childHint);
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: buildWidget(
+                  hint: childMap,
+                  slug: SafeCast.safeString(childMap['x_data_path'], slug),
+                  results: results,
+                  locale: locale,
+                  logger: logger,
+                ),
+              ),
+            );
+          }).toList(),
     );
   }
 }

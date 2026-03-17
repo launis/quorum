@@ -84,6 +84,10 @@ class SduiComponent {
   final String yScaleText;
   final String zScaleText;
 
+  // Grid Row support
+  final int columns;
+  final List<SduiComponent> children;
+
   const SduiComponent({
     required this.type,
     required this.title,
@@ -105,6 +109,8 @@ class SduiComponent {
     this.xScaleText = '',
     this.yScaleText = '',
     this.zScaleText = '',
+    this.columns = 2,
+    this.children = const [],
   });
 
   factory SduiComponent.fromJson(Map<String, dynamic> json) {
@@ -129,6 +135,11 @@ class SduiComponent {
       xScaleText: SafeCast.safeString(json['x_scale_text']),
       yScaleText: SafeCast.safeString(json['y_scale_text']),
       zScaleText: SafeCast.safeString(json['z_scale_text']),
+      columns: SafeCast.safeInt(json['columns'], 2),
+      children:
+          SafeCast.safeList(
+            json['children'],
+          ).map((c) => SduiComponent.fromJson(SafeCast.safeMap(c))).toList(),
     );
   }
 }
