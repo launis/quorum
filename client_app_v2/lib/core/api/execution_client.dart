@@ -26,14 +26,12 @@ class ExecutionClient {
   Future<Map<String, dynamic>> startExecution({
     required String workflowId,
     required Map<String, dynamic> rawInputs,
-    int strictnessLevel = 3,
   }) async {
     final response = await _dio.post(
       '/execution/executions/',
       data: {
         'workflow_id': workflowId,
         'raw_inputs': rawInputs,
-        'strictness_level': strictnessLevel,
       },
     );
 

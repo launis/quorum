@@ -196,18 +196,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 itemCount: promptBlocks.length,
                 itemBuilder: (context, index) {
                   final matrix = promptBlocks[index];
-                  final strictness =
-                      int.tryParse(
-                        matrix['strictness_level']?.toString() ?? '50',
-                      ) ??
-                      50;
                   final ruleCount = (matrix['criteria'] as List?)?.length ?? 0;
 
                   return Card(
                     child: ListTile(
                       title: Text(matrix['id']?.toString() ?? 'Unnamed'),
                       subtitle: Text(
-                        l10n.matrixSubtitle(strictness, ruleCount),
+                        l10n.matrixSubtitle(ruleCount),
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {

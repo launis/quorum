@@ -29,9 +29,8 @@ class ExecutionController extends _$ExecutionController {
   /// Starts an execution, sets the state to loading, and connects to SSE.
   Future<void> startExecution(
     String workflowId,
-    Map<String, dynamic> inputs, {
-    int strictnessLevel = 3,
-  }) async {
+    Map<String, dynamic> inputs,
+  ) async {
     state = const AsyncValue.loading();
     await _sseSubscription?.cancel();
 
@@ -40,7 +39,6 @@ class ExecutionController extends _$ExecutionController {
       final initialRecord = await client.startExecution(
         workflowId: workflowId,
         rawInputs: inputs,
-        strictnessLevel: strictnessLevel,
       );
 
       final executionId = initialRecord['id'] as String;

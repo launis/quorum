@@ -95,12 +95,6 @@ class DAGExecutor:
                 }
             }
 
-        # V2 Strictness Engine Metadata Injection
-        macro_strict = exec_record.strictness_level.value
-        micro_strict = 100 if macro_strict == 5 else 50
-        exec_record.metadata["macro_strictness_level"] = macro_strict
-        exec_record.metadata["micro_strictness_level"] = micro_strict
-
         # Upsert cleanly
         await self.repository.update_execution(
             execution_id,
@@ -370,54 +364,13 @@ class DAGExecutor:
             all_prompt_blocks = await self.repository.get_all_prompt_blocks()
             block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
 
-            # --- V2 Strictness Level: Cognitive Payload Injection ---
-            # Extract execution record to determine Strictness Level
-            # Default to CAUSAL (V1 max) if not found
-            strictness = 3
-            if execution_id:
-                exec_record_dict = await self.repository.get_execution(execution_id)
-                if exec_record_dict and hasattr(exec_record_dict, 'strictness_level'):
-                    strictness = exec_record_dict.strictness_level
-
             # Clone the block list so we don't mutate the db-loaded schema
             active_prompt_blocks = list(step_obj.prompt_blocks)
-
-            # Apply Zero-Trust / Falsification dynamic mutations
-            if strictness >= 4:
-                # Remove default judge completely if present
-                if "block_role_judge" in active_prompt_blocks:
-                    active_prompt_blocks.remove("block_role_judge")
-
-                # Falsification First applies to both 4 and 5
-                if "block_rule_falsification_first" not in active_prompt_blocks:
-                    active_prompt_blocks.append("block_rule_falsification_first")
-
-                # Level 5 gets Saboteur, Level 4 gets Prosecutor
-                if strictness == 5:
-                    if "block_role_saboteur" not in active_prompt_blocks:
-                        active_prompt_blocks.append("block_role_saboteur")
-                else:
-                    if "block_role_prosecutor" not in active_prompt_blocks:
-                        active_prompt_blocks.append("block_role_prosecutor")
-
-            if strictness == 5:
-                # Inject absolute Zero-Trust mandates and humility check
-                if "block_mandate_zerotrust" not in active_prompt_blocks:
-                    active_prompt_blocks.append("block_mandate_zerotrust")
-                if "block_rule_cognitiverequirement" not in active_prompt_blocks:
-                    active_prompt_blocks.append("block_rule_cognitiverequirement")
-                if "matrix_epistemic_humility" not in active_prompt_blocks:
-                    active_prompt_blocks.append("matrix_epistemic_humility")
 
             for m_id in active_prompt_blocks:
                 block_dict = block_map.get(m_id)
                 if block_dict:
                     from backend_v2.models.v2_core import PromptBlock
-
-                    # Apply absolute cognitive friction (Scale 100 fallback) for Level 5
-                    if strictness == 5 and block_dict.get("type", "float") == "float":
-                         block_dict["strictness_level"] = 100
-
                     PromptBlock.model_validate(block_dict) # Fail-Fast validation check
                     criteria_blocks.append(block_dict)
                 else:
@@ -486,17 +439,10 @@ class DAGExecutor:
                 if key in state_data:
                     final_dict[key] = state_data[key]
 
-            # Inject PromptBlock micro strictness metadata into the step result
-            micro_strictness_map = {
-                block["id"]: block.get("strictness_level", 50)
-                for block in criteria_blocks
-            }
-            if "_step_metadata" not in final_dict:
-                final_dict["_step_metadata"] = {}
-            final_dict["_step_metadata"]["micro_strictness_levels"] = micro_strictness_map
-
             # Inject Usage Metadata into the result for worker.py extraction
             if usage_dict:
+                if "_step_metadata" not in final_dict:
+                    final_dict["_step_metadata"] = {}
                 final_dict["_step_metadata"]["token_usage"] = {
                     "prompt_tokens": usage_dict.get("prompt_tokens", 0),
                     "completion_tokens": usage_dict.get("completion_tokens", 0),

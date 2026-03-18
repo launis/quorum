@@ -84,8 +84,8 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
-  String matrixSubtitle(int strictness, int rules) {
-    return 'Tiukkuus: $strictness | Sääntöjä: $rules';
+  String matrixSubtitle(int rules) {
+    return 'Sääntöjä: $rules';
   }
 
   @override

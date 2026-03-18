@@ -26,14 +26,6 @@ class ComponentType(str, Enum):
     CHECKBOX = "checkbox"
     HIDDEN = "hidden"
 
-class StrictnessLevel(int, Enum):
-    """Levels of Cognitive Evaluation Strictness (1-5)."""
-    GRICEAN = 1         # 20 - Cooperative
-    LITERAL = 2         # 40 - Mechanical
-    CAUSAL = 3          # 60 - Counterfactual (V1 Max)
-    FALSIFICATION = 4   # 80 - Antagonistic (Prosecutor)
-    ZERO_TRUST = 5      # 100 - Explicit Cognitive Friction
-
 
 class ExecutionStatus(str, Enum):
     """Execution lifecycle status."""

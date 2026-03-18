@@ -17,7 +17,6 @@ def test_prompt_block_allow_decimals_requires_numeric():
         category_id="test_cat",
         type=BlockDataType.STRING, # Valid
         allow_decimals=True,
-        strictness_level=50,
         require_justification=False
     )
     assert valid_block.allow_decimals is True
@@ -31,7 +30,6 @@ def test_prompt_block_allow_decimals_requires_numeric():
             category_id="test_cat",
             type=BlockDataType.INSTRUCTION, # Invalid for decimals
             allow_decimals=True,
-            strictness_level=50,
             require_justification=False
         )
     assert "allow_decimals is only valid for numeric logic" in str(exc_info.value)

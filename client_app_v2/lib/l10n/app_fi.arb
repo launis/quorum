@@ -16,7 +16,7 @@
   "fieldRequired": "Tämä kenttä on pakollinen.",
   "fileRequired": "Tämä tiedosto on pakollinen.",
   "workflowSubtitle": "Vaiheita: {steps} | Syötteitä: {inputs}",
-  "matrixSubtitle": "Tiukkuus: {strictness} | Sääntöjä: {rules}",
+  "matrixSubtitle": "Sääntöjä: {rules}",
   "dashboardTitle": "Viimeisimmät ajot",
   "totalRuns": "Ajot yhteensä",
   "inProgress": "Käynnissä",

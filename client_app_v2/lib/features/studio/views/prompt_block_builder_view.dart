@@ -60,7 +60,6 @@ class _PromptBlockBuilderFormState
     extends ConsumerState<_PromptBlockBuilderForm> {
   late Map<String, dynamic> _editablePromptBlock;
   late TextEditingController _idController;
-  late double _strictnessLevel;
 
   @override
   void initState() {
@@ -72,11 +71,6 @@ class _PromptBlockBuilderFormState
       text: SafeCast.safeString(_editablePromptBlock['id']),
     );
 
-    // Parse strictness level, defaulting to 50 if missing
-    _strictnessLevel =
-        _editablePromptBlock['strictness_level'] != null
-            ? SafeCast.safeDouble(_editablePromptBlock['strictness_level'])
-            : 50.0;
 
     if (!_editablePromptBlock.containsKey('criteria')) {
       _editablePromptBlock['criteria'] = [];
@@ -230,8 +224,7 @@ class _PromptBlockBuilderFormState
                 throw Exception('ID is required');
               }
               _editablePromptBlock['id'] = id;
-              _editablePromptBlock['strictness_level'] =
-                  _strictnessLevel.round();
+
               if (_editablePromptBlock['theory_grounding'] == null) {
                 _editablePromptBlock.remove('theory_grounding');
               }
@@ -275,27 +268,7 @@ class _PromptBlockBuilderFormState
                             widget.promptBlock['id'].toString().isEmpty,
                       ),
                       const SizedBox(height: 24),
-                      const Text(
-                        'Strictness Level (KIREYS) [0 = Merciful, 100 = Strict]',
-                      ),
-                      Row(
-                        children: [
-                          const Text('0'),
-                          Expanded(
-                            child: Slider(
-                              value: _strictnessLevel,
-                              min: 0,
-                              max: 100,
-                              divisions: 100,
-                              label: _strictnessLevel.round().toString(),
-                              onChanged:
-                                  (val) =>
-                                      setState(() => _strictnessLevel = val),
-                            ),
-                          ),
-                          const Text('100'),
-                        ],
-                      ),
+
                     ],
                   ),
                 ),

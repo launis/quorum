@@ -131,7 +131,7 @@ async def process_inputs(data: dict[str, Any], context: HookExecutionContext) ->
                 resolved_text = "\n\n".join(chat_lines)
 
                 logger.info(f"[InputProcessingHook] Successfully structured {key} via ChatParser (Markdown).")
-                
+
                 # --- [DEBUG INJECTION] ---
                 # V2 Zero-Waste sääntö poistaa tekstin muistista ajon jälkeen. Debug-tarkoituksessa
                 # tallennamme sen nyt kovalevylle, jotta käyttäjä näkee millaisen dialogin malli rakensi.

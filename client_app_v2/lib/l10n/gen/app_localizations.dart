@@ -236,11 +236,11 @@ abstract class AppLocalizations {
   /// **'Steps: {steps} | Inputs: {inputs}'**
   String workflowSubtitle(int steps, int inputs);
 
-  /// Subtitle showing matrix strictness and rule counts
+  /// Subtitle showing matrix rule counts
   ///
   /// In en, this message translates to:
-  /// **'Strictness: {strictness} | Rules: {rules}'**
-  String matrixSubtitle(int strictness, int rules);
+  /// **'Rules: {rules}'**
+  String matrixSubtitle(int rules);
 
   /// No description provided for @dashboardTitle.
   ///

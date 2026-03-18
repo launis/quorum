@@ -1,10 +1,9 @@
 import json
-import os
 
 SEED_FILE = r'c:\src\quorum\backend_v2\seed\seed_data.json'
 
 def migrate_ai_description():
-    with open(SEED_FILE, 'r', encoding='utf-8') as f:
+    with open(SEED_FILE, encoding='utf-8') as f:
         data = json.load(f)
 
     workflows = data.get("workflows", [])
@@ -17,14 +16,14 @@ def migrate_ai_description():
                 # Try to extract English translation
                 translations = ai_desc.get("translations", {})
                 en_text = translations.get("en", "")
-                
+
                 # If no english, fallback to fi
                 if not en_text:
                     en_text = translations.get("fi", "")
-                
+
                 inp["ai_description"] = en_text
                 count += 1
-                
+
     if count > 0:
         with open(SEED_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4, ensure_ascii=False)

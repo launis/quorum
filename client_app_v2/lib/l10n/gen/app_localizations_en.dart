@@ -84,8 +84,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String matrixSubtitle(int strictness, int rules) {
-    return 'Strictness: $strictness | Rules: $rules';
+  String matrixSubtitle(int rules) {
+    return 'Rules: $rules';
   }
 
   @override

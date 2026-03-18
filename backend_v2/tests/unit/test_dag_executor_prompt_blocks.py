@@ -18,7 +18,6 @@ def mock_repo():
             "category_id": "test",
             "type": BlockDataType.STRING,
             "allow_decimals": False,
-            "strictness_level": 50,
             "require_justification": False
         }
     ]
@@ -72,7 +71,6 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
         mock_repo.get_execution.return_value = {
             "id": "exec_123123123",
             "workflow_id": "wf_testwf1234",
-            "strictness_level": 3,
             "status": "running",
             "raw_inputs": {"chat_log": "dGVzdA=="},
             "metadata": {"target_locale": "fi"}

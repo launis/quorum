@@ -74,13 +74,10 @@
       }
     }
   },
-  "matrixSubtitle": "Strictness: {strictness} | Rules: {rules}",
+  "matrixSubtitle": "Rules: {rules}",
   "@matrixSubtitle": {
-    "description": "Subtitle showing matrix strictness and rule counts",
+    "description": "Subtitle showing matrix rule counts",
     "placeholders": {
-      "strictness": {
-        "type": "int"
-      },
       "rules": {
         "type": "int"
       }
