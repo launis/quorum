@@ -8,7 +8,9 @@ import 'package:client_app/features/studio/views/blueprint_editor_view.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/expected_input_editor_box.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/features/studio/utils/workflow_cloner.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 
@@ -177,6 +179,66 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
     });
   }
 
+  void _cloneWorkflow(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.workflowCloneBtn),
+        content: Text(AppLocalizations.of(context)!.workflowSharedBlueprintWarning),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              try {
+                final original = Map<String, dynamic>.from(_editableWorkflow);
+                final cloned = WorkflowCloner.cloneDeep(original);
+                
+                final nameMap = SafeCast.safeMap(cloned['name']);
+                if (nameMap.containsKey('translations')) {
+                  final translations = SafeCast.safeMap(nameMap['translations']);
+                  if (translations.containsKey('en')) {
+                     translations['en'] = 'Copy of ${translations['en']}';
+                  }
+                  if (translations.containsKey('fi')) {
+                     translations['fi'] = 'Kopio - ${translations['fi']}';
+                  }
+                  nameMap['translations'] = translations;
+                  cloned['name'] = nameMap;
+                }
+
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => WorkflowBuilderView(
+                      initialData: cloned,
+                      slug: 'new',
+                    ),
+                  ),
+                );
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.workflowCloneSuccess)),
+                );
+              } catch (e) {
+                final errorMsg = e is AppException ? AppExceptionX.extractLocalizedHint(e, AppLocalizations.of(context)!) : e.toString();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(errorMsg),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: Text(AppLocalizations.of(context)!.workflowCloneBtn),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _deleteWorkflow(
     BuildContext context,
     MutationState<void> deleteMutation,
@@ -275,12 +337,18 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
           l10n.workflowEditTitle
         ),
         actions: [
-          if (widget.workflow['id']?.toString().isNotEmpty == true)
+          if (widget.workflow['id']?.toString().isNotEmpty == true) ...[
+            IconButton(
+              onPressed: () => _cloneWorkflow(context),
+              icon: const Icon(Icons.content_copy),
+              tooltip: l10n.workflowCloneBtn,
+            ),
             IconButton(
               onPressed: () => _deleteWorkflow(context, deleteMutation),
               icon: const Icon(Icons.delete, color: Colors.red),
               tooltip: 'Delete',
             ),
+          ],
           MutationButton<Map<String, dynamic>>(
             mutation: saveMutation,
             label: 'Save',
@@ -289,10 +357,7 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
               final id = _idController.text.trim();
               final slug = _slugController.text.trim();
               if (id.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ID is required.')),
-                );
-                throw Exception('ID is required');
+                throw AppException.validation('ID is required');
               }
               _editableWorkflow['id'] = id;
               if (slug.isNotEmpty) {

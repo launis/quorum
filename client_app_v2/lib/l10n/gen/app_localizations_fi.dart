@@ -2114,4 +2114,18 @@ class AppLocalizationsFi extends AppLocalizations {
   String i18nTranslateToPlaceholder(String locale) {
     return 'Käännä kielelle $locale...';
   }
+
+  @override
+  String get workflowCloneBtn => 'Kopioi Työnkulku';
+
+  @override
+  String get workflowCloneSuccess => 'Työnkulku kopioitu onnistuneesti!';
+
+  @override
+  String get workflowCloneErrorMissingDep =>
+      'Kopiointi epäonnistui: Vaiheen riippuvuus osoittaa puuttuvaan vaiheeseen.';
+
+  @override
+  String get workflowSharedBlueprintWarning =>
+      'Huomio: Muokkaat jaettua PromptBlockia. Muutokset vaikuttavat kaikkiin tätä lohkoa käyttäviin työnkulkuihin.';
 }

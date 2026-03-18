@@ -3937,6 +3937,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Translate to {locale}...'**
   String i18nTranslateToPlaceholder(String locale);
+
+  /// No description provided for @workflowCloneBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone Workflow'**
+  String get workflowCloneBtn;
+
+  /// No description provided for @workflowCloneSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow cloned successfully!'**
+  String get workflowCloneSuccess;
+
+  /// No description provided for @workflowCloneErrorMissingDep.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone failed: Step dependency points to a non-existent step.'**
+  String get workflowCloneErrorMissingDep;
+
+  /// No description provided for @workflowSharedBlueprintWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block.'**
+  String get workflowSharedBlueprintWarning;
 }
 
 class _AppLocalizationsDelegate

@@ -65,11 +65,16 @@ class ChatParserService:
 
         SÄÄNNÖT:
         1. Erottele tekstistä ihmisen (user) ja tekoälyn (ai) viestit. 'role' tulee olla joko 'user' tai 'ai'.
-        2. Jätä täysin huomiotta kaikki käyttöliittymän roskateksti
+        2. KRIITTISTÄ - PDF-TULOSTEIDEN REKONSTRUKTIO: Käyttäjän syöte saattaa olla selaimentuloste (Print to PDF) ChatGPT-keskustelusta, jonka PyMuPDF on silppunnut pelkäksi pitkäksi tekstipötköksi vieden kaikki visuaaliset raja-aidat.
+           - Etsi toistuvia tunnisteita kuten henkilön nimi ("You", omanimi, initials) vs "ChatGPT", "AI".
+           - Vaikka näitä ei olisi, SINUN ON PÄÄTELTÄVÄ vuoronvaihdot kontekstista: ihmisen viestit ovat tyypillisesti kysymyksiä tai prompteja (esim. "Tee seuraavaksi...", "Mitä tarkoitat..."), jota seuraa koneen tuottama jäsennelty asiateksti.
+           - Yhdistä pirstaleinen teksti saumattomasti yhteen kunkin roolin ('user' tai 'ai') alle, palauttaen alkuperäisen kysymys-vastaus -rytmin! Mieluummin liian pitkiä blokkeja kuin liian pirstaleista.
+        3. Jätä täysin huomiotta kaikki käyttöliittymän roskateksti
            (esim. "Regenerate", "Copy code", aikaleimat, "Was this response better or worse?", 
            sivuvalikot, profiilien nimet).
         3. Oletus: viestit vuorottelevat. Jos teksti alkaa ihmisen kysymyksellä, ensimmäinen 'role' on 'user'.
         4. Palauta data TÄSMÄLLEEN pyydetyssä Pydantic JSON-muodossa.
+        5. VAROITUS (FAIL-SAFE): Jos raakateksti ei missään nimessä näytä keskustelulta (esim. se on vain sekava PDF-tuloste oppilaan oppimispäiväkirjasta tai esseestä ilman vuorosanoja), ÄLÄ KOSKAAN palauta tyhjää listaa. Tässä hätätapauksessa aseta koko teksti yhtenä pitkänä viestinä 'user'-roolille.
 
         Tässä on käsiteltävä raakateksti:
         <raakateksti>

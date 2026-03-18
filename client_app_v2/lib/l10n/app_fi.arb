@@ -694,5 +694,9 @@
         "example": "FI"
       }
     }
-  }
+  },
+  "workflowCloneBtn": "Kopioi Työnkulku",
+  "workflowCloneSuccess": "Työnkulku kopioitu onnistuneesti!",
+  "workflowCloneErrorMissingDep": "Kopiointi epäonnistui: Vaiheen riippuvuus osoittaa puuttuvaan vaiheeseen.",
+  "workflowSharedBlueprintWarning": "Huomio: Muokkaat jaettua PromptBlockia. Muutokset vaikuttavat kaikkiin tätä lohkoa käyttäviin työnkulkuihin."
 }

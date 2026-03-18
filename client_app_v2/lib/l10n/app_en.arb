@@ -957,5 +957,9 @@
         "example": "EN"
       }
     }
-  }
+  },
+  "workflowCloneBtn": "Clone Workflow",
+  "workflowCloneSuccess": "Workflow cloned successfully!",
+  "workflowCloneErrorMissingDep": "Clone failed: Step dependency points to a non-existent step.",
+  "workflowSharedBlueprintWarning": "Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block."
 }

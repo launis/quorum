@@ -2107,4 +2107,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String i18nTranslateToPlaceholder(String locale) {
     return 'Translate to $locale...';
   }
+
+  @override
+  String get workflowCloneBtn => 'Clone Workflow';
+
+  @override
+  String get workflowCloneSuccess => 'Workflow cloned successfully!';
+
+  @override
+  String get workflowCloneErrorMissingDep =>
+      'Clone failed: Step dependency points to a non-existent step.';
+
+  @override
+  String get workflowSharedBlueprintWarning =>
+      'Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block.';
 }

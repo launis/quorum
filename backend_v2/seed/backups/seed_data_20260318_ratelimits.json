@@ -11,8 +11,8 @@
                     "temperature": 0.5,
                     "top_p": null,
                     "supports_grounding": true,
-                    "tpm_limit": 30000,
-                    "rpm_limit": 2,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 10,
                     "parsing_mode": "GEMINI_JSON",
                     "is_active": true,
                     "provider": "google"
@@ -47,8 +47,8 @@
                     "temperature": 0.3,
                     "top_p": null,
                     "supports_grounding": false,
-                    "tpm_limit": 30000,
-                    "rpm_limit": 2,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 10,
                     "parsing_mode": "GEMINI_JSON",
                     "is_active": true,
                     "provider": "google"
@@ -59,8 +59,8 @@
                     "temperature": 0.1,
                     "top_p": null,
                     "supports_grounding": false,
-                    "tpm_limit": 30000,
-                    "rpm_limit": 2,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 10,
                     "parsing_mode": "GEMINI_JSON",
                     "is_active": true,
                     "provider": "google"

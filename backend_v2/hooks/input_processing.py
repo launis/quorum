@@ -131,6 +131,17 @@ async def process_inputs(data: dict[str, Any], context: HookExecutionContext) ->
                 resolved_text = "\n\n".join(chat_lines)
 
                 logger.info(f"[InputProcessingHook] Successfully structured {key} via ChatParser (Markdown).")
+                
+                # --- [DEBUG INJECTION] ---
+                # V2 Zero-Waste sääntö poistaa tekstin muistista ajon jälkeen. Debug-tarkoituksessa
+                # tallennamme sen nyt kovalevylle, jotta käyttäjä näkee millaisen dialogin malli rakensi.
+                try:
+                    with open(r"C:\src\quorum\data\chat_parser_debug_output.md", "w", encoding="utf-8") as _dbo:
+                        _dbo.write(resolved_text)
+                    logger.info("[InputProcessingHook] Debug-tiedosto 'chat_parser_debug_output.md' tallennettu!")
+                except Exception as e:
+                    logger.error(f"Debug-tallennus epäonnistui: {e}")
+                # -------------------------
             except Exception as e:
                 logger.error(f"[InputProcessingHook] Chat parsing failed for {key}: {e}")
                 if isinstance(e, AppException):
