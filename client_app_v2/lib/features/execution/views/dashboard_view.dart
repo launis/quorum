@@ -7,6 +7,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/features/execution/views/new_execution_view.dart';
 
 // Provider to fetch executions using SafeCast (No Freezed API DTOs)
 final executionListProvider = FutureProvider.autoDispose<
@@ -69,6 +70,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     });
 
     final asyncExecutions = ref.watch(executionListProvider);
+    final asyncWorkflows = ref.watch(availableWorkflowsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -122,11 +124,29 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                     '\nCost: \$${costEstimate.toStringAsFixed(6)} | Tokens: $totalTokens';
               }
 
+              // Resolve Workflow Name
+              String workflowDisplay = 'Workflow: $workflowId';
+              if (asyncWorkflows is AsyncData && asyncWorkflows.value != null) {
+                  final workflows = asyncWorkflows.value!;
+                  final wf = workflows.where((w) => SafeCast.safeString(w['id']) == workflowId).firstOrNull;
+                  if (wf != null) {
+                      final nameMap = SafeCast.safeMap(wf['name']);
+                      final titleStr = nameMap.isNotEmpty
+                          ? (nameMap['translations']?[nameMap['default_locale']] ??
+                              nameMap['default_locale'] ??
+                              workflowId)
+                          : (SafeCast.safeString(wf['name']).isNotEmpty
+                              ? SafeCast.safeString(wf['name'])
+                              : workflowId);
+                      workflowDisplay = 'Workflow: $titleStr';
+                  }
+              }
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   title: Text(
-                    'Workflow: $workflowId',
+                    workflowDisplay,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text('ID: $id\nCreated: $dateStr$metricsStr'),

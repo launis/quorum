@@ -86,6 +86,10 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_workflow_by_slug(self, slug: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
     async def create_workflow(self, workflow_data: dict[str, Any]) -> str:
         """Create a new append-only workflow."""
         pass
@@ -187,6 +191,10 @@ class AbstractWorkflowRepository(ABC):
     @abstractmethod
     async def get_prompt_block(self, block_id: str) -> dict[str, Any] | None:
         """Alias for get_prompt_block_by_id."""
+        pass
+
+    @abstractmethod
+    async def get_prompt_block_by_slug(self, slug: str) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
@@ -595,6 +603,10 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
         return await self.driver.get("workflows", workflow_id)
 
+    async def get_workflow_by_slug(self, slug: str) -> dict[str, Any] | None:
+        res = await self.driver.query("workflows", [Filter("slug", "==", slug)], limit=1)
+        return res[0] if res else None
+
     async def create_workflow(self, workflow_data: dict[str, Any]) -> str:
         doc_id = workflow_data["id"]
         return await self.driver.upsert("workflows", workflow_data, doc_id)
@@ -703,6 +715,10 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
         return await self.driver.get("prompt_blocks", block_id)
+
+    async def get_prompt_block_by_slug(self, slug: str) -> dict[str, Any] | None:
+        res = await self.driver.query("prompt_blocks", [Filter("slug", "==", slug)], limit=1)
+        return res[0] if res else None
 
     async def get_prompt_block(self, block_id: str) -> dict[str, Any] | None:
         """Alias for get_prompt_block_by_id."""
@@ -880,7 +896,9 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         await self.driver.clear("claims")
 
     async def get_model_registry(self) -> dict[str, Any]:
-        res = await self.driver.get("system_config", "model_registry")
+        from backend_v2.database.driver import Filter
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")], limit=1)
+        res = res_list[0] if res_list else None
         if not res:
             logger.error(
                 "[MockRepository] SYSTEM_CONFIG_NOT_FOUND: "
@@ -891,14 +909,18 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         return res
 
     async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
-        doc_id = registry_data.get("id", "model_registry")
+        from backend_v2.database.driver import Filter
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")], limit=1)
+        doc_id = res_list[0]["id"] if res_list else registry_data.get("id", "model_registry")
         if doc_id != "model_registry" and "slug" not in registry_data:
             registry_data["slug"] = "model_registry"
         await self.driver.upsert("system_config", registry_data, doc_id)
         return True
 
     async def get_system_settings(self) -> dict[str, Any] | None:
-        res = await self.driver.get("system_config", "global_settings")
+        from backend_v2.database.driver import Filter
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "global_settings")], limit=1)
+        res = res_list[0] if res_list else None
         if not res:
             logger.error(
                 "[MockRepository] SYSTEM_CONFIG_NOT_FOUND: "
@@ -909,7 +931,9 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         return res
 
     async def update_system_settings(self, updates: dict[str, Any]) -> bool:
-        doc_id = updates.get("id", "global_settings")
+        from backend_v2.database.driver import Filter
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "global_settings")], limit=1)
+        doc_id = res_list[0]["id"] if res_list else updates.get("id", "global_settings")
         if doc_id != "global_settings" and "slug" not in updates:
             updates["slug"] = "global_settings"
         await self.driver.upsert("system_config", updates, doc_id)

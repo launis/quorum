@@ -714,12 +714,13 @@
   "workflowEditTitle": "Edit DAG Workflow",
   "workflowConfigTitle": "Workflow Configuration",
   "workflowIdLabel": "Workflow ID (e.g. analysis_pipeline)",
+  "workflowSlugLabel": "Workflow Identifier (URL slug, lowercase and underscores only, e.g., holistic_audit)",
   "workflowNameLabel": "Workflow Name",
   "workflowInputsTitle": "Expected Inputs (Global Roles)",
   "workflowAddInputBtn": "Add Input",
   "workflowStepsTitle": "Execution Steps (DAG Graph)",
   "workflowAddStepBtn": "Add Step",
-  "workflowRoleKeyLabel": "Role Key (e.g. source_text)",
+  "workflowRoleKeyLabel": "Role Key (e.g. source_text, represents a global role)",
   "workflowDescLabel": "Description",
   "workflowTypeString": "String (Text)",
   "workflowTypeFile": "File (PDF/Word)",
@@ -734,7 +735,7 @@
   "workflowMappingHelperTitle": "How does Semantic Routing work?",
   "workflowMappingHelperDesc": "1. Left side (Agent Input Key) is the XML tag name the AI will use to read the data. In V2 Architecture, it is almost always just the word 'inputs' (lower_snake_case).\n2. Right side is the data source. '$inputs' captures all values provided by the user in the form. '$steps.step_x.outputs' directly connects the previous agent's output as an input here.\nTo pass a hardcoded rule (e.g. the word 'doctor'), simply type it on the right side without a dollar sign.",
   "workflowAddMappingBtn": "Add Mapping",
-  "workflowInputKeyLabel": "Input Key/Role (e.g. product_text)",
+  "workflowInputKeyLabel": "Input Key/Role (e.g. product_text, the role this input binds to in the workflow)",
   "workflowDeleteInputTooltip": "Delete Input",
   "workflowInputRequired": "Required",
   "workflowInputIsChatHistory": "Is Chat History (LLM Parse)",
@@ -742,8 +743,8 @@
   "inputModeFile": "file",
   "inputModePaste": "paste",
   "inputModeQuestionnaire": "questionnaire",
-  "workflowInputLabelTitle": "Label (UI Form Title)",
-  "workflowInputDescriptionTitle": "Description (UI Hint)",
+  "workflowInputLabelTitle": "Label (UI Form Title, e.g. 'Final Product')",
+  "workflowInputDescriptionTitle": "Description (UI Hint, e.g. 'Paste the final product in PDF format')",
   "workflowInputAiDescriptionTitle": "AI Semantic Description (For LLM Grounding)",
   "workflowInputQuestionnaireDefTitle": "Questionnaire Definition:",
   "workflowInputNoQuestionsDefined": "No questions defined yet. Add one below.",
@@ -930,5 +931,31 @@
   "blueprintPropertyYAxisNote": "Y Axis Note Path",
   "blueprintPropertyTitle": "Title (i18n Key or Text)",
   "blueprintPropertyDataPathsInfo": "Comma-separated paths",
-  "downloadSuccess": "PDF Downloaded Successfully"
+  "downloadSuccess": "PDF Downloaded Successfully",
+  "i18nAddLanguageVersion": "Add Language Version",
+  "i18nLanguageCodePlaceholder": "Language Code (e.g., en, sv)",
+  "i18nLanguageCodeHelp": "An inline editor box will be added for this language.",
+  "i18nCancel": "Cancel",
+  "i18nCreate": "Create",
+  "i18nAddTranslation": "Add Translation",
+  "i18nDefaultFormLabel": "Default Form ({locale} usually expected)",
+  "@i18nDefaultFormLabel": {
+    "placeholders": {
+      "locale": {
+        "type": "String",
+        "example": "EN"
+      }
+    }
+  },
+  "i18nOtherTranslations": "Other Translations:",
+  "i18nDeleteTranslation": "Delete translation",
+  "i18nTranslateToPlaceholder": "Translate to {locale}...",
+  "@i18nTranslateToPlaceholder": {
+    "placeholders": {
+      "locale": {
+        "type": "String",
+        "example": "EN"
+      }
+    }
+  }
 }

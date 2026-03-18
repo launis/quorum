@@ -12,14 +12,14 @@ from backend_v2.services.studio import StudioService
 
 # Mock Dependencies
 async def override_get_current_user():
-    return TokenData(email="test@test.com", id="user123", role=UserRole.ROOT, organization_id="test_org")
+    return TokenData(email="test@test.com", id="usr_12345678", role=UserRole.ROOT, organization_id="org_testorg123")
 
 @pytest.fixture
 def mock_studio_service():
     service = AsyncMock(spec=StudioService)
     # Configure mock responses
     pb = PromptBlock(
-        id="mock_pb_1",
+        id="blk_mockpb1234",
         slug="mock_pb_1",
         label=I18nText(default_locale="en", translations={"en": "Test Label"}),
         description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
@@ -47,13 +47,13 @@ def test_get_prompt_blocks(client, mock_studio_service):
          response = client.get("/studio/prompt-blocks") # Fallback pattern
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json()[0]["id"] == "mock_pb_1"
+    assert response.json()[0]["id"] == "blk_mockpb1234"
     mock_studio_service.list_prompt_blocks.assert_called_once()
 
 def test_delete_prompt_block(client, mock_studio_service):
-    response = client.delete("/api/v2/studio/prompt-blocks/mock_pb_1")
+    response = client.delete("/api/v2/studio/prompt-blocks/blk_mockpb1234")
     if response.status_code == 404:
-         response = client.delete("/studio/prompt-blocks/mock_pb_1")
+         response = client.delete("/studio/prompt-blocks/blk_mockpb1234")
     assert response.status_code == 200
-    assert response.json()["deleted_id"] == "mock_pb_1"
+    assert response.json()["deleted_id"] == "blk_mockpb1234"
     mock_studio_service.delete_prompt_block.assert_called_once()

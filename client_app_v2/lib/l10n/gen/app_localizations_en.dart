@@ -1619,6 +1619,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workflowIdLabel => 'Workflow ID (e.g. analysis_pipeline)';
 
   @override
+  String get workflowSlugLabel =>
+      'Workflow Identifier (URL slug, lowercase and underscores only, e.g., holistic_audit)';
+
+  @override
   String get workflowNameLabel => 'Workflow Name';
 
   @override
@@ -1634,7 +1638,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workflowAddStepBtn => 'Add Step';
 
   @override
-  String get workflowRoleKeyLabel => 'Role Key (e.g. source_text)';
+  String get workflowRoleKeyLabel =>
+      'Role Key (e.g. source_text, represents a global role)';
 
   @override
   String get workflowDescLabel => 'Description';
@@ -1680,7 +1685,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workflowAddMappingBtn => 'Add Mapping';
 
   @override
-  String get workflowInputKeyLabel => 'Input Key/Role (e.g. product_text)';
+  String get workflowInputKeyLabel =>
+      'Input Key/Role (e.g. product_text, the role this input binds to in the workflow)';
 
   @override
   String get workflowDeleteInputTooltip => 'Delete Input';
@@ -1704,10 +1710,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inputModeQuestionnaire => 'questionnaire';
 
   @override
-  String get workflowInputLabelTitle => 'Label (UI Form Title)';
+  String get workflowInputLabelTitle =>
+      'Label (UI Form Title, e.g. \'Final Product\')';
 
   @override
-  String get workflowInputDescriptionTitle => 'Description (UI Hint)';
+  String get workflowInputDescriptionTitle =>
+      'Description (UI Hint, e.g. \'Paste the final product in PDF format\')';
 
   @override
   String get workflowInputAiDescriptionTitle =>
@@ -2064,4 +2072,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadSuccess => 'PDF Downloaded Successfully';
+
+  @override
+  String get i18nAddLanguageVersion => 'Add Language Version';
+
+  @override
+  String get i18nLanguageCodePlaceholder => 'Language Code (e.g., en, sv)';
+
+  @override
+  String get i18nLanguageCodeHelp =>
+      'An inline editor box will be added for this language.';
+
+  @override
+  String get i18nCancel => 'Cancel';
+
+  @override
+  String get i18nCreate => 'Create';
+
+  @override
+  String get i18nAddTranslation => 'Add Translation';
+
+  @override
+  String i18nDefaultFormLabel(String locale) {
+    return 'Default Form ($locale usually expected)';
+  }
+
+  @override
+  String get i18nOtherTranslations => 'Other Translations:';
+
+  @override
+  String get i18nDeleteTranslation => 'Delete translation';
+
+  @override
+  String i18nTranslateToPlaceholder(String locale) {
+    return 'Translate to $locale...';
+  }
 }

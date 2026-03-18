@@ -199,7 +199,7 @@ class ExecutionService:
         # Strict Target Locale from Payload (Fail-Fast)
         target_locale = payload.target_locale
 
-        execution_id = str(uuid4())
+        execution_id = f"exe_{uuid4().hex}"
         initial_record = ExecutionRecord(
             id=execution_id,
             workflow_id=workflow.id,

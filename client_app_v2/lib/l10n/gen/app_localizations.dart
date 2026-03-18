@@ -3068,6 +3068,12 @@ abstract class AppLocalizations {
   /// **'Workflow ID (e.g. analysis_pipeline)'**
   String get workflowIdLabel;
 
+  /// No description provided for @workflowSlugLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow Identifier (URL slug, lowercase and underscores only, e.g., holistic_audit)'**
+  String get workflowSlugLabel;
+
   /// No description provided for @workflowNameLabel.
   ///
   /// In en, this message translates to:
@@ -3101,7 +3107,7 @@ abstract class AppLocalizations {
   /// No description provided for @workflowRoleKeyLabel.
   ///
   /// In en, this message translates to:
-  /// **'Role Key (e.g. source_text)'**
+  /// **'Role Key (e.g. source_text, represents a global role)'**
   String get workflowRoleKeyLabel;
 
   /// No description provided for @workflowDescLabel.
@@ -3191,7 +3197,7 @@ abstract class AppLocalizations {
   /// No description provided for @workflowInputKeyLabel.
   ///
   /// In en, this message translates to:
-  /// **'Input Key/Role (e.g. product_text)'**
+  /// **'Input Key/Role (e.g. product_text, the role this input binds to in the workflow)'**
   String get workflowInputKeyLabel;
 
   /// No description provided for @workflowDeleteInputTooltip.
@@ -3239,13 +3245,13 @@ abstract class AppLocalizations {
   /// No description provided for @workflowInputLabelTitle.
   ///
   /// In en, this message translates to:
-  /// **'Label (UI Form Title)'**
+  /// **'Label (UI Form Title, e.g. \'Final Product\')'**
   String get workflowInputLabelTitle;
 
   /// No description provided for @workflowInputDescriptionTitle.
   ///
   /// In en, this message translates to:
-  /// **'Description (UI Hint)'**
+  /// **'Description (UI Hint, e.g. \'Paste the final product in PDF format\')'**
   String get workflowInputDescriptionTitle;
 
   /// No description provided for @workflowInputAiDescriptionTitle.
@@ -3871,6 +3877,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PDF Downloaded Successfully'**
   String get downloadSuccess;
+
+  /// No description provided for @i18nAddLanguageVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Language Version'**
+  String get i18nAddLanguageVersion;
+
+  /// No description provided for @i18nLanguageCodePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Language Code (e.g., en, sv)'**
+  String get i18nLanguageCodePlaceholder;
+
+  /// No description provided for @i18nLanguageCodeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'An inline editor box will be added for this language.'**
+  String get i18nLanguageCodeHelp;
+
+  /// No description provided for @i18nCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get i18nCancel;
+
+  /// No description provided for @i18nCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get i18nCreate;
+
+  /// No description provided for @i18nAddTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Translation'**
+  String get i18nAddTranslation;
+
+  /// No description provided for @i18nDefaultFormLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Default Form ({locale} usually expected)'**
+  String i18nDefaultFormLabel(String locale);
+
+  /// No description provided for @i18nOtherTranslations.
+  ///
+  /// In en, this message translates to:
+  /// **'Other Translations:'**
+  String get i18nOtherTranslations;
+
+  /// No description provided for @i18nDeleteTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete translation'**
+  String get i18nDeleteTranslation;
+
+  /// No description provided for @i18nTranslateToPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate to {locale}...'**
+  String i18nTranslateToPlaceholder(String locale);
 }
 
 class _AppLocalizationsDelegate

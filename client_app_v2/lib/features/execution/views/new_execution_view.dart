@@ -294,12 +294,12 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
             return ListTile(
               title: Text(
-                '$titleStr\n($id)',
+                titleStr,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Text(
                 descStr,
-                maxLines: 2,
+                maxLines: 4,
                 overflow: TextOverflow.ellipsis,
               ),
               selected: isSelected,
@@ -337,10 +337,21 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         final item = SafeCast.safeMap(e);
         final key = SafeCast.safeString(item['input_key']);
         if (key.isNotEmpty) {
-          expectedInputsList.add(item);
+           expectedInputsList.add(item);
         }
       }
     }
+
+    // Prepare localized title for the header
+    final nameMap = SafeCast.safeMap(_selectedWorkflow!['name']);
+    final titleStr =
+        nameMap.isNotEmpty
+            ? (nameMap['translations']?[nameMap['default_locale']] ??
+                nameMap['default_locale'] ??
+                id)
+            : (SafeCast.safeString(_selectedWorkflow!['name']).isNotEmpty
+                ? SafeCast.safeString(_selectedWorkflow!['name'])
+                : id);
 
     if (expectedInputsList.isEmpty) {
       return Center(
@@ -367,7 +378,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.of(context)!.configureInputsFor(id),
+            AppLocalizations.of(context)!.configureInputsFor(titleStr),
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 24),

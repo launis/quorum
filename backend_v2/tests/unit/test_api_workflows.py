@@ -11,10 +11,10 @@ from backend_v2.services.studio import StudioService
 
 
 def mock_get_current_user_member():
-    return TokenData(email="member@test.com", id="user456", role=UserRole.MEMBER, organization_id="test_org")
+    return TokenData(email="member@test.com", id="usr_user45678", role=UserRole.MEMBER, organization_id="org_testorg123")
 
 def mock_get_current_user_root():
-    return TokenData(email="root@test.com", id="user999", role=UserRole.ROOT, organization_id="test_org")
+    return TokenData(email="root@test.com", id="usr_user99900", role=UserRole.ROOT, organization_id="org_testorg123")
 
 @pytest.fixture
 def mock_studio_service_manager():
@@ -34,21 +34,22 @@ def client_member(mock_studio_service_manager):
 
 def test_workflow_rbac_save_member_forbidden(client_member):
     payload = {
-        "id": "new_wf",
+        "id": "wf_new1234567",
         "name": {"default_locale": "en", "translations": {"en": "new"}},
         "description": {"default_locale": "en", "translations": {"en": "desc"}},
-        "organization_id": "test_org"
+        "organization_id": "org_testorg123",
+        "slug": "new_wf"
     }
-    response = client_member.put("/api/v2/studio/workflows/new_wf", json=payload)
+    response = client_member.put("/api/v2/studio/workflows/wf_new1234567", json=payload)
     if response.status_code == 404:
-        response = client_member.put("/studio/workflows/new_wf", json=payload)
+        response = client_member.put("/studio/workflows/wf_new1234567", json=payload)
 
     assert response.status_code == 403
     assert "Permission" in response.json()["detail"] or "ADMIN" in response.json()["detail"]
 
 def test_workflow_rbac_delete_member_forbidden(client_member):
-    response = client_member.delete("/api/v2/studio/workflows/some_id")
+    response = client_member.delete("/api/v2/studio/workflows/wf_someid123")
     if response.status_code == 404:
-        response = client_member.delete("/studio/workflows/some_id")
+        response = client_member.delete("/studio/workflows/wf_someid123")
 
     assert response.status_code == 403

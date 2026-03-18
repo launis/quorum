@@ -61,23 +61,42 @@ class PromptCompiler:
         logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}\nPayload: {text_obj}", exc_info=True)
         raise ConfigurationError(msg)
 
-    def build_xml_context(self, input_mappings: dict[str, str], state_data: dict[str, Any], target_locale: str) -> str:
+    def build_xml_context(
+        self,
+        input_mappings: dict[str, str],
+        state_data: dict[str, Any],
+        target_locale: str,
+        expected_inputs: list[Any] | None = None
+    ) -> str:
         """Build XML semantic blocks from raw input mappings for LLM context.
 
         Args:
             input_mappings: Dict mapping logical names to value paths/keys.
             state_data: The current workflow execution state containing values.
+            target_locale: The requested output locale string.
+            expected_inputs: Optional list of ExpectedInput definitions to extract ai_description.
 
         Returns:
             A single string containing XML-wrapped elements.
         """
         xml_blocks = []
 
+        # Build a lookup for expected inputs by input_key for ai_description injection
+        input_desc_map = {}
+        if expected_inputs:
+            for ei in expected_inputs:
+                key = getattr(ei, "input_key", None)
+                desc = getattr(ei, "ai_description", None)
+                if key and desc:
+                    input_desc_map[f"$inputs.{key}"] = desc
+
         for logical_name, source_path in input_mappings.items():
             value = self._extract_value_from_state(source_path, state_data)
             if value:
+                ai_desc = input_desc_map.get(source_path)
+                desc_text = f"CONTEXT DESCRIPTION FOR <{logical_name}>: {ai_desc}\n" if ai_desc else ""
                 # E.g. <target_conversation> value </target_conversation>
-                xml_blocks.append(f"<{logical_name}>\n{value}\n</{logical_name}>")
+                xml_blocks.append(f"{desc_text}<{logical_name}>\n{value}\n</{logical_name}>")
 
         compiled = "\n\n".join(xml_blocks)
 

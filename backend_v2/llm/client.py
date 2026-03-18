@@ -50,10 +50,11 @@ class LLMClient:
             # Fail Fast: Enforce strict dependency injection (Zero-Fallback)
             raise ConfigurationError("Repository dependency must be provided to LLMClient.from_strategy.")
 
-        # 1. Fetch Raw Registry
-        raw_registry = await repository.driver.get("system_config", "model_registry")
-        if not raw_registry:
-            raise ConfigurationError("System config 'model_registry' is missing or empty.")
+        # 1. Fetch Raw Registry (Opaque ID Standard Supported)
+        try:
+            raw_registry = await repository.get_model_registry()
+        except Exception as e:
+            raise ConfigurationError(f"System config 'model_registry' missing or query failed: {e}")
 
         # 2. Strict Pydantic Inflation (Flattened V2 structure)
         try:

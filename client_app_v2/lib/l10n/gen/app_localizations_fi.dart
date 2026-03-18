@@ -1622,6 +1622,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get workflowIdLabel => 'Työnkulun ID (esim. analyysi_putki)';
 
   @override
+  String get workflowSlugLabel =>
+      'Työnkulun tunniste (Ohjelmallinen URL slug, pelkkiä pieniä kirjaimia ja alaviivoja, esim. kokonaisvaltainen_auditointi)';
+
+  @override
   String get workflowNameLabel => 'Työnkulun Nimi';
 
   @override
@@ -1637,7 +1641,8 @@ class AppLocalizationsFi extends AppLocalizations {
   String get workflowAddStepBtn => 'Lisää Vaihe';
 
   @override
-  String get workflowRoleKeyLabel => 'Rooliavain (esim. source_text)';
+  String get workflowRoleKeyLabel =>
+      'Rooliavain (esim. source_text, edustaa globaalia roolia)';
 
   @override
   String get workflowDescLabel => 'Kuvaus';
@@ -1685,7 +1690,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get workflowInputKeyLabel =>
-      'Syötteen Avain/Rooli (esim. product_text)';
+      'Syötteen Avain/Rooli (esim. product_text, mihin rooliin tämä syöte sidotaan työnkulussa)';
 
   @override
   String get workflowDeleteInputTooltip => 'Poista Syöte';
@@ -1710,10 +1715,12 @@ class AppLocalizationsFi extends AppLocalizations {
   String get inputModeQuestionnaire => 'kysely';
 
   @override
-  String get workflowInputLabelTitle => 'Otsikko (UI-lomakkeen Nimi)';
+  String get workflowInputLabelTitle =>
+      'Otsikko (UI-lomakkeen Nimi, esim. \'Lopputuote\')';
 
   @override
-  String get workflowInputDescriptionTitle => 'Kuvaus (UI-vihje)';
+  String get workflowInputDescriptionTitle =>
+      'Kuvaus (UI-vihje, esim. \'Liitä lopputuote PDF muodossa\')';
 
   @override
   String get workflowInputAiDescriptionTitle =>
@@ -2072,4 +2079,39 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get downloadSuccess => 'PDF ladattu onnistuneesti';
+
+  @override
+  String get i18nAddLanguageVersion => 'Lisää kieliversio';
+
+  @override
+  String get i18nLanguageCodePlaceholder => 'Kielikoodi (esim. en, sv)';
+
+  @override
+  String get i18nLanguageCodeHelp =>
+      'Tälle kielelle lisätään oma tekstikenttä.';
+
+  @override
+  String get i18nCancel => 'Peruuta';
+
+  @override
+  String get i18nCreate => 'Luo';
+
+  @override
+  String get i18nAddTranslation => 'Lisää käännös';
+
+  @override
+  String i18nDefaultFormLabel(String locale) {
+    return 'Oletusmuoto (yleensä $locale)';
+  }
+
+  @override
+  String get i18nOtherTranslations => 'Muut käännökset:';
+
+  @override
+  String get i18nDeleteTranslation => 'Poista käännös';
+
+  @override
+  String i18nTranslateToPlaceholder(String locale) {
+    return 'Käännä kielelle $locale...';
+  }
 }

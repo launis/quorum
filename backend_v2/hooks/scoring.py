@@ -515,18 +515,20 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
         logger.debug("[ScoringHook] State is not a dictionary. Skipping.")
         return state
 
-    step_id = context.step_id
+    # Look up the PromptBlocks from the task_blueprint (the actual Step model schema)
+    # rather than the workflow's StepRule instance ID, which lacks the prompt_blocks array.
+    blueprint_id = context.task_blueprint or context.step_id
 
     content_payload = state
 
-    if not step_id:
-         logger.debug("[ScoringHook] No step_id found in execution context. Skipping.")
+    if not blueprint_id:
+         logger.debug("[ScoringHook] No blueprint_id or step_id found in execution context. Skipping.")
          return state
 
     try:
-        step_obj = await repository.get_step_by_id(step_id)
+        step_obj = await repository.get_step_by_id(blueprint_id)
         if not step_obj:
-            logger.warning(f"[ScoringHook] Step '{step_id}' not found in registry.")
+            logger.warning(f"[ScoringHook] Step blueprint '{blueprint_id}' not found in registry.")
             return state
 
         prompt_blocks_slugs = (

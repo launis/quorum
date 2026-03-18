@@ -183,7 +183,8 @@ class DAGExecutor:
                         frozen_ctx=frozen_ctx,
                         execution_id=execution_id,
                         workflow_id=workflow.id,
-                        metadata=exec_record.metadata
+                        metadata=exec_record.metadata,
+                        expected_inputs=workflow.expected_inputs
                     )
                     # State update is atomic per step constraint
                     state_data[step_obj.id] = result
@@ -284,7 +285,8 @@ class DAGExecutor:
         frozen_ctx: FrozenContext,
         execution_id: str,
         workflow_id: str,
-        metadata: dict[str, Any]
+        metadata: dict[str, Any],
+        expected_inputs: list[Any] | None = None
     ) -> Any:
         """Executes a single step: hook, agent, or conditional logic."""
         # 1. Condition Evaluation (Currently unsupported in V2 StepRule schema)
@@ -302,6 +304,7 @@ class DAGExecutor:
                 execution_id=execution_id,
                 workflow_id=workflow_id,
                 step_id=step.id,
+                task_blueprint=getattr(step, "task_blueprint", None),
                 metadata=metadata
             )
 
@@ -332,10 +335,15 @@ class DAGExecutor:
                 execution_id=execution_id,
                 workflow_id=workflow_id,
                 step_id=step.id,
+                task_blueprint=step.task_blueprint,
                 metadata=metadata
             )
 
-            for pre_hook in step_obj.pre_hooks:
+            # Combine pre-hooks from both the underlying Step and the specific StepRule,
+            # preserving order and ensuring uniqueness via dict.fromkeys
+            combined_pre_hooks = list(dict.fromkeys(step_obj.pre_hooks + step.pre_hooks))
+
+            for pre_hook in combined_pre_hooks:
                 logger.debug(f"Executing Pre-Hook: {pre_hook}")
                 # We assume pre-hooks modify state_data in-place or return updated dict.
                 result = await hook_registry.execute(pre_hook, state_data, hook_ctx)
@@ -353,7 +361,8 @@ class DAGExecutor:
             xml_ctx = self.compiler.build_xml_context(
                 input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},
                 state_data=state_data,
-                target_locale=target_locale # The LLM outputs in the user's localized language
+                target_locale=target_locale, # The LLM outputs in the user's localized language
+                expected_inputs=expected_inputs
             )
 
             # 3.2 Criteria Blocks Gathering (prompt_blocks)
@@ -459,7 +468,10 @@ class DAGExecutor:
             # Post hooks use the same scoped HookCtx, but we inject the global state securely
             hook_ctx.global_context_vars = safe_context
 
-            for post_hook in step_obj.post_hooks:
+            # Combine post-hooks from both the underlying Step and the specific StepRule
+            combined_post_hooks = list(dict.fromkeys(step_obj.post_hooks + step.post_hooks))
+
+            for post_hook in combined_post_hooks:
                 logger.debug(f"Executing Post-Hook: {post_hook}")
                 # Pass the LLM output dict to the post hook for manipulation/normalization
                 ph_result = await hook_registry.execute(post_hook, final_dict, hook_ctx)

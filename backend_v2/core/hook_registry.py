@@ -31,6 +31,7 @@ class HookExecutionContext:
     execution_id: str
     workflow_id: str
     step_id: str | None = None
+    task_blueprint: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     global_context_vars: dict[str, Any] = field(default_factory=dict)
 

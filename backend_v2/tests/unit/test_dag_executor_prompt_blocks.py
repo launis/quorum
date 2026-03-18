@@ -12,7 +12,7 @@ def mock_repo():
     from backend_v2.models.enums import BlockDataType
     repo.get_all_prompt_blocks.return_value = [
         {
-            "id": "block_test",
+            "id": "blk_blocktest1",
             "label": {"default_locale": "fi", "translations": {"fi": "Testi", "en": "Test"}},
             "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus", "en": "Desc"}},
             "category_id": "test",
@@ -23,10 +23,10 @@ def mock_repo():
         }
     ]
     repo.get_step_by_id.return_value = {
-        "id": "bp_1",
+        "id": "step_bp11111111",
         "slug": "task_bp",
         "name": {"default_locale": "fi", "translations": {"fi": "Vaihe", "en": "Step"}},
-        "prompt_blocks": ["block_test"],
+        "prompt_blocks": ["blk_blocktest1"],
         "pre_hooks": []
     }
     return repo
@@ -50,12 +50,12 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
 
     # Setup basic valid workflow
     workflow = Workflow(
-        id="wf_test",
+        id="wf_testwf1234",
         slug="wf_test_slug",
         name=I18nText(default_locale="en", translations={"en": "Test WF"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         steps=[
-            StepRule(id="step_1", task_blueprint="task_bp")
+            StepRule(id="step_11111111", task_blueprint="task_bp")
         ]
     )
 
@@ -70,8 +70,8 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
         mock_strategy.return_value = mock_bound_client
 
         mock_repo.get_execution.return_value = {
-            "id": "exec_123",
-            "workflow_id": "wf_test",
+            "id": "exec_123123123",
+            "workflow_id": "wf_testwf1234",
             "strictness_level": 3,
             "status": "running",
             "raw_inputs": {"chat_log": "dGVzdA=="},
@@ -83,7 +83,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
             mock_hooks.execute = AsyncMock(return_value={"inputs": {"chat_log": "dGVzdA=="}})
 
             record = await executor.execute_workflow(
-                execution_id="exec_123",
+                execution_id="exec_123123123",
                 workflow=workflow,
                 raw_inputs={"chat_log": "dGVzdA=="}
             )
@@ -92,4 +92,4 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
     mock_repo.get_all_prompt_blocks.assert_called_once()
     assert not hasattr(mock_repo, "get_all_matrices") or not mock_repo.get_all_matrices.called
     assert record.status == ExecutionStatus.COMPLETED
-    assert record.results["step_1"]["test_res"] == 1
+    assert record.results["step_11111111"]["test_res"] == 1

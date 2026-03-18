@@ -15,6 +15,11 @@ async def get_prompt_blocks(current_user: CurrentUserDep, studio_service: Studio
     """Retrieve all prompt blocks securely via SSOT Service Layer."""
     return await studio_service.list_prompt_blocks(current_user)
 
+@router.get("/by-slug/{slug}", response_model=PromptBlock)
+async def get_prompt_block_by_slug(slug: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> PromptBlock:
+    """Retrieve a specific prompt block by slug securely via SSOT Service Layer."""
+    return await studio_service.get_prompt_block_by_slug(current_user, slug)
+
 @router.get("/{id}", response_model=PromptBlock)
 async def get_prompt_block(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> PromptBlock:
     """Retrieve a specific prompt block securely via SSOT Service Layer."""

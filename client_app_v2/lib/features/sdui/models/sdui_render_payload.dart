@@ -53,7 +53,7 @@ class SduiComponent {
   final String type;
 
   // Header / Common
-  final String title;
+  final dynamic title;
 
   // 1D Gauge
   final double value;
@@ -61,9 +61,9 @@ class SduiComponent {
   final String scaleText;
 
   // 2D Matrix / 3D Scatter shared axis definitions
-  final String xTitle;
-  final String yTitle;
-  final String zTitle;
+  final dynamic xTitle;
+  final dynamic yTitle;
+  final dynamic zTitle;
 
   // Coordinates for Matrices & Scatters
   final double xValue;
@@ -90,13 +90,13 @@ class SduiComponent {
 
   const SduiComponent({
     required this.type,
-    required this.title,
+    this.title = '',
     required this.value,
     required this.scaleMax,
     required this.scaleText,
-    required this.xTitle,
-    required this.yTitle,
-    required this.zTitle,
+    this.xTitle = '',
+    this.yTitle = '',
+    this.zTitle = '',
     required this.xValue,
     required this.yValue,
     required this.zValue,
@@ -116,13 +116,13 @@ class SduiComponent {
   factory SduiComponent.fromJson(Map<String, dynamic> json) {
     return SduiComponent(
       type: SafeCast.safeString(json['type']),
-      title: SafeCast.safeString(json['title']),
+      title: json['title'] ?? '',
       value: SafeCast.safeDouble(json['value']),
       scaleMax: SafeCast.safeDouble(json['scale_max']),
       scaleText: SafeCast.safeString(json['scale_text']),
-      xTitle: SafeCast.safeString(json['x_title']),
-      yTitle: SafeCast.safeString(json['y_title']),
-      zTitle: SafeCast.safeString(json['z_title']),
+      xTitle: json['x_title'] ?? '',
+      yTitle: json['y_title'] ?? '',
+      zTitle: json['z_title'] ?? '',
       xValue: SafeCast.safeDouble(json['x_value']),
       yValue: SafeCast.safeDouble(json['y_value']),
       zValue: SafeCast.safeDouble(json['z_value']),

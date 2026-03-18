@@ -225,7 +225,7 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
       factory: $WorkflowNewRoute._fromState,
     ),
     GoRouteData.$route(
-      path: 'workflow/edit',
+      path: 'workflow/edit/:slug',
       factory: $WorkflowEditRoute._fromState,
     ),
     GoRouteData.$route(
@@ -233,7 +233,7 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
       factory: $PromptBlockNewRoute._fromState,
     ),
     GoRouteData.$route(
-      path: 'prompt-block/edit',
+      path: 'prompt-block/edit/:slug',
       factory: $PromptBlockEditRoute._fromState,
     ),
     GoRouteData.$route(path: 'step/new', factory: $StepNewRoute._fromState),
@@ -284,13 +284,17 @@ mixin $WorkflowNewRoute on GoRouteData {
 }
 
 mixin $WorkflowEditRoute on GoRouteData {
-  static WorkflowEditRoute _fromState(GoRouterState state) =>
-      WorkflowEditRoute($extra: state.extra as Map<String, dynamic>?);
+  static WorkflowEditRoute _fromState(GoRouterState state) => WorkflowEditRoute(
+    slug: state.pathParameters['slug']!,
+    $extra: state.extra as Map<String, dynamic>?,
+  );
 
   WorkflowEditRoute get _self => this as WorkflowEditRoute;
 
   @override
-  String get location => GoRouteData.$location('/admin/workflow/edit');
+  String get location => GoRouteData.$location(
+    '/admin/workflow/edit/${Uri.encodeComponent(_self.slug)}',
+  );
 
   @override
   void go(BuildContext context) => context.go(location, extra: _self.$extra);
@@ -331,12 +335,17 @@ mixin $PromptBlockNewRoute on GoRouteData {
 
 mixin $PromptBlockEditRoute on GoRouteData {
   static PromptBlockEditRoute _fromState(GoRouterState state) =>
-      PromptBlockEditRoute($extra: state.extra as Map<String, dynamic>?);
+      PromptBlockEditRoute(
+        slug: state.pathParameters['slug']!,
+        $extra: state.extra as Map<String, dynamic>?,
+      );
 
   PromptBlockEditRoute get _self => this as PromptBlockEditRoute;
 
   @override
-  String get location => GoRouteData.$location('/admin/prompt-block/edit');
+  String get location => GoRouteData.$location(
+    '/admin/prompt-block/edit/${Uri.encodeComponent(_self.slug)}',
+  );
 
   @override
   void go(BuildContext context) => context.go(location, extra: _self.$extra);

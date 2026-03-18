@@ -21,6 +21,7 @@ class ExpectedInputEditorBox extends StatefulWidget {
 
 class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
   late TextEditingController _keyController;
+  late TextEditingController _aiDescController;
   late bool _isRequired;
   late bool _isChatHistory;
 
@@ -35,6 +36,9 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
       widget.inputDef['is_chat_history'],
       false,
     );
+    _aiDescController = TextEditingController(
+      text: SafeCast.safeString(widget.inputDef['ai_description']),
+    );
   }
 
   @override
@@ -48,11 +52,15 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
       widget.inputDef['is_chat_history'],
       false,
     );
+    if (oldWidget.inputDef['ai_description'] != widget.inputDef['ai_description']) {
+      _aiDescController.text = SafeCast.safeString(widget.inputDef['ai_description']);
+    }
   }
 
   @override
   void dispose() {
     _keyController.dispose();
+    _aiDescController.dispose();
     super.dispose();
   }
 
@@ -222,13 +230,22 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               },
             ),
             const SizedBox(height: 16),
-            I18nTextField(
-              label: l10n.workflowInputAiDescriptionTitle,
-              initialData: SafeCast.safeMap(widget.inputDef['ai_description']),
-              onChanged: (val) {
-                widget.inputDef['ai_description'] = val;
-                _notifyChange();
+            Focus(
+              onFocusChange: (f) {
+                if (!f) {
+                  widget.inputDef['ai_description'] = _aiDescController.text.trim();
+                  _notifyChange();
+                }
               },
+              child: TextField(
+                controller: _aiDescController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: l10n.workflowInputAiDescriptionTitle,
+                  border: const OutlineInputBorder(),
+                  hintText: 'Always write prompt logic in English',
+                ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 8.0),

@@ -24,6 +24,12 @@ class StudioClient {
     return List<Map<String, dynamic>>.from(response.data as List);
   }
 
+  /// Retrieves a specific prompt block by slug.
+  Future<Map<String, dynamic>> getPromptBlockBySlug(String slug) async {
+    final response = await _dio.get('studio/prompt-blocks/by-slug/$slug');
+    return response.data as Map<String, dynamic>;
+  }
+
   /// Appends or updates a prompt block.
   /// In V2, blocks are append-only. This typically returns a new version ID.
   Future<Map<String, dynamic>> savePromptBlock(
@@ -45,6 +51,12 @@ class StudioClient {
   Future<List<Map<String, dynamic>>> getWorkflows() async {
     final response = await _dio.get('studio/workflows');
     return List<Map<String, dynamic>>.from(response.data as List);
+  }
+
+  /// Retrieves a specific workflow definition by slug.
+  Future<Map<String, dynamic>> getWorkflowBySlug(String slug) async {
+    final response = await _dio.get('studio/workflows/by-slug/$slug');
+    return response.data as Map<String, dynamic>;
   }
 
   /// Appends or updates a workflow definition.

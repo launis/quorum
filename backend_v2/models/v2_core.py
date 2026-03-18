@@ -98,10 +98,10 @@ class PromptBlock(V2CoreBase):
     """
 
     id: str = Field(
-        pattern=r"^[a-zA-Z][a-zA-Z0-9_]*$",
+        pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
         description=(
-            "Unique identifier for the prompt block. MUST be a valid Python identifier "
-            "(letters, numbers, underscores, starting with letter) to guarantee dynamic schema compilation."
+            "Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID "
+            "to guarantee dynamic schema compilation."
         )
     )
     slug: str = Field(description="Fallback slug identifier if id changes or for URL routing")
@@ -286,7 +286,7 @@ class ModelProfile(V2CoreBase):
 
 class SystemConfigModelRegistry(V2CoreBase):
     """V2 Flattened Model Registry System Config."""
-    id: str = Field(description="System config ID")
+    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="System config ID")
     slug: str = Field(description="Slug identifier")
     type: str = Field(default="model_registry", description="Type of config")
     models: dict[str, ModelProfile] = Field(
@@ -297,7 +297,7 @@ class Step(V2CoreBase):
     """Isolated, reusable orchestrator cognitive module (e.g. Guard or step_input_processing).
     Formerly known as TaskBlueprint.
     """
-    id: str = Field(description="Unique UUID for storage optionally")
+    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Unique UUID for storage optionally")
     slug: str = Field(description="Human-readable identifier (e.g., 'step_guard')")
     name: I18nText | str = Field(description="Localized step name or string name")
     description: I18nText | str | None = Field(default=None, description="Detailed step context")
@@ -331,7 +331,10 @@ class Step(V2CoreBase):
 
 class StepRule(V2CoreBase):
     """Execution step mapping (DAG Router Node)."""
-    id: str = Field(description="Unique node ID in the workflow (e.g. step_node_1).")
+    id: str = Field(
+        pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+        description="Unique node ID in the workflow (e.g. blk_node_1)."
+    )
     task_blueprint: str = Field(
         description="Slug reference to the isolated Step (e.g., 'step_input_processing')"
     )
@@ -353,7 +356,7 @@ class StepRule(V2CoreBase):
 
 class Role(V2CoreBase):
     """Role definition that locks physical models and pre_hooks."""
-    id: str
+    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Unique Role ID")
     name: I18nText
     model_role: str = Field(description="Maps to SystemConfig.model_mappings (e.g., \"analyst_model\").")
     pre_hooks: list[str] = Field(default_factory=list, description="List of registered hook logic to run BEFORE llm.")
@@ -381,7 +384,10 @@ class ExpectedInput(V2CoreBase):
         description="Allowed modes: 'file', 'paste', 'questionnaire'."
     )
     description: I18nText = Field(description="Localized description/help text.")
-    ai_description: I18nText = Field(description="Semantic description injected to LLM context.")
+    ai_description: str | None = Field(
+        default=None,
+        description="MANDATORY: English cognitive instructions for the LLM. Isolates AI prompt from UI localizations."
+    )
     questionnaire_definition: list[QuestionnaireItem] = Field(
         default_factory=list, description="Definitions if 'questionnaire' is in input_modes."
     )
@@ -504,7 +510,7 @@ class RenderBlueprint(V2CoreBase):
 
 class Workflow(V2CoreBase):
     """Dynamic Directed Acyclic Graph orchestrator model."""
-    id: str
+    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Unique Workflow ID")
     slug: str
     name: I18nText | str
     description: I18nText | str
@@ -639,13 +645,13 @@ class ExecutionCreate(V2CoreBase):
 
 class ExecutionStepState(V2CoreBase):
     """Real-time status tracking for a single DAG node."""
-    id: str = Field(description="Step ID")
+    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Step ID")
     label: str = Field(description="Localized label for UI tracking")
     status: str = Field(default="pending", description="Status: pending, running, completed, failed")
 
 class ExecutionRecord(V2CoreBase):
     """Record of a workflow execution, including the frozen context and results."""
-    id: str = Field(description="Execution ID, usually a uuid")
+    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
     strictness_level: StrictnessLevel = Field(
         default=StrictnessLevel.CAUSAL,

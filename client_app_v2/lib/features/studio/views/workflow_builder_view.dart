@@ -10,25 +10,55 @@ import 'package:client_app/features/studio/views/widgets/expected_input_editor_b
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// **Workflow DAG Builder**
 ///
 /// CRUD interface for managing Semantic Routing & DAG structures.
 /// Admin can define global inputs (`expected_inputs`) and sequence
 /// processing steps (`steps`) including `depends_on` and `input_mappings`.
-class WorkflowBuilderView extends StatefulHookConsumerWidget {
-  final Map<String, dynamic> workflow;
+class WorkflowBuilderView extends ConsumerWidget {
+  final String? slug;
+  final Map<String, dynamic>? initialData;
 
-  const WorkflowBuilderView({super.key, required this.workflow});
+  const WorkflowBuilderView({super.key, this.slug, this.initialData});
 
   @override
-  ConsumerState<WorkflowBuilderView> createState() =>
-      _WorkflowBuilderViewState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (initialData != null && initialData!.isNotEmpty) {
+      return _WorkflowBuilderForm(workflow: initialData!);
+    }
+    if (slug == null || slug!.isEmpty || slug == 'new') {
+      return const _WorkflowBuilderForm(workflow: {});
+    }
+
+    final asyncData = ref.watch(workflowBySlugProvider(slug!));
+    return asyncData.when(
+      data: (wf) => _WorkflowBuilderForm(workflow: wf),
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, st) => ErrorView(
+        error: e,
+        stackTrace: st,
+        onRetry: () => ref.invalidate(workflowBySlugProvider(slug!)),
+      ),
+    );
+  }
 }
 
-class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
+class _WorkflowBuilderForm extends StatefulHookConsumerWidget {
+  final Map<String, dynamic> workflow;
+
+  const _WorkflowBuilderForm({required this.workflow});
+
+  @override
+  ConsumerState<_WorkflowBuilderForm> createState() =>
+      _WorkflowBuilderFormState();
+}
+
+class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
   late Map<String, dynamic> _editableWorkflow;
   late TextEditingController _idController;
+  late TextEditingController _slugController;
 
   @override
   void initState() {
@@ -36,6 +66,9 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
     _editableWorkflow = Map<String, dynamic>.from(widget.workflow);
     _idController = TextEditingController(
       text: SafeCast.safeString(_editableWorkflow['id']),
+    );
+    _slugController = TextEditingController(
+      text: SafeCast.safeString(_editableWorkflow['slug']),
     );
 
     if (!_editableWorkflow.containsKey('expected_inputs')) {
@@ -61,6 +94,7 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
   @override
   void dispose() {
     _idController.dispose();
+    _slugController.dispose();
     super.dispose();
   }
 
@@ -235,7 +269,11 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
           tooltip: 'Back to Studio',
           onPressed: () => context.go('/admin'),
         ),
-        title: Text(l10n.workflowEditTitle),
+        title: Text(
+          (SafeCast.safeMap(widget.workflow['name'])['translations'] as Map?)?['fi'] ?? 
+          (SafeCast.safeMap(widget.workflow['name'])['translations'] as Map?)?['en'] ?? 
+          l10n.workflowEditTitle
+        ),
         actions: [
           if (widget.workflow['id']?.toString().isNotEmpty == true)
             IconButton(
@@ -249,6 +287,7 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
             icon: Icons.save,
             action: () async {
               final id = _idController.text.trim();
+              final slug = _slugController.text.trim();
               if (id.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('ID is required.')),
@@ -256,6 +295,11 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
                 throw Exception('ID is required');
               }
               _editableWorkflow['id'] = id;
+              if (slug.isNotEmpty) {
+                _editableWorkflow['slug'] = slug;
+              } else {
+                _editableWorkflow.remove('slug');
+              }
               return ref
                   .read(workflowsControllerProvider.notifier)
                   .saveWorkflow(id, _editableWorkflow);
@@ -294,6 +338,16 @@ class _WorkflowBuilderViewState extends ConsumerState<WorkflowBuilderView> {
                         enabled:
                             widget.workflow['id'] == null ||
                             widget.workflow['id'].toString().isEmpty,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _slugController,
+                        decoration: InputDecoration(
+                          // Fallback to English if generation fails during dev
+                          labelText: (l10n as dynamic).workflowSlugLabel ?? 'Workflow Slug (URL Path)',
+                          border: const OutlineInputBorder(),
+                        ),
+                        onChanged: (val) => _editableWorkflow['slug'] = val,
                       ),
                       const SizedBox(height: 16),
                       I18nTextField(

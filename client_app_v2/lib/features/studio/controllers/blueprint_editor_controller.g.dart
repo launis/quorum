@@ -57,7 +57,7 @@ final class BlueprintEditorControllerProvider
 }
 
 String _$blueprintEditorControllerHash() =>
-    r'8d30ba94208f611c6b11e38c254e1b4525fbbe6a';
+    r'2cf9bbfd7644142bce413b6795d5534eea4d4e64';
 
 /// **Blueprint Editor Controller**
 ///

@@ -9,6 +9,7 @@ import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
 import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// **Universal Matrix Builder**
 ///
@@ -17,18 +18,46 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 ///
 /// Integrates XAI (Explainable AI) controls directly into criteria definitions
 /// and provides a global "Strictness/Kireys" calibration slider.
-class PromptBlockBuilderView extends StatefulHookConsumerWidget {
-  final Map<String, dynamic> promptBlock;
+class PromptBlockBuilderView extends ConsumerWidget {
+  final String? slug;
+  final Map<String, dynamic>? initialData;
 
-  const PromptBlockBuilderView({super.key, required this.promptBlock});
+  const PromptBlockBuilderView({super.key, this.slug, this.initialData});
 
   @override
-  ConsumerState<PromptBlockBuilderView> createState() =>
-      _PromptBlockBuilderViewState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (initialData != null && initialData!.isNotEmpty) {
+      return _PromptBlockBuilderForm(promptBlock: initialData!);
+    }
+    if (slug == null || slug!.isEmpty || slug == 'new') {
+      return const _PromptBlockBuilderForm(promptBlock: {});
+    }
+
+    final asyncData = ref.watch(promptBlockBySlugProvider(slug!));
+    return asyncData.when(
+      data: (matrix) => _PromptBlockBuilderForm(promptBlock: matrix),
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, st) => ErrorView(
+        error: e,
+        stackTrace: st,
+        onRetry: () => ref.invalidate(promptBlockBySlugProvider(slug!)),
+      ),
+    );
+  }
 }
 
-class _PromptBlockBuilderViewState
-    extends ConsumerState<PromptBlockBuilderView> {
+class _PromptBlockBuilderForm extends StatefulHookConsumerWidget {
+  final Map<String, dynamic> promptBlock;
+
+  const _PromptBlockBuilderForm({required this.promptBlock});
+
+  @override
+  ConsumerState<_PromptBlockBuilderForm> createState() =>
+      _PromptBlockBuilderFormState();
+}
+
+class _PromptBlockBuilderFormState
+    extends ConsumerState<_PromptBlockBuilderForm> {
   late Map<String, dynamic> _editablePromptBlock;
   late TextEditingController _idController;
   late double _strictnessLevel;

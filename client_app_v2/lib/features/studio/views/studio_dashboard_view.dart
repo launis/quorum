@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/model_registry_view.dart';
+import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/router/router.dart';
 
 /// **Studio Dashboard View**
 ///
@@ -109,7 +111,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildSectionHeader(context, l10n.studioDashboardWorkflowsTitle, () {
-            context.go('/admin/workflow/new');
+            const WorkflowNewRoute().go(context);
           }),
           const SizedBox(height: 16),
           workflowsState.when(
@@ -127,13 +129,23 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
 
                   return Card(
                     child: ListTile(
-                      title: Text(workflow['id']?.toString() ?? 'Unnamed'),
+                      title: Text(
+                        (SafeCast.safeMap(workflow['name'])['translations'] as Map?)?['fi'] ?? 
+                        (SafeCast.safeMap(workflow['name'])['translations'] as Map?)?['en'] ?? 
+                        workflow['slug']?.toString() ??
+                        workflow['id']?.toString() ?? 
+                        'Unnamed',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       subtitle: Text(
                         l10n.workflowSubtitle(stepCount, inputCount),
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        context.go('/admin/workflow/edit', extra: workflow);
+                        WorkflowEditRoute(
+                          slug: workflow['slug'] ?? workflow['id'],
+                          $extra: workflow,
+                        ).go(context);
                       },
                     ),
                   );
@@ -171,7 +183,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildSectionHeader(context, l10n.studioDashboardMatricesTitle, () {
-            context.go('/admin/prompt-block/new');
+            const PromptBlockNewRoute().go(context);
           }),
           const SizedBox(height: 16),
           promptBlocksState.when(
@@ -199,7 +211,10 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        context.go('/admin/prompt-block/edit', extra: matrix);
+                        PromptBlockEditRoute(
+                          slug: matrix['slug'] ?? matrix['id'],
+                          $extra: matrix,
+                        ).go(context);
                       },
                     ),
                   );
@@ -237,7 +252,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildSectionHeader(context, 'Steps', () {
-            context.go('/admin/step/new');
+            const StepNewRoute().go(context);
           }),
           const SizedBox(height: 16),
           blueprintsState.when(
@@ -260,7 +275,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       subtitle: Text('Blocks: $blockCount | Hooks: $hookCount'),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        context.go('/admin/step/edit', extra: blueprint);
+                        StepEditRoute($extra: blueprint).go(context);
                       },
                     ),
                   );

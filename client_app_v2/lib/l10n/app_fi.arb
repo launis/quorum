@@ -534,12 +534,13 @@
   "workflowEditTitle": "Muokkaa DAG-työnkulkua",
   "workflowConfigTitle": "Työnkulun Asetukset",
   "workflowIdLabel": "Työnkulun ID (esim. analyysi_putki)",
+  "workflowSlugLabel": "Työnkulun tunniste (Ohjelmallinen URL slug, pelkkiä pieniä kirjaimia ja alaviivoja, esim. kokonaisvaltainen_auditointi)",
   "workflowNameLabel": "Työnkulun Nimi",
   "workflowInputsTitle": "Odotetut Syötteet (Globaalit Roolit)",
   "workflowAddInputBtn": "Lisää Syöte",
   "workflowStepsTitle": "Suoritusvaiheet (DAG-graafi)",
   "workflowAddStepBtn": "Lisää Vaihe",
-  "workflowRoleKeyLabel": "Rooliavain (esim. source_text)",
+  "workflowRoleKeyLabel": "Rooliavain (esim. source_text, edustaa globaalia roolia)",
   "workflowDescLabel": "Kuvaus",
   "workflowTypeString": "Merkkijono (Teksti)",
   "workflowTypeFile": "Tiedosto (PDF/Word)",
@@ -556,7 +557,7 @@
   "workflowAddMappingBtn": "Lisää Mappaus",
   "mockLoginSuccess": "Ylläpitokirjautuminen onnistui! Ohjataan...",
   "mockLoginFailed": "Ylläpitokirjautuminen epäonnistui: {error}",
-  "workflowInputKeyLabel": "Syötteen Avain/Rooli (esim. product_text)",
+  "workflowInputKeyLabel": "Syötteen Avain/Rooli (esim. product_text, mihin rooliin tämä syöte sidotaan työnkulussa)",
   "workflowDeleteInputTooltip": "Poista Syöte",
   "workflowInputRequired": "Pakollinen",
   "workflowInputIsChatHistory": "Onko Keskusteluhistoria (LLM-jäsennys)",
@@ -564,8 +565,8 @@
   "inputModeFile": "tiedosto",
   "inputModePaste": "teksti",
   "inputModeQuestionnaire": "kysely",
-  "workflowInputLabelTitle": "Otsikko (UI-lomakkeen Nimi)",
-  "workflowInputDescriptionTitle": "Kuvaus (UI-vihje)",
+  "workflowInputLabelTitle": "Otsikko (UI-lomakkeen Nimi, esim. 'Lopputuote')",
+  "workflowInputDescriptionTitle": "Kuvaus (UI-vihje, esim. 'Liitä lopputuote PDF muodossa')",
   "workflowInputAiDescriptionTitle": "Tekoälyn Semanttinen Kuvaus (LLM-pohjustus)",
   "workflowInputQuestionnaireDefTitle": "Kyselyn Määrittely:",
   "workflowInputNoQuestionsDefined": "Ei vielä määriteltyjä kysymyksiä. Lisää alle.",
@@ -667,5 +668,31 @@
   "xAxisLabel": "X-akseli",
   "yAxisLabel": "Y-akseli",
   "zAxisLabel": "Z-akseli",
-  "downloadSuccess": "PDF ladattu onnistuneesti"
+  "downloadSuccess": "PDF ladattu onnistuneesti",
+  "i18nAddLanguageVersion": "Lisää kieliversio",
+  "i18nLanguageCodePlaceholder": "Kielikoodi (esim. en, sv)",
+  "i18nLanguageCodeHelp": "Tälle kielelle lisätään oma tekstikenttä.",
+  "i18nCancel": "Peruuta",
+  "i18nCreate": "Luo",
+  "i18nAddTranslation": "Lisää käännös",
+  "i18nDefaultFormLabel": "Oletusmuoto (yleensä {locale})",
+  "@i18nDefaultFormLabel": {
+    "placeholders": {
+      "locale": {
+        "type": "String",
+        "example": "FI"
+      }
+    }
+  },
+  "i18nOtherTranslations": "Muut käännökset:",
+  "i18nDeleteTranslation": "Poista käännös",
+  "i18nTranslateToPlaceholder": "Käännä kielelle {locale}...",
+  "@i18nTranslateToPlaceholder": {
+    "placeholders": {
+      "locale": {
+        "type": "String",
+        "example": "FI"
+      }
+    }
+  }
 }

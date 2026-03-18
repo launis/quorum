@@ -9,7 +9,7 @@ Tämä dokumentti määrittelee dynaamisen, palvelinohjatun (SDUI) ja sataprosen
 3. **Schema-Driven AI (Dynaaminen Pydantic):** Tekoälyltä ei koskaan pyydetä tulosteen muotoa vapaassa tekstissä. Tulostevaatimukset käännetään lennosta OpenAPI JSON Schema -validointiluokiksi (`Structured Outputs`).
 4. **Universaali Mittausarkkitehtuuri ("PromptBlocks"):** Vapaamuotoiset laadulliset analyysit, numeeriset/desimaaliset mittaristot ja ohjeistukset yhdistetään yhdeksi "PromptBlock" -tietokantamalliksi poistaen siilot.
 5. **Arvioinnin Dynaaminen Kalibrointi (Model Strategy):** Järjestelmä erottaa kognitiiviset intentiot (`fast`, `deep`, `strict`, `precise`) fyysisistä malleista globaalissa `system_config` rekisterissä.
-6. **Teoriamaadoitettu XAI (Grounded Explainable AI):** Arviointimatriiseihin tallennetaan aina teorialähde (URL), joka syötetään tekoälylle *ennen* arviointia.
+6. **Empiirinen XAI (Grounded Explainable AI via MCP):** Arvioinnit eivät perustu sokeaan LLM-päättelyyn, vaan dynaamisiin Model Context Protocol (MCP) -verkkohakuihin, joiden löytämät absoluuttiset faktat sementoidaan näyttöinä osaksi muuttumatonta raporttia.
 7. **Dynaaminen Datan Reititys (Semantic Data Flow):** Työnkulkuun tulevan datan määrä on dynaaminen. Askeleet muodostavat suunnatun syklittömän verkon (DAG), jossa data reititetään nimenomaisilla `$inputs.` tai `$steps.` viittauksilla.
 8. **Ikuinen Auditoitavuus (Append-Only & Snapshotting):** Mitään kognitiivista palikkaa ei koskaan ylikirjoiteta ajon aikana. Historialliset ajot jäädyttävät suoritushetken absoluuttisen tilan (frozen_context).
 9. **Single Source of Truth (Domain Service Layer):** API-reitittimet ovat rakenteellisesti aneemisia. Kaikki tietokantaintegraatiot ja Tenant-eristys tapahtuvat suojatussa Service-kerroksessa.
@@ -47,9 +47,10 @@ Tietokanta on suunniteltu Firestoren varaan tuotannossa ja lokaalin `db_v2.json`
 * **system_configs:** Singleton-kokoelma, joka mapittaa kognitiiviset strategiat (fast, deep, strict) fyysisiin LLM-malleihin.
 
 ### KERROS 2: ORKESTRAATIO (Äly ja Työnkulut)
-* **prompt_blocks:** Sisältää kaikki kognitiiviset ohjeet (`type`: `instruction`, `matrix`, `hook`).
-* **steps:** Sitovat abstraktin ohjeen (`prompt_block`) kognitiiviseen strategiaan (`model_strategy`) tehden nieluista uudelleenkäytettäviä palikoita verkolle.
-* **workflows:** Määrittelevät dynaamiset syötteet (`expected_inputs`), riippuvuudet (`depends_on`) ja datareitityksen (`input_mappings`).
+* **prompt_blocks (Matrix & Rules):** Sisältää kaikki kognitiiviset ohjeet (`type`: `instruction`, `matrix`, `hook`).
+* **steps (TaskBlueprints):** Sitovat abstraktin ohjeen (`prompt_block`) kognitiiviseen strategiaan (`model_strategy`) tehden nieluista uudelleenkäytettäviä palikoita verkolle. Oletuksena näissä asuu myös sisäinen **ydin-hookkien** lista (`Step.pre/post_hooks`), joka ajetaan poikkeuksetta (esim. `json_parser_hook`) estääkseen kaatumiset missä tahansa työnkulussa.
+* **workflows (DAG Router):** Määrittelevät dynaamiset syötteet (`expected_inputs`). Työnkulun tärkein osa on `steps`-taulukko (Käännettynä uutena `StepRule` Node-instansseina), joka luo riippuvuusverkon eri solmujen välille.
+  * **StepRule (The DAG Node):** Blueprintin ilmentymä tietyssä reitissä. Antaa mahdollisuuden hyödyntää samaa syyte-mallia samassa putkessa viidesti, jokaisella kerralla omilla **lokaaleilla, työnkulkukohtaisilla hookeillaan** (esim. `normalize_matrix_scores` tai `translation_hook_en`). Moottorin tehtävä on liimata ydin-hookit ja lokaalit hookit turvallisesti yhteen (Union-Combined Execution). Määrittelee myös lokaalin **datareitityksen** (`input_mappings`).
 
 ### KERROS 3: HISTORIA JA AUDITOINTI
 * **executions (Ikuinen Jäädytys):** Tallentaa `raw_inputs` (käyttäjän syötteet), `frozen_context` (syväkopio säännöistä ajon hetkellä) ja `results` (Pydantic-validoitu tulos-JSON).
@@ -81,8 +82,10 @@ DAG-reititys mahdollistaa ihmisen arvioinnista ulos rajatut tekoälyjen väliset
 ### **5.1. Pydantic SSOT (Strict-DTO Protocol)**
 Kaikki datasiirrot API-reitittimissä ja tietokannassa puskevat tiedon V2 Pydantic-validointimoottorin ja tiukan `extra="ignore"` säännön läpi estäen hallusinaatiot ja mallin väärennökset välittömästi HTTP 422 tai 500 virheellä (Fail Fast).
 
-### **5.2. Teoriamaadoitus ja RAG (System Prompt)**
-Jos `prompt_block` kriteerissä on `theory_grounding.source_url`, Web Fetcher hakee lähteen, ja se injektoidaan tiukkoihin `<theory_context>` XML-tageihin LLM-promptin sisällä ennen ajatteluketjun muodostamista.
+### **5.2. Dynaaminen Faktantarkistus ja Maadoitus (Model Context Protocol - MCP)**
+Vanha staattinen RAG (theory_grounding.source_url) on korvattu modernilla **Model Context Protocol (MCP)** -arkkitehtuurilla. 
+Jos `StepRule` -työnkulkusolmulle on sallittu internet-oikeudet (`allowed_mcp_tools`), Quorum-moottorin Executor asettuu The Tool Loop -tilaan. Tekoäly voi asynkronisesti keskeyttää päätöksenteon, hakea empiiriset faktat pilvipohjaisilta The SSE MCP -palvelimilta, ja tallentaa haut muuttumattomaan `FrozenContext`-lokitietueeseen absoluuttisen auditoitavuuden (XAI) takaamiseksi.
+*(Tarkka laajennettu tekninen kuvaus: Katso rinnakkaisdokumentti `Arkkitehtuurimaarittely_MCP_Integraatio_V2_6.md`)*
 
 ### **5.3. Hook-Riippuvuuksien Ruiskutus (Dependency Injection)**
 Kaikki tietokanta- ja LLM-yhteydet ruiskutetaan suoraan FastAPIn `Depends` injektiosta Service-kerrokselle. API-kontrolleri on aneeminen mahdollistaen täydellisen eristetyn yksikkötestauksen.

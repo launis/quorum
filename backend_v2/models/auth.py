@@ -64,7 +64,14 @@ class Organization(BaseModel):
         quota_limit (int): Monthly API call quota.
     """
 
-    id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()), description="Unique Organization ID (e.g. 'nokia-v1')")]
+    id: Annotated[
+        str,
+        Field(
+            default_factory=lambda: f"org_{uuid.uuid4().hex}",
+            pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            description="Unique Organization ID (e.g. 'org_1234abcd')"
+        )
+    ]
     slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     name: Annotated[str, Field(description="Display Name")]
     created_at: Annotated[datetime | None, Field(description="ISO Timestamp")] = None
@@ -167,7 +174,14 @@ class User(UserBase):
         created_by (Optional[str]): UID of the creator.
     """
 
-    id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID (matches Firebase UID if used)")]
+    id: Annotated[
+        str,
+        Field(
+            default_factory=lambda: f"usr_{uuid.uuid4().hex}",
+            pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            description="Unique ID (matches Firebase UID if used)"
+        )
+    ]
     slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     created_at: Annotated[datetime, Field(description="ISO 8601 Timestamp")]
     created_by: Annotated[str | None, Field(description="UID of the creator")] = None
