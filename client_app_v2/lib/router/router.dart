@@ -187,12 +187,16 @@ class ExecutionRoute extends GoRouteData with $ExecutionRoute {
 }
 
 class ExecutionReportRoute extends GoRouteData with $ExecutionReportRoute {
-  const ExecutionReportRoute({required this.executionId});
+  const ExecutionReportRoute({
+    required this.executionId,
+    this.variant = 'default',
+  });
   final String executionId;
+  final String variant;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      ExecutionReportView(executionId: executionId);
+      ExecutionReportView(executionId: executionId, variant: variant);
 }
 
 class NewAnalysisBranch extends StatefulShellBranchData {

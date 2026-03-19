@@ -62,8 +62,7 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep),
-            tooltip:
-                'Clear Form Cache', // Using hardcoded English fallback for now as l10n gen is failing to pick up the key
+            tooltip: l10n.blueprintClearFormCache,
             onPressed: () {
               ref.invalidate(blueprintEditorControllerProvider);
               _assignedKeys.clear();
@@ -152,7 +151,7 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
                                     2,
                                   );
                                   text =
-                                      'Grid Row ($cols saraketta) | Lapsikomponentteja: ${children.length}';
+                                      '${l10n.blueprintGridRowLabel} ($cols) | ${l10n.blueprintChildComponents(children.length).replaceAll(":", "")}';
                                 } else if (comp.containsKey('data_path')) {
                                   text =
                                       '${l10n.blueprintPropertyDataPath}: ${SafeCast.safeString(comp['data_path'])}';
@@ -254,9 +253,9 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
                         value: 'metadata_header',
                         child: Text(l10n.blueprintComponentMetadataHeader),
                       ),
-                      const DropdownMenuItem(
+                      DropdownMenuItem(
                         value: 'grid_row',
-                        child: Text('Grid Row (Rinnakkainen)'),
+                        child: Text(l10n.blueprintGridRowLabel),
                       ),
                       DropdownMenuItem(
                         value: 'bibliography_footer',
@@ -304,7 +303,7 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Lisää lapsikomponentti'),
+              title: Text(l10n.blueprintAddChildBtn),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -503,14 +502,12 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
             child: TextField(
               controller: ctrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Sarakkeiden määrä (Columns)',
-              ),
+              decoration: InputDecoration(labelText: l10n.blueprintGridRowDesc),
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            'Rinnakkaiset lapsikomponentit (${children.length}):',
+            l10n.blueprintChildComponents(children.length),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -578,7 +575,7 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
           const SizedBox(height: 8),
           OutlinedButton.icon(
             icon: const Icon(Icons.add),
-            label: const Text('Lisää lapsikomponentti'),
+            label: Text(l10n.blueprintAddChildBtn),
             onPressed: () {
               final currentChildrenList = SafeCast.safeList(comp['children']);
               final childMapList = List<Map<String, dynamic>>.from(

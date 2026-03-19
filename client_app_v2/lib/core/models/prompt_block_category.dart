@@ -10,11 +10,16 @@ enum PromptBlockCategory {
 
   String get id {
     switch (this) {
-      case PromptBlockCategory.matrix: return 'matrix';
-      case PromptBlockCategory.agentRole: return 'agent_role';
-      case PromptBlockCategory.taskDefinition: return 'task_definition';
-      case PromptBlockCategory.systemRule: return 'system_rule';
-      case PromptBlockCategory.protocol: return 'protocol';
+      case PromptBlockCategory.matrix:
+        return 'matrix';
+      case PromptBlockCategory.agentRole:
+        return 'agent_role';
+      case PromptBlockCategory.taskDefinition:
+        return 'task_definition';
+      case PromptBlockCategory.systemRule:
+        return 'system_rule';
+      case PromptBlockCategory.protocol:
+        return 'protocol';
     }
   }
 

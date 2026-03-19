@@ -319,6 +319,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadReportTooltip => 'Download Report';
 
   @override
+  String get printVariantSelectorTitle => 'Select Print Variant';
+
+  @override
+  String get printVariantSelectorDescription =>
+      'Choose a variant for this execution report.';
+
+  @override
   String get downloadNotImplementedPdf => 'Download PDF not implemented yet';
 
   @override
@@ -2124,4 +2131,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get overall_system_profile => 'Overall System Profile';
+
+  @override
+  String get blueprintSelectWorkflow => 'Select Workflow';
+
+  @override
+  String get blueprintVariantName => 'Variant Name';
+
+  @override
+  String get blueprintDefaultVariant => 'default';
+
+  @override
+  String get blueprintCopyVariant => 'Copy Blueprint';
+
+  @override
+  String get blueprintGridRowLabel => 'Grid Row';
+
+  @override
+  String get blueprintGridRowDesc => 'Number of columns';
+
+  @override
+  String blueprintChildComponents(int count) {
+    return 'Parallel child components ($count):';
+  }
+
+  @override
+  String get blueprintAddChildBtn => 'Add child component';
+
+  @override
+  String get blueprintClearFormCache => 'Clear Form Cache';
+
+  @override
+  String get blueprintTabTitle => 'Blueprints';
+
+  @override
+  String get blueprintTabDesc => 'Manage SDUI report layouts and printouts.';
+
+  @override
+  String get blueprintCreateNew => 'Create New Blueprint';
+
+  @override
+  String blueprintVariantSelector(String variant) {
+    return 'Variant: $variant';
+  }
 }

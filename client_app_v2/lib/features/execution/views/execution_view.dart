@@ -5,7 +5,7 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/shared/widgets/execution_timeline.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/core/logging/logger_service.dart';
+
 import 'package:client_app/router/router.dart';
 import 'dart:convert';
 

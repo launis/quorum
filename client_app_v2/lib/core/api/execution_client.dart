@@ -29,10 +29,7 @@ class ExecutionClient {
   }) async {
     final response = await _dio.post(
       '/execution/executions/',
-      data: {
-        'workflow_id': workflowId,
-        'raw_inputs': rawInputs,
-      },
+      data: {'workflow_id': workflowId, 'raw_inputs': rawInputs},
     );
 
     return response.data as Map<String, dynamic>;
@@ -48,10 +45,11 @@ class ExecutionClient {
   Future<Map<String, dynamic>> renderExecution(
     String executionId, {
     String lang = 'fi',
+    String variant = 'default',
   }) async {
     final response = await _dio.get(
       '/execution/executions/$executionId/render',
-      queryParameters: {'lang': lang},
+      queryParameters: {'lang': lang, 'variant': variant},
     );
     return response.data as Map<String, dynamic>;
   }

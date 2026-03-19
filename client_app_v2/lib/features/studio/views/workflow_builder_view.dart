@@ -37,12 +37,15 @@ class WorkflowBuilderView extends ConsumerWidget {
     final asyncData = ref.watch(workflowBySlugProvider(slug!));
     return asyncData.when(
       data: (wf) => _WorkflowBuilderForm(workflow: wf),
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, st) => ErrorView(
-        error: e,
-        stackTrace: st,
-        onRetry: () => ref.invalidate(workflowBySlugProvider(slug!)),
-      ),
+      loading:
+          () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error:
+          (e, st) => ErrorView(
+            error: e,
+            stackTrace: st,
+            onRetry: () => ref.invalidate(workflowBySlugProvider(slug!)),
+          ),
     );
   }
 }
@@ -58,7 +61,8 @@ class _WorkflowBuilderForm extends StatefulHookConsumerWidget {
 }
 
 class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
-  late Map<String, dynamic> _editableWorkflow;
+  late Map<String, dynamic> _editableWorkflow = {};
+  String? _selectedBlueprintVariant;
   late TextEditingController _idController;
   late TextEditingController _slugController;
 
@@ -126,46 +130,6 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
     });
   }
 
-  void _addBlueprintVariant(BuildContext context) {
-    final variantController = TextEditingController();
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Add Blueprint Variant'),
-            content: TextField(
-              controller: variantController,
-              decoration: const InputDecoration(
-                labelText: 'Variant Key (e.g., executive, default)',
-              ),
-              autofocus: true,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(AppLocalizations.of(context)!.cancel),
-              ),
-              FilledButton(
-                onPressed: () {
-                  final key = variantController.text.trim();
-                  if (key.isNotEmpty) {
-                    setState(() {
-                      final blueprints = SafeCast.safeMap(
-                        _editableWorkflow['render_blueprints'],
-                      );
-                      blueprints[key] = {'version': '1.0', 'components': []};
-                      _editableWorkflow['render_blueprints'] = blueprints;
-                    });
-                    Navigator.of(ctx).pop();
-                  }
-                },
-                child: const Text('Add'),
-              ),
-            ],
-          ),
-    );
-  }
-
   void _addStep() {
     setState(() {
       final steps = SafeCast.safeList(_editableWorkflow['steps']);
@@ -182,60 +146,78 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
   void _cloneWorkflow(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.workflowCloneBtn),
-        content: Text(AppLocalizations.of(context)!.workflowSharedBlueprintWarning),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              try {
-                final original = Map<String, dynamic>.from(_editableWorkflow);
-                final cloned = WorkflowCloner.cloneDeep(original);
-                
-                final nameMap = SafeCast.safeMap(cloned['name']);
-                if (nameMap.containsKey('translations')) {
-                  final translations = SafeCast.safeMap(nameMap['translations']);
-                  if (translations.containsKey('en')) {
-                     translations['en'] = 'Copy of ${translations['en']}';
-                  }
-                  if (translations.containsKey('fi')) {
-                     translations['fi'] = 'Kopio - ${translations['fi']}';
-                  }
-                  nameMap['translations'] = translations;
-                  cloned['name'] = nameMap;
-                }
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(AppLocalizations.of(context)!.workflowCloneBtn),
+            content: Text(
+              AppLocalizations.of(context)!.workflowSharedBlueprintWarning,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(AppLocalizations.of(context)!.cancel),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  try {
+                    final original = Map<String, dynamic>.from(
+                      _editableWorkflow,
+                    );
+                    final cloned = WorkflowCloner.cloneDeep(original);
 
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) => WorkflowBuilderView(
-                      initialData: cloned,
-                      slug: 'new',
-                    ),
-                  ),
-                );
+                    final nameMap = SafeCast.safeMap(cloned['name']);
+                    if (nameMap.containsKey('translations')) {
+                      final translations = SafeCast.safeMap(
+                        nameMap['translations'],
+                      );
+                      if (translations.containsKey('en')) {
+                        translations['en'] = 'Copy of ${translations['en']}';
+                      }
+                      if (translations.containsKey('fi')) {
+                        translations['fi'] = 'Kopio - ${translations['fi']}';
+                      }
+                      nameMap['translations'] = translations;
+                      cloned['name'] = nameMap;
+                    }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(AppLocalizations.of(context)!.workflowCloneSuccess)),
-                );
-              } catch (e) {
-                final errorMsg = e is AppException ? AppExceptionX.extractLocalizedHint(e, AppLocalizations.of(context)!) : e.toString();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(errorMsg),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: Text(AppLocalizations.of(context)!.workflowCloneBtn),
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder:
+                            (context) => WorkflowBuilderView(
+                              initialData: cloned,
+                              slug: 'new',
+                            ),
+                      ),
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          AppLocalizations.of(context)!.workflowCloneSuccess,
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    final errorMsg =
+                        e is AppException
+                            ? AppExceptionX.extractLocalizedHint(
+                              e,
+                              AppLocalizations.of(context)!,
+                            )
+                            : e.toString();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(errorMsg),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                child: Text(AppLocalizations.of(context)!.workflowCloneBtn),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -332,9 +314,11 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
           onPressed: () => context.go('/admin'),
         ),
         title: Text(
-          (SafeCast.safeMap(widget.workflow['name'])['translations'] as Map?)?['fi'] ?? 
-          (SafeCast.safeMap(widget.workflow['name'])['translations'] as Map?)?['en'] ?? 
-          l10n.workflowEditTitle
+          (SafeCast.safeMap(widget.workflow['name'])['translations']
+                  as Map?)?['fi'] ??
+              (SafeCast.safeMap(widget.workflow['name'])['translations']
+                  as Map?)?['en'] ??
+              l10n.workflowEditTitle,
         ),
         actions: [
           if (widget.workflow['id']?.toString().isNotEmpty == true) ...[
@@ -409,7 +393,9 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
                         controller: _slugController,
                         decoration: InputDecoration(
                           // Fallback to English if generation fails during dev
-                          labelText: (l10n as dynamic).workflowSlugLabel ?? 'Workflow Slug (URL Path)',
+                          labelText:
+                              (l10n as dynamic).workflowSlugLabel ??
+                              'Workflow Slug (URL Path)',
                           border: const OutlineInputBorder(),
                         ),
                         onChanged: (val) => _editableWorkflow['slug'] = val,
@@ -430,88 +416,107 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
               const SizedBox(height: 16),
 
               // Render Blueprints (Dictionary Variants)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.blueprintEditorTitle,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => _addBlueprintVariant(context),
-                    icon: const Icon(Icons.add),
-                    label: const Text(
-                      'Add Variant',
-                    ), // Fallback English for Dev
-                  ),
-                ],
+              Text(
+                l10n.blueprintTabTitle,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
-              ...SafeCast.safeMap(
+              if (SafeCast.safeMap(
                 _editableWorkflow['render_blueprints'],
-              ).entries.map((entry) {
-                final variantKey = entry.key;
-                final variantData = entry.value;
-
-                return Card(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withValues(alpha: 0.5),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    title: Text(
-                      'Variant: $variantKey',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text(
-                      'Configure the Zero-Deploy SDUI layout.',
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
+              ).isNotEmpty)
+                Card(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          tooltip: 'Delete Variant',
-                          onPressed: () {
-                            setState(() {
-                              final blueprints = SafeCast.safeMap(
-                                _editableWorkflow['render_blueprints'],
-                              );
-                              blueprints.remove(variantKey);
-                              _editableWorkflow['render_blueprints'] =
-                                  blueprints;
-                            });
-                          },
+                        InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: l10n.blueprintVariantName,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value:
+                                  _selectedBlueprintVariant ??
+                                  SafeCast.safeMap(
+                                    _editableWorkflow['render_blueprints'],
+                                  ).keys.first,
+                              items:
+                                  SafeCast.safeMap(
+                                    _editableWorkflow['render_blueprints'],
+                                  ).keys.map((k) {
+                                    return DropdownMenuItem<String>(
+                                      value: k,
+                                      child: Text(
+                                        l10n.blueprintVariantSelector(k),
+                                      ),
+                                    );
+                                  }).toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedBlueprintVariant = val;
+                                });
+                              },
+                            ),
+                          ),
                         ),
-                        const Icon(Icons.edit_document),
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton.filled(
+                            onPressed: () {
+                              final variantKey =
+                                  _selectedBlueprintVariant ??
+                                  SafeCast.safeMap(
+                                    _editableWorkflow['render_blueprints'],
+                                  ).keys.first;
+                              final variantData =
+                                  SafeCast.safeMap(
+                                    _editableWorkflow['render_blueprints'],
+                                  )[variantKey];
+
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (ctx) => BlueprintEditorView(
+                                        initialBlueprint: SafeCast.safeMap(
+                                          variantData,
+                                        ),
+                                        onSave: (updatedBlueprint) {
+                                          setState(() {
+                                            final blueprints = SafeCast.safeMap(
+                                              _editableWorkflow['render_blueprints'],
+                                            );
+                                            blueprints[variantKey] =
+                                                updatedBlueprint;
+                                            _editableWorkflow['render_blueprints'] =
+                                                blueprints;
+                                          });
+                                        },
+                                      ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.edit_document),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder:
-                              (ctx) => BlueprintEditorView(
-                                initialBlueprint: SafeCast.safeMap(variantData),
-                                onSave: (updatedBlueprint) {
-                                  setState(() {
-                                    final blueprints = SafeCast.safeMap(
-                                      _editableWorkflow['render_blueprints'],
-                                    );
-                                    blueprints[variantKey] = updatedBlueprint;
-                                    _editableWorkflow['render_blueprints'] =
-                                        blueprints;
-                                  });
-                                },
-                              ),
-                        ),
-                      );
-                    },
                   ),
-                );
-              }),
+                ),
 
               const SizedBox(height: 24),
 

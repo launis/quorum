@@ -67,20 +67,28 @@ class Matrix2DWidget extends StatelessWidget {
 
             const SizedBox(height: 24),
             // Justifications
-              _buildJustificationBox(
-                SduiTranslator.translate(context, component.xTitle),
-                component.xNoteText,
-                const Color(0xFF4CAF50),
-                component.xDisplayValueOnly.isNotEmpty ? component.xDisplayValueOnly : '0.0',
-                component.xDisplayMaxOnly.isNotEmpty ? component.xDisplayMaxOnly : '6.0',
-              ),
+            _buildJustificationBox(
+              SduiTranslator.translate(context, component.xTitle),
+              component.xNoteText,
+              const Color(0xFF4CAF50),
+              component.xDisplayValueOnly.isNotEmpty
+                  ? component.xDisplayValueOnly
+                  : '0.0',
+              component.xDisplayMaxOnly.isNotEmpty
+                  ? component.xDisplayMaxOnly
+                  : '6.0',
+            ),
             if (component.yNoteText.isNotEmpty)
               _buildJustificationBox(
                 SduiTranslator.translate(context, component.yTitle),
                 component.yNoteText,
                 const Color(0xFFFF9800),
-                component.yDisplayValueOnly.isNotEmpty ? component.yDisplayValueOnly : '0.0',
-                component.yDisplayMaxOnly.isNotEmpty ? component.yDisplayMaxOnly : '6.0',
+                component.yDisplayValueOnly.isNotEmpty
+                    ? component.yDisplayValueOnly
+                    : '0.0',
+                component.yDisplayMaxOnly.isNotEmpty
+                    ? component.yDisplayMaxOnly
+                    : '6.0',
               ),
           ],
         ),
@@ -379,8 +387,7 @@ class Matrix2DWidget extends StatelessWidget {
                           children: [
                             TextSpan(text: "$title "),
                             TextSpan(
-                              text:
-                                  '($valStr / $maxStr):',
+                              text: '($valStr / $maxStr):',
                               style: const TextStyle(color: Colors.black87),
                             ),
                           ],

@@ -26,16 +26,18 @@ final stepsControllerProvider =
     );
 
 /// Fetches a single PromptBlock natively by Slug
-final promptBlockBySlugProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, slug) async {
-  final client = ref.watch(studioClientProvider);
-  return client.getPromptBlockBySlug(slug);
-});
+final promptBlockBySlugProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, slug) async {
+      final client = ref.watch(studioClientProvider);
+      return client.getPromptBlockBySlug(slug);
+    });
 
 /// Fetches a single Workflow natively by Slug
-final workflowBySlugProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, slug) async {
-  final client = ref.watch(studioClientProvider);
-  return client.getWorkflowBySlug(slug);
-});
+final workflowBySlugProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, slug) async {
+      final client = ref.watch(studioClientProvider);
+      return client.getWorkflowBySlug(slug);
+    });
 
 // --- Controllers ---
 

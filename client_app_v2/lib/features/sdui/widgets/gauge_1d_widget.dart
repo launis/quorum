@@ -11,9 +11,10 @@ class Gauge1DWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Pure rendering: All calculations (percentages, strings) managed completely by backend V2.
-    final String displayStr = component.displayValue.isNotEmpty 
-        ? component.displayValue 
-        : '${component.value} / ${component.scaleMax}';
+    final String displayStr =
+        component.displayValue.isNotEmpty
+            ? component.displayValue
+            : '${component.value} / ${component.scaleMax}';
     final double pct = component.visualPct > 0 ? component.visualPct : 0.0;
 
     return Card(

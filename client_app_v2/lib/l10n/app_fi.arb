@@ -151,6 +151,8 @@
   "errorResourceInUse": "Tuhoaminen estetty: Tietue on yh\u00e4 k\u00e4yt\u00f6ss\u00e4.",
   "save": "Tallenna",
   "orgNameLabel": "Organisaation nimi",
+  "printVariantSelectorTitle": "Valitse tulostemalli",
+  "printVariantSelectorDescription": "Valitse mitä tulostemallia asetteluun käytetään.",
   "orgTierLabel": "Taso",
   "basicTier": "Perus",
   "premiumTier": "Premium",
@@ -697,5 +699,32 @@
   "workflowCloneSuccess": "Ty\u00f6nkulku kopioitu onnistuneesti!",
   "workflowCloneErrorMissingDep": "Kopiointi ep\u00e4onnistui: Vaiheen riippuvuus osoittaa puuttuvaan vaiheeseen.",
   "workflowSharedBlueprintWarning": "Huomio: Muokkaat jaettua PromptBlockia. Muutokset vaikuttavat kaikkiin t\u00e4t\u00e4 lohkoa k\u00e4ytt\u00e4viin ty\u00f6nkulkuihin.",
-  "overall_system_profile": "Kokonaisvaltainen Profiili"
-}
+  "overall_system_profile": "Kokonaisvaltainen Profiili",
+  "blueprintSelectWorkflow": "Valitse Työnkulku",
+  "blueprintVariantName": "Variantin Nimi",
+  "blueprintDefaultVariant": "oletus (default)",
+  "blueprintCopyVariant": "Kopioi Tuloste",
+  "blueprintGridRowLabel": "Rinnakkainen (Grid Row)",
+  "blueprintGridRowDesc": "Sarakkeiden määrä (Columns)",
+  "blueprintChildComponents": "Rinnakkaiset lapsikomponentit ({count}):",
+  "@blueprintChildComponents": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "blueprintAddChildBtn": "Lisää lapsikomponentti",
+  "blueprintClearFormCache": "Tyhjennä lomakevälimuisti",
+  "blueprintTabTitle": "Tulosteet",
+  "blueprintTabDesc": "Hallinnoi SDUI raporttipohjia ja tulosteita.",
+  "blueprintCreateNew": "Luo Uusi Tuloste",
+  "blueprintVariantSelector": "Vaihtoehto: {variant}",
+  "@blueprintVariantSelector": {
+    "placeholders": {
+      "variant": {
+        "type": "String"
+      }
+    }
+  }
+}

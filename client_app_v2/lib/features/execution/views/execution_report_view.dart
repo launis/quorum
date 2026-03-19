@@ -13,8 +13,13 @@ import 'dart:typed_data';
 /// Render the execution report leveraging the Server-Driven UI (SDUI) framework.
 class ExecutionReportView extends ConsumerStatefulWidget {
   final String executionId;
+  final String variant;
 
-  const ExecutionReportView({super.key, required this.executionId});
+  const ExecutionReportView({
+    super.key,
+    required this.executionId,
+    this.variant = 'default',
+  });
 
   @override
   ConsumerState<ExecutionReportView> createState() =>
@@ -34,20 +39,26 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       final dio = ref.read(apiClientProvider);
       final response = await dio.get<List<int>>(
         '/execution/executions/${widget.executionId}/render',
-        queryParameters: {'format': 'pdf'},
+        queryParameters: {'format': 'pdf', 'variant': widget.variant},
         options: Options(responseType: ResponseType.bytes),
       );
 
       final bytes = Uint8List.fromList(response.data!);
-      await FileSaver.instance.saveAs(
-        name: 'Report_${widget.executionId}',
-        bytes: bytes,
-        fileExtension: 'pdf',
-        mimeType: MimeType.pdf,
-      ).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => throw Exception('Tiedoston tallennusikkuna ei vastannut (Timeout). Tarkista, jäikö ikkuna piiloon tai onko vanha PDF-tiedosto auki toisessa ohjelmassa.'),
-      );
+      await FileSaver.instance
+          .saveAs(
+            name: 'Report_${widget.executionId}',
+            bytes: bytes,
+            fileExtension: 'pdf',
+            mimeType: MimeType.pdf,
+          )
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout:
+                () =>
+                    throw Exception(
+                      'Tiedoston tallennusikkuna ei vastannut (Timeout). Tarkista, jäikö ikkuna piiloon tai onko vanha PDF-tiedosto auki toisessa ohjelmassa.',
+                    ),
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -61,10 +72,11 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           .read(loggerServiceProvider)
           .error('ReportView', 'Failed to download PDF', e, st);
       if (mounted) {
-        final errorMsg = e.toString().contains('Timeout') 
-            ? e.toString().replaceAll('Exception: ', '')
-            : AppLocalizations.of(context)!.errorUnknown;
-            
+        final errorMsg =
+            e.toString().contains('Timeout')
+                ? e.toString().replaceAll('Exception: ', '')
+                : AppLocalizations.of(context)!.errorUnknown;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMsg),
@@ -94,15 +106,21 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       );
 
       final bytes = Uint8List.fromList(response.data!);
-      await FileSaver.instance.saveAs(
-        name: 'FrozenContext_${widget.executionId}',
-        bytes: bytes,
-        fileExtension: 'json',
-        mimeType: MimeType.json,
-      ).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => throw Exception('Tiedoston tallennusikkuna ei vastannut (Timeout). Tarkista, jäikö ikkuna piiloon tai onko vanha JSON-tiedosto auki toisessa ohjelmassa.'),
-      );
+      await FileSaver.instance
+          .saveAs(
+            name: 'FrozenContext_${widget.executionId}',
+            bytes: bytes,
+            fileExtension: 'json',
+            mimeType: MimeType.json,
+          )
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout:
+                () =>
+                    throw Exception(
+                      'Tiedoston tallennusikkuna ei vastannut (Timeout). Tarkista, jäikö ikkuna piiloon tai onko vanha JSON-tiedosto auki toisessa ohjelmassa.',
+                    ),
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -116,10 +134,11 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           .read(loggerServiceProvider)
           .error('ReportView', 'Failed to download Frozen Context', e, st);
       if (mounted) {
-        final errorMsg = e.toString().contains('Timeout') 
-            ? e.toString().replaceAll('Exception: ', '')
-            : AppLocalizations.of(context)!.errorUnknown;
-            
+        final errorMsg =
+            e.toString().contains('Timeout')
+                ? e.toString().replaceAll('Exception: ', '')
+                : AppLocalizations.of(context)!.errorUnknown;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMsg),
@@ -143,14 +162,18 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
         Localizations.localeOf(context).languageCode == 'fi' ? 'fi' : 'en';
 
     final reportAsync = ref.watch(
-      reportControllerProvider(widget.executionId, lang: locale),
+      reportControllerProvider(
+        widget.executionId,
+        lang: locale,
+        variant: widget.variant,
+      ),
     );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: Text(
-          '${AppLocalizations.of(context)!.report}: ${widget.executionId}',
+          '${AppLocalizations.of(context)!.report}: ${widget.executionId}${widget.variant != 'default' ? ' (${widget.variant})' : ''}',
           style: const TextStyle(fontSize: 16),
         ),
         centerTitle: true,
@@ -202,7 +225,11 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
             stackTrace: stack,
             onRetry:
                 () => ref.invalidate(
-                  reportControllerProvider(widget.executionId, lang: locale),
+                  reportControllerProvider(
+                    widget.executionId,
+                    lang: locale,
+                    variant: widget.variant,
+                  ),
                 ),
           );
         },

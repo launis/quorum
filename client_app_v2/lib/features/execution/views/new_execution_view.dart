@@ -331,7 +331,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         final item = SafeCast.safeMap(e);
         final key = SafeCast.safeString(item['input_key']);
         if (key.isNotEmpty) {
-           expectedInputsList.add(item);
+          expectedInputsList.add(item);
         }
       }
     }
@@ -578,6 +578,4 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       ),
     );
   }
-
-
 }

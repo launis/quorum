@@ -96,19 +96,20 @@ async def download_frozen_context(
 ) -> Response:
     """Download the forensic frozen context JSON for an execution."""
     execution = await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
-    
+
     if execution.frozen_context_storage_path:
-        from backend_v2.services.storage import get_storage_driver
         import json
-        
+
+        from backend_v2.services.storage import get_storage_driver
+
         storage = get_storage_driver()
         try:
             raw_bytes = await storage.read(execution.frozen_context_storage_path)
-            
+
             # Dynamically pretty-print the historic minified JSON blob
             parsed_data = json.loads(raw_bytes.decode('utf-8'))
             pretty_bytes = json.dumps(parsed_data, indent=2, ensure_ascii=False).encode('utf-8')
-            
+
             return Response(
                 content=pretty_bytes,
                 media_type="application/json",
@@ -118,8 +119,12 @@ async def download_frozen_context(
             )
         except Exception as strg_err:
             logger.warning(f"Failed to fetch frozen context from storage: {strg_err}")
-            raise AppException(message="Forensic context file not found in storage", status_code=404, details={"error_code": ErrorCodes.NOT_FOUND.value})
-            
+            raise AppException(
+                message="Forensic context file not found in storage", 
+                status_code=404, 
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            ) from strg_err
+
     # Fallback to returning the embedded frozen context if not offloaded
     frozen_json = execution.frozen_context.model_dump_json(indent=2)
     return Response(
@@ -139,6 +144,7 @@ async def render_execution(
     execution_service: ExecutionServiceDep,
     repository: RepoDep,
     format: str = Query("json", description="Output format: json, pdf, or flat"),
+    variant: str = Query("default", description="The blueprint variant to render"),
 ) -> Response:
     """Omni-channel render endpoint for an execution."""
     # 1. Fetch securely using the user context
@@ -161,7 +167,7 @@ async def render_execution(
         accept_language = request.headers.get("accept-language", None)
         # We pass execution_id as Transformer fetches again, or we could pass execution natively.
         transformer = BlueprintTransformer(repository)
-        payload = await transformer.build_render_payload(execution_id, accept_language)
+        payload = await transformer.build_render_payload(execution_id, accept_language, variant=variant)
         return JSONResponse(content=payload)
 
     elif fmt == "flat":
@@ -171,7 +177,7 @@ async def render_execution(
 
     elif fmt == "pdf":
         # 1. First check if async worker has already generated and offloaded the PDF
-        if execution.pdf_report_path:
+        if variant == "default" and execution.pdf_report_path:
             from backend_v2.services.storage import get_storage_driver
             storage = get_storage_driver()
             try:
@@ -186,32 +192,33 @@ async def render_execution(
             except Exception as strg_err:
                 logger.warning(f"Failed to fetch pre-generated PDF from storage, falling back to sync generation: {strg_err}")
 
-        # 2. Fallback to Synchronous generation if not yet ready
+        # 2. Fallback to Synchronous generation if not yet ready or non-default variant requested
         from backend_v2.services.blueprint import BlueprintTransformer
         from backend_v2.services.pdf_generator import PdfReportService
-        
+
         accept_language = request.headers.get("accept-language", None)
         if not accept_language and execution.metadata:
             accept_language = execution.metadata.get("target_locale")
-            
+
         transformer = BlueprintTransformer(repository)
-        blueprint_payload = await transformer.build_render_payload(execution_id, accept_language)
-        
+        blueprint_payload = await transformer.build_render_payload(execution_id, accept_language, variant=variant)
+
         # Passing repository inside PDF generator is safe as the execution was authorized
         pdf_service = PdfReportService(repository)
         pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, blueprint_payload=blueprint_payload)
 
-        # Self-Healing Mechanism: Save the newly generated PDF back to persistent storage
-        try:
-            from backend_v2.services.storage import get_storage_driver
-            storage = get_storage_driver()
-            output_path_rel = f"executions/{execution_id}/report.pdf"
-            saved_path = await storage.save(output_path_rel, pdf_bytes)
-            if not execution.pdf_report_path or execution.pdf_report_path != saved_path:
-                await repository.update_execution(execution_id, {"pdf_report_path": saved_path})
-            logger.info(f"[ExecutionRouter] Self-healed missing PDF for {execution_id} to {saved_path}")
-        except Exception as heal_err:
-            logger.warning(f"[ExecutionRouter] Failed to self-heal PDF storage for {execution_id}: {heal_err}")
+        # Self-Healing Mechanism: Save the newly generated PDF back to persistent storage (only for default variant to preserve truth)
+        if variant == "default":
+            try:
+                from backend_v2.services.storage import get_storage_driver
+                storage = get_storage_driver()
+                output_path_rel = f"executions/{execution_id}/report.pdf"
+                saved_path = await storage.save(output_path_rel, pdf_bytes)
+                if not execution.pdf_report_path or execution.pdf_report_path != saved_path:
+                    await repository.update_execution(execution_id, {"pdf_report_path": saved_path})
+                logger.info(f"[ExecutionRouter] Self-healed missing PDF for {execution_id} to {saved_path}")
+            except Exception as heal_err:
+                logger.warning(f"[ExecutionRouter] Failed to self-heal PDF storage for {execution_id}: {heal_err}")
 
         return Response(
             content=pdf_bytes,

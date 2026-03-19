@@ -52,8 +52,11 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
       widget.inputDef['is_chat_history'],
       false,
     );
-    if (oldWidget.inputDef['ai_description'] != widget.inputDef['ai_description']) {
-      _aiDescController.text = SafeCast.safeString(widget.inputDef['ai_description']);
+    if (oldWidget.inputDef['ai_description'] !=
+        widget.inputDef['ai_description']) {
+      _aiDescController.text = SafeCast.safeString(
+        widget.inputDef['ai_description'],
+      );
     }
   }
 
@@ -233,7 +236,8 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
             Focus(
               onFocusChange: (f) {
                 if (!f) {
-                  widget.inputDef['ai_description'] = _aiDescController.text.trim();
+                  widget.inputDef['ai_description'] =
+                      _aiDescController.text.trim();
                   _notifyChange();
                 }
               },

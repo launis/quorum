@@ -3,7 +3,7 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_exception.dart';
 
 /// **WorkflowCloner (The Routing Logic Engine)**
-/// 
+///
 /// Handles the complex deep-cloning of a Workflow DAG.
 /// Strict compliance with V2 Architecture `Arkkitehtuuristandardi_Tyonkulun_Kloonaus.md`:
 /// 1. Operates entirely on raw `Map<String, dynamic>` payloads (Zero-Deploy SDUI Policy).
@@ -15,7 +15,7 @@ class WorkflowCloner {
   /// Creates a completely standalone copy of the workflow.
   /// Generates new Opaque IDs for steps and structurally updates all internal
   /// semantic routing references (`depends_on`, `input_mappings`, `render_blueprints`).
-  /// 
+  ///
   /// Throws `AppException` if the original workflow contains broken references.
   static Map<String, dynamic> cloneDeep(Map<String, dynamic> original) {
     // 1. Initial deep copy to avoid mutating the original
@@ -23,13 +23,13 @@ class WorkflowCloner {
 
     final oldId = SafeCast.safeString(cloned['id']);
     final oldSlug = SafeCast.safeString(cloned['slug']);
-    
+
     if (oldId.isNotEmpty) {
       cloned['id'] = '${oldId}copy';
     } else {
       cloned.remove('id');
     }
-    
+
     if (oldSlug.isNotEmpty) {
       cloned['slug'] = '${oldSlug}_copy';
     } else {
@@ -41,7 +41,7 @@ class WorkflowCloner {
     cloned.remove('updated_at');
 
     final steps = SafeCast.safeList(cloned['steps']);
-    
+
     // --- Phase A: ID Mapping ---
     final Map<String, String> idMap = {};
     for (int i = 0; i < steps.length; i++) {
@@ -70,7 +70,9 @@ class WorkflowCloner {
       final newDependsOn = <String>[];
       for (final dep in dependsOn) {
         final String oldDep = dep.toString();
-        final mappedDep = idMap[oldDep] ?? oldDep; // Fallback to old if not in map (will trigger Riski 3 check later)
+        final mappedDep =
+            idMap[oldDep] ??
+            oldDep; // Fallback to old if not in map (will trigger Riski 3 check later)
         newDependsOn.add(mappedDep);
       }
       step['depends_on'] = newDependsOn;
@@ -81,7 +83,7 @@ class WorkflowCloner {
       final newMappings = <String, dynamic>{};
       for (final entry in mappings.entries) {
         String sourceValue = entry.value.toString();
-        
+
         // Structural check rather than global replace: Iterate through known mapped ids
         for (final oldId in idMap.keys) {
           final targetPrefix = '\$steps.$oldId.';
@@ -94,7 +96,7 @@ class WorkflowCloner {
         newMappings[entry.key] = sourceValue;
       }
       step['input_mappings'] = newMappings;
-      
+
       steps[i] = step;
     }
 
@@ -102,9 +104,12 @@ class WorkflowCloner {
     if (cloned.containsKey('render_blueprints')) {
       final blueprints = SafeCast.safeMap(cloned['render_blueprints']);
       final updatedBlueprints = <String, dynamic>{};
-      
+
       for (final entry in blueprints.entries) {
-        updatedBlueprints[entry.key] = _reRouteNode(SafeCast.safeMap(entry.value), idMap);
+        updatedBlueprints[entry.key] = _reRouteNode(
+          SafeCast.safeMap(entry.value),
+          idMap,
+        );
       }
       cloned['render_blueprints'] = updatedBlueprints;
     }
@@ -112,14 +117,15 @@ class WorkflowCloner {
     // --- Phase C: Riski 3 - Fail Fast Validation ---
     for (final step in steps) {
       final stepMap = SafeCast.safeMap(step);
-      final dependsOn = SafeCast.safeList(stepMap['depends_on']).map((e) => e.toString()).toList();
-      
+      final dependsOn =
+          SafeCast.safeList(
+            stepMap['depends_on'],
+          ).map((e) => e.toString()).toList();
+
       for (final dep in dependsOn) {
         if (!validNewIds.contains(dep)) {
           // Validation failed: Dependency points to a missing/invalid step.
-          throw AppException.validation(
-            'workflowCloneErrorMissingDep',
-          );
+          throw AppException.validation('workflowCloneErrorMissingDep');
         }
       }
     }
@@ -142,15 +148,18 @@ class WorkflowCloner {
       String strVal = node;
       // Replace data path bindings inside SDUI definition (e.g. $steps.old_id.results or $results.old_id.foo)
       for (final oldId in idMap.keys) {
-         final stepsPrefix = '\$steps.$oldId.';
-         if (strVal.contains(stepsPrefix)) {
-            strVal = strVal.replaceFirst(stepsPrefix, '\$steps.${idMap[oldId]}.');
-         }
-         
-         final resultsPrefix = '\$results.$oldId.';
-         if (strVal.contains(resultsPrefix)) {
-            strVal = strVal.replaceFirst(resultsPrefix, '\$results.${idMap[oldId]}.');
-         }
+        final stepsPrefix = '\$steps.$oldId.';
+        if (strVal.contains(stepsPrefix)) {
+          strVal = strVal.replaceFirst(stepsPrefix, '\$steps.${idMap[oldId]}.');
+        }
+
+        final resultsPrefix = '\$results.$oldId.';
+        if (strVal.contains(resultsPrefix)) {
+          strVal = strVal.replaceFirst(
+            resultsPrefix,
+            '\$results.${idMap[oldId]}.',
+          );
+        }
       }
       return strVal;
     }

@@ -28,7 +28,7 @@ final class ReportControllerProvider
   /// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
   ReportControllerProvider._({
     required ReportControllerFamily super.from,
-    required (String, {String lang}) super.argument,
+    required (String, {String lang, String variant}) super.argument,
   }) : super(
          retry: null,
          name: r'reportControllerProvider',
@@ -62,7 +62,7 @@ final class ReportControllerProvider
   }
 }
 
-String _$reportControllerHash() => r'8fcd29796d381c15177c8f6d2fc9871f5549b5ae';
+String _$reportControllerHash() => r'7b312acbca13454d0e399a294f8eb3fcfbd5f9e5';
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
 ///
@@ -76,7 +76,7 @@ final class ReportControllerFamily extends $Family
           AsyncValue<SduiRenderPayload>,
           SduiRenderPayload,
           FutureOr<SduiRenderPayload>,
-          (String, {String lang})
+          (String, {String lang, String variant})
         > {
   ReportControllerFamily._()
     : super(
@@ -92,11 +92,14 @@ final class ReportControllerFamily extends $Family
   /// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
   /// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 
-  ReportControllerProvider call(String executionId, {String lang = 'fi'}) =>
-      ReportControllerProvider._(
-        argument: (executionId, lang: lang),
-        from: this,
-      );
+  ReportControllerProvider call(
+    String executionId, {
+    String lang = 'fi',
+    String variant = 'default',
+  }) => ReportControllerProvider._(
+    argument: (executionId, lang: lang, variant: variant),
+    from: this,
+  );
 
   @override
   String toString() => r'reportControllerProvider';
@@ -108,11 +111,16 @@ final class ReportControllerFamily extends $Family
 /// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 
 abstract class _$ReportController extends $AsyncNotifier<SduiRenderPayload> {
-  late final _$args = ref.$arg as (String, {String lang});
+  late final _$args = ref.$arg as (String, {String lang, String variant});
   String get executionId => _$args.$1;
   String get lang => _$args.lang;
+  String get variant => _$args.variant;
 
-  FutureOr<SduiRenderPayload> build(String executionId, {String lang = 'fi'});
+  FutureOr<SduiRenderPayload> build(
+    String executionId, {
+    String lang = 'fi',
+    String variant = 'default',
+  });
   @$mustCallSuper
   @override
   void runBuild() {
@@ -126,6 +134,9 @@ abstract class _$ReportController extends $AsyncNotifier<SduiRenderPayload> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, () => build(_$args.$1, lang: _$args.lang));
+    element.handleCreate(
+      ref,
+      () => build(_$args.$1, lang: _$args.lang, variant: _$args.variant),
+    );
   }
 }

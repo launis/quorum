@@ -668,6 +668,18 @@ abstract class AppLocalizations {
   /// **'Download Report'**
   String get downloadReportTooltip;
 
+  /// No description provided for @printVariantSelectorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Print Variant'**
+  String get printVariantSelectorTitle;
+
+  /// No description provided for @printVariantSelectorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a variant for this execution report.'**
+  String get printVariantSelectorDescription;
+
   /// No description provided for @downloadNotImplementedPdf.
   ///
   /// In en, this message translates to:
@@ -3967,6 +3979,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Overall System Profile'**
   String get overall_system_profile;
+
+  /// No description provided for @blueprintSelectWorkflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Workflow'**
+  String get blueprintSelectWorkflow;
+
+  /// No description provided for @blueprintVariantName.
+  ///
+  /// In en, this message translates to:
+  /// **'Variant Name'**
+  String get blueprintVariantName;
+
+  /// No description provided for @blueprintDefaultVariant.
+  ///
+  /// In en, this message translates to:
+  /// **'default'**
+  String get blueprintDefaultVariant;
+
+  /// No description provided for @blueprintCopyVariant.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Blueprint'**
+  String get blueprintCopyVariant;
+
+  /// No description provided for @blueprintGridRowLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid Row'**
+  String get blueprintGridRowLabel;
+
+  /// No description provided for @blueprintGridRowDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of columns'**
+  String get blueprintGridRowDesc;
+
+  /// No description provided for @blueprintChildComponents.
+  ///
+  /// In en, this message translates to:
+  /// **'Parallel child components ({count}):'**
+  String blueprintChildComponents(int count);
+
+  /// No description provided for @blueprintAddChildBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add child component'**
+  String get blueprintAddChildBtn;
+
+  /// No description provided for @blueprintClearFormCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Form Cache'**
+  String get blueprintClearFormCache;
+
+  /// No description provided for @blueprintTabTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Blueprints'**
+  String get blueprintTabTitle;
+
+  /// No description provided for @blueprintTabDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage SDUI report layouts and printouts.'**
+  String get blueprintTabDesc;
+
+  /// No description provided for @blueprintCreateNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Blueprint'**
+  String get blueprintCreateNew;
+
+  /// No description provided for @blueprintVariantSelector.
+  ///
+  /// In en, this message translates to:
+  /// **'Variant: {variant}'**
+  String blueprintVariantSelector(String variant);
 }
 
 class _AppLocalizationsDelegate

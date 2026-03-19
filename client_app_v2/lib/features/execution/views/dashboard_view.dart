@@ -5,7 +5,7 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/utils/riverpod_extensions.dart';
+
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 
@@ -132,19 +132,25 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
               // Resolve Workflow Name
               String workflowDisplay = 'Workflow: $workflowId';
               if (asyncWorkflows is AsyncData && asyncWorkflows.value != null) {
-                  final workflows = asyncWorkflows.value!;
-                  final wf = workflows.where((w) => SafeCast.safeString(w['id']) == workflowId).firstOrNull;
-                  if (wf != null) {
-                      final nameMap = SafeCast.safeMap(wf['name']);
-                      final titleStr = nameMap.isNotEmpty
+                final workflows = asyncWorkflows.value!;
+                final wf =
+                    workflows
+                        .where(
+                          (w) => SafeCast.safeString(w['id']) == workflowId,
+                        )
+                        .firstOrNull;
+                if (wf != null) {
+                  final nameMap = SafeCast.safeMap(wf['name']);
+                  final titleStr =
+                      nameMap.isNotEmpty
                           ? (nameMap['translations']?[nameMap['default_locale']] ??
                               nameMap['default_locale'] ??
                               workflowId)
                           : (SafeCast.safeString(wf['name']).isNotEmpty
                               ? SafeCast.safeString(wf['name'])
                               : workflowId);
-                      workflowDisplay = 'Workflow: $titleStr';
-                  }
+                  workflowDisplay = 'Workflow: $titleStr';
+                }
               }
 
               return Card(
@@ -160,6 +166,23 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                     children: [
                       _buildStatusChip(status),
                       const SizedBox(width: 8),
+                      if (status.toLowerCase() == 'completed') ...[
+                        IconButton(
+                          icon: const Icon(Icons.print, color: Colors.blue),
+                          tooltip:
+                              AppLocalizations.of(
+                                context,
+                              )!.printVariantSelectorTitle,
+                          onPressed:
+                              () => _showVariantSelector(
+                                context,
+                                id,
+                                workflowId,
+                                asyncWorkflows,
+                              ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         tooltip: 'Delete Execution',
@@ -189,6 +212,95 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             ),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
+    );
+  }
+
+  void _showVariantSelector(
+    BuildContext context,
+    String executionId,
+    String workflowId,
+    AsyncValue<List<Map<String, dynamic>>> asyncWorkflows,
+  ) {
+    if (workflowId.isEmpty) return;
+
+    final workflows = asyncWorkflows.asData?.value ?? [];
+    final wf = workflows.firstWhere(
+      (w) => SafeCast.safeString(w['id']) == workflowId,
+      orElse: () => <String, dynamic>{},
+    );
+
+    if (wf.isEmpty) {
+      ExecutionReportRoute(
+        executionId: executionId,
+        variant: 'default',
+      ).go(context);
+      return;
+    }
+
+    final blueprints = SafeCast.safeMap(wf['render_blueprints']);
+    final variants = blueprints.keys.toList();
+
+    if (variants.isEmpty ||
+        (variants.length == 1 && variants.first == 'default')) {
+      ExecutionReportRoute(
+        executionId: executionId,
+        variant: 'default',
+      ).go(context);
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  AppLocalizations.of(context)!.printVariantSelectorTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 16.0,
+                  right: 16.0,
+                  bottom: 16.0,
+                ),
+                child: Text(
+                  AppLocalizations.of(context)!.printVariantSelectorDescription,
+                ),
+              ),
+              const Divider(height: 1),
+              ...variants.map(
+                (v) => ListTile(
+                  leading: Icon(
+                    v == 'default' ? Icons.star : Icons.description,
+                    color: Colors.blue,
+                  ),
+                  title: Text(v),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    ExecutionReportRoute(
+                      executionId: executionId,
+                      variant: v,
+                    ).go(context);
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
     );
   }
 

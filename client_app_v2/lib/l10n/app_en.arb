@@ -154,6 +154,8 @@
   "resultsTitle": "Analysis Results",
   "viewLogTooltip": "View Execution Log",
   "downloadReportTooltip": "Download Report",
+  "printVariantSelectorTitle": "Select Print Variant",
+  "printVariantSelectorDescription": "Choose a variant for this execution report.",
   "downloadNotImplementedPdf": "Download PDF not implemented yet",
   "chooseAnalysisType": "Choose Analysis Type",
   "usageCurrentMonth": "Current Month Usage",
@@ -960,5 +962,32 @@
   "workflowCloneSuccess": "Workflow cloned successfully!",
   "workflowCloneErrorMissingDep": "Clone failed: Step dependency points to a non-existent step.",
   "workflowSharedBlueprintWarning": "Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block.",
-  "overall_system_profile": "Overall System Profile"
+  "overall_system_profile": "Overall System Profile",
+  "blueprintSelectWorkflow": "Select Workflow",
+  "blueprintVariantName": "Variant Name",
+  "blueprintDefaultVariant": "default",
+  "blueprintCopyVariant": "Copy Blueprint",
+  "blueprintGridRowLabel": "Grid Row",
+  "blueprintGridRowDesc": "Number of columns",
+  "blueprintChildComponents": "Parallel child components ({count}):",
+  "@blueprintChildComponents": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "blueprintAddChildBtn": "Add child component",
+  "blueprintClearFormCache": "Clear Form Cache",
+  "blueprintTabTitle": "Blueprints",
+  "blueprintTabDesc": "Manage SDUI report layouts and printouts.",
+  "blueprintCreateNew": "Create New Blueprint",
+  "blueprintVariantSelector": "Variant: {variant}",
+  "@blueprintVariantSelector": {
+    "placeholders": {
+      "variant": {
+        "type": "String"
+      }
+    }
+  }
 }

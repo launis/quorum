@@ -152,13 +152,17 @@ mixin $ExecutionRoute on GoRouteData {
 
 mixin $ExecutionReportRoute on GoRouteData {
   static ExecutionReportRoute _fromState(GoRouterState state) =>
-      ExecutionReportRoute(executionId: state.pathParameters['executionId']!);
+      ExecutionReportRoute(
+        executionId: state.pathParameters['executionId']!,
+        variant: state.uri.queryParameters['variant'] ?? 'default',
+      );
 
   ExecutionReportRoute get _self => this as ExecutionReportRoute;
 
   @override
   String get location => GoRouteData.$location(
     '/dashboard/executions/${Uri.encodeComponent(_self.executionId)}/report',
+    queryParams: {if (_self.variant != 'default') 'variant': _self.variant},
   );
 
   @override

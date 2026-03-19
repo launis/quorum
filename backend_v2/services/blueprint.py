@@ -15,7 +15,9 @@ class BlueprintTransformer:
     def __init__(self, repo: AbstractWorkflowRepository):
         self.repo = repo
 
-    async def build_render_payload(self, execution_id: str, accept_language: str | None = None) -> dict[str, Any]:
+    async def build_render_payload(
+        self, execution_id: str, accept_language: str | None = None, variant: str = "default"
+    ) -> dict[str, Any]:
         """Builds the localized rendering payload by merging results with the blueprint.
         Implements Late-Binding Localization (Layer 5) and Graceful Degradation.
         """
@@ -29,8 +31,25 @@ class BlueprintTransformer:
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND}
             )
 
-        if not execution.render_blueprints or "default" not in execution.render_blueprints:
-            msg = f"Execution {execution_id} is missing render_blueprints['default']."
+        # Resolve the workflow's actual dynamic translation early (also supports live variant fallback)
+        workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
+        if not workflow_data or "name" not in workflow_data:
+            msg = f"Executing workflow {execution.workflow_id} is completely missing a 'name' block."
+            logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED}
+            )
+
+        blueprint_data = None
+        if execution.render_blueprints and variant in execution.render_blueprints:
+            blueprint_data = execution.render_blueprints[variant]
+        elif "render_blueprints" in workflow_data and variant in workflow_data["render_blueprints"]:
+            logger.info(f"[BlueprintTransformer] Variant '{variant}' missing from frozen execution {execution_id}. Fetching layout from live Workflow.")
+            blueprint_data = workflow_data["render_blueprints"][variant]
+        else:
+            msg = f"Execution {execution_id} and Workflow {execution.workflow_id} are missing render_blueprints['{variant}']."
             logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
             raise AppException(
                 message=msg,
@@ -40,7 +59,7 @@ class BlueprintTransformer:
 
         # Validate blueprint structure
         try:
-            blueprint = RenderBlueprint.model_validate(execution.render_blueprints["default"])
+            blueprint = RenderBlueprint.model_validate(blueprint_data)
         except Exception as e:
             msg = f"Invalid render_blueprint structure in Execution {execution_id}: {e}"
             logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
@@ -53,20 +72,9 @@ class BlueprintTransformer:
         # Determine locale
         locale = accept_language or execution.metadata.get("target_locale", "en")
 
-        # Resolve the workflow's actual dynamic translation for overriding 'overall_system_profile'
-        workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
-        if not workflow_data or "name" not in workflow_data:
-            msg = f"Executing workflow {execution.workflow_id} is completely missing a 'name' block."
-            logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED}
-            )
-
         name_obj = workflow_data["name"]
         dynamic_workflow_title_translation = ""
-        
+
         if isinstance(name_obj, dict):
             lang_dict = name_obj.get("translations", {})
             if locale not in lang_dict:
@@ -80,7 +88,7 @@ class BlueprintTransformer:
             dynamic_workflow_title_translation = lang_dict[locale]
         elif isinstance(name_obj, str):
             dynamic_workflow_title_translation = name_obj
-		
+
         if not dynamic_workflow_title_translation:
             msg = f"Executing workflow {execution.workflow_id} generated an empty name for locale '{locale}'."
             logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
@@ -160,7 +168,7 @@ class BlueprintTransformer:
                 msg = "Missing data_path for scale calculation."
                 logger.error(f"[BlueprintTransformer] VALIDATION_FAILED: {msg}")
                 raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-                
+
             slug = data_path.split(".")[-1]
             # Handle normalized max values explicitly if the path ends with _normalized
             if slug.endswith("_normalized"):
@@ -183,7 +191,7 @@ class BlueprintTransformer:
                                 pass
                     if scores:
                         return float(max(scores))
-                        
+
             msg = f"Data source '{slug}' is missing a required 'scales' array in the database to resolve scale_max. Refusing to guess UI parameters."
             logger.error(f"[BlueprintTransformer] VALIDATION_FAILED: {msg}")
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
@@ -224,7 +232,7 @@ class BlueprintTransformer:
             # Fallback to just the raw slug if no translation available
             return slug
 
-        def resolve_component(base_dict: dict) -> dict | None:
+        def resolve_component(base_dict: dict[str, Any]) -> dict[str, Any] | None:
             comp_type = base_dict.get("type")
             if not comp_type:
                 return base_dict
@@ -254,7 +262,7 @@ class BlueprintTransformer:
                         base_dict["title"] = get_block_title(base_dict["data_path"])
                     elif base_dict["title"] == "overall_system_profile":
                         base_dict["title"] = dynamic_workflow_title_translation
-                
+
                 # Pre-calculate pure-dumb display values and CSS plots
                 v = base_dict.get("value")
                 m = base_dict.get("scale_max", 0.0)
@@ -262,7 +270,7 @@ class BlueprintTransformer:
                 base_dict["display_value_only"] = format_float(v)
                 base_dict["display_max_only"] = format_float(m)
                 base_dict["visual_pct"] = calc_pct(v, m)
-                
+
                 return base_dict
             elif comp_type == "2d_matrix":
                 x_val = resolve_data_path(base_dict.get("x_data_path", ""))
@@ -290,7 +298,7 @@ class BlueprintTransformer:
                 xm = base_dict.get("x_scale_max", 0.0)
                 yv = base_dict.get("y_value")
                 ym = base_dict.get("y_scale_max", 0.0)
-                
+
                 base_dict["x_display"] = f"{format_float(xv)} / {format_float(xm)}" if xv is not None else "N/A"
                 base_dict["x_display_value_only"] = format_float(xv)
                 base_dict["x_display_max_only"] = format_float(xm)
@@ -345,7 +353,7 @@ class BlueprintTransformer:
                 ym = base_dict.get("y_scale_max", 0.0)
                 zv = base_dict.get("z_value")
                 zm = base_dict.get("z_scale_max", 0.0)
-                
+
                 base_dict["x_display"] = f"{format_float(xv)} / {format_float(xm)}" if xv is not None else "N/A"
                 base_dict["x_display_value_only"] = format_float(xv)
                 base_dict["x_display_max_only"] = format_float(xm)
@@ -355,13 +363,13 @@ class BlueprintTransformer:
                 base_dict["y_display_value_only"] = format_float(yv)
                 base_dict["y_display_max_only"] = format_float(ym)
                 base_dict["y_visual_pct"] = 100.0 - calc_pct(yv, ym)
-                
+
                 base_dict["z_display"] = f"{format_float(zv)} / {format_float(zm)}" if zv is not None else "N/A"
                 base_dict["z_display_value_only"] = format_float(zv)
                 base_dict["z_display_max_only"] = format_float(zm)
                 z_raw_pct = calc_pct(zv, zm)
                 base_dict["z_visual_pct"] = z_raw_pct
-                
+
                 # 3D Depth sizing formulas
                 z_size = 15.0 + ((z_raw_pct / 100.0) * 35.0)
                 base_dict["z_visual_size"] = round(z_size, 1)
@@ -382,7 +390,7 @@ class BlueprintTransformer:
                     parts = rp.strip("$").split(".")
                     step_slug = parts[1] if len(parts) >= 2 else rp
                     display_title = step_slug
-                    
+
                     if step_slug in steps_by_slug:
                         step_def = steps_by_slug[step_slug]
                         if "title" in step_def:
@@ -422,11 +430,11 @@ class BlueprintTransformer:
 
         # Global Bibliography Aggregation
         biblio = []
-        def _scan_for_citations(obj: Any):
+        def _scan_for_citations(obj: Any) -> None:
              if isinstance(obj, dict):
                  if "citation_reference" in obj and obj["citation_reference"]:
                       biblio.append(obj["citation_reference"])
-                 for k, v in obj.items():
+                 for _, v in obj.items():
                       _scan_for_citations(v)
              elif isinstance(obj, list):
                  for item in obj:

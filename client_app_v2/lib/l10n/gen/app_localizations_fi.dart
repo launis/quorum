@@ -318,6 +318,13 @@ class AppLocalizationsFi extends AppLocalizations {
   String get downloadReportTooltip => 'Lataa raportti';
 
   @override
+  String get printVariantSelectorTitle => 'Valitse tulostemalli';
+
+  @override
+  String get printVariantSelectorDescription =>
+      'Valitse mitä tulostemallia asetteluun käytetään.';
+
+  @override
   String get downloadNotImplementedPdf => 'PDF-lataus ei vielä käytössä';
 
   @override
@@ -2131,4 +2138,47 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get overall_system_profile => 'Kokonaisvaltainen Profiili';
+
+  @override
+  String get blueprintSelectWorkflow => 'Valitse Työnkulku';
+
+  @override
+  String get blueprintVariantName => 'Variantin Nimi';
+
+  @override
+  String get blueprintDefaultVariant => 'oletus (default)';
+
+  @override
+  String get blueprintCopyVariant => 'Kopioi Tuloste';
+
+  @override
+  String get blueprintGridRowLabel => 'Rinnakkainen (Grid Row)';
+
+  @override
+  String get blueprintGridRowDesc => 'Sarakkeiden määrä (Columns)';
+
+  @override
+  String blueprintChildComponents(int count) {
+    return 'Rinnakkaiset lapsikomponentit ($count):';
+  }
+
+  @override
+  String get blueprintAddChildBtn => 'Lisää lapsikomponentti';
+
+  @override
+  String get blueprintClearFormCache => 'Tyhjennä lomakevälimuisti';
+
+  @override
+  String get blueprintTabTitle => 'Tulosteet';
+
+  @override
+  String get blueprintTabDesc => 'Hallinnoi SDUI raporttipohjia ja tulosteita.';
+
+  @override
+  String get blueprintCreateNew => 'Luo Uusi Tuloste';
+
+  @override
+  String blueprintVariantSelector(String variant) {
+    return 'Vaihtoehto: $variant';
+  }
 }

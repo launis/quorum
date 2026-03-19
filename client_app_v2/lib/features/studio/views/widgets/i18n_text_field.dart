@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+
 /// **Dynaaminen I18n-syöttö**
 ///
 /// A compound widget that captures a `default_locale` string alongside
@@ -207,7 +208,8 @@ class _I18nTextFieldState extends State<I18nTextField> {
               TextField(
                 controller: langController,
                 decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.i18nLanguageCodePlaceholder,
+                  labelText:
+                      AppLocalizations.of(context)!.i18nLanguageCodePlaceholder,
                 ),
                 maxLength: 2,
               ),
@@ -270,7 +272,9 @@ class _I18nTextFieldState extends State<I18nTextField> {
             TextField(
               controller: _defaultController,
               decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.i18nDefaultFormLabel(_defaultLocale.toUpperCase()),
+                labelText: AppLocalizations.of(
+                  context,
+                )!.i18nDefaultFormLabel(_defaultLocale.toUpperCase()),
                 border: const OutlineInputBorder(),
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surface,
@@ -281,7 +285,10 @@ class _I18nTextFieldState extends State<I18nTextField> {
               const SizedBox(height: 16),
               Text(
                 AppLocalizations.of(context)!.i18nOtherTranslations,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               ..._translationControllers.entries.map((entry) {
@@ -333,7 +340,10 @@ class _I18nTextFieldState extends State<I18nTextField> {
                                 color: Colors.red,
                               ),
                               onPressed: () => _removeTranslation(entry.key),
-                              tooltip: AppLocalizations.of(context)!.i18nDeleteTranslation,
+                              tooltip:
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.i18nDeleteTranslation,
                             ),
                           ],
                         ),
@@ -341,7 +351,11 @@ class _I18nTextFieldState extends State<I18nTextField> {
                         TextField(
                           controller: entry.value,
                           decoration: InputDecoration(
-                            hintText: AppLocalizations.of(context)!.i18nTranslateToPlaceholder(entry.key.toUpperCase()),
+                            hintText: AppLocalizations.of(
+                              context,
+                            )!.i18nTranslateToPlaceholder(
+                              entry.key.toUpperCase(),
+                            ),
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,

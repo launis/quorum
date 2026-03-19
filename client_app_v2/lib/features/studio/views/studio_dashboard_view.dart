@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/model_registry_view.dart';
+import 'package:client_app/features/studio/views/blueprint_editor_view.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -27,7 +28,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -73,6 +74,10 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
             ),
             Tab(icon: const Icon(Icons.extension), text: 'Steps'),
             Tab(
+              icon: const Icon(Icons.picture_as_pdf),
+              text: l10n.blueprintTabTitle,
+            ),
+            Tab(
               icon: const Icon(Icons.settings),
               text: l10n.modelRegistryTitle,
             ),
@@ -91,7 +96,10 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           // TAB 3: Steps
           _buildStepsTab(context, ref, l10n),
 
-          // TAB 4: Model Registry
+          // TAB 4: Blueprints
+          _buildBlueprintsTab(context, ref, l10n),
+
+          // TAB 5: Model Registry
           const ModelRegistryView(),
         ],
       ),
@@ -130,11 +138,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                   return Card(
                     child: ListTile(
                       title: Text(
-                        (SafeCast.safeMap(workflow['name'])['translations'] as Map?)?['fi'] ?? 
-                        (SafeCast.safeMap(workflow['name'])['translations'] as Map?)?['en'] ?? 
-                        workflow['slug']?.toString() ??
-                        workflow['id']?.toString() ?? 
-                        'Unnamed',
+                        (SafeCast.safeMap(workflow['name'])['translations']
+                                as Map?)?['fi'] ??
+                            (SafeCast.safeMap(workflow['name'])['translations']
+                                as Map?)?['en'] ??
+                            workflow['slug']?.toString() ??
+                            workflow['id']?.toString() ??
+                            'Unnamed',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
@@ -201,9 +211,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                   return Card(
                     child: ListTile(
                       title: Text(matrix['id']?.toString() ?? 'Unnamed'),
-                      subtitle: Text(
-                        l10n.matrixSubtitle(ruleCount),
-                      ),
+                      subtitle: Text(l10n.matrixSubtitle(ruleCount)),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         PromptBlockEditRoute(
@@ -307,6 +315,432 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           label: const Text('New'),
         ),
       ],
+    );
+  }
+
+  Widget _buildBlueprintsTab(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
+    final workflowsState = ref.watch(workflowsControllerProvider);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSectionHeader(context, l10n.blueprintTabTitle, () {
+            _showCreateBlueprintDialog(context, ref, l10n);
+          }),
+          const SizedBox(height: 16),
+          workflowsState.when(
+            data: (workflows) {
+              if (workflows.isEmpty)
+                return const Text('No workflows available to host blueprints.');
+
+              final allBlueprints = <Map<String, dynamic>>[];
+              for (final wf in workflows) {
+                final wfMap = SafeCast.safeMap(wf);
+                final blueprintsMap = SafeCast.safeMap(
+                  wfMap['render_blueprints'],
+                );
+                final wfName =
+                    (SafeCast.safeMap(wfMap['name'])['translations']
+                        as Map?)?['fi'] ??
+                    (SafeCast.safeMap(wfMap['name'])['translations']
+                        as Map?)?['en'] ??
+                    wfMap['slug']?.toString() ??
+                    wfMap['id']?.toString() ??
+                    'Unnamed';
+
+                for (final entry in blueprintsMap.entries) {
+                  allBlueprints.add({
+                    'workflowId': wfMap['id'],
+                    'workflowName': wfName,
+                    'variant': entry.key,
+                    'blueprint': entry.value,
+                    'workflowPayload': wfMap,
+                  });
+                }
+              }
+
+              if (allBlueprints.isEmpty) {
+                return Text(l10n.blueprintEmptyStateMsg);
+              }
+
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: allBlueprints.length,
+                itemBuilder: (context, index) {
+                  final item = allBlueprints[index];
+                  final variant = item['variant'] as String;
+                  final wfName = item['workflowName'] as String;
+                  final blueprint = SafeCast.safeMap(item['blueprint']);
+                  final componentCount =
+                      SafeCast.safeList(blueprint['components']).length;
+
+                  return Card(
+                    child: ListTile(
+                      title: Text(
+                        '$wfName - ${l10n.blueprintVariantSelector(variant)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text('Components: $componentCount'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.copy),
+                            tooltip: l10n.blueprintCopyVariant,
+                            onPressed:
+                                () => _showCopyBlueprintDialog(
+                                  context,
+                                  ref,
+                                  l10n,
+                                  item,
+                                ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed:
+                                () => _deleteBlueprint(context, ref, item),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (ctx) => BlueprintEditorView(
+                                  initialBlueprint: blueprint,
+                                  onSave: (updatedBlueprint) async {
+                                    final wfPayload = Map<String, dynamic>.from(
+                                      item['workflowPayload'] as Map,
+                                    );
+                                    final wfBlueprints =
+                                        Map<String, dynamic>.from(
+                                          SafeCast.safeMap(
+                                            wfPayload['render_blueprints'],
+                                          ),
+                                        );
+                                    wfBlueprints[variant] = updatedBlueprint;
+                                    wfPayload['render_blueprints'] =
+                                        wfBlueprints;
+
+                                    try {
+                                      await ref
+                                          .read(
+                                            workflowsControllerProvider
+                                                .notifier,
+                                          )
+                                          .saveWorkflow(
+                                            wfPayload['id'],
+                                            wfPayload,
+                                          );
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Save Failed: $e'),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error:
+                (e, _) => ErrorView(
+                  error: e,
+                  compact: true,
+                  onRetry:
+                      () =>
+                          ref
+                              .read(workflowsControllerProvider.notifier)
+                              .refresh(),
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCreateBlueprintDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
+    final workflows = ref.read(workflowsControllerProvider).value ?? [];
+    if (workflows.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No workflows exist.')));
+      return;
+    }
+
+    String selectedWorkflowId = workflows.first['id'].toString();
+    final variantController = TextEditingController(text: 'default');
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (c, setState) {
+            return AlertDialog(
+              title: Text(l10n.blueprintCreateNew),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedWorkflowId,
+                    decoration: InputDecoration(
+                      labelText: l10n.blueprintSelectWorkflow,
+                    ),
+                    items:
+                        workflows.map((wf) {
+                          final wfMap = SafeCast.safeMap(wf);
+                          final wfName =
+                              (SafeCast.safeMap(wfMap['name'])['translations']
+                                  as Map?)?['fi'] ??
+                              (SafeCast.safeMap(wfMap['name'])['translations']
+                                  as Map?)?['en'] ??
+                              wfMap['slug']?.toString() ??
+                              wfMap['id']?.toString() ??
+                              'Unnamed';
+                          return DropdownMenuItem(
+                            value: wfMap['id'].toString(),
+                            child: Text(wfName),
+                          );
+                        }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => selectedWorkflowId = val);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: variantController,
+                    decoration: InputDecoration(
+                      labelText: l10n.blueprintVariantName,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final workflow = workflows.firstWhere(
+                      (w) => w['id'] == selectedWorkflowId,
+                    );
+                    final variant = variantController.text.trim();
+                    if (variant.isEmpty) return;
+
+                    final wfPayload = Map<String, dynamic>.from(workflow);
+                    final wfBlueprints = Map<String, dynamic>.from(
+                      SafeCast.safeMap(wfPayload['render_blueprints']),
+                    );
+
+                    if (wfBlueprints.containsKey(variant)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Variant already exists')),
+                      );
+                      return;
+                    }
+
+                    wfBlueprints[variant] = {'components': []};
+                    wfPayload['render_blueprints'] = wfBlueprints;
+
+                    try {
+                      await ref
+                          .read(workflowsControllerProvider.notifier)
+                          .saveWorkflow(selectedWorkflowId, wfPayload);
+                      if (context.mounted) Navigator.pop(ctx);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Save Failed: $e')),
+                      );
+                    }
+                  },
+                  child: Text(l10n.save),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCopyBlueprintDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    Map<String, dynamic> sourceBlueprintInfo,
+  ) {
+    final workflows = ref.read(workflowsControllerProvider).value ?? [];
+    String selectedWorkflowId = sourceBlueprintInfo['workflowId'];
+    final variantController = TextEditingController(
+      text: sourceBlueprintInfo['variant'] + '_copy',
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (c, setState) {
+            return AlertDialog(
+              title: Text(l10n.blueprintCopyVariant),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedWorkflowId,
+                    decoration: InputDecoration(
+                      labelText: l10n.blueprintSelectWorkflow,
+                    ),
+                    items:
+                        workflows.map((wf) {
+                          final wfMap = SafeCast.safeMap(wf);
+                          final wfName =
+                              (SafeCast.safeMap(wfMap['name'])['translations']
+                                  as Map?)?['fi'] ??
+                              (SafeCast.safeMap(wfMap['name'])['translations']
+                                  as Map?)?['en'] ??
+                              wfMap['slug']?.toString() ??
+                              wfMap['id']?.toString() ??
+                              'Unnamed';
+                          return DropdownMenuItem(
+                            value: wfMap['id'].toString(),
+                            child: Text(wfName),
+                          );
+                        }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => selectedWorkflowId = val);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: variantController,
+                    decoration: InputDecoration(
+                      labelText: l10n.blueprintVariantName,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final workflow = workflows.firstWhere(
+                      (w) => w['id'] == selectedWorkflowId,
+                    );
+                    final variant = variantController.text.trim();
+                    if (variant.isEmpty) return;
+
+                    final wfPayload = Map<String, dynamic>.from(workflow);
+                    final wfBlueprints = Map<String, dynamic>.from(
+                      SafeCast.safeMap(wfPayload['render_blueprints']),
+                    );
+
+                    if (wfBlueprints.containsKey(variant)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Variant already exists')),
+                      );
+                      return;
+                    }
+
+                    // Deep copy via map
+                    wfBlueprints[variant] = Map<String, dynamic>.from(
+                      sourceBlueprintInfo['blueprint'],
+                    );
+                    wfPayload['render_blueprints'] = wfBlueprints;
+
+                    try {
+                      await ref
+                          .read(workflowsControllerProvider.notifier)
+                          .saveWorkflow(selectedWorkflowId, wfPayload);
+                      if (context.mounted) Navigator.pop(ctx);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Save Failed: $e')),
+                      );
+                    }
+                  },
+                  child: Text(l10n.save),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _deleteBlueprint(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> blueprintInfo,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Confirm Delete'),
+            content: Text(
+              'Delete variant "${blueprintInfo['variant']}" from ${blueprintInfo['workflowName']}?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () async {
+                  final wfPayload = Map<String, dynamic>.from(
+                    blueprintInfo['workflowPayload'] as Map,
+                  );
+                  final wfBlueprints = Map<String, dynamic>.from(
+                    SafeCast.safeMap(wfPayload['render_blueprints']),
+                  );
+                  wfBlueprints.remove(blueprintInfo['variant']);
+                  wfPayload['render_blueprints'] = wfBlueprints;
+
+                  try {
+                    await ref
+                        .read(workflowsControllerProvider.notifier)
+                        .saveWorkflow(wfPayload['id'], wfPayload);
+                    if (context.mounted) Navigator.pop(ctx);
+                  } catch (e) {
+                    if (context.mounted)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Delete Failed: $e')),
+                      );
+                  }
+                },
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
     );
   }
 }

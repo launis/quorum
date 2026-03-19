@@ -15,7 +15,7 @@ class SduiTranslator {
       final translations = SafeCast.safeMap(safeMap['translations']);
       final l10n = AppLocalizations.of(context);
       final localeName = l10n?.localeName ?? 'fi';
-      
+
       final val = SafeCast.safeString(translations[localeName]);
       if (val.isNotEmpty) return val;
       return SafeCast.safeString(translations['en']); // Fallback

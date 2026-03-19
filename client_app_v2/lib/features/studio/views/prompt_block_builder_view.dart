@@ -37,12 +37,15 @@ class PromptBlockBuilderView extends ConsumerWidget {
     final asyncData = ref.watch(promptBlockBySlugProvider(slug!));
     return asyncData.when(
       data: (matrix) => _PromptBlockBuilderForm(promptBlock: matrix),
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, st) => ErrorView(
-        error: e,
-        stackTrace: st,
-        onRetry: () => ref.invalidate(promptBlockBySlugProvider(slug!)),
-      ),
+      loading:
+          () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error:
+          (e, st) => ErrorView(
+            error: e,
+            stackTrace: st,
+            onRetry: () => ref.invalidate(promptBlockBySlugProvider(slug!)),
+          ),
     );
   }
 }
@@ -71,7 +74,6 @@ class _PromptBlockBuilderFormState
     _idController = TextEditingController(
       text: SafeCast.safeString(_editablePromptBlock['id']),
     );
-
 
     if (!_editablePromptBlock.containsKey('criteria')) {
       _editablePromptBlock['criteria'] = [];
@@ -269,7 +271,6 @@ class _PromptBlockBuilderFormState
                             widget.promptBlock['id'].toString().isEmpty,
                       ),
                       const SizedBox(height: 24),
-
                     ],
                   ),
                 ),
@@ -300,17 +301,22 @@ class _PromptBlockBuilderFormState
                           labelText: 'Category',
                         ),
                         initialValue: PromptBlockCategory.fromId(
-                          _editablePromptBlock['category_id'] as String? ?? 'system_rule',
+                          _editablePromptBlock['category_id'] as String? ??
+                              'system_rule',
                         ),
-                        items: PromptBlockCategory.values.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Text(category.displayName),
-                          );
-                        }).toList(),
+                        items:
+                            PromptBlockCategory.values.map((category) {
+                              return DropdownMenuItem(
+                                value: category,
+                                child: Text(category.displayName),
+                              );
+                            }).toList(),
                         onChanged: (val) {
                           if (val != null) {
-                            setState(() => _editablePromptBlock['category_id'] = val.id);
+                            setState(
+                              () =>
+                                  _editablePromptBlock['category_id'] = val.id,
+                            );
                           }
                         },
                       ),

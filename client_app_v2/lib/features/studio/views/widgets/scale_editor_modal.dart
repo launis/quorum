@@ -106,7 +106,9 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                initialValue: SafeCast.safeString(_editableScale['ai_description']),
+                initialValue: SafeCast.safeString(
+                  _editableScale['ai_description'],
+                ),
                 decoration: const InputDecoration(
                   labelText: 'Grade AI Rules (Strict Evaluation Directives)',
                   border: OutlineInputBorder(),

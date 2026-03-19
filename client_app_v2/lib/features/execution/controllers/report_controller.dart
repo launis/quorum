@@ -15,9 +15,14 @@ class ReportController extends _$ReportController {
   Future<SduiRenderPayload> build(
     String executionId, {
     String lang = 'fi',
+    String variant = 'default',
   }) async {
     final client = ref.watch(executionClientProvider);
-    final rawData = await client.renderExecution(executionId, lang: lang);
+    final rawData = await client.renderExecution(
+      executionId,
+      lang: lang,
+      variant: variant,
+    );
     return await Isolate.run(() => SduiRenderPayload.fromJson(rawData));
   }
 }

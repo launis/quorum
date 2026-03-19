@@ -17,7 +17,8 @@ class Scatter3DWidget extends StatelessWidget {
     final double yPct = component.yVisualPct;
 
     // 2. Z Size Factor precomputed by backend
-    final double zSize = component.zVisualSize > 0 ? component.zVisualSize : 15.0;
+    final double zSize =
+        component.zVisualSize > 0 ? component.zVisualSize : 15.0;
 
     return Card(
       elevation: 0,
@@ -74,24 +75,36 @@ class Scatter3DWidget extends StatelessWidget {
                 SduiTranslator.translate(context, component.xTitle),
                 component.xNoteText,
                 const Color(0xFFE91E63),
-                component.xDisplayValueOnly.isNotEmpty ? component.xDisplayValueOnly : '0.0',
-                component.xDisplayMaxOnly.isNotEmpty ? component.xDisplayMaxOnly : '6.0',
+                component.xDisplayValueOnly.isNotEmpty
+                    ? component.xDisplayValueOnly
+                    : '0.0',
+                component.xDisplayMaxOnly.isNotEmpty
+                    ? component.xDisplayMaxOnly
+                    : '6.0',
               ),
             if (component.yNoteText.isNotEmpty)
               _buildJustificationBox(
                 SduiTranslator.translate(context, component.yTitle),
                 component.yNoteText,
                 const Color(0xFF9C27B0),
-                component.yDisplayValueOnly.isNotEmpty ? component.yDisplayValueOnly : '0.0',
-                component.yDisplayMaxOnly.isNotEmpty ? component.yDisplayMaxOnly : '6.0',
+                component.yDisplayValueOnly.isNotEmpty
+                    ? component.yDisplayValueOnly
+                    : '0.0',
+                component.yDisplayMaxOnly.isNotEmpty
+                    ? component.yDisplayMaxOnly
+                    : '6.0',
               ),
             if (component.zNoteText.isNotEmpty)
               _buildJustificationBox(
                 SduiTranslator.translate(context, component.zTitle),
                 component.zNoteText,
                 const Color(0xFF3F51B5),
-                component.zDisplayValueOnly.isNotEmpty ? component.zDisplayValueOnly : '0.0',
-                component.zDisplayMaxOnly.isNotEmpty ? component.zDisplayMaxOnly : '100.0',
+                component.zDisplayValueOnly.isNotEmpty
+                    ? component.zDisplayValueOnly
+                    : '0.0',
+                component.zDisplayMaxOnly.isNotEmpty
+                    ? component.zDisplayMaxOnly
+                    : '100.0',
               ),
           ],
         ),
@@ -298,9 +311,7 @@ class Scatter3DWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildDataBoxes(
-    BuildContext context,
-  ) {
+  Widget _buildDataBoxes(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final xTitle = SduiTranslator.translate(context, component.xTitle);
     final yTitle = SduiTranslator.translate(context, component.yTitle);
@@ -459,8 +470,7 @@ class Scatter3DWidget extends StatelessWidget {
                           children: [
                             TextSpan(text: "$title "),
                             TextSpan(
-                              text:
-                                  '($valStr / $maxStr):',
+                              text: '($valStr / $maxStr):',
                               style: const TextStyle(color: Colors.black87),
                             ),
                           ],
