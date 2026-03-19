@@ -16,10 +16,9 @@ class WorkflowInputs(BaseModel):
     """
 
     # Primary Content (Raw Material for LLM)
-    # The 'chat_log' key is the definitive mandatory field for processing.
     # Optional inputs like 'product_text', 'reflection_text', and 'guided_reflection'
     # are dynamically accepted here based on Workflow.expected_inputs and extra="allow".
-    chat_log: str | dict[str, Any] = Field(..., description="The definitive, mandatory chat log or Base64 payload to analyze.")
+    chat_log: str | dict[str, Any] | None = Field(default=None, description="Optional legacy chat log or Base64 payload.")
     organization_id: str | None = Field(default=None, description="Tenant ID for multi-tenancy.")
     user_id: str | None = Field(default=None, description="User ID for audit trails.")
     simulation_mode: bool = Field(default=False, description="If True, indicates a test/simulation run.")

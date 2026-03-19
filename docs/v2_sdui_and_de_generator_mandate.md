@@ -2,13 +2,14 @@
 
 This document outlines the authoritative standards for the V2 Flutter client, emphasizing dynamic orchestration and strict rejection of generated domain models.
 
-## 1. Zero-Deploy SDUI (Server-Driven UI)
+## 1. Zero-Deploy SDUI (Server-Driven UI) & The "Zero-Math" Mandate
 
-The V2 frontend acts as a "Dumb Rendering Engine." Cognitive logic, visibility rules, and UI hints are stored exclusively in the database.
+The V2 architecture enforces a strict tripartite boundary between Data, Computation, and Presentation. The V2 frontend acts exclusively as a "Dumb Rendering Engine".
 
-- **UI Hints**: The backend returns a `ui_hints_snapshot` (e.g., `{"widget": "radar_chart", "slug": "ethics"}`).
-- **Blind Iteration**: The frontend MUST iterate through hints without domain-specific `if/else` logic. It maps the `widget` key to a local component using a `SDUIWidgetFactory`.
-- **Compound Widgets**: The factory automatically wraps components with logic (e.g., theory grounding expanders) if results contain auxiliary data keys like `${slug}_justification`.
+- **Database Purity (`ExecutionRecord`)**: The database MUST serve as the Single Source of Truth for raw data only. It must NEVER store ephemeral display variables (e.g., `visual_pct`, `display_value_only`, CSS coordinates). Storing rendering math in the DB corrupts the schema and breaks migration safety.
+- **Backend Computation (`/render` API)**: All business logic, mathematical layout calculations (percentages, max scales), and string formatting (localization, decimals) MUST occur lennosta (on-the-fly) within the Python `BlueprintTransformer`.
+- **Zero-Math UI (Frontend)**: The Flutter frontend MUST NOT perform any mathematical calculations, string formatting (e.g., `.toStringAsFixed(1)`), or fallback assignments. It blindly binds to the pre-calculated aesthetic string/float properties provided by the `/render` API.
+- **Render Delegation**: The legacy `SDUIWidgetFactory` and direct database-to-UI rendering debug loops are strictly banned to prevent schema contamination. All widgets must compose via the standardized `SduiRenderer`.
 
 ## 2. The No-CodeGen Mandate (V2 Domain Data)
 
@@ -37,7 +38,7 @@ In Phase 3, the execution monitoring transitioned from polling to **Server-Sent 
 
 - **SSE Client**: Uses `Dio`'s byte stream processing to parse fragmented JSON event objects.
 - **StreamNotifier**: Riverpod's `StreamNotifier` is used to maintain a persistent connection. The `build()` method yields `async*` data as events arrive.
-- **Blind SDUI Rendering**: The `ExecutionView` uses `SliverGrid` to iterate through the `ui_hints_snapshot` in the execution state. It delegates rendering to `SDUIWidgetFactory.buildWidget` without knowing the specific contents.
+- **Blind SDUI Rendering**: The `ExecutionReportView` uses `SliverGrid` to iterate through the ephemeral layout JSON provided by the `/render` API. It delegates rendering to `SduiRenderer` without knowing the specific contents, while the raw `ExecutionView` debugger is prohibited from constructing visual blocks.
 - **Audit Drift Check**: The view compares the `version_id` of the live execution with the current system's active version. If they differ, a "Audit Drift" banner is displayed.
 
 ## 5. Admin Studio V2: Dynamic CRUD Patterns

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
-import 'package:client_app/features/sdui/widget_factory.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/shared/widgets/execution_timeline.dart';
@@ -14,7 +13,7 @@ import 'dart:convert';
 ///
 /// V2 Architecture: Uses `StreamNotifier` for real-time SSE updates.
 /// Iterates over `frozen_context['ui_hints_snapshot']` blindly to render
-/// widget definitions from the backend using the `SDUIWidgetFactory`.
+/// the raw backend state.
 class ExecutionView extends ConsumerStatefulWidget {
   final String executionId;
 
@@ -165,68 +164,8 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   ),
                 ),
 
-              // SDUI Grid (Milestone 6: V6.0 Render Blueprint Integration)
-              if (record.containsKey('render_blueprints') &&
-                  record['render_blueprints'] != null &&
-                  record['render_blueprints'].containsKey('default'))
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final blueprint = SafeCast.safeMap(
-                          record['render_blueprints']['default'],
-                        );
-                        final components = SafeCast.safeList(
-                          blueprint['components'],
-                        );
-                        if (index >= components.length)
-                          return const SizedBox.shrink();
-
-                        final componentDef = SafeCast.safeMap(
-                          components[index],
-                        );
-                        final componentType = SafeCast.safeString(
-                          componentDef['type'],
-                        );
-                        // Use data_path as the slug if available, else a generated index slug
-                        final slug =
-                            SafeCast.safeString(componentDef['data_path'])
-                                .replaceAll(r'$results.', '')
-                                .replaceAll(r'$results', 'results_root') +
-                            '_$index';
-
-                        try {
-                          return SDUIWidgetFactory.buildWidget(
-                            hint:
-                                componentDef, // The V6 component definition acts as the hint
-                            slug: slug,
-                            results: results,
-                            locale:
-                                Localizations.localeOf(context).languageCode,
-                            logger: ref.read(loggerServiceProvider),
-                          );
-                        } catch (e, st) {
-                          ref
-                              .read(loggerServiceProvider)
-                              .error(
-                                'SDUIBuilder',
-                                'VALIDATION_FAILED: Widget render fatal crash for slug "$componentType": $e',
-                                e,
-                                st,
-                              );
-                          return const SizedBox.shrink();
-                        }
-                      },
-                      childCount:
-                          SafeCast.safeList(
-                            SafeCast.safeMap(
-                              record['render_blueprints']['default'],
-                            )['components'],
-                          ).length,
-                    ),
-                  ),
-                ),
+              // SDUI Grid rendering has been strictly isolated to ExecutionReportView
+              // to prevent pure DB records from being mutated with rendering math.
 
               // ALWAYS show Raw Data JSON on completion
               if (status == 'completed' && results.isNotEmpty)

@@ -3665,6 +3665,13 @@
                         ]
                     },
                     {
+                        "type": "evaluation_notes_panel",
+                        "data_paths": [
+                            "$results.steprule_8b245c2c5e304283842c401b59c1aa73.evaluation_notes",
+                            "$results.steprule_fb67b4e688d84520a18540c0dfe0943f.evaluation_notes"
+                        ]
+                    },
+                    {
                         "type": "bibliography_footer"
                     }
                 ]
@@ -4017,6 +4024,13 @@
                                     "y_axis_note": "$results.steprule_ec0bbf026f3a4952b35776114b971d38.blk_2878d1c8b5494180b1a5231466e2e0a9_justification",
                                     "z_axis_note": "$results.steprule_8b245c2c5e304283842c401b59c1aa73.blk_598f9d9fab3143e1b57ae999fc5d375d_justification"
                                 }
+                            ]
+                        },
+                        {
+                            "type": "evaluation_notes_panel",
+                            "data_paths": [
+                                "$results.steprule_8b245c2c5e304283842c401b59c1aa73.evaluation_notes",
+                                "$results.steprule_fb67b4e688d84520a18540c0dfe0943f.evaluation_notes"
                             ]
                         },
                         {

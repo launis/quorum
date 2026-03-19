@@ -41,7 +41,6 @@
             padding: 12px;
             margin-bottom: 12px;
             background-color: #fff;
-            page-break-inside: avoid;
         }
 
         .label {
@@ -64,7 +63,7 @@
             padding: 10px;
             margin-top: 8px;
             border-radius: 4px;
-            page-break-inside: avoid;
+            /* Allow long evaluation notes to split across pages */
         }
         .citation-box {
             background-color: #FFF3E0;
@@ -79,7 +78,6 @@
         .grid-container { 
             width: 100%; 
             display: block;
-            page-break-inside: avoid;
         }
         .grid-item { 
             display: inline-block; 
@@ -118,7 +116,7 @@
         
         {% macro render_comp(comp) %}
             {% if comp.type == 'grid_row' %}
-                <div style="display: block; width: 100%; margin-bottom: 20px; page-break-inside: avoid;">
+                <div style="display: block; width: 100%; margin-bottom: 20px;">
                     {% set child_width = (100 / comp.children|length) - 2 %}
                     {% for child in comp.children %}
                         <div style="display: inline-block; vertical-align: top; width: {{ child_width }}%; margin-right: {% if not loop.last %}2%{% else %}0{% endif %}; box-sizing: border-box;">
@@ -142,28 +140,25 @@
                 <!-- Handled primarily by the main header or left empty if not needed visually -->
 
             {% elif comp.type == '1d_gauge' %}
-                {% set raw1d = comp.value | float if comp.value else 0 %}
-                {% set max1d = comp.scale_max | float | default(100.0, true) %}
-                {% set pct1d = (raw1d / max1d * 100) if raw1d <= max1d else 100 %}
                 <div class="card">
                     <h2>{{ comp.title or t_gauge }}</h2>
                     <div style="text-align: center; margin-bottom: 25px; margin-top: 15px;">
                         <span class="value" style="font-size: 52px; color: #1E88E5;">
-                            {{ "%.1f / %.1f"|format(raw1d, max1d) if raw1d else 'N/A' }}
+                            {{ comp.display_value }}
                         </span>
                         {% if comp.scale_text %}
                         <div style="font-size: 16px; font-weight: 600; color: #555; margin-top: 8px;">{{ comp.scale_text }}</div>
                         {% endif %}
                     </div>
-                    {% if raw1d %}
+                    {% if comp.display_value != 'N/A' %}
                     <div style="background: #e0e0e0; border-radius: 12px; height: 32px; width: 100%; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
-                        <div style="background: linear-gradient(90deg, #2196F3, #4CAF50); height: 100%; width: {{ pct1d }}%; border-radius: 12px;"></div>
+                        <div style="background: linear-gradient(90deg, #2196F3, #4CAF50); height: 100%; width: {{ comp.visual_pct }}%; border-radius: 12px;"></div>
                     </div>
                     {% endif %}
                 </div>
 
             {% elif comp.type == '2d_matrix' %}
-                <div class="card" style="page-break-inside: avoid;">
+                <div class="card">
                     <h2>{{ t_2d_matrix }}</h2>
                     
                     <div style="display: block; width: 100%; margin-top: 25px;">
@@ -176,16 +171,8 @@
                                 <div style="position: absolute; top: 0; left: 33.3%; height: 100%; border-left: 1px dashed #ccc;"></div>
                                 <div style="position: absolute; top: 0; left: 66.6%; height: 100%; border-left: 1px dashed #ccc;"></div>
                                 
-                                {% if comp.get('x_value') is number and comp.get('y_value') is number %}
-                                    {% set max_x = comp.get('x_scale_max', 6.0) | float | default(6.0, true) %}
-                                    {% set max_y = comp.get('y_scale_max', 6.0) | float | default(6.0, true) %}
-                                    {% set clamped_x = comp.get('x_value') if comp.get('x_value') <= max_x else max_x %}
-                                    {% set clamped_y = comp.get('y_value') if comp.get('y_value') <= max_y else max_y %}
-                                    {# map [0, max] to [0%, 100%] #}
-                                    {% set x_pct = (clamped_x / max_x) * 100 %}
-                                    {% set y_pct = 100 - ((clamped_y / max_y) * 100) %}
-                                    
-                                    <div style="position: absolute; left: {{ x_pct }}%; top: {{ y_pct }}%; width: 20px; height: 20px; background: #E91E63; border-radius: 50%; border: 2px solid white; transform: translate(-10px, -10px); box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>
+                                {% if comp.x_display != 'N/A' and comp.y_display != 'N/A' %}
+                                    <div style="position: absolute; left: {{ comp.x_visual_pct }}%; top: {{ comp.y_visual_pct }}%; width: 20px; height: 20px; background: #E91E63; border-radius: 50%; border: 2px solid white; transform: translate(-10px, -10px); box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>
                                 {% endif %}
                                 
                                 <!-- Axis Labels -->
@@ -200,8 +187,7 @@
                                 <div class="grid-item" style="border-top: 3px solid #4CAF50;">
                                     <div class="label" style="font-size: 11px;">{{ t_x_axis }}</div>
                                     <div class="value" style="font-size: 26px; color: #4CAF50; padding: 5px 0;">
-                                        {% set max_x = comp.get('x_scale_max', 6.0) | float | default(6.0, true) %}
-                                        {{ "%.1f / %.1f"|format(comp.get('x_value'), max_x) if comp.get('x_value') is number else (comp.get('x_value') if comp.get('x_value') is not none else 'N/A') }}
+                                        {{ comp.x_display }}
                                     </div>
                                     {% if comp.get('x_scale_text') %}
                                     <div style="font-size: 10px; font-weight: 600; color: #4CAF50; line-height: 1.2;">{{ comp.get('x_scale_text') }}</div>
@@ -210,8 +196,7 @@
                                 <div class="grid-item" style="border-top: 3px solid #FF9800;">
                                     <div class="label" style="font-size: 11px;">{{ t_y_axis }}</div>
                                     <div class="value" style="font-size: 26px; color: #FF9800; padding: 5px 0;">
-                                        {% set max_y = comp.get('y_scale_max', 6.0) | float | default(6.0, true) %}
-                                        {{ "%.1f / %.1f"|format(comp.get('y_value'), max_y) if comp.get('y_value') is number else (comp.get('y_value') if comp.get('y_value') is not none else 'N/A') }}
+                                        {{ comp.y_display }}
                                     </div>
                                     {% if comp.get('y_scale_text') %}
                                     <div style="font-size: 10px; font-weight: 600; color: #FF9800; line-height: 1.2;">{{ comp.get('y_scale_text') }}</div>
@@ -221,27 +206,24 @@
                         </div>
                     </div>
                     
-                    <!-- Textual Notes (Full Width) -->
                     {% if comp.x_note_text %}
-                        {% set max_x = comp.get('x_scale_max', 6.0) | float | default(6.0, true) %}
                         {% set x_lbl = comp.x_title if comp.x_title else (comp.x_data_path.split('.')[-2] if comp.x_data_path else '') %}
-                        <div class="justify-box" style="margin-top: 15px; margin-bottom: 10px; padding: 12px; page-break-inside: avoid;">
-                            <strong style="color:#4CAF50; font-size: 11px; text-transform: uppercase;">{{ t_x_axis }} {{ t_justification }} &mdash; {{ x_lbl }} ({{ "%.1f"|format(comp.get('x_value')) if comp.get('x_value') is number else 'N/A' }} / {{ "%.1f"|format(max_x) }}):</strong><br>
+                        <div class="justify-box" style="margin-top: 15px; margin-bottom: 10px; padding: 12px;">
+                            <strong style="color:#4CAF50; font-size: 11px; text-transform: uppercase;">{{ t_x_axis }} {{ t_justification }} &mdash; {{ x_lbl }} ({{ comp.x_display }}):</strong><br>
                             <div style="font-size: 13px; line-height: 1.6; color: #333; margin-top: 4px;">{{ comp.x_note_text | md | safe }}</div>
                         </div>
                     {% endif %}
                     {% if comp.y_note_text %}
-                        {% set max_y = comp.get('y_scale_max', 6.0) | float | default(6.0, true) %}
                         {% set y_lbl = comp.y_title if comp.y_title else (comp.y_data_path.split('.')[-2] if comp.y_data_path else '') %}
-                        <div class="justify-box" style="padding: 12px; page-break-inside: avoid;">
-                            <strong style="color:#FF9800; font-size: 11px; text-transform: uppercase;">{{ t_y_axis }} {{ t_justification }} &mdash; {{ y_lbl }} ({{ "%.1f"|format(comp.get('y_value')) if comp.get('y_value') is number else 'N/A' }} / {{ "%.1f"|format(max_y) }}):</strong><br>
+                        <div class="justify-box" style="padding: 12px;">
+                            <strong style="color:#FF9800; font-size: 11px; text-transform: uppercase;">{{ t_y_axis }} {{ t_justification }} &mdash; {{ y_lbl }} ({{ comp.y_display }}):</strong><br>
                             <div style="font-size: 13px; line-height: 1.6; color: #333; margin-top: 4px;">{{ comp.y_note_text | md | safe }}</div>
                         </div>
                     {% endif %}
                 </div>
 
             {% elif comp.type == '3d_scatter' %}
-                <div class="card" style="page-break-inside: avoid;">
+                <div class="card">
                     <h2>{{ t_3d_scatter }}</h2>
                     <div style="display: block; width: 100%; margin-top: 25px;">
                         <!-- Graphical 3D Base (Left) -->
@@ -255,27 +237,12 @@
                                 <div style="position: absolute; top: 0; left: 50%; height: 100%; border-left: 1px dashed #ddd;"></div>
                                 <div style="position: absolute; top: 0; left: 75%; height: 100%; border-left: 1px dashed #eee;"></div>
 
-                                {% if comp.get('x_value') is number and comp.get('y_value') is number %}
-                                    {% set max_x = comp.get('x_scale_max', 6.0) | float | default(6.0, true) %}
-                                    {% set max_y = comp.get('y_scale_max', 6.0) | float | default(6.0, true) %}
-                                    {% set max_z = comp.z_scale_max | float | default(100.0, true) %}
-                                    
-                                    {% set clamped_x = comp.get('x_value') if comp.get('x_value') <= max_x else max_x %}
-                                    {% set clamped_y = comp.get('y_value') if comp.get('y_value') <= max_y else max_y %}
-                                    {% set raw_z = comp.z_value | float if comp.z_value else 0 %}
-                                    {% set x_pct = (clamped_x / max_x) * 100 %}
-                                    {% set y_pct = 100 - ((clamped_y / max_y) * 100) %}
-                                    
-                                    {# Z factor determines the size of the bubble, say 15px to 50px base on 1-100% #}
-                                    {% set z_pct = (raw_z / max_z * 100) if raw_z <= max_z else 100 %}
-                                    {% set z_size = 15 + ((z_pct / 100.0) * 35) %}
-                                    {% set offset = z_size / 2 %}
-                                    
-                                    <div style="position: absolute; left: {{ x_pct }}%; top: {{ y_pct }}%; width: {{ z_size }}px; height: {{ z_size }}px; background: rgba(63, 81, 181, 0.75); border-radius: 50%; border: 2px solid #3F51B5; transform: translate(-{{ offset }}px, -{{ offset }}px); box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 10;"></div>
+                                {% if comp.x_display != 'N/A' and comp.y_display != 'N/A' and comp.z_display != 'N/A' %}
+                                    <div style="position: absolute; left: {{ comp.x_visual_pct }}%; top: {{ comp.y_visual_pct }}%; width: {{ comp.z_visual_size }}px; height: {{ comp.z_visual_size }}px; background: rgba(63, 81, 181, 0.75); border-radius: 50%; border: 2px solid #3F51B5; transform: translate(-{{ comp.z_visual_offset }}px, -{{ comp.z_visual_offset }}px); box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 10;"></div>
                                     
                                     <!-- Projection Lines -->
-                                    <div style="position: absolute; left: {{ x_pct }}%; top: {{ y_pct }}%; width: 0px; height: {{ 100 - y_pct }}%; border-left: 2px dotted #999; z-index: 1;"></div>
-                                    <div style="position: absolute; left: 0; top: {{ y_pct }}%; width: {{ x_pct }}%; height: 0px; border-top: 2px dotted #999; z-index: 1;"></div>
+                                    <div style="position: absolute; left: {{ comp.x_visual_pct }}%; top: {{ comp.y_visual_pct }}%; width: 0px; height: {{ 100.0 - comp.y_visual_pct }}%; border-left: 2px dotted #999; z-index: 1;"></div>
+                                    <div style="position: absolute; left: 0; top: {{ comp.y_visual_pct }}%; width: {{ comp.x_visual_pct }}%; height: 0px; border-top: 2px dotted #999; z-index: 1;"></div>
                                 {% endif %}
                                 
                                 <!-- Axis Labels -->
@@ -288,39 +255,56 @@
                         <div style="display: block; width: 100%;">
                             <div class="grid-container" style="display: block; width: 100%;">
                                 <div class="grid-item" style="border-top: 4px solid #E91E63; display: block; width: 95%; margin-bottom: 12px;">
-                                    {% set max_x = comp.get('x_scale_max', 6.0) | float | default(6.0, true) %}
-                                    <div class="label" style="font-size: 11px;">{{ t_x_axis }} {%- if comp.x_title %} ({{ comp.x_title }}){% endif -%}</div>
-                                    <div class="value" style="font-size: 24px; color: #E91E63; padding: 4px 0;">{{ "%.1f / %.1f"|format(comp.get('x_value'), max_x) if comp.get('x_value') is number else (comp.get('x_value') if comp.get('x_value') is not none else 'N/A') }}</div>
+                                    <div class="value" style="font-size: 24px; color: #E91E63; padding: 4px 0;">{{ comp.x_display }}</div>
                                     {% if comp.get('x_scale_text') %}
                                     <div style="font-size: 10px; font-weight: 600; color: #E91E63; line-height: 1.2;">{{ comp.get('x_scale_text') }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="grid-item" style="border-top: 4px solid #9C27B0; display: block; width: 95%; margin-bottom: 12px;">
-                                    {% set max_y = comp.get('y_scale_max', 6.0) | float | default(6.0, true) %}
-                                    <div class="label" style="font-size: 11px;">{{ t_y_axis }} {%- if comp.y_title %} ({{ comp.y_title }}){% endif -%}</div>
-                                    <div class="value" style="font-size: 24px; color: #9C27B0; padding: 4px 0;">{{ "%.1f / %.1f"|format(comp.get('y_value'), max_y) if comp.get('y_value') is number else (comp.get('y_value') if comp.get('y_value') is not none else 'N/A') }}</div>
+                                    <div class="value" style="font-size: 24px; color: #9C27B0; padding: 4px 0;">{{ comp.y_display }}</div>
                                     {% if comp.get('y_scale_text') %}
                                     <div style="font-size: 10px; font-weight: 600; color: #9C27B0; line-height: 1.2;">{{ comp.get('y_scale_text') }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="grid-item" style="border-top: 4px solid #3F51B5; display: block; width: 95%;">
-                                    {% set max_z = comp.z_scale_max | float | default(100.0, true) %}
-                                    <div class="label" style="font-size: 11px;">{{ t_z_factor }} <b>(Volume)</b> {%- if comp.z_title %} ({{ comp.z_title }}){% endif -%}</div>
-                                    {% set raw_z = comp.z_value | float if comp.z_value else 0 %}
-                                    <div class="value" style="font-size: 24px; color: #3F51B5; padding: 4px 0;">{{ "%.1f / %.1f"|format(raw_z, max_z) if raw_z else 'N/A' }}</div>
+                                    <div class="value" style="font-size: 24px; color: #3F51B5; padding: 4px 0;">{{ comp.z_display }}</div>
                                     {% if comp.z_scale_text %}
                                     <div style="font-size: 10px; font-weight: 600; color: #3F51B5; line-height: 1.2; margin-bottom: 4px;">{{ comp.z_scale_text }}</div>
                                     {% endif %}
-                                    {% if raw_z %}
+                                    {% if comp.z_display != 'N/A' %}
                                         <div style="background: #e0e0e0; border-radius: 4px; height: 8px; width: 100%; margin-top: 5px;">
-                                            {% set z_pct = (raw_z / max_z * 100) if raw_z <= max_z else 100 %}
-                                            <div style="background: #3F51B5; height: 100%; width: {{ z_pct }}%; border-radius: 4px;"></div>
+                                            <div style="background: #3F51B5; height: 100%; width: {{ comp.z_visual_pct }}%; border-radius: 4px;"></div>
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Textual Notes (Full Width) -->
+                    {% if comp.x_note_text %}
+                        {% set x_lbl = comp.x_title if comp.x_title else (comp.x_data_path.split('.')[-2] if comp.x_data_path else '') %}
+                        <div class="justify-box" style="margin-top: 15px; margin-bottom: 10px; padding: 12px;">
+                            <strong style="color:#E91E63; font-size: 11px; text-transform: uppercase;">{{ t_x_axis }} {{ t_justification }} &mdash; {{ x_lbl }} ({{ comp.x_display }}):</strong><br>
+                            <div style="font-size: 13px; line-height: 1.6; color: #333; margin-top: 4px;">{{ comp.x_note_text | md | safe }}</div>
+                        </div>
+                    {% endif %}
+                    {% if comp.y_note_text %}
+                        {% set max_y = comp.get('y_scale_max') | float %}
+                        {% set y_lbl = comp.y_title if comp.y_title else (comp.y_data_path.split('.')[-2] if comp.y_data_path else '') %}
+                        <div class="justify-box" style="margin-bottom: 10px; padding: 12px;">
+                            <strong style="color:#9C27B0; font-size: 11px; text-transform: uppercase;">{{ t_y_axis }} {{ t_justification }} &mdash; {{ y_lbl }} ({{ "%.1f"|format(comp.get('y_value')) if comp.get('y_value') is number else 'N/A' }} / {{ "%.1f"|format(max_y) }}):</strong><br>
+                            <div style="font-size: 13px; line-height: 1.6; color: #333; margin-top: 4px;">{{ comp.y_note_text | md | safe }}</div>
+                        </div>
+                    {% endif %}
+                    {% if comp.z_note_text %}
+                        {% set max_z = comp.z_scale_max | float %}
+                        {% set z_lbl = comp.z_title if comp.z_title else (comp.z_data_path.split('.')[-2] if comp.z_data_path else '') %}
+                        <div class="justify-box" style="padding: 12px;">
+                            <strong style="color:#3F51B5; font-size: 11px; text-transform: uppercase;">{{ t_z_factor }} {{ t_justification }} &mdash; {{ z_lbl }} ({{ "%.1f"|format(comp.get('z_value')) if comp.get('z_value') is number else 'N/A' }} / {{ "%.1f"|format(max_z) }}):</strong><br>
+                            <div style="font-size: 13px; line-height: 1.6; color: #333; margin-top: 4px;">{{ comp.z_note_text | md | safe }}</div>
+                        </div>
+                    {% endif %}
                 </div>
 
             {% elif comp.type == 'evaluation_notes_panel' %}
@@ -329,7 +313,7 @@
                     {% if comp.resolved_notes %}
                         {% for path, note in comp.resolved_notes.items() %}
                             {% if note %}
-                                <div class="justify-box" style="margin-bottom: 16px; background-color: #f8fbff; border-left: 4px solid #2196F3; padding: 14px; page-break-inside: avoid;">
+                                <div class="justify-box" style="margin-bottom: 16px; background-color: #f8fbff; border-left: 4px solid #2196F3; padding: 14px;">
                                     <div class="label" style="color: #1565C0; font-weight: bold; font-size: 11px; margin-bottom: 6px; text-transform: uppercase;">{{ t_source_node }}: {{ path.split('.')[-2] if path.split('.')|length >= 2 else path }}</div>
                                     <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ note | md | safe }}</div>
                                 </div>

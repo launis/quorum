@@ -10,10 +10,11 @@ class Gauge1DWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Zero-Math constraints: we compute exactly how much width to fill securely
-    final maxVal = component.scaleMax > 0 ? component.scaleMax : 100.0;
-    final double raw = component.value;
-    final double pct = (raw / maxVal).clamp(0.0, 1.0);
+    // Pure rendering: All calculations (percentages, strings) managed completely by backend V2.
+    final String displayStr = component.displayValue.isNotEmpty 
+        ? component.displayValue 
+        : '${component.value} / ${component.scaleMax}';
+    final double pct = component.visualPct > 0 ? component.visualPct : 0.0;
 
     return Card(
       elevation: 0,
@@ -41,7 +42,7 @@ class Gauge1DWidget extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    '${raw.toStringAsFixed(1)} / ${maxVal.toStringAsFixed(1)}',
+                    displayStr,
                     style: const TextStyle(
                       fontSize: 52,
                       fontWeight: FontWeight.w600,

@@ -59,6 +59,10 @@ class SduiComponent {
   final double value;
   final double scaleMax;
   final String scaleText;
+  final String displayValue;
+  final String displayValueOnly;
+  final String displayMaxOnly;
+  final double visualPct;
 
   // 2D Matrix / 3D Scatter shared axis definitions
   final dynamic xTitle;
@@ -84,6 +88,22 @@ class SduiComponent {
   final String yScaleText;
   final String zScaleText;
 
+  // Render Display Formatting
+  final String xDisplay;
+  final String xDisplayValueOnly;
+  final String xDisplayMaxOnly;
+  final double xVisualPct;
+  final String yDisplay;
+  final String yDisplayValueOnly;
+  final String yDisplayMaxOnly;
+  final double yVisualPct;
+  final String zDisplay;
+  final String zDisplayValueOnly;
+  final String zDisplayMaxOnly;
+  final double zVisualPct;
+  final double zVisualSize;
+  final double zVisualOffset;
+
   // Grid Row support
   final int columns;
   final List<SduiComponent> children;
@@ -94,6 +114,10 @@ class SduiComponent {
     required this.value,
     required this.scaleMax,
     required this.scaleText,
+    this.displayValue = '',
+    this.displayValueOnly = '',
+    this.displayMaxOnly = '',
+    this.visualPct = 0.0,
     this.xTitle = '',
     this.yTitle = '',
     this.zTitle = '',
@@ -109,6 +133,20 @@ class SduiComponent {
     this.xScaleText = '',
     this.yScaleText = '',
     this.zScaleText = '',
+    this.xDisplay = '',
+    this.xDisplayValueOnly = '',
+    this.xDisplayMaxOnly = '',
+    this.xVisualPct = 0.0,
+    this.yDisplay = '',
+    this.yDisplayValueOnly = '',
+    this.yDisplayMaxOnly = '',
+    this.yVisualPct = 0.0,
+    this.zDisplay = '',
+    this.zDisplayValueOnly = '',
+    this.zDisplayMaxOnly = '',
+    this.zVisualPct = 0.0,
+    this.zVisualSize = 0.0,
+    this.zVisualOffset = 0.0,
     this.columns = 2,
     this.children = const [],
   });
@@ -120,6 +158,10 @@ class SduiComponent {
       value: SafeCast.safeDouble(json['value']),
       scaleMax: SafeCast.safeDouble(json['scale_max']),
       scaleText: SafeCast.safeString(json['scale_text']),
+      displayValue: SafeCast.safeString(json['display_value']),
+      displayValueOnly: SafeCast.safeString(json['display_value_only']),
+      displayMaxOnly: SafeCast.safeString(json['display_max_only']),
+      visualPct: SafeCast.safeDouble(json['visual_pct']),
       xTitle: json['x_title'] ?? '',
       yTitle: json['y_title'] ?? '',
       zTitle: json['z_title'] ?? '',
@@ -135,6 +177,20 @@ class SduiComponent {
       xScaleText: SafeCast.safeString(json['x_scale_text']),
       yScaleText: SafeCast.safeString(json['y_scale_text']),
       zScaleText: SafeCast.safeString(json['z_scale_text']),
+      xDisplay: SafeCast.safeString(json['x_display']),
+      xDisplayValueOnly: SafeCast.safeString(json['x_display_value_only']),
+      xDisplayMaxOnly: SafeCast.safeString(json['x_display_max_only']),
+      xVisualPct: SafeCast.safeDouble(json['x_visual_pct']),
+      yDisplay: SafeCast.safeString(json['y_display']),
+      yDisplayValueOnly: SafeCast.safeString(json['y_display_value_only']),
+      yDisplayMaxOnly: SafeCast.safeString(json['y_display_max_only']),
+      yVisualPct: SafeCast.safeDouble(json['y_visual_pct']),
+      zDisplay: SafeCast.safeString(json['z_display']),
+      zDisplayValueOnly: SafeCast.safeString(json['z_display_value_only']),
+      zDisplayMaxOnly: SafeCast.safeString(json['z_display_max_only']),
+      zVisualPct: SafeCast.safeDouble(json['z_visual_pct']),
+      zVisualSize: SafeCast.safeDouble(json['z_visual_size']),
+      zVisualOffset: SafeCast.safeDouble(json['z_visual_offset']),
       columns: SafeCast.safeInt(json['columns'], 2),
       children:
           SafeCast.safeList(

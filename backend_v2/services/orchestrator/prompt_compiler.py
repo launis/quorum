@@ -384,15 +384,15 @@ class PromptCompiler:
                     # V2 Strict Literal: The LLM can ONLY return this exact string or None
                     source_id_type = Literal[citation_ref] | None
                     source_id_desc = (
-                        "Jos perustelut pohjautuvat tähän teoriaan, "
-                        f"PALAUTA TÄSMÄLLEEN TÄMÄ merkkijono: '{citation_ref}'. "
-                        "Muuten palauta null."
+                        "If your justification relies on this specific theory, "
+                        f"you MUST RETURN EXACTLY THIS string: '{citation_ref}'. "
+                        "Otherwise, you MUST return null."
                     )
                 else:
                     source_id_type = str | None
                     source_id_desc = (
-                        "Tälle kriteerille ei ole autoktorisoitua lähdettä. "
-                        "Palauta EHDOTTOMASTI aina null."
+                        "There is no authorized academic source for this criterion. "
+                        "You MUST ALWAYS return null."
                     )
 
                 fields[source_id_key] = (source_id_type, Field(default=None, description=source_id_desc))

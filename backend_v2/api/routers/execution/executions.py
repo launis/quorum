@@ -88,6 +88,49 @@ async def delete_execution(
     await execution_service.delete_execution(initiator=current_user, execution_id=execution_id)
 
 
+@router.get("/{execution_id}/frozen_context")
+async def download_frozen_context(
+    execution_id: str,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> Response:
+    """Download the forensic frozen context JSON for an execution."""
+    execution = await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
+    
+    if execution.frozen_context_storage_path:
+        from backend_v2.services.storage import get_storage_driver
+        import json
+        
+        storage = get_storage_driver()
+        try:
+            raw_bytes = await storage.read(execution.frozen_context_storage_path)
+            
+            # Dynamically pretty-print the historic minified JSON blob
+            parsed_data = json.loads(raw_bytes.decode('utf-8'))
+            pretty_bytes = json.dumps(parsed_data, indent=2, ensure_ascii=False).encode('utf-8')
+            
+            return Response(
+                content=pretty_bytes,
+                media_type="application/json",
+                headers={
+                    "Content-Disposition": f'attachment; filename="frozen_context_{execution_id}.json"'
+                }
+            )
+        except Exception as strg_err:
+            logger.warning(f"Failed to fetch frozen context from storage: {strg_err}")
+            raise AppException(message="Forensic context file not found in storage", status_code=404, details={"error_code": ErrorCodes.NOT_FOUND.value})
+            
+    # Fallback to returning the embedded frozen context if not offloaded
+    frozen_json = execution.frozen_context.model_dump_json(indent=2)
+    return Response(
+        content=frozen_json,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="frozen_context_{execution_id}.json"'
+        }
+    )
+
+
 @router.get("/{execution_id}/render")
 async def render_execution(
     request: Request,
@@ -128,11 +171,11 @@ async def render_execution(
 
     elif fmt == "pdf":
         # 1. First check if async worker has already generated and offloaded the PDF
-        if execution.results_storage_path:
+        if execution.pdf_report_path:
             from backend_v2.services.storage import get_storage_driver
             storage = get_storage_driver()
             try:
-                pdf_bytes = await storage.read(execution.results_storage_path)
+                pdf_bytes = await storage.read(execution.pdf_report_path)
                 return Response(
                     content=pdf_bytes,
                     media_type="application/pdf",
@@ -144,10 +187,31 @@ async def render_execution(
                 logger.warning(f"Failed to fetch pre-generated PDF from storage, falling back to sync generation: {strg_err}")
 
         # 2. Fallback to Synchronous generation if not yet ready
+        from backend_v2.services.blueprint import BlueprintTransformer
         from backend_v2.services.pdf_generator import PdfReportService
+        
+        accept_language = request.headers.get("accept-language", None)
+        if not accept_language and execution.metadata:
+            accept_language = execution.metadata.get("target_locale")
+            
+        transformer = BlueprintTransformer(repository)
+        blueprint_payload = await transformer.build_render_payload(execution_id, accept_language)
+        
         # Passing repository inside PDF generator is safe as the execution was authorized
         pdf_service = PdfReportService(repository)
-        pdf_bytes = await pdf_service.generate_execution_pdf(execution_id)
+        pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, blueprint_payload=blueprint_payload)
+
+        # Self-Healing Mechanism: Save the newly generated PDF back to persistent storage
+        try:
+            from backend_v2.services.storage import get_storage_driver
+            storage = get_storage_driver()
+            output_path_rel = f"executions/{execution_id}/report.pdf"
+            saved_path = await storage.save(output_path_rel, pdf_bytes)
+            if not execution.pdf_report_path or execution.pdf_report_path != saved_path:
+                await repository.update_execution(execution_id, {"pdf_report_path": saved_path})
+            logger.info(f"[ExecutionRouter] Self-healed missing PDF for {execution_id} to {saved_path}")
+        except Exception as heal_err:
+            logger.warning(f"[ExecutionRouter] Failed to self-heal PDF storage for {execution_id}: {heal_err}")
 
         return Response(
             content=pdf_bytes,

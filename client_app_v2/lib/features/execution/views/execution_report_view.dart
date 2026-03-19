@@ -22,11 +22,12 @@ class ExecutionReportView extends ConsumerStatefulWidget {
 }
 
 class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
-  bool _isDownloading = false;
+  bool _isDownloadingPdf = false;
+  bool _isDownloadingContext = false;
 
   void _downloadPdf() async {
     setState(() {
-      _isDownloading = true;
+      _isDownloadingPdf = true;
     });
 
     try {
@@ -67,7 +68,55 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     } finally {
       if (mounted) {
         setState(() {
-          _isDownloading = false;
+          _isDownloadingPdf = false;
+        });
+      }
+    }
+  }
+
+  void _downloadFrozenContext() async {
+    setState(() {
+      _isDownloadingContext = true;
+    });
+
+    try {
+      final dio = ref.read(apiClientProvider);
+      final response = await dio.get<List<int>>(
+        '/execution/executions/${widget.executionId}/frozen_context',
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final bytes = Uint8List.fromList(response.data!);
+      await FileSaver.instance.saveAs(
+        name: 'FrozenContext_${widget.executionId}',
+        bytes: bytes,
+        fileExtension: 'json',
+        mimeType: MimeType.json,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.downloadSuccess),
+          ),
+        );
+      }
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('ReportView', 'Failed to download Frozen Context', e, st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorUnknown),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloadingContext = false;
         });
       }
     }
@@ -92,7 +141,21 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
         ),
         centerTitle: true,
         actions: [
-          _isDownloading
+          _isDownloadingContext
+              ? const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+              : IconButton(
+                icon: const Icon(Icons.policy),
+                tooltip: 'Lataa Frozen Context',
+                onPressed: _downloadFrozenContext,
+              ),
+          _isDownloadingPdf
               ? const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: SizedBox(

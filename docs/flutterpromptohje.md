@@ -218,6 +218,11 @@ Rajapinta on ohjelmiston **AINOA PAIKKA**, jossa Fail-Fast ei ole ehdoton standa
 ### 7.4 Specialist Nested Output Data
 Kaikki erikoisagenttien (kuten Logician tai Archivist) tuottamat erikoistulokset pakataan omaksi avaimekseen rakenteen sisään (Strict Nesting -> `{"logician_data": {"score": ...}}`). Datan luvaton "flättäys" (yhdistäminen root-tasolle) romuttaa SDUI:n dynamiikan.
 
+### 7.5 The "Zero-Math UI" & Database Purity Mandate (MANDATORY)
+* **Tietokannan Puhtaus (`ExecutionRecord`)**: V2-tietokanta on puhdas logi! Se ei koskaan saa sisältää esitysmuuttujia (kuten renderöintiprosentteja `visual_pct` tai käännettyjä CSS-mittoja). Tietokanta sisältää vain arkkitehtuurin raakadatan.
+* **Laskentavastuu (`/render` API)**: Kaikki visuaalinen matematiikka ja näyttöarvojen formatointi (esim. `12.3 / 100`) on keskitetty Python-backendin `BlueprintTransformer`-palveluun, joka injektoidaan lennosta vain lukuhetkellä!
+* **Zero-Math UI (Frontend)**: Flutterin widgetit (kuten `gauge_1d_widget.dart` tai `scatter_3d_widget.dart`) MÄÄRÄTÄÄN nollamatematiikka-sääntöön. Ne EIVÄT SAA ikinä sisältää `.toStringAsFixed(1)` muotoiluja tai prosenttilaskuja. UI-näkymien ja Debuggerin (esim. `ExecutionView`) on täysin kiellettyä yrittää piirtää käyttöliittymää suoraan raa'asta DB-objektista ilman `/render` -päätepisteen esilaskentaa.
+
 ---
 
 ## 🌍 8. INTERNATIONALIZATION (I18N) POLICY

@@ -41,11 +41,10 @@ Unlike older architectures that hardcoded agent classes (`GuardAgent`, `AnalystA
   * `id`: The unique execution identifier.
   * `status`: Current state (e.g., pending, running, completed, failed).
   * `results`: The explicit key-value dictionary where output pairs from the dynamic Pydantic schemas are saved.
-  * `frozen_context`: A critical snapshot taken at execution start.
-    * `render_blueprint`: **(UUSI)** Lukitsee työnkulun dynaamisen ulkoasun. Määrittelee tarkalleen, **miten** kognitiivinen `results`-data piirretään näytölle (1D, 2D, 3D graafit).
+  * `render_blueprints`: **(Asettelu)** Lukitsee työnkulun dynaamisen ulkoasun. Määrittelee tarkalleen, *visuaalisen puitteen* jolla kognitiivinen data näytetään (1D, 2D, 3D graafit). **(HUOM: Tämä on puhdas kehys ilman renderöintiarvoja tai dataa!)**
 
-> *Note: Agents operate in a Vacuum. They do not know about Flutter, PDFs, or translations.* 
-> 🚫 **Forbidden in Workflow/Agents**: Agents MUST NOT perform string formatting for UI (e.g., adding `%` signs), compute layout coordinates, or inject localization strings. They only produce raw data values (e.g., `score: 4`).
+> *Note: Tietokanta (ExecutionRecord) on Single Source of Truth Vain faktuaaliselle datalle.* 
+> 🚫 **Forbidden (DB Purity Mandate)**: Tietokantaan ei saa koskaan tallentaa käyttöliittymän laskennallisia renderöintimuuttujia (kuten `visual_pct`, koordinaatteja tai lokalisointeja). Tietokanta säilytetään matematiikasta vapaana ja muuttumattomana event-lokina. Pydantic `extra="forbid"` pakottaa tämän.
 
 ---
 
@@ -104,10 +103,14 @@ Aivan kuten näimme `seed_data.json` -rakenteessa, jokainen matriisi ja prompt-b
 
 Näin yhdestä ja samasta englanninkielisestä "Aivojen" ajosta (Execution) voidaan napin painalluksella renderöidä täydellinen suomenkielinen tai englanninkielinen raportti pelkkää asetteluohjetta (Blueprint) tulkitsemalla.
 
-### 3.3 The Generic Render Endpoint
-* **Location**: `backend_v2/api/routers/execution/executions.py`
-* **Endpoint**: `GET /executions/{execution_id}/render?format={json|flat}` (Huom: Vain synkroniseen JSON/SDUI-hakuun. PDF-generointi tapahtuu erillisellä `POST /executions/{id}/render_pdf` -reitillä asynkronisesti).
-* **Role**: Serves as the Universal Transformer Hub. Vastaa datan integroinnista (Data + Blueprint) ja toimittaa oikean valmiin esityspaketin eteenpäin.
+### 3.3 The Generic Render Endpoint & BlueprintTransformer
+* **Location**: `backend_v2/services/blueprint.py` ja API: `GET /executions/{id}/render?format={json|flat}`
+* **Role (The Calculator)**: Tämä rajapinta on ohjelmiston ainoa rendering-moottori. Se toteuttaa "Zero-Math UI" -mandaatin tekemällä on-the-fly laskelmat:
+  1. Hakee `ExecutionRecord`in (Puhdas data)
+  2. Mapittaa viittaukset oikeisiin lukuihin (esim. max scoret työnkulun `scales` taulukosta).
+  3. **Laskee Display-muuttujat:** Tuottaa kaikki UI:n tarvitsemat valmiit laskelmat lennosta: `visual_pct` (esim. 45.6%), `x_display_value_only` (esim. "3.5"), `title` (käännetyt otsikot).
+  4. Palauttaa rikkaan JSON-payloadin.
+* Näin ollen Flutter ja PDF eivät tee riviäkään omaa matematiikkaa tai datan koostamista – ne ottavat vastaan valmiiksi lasketun ja formatoidun asettelun.
 
 ---
 
@@ -138,12 +141,16 @@ Molemmat renderöintiratkaisut – Flutter ja PDF – perustuvat siihen, että *
 ### 4.3 Yhteinen Ydinlogiikka (The Shared Core)
 Vaikka näytöntulostus ja PDF-generointi tapahtuvat teknisesti eri "käynnistimien" (API vs Worker) kautta, **ne hyödyntävät 100% samaa ohjelmiston ydinlogiikkaa (Single Source of Truth)**. Tätä kutsutaan yhtenäiseksi datan alustusputkeksi:
 
-Sama sisäinen Python-funktio (esim. `BlueprintTransformer.build_render_payload()`) laukeaa ensin molemmissa moottoreissa:
-1. Käyttäjä avaa näytön -> API kutsuu `build_render_payload()` -> Palauttaa muotoillun Blueprint/Data -JSONin Flutterille.
-2. Worker aloittaa PDF-tulostuksen -> Worker kutsuu TÄSMÄLLEEN SAMAA `build_render_payload()` -funktiota -> Saa tismalleen saman muotoillun JSONin, jonka se syöttää PDF-piirturille.
+Sama sisäinen Python-funktio (`BlueprintTransformer.resolve_component()`) laukeaa ensin molemmissa moottoreissa:
+1. Käyttäjä avaa näytön -> Flutter (ExecutionReportView) kutsuu `/render` -> Palauttaa valmiiksi lasketun Blueprint/Data -JSONin Flutterille.
+2. Työnkulku aloittaa PDF-tulostuksen -> Backend kutsuu TÄSMÄLLEEN SAMAA `resolve_component()` -mekanismia -> Jinja2-moottori saa tismalleen saman lasketun renderöintikartan PDF-piirturille.
 
-Muotoilu, datan suodatus tai matriisien yhdistely ei koskaan tapahdu Flutterissa tai erillisessä graafi-kirjastossa. Kaikki data käsitellään yhdessä ja samassa `BlueprintTransformer` -moduulissa kerran, taaten sen, että se mitä käyttäjä näkee kännykän ruudulla on pikselilleen sama tieto, mikä tuodaan PDF-asiakirjaan.
+Muotoilu, prosenttien tuottaminen (`visual_pct`) tai matriisien maksimiarvojen kaivaminen ei koskaan tapahdu Flutterissa tai WeasyPrint-templaatissa (Jinja2). Kaikki matematiikka hoidetaan `BlueprintTransformer` -moduulissa, taaten sen, että se mitä käyttäjä näkee kännykän ruudulla on pikselilleen sama skaala ja arvo, mikä tuodaan paperiseen PDF-asiakirjaan. Tämä on The Zero-Math UI -sääntö käytännössä.
 
+### 4.4 Forensic Auditability & Self-Healing Fallback
+Suoritusajon (*Execution*) täydellinen jatkuvuus turvataan kahdella päättelyllä, joiden ansiosta raportti voidaan aina todentaa matemaattisesti (esim. viranomaistarkastusta varten):
+1. **The Frozen Context (`frozen_context.json`)**: Kun LLM-ajo alkaa, työnkulku "jäädyttää" täydellisen tilannevedoksen säännöistä (`generated_schemas`, `compiled_prompts`). Tässä tiedostossa tapahtuu radikaali erottelu: tekoälyn askeleiden kuvaukset ovat 100% englanniksi tiukassa imperatiivissa (esim. `You MUST RETURN...`), ja käyttöliittymän näytettävät tekstit ovat täysin erillisessä `ui_hints_snapshot` kuplassa. Täten LLM-promptit eivät koskaan saastu käyttöliittymäteksteillä tai lokalisaatioilla. 
+2. **Synchronous Fallback & Self-Healing**: Vaikka taustaprosessi tuottaa PDF-raportin pysyvään säilöön (`data/files`), jos kyseinen tiedosto tuhoutuu tai on saavuttamattomissa, käyttöliittymän API-kutsu (`GET /render?format=pdf`) ei kaadu. Sen sijaan API hakee alkuperäisen datan, yhdistää sen kielelliseen näkymään `BlueprintTransformerin` avulla, **generoi PDF:n lennosta (in RAM)**, asettaa sen automaattisesti takaisin kovalevylle ("Self-Healing"), ja lähettää sen katkeamattomasti käyttäjälle 200 OK -koodilla. Fail-fast mandaatti edellyttää, että `BlueprintTransformer` on mukana tässäkin varareitissä, jotta `rendered_blueprint` taataan, eikä näytölle synny "V2 ARCHITECTURE VIOLATION" punaisia varoituslaatikoita tästä puuttuvasta kytköksestä.
 ---
 
 ## 5. Best Practices & Hazard Remediation (Golden Rules for SDUI)

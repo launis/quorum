@@ -275,7 +275,7 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         await repo.update_execution(
             execution_id,
             {
-                "results_storage_path": saved_path
+                "pdf_report_path": saved_path
             }
         )
         logger.info(f"[Task] PDF generated successfully and path saved: {saved_path}")

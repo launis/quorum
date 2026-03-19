@@ -12,22 +12,12 @@ class Scatter3DWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Safe Clamping
-    final xMax = component.xScaleMax > 0 ? component.xScaleMax : 6.0;
-    final yMax = component.yScaleMax > 0 ? component.yScaleMax : 6.0;
-    final zMax = component.zScaleMax > 0 ? component.zScaleMax : 100.0;
+    // 1. Coordinates perfectly computed by backend
+    final double xPct = component.xVisualPct;
+    final double yPct = component.yVisualPct;
 
-    final x = component.xValue.clamp(0.0, xMax);
-    final y = component.yValue.clamp(0.0, yMax);
-    final z = component.zValue.clamp(0.0, zMax);
-
-    // 2. Percentages computation matching jinja template
-    final double xPct = x / xMax;
-    final double yPct = 1.0 - (y / yMax);
-    final double zPct = z / zMax;
-
-    // 3. Z Size Factor (15px to 50px radius projection)
-    final double zSize = 15.0 + (zPct * 35.0);
+    // 2. Z Size Factor precomputed by backend
+    final double zSize = component.zVisualSize > 0 ? component.zVisualSize : 15.0;
 
     return Card(
       elevation: 0,
@@ -57,7 +47,7 @@ class Scatter3DWidget extends StatelessWidget {
                 final isSmall = constraints.maxWidth < 500;
 
                 final graph = _buildGraph(context, xPct, yPct, zSize);
-                final dataBoxes = _buildDataBoxes(context, xMax, yMax, zMax);
+                final dataBoxes = _buildDataBoxes(context);
 
                 if (isSmall) {
                   return Column(
@@ -84,24 +74,24 @@ class Scatter3DWidget extends StatelessWidget {
                 SduiTranslator.translate(context, component.xTitle),
                 component.xNoteText,
                 const Color(0xFFE91E63),
-                x,
-                xMax,
+                component.xDisplayValueOnly.isNotEmpty ? component.xDisplayValueOnly : '0.0',
+                component.xDisplayMaxOnly.isNotEmpty ? component.xDisplayMaxOnly : '6.0',
               ),
             if (component.yNoteText.isNotEmpty)
               _buildJustificationBox(
                 SduiTranslator.translate(context, component.yTitle),
                 component.yNoteText,
                 const Color(0xFF9C27B0),
-                y,
-                yMax,
+                component.yDisplayValueOnly.isNotEmpty ? component.yDisplayValueOnly : '0.0',
+                component.yDisplayMaxOnly.isNotEmpty ? component.yDisplayMaxOnly : '6.0',
               ),
             if (component.zNoteText.isNotEmpty)
               _buildJustificationBox(
                 SduiTranslator.translate(context, component.zTitle),
                 component.zNoteText,
                 const Color(0xFF3F51B5),
-                z,
-                zMax,
+                component.zDisplayValueOnly.isNotEmpty ? component.zDisplayValueOnly : '0.0',
+                component.zDisplayMaxOnly.isNotEmpty ? component.zDisplayMaxOnly : '100.0',
               ),
           ],
         ),
@@ -178,8 +168,8 @@ class Scatter3DWidget extends StatelessWidget {
 
           // Projection Lines matching HTML dotted
           Positioned(
-            left: xPct * 200,
-            top: yPct * 200,
+            left: ((xPct / 100) * 200),
+            top: ((yPct / 100) * 200),
             bottom: 0, // Stretch to bottom Y axis
             child: Container(
               width: 2,
@@ -196,8 +186,8 @@ class Scatter3DWidget extends StatelessWidget {
           ),
           Positioned(
             left: 0,
-            top: yPct * 200,
-            width: xPct * 200, // Stretch to left X axis
+            top: ((yPct / 100) * 200),
+            width: ((xPct / 100) * 200), // Stretch to left X axis
             child: Container(
               height: 2,
               decoration: const BoxDecoration(
@@ -214,8 +204,8 @@ class Scatter3DWidget extends StatelessWidget {
 
           // The Dot (Z-Volume)
           Positioned(
-            left: (xPct * 200) - (zSize / 2),
-            top: (yPct * 200) - (zSize / 2),
+            left: ((xPct / 100) * 200) - (zSize / 2),
+            top: ((yPct / 100) * 200) - (zSize / 2),
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
@@ -310,9 +300,6 @@ class Scatter3DWidget extends StatelessWidget {
 
   Widget _buildDataBoxes(
     BuildContext context,
-    double xMax,
-    double yMax,
-    double zMax,
   ) {
     final l10n = AppLocalizations.of(context);
     final xTitle = SduiTranslator.translate(context, component.xTitle);
@@ -328,8 +315,8 @@ class Scatter3DWidget extends StatelessWidget {
         _buildDataBox(
           xLabel,
           xTitle,
-          component.xValue,
-          xMax,
+          component.xDisplayValueOnly,
+          component.xDisplayMaxOnly,
           const Color(0xFFE91E63),
           component.xScaleText,
         ),
@@ -337,8 +324,8 @@ class Scatter3DWidget extends StatelessWidget {
         _buildDataBox(
           yLabel,
           yTitle,
-          component.yValue,
-          yMax,
+          component.yDisplayValueOnly,
+          component.yDisplayMaxOnly,
           const Color(0xFF9C27B0),
           component.yScaleText,
         ),
@@ -346,8 +333,8 @@ class Scatter3DWidget extends StatelessWidget {
         _buildDataBox(
           zLabel,
           zTitle,
-          component.zValue,
-          zMax,
+          component.zDisplayValueOnly,
+          component.zDisplayMaxOnly,
           const Color(0xFF3F51B5),
           component.zScaleText,
         ),
@@ -358,8 +345,8 @@ class Scatter3DWidget extends StatelessWidget {
   Widget _buildDataBox(
     String axisName,
     String axisTitle,
-    double val,
-    double max,
+    String valStr,
+    String maxStr,
     Color color,
     String scaleText,
   ) {
@@ -403,7 +390,7 @@ class Scatter3DWidget extends StatelessWidget {
                     ),
                   const SizedBox(height: 12),
                   Text(
-                    '${val.toStringAsFixed(1)} /',
+                    '${valStr.isNotEmpty ? valStr : "0.0"} /',
                     style: TextStyle(
                       fontSize: 42,
                       fontWeight: FontWeight.bold,
@@ -412,7 +399,7 @@ class Scatter3DWidget extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    (max > 0 ? max : 6.0).toStringAsFixed(1),
+                    maxStr.isNotEmpty ? maxStr : "6.0",
                     style: TextStyle(
                       fontSize: 42,
                       fontWeight: FontWeight.bold,
@@ -443,8 +430,8 @@ class Scatter3DWidget extends StatelessWidget {
     String title,
     String note,
     Color color,
-    double val,
-    double max,
+    String valStr,
+    String maxStr,
   ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
@@ -473,7 +460,7 @@ class Scatter3DWidget extends StatelessWidget {
                             TextSpan(text: "$title "),
                             TextSpan(
                               text:
-                                  '(${val.toStringAsFixed(1)} / ${(max > 0 ? max : 6.0).toStringAsFixed(1)}):',
+                                  '($valStr / $maxStr):',
                               style: const TextStyle(color: Colors.black87),
                             ),
                           ],

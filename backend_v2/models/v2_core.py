@@ -474,6 +474,14 @@ class Matrix2DComponent(BlueprintComponentBase):
     y_data_path: str = Field(description="Path to Y axis score")
     x_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for X")
     y_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for Y")
+    x_value: float | None = None
+    y_value: float | None = None
+    x_scale_max: float | None = None
+    y_scale_max: float | None = None
+    x_scale_text: str | None = None
+    y_scale_text: str | None = None
+    x_title: str | None = None
+    y_title: str | None = None
 
 class Scatter3DComponent(BlueprintComponentBase):
     type: Literal["3d_scatter"]
@@ -659,6 +667,8 @@ class ExecutionRecord(V2CoreBase):
         default_factory=dict, description="Step-by-step LLM output results")
     results_storage_path: str | None = Field(
         default=None, description="Path to offloaded massive results JSON in Cloud Storage.")
+    pdf_report_path: str | None = Field(
+        default=None, description="Path to the generated PDF Execution Report.")
     frozen_context_storage_path: str | None = Field(
         default=None, description="Path to offloaded frozen context JSON in Cloud Storage.")
     execution_trace_storage_path: str | None = Field(

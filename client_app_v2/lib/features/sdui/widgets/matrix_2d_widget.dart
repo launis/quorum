@@ -13,16 +13,9 @@ class Matrix2DWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 1. Data constraints clamping safely without Math assumptions
-    final xMax = component.xScaleMax > 0 ? component.xScaleMax : 6.0;
-    final yMax = component.yScaleMax > 0 ? component.yScaleMax : 6.0;
-
-    final x = component.xValue.clamp(0.0, xMax);
-    final y = component.yValue.clamp(0.0, yMax);
-
-    // 2. Percentage plotting
-    final double xPct = x / xMax;
-    final double yPct =
-        1.0 - (y / yMax); // Inverted Y-axis in CSS/Flutter (0 is top)
+    // Coordinates perfectly computed by backend
+    final double xPct = component.xVisualPct;
+    final double yPct = component.yVisualPct;
 
     return Card(
       elevation: 0,
@@ -74,21 +67,20 @@ class Matrix2DWidget extends StatelessWidget {
 
             const SizedBox(height: 24),
             // Justifications
-            if (component.xNoteText.isNotEmpty)
               _buildJustificationBox(
                 SduiTranslator.translate(context, component.xTitle),
                 component.xNoteText,
                 const Color(0xFF4CAF50),
-                x,
-                xMax,
+                component.xDisplayValueOnly.isNotEmpty ? component.xDisplayValueOnly : '0.0',
+                component.xDisplayMaxOnly.isNotEmpty ? component.xDisplayMaxOnly : '6.0',
               ),
             if (component.yNoteText.isNotEmpty)
               _buildJustificationBox(
                 SduiTranslator.translate(context, component.yTitle),
                 component.yNoteText,
                 const Color(0xFFFF9800),
-                y,
-                yMax,
+                component.yDisplayValueOnly.isNotEmpty ? component.yDisplayValueOnly : '0.0',
+                component.yDisplayMaxOnly.isNotEmpty ? component.yDisplayMaxOnly : '6.0',
               ),
           ],
         ),
@@ -142,8 +134,8 @@ class Matrix2DWidget extends StatelessWidget {
 
           // The Dot
           Positioned(
-            left: (xPct * 200) - 10,
-            top: (yPct * 200) - 10,
+            left: ((xPct / 100) * 200) - 10,
+            top: ((yPct / 100) * 200) - 10,
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
@@ -249,8 +241,8 @@ class Matrix2DWidget extends StatelessWidget {
           child: _buildDataBox(
             xLabel,
             xTitle,
-            component.xValue,
-            component.xScaleMax,
+            component.xDisplayValueOnly,
+            component.xDisplayMaxOnly,
             const Color(0xFF4CAF50),
             component.xScaleText,
           ),
@@ -260,8 +252,8 @@ class Matrix2DWidget extends StatelessWidget {
           child: _buildDataBox(
             yLabel,
             yTitle,
-            component.yValue,
-            component.yScaleMax,
+            component.yDisplayValueOnly,
+            component.yDisplayMaxOnly,
             const Color(0xFFFF9800),
             component.yScaleText,
           ),
@@ -273,8 +265,8 @@ class Matrix2DWidget extends StatelessWidget {
   Widget _buildDataBox(
     String axisName,
     String axisTitle,
-    double val,
-    double max,
+    String valStr,
+    String maxStr,
     Color color,
     String scaleText,
   ) {
@@ -318,7 +310,7 @@ class Matrix2DWidget extends StatelessWidget {
                     ),
                   const SizedBox(height: 12),
                   Text(
-                    '${val.toStringAsFixed(1)} /',
+                    '${valStr.isNotEmpty ? valStr : "0.0"} /',
                     style: TextStyle(
                       fontSize: 42,
                       fontWeight: FontWeight.bold,
@@ -327,7 +319,7 @@ class Matrix2DWidget extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    (max > 0 ? max : 6.0).toStringAsFixed(1),
+                    maxStr.isNotEmpty ? maxStr : "6.0",
                     style: TextStyle(
                       fontSize: 42,
                       fontWeight: FontWeight.bold,
@@ -358,8 +350,8 @@ class Matrix2DWidget extends StatelessWidget {
     String title,
     String note,
     Color color,
-    double val,
-    double max,
+    String valStr,
+    String maxStr,
   ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
@@ -388,7 +380,7 @@ class Matrix2DWidget extends StatelessWidget {
                             TextSpan(text: "$title "),
                             TextSpan(
                               text:
-                                  '(${val.toStringAsFixed(1)} / ${(max > 0 ? max : 6.0).toStringAsFixed(1)}):',
+                                  '($valStr / $maxStr):',
                               style: const TextStyle(color: Colors.black87),
                             ),
                           ],
