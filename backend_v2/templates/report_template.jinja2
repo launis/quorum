@@ -118,20 +118,19 @@
         
         {% macro render_comp(comp) %}
             {% if comp.type == 'grid_row' %}
-                <div style="display: table; width: 100%; table-layout: fixed; border-spacing: 20px 0; margin-left: -10px; margin-bottom: 20px; page-break-inside: avoid;">
-                    <div style="display: table-row;">
+                <div style="display: block; width: 100%; margin-bottom: 20px; page-break-inside: avoid;">
+                    {% set child_width = (100 / comp.children|length) - 2 %}
                     {% for child in comp.children %}
-                        <div style="display: table-cell; vertical-align: top;">
+                        <div style="display: inline-block; vertical-align: top; width: {{ child_width }}%; margin-right: {% if not loop.last %}2%{% else %}0{% endif %}; box-sizing: border-box;">
                             {{ render_comp(child) }}
                         </div>
                     {% endfor %}
-                    </div>
                 </div>
 
             {% elif comp.type == 'header' %}
                 <div class="header-card">
                     <div style="display: table; width: 100%; align-items: baseline;">
-                        <div style="display: table-cell; vertical-align: top;">
+                        <div style="display: block; width: 100%;">
                             <h1 style="margin: 0; text-align: left;">{{ comp.title }}</h1>
                             <div style="font-size: 11px; color: #444; margin-top: 5px;">{{ t_printed }}: {{ printed_at }}</div>
                         </div>
@@ -167,10 +166,10 @@
                 <div class="card" style="page-break-inside: avoid;">
                     <h2>{{ t_2d_matrix }}</h2>
                     
-                    <div style="display: table; width: 100%; margin-top: 25px;">
+                    <div style="display: block; width: 100%; margin-top: 25px;">
                         <!-- Graphical Matrix (Left) -->
-                        <div style="display: table-cell; width: 220px; vertical-align: top; padding-right: 20px;">
-                            <div style="width: 200px; height: 200px; background: #fafafa; border: 1px solid #ddd; position: relative;">
+                        <div style="display: block; width: 100%; margin-bottom: 30px; text-align: center;">
+                            <div style="width: 200px; height: 200px; background: #fafafa; border: 1px solid #ddd; position: relative; margin: 0 auto; text-align: left;">
                                 <!-- Simple Grid -->
                                 <div style="position: absolute; left: 0; top: 33.3%; width: 100%; border-top: 1px dashed #ccc;"></div>
                                 <div style="position: absolute; left: 0; top: 66.6%; width: 100%; border-top: 1px dashed #ccc;"></div>
@@ -191,12 +190,12 @@
                                 
                                 <!-- Axis Labels -->
                                 <div style="position: absolute; bottom: -24px; text-align: center; width: 100%; font-size: 10px; color: #666; font-weight: bold;">{{ t_x_axis }}{{ ': ' ~ comp.x_title if comp.x_title else '' }}</div>
-                                <div style="position: absolute; left: -110px; top: 90px; width: 200px; transform: rotate(-90deg); text-align: center; font-size: 10px; color: #666; font-weight: bold;">{{ t_y_axis }}{{ ': ' ~ comp.y_title if comp.y_title else '' }}</div>
+                                <div style="position: absolute; left: -130px; top: 90px; width: 240px; transform: rotate(-90deg); text-align: center; font-size: 10px; color: #666; font-weight: bold;">{{ t_y_axis }}{{ ': ' ~ comp.y_title if comp.y_title else '' }}</div>
                             </div>
                         </div>
                         
                         <!-- Textual Data (Right) -->
-                        <div style="display: table-cell; vertical-align: top;">
+                        <div style="display: block; width: 100%;">
                             <div class="grid-container" style="margin-bottom: 15px;">
                                 <div class="grid-item" style="border-top: 3px solid #4CAF50;">
                                     <div class="label" style="font-size: 11px;">{{ t_x_axis }}</div>
@@ -244,10 +243,10 @@
             {% elif comp.type == '3d_scatter' %}
                 <div class="card" style="page-break-inside: avoid;">
                     <h2>{{ t_3d_scatter }}</h2>
-                    <div style="display: table; width: 100%; margin-top: 25px;">
+                    <div style="display: block; width: 100%; margin-top: 25px;">
                         <!-- Graphical 3D Base (Left) -->
-                        <div style="display: table-cell; width: 220px; vertical-align: top; padding-right: 20px;">
-                            <div style="width: 200px; height: 200px; background: #fafafa; border: 1px solid #ddd; position: relative; border-left: 2px solid #555; border-bottom: 2px solid #555;">
+                        <div style="display: block; width: 100%; margin-bottom: 30px; text-align: center;">
+                            <div style="width: 200px; height: 200px; background: #fafafa; border: 1px solid #ddd; position: relative; border-left: 2px solid #555; border-bottom: 2px solid #555; margin: 0 auto; text-align: left;">
                                 <!-- Grid Lines -->
                                 <div style="position: absolute; left: 0; top: 25%; width: 100%; border-top: 1px dashed #eee;"></div>
                                 <div style="position: absolute; left: 0; top: 50%; width: 100%; border-top: 1px dashed #ddd;"></div>
@@ -281,12 +280,12 @@
                                 
                                 <!-- Axis Labels -->
                                 <div style="position: absolute; bottom: -24px; text-align: center; width: 100%; font-size: 10px; color: #666; font-weight: bold;">{{ t_x_axis }}{{ ': ' ~ comp.x_title if comp.x_title else '' }}</div>
-                                <div style="position: absolute; left: -110px; top: 90px; width: 200px; transform: rotate(-90deg); text-align: center; font-size: 10px; color: #666; font-weight: bold;">{{ t_y_axis }}{{ ': ' ~ comp.y_title if comp.y_title else '' }}</div>
+                                <div style="position: absolute; left: -130px; top: 90px; width: 240px; transform: rotate(-90deg); text-align: center; font-size: 10px; color: #666; font-weight: bold;">{{ t_y_axis }}{{ ': ' ~ comp.y_title if comp.y_title else '' }}</div>
                             </div>
                         </div>
                         
                         <!-- Textual Data -->
-                        <div style="display: table-cell; vertical-align: top;">
+                        <div style="display: block; width: 100%;">
                             <div class="grid-container" style="display: block; width: 100%;">
                                 <div class="grid-item" style="border-top: 4px solid #E91E63; display: block; width: 95%; margin-bottom: 12px;">
                                     {% set max_x = comp.get('x_scale_max', 6.0) | float | default(6.0, true) %}

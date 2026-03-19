@@ -10,6 +10,7 @@ import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart
 import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/models/prompt_block_category.dart';
 
 /// **Universal Matrix Builder**
 ///
@@ -294,35 +295,24 @@ class _PromptBlockBuilderFormState
                       const SizedBox(height: 16),
 
                       // Categories
-                      DropdownButtonFormField<String>(
+                      DropdownButtonFormField<PromptBlockCategory>(
                         decoration: const InputDecoration(
                           labelText: 'Category',
                         ),
-                        initialValue:
-                            _editablePromptBlock['category_id'] as String? ??
-                            'system_rule',
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'scientific_theory',
-                            child: Text('Scientific Theory'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'agent_role',
-                            child: Text('Agent Role'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'system_rule',
-                            child: Text('System Rule'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'instruction',
-                            child: Text('Instruction'),
-                          ),
-                        ],
-                        onChanged:
-                            (val) => setState(
-                              () => _editablePromptBlock['category_id'] = val,
-                            ),
+                        initialValue: PromptBlockCategory.fromId(
+                          _editablePromptBlock['category_id'] as String? ?? 'system_rule',
+                        ),
+                        items: PromptBlockCategory.values.map((category) {
+                          return DropdownMenuItem(
+                            value: category,
+                            child: Text(category.displayName),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() => _editablePromptBlock['category_id'] = val.id);
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
 

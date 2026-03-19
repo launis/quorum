@@ -93,6 +93,30 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                   _editableScale['name'] = val;
                 },
               ),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: SafeCast.safeString(_editableScale['ai_label']),
+                decoration: const InputDecoration(
+                  labelText: 'Grade AI Label (e.g. CATASTROPHIC FAILURE)',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (val) {
+                  _editableScale['ai_label'] = val.trim();
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: SafeCast.safeString(_editableScale['ai_description']),
+                decoration: const InputDecoration(
+                  labelText: 'Grade AI Rules (Strict Evaluation Directives)',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 6,
+                onChanged: (val) {
+                  _editableScale['ai_description'] = val.trim();
+                },
+              ),
               const SizedBox(height: 24),
               const Text(
                 'Claims (Evaluative Guidelines)',

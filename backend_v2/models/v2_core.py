@@ -85,6 +85,12 @@ class MatrixScale(V2CoreBase):
     """Represents a single score point in a BARS matrix scale."""
     score: int = Field(description="Numerical value of the scale point.")
     name: I18nText | None = Field(default=None, description="Optional name for the scale point (e.g., 'Excellent').")
+    ai_label: str = Field(
+        description="Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE"
+    )
+    ai_description: str = Field(
+        description="Detailed English evaluation criteria for LLM. Must be highly critical and strict."
+    )
     claims: list[I18nText] = Field(
         default_factory=list,
         description="List of behavioral claims/criteria for this score."

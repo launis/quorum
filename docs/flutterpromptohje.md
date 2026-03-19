@@ -274,3 +274,9 @@ Sisäisten rivikommenttien ainoa tehtävä arkkitehtuurissa on avata poikkeuksia
 * Orphaned (Orvot) TODO:t ovat kiellettyjä. Merkintä vaatii kontekstin ratkaisulle: `TODO(risto) [2026-03] Remove after api-V2 rolls out.`
 
 ---
+
+## 📱 10. ADAPTIVE UI & NAVIGATION ARCHITECTURE
+Käyttöliittymän globaalia navigaatiota, rakenteen litteyttä (Flat Hierarchy) ja "Omni-Navigation" sääntöjä ohjaa nyt oma, erillinen arkkitehtuuridokumenttinsa.
+**Jokaisen Flutter-kehittäjän ja AI-agentin on ehdottomasti noudatettava sitä navigaatiota rakennettaessa.**
+
+👉 **Lue täysi säännöstö:** `docs/AdminStudio_V2_UI_Architecture.md`

@@ -303,7 +303,7 @@
   "organizationId": "Organization ID",
   "helpBloom": "Based on the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001), this metric evaluates the cognitive complexity of the output. It distinguishes between lower-order thinking (Remembering, Understanding) and higher-order skills (Applying, Analyzing, Evaluating, Creating). High scores indicate the agent is not just retrieving facts but synthesizing new information.",
   "helpToulmin": "Derived from Stephen Toulmin's 'The Uses of Argument' (1958), this model moves beyond formal logic to practical argumentation. It assesses whether the Claim is supported by Data and connected via a Warrant. This structure ensures that arguments are not just assertions but reasoned positions.",
-  "helpWalton": "Based on Douglas Walton's Argumentation Schemes, Fidelity measures dialectical consistency. It checks if the reasoning strictly adheres to the provided premises (Source Data) or if the agent engages in 'Post-Hoc Rationalization'—inventing justifications after the fact to support a hallucinated or biased conclusion.",
+  "helpWalton": "Based on Douglas Walton's Argumentation Schemes, Fidelity measures dialectical consistency. It checks if the reasoning strictly adheres to the provided premises (Source Data) or if the agent engages in 'Post-Hoc Rationalization'\u2014inventing justifications after the fact to support a hallucinated or biased conclusion.",
   "helpControlRatio": "Based on Discourse Analysis and Interaction Dynamics, this ratio measures the balance of initiative. A 'Passenger' merely responds (reactive), while a 'Driver' or 'Architect' sets the frame and direction of the conversation (proactive). High control indicates the AI is leading the cognitive work.",
   "helpMethodology": "The Methodological Log tells what analysis methods the AI has applied in this phase (e.g. 'Logic Audit', 'Causality Testing').",
   "rolePassenger": "Passenger",
@@ -327,8 +327,8 @@
   "lblLogicMatrix": "Logic Matrix",
   "lblMatrixSubtitle": "Visual analysis of reasoning quality.",
   "lblFidelity": "Reasoning Fidelity",
-  "lblPostHocWarning": "⚠️ Post-Hoc Rationalization detected!",
-  "lblNoRationalization": "✅ No rationalization.",
+  "lblPostHocWarning": "\u26a0\ufe0f Post-Hoc Rationalization detected!",
+  "lblNoRationalization": "\u2705 No rationalization.",
   "lblAbductiveReasoning": "Abductive Reasoning",
   "lblScenarioActual": "Scenario A (Actual)",
   "lblScenarioSimulation": "Scenario B (Simulation)",
@@ -336,7 +336,6 @@
   "lblTextMetrics": "Text Metrics",
   "lblBias": "Identified Biases",
   "lblAuthors": "Authors",
-  "lblControlRatio": "Control Ratio",
   "lblIntent": "Author Intent",
   "lblPsychProfile": "Psychological Profile",
   "lblFactCheck": "Fact Check",
@@ -917,7 +916,9 @@
   "blueprintSaveFailed": "Failed to save blueprint: {error}",
   "@blueprintSaveFailed": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "blueprintPropertyDataPath": "Data Path ($results.X)",
@@ -958,5 +959,6 @@
   "workflowCloneBtn": "Clone Workflow",
   "workflowCloneSuccess": "Workflow cloned successfully!",
   "workflowCloneErrorMissingDep": "Clone failed: Step dependency points to a non-existent step.",
-  "workflowSharedBlueprintWarning": "Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block."
+  "workflowSharedBlueprintWarning": "Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block.",
+  "overall_system_profile": "Overall System Profile"
 }

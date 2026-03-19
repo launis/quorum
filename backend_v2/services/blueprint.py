@@ -57,6 +57,10 @@ class BlueprintTransformer:
         all_blocks = await self.repo.get_all_prompt_blocks()
         blocks_by_slug = {b["id"]: b for b in all_blocks if "id" in b}
 
+        # Fetch steps for evaluation notes translation
+        all_steps = await self.repo.get_all_steps()
+        steps_by_slug = {s["id"]: s for s in all_steps if "id" in s}
+
         results = execution.results or {}
 
         def resolve_data_path(path: str) -> Any:
@@ -259,7 +263,23 @@ class BlueprintTransformer:
             elif comp_type == "evaluation_notes_panel":
                 resolved_notes = {}
                 for rp in base_dict.get("data_paths", []):
-                    resolved_notes[rp] = resolve_data_path(rp)
+                    # Auto-translate the ugly JSON path into a beautiful localized UI Role/Step title
+                    parts = rp.strip("$").split(".")
+                    step_slug = parts[1] if len(parts) >= 2 else rp
+                    display_title = step_slug
+                    
+                    if step_slug in steps_by_slug:
+                        step_def = steps_by_slug[step_slug]
+                        if "title" in step_def:
+                            t_obj = step_def["title"]
+                            if isinstance(t_obj, dict):
+                                trans = get_translation(t_obj.get("translations", {}), t_obj.get("default_locale", "en"))
+                                if trans:
+                                    display_title = trans
+                            elif isinstance(t_obj, str):
+                                display_title = t_obj
+
+                    resolved_notes[display_title] = resolve_data_path(rp)
                 base_dict["resolved_notes"] = resolved_notes
                 return base_dict
             else:

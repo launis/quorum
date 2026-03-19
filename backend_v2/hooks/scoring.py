@@ -544,26 +544,8 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
             if slug not in new_payload:
                 continue
 
-            # --- CoT Decimal Override Hack ---
-            # Extract the raw justification string if it exists
-            justification_val = new_payload.get(f"{slug}_justification")
-            if justification_val and isinstance(justification_val, str):
-                import re
-                # Look for the strict tag at the end: ||DECIMAL: 4.2||
-                cot_match = re.search(r"\|\|DECIMAL:\s*([0-9.]+)\|\|", justification_val)
-                if cot_match:
-                    try:
-                        extracted_decimal = float(cot_match.group(1))
-                        # Override the LLM's raw biased value
-                        new_payload[slug] = extracted_decimal
-                        logger.info(f"[ScoringHook] Extracted CoT Decimal '{extracted_decimal}' for '{slug}'")
-
-                        # Clean the justification string to remove the hack syntax from the DB
-                        clean_justification = re.sub(r"\s*\|\|DECIMAL:\s*[0-9.]+\|\|\s*", "", justification_val)
-                        new_payload[f"{slug}_justification"] = clean_justification
-                    except ValueError:
-                        pass
-            # ---------------------------------
+            if not slug in new_payload:
+                continue
 
             # --- Raw Float Cast Enforcement (V8 Pipeline) ---
             # Ensure the raw value itself is cast to a strict float so it hits the database

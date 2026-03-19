@@ -322,16 +322,22 @@ class PromptCompiler:
             bars_text = ""
             scales = crit.get("scales")
             if scales and isinstance(scales, list) and len(scales) > 0:
+                from backend_v2.exceptions import ConfigurationError
                 bars_text += "\n\nEVALUATION MATRIX (BARS):\n"
                 for s in scales:
                     s_val = s.get("score")
-                    s_lbl = self.resolve_i18n(s.get("name"), "en") or str(s_val)
-                    s_claims = s.get("claims", [])
-                    s_claim_text = self.resolve_i18n(s_claims[0], "en") if s_claims else ""
-                    bars_text += f"- Score {s_val}: {s_lbl}"
-                    if s_claim_text:
-                        bars_text += f" - {s_claim_text}"
-                    bars_text += "\n"
+                    s_lbl = s.get("ai_label")
+                    s_claim_text = s.get("ai_description")
+
+                    if not s_lbl or not s_claim_text:
+                        msg = (
+                            f"PromptBlock '{crit_id}' MatrixScale {s_val} "
+                            "missing mandatory 'ai_label' or 'ai_description'."
+                        )
+                        logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                        raise ConfigurationError(msg)
+
+                    bars_text += f"- Score {s_val}: {s_lbl} - {s_claim_text}\n"
                 if crit.get("allow_decimals", False):
                     bars_text += (
                         "\nINSTRUCTION: Evaluate the core issue using the matrix above. "
@@ -345,26 +351,19 @@ class PromptCompiler:
                         "Return only an exact numeric score from the list."
                     )
 
-            # The actual evaluation value.
-            final_desc = f"{label}: {base_desc}{bars_text}"
-            fields[crit_id] = (value_type, Field(..., description=final_desc))
-
             if require_justification or crit.get("require_justification", False):
                 # 1. Justification (XAI)
                 justification_key = f"{crit_id}_justification"
-
-                # CoT Decimal Override Hack (V2 JSON Mode rounding bypass)
+                
+                justification_desc = (
+                    f"Detailed reasoning for the assigned score for '{label}'. "
+                    "Must explicitly adhere to the active STRICTNESS CALIBRATION."
+                )
                 if crit.get("allow_decimals", False):
-                    justification_desc = (
-                        f"Detailed reasoning for the assigned score for '{label}'. "
-                        "Must explicitly adhere to the active STRICTNESS CALIBRATION. "
-                        "CRITICAL INSTRUCTION: Write your analysis first. At the VERY END of this text, "
-                        "you MUST provide the final nuanced decimal score in this exact format: ||DECIMAL: 4.2||"
-                    )
-                else:
-                    justification_desc = (
-                        f"Detailed reasoning for the assigned score for '{label}'. "
-                        "Must explicitly adhere to the active STRICTNESS CALIBRATION."
+                    justification_desc += (
+                        " CRITICAL: You MUST conclude your justification by explicitly declaring your precise decimal "
+                        "calculation in the exact format '||DECIMAL: X.Y||' (e.g., ||DECIMAL: 4.2||). "
+                        "Do not use round integers like .0 unless mathematically absolute."
                     )
 
                 fields[justification_key] = (str, Field(..., description=justification_desc))
@@ -383,7 +382,7 @@ class PromptCompiler:
                     from typing import Literal
 
                     # V2 Strict Literal: The LLM can ONLY return this exact string or None
-                    source_id_type = Literal[citation_ref] | None  # type: ignore
+                    source_id_type = Literal[citation_ref] | None
                     source_id_desc = (
                         "Jos perustelut pohjautuvat tähän teoriaan, "
                         f"PALAUTA TÄSMÄLLEEN TÄMÄ merkkijono: '{citation_ref}'. "
@@ -408,6 +407,10 @@ class PromptCompiler:
                     "If you cannot find a direct quote from the user to prove your point, return null."
                 )
                 fields[quote_key] = (str | None, Field(default=None, description=quote_desc))
+
+            # The actual evaluation value (placed AFTER justification for CoT forcing)
+            final_desc = f"{label}: {base_desc}{bars_text}"
+            fields[crit_id] = (value_type, Field(..., description=final_desc))
 
         if not fields:
             # If all blocks were pure instructions with no actionable scales,

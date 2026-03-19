@@ -2121,4 +2121,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get workflowSharedBlueprintWarning =>
       'Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block.';
+
+  @override
+  String get overall_system_profile => 'Overall System Profile';
 }

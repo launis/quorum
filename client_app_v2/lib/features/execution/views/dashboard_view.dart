@@ -9,14 +9,19 @@ import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 
+import 'dart:async'; // Add dart:async for Timer
+
 // Provider to fetch executions using SafeCast (No Freezed API DTOs)
 final executionListProvider = FutureProvider.autoDispose<
   List<Map<String, dynamic>>
 >((ref) async {
-  // 1. Riverpod SWR Caching (Stale-While-Revalidate)
-  // Keep this list in RAM for 5 minutes after leaving the screen.
-  // Next time the user quickly navigates back, they see immediate cached data.
-  ref.cacheFor(const Duration(minutes: 5));
+  // 1. Riverpod Polling (Auto-Refresh)
+  // Poll backend every 10 seconds to keep the Execution Dashboard alive and fresh,
+  // bypassing the StatefulShellRoute cache stagnation issue.
+  final timer = Timer(const Duration(seconds: 10), () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(timer.cancel);
 
   final dio = ref.watch(apiClientProvider);
   final response = await dio.get('/execution/executions');

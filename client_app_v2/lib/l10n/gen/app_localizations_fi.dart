@@ -2128,4 +2128,7 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get workflowSharedBlueprintWarning =>
       'Huomio: Muokkaat jaettua PromptBlockia. Muutokset vaikuttavat kaikkiin tätä lohkoa käyttäviin työnkulkuihin.';
+
+  @override
+  String get overall_system_profile => 'Kokonaisvaltainen Profiili';
 }

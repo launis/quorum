@@ -3961,6 +3961,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block.'**
   String get workflowSharedBlueprintWarning;
+
+  /// No description provided for @overall_system_profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall System Profile'**
+  String get overall_system_profile;
 }
 
 class _AppLocalizationsDelegate

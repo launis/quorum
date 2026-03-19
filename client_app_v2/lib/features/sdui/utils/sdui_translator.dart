@@ -39,6 +39,8 @@ class SduiTranslator {
       case 'report.score':
       case 'reportscore':
         return l10n.reportScore;
+      case 'overall_system_profile':
+        return l10n.overall_system_profile;
       default:
         // Graceful degradation: return original key so developers see what's missing
         return key;
