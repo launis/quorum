@@ -1,17 +1,18 @@
-import pytest
 from unittest.mock import AsyncMock
 
+import pytest
+
+from backend_v2.exceptions import AppException
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.services.blueprint import BlueprintTransformer
-from backend_v2.exceptions import AppException
 
 
 @pytest.fixture
 def mock_repo():
     """Provides a mocked workflow repository."""
     repo = AsyncMock()
-    
+
     # Default mocks for repo setup
     repo.get_workflow_by_id.return_value = {
         "name": {
@@ -19,7 +20,7 @@ def mock_repo():
             "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}
         }
     }
-    
+
     repo.get_all_prompt_blocks.return_value = [
         {
             "id": "matrix_logic1234",
@@ -38,14 +39,14 @@ def mock_repo():
             ]
         }
     ]
-    
+
     repo.get_all_steps.return_value = [
         {
             "id": "step_logic",
             "title": {"translations": {"fi": "Looginen Askel", "en": "Logical Step"}}
         }
     ]
-    
+
     return repo
 
 
@@ -59,12 +60,12 @@ async def test_pydantic_validation_fails_on_missing_default_blueprint(mock_repo)
         render_blueprints={"wrong_key": {}},
         metadata={"target_locale": "fi"}
     )
-    
+
     transformer = BlueprintTransformer(mock_repo)
-    
+
     with pytest.raises(AppException) as exc:
         await transformer.build_render_payload("testexec_00000001")
-        
+
     assert exc.value.status_code == 400
     assert exc.value.details["error_code"].value == "VALIDATION_FAILED"
     assert "missing render_blueprints['default']" in exc.value.message
@@ -87,12 +88,12 @@ async def test_pydantic_validation_fails_on_invalid_component_type(mock_repo):
         },
         metadata={"target_locale": "fi"}
     )
-    
+
     transformer = BlueprintTransformer(mock_repo)
-    
+
     with pytest.raises(AppException) as exc:
         await transformer.build_render_payload("testexec_00000002")
-        
+
     assert exc.value.status_code == 400
     assert exc.value.details["error_code"].value == "VALIDATION_FAILED"
     assert "Invalid render_blueprint structure" in exc.value.message
@@ -123,19 +124,19 @@ async def test_data_mapping_calculates_correct_visual_pct(mock_repo):
         },
         metadata={"target_locale": "en"}
     )
-    
+
     transformer = BlueprintTransformer(mock_repo)
     payload = await transformer.build_render_payload("testexec_00000003")
-    
+
     components = payload["blueprint"]["components"]
     assert len(components) == 1
-    
+
     gauge = components[0]
     assert gauge["value"] == 75.0
     assert gauge["scale_max"] == 100.0
     assert gauge["visual_pct"] == 75.0
     assert gauge["display_value_only"] == "75.0"
-    
+
 
 @pytest.mark.asyncio
 async def test_graceful_degradation_on_missing_data(mock_repo):
@@ -159,11 +160,11 @@ async def test_graceful_degradation_on_missing_data(mock_repo):
         },
         metadata={"target_locale": "en"}
     )
-    
+
     transformer = BlueprintTransformer(mock_repo)
     # Missing data should NOT crash the generic endpoint, but return a payload with nulls/NAs
     payload = await transformer.build_render_payload("testexec_00000004")
-    
+
     gauge = payload["blueprint"]["components"][0]
     assert gauge.get("value") is None
     assert gauge.get("display_value") == "N/A"
@@ -190,10 +191,10 @@ async def test_translation_doctrine_leaves_static_keys_untouched(mock_repo):
         },
         metadata={"target_locale": "fi"}
     )
-    
+
     transformer = BlueprintTransformer(mock_repo)
     payload = await transformer.build_render_payload("testexec_00000005")
-    
+
     header = payload["blueprint"]["components"][0]
     # Static keys must be passed to UI untouched for Flutter to translate using .arb
     assert header["title"] == "report.complaint.header"
@@ -221,15 +222,15 @@ async def test_translation_doctrine_resolves_dynamic_block_labels(mock_repo):
         },
         metadata={"target_locale": "fi"}
     )
-    
+
     transformer = BlueprintTransformer(mock_repo)
     payload = await transformer.build_render_payload("testexec_00000006")
-    
+
     gauge = payload["blueprint"]["components"][0]
     # It should have resolved the title "Logiikka" and scale_text "Täysi" from the database mock
     assert gauge["title"] == "Logiikka"
     assert gauge["scale_text"] == "Täysi"
-    
+
     # Test English override via accept_language param
     payload_en = await transformer.build_render_payload("testexec_00000006", accept_language="en")
     gauge_en = payload_en["blueprint"]["components"][0]

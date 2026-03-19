@@ -5,11 +5,13 @@ import 'package:client_app/utils/safe_cast.dart';
 class RowEditorModal extends StatefulWidget {
   final Map<String, dynamic> initialRow;
   final String title;
+  final bool isMatrixRow;
 
   const RowEditorModal({
     super.key,
     required this.initialRow,
     this.title = 'Edit Row/Column',
+    this.isMatrixRow = false,
   });
 
   @override
@@ -55,13 +57,40 @@ class _RowEditorModalState extends State<RowEditorModal> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              I18nTextField(
-                label: 'Item Content',
-                initialData: SafeCast.safeMap(_editableRow),
-                onChanged: (val) {
-                  _editableRow = val;
-                },
-              ),
+              // If isMatrixRow is true, 'initialRow' is actually a full MatrixRow object containing 'label' and 'ai_description'.
+              // Otherwise, it's just the translation map directly.
+              if (widget.isMatrixRow) ...[
+                TextFormField(
+                  initialValue: SafeCast.safeString(_editableRow['ai_description']),
+                  decoration: const InputDecoration(
+                    labelText: 'Row AI Rule (MANDATORY ENGLISH)',
+                    helperText: "MUST be in English. Use strict commanding language.",
+                    helperStyle: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 3,
+                  onChanged: (val) {
+                    _editableRow['ai_description'] = val;
+                  },
+                ),
+                const SizedBox(height: 16),
+                I18nTextField(
+                  label: 'Item Content (UI/PDF)',
+                  initialData: SafeCast.safeMap(_editableRow['label'] ?? {'default_locale': 'en', 'translations': <String, dynamic>{'en': ''}}),
+                  onChanged: (val) {
+                    _editableRow['label'] = val;
+                  },
+                ),
+              ] else ...[
+                I18nTextField(
+                  label: 'Item Content',
+                  initialData: SafeCast.safeMap(_editableRow),
+                  onChanged: (val) {
+                    _editableRow = val;
+                  },
+                ),
+              ],
             ],
           ),
         ),

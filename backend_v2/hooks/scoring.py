@@ -544,7 +544,7 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
             if slug not in new_payload:
                 continue
 
-            if not slug in new_payload:
+            if slug not in new_payload:
                 continue
 
             # --- Raw Float Cast Enforcement (V8 Pipeline) ---

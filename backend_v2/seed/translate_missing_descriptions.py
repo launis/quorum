@@ -65,7 +65,7 @@ MISSING_MAP = {
 
 def clean_missing():
     logging.info(f"Loading seed data from {SEED_DATA_PATH}")
-    with open(SEED_DATA_PATH, "r", encoding="utf-8") as f:
+    with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     prompt_blocks = data.get("prompt_blocks", [])
@@ -75,12 +75,12 @@ def clean_missing():
         slug = block.get("slug")
         desc_en = block.get("description", {}).get("translations", {}).get("en", "")
         desc_fi = block.get("description", {}).get("translations", {}).get("fi", "")
-        
+
         # Strip generic (EN) or [EN] suffixes off the fi
         if desc_fi:
             clean_fi = desc_fi.replace("(EN)", "").replace("[EN]", "").strip()
             block["description"]["translations"]["fi"] = clean_fi
-            
+
         # Also let's clean the FI if it has "ROOLI:" inside it despite not being heavily contaminated
         if "ROOLI:" in block["description"]["translations"]["fi"]:
              first_sentence = block["description"]["translations"]["fi"].split(".")[0]
@@ -90,7 +90,7 @@ def clean_missing():
         if slug in MISSING_MAP:
             block["description"]["translations"]["en"] = MISSING_MAP[slug]
             count += 1
-            
+
     if count > 0:
         with open(SEED_DATA_PATH, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)

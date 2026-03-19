@@ -44,9 +44,9 @@ def inject_blueprints(filepath, is_seed=False):
     if not os.path.exists(filepath):
         print(filepath, 'not found')
         return
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, encoding='utf-8') as f:
         data = json.load(f)
-    
+
     injected = False
     if is_seed:
         # Array of workflows
@@ -65,7 +65,7 @@ def inject_blueprints(filepath, is_seed=False):
             print('Injected DB variants into', wf.get('id'))
             injected = True
             break
-            
+
     if injected:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4)

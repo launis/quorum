@@ -79,7 +79,7 @@ SLUG_LABELS = {
 
 def translate_labels():
     logging.info(f"Loading data from {SEED_DATA_PATH}")
-    with open(SEED_DATA_PATH, "r", encoding="utf-8") as f:
+    with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     count = 0
@@ -95,7 +95,7 @@ def translate_labels():
             if lbl_fi.isupper() or "_" in lbl_fi:
                 block["label"]["translations"]["fi"] = lbl_fi.replace("_", " ").title()
                 count += 1
-                
+
     if count > 0:
         with open(SEED_DATA_PATH, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)

@@ -6,13 +6,13 @@ logger = logging.getLogger(__name__)
 
 def run():
     db_path = 'c:/src/quorum/data/db_v2.json'
-    
-    with open(db_path, 'r', encoding='utf-8') as f:
+
+    with open(db_path, encoding='utf-8') as f:
         db = json.load(f)
-        
+
     executions = db.get('executions', {})
     changed = False
-    
+
     for exe_id, data in executions.items():
         rsp = data.get("results_storage_path")
         if rsp and isinstance(rsp, str) and rsp.endswith(".pdf"):
@@ -20,7 +20,7 @@ def run():
             data["pdf_report_path"] = rsp
             del data["results_storage_path"]
             changed = True
-            
+
     if changed:
         with open(db_path, 'w', encoding='utf-8') as f:
             json.dump(db, f, indent=4, ensure_ascii=False)

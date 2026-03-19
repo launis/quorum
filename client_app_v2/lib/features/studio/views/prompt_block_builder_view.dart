@@ -630,12 +630,21 @@ class _PromptBlockBuilderFormState
                       const SizedBox(width: 8),
                       OutlinedButton.icon(
                         onPressed: () async {
+                          final bool isRow = key == 'rows';
+                          final initialMap = isRow 
+                            ? {
+                                'label': {'default_locale': 'en', 'translations': <String, dynamic>{'en': ''}},
+                                'ai_description': 'CRITICAL MANDATE: ',
+                              }
+                            : {'default_locale': 'en', 'translations': <String, dynamic>{'en': ''}};
+                            
                           final result = await showDialog<Map<String, dynamic>>(
                             context: context,
                             builder:
                                 (ctx) => RowEditorModal(
-                                  initialRow: const {'default_locale': ''},
+                                  initialRow: initialMap,
                                   title: 'Add $title Item',
+                                  isMatrixRow: isRow,
                                 ),
                           );
                           if (result != null) {
@@ -657,13 +666,18 @@ class _PromptBlockBuilderFormState
               ).asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = SafeCast.safeMap(entry.value);
+                final bool isRow = key == 'rows';
+                
+                // If it's a MatrixRow, the text to display in the ListTile is under item['label']
+                final displayItem = isRow ? SafeCast.safeMap(item['label']) : item;
+                
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8.0),
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: ListTile(
                     title: Text(
-                      item['translations']?[item['default_locale']] ??
-                          item['default_locale'] ??
+                      displayItem['translations']?[displayItem['default_locale']] ??
+                          displayItem['default_locale'] ??
                           'No text',
                     ),
                     subtitle: Text('Item ${index + 1}'),
@@ -678,6 +692,7 @@ class _PromptBlockBuilderFormState
                             (ctx) => RowEditorModal(
                               initialRow: item,
                               title: 'Edit $title Item',
+                              isMatrixRow: isRow,
                             ),
                       );
                       if (result != null) {

@@ -127,7 +127,7 @@ TRANSLATIONS = {
 
 def run_claim_translation():
     logging.info(f"Loading seed data from {SEED_DATA_PATH}")
-    with open(SEED_DATA_PATH, "r", encoding="utf-8") as f:
+    with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     prompt_blocks = data.get("prompt_blocks", [])
@@ -138,7 +138,7 @@ def run_claim_translation():
         scales = block.get("scales", [])
         if not scales:
             continue
-            
+
         for scale in scales:
             claims = scale.get("claims", [])
             for claim in claims:
@@ -159,7 +159,7 @@ def run_claim_translation():
     logging.info("Saving changes.")
     with open(SEED_DATA_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
-        
+
     logging.info("Claim translation complete.")
 
 if __name__ == "__main__":

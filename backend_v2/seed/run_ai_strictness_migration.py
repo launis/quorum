@@ -11,7 +11,7 @@ def make_stricter_ai_desc(old_claim_en: str) -> str:
     """Elevates the strictness of the baseline AI description to demand absolute precision."""
     if not old_claim_en:
         return "CRITICAL DIRECTIVE: STRICT EVALUATION REQUIRED. No ambiguity allowed."
-        
+
     base = old_claim_en.strip()
     return (
         f"CRITICAL EVALUATION DIRECTIVE: {base}\n"
@@ -40,7 +40,7 @@ def make_ui_name_translation(fi_name: str) -> str:
 
 def run_migration():
     logging.info(f"Loading seed data from {SEED_DATA_PATH}")
-    with open(SEED_DATA_PATH, "r", encoding="utf-8") as f:
+    with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     prompt_blocks = data.get("prompt_blocks", [])
@@ -51,38 +51,38 @@ def run_migration():
         scales = block.get("scales", [])
         if not scales:
             continue
-            
+
         logging.info(f"Processing matrix {block.get('slug')} with {len(scales)} scales.")
         total_matrices_migrated += 1
-        
+
         for scale in scales:
             old_label_en = scale.get("name", {}).get("translations", {}).get("en", "UNKNOWN_LABEL")
-            
+
             # Extract the AI claim text (historically abused in claims[0].en)
             old_desc_en = ""
             claims = scale.get("claims", [])
             if claims and len(claims) > 0:
                 old_desc_en = claims[0].get("translations", {}).get("en", "")
-                
+
             # SET PURE AI DATA
             scale["ai_label"] = old_label_en.strip()
             scale["ai_description"] = make_stricter_ai_desc(old_desc_en)
-            
+
             # SET PURE UI TRANSLATIONS
             fi_name = scale.get("name", {}).get("translations", {}).get("fi", "")
             scale["name"]["translations"]["en"] = make_ui_name_translation(fi_name)
-            
+
             for claim in claims:
                 fi_claim = claim.get("translations", {}).get("fi", "")
                 claim["translations"]["en"] = f"UI EN: {fi_claim}"  # Decoupled string to prevent AI leakage to UI
-                
+
             total_scales_migrated += 1
 
     # Save mutated data back
     logging.info(f"Saving changes. Matrices updated: {total_matrices_migrated}, Scales updated: {total_scales_migrated}")
     with open(SEED_DATA_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
-        
+
     logging.info("Migration complete.")
 
 if __name__ == "__main__":

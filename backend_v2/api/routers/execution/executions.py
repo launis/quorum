@@ -120,8 +120,8 @@ async def download_frozen_context(
         except Exception as strg_err:
             logger.warning(f"Failed to fetch frozen context from storage: {strg_err}")
             raise AppException(
-                message="Forensic context file not found in storage", 
-                status_code=404, 
+                message="Forensic context file not found in storage",
+                status_code=404,
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
             ) from strg_err
 

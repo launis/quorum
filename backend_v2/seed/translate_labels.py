@@ -12,7 +12,7 @@ def fix_label(label: str) -> str:
     if label == "TOULMIN ARGUMENTATION MODEL": return "Toulmin Argumentation Model"
     if label == "BLOOM'S TAXONOMY": return "Bloom's Taxonomy"
     if label == "SITRA'S MEGA-TREND ANALYSIS": return "Sitra's Megatrend Analysis"
-    
+
     # Generic title casing for all caps (safeguard)
     if label.isupper():
         return label.title()
@@ -20,7 +20,7 @@ def fix_label(label: str) -> str:
 
 def run_label_translation():
     logging.info(f"Loading seed data from {SEED_DATA_PATH}")
-    with open(SEED_DATA_PATH, "r", encoding="utf-8") as f:
+    with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     prompt_blocks = data.get("prompt_blocks", [])
@@ -34,7 +34,7 @@ def run_label_translation():
                 logging.info(f"Fixed: {en_label} -> {fixed_label}")
                 block["label"]["translations"]["en"] = fixed_label
                 count += 1
-                
+
         # Also clean up descriptions if they have weird (EN) suffixes left over from old formatting
         en_desc = block.get("description", {}).get("translations", {}).get("en")
         if en_desc and "(EN)" in en_desc:

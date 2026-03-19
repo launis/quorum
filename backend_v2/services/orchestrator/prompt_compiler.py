@@ -320,6 +320,17 @@ class PromptCompiler:
 
             # Inject the specific BARS into the description
             bars_text = ""
+            
+            # --- INCORPORATE ROWS ---
+            rows = crit.get("rows")
+            if rows and isinstance(rows, list) and len(rows) > 0:
+                bars_text += "\n\nTARGET ROW:\n"
+                for r in rows:
+                    if isinstance(r, dict):
+                        r_desc = r.get("ai_description", "")
+                        if r_desc:
+                            bars_text += f"- {r_desc}\n"
+
             scales = crit.get("scales")
             if scales and isinstance(scales, list) and len(scales) > 0:
                 from backend_v2.exceptions import ConfigurationError
@@ -327,17 +338,21 @@ class PromptCompiler:
                 for s in scales:
                     s_val = s.get("score")
                     s_lbl = s.get("ai_label")
-                    s_claim_text = s.get("ai_description")
 
-                    if not s_lbl or not s_claim_text:
-                        msg = (
-                            f"PromptBlock '{crit_id}' MatrixScale {s_val} "
-                            "missing mandatory 'ai_label' or 'ai_description'."
-                        )
+                    if not s_lbl:
+                        msg = f"PromptBlock '{crit_id}' MatrixScale {s_val} missing mandatory 'ai_label'."
                         logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                         raise ConfigurationError(msg)
 
-                    bars_text += f"- Score {s_val}: {s_lbl} - {s_claim_text}\n"
+                    bars_text += f"- Score {s_val}: {s_lbl}\n"
+                    
+                    claims = s.get("claims")
+                    if claims and isinstance(claims, list):
+                        for c in claims:
+                            if isinstance(c, dict):
+                                c_desc = c.get("ai_description", "")
+                                if c_desc:
+                                    bars_text += f"  * DIRECTIVE: {c_desc}\n"
                 if crit.get("allow_decimals", False):
                     bars_text += (
                         "\nINSTRUCTION: Evaluate the core issue using the matrix above. "
@@ -354,7 +369,7 @@ class PromptCompiler:
             if require_justification or crit.get("require_justification", False):
                 # 1. Justification (XAI)
                 justification_key = f"{crit_id}_justification"
-                
+
                 justification_desc = (
                     f"Detailed reasoning for the assigned score for '{label}'. "
                     "Must explicitly adhere to the active STRICTNESS CALIBRATION."

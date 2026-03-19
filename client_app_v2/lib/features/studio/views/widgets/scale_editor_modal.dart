@@ -32,8 +32,11 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
     setState(() {
       final claims = SafeCast.safeList(_editableScale['claims']);
       claims.add({
-        'default_locale': 'en',
-        'translations': <String, dynamic>{'en': ''},
+        'label': {
+          'default_locale': 'en',
+          'translations': <String, dynamic>{'en': ''},
+        },
+        'ai_description': 'CRITICAL MANDATE: ',
       });
       _editableScale['claims'] = claims;
     });
@@ -128,28 +131,61 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
               ...claims.asMap().entries.map((entry) {
                 final index = entry.key;
                 final claim = SafeCast.safeMap(entry.value);
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: I18nTextField(
-                          label: 'Claim ${index + 1}',
-                          initialData: claim,
+                final claimLabel = SafeCast.safeMap(claim['label'] ?? {'default_locale': 'en', 'translations': <String, dynamic>{'en': ''}});
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  color: Theme.of(context).colorScheme.surface,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Claim ${index + 1}',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _removeClaim(index),
+                              tooltip: 'Remove Claim',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          initialValue: SafeCast.safeString(claim['ai_description']),
+                          decoration: const InputDecoration(
+                            labelText: 'Claim AI Rule (MANDATORY ENGLISH)',
+                            helperText: "MUST be in English. Use strict commanding language (e.g., 'CRITICAL EVALUATION DIRECTIVE:').",
+                            helperStyle: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                            border: OutlineInputBorder(),
+                            alignLabelWithHint: true,
+                          ),
+                          maxLines: 3,
                           onChanged: (val) {
                             setState(() {
-                              claims[index] = val;
+                              claim['ai_description'] = val;
+                              claims[index] = claim;
                             });
                           },
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removeClaim(index),
-                        tooltip: 'Remove Claim',
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        I18nTextField(
+                          label: 'Claim Translation (UI Screen/PDF)',
+                          initialData: claimLabel,
+                          onChanged: (val) {
+                            setState(() {
+                              claim['label'] = val;
+                              claims[index] = claim;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }),

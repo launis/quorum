@@ -81,6 +81,18 @@ class TheoryGrounding(V2CoreBase):
     )
 
 
+class MatrixClaim(V2CoreBase):
+    """Represents a single behavioral claim with an AI evaluation directive."""
+    label: I18nText = Field(description="User-facing empirical claim.")
+    ai_description: str = Field(description="Specific AI enforcement rule for this claim.")
+
+
+class MatrixRow(V2CoreBase):
+    """Represents a row in a 2D matrix evaluating multiple dimensions."""
+    label: I18nText = Field(description="User-facing row name.")
+    ai_description: str = Field(description="Dedicated AI evaluation instruction for this sub-dimension.")
+
+
 class MatrixScale(V2CoreBase):
     """Represents a single score point in a BARS matrix scale."""
     score: int = Field(description="Numerical value of the scale point.")
@@ -88,14 +100,10 @@ class MatrixScale(V2CoreBase):
     ai_label: str = Field(
         description="Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE"
     )
-    ai_description: str = Field(
-        description="Detailed English evaluation criteria for LLM. Must be highly critical and strict."
-    )
-    claims: list[I18nText] = Field(
+    claims: list[MatrixClaim] = Field(
         default_factory=list,
         description="List of behavioral claims/criteria for this score."
     )
-
 
 
 class PromptBlock(V2CoreBase):
@@ -146,7 +154,7 @@ class PromptBlock(V2CoreBase):
         default=None,
         description="BARS scale definitions with scores and localized claims. If provided, must not be empty."
     )
-    rows: list[I18nText] | None = Field(
+    rows: list[MatrixRow] | None = Field(
         default=None,
         description="Optional rows for grid matrices."
     )

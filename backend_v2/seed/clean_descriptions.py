@@ -103,7 +103,7 @@ CLEAN_MAP = {
 
 def clean_descriptions():
     logging.info(f"Loading seed data from {SEED_DATA_PATH}")
-    with open(SEED_DATA_PATH, "r", encoding="utf-8") as f:
+    with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     prompt_blocks = data.get("prompt_blocks", [])
@@ -120,12 +120,12 @@ def clean_descriptions():
         # Safety Fallback for ANY block description having ROOLI or TEHTÄVÄ
         desc_en = block.get("description", {}).get("translations", {}).get("en", "")
         desc_fi = block.get("description", {}).get("translations", {}).get("fi", "")
-        
+
         # If it hasn't been explicitly mapped but looks contaminated:
         if "ROOLI:" in desc_fi or "SÄÄNTÖ:" in desc_fi or "KÄSKE:" in desc_fi or "MÄÄRÄYS:" in desc_fi or desc_fi == desc_en:
             if slug not in CLEAN_MAP:
                 logging.warning(f"Unmapped contaminated description found for block: {slug}. Manual fix may be required.")
-            
+
     if count > 0:
         with open(SEED_DATA_PATH, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
