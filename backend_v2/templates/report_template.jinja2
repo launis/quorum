@@ -38,9 +38,11 @@
         .card {
             border: 1px solid #e0e0e0;
             border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
+            padding: 10px;
+            margin-bottom: 10px;
             background-color: #fff;
+            page-break-inside: auto !important;
+            break-inside: auto !important;
         }
 
         .label {
@@ -60,10 +62,11 @@
         .justify-box {
             background-color: #E3F2FD;
             border-left: 4px solid #1E88E5;
-            padding: 10px;
-            margin-top: 8px;
+            padding: 8px;
+            margin-top: 6px;
             border-radius: 4px;
-            /* Allow long evaluation notes to split across pages */
+            page-break-inside: auto;
+            break-inside: auto;
         }
         .citation-box {
             background-color: #FFF3E0;
@@ -116,14 +119,16 @@
         
         {% macro render_comp(comp) %}
             {% if comp.type == 'grid_row' %}
-                <div style="display: block; width: 100%; margin-bottom: 20px;">
-                    {% set child_width = (100 / comp.children|length) - 2 %}
+                <table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 20px; page-break-inside: auto; break-inside: auto;">
+                    <tr style="page-break-inside: auto; break-inside: auto;">
+                    {% set child_width = (100 / comp.children|length) %}
                     {% for child in comp.children %}
-                        <div style="display: inline-block; vertical-align: top; width: {{ child_width }}%; margin-right: {% if not loop.last %}2%{% else %}0{% endif %}; box-sizing: border-box;">
+                        <td style="width: {{ child_width }}%; vertical-align: top; padding-right: {% if not loop.last %}2%{% else %}0{% endif %}; box-sizing: border-box; page-break-inside: auto; break-inside: auto;">
                             {{ render_comp(child) }}
-                        </div>
+                        </td>
                     {% endfor %}
-                </div>
+                    </tr>
+                </table>
 
             {% elif comp.type == 'header' %}
                 <div class="header-card">
@@ -142,8 +147,8 @@
             {% elif comp.type == '1d_gauge' %}
                 <div class="card">
                     <h2>{{ comp.title or t_gauge }}</h2>
-                    <div style="text-align: center; margin-bottom: 25px; margin-top: 15px;">
-                        <span class="value" style="font-size: 52px; color: #1E88E5;">
+                    <div style="text-align: center; margin-bottom: 15px; margin-top: 10px;">
+                        <span class="value" style="font-size: 42px; color: #1E88E5;">
                             {{ comp.display_value }}
                         </span>
                         {% if comp.scale_text %}
@@ -161,9 +166,9 @@
                 <div class="card">
                     <h2>{{ t_2d_matrix }}</h2>
                     
-                    <div style="display: block; width: 100%; margin-top: 25px;">
+                    <div style="display: block; width: 100%; margin-top: 15px;">
                         <!-- Graphical Matrix (Left) -->
-                        <div style="display: block; width: 100%; margin-bottom: 30px; text-align: center;">
+                        <div style="display: block; width: 100%; margin-bottom: 20px; text-align: center;">
                             <div style="width: 200px; height: 200px; background: #fafafa; border: 1px solid #ddd; position: relative; margin: 0 auto; text-align: left;">
                                 <!-- Simple Grid -->
                                 <div style="position: absolute; left: 0; top: 33.3%; width: 100%; border-top: 1px dashed #ccc;"></div>
@@ -225,9 +230,9 @@
             {% elif comp.type == '3d_scatter' %}
                 <div class="card">
                     <h2>{{ t_3d_scatter }}</h2>
-                    <div style="display: block; width: 100%; margin-top: 25px;">
+                    <div style="display: block; width: 100%; margin-top: 15px;">
                         <!-- Graphical 3D Base (Left) -->
-                        <div style="display: block; width: 100%; margin-bottom: 30px; text-align: center;">
+                        <div style="display: block; width: 100%; margin-bottom: 20px; text-align: center;">
                             <div style="width: 200px; height: 200px; background: #fafafa; border: 1px solid #ddd; position: relative; border-left: 2px solid #555; border-bottom: 2px solid #555; margin: 0 auto; text-align: left;">
                                 <!-- Grid Lines -->
                                 <div style="position: absolute; left: 0; top: 25%; width: 100%; border-top: 1px dashed #eee;"></div>

@@ -44,6 +44,9 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
         bytes: bytes,
         fileExtension: 'pdf',
         mimeType: MimeType.pdf,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception('Tiedoston tallennusikkuna ei vastannut (Timeout). Tarkista, jäikö ikkuna piiloon tai onko vanha PDF-tiedosto auki toisessa ohjelmassa.'),
       );
 
       if (mounted) {
@@ -58,9 +61,13 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           .read(loggerServiceProvider)
           .error('ReportView', 'Failed to download PDF', e, st);
       if (mounted) {
+        final errorMsg = e.toString().contains('Timeout') 
+            ? e.toString().replaceAll('Exception: ', '')
+            : AppLocalizations.of(context)!.errorUnknown;
+            
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorUnknown),
+            content: Text(errorMsg),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -92,6 +99,9 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
         bytes: bytes,
         fileExtension: 'json',
         mimeType: MimeType.json,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception('Tiedoston tallennusikkuna ei vastannut (Timeout). Tarkista, jäikö ikkuna piiloon tai onko vanha JSON-tiedosto auki toisessa ohjelmassa.'),
       );
 
       if (mounted) {
@@ -106,9 +116,13 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           .read(loggerServiceProvider)
           .error('ReportView', 'Failed to download Frozen Context', e, st);
       if (mounted) {
+        final errorMsg = e.toString().contains('Timeout') 
+            ? e.toString().replaceAll('Exception: ', '')
+            : AppLocalizations.of(context)!.errorUnknown;
+            
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorUnknown),
+            content: Text(errorMsg),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
