@@ -106,7 +106,12 @@ class BlueprintTransformer:
         all_steps = await self.repo.get_all_steps()
         steps_by_slug = {s["id"]: s for s in all_steps if "id" in s}
 
+        # Build mapping from node_id (e.g. steprule_xxx) to task_blueprint (e.g. step_xai_reporter)
         results = execution.results or {}
+        node_to_step = {}
+        for node in workflow_data.get("steps", []):
+            if "id" in node and "task_blueprint" in node:
+                node_to_step[node["id"]] = node["task_blueprint"]
 
         def resolve_data_path(path: str) -> Any:
             """Safe dot-notation lookup with Graceful Degradation logging."""
@@ -388,7 +393,10 @@ class BlueprintTransformer:
                 for rp in base_dict.get("data_paths", []):
                     # Auto-translate the ugly JSON path into a beautiful localized UI Role/Step title
                     parts = rp.strip("$").split(".")
-                    step_slug = parts[1] if len(parts) >= 2 else rp
+                    node_slug = parts[1] if len(parts) >= 2 else rp
+                    
+                    # Intercept execution node_id and map back to schema step_id
+                    step_slug = node_to_step.get(node_slug, node_slug)
                     display_title = step_slug
 
                     if step_slug in steps_by_slug:

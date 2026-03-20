@@ -166,12 +166,12 @@
                         {
                             "type": "1d_gauge",
                             "data_path": "$results.steprule_8b245c2c5e304283842c401b59c1aa73.blk_598f9d9fab3143e1b57ae999fc5d375d",
-                            "title": null
+                            "title": "Score 1"
                         },
                         {
                             "type": "1d_gauge",
                             "data_path": "$results.steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_371c7724eeba40218409b5a3697ac1d3",
-                            "title": null
+                            "title": "Score 2"
                         },
                         {
                             "type": "bibliography_footer"
@@ -204,6 +204,12 @@
                             "y_title": null
                         },
                         {
+                            "type": "evaluation_notes_panel",
+                            "data_paths": [
+                                "$results.steprule_0240b5eeb5ef46a9a33eee8805f6758e"
+                            ]
+                        },
+                        {
                             "type": "bibliography_footer"
                         }
                     ]
@@ -234,8 +240,8 @@
                                 {
                                     "type": "evaluation_notes_panel",
                                     "data_paths": [
-                                        "$results.steprule_ec0bbf026f3a4952b35776114b971d38.evaluation_notes",
-                                        "$results.steprule_8b245c2c5e304283842c401b59c1aa73.evaluation_notes"
+                                        "$results.steprule_ec0bbf026f3a4952b35776114b971d38",
+                                        "$results.steprule_8b245c2c5e304283842c401b59c1aa73"
                                     ]
                                 }
                             ]

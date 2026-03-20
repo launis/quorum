@@ -165,13 +165,13 @@
                         },
                         {
                             "type": "1d_gauge",
-                            "data_path": "$results.steprule_8b245c2c5e304283842c401b59c1aa73.blk_598f9d9fab3143e1b57ae999fc5d375d",
-                            "title": null
+                            "data_path": ".steprule_8b245c2c5e304283842c401b59c1aa73.blk_598f9d9fab3143e1b57ae999fc5d375d",
+                            "title": "Score 1"
                         },
                         {
                             "type": "1d_gauge",
-                            "data_path": "$results.steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_371c7724eeba40218409b5a3697ac1d3",
-                            "title": null
+                            "data_path": ".steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_371c7724eeba40218409b5a3697ac1d3",
+                            "title": "Score 2"
                         },
                         {
                             "type": "bibliography_footer"
@@ -190,10 +190,10 @@
                         },
                         {
                             "type": "2d_matrix",
-                            "x_data_path": "$results.steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_371c7724eeba40218409b5a3697ac1d3",
-                            "y_data_path": "$results.steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_a0405e121dbf44bfa8ee80566f8d0c2a",
-                            "x_axis_note": "$results.steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_371c7724eeba40218409b5a3697ac1d3_justification",
-                            "y_axis_note": "$results.steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_a0405e121dbf44bfa8ee80566f8d0c2a_justification",
+                            "x_data_path": ".steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_371c7724eeba40218409b5a3697ac1d3",
+                            "y_data_path": ".steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_a0405e121dbf44bfa8ee80566f8d0c2a",
+                            "x_axis_note": ".steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_371c7724eeba40218409b5a3697ac1d3_justification",
+                            "y_axis_note": ".steprule_0240b5eeb5ef46a9a33eee8805f6758e.blk_a0405e121dbf44bfa8ee80566f8d0c2a_justification",
                             "x_value": null,
                             "y_value": null,
                             "x_scale_max": null,
@@ -202,6 +202,12 @@
                             "y_scale_text": null,
                             "x_title": null,
                             "y_title": null
+                        },
+                        {
+                            "type": "evaluation_notes_panel",
+                            "data_paths": [
+                                ".steprule_0240b5eeb5ef46a9a33eee8805f6758e"
+                            ]
                         },
                         {
                             "type": "bibliography_footer"
@@ -224,18 +230,18 @@
                             "children": [
                                 {
                                     "type": "3d_scatter",
-                                    "x_data_path": "$results.steprule_ec0bbf026f3a4952b35776114b971d38.blk_3c3b6a9b67bf41e88ed4b59524d6c6f3",
-                                    "y_data_path": "$results.steprule_ec0bbf026f3a4952b35776114b971d38.blk_2878d1c8b5494180b1a5231466e2e0a9",
-                                    "z_data_path": "$results.steprule_8b245c2c5e304283842c401b59c1aa73.blk_598f9d9fab3143e1b57ae999fc5d375d",
-                                    "x_axis_note": "$results.steprule_ec0bbf026f3a4952b35776114b971d38.blk_3c3b6a9b67bf41e88ed4b59524d6c6f3_justification",
-                                    "y_axis_note": "$results.steprule_ec0bbf026f3a4952b35776114b971d38.blk_2878d1c8b5494180b1a5231466e2e0a9_justification",
-                                    "z_axis_note": "$results.steprule_8b245c2c5e304283842c401b59c1aa73.blk_598f9d9fab3143e1b57ae999fc5d375d_justification"
+                                    "x_data_path": ".steprule_ec0bbf026f3a4952b35776114b971d38.blk_3c3b6a9b67bf41e88ed4b59524d6c6f3",
+                                    "y_data_path": ".steprule_ec0bbf026f3a4952b35776114b971d38.blk_2878d1c8b5494180b1a5231466e2e0a9",
+                                    "z_data_path": ".steprule_8b245c2c5e304283842c401b59c1aa73.blk_598f9d9fab3143e1b57ae999fc5d375d",
+                                    "x_axis_note": ".steprule_ec0bbf026f3a4952b35776114b971d38.blk_3c3b6a9b67bf41e88ed4b59524d6c6f3_justification",
+                                    "y_axis_note": ".steprule_ec0bbf026f3a4952b35776114b971d38.blk_2878d1c8b5494180b1a5231466e2e0a9_justification",
+                                    "z_axis_note": ".steprule_8b245c2c5e304283842c401b59c1aa73.blk_598f9d9fab3143e1b57ae999fc5d375d_justification"
                                 },
                                 {
                                     "type": "evaluation_notes_panel",
                                     "data_paths": [
-                                        "$results.steprule_ec0bbf026f3a4952b35776114b971d38.evaluation_notes",
-                                        "$results.steprule_8b245c2c5e304283842c401b59c1aa73.evaluation_notes"
+                                        ".steprule_ec0bbf026f3a4952b35776114b971d38",
+                                        ".steprule_8b245c2c5e304283842c401b59c1aa73"
                                     ]
                                 }
                             ]

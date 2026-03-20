@@ -204,6 +204,13 @@
                             "y_title": null
                         },
                         {
+                            "type": "evaluation_notes_panel",
+                            "data_paths": [
+                                "$results.steprule_0240b5eeb5ef46a9a33eee8805f6758e.reasoning_trace",
+                                "$results.steprule_0240b5eeb5ef46a9a33eee8805f6758e.evaluation_notes"
+                            ]
+                        },
+                        {
                             "type": "bibliography_footer"
                         }
                     ]
@@ -234,7 +241,9 @@
                                 {
                                     "type": "evaluation_notes_panel",
                                     "data_paths": [
+                                        "$results.steprule_ec0bbf026f3a4952b35776114b971d38.reasoning_trace",
                                         "$results.steprule_ec0bbf026f3a4952b35776114b971d38.evaluation_notes",
+                                        "$results.steprule_8b245c2c5e304283842c401b59c1aa73.reasoning_trace",
                                         "$results.steprule_8b245c2c5e304283842c401b59c1aa73.evaluation_notes"
                                     ]
                                 }
