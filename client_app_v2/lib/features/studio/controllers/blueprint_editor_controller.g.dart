@@ -8,27 +8,24 @@ part of 'blueprint_editor_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// **Blueprint Editor Controller**
+/// **Blueprint Editor Controller (Phase 9 Rebuild)**
 ///
-/// Manages the state of the active `render_blueprint` being edited in the GUI.
-/// Strictly uses `Map<String, dynamic>` to adhere to the De-Generator Policy,
-/// allowing Zero-Deploy UI structure updates.
+/// Stripped of the massive SDUI canvas logic. Now strictly manages the
+/// `output_mapping` dictionary ensuring seamless binding with Pydantic V2 schemas.
 
 @ProviderFor(BlueprintEditorController)
 final blueprintEditorControllerProvider = BlueprintEditorControllerProvider._();
 
-/// **Blueprint Editor Controller**
+/// **Blueprint Editor Controller (Phase 9 Rebuild)**
 ///
-/// Manages the state of the active `render_blueprint` being edited in the GUI.
-/// Strictly uses `Map<String, dynamic>` to adhere to the De-Generator Policy,
-/// allowing Zero-Deploy UI structure updates.
+/// Stripped of the massive SDUI canvas logic. Now strictly manages the
+/// `output_mapping` dictionary ensuring seamless binding with Pydantic V2 schemas.
 final class BlueprintEditorControllerProvider
     extends $NotifierProvider<BlueprintEditorController, Map<String, dynamic>> {
-  /// **Blueprint Editor Controller**
+  /// **Blueprint Editor Controller (Phase 9 Rebuild)**
   ///
-  /// Manages the state of the active `render_blueprint` being edited in the GUI.
-  /// Strictly uses `Map<String, dynamic>` to adhere to the De-Generator Policy,
-  /// allowing Zero-Deploy UI structure updates.
+  /// Stripped of the massive SDUI canvas logic. Now strictly manages the
+  /// `output_mapping` dictionary ensuring seamless binding with Pydantic V2 schemas.
   BlueprintEditorControllerProvider._()
     : super(
         from: null,
@@ -57,13 +54,12 @@ final class BlueprintEditorControllerProvider
 }
 
 String _$blueprintEditorControllerHash() =>
-    r'2cf9bbfd7644142bce413b6795d5534eea4d4e64';
+    r'65e554ef3fb03aea46d0b8ba7f39250f8629acd2';
 
-/// **Blueprint Editor Controller**
+/// **Blueprint Editor Controller (Phase 9 Rebuild)**
 ///
-/// Manages the state of the active `render_blueprint` being edited in the GUI.
-/// Strictly uses `Map<String, dynamic>` to adhere to the De-Generator Policy,
-/// allowing Zero-Deploy UI structure updates.
+/// Stripped of the massive SDUI canvas logic. Now strictly manages the
+/// `output_mapping` dictionary ensuring seamless binding with Pydantic V2 schemas.
 
 abstract class _$BlueprintEditorController
     extends $Notifier<Map<String, dynamic>> {

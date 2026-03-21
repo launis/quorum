@@ -131,7 +131,13 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
               ...claims.asMap().entries.map((entry) {
                 final index = entry.key;
                 final claim = SafeCast.safeMap(entry.value);
-                final claimLabel = SafeCast.safeMap(claim['label'] ?? {'default_locale': 'en', 'translations': <String, dynamic>{'en': ''}});
+                final claimLabel = SafeCast.safeMap(
+                  claim['label'] ??
+                      {
+                        'default_locale': 'en',
+                        'translations': <String, dynamic>{'en': ''},
+                      },
+                );
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16.0),
@@ -146,7 +152,9 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                           children: [
                             Text(
                               'Claim ${index + 1}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
@@ -157,11 +165,17 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
-                          initialValue: SafeCast.safeString(claim['ai_description']),
+                          initialValue: SafeCast.safeString(
+                            claim['ai_description'],
+                          ),
                           decoration: const InputDecoration(
                             labelText: 'Claim AI Rule (MANDATORY ENGLISH)',
-                            helperText: "MUST be in English. Use strict commanding language (e.g., 'CRITICAL EVALUATION DIRECTIVE:').",
-                            helperStyle: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                            helperText:
+                                "MUST be in English. Use strict commanding language (e.g., 'CRITICAL EVALUATION DIRECTIVE:').",
+                            helperStyle: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
                             border: OutlineInputBorder(),
                             alignLabelWithHint: true,
                           ),

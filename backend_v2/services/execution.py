@@ -204,7 +204,6 @@ class ExecutionService:
             id=execution_id,
             workflow_id=workflow.id,
             status=ExecutionStatus.PENDING,
-            render_blueprints={k: v.model_dump(mode="json") for k, v in workflow.render_blueprints.items()} if workflow.render_blueprints else {},
             raw_inputs=payload.raw_inputs,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             step_states=step_states,

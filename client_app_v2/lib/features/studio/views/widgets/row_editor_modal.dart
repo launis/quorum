@@ -61,11 +61,17 @@ class _RowEditorModalState extends State<RowEditorModal> {
               // Otherwise, it's just the translation map directly.
               if (widget.isMatrixRow) ...[
                 TextFormField(
-                  initialValue: SafeCast.safeString(_editableRow['ai_description']),
+                  initialValue: SafeCast.safeString(
+                    _editableRow['ai_description'],
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Row AI Rule (MANDATORY ENGLISH)',
-                    helperText: "MUST be in English. Use strict commanding language.",
-                    helperStyle: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    helperText:
+                        "MUST be in English. Use strict commanding language.",
+                    helperStyle: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
                     border: OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
@@ -77,7 +83,13 @@ class _RowEditorModalState extends State<RowEditorModal> {
                 const SizedBox(height: 16),
                 I18nTextField(
                   label: 'Item Content (UI/PDF)',
-                  initialData: SafeCast.safeMap(_editableRow['label'] ?? {'default_locale': 'en', 'translations': <String, dynamic>{'en': ''}}),
+                  initialData: SafeCast.safeMap(
+                    _editableRow['label'] ??
+                        {
+                          'default_locale': 'en',
+                          'translations': <String, dynamic>{'en': ''},
+                        },
+                  ),
                   onChanged: (val) {
                     _editableRow['label'] = val;
                   },

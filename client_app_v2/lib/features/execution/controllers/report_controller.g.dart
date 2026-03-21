@@ -21,7 +21,7 @@ final reportControllerProvider = ReportControllerFamily._();
 /// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
 /// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 final class ReportControllerProvider
-    extends $AsyncNotifierProvider<ReportController, SduiRenderPayload> {
+    extends $AsyncNotifierProvider<ReportController, ReportDataDTO> {
   /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
   ///
   /// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
@@ -62,7 +62,7 @@ final class ReportControllerProvider
   }
 }
 
-String _$reportControllerHash() => r'7b312acbca13454d0e399a294f8eb3fcfbd5f9e5';
+String _$reportControllerHash() => r'30383009bad1623a2dbb8e89d81af3f4393eae7c';
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
 ///
@@ -73,9 +73,9 @@ final class ReportControllerFamily extends $Family
     with
         $ClassFamilyOverride<
           ReportController,
-          AsyncValue<SduiRenderPayload>,
-          SduiRenderPayload,
-          FutureOr<SduiRenderPayload>,
+          AsyncValue<ReportDataDTO>,
+          ReportDataDTO,
+          FutureOr<ReportDataDTO>,
           (String, {String lang, String variant})
         > {
   ReportControllerFamily._()
@@ -110,13 +110,13 @@ final class ReportControllerFamily extends $Family
 /// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
 /// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 
-abstract class _$ReportController extends $AsyncNotifier<SduiRenderPayload> {
+abstract class _$ReportController extends $AsyncNotifier<ReportDataDTO> {
   late final _$args = ref.$arg as (String, {String lang, String variant});
   String get executionId => _$args.$1;
   String get lang => _$args.lang;
   String get variant => _$args.variant;
 
-  FutureOr<SduiRenderPayload> build(
+  FutureOr<ReportDataDTO> build(
     String executionId, {
     String lang = 'fi',
     String variant = 'default',
@@ -124,13 +124,12 @@ abstract class _$ReportController extends $AsyncNotifier<SduiRenderPayload> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref as $Ref<AsyncValue<SduiRenderPayload>, SduiRenderPayload>;
+    final ref = this.ref as $Ref<AsyncValue<ReportDataDTO>, ReportDataDTO>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<SduiRenderPayload>, SduiRenderPayload>,
-              AsyncValue<SduiRenderPayload>,
+              AnyNotifier<AsyncValue<ReportDataDTO>, ReportDataDTO>,
+              AsyncValue<ReportDataDTO>,
               Object?,
               Object?
             >;

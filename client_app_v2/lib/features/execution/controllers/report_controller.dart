@@ -1,7 +1,7 @@
 import 'dart:isolate';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/core/api/execution_client.dart';
-import 'package:client_app/features/sdui/models/sdui_render_payload.dart';
+import 'package:client_app/features/execution/models/report_data_dto.dart';
 
 part 'report_controller.g.dart';
 
@@ -12,7 +12,7 @@ part 'report_controller.g.dart';
 @riverpod
 class ReportController extends _$ReportController {
   @override
-  Future<SduiRenderPayload> build(
+  Future<ReportDataDTO> build(
     String executionId, {
     String lang = 'fi',
     String variant = 'default',
@@ -23,6 +23,6 @@ class ReportController extends _$ReportController {
       lang: lang,
       variant: variant,
     );
-    return await Isolate.run(() => SduiRenderPayload.fromJson(rawData));
+    return await Isolate.run(() => ReportDataDTO.fromJson(rawData));
   }
 }

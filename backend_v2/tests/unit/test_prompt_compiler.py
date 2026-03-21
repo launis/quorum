@@ -1,10 +1,11 @@
-import pytest
 from pydantic import BaseModel
+
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
 
 def test_prompt_compiler_deep_matrix_schema():
     compiler = PromptCompiler()
-    
+
     # Mocking the JSON structure we confirmed in Phase 1
     mock_matrix_block = {
         "id": "blk_test_matrix",
@@ -60,14 +61,14 @@ def test_prompt_compiler_deep_matrix_schema():
 
     # Act
     DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="TestSchema", 
-        criteria=[mock_matrix_block], 
+        schema_name="TestSchema",
+        criteria=[mock_matrix_block],
         require_justification=False
     )
-    
+
     # Assert
     assert issubclass(DynamicSchema, BaseModel)
-    
+
     # Get the field description which contains the compiled BARS matrix
     field_info = DynamicSchema.model_fields["blk_test_matrix"]
     compiled_desc = field_info.description
@@ -86,13 +87,13 @@ def test_prompt_compiler_deep_matrix_schema():
         "INSTRUCTION: Evaluate the core issue using the matrix above. Always return the final numerical evaluation with ONE decimal place (e.g. 4.2), "
         "so that the evaluation reflects exact nuance. You MUST return ONLY the exact numeric value."
     )
-    
+
     assert compiled_desc == expected_snapshot, f"Snapshot mismatch!\nEXPECTED:\n{expected_snapshot}\n\nACTUAL:\n{compiled_desc}"
 
 def test_prompt_compiler_dynamic_extraction_resilience():
     # Test that extracting justification still works
     compiler = PromptCompiler()
-    
+
     mock_matrix = {
         "id": "blk_extract_test",
         "type": "float",
@@ -107,9 +108,9 @@ def test_prompt_compiler_dynamic_extraction_resilience():
             }
         ]
     }
-    
+
     DynamicSchema = compiler.build_dynamic_schema("TestExtract", [mock_matrix])
-    
+
     # Simulate LLM Response parsing
     llm_payload = {
         "reasoning_trace": "Let's think...",
@@ -119,9 +120,9 @@ def test_prompt_compiler_dynamic_extraction_resilience():
         "blk_extract_test_cited_text_quote": "Yes man",
         "blk_extract_test": 1.0
     }
-    
+
     parsed = DynamicSchema.model_validate(llm_payload)
     assert parsed.blk_extract_test == 1.0
     assert parsed.reasoning_trace == "Let's think..."
-    assert getattr(parsed, "blk_extract_test_justification") == "I gave a 1 because..."
+    assert parsed.blk_extract_test_justification == "I gave a 1 because..."
 

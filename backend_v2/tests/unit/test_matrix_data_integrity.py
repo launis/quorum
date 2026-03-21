@@ -51,9 +51,12 @@ def test_all_bars_matrices_use_discrete_integer_scores(db):
                 assert 1 <= score <= 10, f"Score {score} in {item.get('id')} is out of expected logical bounds (1-10)"
 
 def test_workflows_have_normalization_hook(db):
-    """Ensure that all workflow steps are intercepted by the normalization hook."""
+    """Ensure that all evaluating workflow steps are intercepted by the normalization hook."""
     for workflow in db.get('workflows', []):
         for step in workflow.get('steps', []):
+            if "factcheck" in step.get("id", ""):
+                continue # Structural synthesis nodes do not produce matrices natively
+
             post_hooks = step.get('post_hooks', [])
             assert isinstance(post_hooks, list), f"Step {step.get('id')} in workflow {workflow.get('id')} must have a post_hooks list"
             assert "normalize_matrix_scores" in post_hooks, f"Step {step.get('id')} in {workflow.get('id')} is missing the 'normalize_matrix_scores' normalization hook."

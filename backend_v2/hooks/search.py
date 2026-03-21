@@ -47,6 +47,18 @@ async def execute_google_search_hook(data: dict[str, Any], context: HookExecutio
     queries: list[str] = []
 
     hypotheses = analyst_output.get("hypotheses", [])
+
+    # V2 Extraction: JSON may be stringified inside dynamic PromptBlock keys
+    for key, value in analyst_output.items():
+        if isinstance(value, str) and '"hypotheses"' in value:
+            import json
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, dict) and "hypotheses" in parsed:
+                    hypotheses.extend(parsed["hypotheses"])
+            except Exception:
+                pass
+
     for hyp in hypotheses:
         if isinstance(hyp, dict):
             sq = hyp.get("search_query")

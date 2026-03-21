@@ -169,6 +169,19 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
     Map<String, dynamic> payload,
   ) async {
     final previousState = state;
+
+    // Pluck orphaned questionnaire definitions to satisfy Pydantic Strict Fail-Fast
+    if (payload['expected_inputs'] is List) {
+      for (var inputDef in payload['expected_inputs']) {
+        if (inputDef is Map) {
+          final modes = inputDef['input_modes'] ?? [];
+          if (modes is List && !modes.contains('questionnaire')) {
+            inputDef.remove('questionnaire_definition');
+          }
+        }
+      }
+    }
+
     Map<String, dynamic> returnData = {...payload, 'id': id};
 
     // 1. Optimistic Update

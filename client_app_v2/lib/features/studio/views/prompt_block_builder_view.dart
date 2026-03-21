@@ -631,13 +631,22 @@ class _PromptBlockBuilderFormState
                       OutlinedButton.icon(
                         onPressed: () async {
                           final bool isRow = key == 'rows';
-                          final initialMap = isRow 
-                            ? {
-                                'label': {'default_locale': 'en', 'translations': <String, dynamic>{'en': ''}},
-                                'ai_description': 'CRITICAL MANDATE: ',
-                              }
-                            : {'default_locale': 'en', 'translations': <String, dynamic>{'en': ''}};
-                            
+                          final initialMap =
+                              isRow
+                                  ? {
+                                    'label': {
+                                      'default_locale': 'en',
+                                      'translations': <String, dynamic>{
+                                        'en': '',
+                                      },
+                                    },
+                                    'ai_description': 'CRITICAL MANDATE: ',
+                                  }
+                                  : {
+                                    'default_locale': 'en',
+                                    'translations': <String, dynamic>{'en': ''},
+                                  };
+
                           final result = await showDialog<Map<String, dynamic>>(
                             context: context,
                             builder:
@@ -667,10 +676,11 @@ class _PromptBlockBuilderFormState
                 final index = entry.key;
                 final item = SafeCast.safeMap(entry.value);
                 final bool isRow = key == 'rows';
-                
+
                 // If it's a MatrixRow, the text to display in the ListTile is under item['label']
-                final displayItem = isRow ? SafeCast.safeMap(item['label']) : item;
-                
+                final displayItem =
+                    isRow ? SafeCast.safeMap(item['label']) : item;
+
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8.0),
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,

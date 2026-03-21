@@ -14,6 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.v2_core import ReportDataDTO
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +50,12 @@ class PdfReportService:
 
         self.env.filters["md"] = md_filter
 
-    async def generate_execution_pdf(self, execution_id: str, blueprint_payload: dict | None = None) -> bytes:
-        """Generates a dynamic PDF for the given execution ID using SDUI block constraints.
+    async def generate_execution_pdf(self, execution_id: str, report_dto: ReportDataDTO | None = None) -> bytes:
+        """Generates a dynamic PDF for the given execution ID using static DTO constraints.
 
         Args:
             execution_id: The execution UUID.
-            blueprint_payload: Optional pre-assembled blueprint dictionary (from Async Worker).
+            report_dto: Optional pre-assembled ReportDataDTO.
 
         Returns:
             bytes: The generated PDF data.
@@ -99,7 +100,7 @@ class PdfReportService:
                 workflow_name=workflow_name,
                 frozen_context=frozen_context,
                 results=results,
-                rendered_blueprint=blueprint_payload,
+                report_data=report_dto,
                 printed_at=printed_at
             )
 

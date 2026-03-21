@@ -242,6 +242,10 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
     ),
     GoRouteData.$route(path: 'step/new', factory: $StepNewRoute._fromState),
     GoRouteData.$route(path: 'step/edit', factory: $StepEditRoute._fromState),
+    GoRouteData.$route(
+      path: 'profiles/:workflowSlug',
+      factory: $ProfileEditorRoute._fromState,
+    ),
   ],
 );
 
@@ -395,6 +399,36 @@ mixin $StepEditRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/admin/step/edit');
+
+  @override
+  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+
+  @override
+  Future<T?> push<T>(BuildContext context) =>
+      context.push<T>(location, extra: _self.$extra);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location, extra: _self.$extra);
+
+  @override
+  void replace(BuildContext context) =>
+      context.replace(location, extra: _self.$extra);
+}
+
+mixin $ProfileEditorRoute on GoRouteData {
+  static ProfileEditorRoute _fromState(GoRouterState state) =>
+      ProfileEditorRoute(
+        workflowSlug: state.pathParameters['workflowSlug']!,
+        $extra: state.extra as Map<String, dynamic>?,
+      );
+
+  ProfileEditorRoute get _self => this as ProfileEditorRoute;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/admin/profiles/${Uri.encodeComponent(_self.workflowSlug)}',
+  );
 
   @override
   void go(BuildContext context) => context.go(location, extra: _self.$extra);

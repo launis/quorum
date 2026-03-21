@@ -14,30 +14,26 @@ async def main():
     pdf_service = PdfReportService(repo)
     transformer = BlueprintTransformer(repo)
     
-    # Target directory
     out_dir = Path("docs/pdf_tests")
     out_dir.mkdir(parents=True, exist_ok=True)
     
-    variants = ["default", "1d_metrics", "2d_compare", "3d_complex"]
-    
-    for variant in variants:
-        print(f"Generating PDF for variant '{variant}'...")
-        try:
-            # Generate the specific blueprint variant payload
-            payload = await transformer.build_render_payload(exec_id, accept_language="fi", variant=variant)
-            
-            # Render PDF with the Jinja2 template and Weasyprint
-            pdf_bytes = await pdf_service.generate_execution_pdf(exec_id, blueprint_payload=payload)
-            
-            # Save the file
-            out_path = out_dir / f"test_render_fi_{variant}_v5.pdf"
-            with open(out_path, "wb") as f:
-                f.write(pdf_bytes)
-            print(f" -> Saved {out_path} ({len(pdf_bytes)} bytes)")
-        except Exception as e:
-            print(f" -> FAILED to generate '{variant}': {e}")
-            import traceback
-            traceback.print_exc()
+    print(f"Generating Fast-Fail MVC PDF for Execution '{exec_id}'...")
+    try:
+        # Generate the strict DTO instead of the legacy dynamic blueprint
+        payload = await transformer.build_report_dto(exec_id, accept_language="fi")
+        
+        # Render PDF with the Jinja2 template and Weasyprint (passing report_dto instead of blueprint_payload)
+        pdf_bytes = await pdf_service.generate_execution_pdf(exec_id, report_dto=payload)
+        
+        # Save the file
+        out_path = out_dir / f"test_render_fi_mvc_dto.pdf"
+        with open(out_path, "wb") as f:
+            f.write(pdf_bytes)
+        print(f" -> SUCCESS! Saved {out_path} ({len(pdf_bytes)} bytes)")
+    except Exception as e:
+        print(f" -> FAILED to generate DTO-based PDF: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     asyncio.run(main())

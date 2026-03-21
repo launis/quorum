@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/execution/controllers/report_controller.dart';
-import 'package:client_app/features/sdui/widgets/sdui_renderer.dart';
+import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:file_saver/file_saver.dart';
 import 'dart:typed_data';
+import 'package:client_app/router/router.dart';
+import 'package:client_app/features/execution/models/report_data_dto.dart';
 
 /// Render the execution report leveraging the Server-Driven UI (SDUI) framework.
 class ExecutionReportView extends ConsumerStatefulWidget {
@@ -172,10 +174,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text(
-          '${AppLocalizations.of(context)!.report}: ${widget.executionId}${widget.variant != 'default' ? ' (${widget.variant})' : ''}',
-          style: const TextStyle(fontSize: 16),
-        ),
+        title: _buildAppBarTitle(context, reportAsync.value),
         centerTitle: true,
         actions: [
           _isDownloadingContext
@@ -210,7 +209,8 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       ),
       body: reportAsync.when(
         data: (payload) {
-          return Center(child: SduiRenderer(payload: payload));
+          // Zero-math, logic-free static controller injection.
+          return ReportRendererWidget(payload: payload);
         },
         error: (err, stack) {
           final logger = ref.read(loggerServiceProvider);
@@ -234,6 +234,50 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+
+  Widget _buildAppBarTitle(BuildContext context, ReportDataDTO? payload) {
+    if (payload == null || payload.availableProfiles.length <= 1) {
+      return Text(
+        '${AppLocalizations.of(context)!.report}: ${widget.executionId}${widget.variant != 'default' ? ' (${widget.variant})' : ''}',
+        style: const TextStyle(fontSize: 16),
+      );
+    }
+
+    // Safely fallback to first available if variant not found
+    final safeVariant =
+        payload.availableProfiles.containsKey(widget.variant)
+            ? widget.variant
+            : payload.availableProfiles.keys.first;
+
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: safeVariant,
+        icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+        onChanged: (String? newValue) {
+          if (newValue != null && newValue != widget.variant) {
+            ExecutionReportRoute(
+              executionId: widget.executionId,
+              variant: newValue,
+            ).go(context);
+          }
+        },
+        items:
+            payload.availableProfiles.entries.map((entry) {
+              return DropdownMenuItem<String>(
+                value: entry.key,
+                child: Text(
+                  '${AppLocalizations.of(context)!.report}: ${entry.value}',
+                ),
+              );
+            }).toList(),
       ),
     );
   }

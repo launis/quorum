@@ -33,8 +33,11 @@ __all__ = [
     "ExecutionCreate",
     "ExecutionRecord",
     "ExpectedInput",
+    "ExpectedInput",
     "WorkflowInputs",
-    "QuestionnaireItem"
+    "QuestionnaireItem",
+    "OutputLayoutBlock",
+    "OutputProfile"
 ]
 
 
@@ -457,73 +460,59 @@ class ExpectedInput(V2CoreBase):
 
         return self
 
-class BlueprintComponentBase(V2CoreBase):
-    """Base class for all SDUI Blueprint components."""
-    pass
+class ReportAxisDTO(V2CoreBase):
+    name: str = Field(description="Axis name, e.g. Y-Akseli")
+    description: str | None = Field(default=None, description="Detailed instructions or prompt context behind this axis.")
+    score: float | None = None
+    justification: str | None = None
+    cited_source_id: str | None = None
+    cited_text_quote: str | None = None
+    cited_web_citation: str | None = None
+    scale_min: float = 0.0
+    scale_max: float = 6.0
+    scale_labels: dict[str, str] = Field(default_factory=dict)
 
-class HeaderComponent(BlueprintComponentBase):
-    type: Literal["header"]
-    title: str = Field(description="Translation key or static title string")
+class ReportLayoutDTO(V2CoreBase):
+    preset_view: Literal["1d_metrics", "2d_compare", "3d_complex", "default", "text_only"]
+    title: dict[str, str] = Field(default_factory=dict)
+    description: dict[str, str] = Field(default_factory=dict)
+    axes: list[ReportAxisDTO] = Field(default_factory=list)
+    show_text: bool = Field(default=True)
 
-class MetadataHeaderComponent(BlueprintComponentBase):
-    type: Literal["metadata_header"]
+class ReportDataDTO(V2CoreBase):
+    workflow_id: str
+    profile_id: str
+    profile_name: dict[str, str] = Field(default_factory=dict)
+    available_profiles: dict[str, str] = Field(default_factory=dict)
+    layouts: list[ReportLayoutDTO] = Field(default_factory=list)
+    synthesis: str | None = None
 
-class BibliographyFooterComponent(BlueprintComponentBase):
-    type: Literal["bibliography_footer"]
+    # Execution Diagnostic Metadata
+    created_at: datetime | None = None
+    org_name: str | None = None
+    cost_estimate: float | None = None
+    total_tokens: int | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    reasoning_tokens: int | None = None
 
-class Gauge1DComponent(BlueprintComponentBase):
-    type: Literal["1d_gauge"]
-    data_path: str = Field(description="Path to the value in $results (e.g. $steps.logic.score)")
-    title: str | None = Field(default=None, description="Translation key for the gauge title")
-
-class Matrix2DComponent(BlueprintComponentBase):
-    type: Literal["2d_matrix"]
-    x_data_path: str = Field(description="Path to X axis score")
-    y_data_path: str = Field(description="Path to Y axis score")
-    x_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for X")
-    y_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for Y")
-    x_value: float | None = None
-    y_value: float | None = None
-    x_scale_max: float | None = None
-    y_scale_max: float | None = None
-    x_scale_text: str | None = None
-    y_scale_text: str | None = None
-    x_title: str | None = None
-    y_title: str | None = None
-
-class Scatter3DComponent(BlueprintComponentBase):
-    type: Literal["3d_scatter"]
-    x_data_path: str = Field(description="Path to X axis score")
-    y_data_path: str = Field(description="Path to Y axis score")
-    z_data_path: str = Field(description="Path to Z axis score (e.g. confidence or radius)")
-    x_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for X")
-    y_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for Y")
-    z_axis_note: str | None = Field(default=None, description="Path to evaluation_notes for Z")
-
-class EvaluationNotesPanelComponent(BlueprintComponentBase):
-    type: Literal["evaluation_notes_panel"]
-    data_paths: list[str] = Field(description="Paths to evaluation_notes in $results")
-
-BlueprintComponentWithoutGridType = (
-    HeaderComponent | MetadataHeaderComponent | BibliographyFooterComponent
-    | Gauge1DComponent | Matrix2DComponent | Scatter3DComponent | EvaluationNotesPanelComponent
-)
-
-class GridRowComponent(BlueprintComponentBase):
-    type: Literal["grid_row"]
-    columns: int = Field(default=2, ge=1, le=4, description="Number of horizontal columns for the grid (e.g. 2, 3)")
-    children: list[BlueprintComponentWithoutGridType] = Field(
-        default_factory=list, description="List of components inside this grid row (nested grids forbidden)."
+class OutputLayoutBlock(V2CoreBase):
+    """A single sequential rendering block for a report profile."""
+    preset_view: Literal["1d_metrics", "2d_compare", "3d_complex", "default", "text_only"] = Field(
+        description="The static UI renderer preset (e.g. 1d_metrics, 3d_complex)."
     )
-
-BlueprintComponentType = BlueprintComponentWithoutGridType | GridRowComponent
-
-class RenderBlueprint(V2CoreBase):
-    """The Complete SDUI blueprint defining how to render execution results."""
-    version: str = Field(default="1.0", description="Blueprint definition version")
-    components: list[BlueprintComponentType] = Field(
-        default_factory=list, description="Ordered list of layout components"
+    title: I18nText | None = Field(default=None, description="Optional localized layout title.")
+    description: I18nText | None = Field(default=None, description="Optional localized layout description.")
+    steps: list[str] = Field(default_factory=list, description="List of step IDs providing the axes.")
+    target_blocks: list[str] = Field(
+        default_factory=list, description="Optional explicit block IDs to plot, filtering and ordering the axes."
     )
+    show_text: bool = Field(default=True, description="Whether to include text justifications in this block.")
+
+class OutputProfile(V2CoreBase):
+    """A distinct report variant containing a sequence of layout blocks."""
+    name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
+    layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
 class Workflow(V2CoreBase):
     """Dynamic Directed Acyclic Graph orchestrator model."""
@@ -537,8 +526,11 @@ class Workflow(V2CoreBase):
     organization_id: str | None = Field(default=None)
     scoring_logic: list[Any] = Field(default_factory=list)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
-    render_blueprints: dict[str, RenderBlueprint] = Field(
-        default_factory=dict, description="V6.0 Multichannel Blueprint Layout schemas."
+    output_profiles: dict[str, OutputProfile] = Field(
+        default_factory=dict, description="Dictionary of named output profiles for reporting."
+    )
+    default_profile_id: str = Field(
+        default="default", description="The ID of the default output profile to use."
     )
     expected_inputs: list[ExpectedInput] = Field(
         default_factory=list,
@@ -559,18 +551,6 @@ class Workflow(V2CoreBase):
         if isinstance(data, dict):
             if "slug" not in data and "id" in data:
                 data["slug"] = data["id"]
-        return data
-
-    @model_validator(mode="before")
-    @classmethod
-    def migrate_legacy_blueprint(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            # Migrate legacy render_blueprint to the new dict structure
-            if "render_blueprint" in data and data["render_blueprint"]:
-                if "render_blueprints" not in data or not data["render_blueprints"]:
-                    data["render_blueprints"] = {"default": data["render_blueprint"]}
-            # Always remove legacy key to prevent extra fields validation error if strict
-            data.pop("render_blueprint", None)
         return data
 
     @model_validator(mode="after")
@@ -642,7 +622,7 @@ class ExecutionCreate(V2CoreBase):
         description="Desired target locale for output generated by the workflow "
         "(e.g., 'fi'). Must be explicitly provided."
     )
-    raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")  # type: ignore
+    raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")
 
     @model_validator(mode="before")
     @classmethod
@@ -661,12 +641,12 @@ class ExecutionRecord(V2CoreBase):
     id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
     status: ExecutionStatus = Field(description="Current status of execution")
-    render_blueprints: dict[str, Any] | None = Field(
-        default=None,
-        description="Dynamic SDUI definition dictionary, locking the workflow visual layout."
+    active_profile_id: str | None = Field(
+        default="default",
+        description="The ID of the output profile selected for formatting and printing."
     )
     raw_inputs: WorkflowInputs = Field(
-        default_factory=WorkflowInputs, description="Raw user inputs by role")  # type: ignore
+        default_factory=WorkflowInputs, description="Raw user inputs by role")
     frozen_context: FrozenContext = Field(
         default_factory=FrozenContext, description="Immutable snapshot of context")
     step_states: dict[str, ExecutionStepState] = Field(

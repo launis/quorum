@@ -82,18 +82,7 @@ class DAGExecutor:
                 step_states=step_states,
             )
 
-        # MVP Blueprint Injection (Hardcoded for Milestone 1)
-        if not exec_record.render_blueprints:
-            exec_record.render_blueprints = {
-                "default": {
-                    "version": "1.0",
-                    "components": [
-                        {"type": "metadata_header"},
-                        {"type": "header", "title": "report.title_main"},
-                        {"type": "bibliography_footer"}
-                    ]
-                }
-            }
+
 
         # Upsert cleanly
         await self.repository.update_execution(
@@ -101,7 +90,6 @@ class DAGExecutor:
             {
                 "status": exec_record.status.value,
                 "metadata": exec_record.metadata,
-                "render_blueprints": exec_record.render_blueprints,
                 "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
             }
         )
@@ -193,7 +181,6 @@ class DAGExecutor:
                         {
                             "results": exec_record.results,
                             "frozen_context": frozen_ctx.model_dump(),
-                            "render_blueprints": exec_record.render_blueprints,
                             "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
                         }
                     )
@@ -383,10 +370,12 @@ class DAGExecutor:
                     )
 
             # 3.3 Dynamic Schema
+            has_search_result = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
             dynamic_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",
                 criteria=criteria_blocks,
-                require_justification=True
+                require_justification=True,
+                has_search_result=has_search_result
             )
             frozen_ctx.generated_schemas[step.id] = dynamic_schema.model_json_schema()
 

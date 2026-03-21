@@ -636,7 +636,7 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
     except Exception as e:
         # Fail Fast Requirement
         from backend_v2.exceptions import AppException, ErrorCodes
-        msg = f"Normalization failed for step '{step_id}': {e}"
+        msg = f"Normalization failed for step '{blueprint_id}': {e}"
         logger.error(f"[ScoringHook] {ErrorCodes.HOOK_EXECUTION_FAILED.name}: {msg}", exc_info=True)
 
         raise AppException(

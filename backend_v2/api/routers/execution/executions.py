@@ -144,7 +144,7 @@ async def render_execution(
     execution_service: ExecutionServiceDep,
     repository: RepoDep,
     format: str = Query("json", description="Output format: json, pdf, or flat"),
-    variant: str = Query("default", description="The blueprint variant to render"),
+    profile_id: str | None = Query(None, description="The output profile to render"),
 ) -> Response:
     """Omni-channel render endpoint for an execution."""
     # 1. Fetch securely using the user context
@@ -165,10 +165,9 @@ async def render_execution(
     if fmt == "json":
         from backend_v2.services.blueprint import BlueprintTransformer
         accept_language = request.headers.get("accept-language", None)
-        # We pass execution_id as Transformer fetches again, or we could pass execution natively.
         transformer = BlueprintTransformer(repository)
-        payload = await transformer.build_render_payload(execution_id, accept_language, variant=variant)
-        return JSONResponse(content=payload)
+        dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
+        return JSONResponse(content=dto.model_dump(mode="json"))
 
     elif fmt == "flat":
         from backend_v2.services.flattener import FlatFileService
@@ -176,8 +175,23 @@ async def render_execution(
         return JSONResponse(content=flat_data)
 
     elif fmt == "pdf":
-        # 1. First check if async worker has already generated and offloaded the PDF
-        if variant == "default" and execution.pdf_report_path:
+        # 1. Resolve Profile dynamically to see if we can use the pre-generated background worker PDF
+        workflow_data = await repository.get_workflow_by_id(execution.workflow_id)
+        if not workflow_data:
+            raise AppException(
+                message="Workflow not found",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            )
+
+        default_pid = workflow_data.get("default_profile_id", "default")
+        output_profiles = workflow_data.get("output_profiles", {})
+
+        resolved_pid = profile_id
+        if not resolved_pid or (resolved_pid == "default" and "default" not in output_profiles):
+            resolved_pid = default_pid
+
+        if resolved_pid == default_pid and execution.pdf_report_path:
             from backend_v2.services.storage import get_storage_driver
             storage = get_storage_driver()
             try:
@@ -190,7 +204,10 @@ async def render_execution(
                     }
                 )
             except Exception as strg_err:
-                logger.warning(f"Failed to fetch pre-generated PDF from storage, falling back to sync generation: {strg_err}")
+                logger.warning(
+                    f"Failed to fetch pre-generated PDF from storage, "
+                    f"falling back to sync generation: {strg_err}"
+                )
 
         # 2. Fallback to Synchronous generation if not yet ready or non-default variant requested
         from backend_v2.services.blueprint import BlueprintTransformer
@@ -201,14 +218,15 @@ async def render_execution(
             accept_language = execution.metadata.get("target_locale")
 
         transformer = BlueprintTransformer(repository)
-        blueprint_payload = await transformer.build_render_payload(execution_id, accept_language, variant=variant)
+        dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
 
         # Passing repository inside PDF generator is safe as the execution was authorized
         pdf_service = PdfReportService(repository)
-        pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, blueprint_payload=blueprint_payload)
+        pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, report_dto=dto)
 
-        # Self-Healing Mechanism: Save the newly generated PDF back to persistent storage (only for default variant to preserve truth)
-        if variant == "default":
+        # Self-Healing Mechanism: Save the newly generated PDF back to persistent storage
+        # (only for default variant to preserve truth)
+        if resolved_pid == default_pid:
             try:
                 from backend_v2.services.storage import get_storage_driver
                 storage = get_storage_driver()
@@ -244,6 +262,7 @@ async def generate_pdf_async(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
     arq_pool: ArqPoolDep,
+    profile_id: str | None = Query(None),
 ) -> dict[str, str]:
     """Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker."""
     # 1. Authorize connection first via Security Dependency
@@ -253,7 +272,12 @@ async def generate_pdf_async(
     accept_language = request.headers.get("accept-language", None)
 
     # 3. Queue the background task into Redis
-    await arq_pool.enqueue_job("generate_pdf_job", execution_id=execution_id, accept_language=accept_language)
+    await arq_pool.enqueue_job(
+        "generate_pdf_job",
+        execution_id=execution_id,
+        accept_language=accept_language,
+        profile_id=profile_id
+    )
 
     # 4. Return 202 Accepted Fast
     return {"status": "Accepted", "message": "PDF Generation queued", "execution_id": execution_id}

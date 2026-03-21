@@ -8,6 +8,10 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:file_saver/file_saver.dart';
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
 
 import 'dart:async'; // Add dart:async for Timer
 
@@ -230,27 +234,25 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     );
 
     if (wf.isEmpty) {
-      ExecutionReportRoute(
-        executionId: executionId,
-        variant: 'default',
-      ).go(context);
+      _downloadPdf(executionId, 'default');
       return;
     }
 
-    final blueprints = SafeCast.safeMap(wf['render_blueprints']);
-    final variants = blueprints.keys.toList();
+    final outputProfiles = SafeCast.safeMap(wf['output_profiles']);
+    final variants = outputProfiles.keys.toList();
+    if (variants.isEmpty) variants.add('default');
 
-    if (variants.isEmpty ||
-        (variants.length == 1 && variants.first == 'default')) {
+    if (variants.length == 1) {
       ExecutionReportRoute(
         executionId: executionId,
-        variant: 'default',
+        variant: variants.first,
       ).go(context);
       return;
     }
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -280,20 +282,32 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                 ),
               ),
               const Divider(height: 1),
-              ...variants.map(
-                (v) => ListTile(
-                  leading: Icon(
-                    v == 'default' ? Icons.star : Icons.description,
-                    color: Colors.blue,
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children:
+                        variants
+                            .map(
+                              (v) => ListTile(
+                                leading: Icon(
+                                  v == 'default'
+                                      ? Icons.star
+                                      : Icons.description,
+                                  color: Colors.blue,
+                                ),
+                                title: Text(v),
+                                onTap: () {
+                                  Navigator.of(ctx).pop();
+                                  ExecutionReportRoute(
+                                    executionId: executionId,
+                                    variant: v,
+                                  ).go(context);
+                                },
+                              ),
+                            )
+                            .toList(),
                   ),
-                  title: Text(v),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    ExecutionReportRoute(
-                      executionId: executionId,
-                      variant: v,
-                    ).go(context);
-                  },
                 ),
               ),
               const SizedBox(height: 16),
@@ -302,6 +316,62 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
         );
       },
     );
+  }
+
+  Future<void> _downloadPdf(String executionId, String profileId) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.processingStatus)),
+    );
+
+    try {
+      final dio = ref.read(apiClientProvider);
+      final response = await dio.get<List<int>>(
+        '/execution/executions/$executionId/render',
+        queryParameters: {'format': 'pdf', 'profile_id': profileId},
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final bytes = Uint8List.fromList(response.data!);
+      await FileSaver.instance
+          .saveAs(
+            name: 'Report_${executionId}_$profileId',
+            bytes: bytes,
+            fileExtension: 'pdf',
+            mimeType: MimeType.pdf,
+          )
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout:
+                () =>
+                    throw Exception(
+                      'Tiedoston tallennusikkuna ei vastannut (Timeout).',
+                    ),
+          );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.downloadSuccess),
+          ),
+        );
+      }
+    } catch (e, st) {
+      if (mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error('DashboardView', 'Failed to download PDF', e, st);
+        final errorMsg =
+            e.toString().contains('Timeout')
+                ? e.toString().replaceAll('Exception: ', '')
+                : AppLocalizations.of(context)!.errorUnknown;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _confirmDelete(

@@ -1,46 +1,51 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/features/execution/models/report_data_dto.dart'; // REQUIRED FOR ReportAxisDTO
 
-/// A 2D Scatter Plot visualizing Logic Quality.
-/// X-Axis: Cognitive Level (Bloom's Taxonomy) - Depth of Thought
-/// Y-Axis: Argumentation Quality (Toulmin) - Structural Integrity
+/// A 2D Scatter Plot visualizing metrics across 2 or 3 dimensions.
 class LogicMatrixChart extends StatelessWidget {
   const LogicMatrixChart({
     super.key,
-    required this.bloomScore,
-    required this.toulminScore,
-    this.strategicScore = 2.0, // Default to middle if missing
+    required this.xAxis,
+    required this.yAxis,
+    this.zAxis,
   });
 
-  final double bloomScore;
-  final double toulminScore;
-  final double strategicScore;
+  final ReportAxisDTO xAxis;
+  final ReportAxisDTO yAxis;
+  final ReportAxisDTO? zAxis;
 
   @override
   Widget build(BuildContext context) {
-    // Use authoritative scores from Backend (SSOT)
-    final x = bloomScore;
-    final y = toulminScore;
+    // Coordinate mapping
+    final x = xAxis.score;
+    final y = yAxis.score;
 
-    // Quadrant label based on coordinates (Threshold 3.0)
-    String quadrantLabel = "Tuntematon";
-    if (x <= 0.1)
-      quadrantLabel = "Ei analysoitavissa (Syöte puuttuu/riittämätön)";
-    else if (x >= 3.0 && y >= 3.0)
-      quadrantLabel = "Visionääri (Korkea Bloom + Vahva Toulmin)";
-    else if (x < 3.0 && y >= 3.0)
-      quadrantLabel = "Faktapohjainen (Matala Bloom + Vahva Toulmin)";
-    else if (x >= 3.0 && y < 3.0)
-      quadrantLabel =
-          AppLocalizations.of(context)?.lblAbstractQuadrant ?? "Abstrakti";
-    else
-      quadrantLabel =
-          AppLocalizations.of(context)?.lblSuperficialQuadrant ?? "Pinnallinen";
+    final double xMin = xAxis.scaleMin < xAxis.scaleMax ? xAxis.scaleMin : 0.0;
+    final double xMax =
+        xAxis.scaleMax > xAxis.scaleMin
+            ? xAxis.scaleMax
+            : (xAxis.scaleMin + 6.0);
+    final double yMin = yAxis.scaleMin < yAxis.scaleMax ? yAxis.scaleMin : 0.0;
+    final double yMax =
+        yAxis.scaleMax > yAxis.scaleMin
+            ? yAxis.scaleMax
+            : (yAxis.scaleMin + 6.0);
 
-    // Bubble Size Calculation (Z-Axis)
-    // Scale 0-4 -> Radius 8-24
-    double radius = 8.0 + (strategicScore.clamp(0.0, 4.0) * 4.0);
+    // Calculate middle line for grid quadrants
+    final xMid = (xMin + xMax) / 2;
+    final yMid = (yMin + yMax) / 2;
+
+    // Bubble Size Calculation contextually derived from absolute magnitude
+    double radius = 12.0;
+    if (zAxis != null) {
+      double zMin = zAxis!.scaleMin;
+      double zMax = zAxis!.scaleMax;
+      if (zMax <= zMin) zMax = zMin + 1.0; // Protect div by zero
+
+      double pct = (zAxis!.score - zMin) / (zMax - zMin);
+      radius = 8.0 + (pct.clamp(0.0, 1.0) * 16.0); // 8 to 24
+    }
 
     return Column(
       children: [
@@ -62,18 +67,18 @@ class LogicMatrixChart extends StatelessWidget {
                   ),
                 ),
               ],
-              minX: 0,
-              maxX: 6.5, // Allow slightly more space for "Creating" (6.0)
-              minY: 0,
-              maxY: 6.5,
+              minX: xMin,
+              maxX: xMax + ((xMax - xMin) * 0.05), // Visual padding
+              minY: yMin,
+              maxY: yMax + ((yMax - yMin) * 0.05),
               backgroundColor: Colors.white,
               gridData: FlGridData(
                 show: true,
                 drawHorizontalLine: true,
                 drawVerticalLine: true,
                 // Draw quadrant dividers
-                checkToShowHorizontalLine: (value) => value == 3,
-                checkToShowVerticalLine: (value) => value == 3,
+                checkToShowHorizontalLine: (value) => value == yMid,
+                checkToShowVerticalLine: (value) => value == xMid,
                 getDrawingHorizontalLine:
                     (value) => FlLine(
                       color: Colors.grey.withValues(alpha: 0.5),
@@ -90,47 +95,93 @@ class LogicMatrixChart extends StatelessWidget {
               titlesData: FlTitlesData(
                 show: true,
                 leftTitles: AxisTitles(
-                  axisNameWidget: const Text(
-                    "Argumentaation Vahvuus (Toulmin)",
-                    style: TextStyle(fontSize: 10),
+                  axisNameWidget: Text(
+                    yAxis.name,
+                    style: const TextStyle(fontSize: 10),
                   ),
                   axisNameSize: 20, // Reserve space for name
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 40, // Increased for labels
+                    reservedSize: 60, // Increased for labels
+                    interval:
+                        1.0, // Force interval to 1.0 to prevent missing labels
                     getTitlesWidget: (value, meta) {
-                      if (value == 1)
-                        return const Text(
-                          "Väite",
-                          style: TextStyle(fontSize: 9),
+                      final strVal = value.toStringAsFixed(0);
+                      // Use integer representation if it's a clean int for cleaner map lookup
+                      final key =
+                          value == value.toInt() ? strVal : value.toString();
+                      final label =
+                          yAxis.scaleLabels[key] ??
+                          yAxis.scaleLabels[value.toString()];
+
+                      if (label != null) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6.0),
+                          child: Text(
+                            label,
+                            style: const TextStyle(fontSize: 9),
+                            maxLines: 2,
+                            textAlign: TextAlign.right,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         );
-                      if (value == 5)
-                        return const Text(
-                          "Vahva",
-                          style: TextStyle(fontSize: 9),
-                        );
+                      }
                       return const SizedBox.shrink();
                     },
                   ),
                 ),
                 bottomTitles: AxisTitles(
-                  axisNameWidget: const Text(
-                    "Kognitiivinen Syvyys (Bloom)",
-                    style: TextStyle(fontSize: 10),
+                  axisNameWidget: Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: Text(
+                      xAxis.name,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
+                  axisNameSize: 28,
                   sideTitles: SideTitles(
                     showTitles: true,
+                    reservedSize: 60,
+                    interval: 1.0, // Force interval to 1.0
                     getTitlesWidget: (value, meta) {
-                      if (value == 1)
-                        return const Text(
-                          "Muisti",
-                          style: TextStyle(fontSize: 9),
+                      final strVal = value.toStringAsFixed(0);
+                      final key =
+                          value == value.toInt() ? strVal : value.toString();
+                      final label =
+                          xAxis.scaleLabels[key] ??
+                          xAxis.scaleLabels[value.toString()];
+
+                      if (label != null) {
+                        Widget textWidget = SizedBox(
+                          width: 80,
+                          child: Text(
+                            label,
+                            style: const TextStyle(fontSize: 9),
+                            maxLines: 3,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         );
-                      if (value == 5)
-                        return const Text(
-                          "Luominen",
-                          style: TextStyle(fontSize: 9),
+
+                        // Prevent edge labels from bleeding out of the chart bounds
+                        double offsetX = 0;
+                        if (value == xMin) {
+                          offsetX = 30; // Shift right to avoid Y-axis overlap
+                        } else if (value == xMax) {
+                          offsetX = -30; // Shift left to stay inside the screen
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6.0),
+                          child: Transform.translate(
+                            offset: Offset(offsetX, 0),
+                            child: textWidget,
+                          ),
                         );
+                      }
                       return const SizedBox.shrink();
                     },
                   ),
@@ -149,24 +200,17 @@ class LogicMatrixChart extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          quadrantLabel,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-            color: Colors.blueGrey,
+        if (zAxis != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            "${zAxis!.name} (${zAxis!.score} / ${zAxis!.scaleMax})",
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+              color: Colors.blueGrey,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "Pallon koko: Strateginen Syvyys ($strategicScore/4.0)",
-          style: const TextStyle(
-            fontSize: 10,
-            color: Colors.grey,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
+        ],
       ],
     );
   }

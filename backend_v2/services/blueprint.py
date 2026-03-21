@@ -1,454 +1,211 @@
-"""Blueprint Transformer Service for V6.0 Dynamic SDUI."""
+"""Blueprint Transformer Service for V3 Extreme MVC."""
 
 import logging
 from typing import Any
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import RenderBlueprint
+from backend_v2.models.v2_core import ReportAxisDTO, ReportDataDTO, ReportLayoutDTO
 
 logger = logging.getLogger(__name__)
 
 class BlueprintTransformer:
-    """The Universal Transformer Hub. Merges Execution Data with SDUI Blueprints."""
+    """The Universal Transformer Hub. Parses raw execution results into ReportDataDTO."""
 
     def __init__(self, repo: AbstractWorkflowRepository):
         self.repo = repo
 
-    async def build_render_payload(
-        self, execution_id: str, accept_language: str | None = None, variant: str = "default"
-    ) -> dict[str, Any]:
-        """Builds the localized rendering payload by merging results with the blueprint.
-        Implements Late-Binding Localization (Layer 5) and Graceful Degradation.
-        """
+    async def build_report_dto(
+        self, execution_id: str, profile_id: str = "default", accept_language: str | None = None
+    ) -> ReportDataDTO:
+        """Builds the strictly typed report payload by parsing results according to the selected profile."""
         execution = await self.repo.get_execution(execution_id)
         if not execution:
             msg = f"Execution {execution_id} not found."
             logger.error(f"[BlueprintTransformer] {ErrorCodes.RESOURCE_NOT_FOUND.name}: {msg}")
-            raise AppException(
-                message=msg,
-                status_code=404,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND}
-            )
+            raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
-        # Resolve the workflow's actual dynamic translation early (also supports live variant fallback)
         workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
-        if not workflow_data or "name" not in workflow_data:
-            msg = f"Executing workflow {execution.workflow_id} is completely missing a 'name' block."
+        if not workflow_data:
+            msg = f"Executing workflow {execution.workflow_id} not found."
             logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED}
-            )
+            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-        blueprint_data = None
-        if execution.render_blueprints and variant in execution.render_blueprints:
-            blueprint_data = execution.render_blueprints[variant]
-        elif "render_blueprints" in workflow_data and variant in workflow_data["render_blueprints"]:
-            logger.info(f"[BlueprintTransformer] Variant '{variant}' missing from frozen execution {execution_id}. Fetching layout from live Workflow.")
-            blueprint_data = workflow_data["render_blueprints"][variant]
-        else:
-            msg = f"Execution {execution_id} and Workflow {execution.workflow_id} are missing render_blueprints['{variant}']."
-            logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED}
-            )
-
-        # Validate blueprint structure
-        try:
-            blueprint = RenderBlueprint.model_validate(blueprint_data)
-        except Exception as e:
-            msg = f"Invalid render_blueprint structure in Execution {execution_id}: {e}"
-            logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED}
-            ) from e
-
-        # Determine locale
+        results = execution.results or {}
         locale = accept_language or execution.metadata.get("target_locale", "en")
 
-        name_obj = workflow_data["name"]
-        dynamic_workflow_title_translation = ""
+        def _extract_i18n(val: dict | None) -> dict[str, str]:
+            """Ensure payload serializes nested I18nText structures into flat dictionaries to pass Pydantic."""
+            if val and isinstance(val, dict):
+                return val.get("translations", val)
+            return {}
 
-        if isinstance(name_obj, dict):
-            lang_dict = name_obj.get("translations", {})
-            if locale not in lang_dict:
-                msg = f"Executing workflow {execution.workflow_id} is missing translation for locale '{locale}'."
-                logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED}
-                )
-            dynamic_workflow_title_translation = lang_dict[locale]
-        elif isinstance(name_obj, str):
-            dynamic_workflow_title_translation = name_obj
+        output_profiles = workflow_data.get("output_profiles", {})
+        default_profile_id = workflow_data.get("default_profile_id", "default")
+        resolved_pid = profile_id if profile_id and profile_id in output_profiles else default_profile_id
 
-        if not dynamic_workflow_title_translation:
-            msg = f"Executing workflow {execution.workflow_id} generated an empty name for locale '{locale}'."
+        if not output_profiles:
+            # Fallback if the database hasn't populated output profiles
+            output_profiles = {
+                "default": {
+                    "name": {"fi": "Oletusraportti", "en": "Default Report"},
+                    "layouts": [{"preset_view": "1d_metrics"}]
+                }
+            }
+            resolved_pid = "default"
+
+        available_profiles_map = {}
+        for pid, pdef in output_profiles.items():
+            name_dict = _extract_i18n(pdef.get("name", {"fi": pid, "en": pid}))
+            available_profiles_map[pid] = name_dict.get(locale, name_dict.get("fi", pid))
+
+        profile = output_profiles.get(resolved_pid)
+        if not profile:
+            msg = f"Profile '{resolved_pid}' not found for workflow '{execution.workflow_id}'."
             logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED}
-            )
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-        # Fetch blocks for late-binding translations
+        profile_name = _extract_i18n(profile.get("name", {"fi": "Oletusraportti", "en": "Default Report"}))
+        layout_defs = profile.get("layouts", [])
+
+        synthesis = None
+        for _step_id, step_data in results.items():
+            if isinstance(step_data, dict) and "synthesis" in step_data:
+                synthesis = step_data.get("synthesis")
+                break
+
+        layouts_list = []
+        # Pre-fetch prompt blocks to enrich axis labels
         all_blocks = await self.repo.get_all_prompt_blocks()
         blocks_by_slug = {b["id"]: b for b in all_blocks if "id" in b}
 
-        # Fetch steps for evaluation notes translation
-        all_steps = await self.repo.get_all_steps()
-        steps_by_slug = {s["id"]: s for s in all_steps if "id" in s}
+        for layout_def in layout_defs:
+            preset_view = layout_def.get("preset_view", "default")
+            target_blocks = layout_def.get("target_blocks", [])
+            target_steps = layout_def.get("steps", [])
+            show_text = layout_def.get("show_text", True)
+            
+            layout_title = _extract_i18n(layout_def.get("title"))
+            layout_desc = _extract_i18n(layout_def.get("description"))
 
-        # Build mapping from node_id (e.g. steprule_xxx) to task_blueprint (e.g. step_xai_reporter)
-        results = execution.results or {}
-        node_to_step = {}
-        for node in workflow_data.get("steps", []):
-            if "id" in node and "task_blueprint" in node:
-                node_to_step[node["id"]] = node["task_blueprint"]
+            axes = []
+            unsorted_axes = {}
+            for step_id, step_data in results.items():
+                if target_steps and step_id not in target_steps:
+                    continue
+                if isinstance(step_data, dict):
+                    for k, v in step_data.items():
+                        is_legacy_score = (k == "score")
+                        suffix_list = ["_justification", "_scaled", "_normalized", "_raw", "_cited_source_id", "_cited_text_quote", "_google_citation"]
+                        is_suffix_key = any(k.endswith(sfx) for sfx in suffix_list)
 
-        def resolve_data_path(path: str) -> Any:
-            """Safe dot-notation lookup with Graceful Degradation logging."""
-            parts = path.lstrip("$").split(".")
-            current = {"results": results}
-            for part in parts:
-                if isinstance(current, dict) and part in current:
-                    current = current[part]
-                else:
-                    msg = f"Missing data at path {path} in execution {execution_id}"
-                    logger.warning(f"[BlueprintTransformer] VALIDATION_FAILED: {msg}")
-                    return None
-            return current
-
-        def get_translation(translation_dict: dict[str, str], fallback: str = "en") -> str:
-            """Extract translated term adhering to layer 5 translation schema doctrine."""
-            if not translation_dict:
-                return ""
-            return translation_dict.get(locale, translation_dict.get(fallback, ""))
-
-        # 6.3 Graceful Degradation logging helper
-        def safe_float_cast(raw_value: Any, key_path: str) -> float | None:
-            if raw_value is None:
-                return None
-            try:
-                return float(raw_value)
-            except (ValueError, TypeError):
-                logger.error(
-                    f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: "
-                    f"LLM returned Corrupted/Non-numeric data for path '{key_path}', "
-                    f"Gracefully Skipping Component rendering. Value: {raw_value}",
-                    exc_info=True
-                )
-                return None
-
-        def get_scale_text(value: float | None, data_path: str) -> str:
-            """Resolves the textual scale name (e.g., 'CATASTROPHIC FAILURE') for a given matrix score."""
-            if value is None or not data_path:
-                return ""
-
-            slug = data_path.split(".")[-1]
-            block = blocks_by_slug.get(slug)
-            if not block or "scales" not in block:
-                return ""
-
-            rounded_val = round(value)
-            for scale in block["scales"]:
-                if scale.get("score") == rounded_val:
-                    name_obj = scale.get("name")
-                    if isinstance(name_obj, dict):
-                        return get_translation(name_obj.get("translations", {}), name_obj.get("default_locale", "en"))
-                    elif isinstance(name_obj, str):
-                        return name_obj
-            return ""
-
-        def get_scale_max(data_path: str) -> float:
-            """Resolves the maximum scale strictly from the block's scales array."""
-            if not data_path:
-                msg = "Missing data_path for scale calculation."
-                logger.error(f"[BlueprintTransformer] VALIDATION_FAILED: {msg}")
-                raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-
-            slug = data_path.split(".")[-1]
-            # Handle normalized max values explicitly if the path ends with _normalized
-            if slug.endswith("_normalized"):
-                return 100.0
-
-            # If the slug ends with _scaled, we can look up the base slug
-            if slug.endswith("_scaled"):
-                slug = slug.replace("_scaled", "")
-
-            block = blocks_by_slug.get(slug)
-            if block:
-                # Dynamically calculate from scales array ALWAYS (scale_max/scale_min in json are for other uses)
-                if "scales" in block and isinstance(block["scales"], list):
-                    scores = []
-                    for scale in block["scales"]:
-                        if "score" in scale:
+                        if is_legacy_score or (not is_suffix_key and (isinstance(v, (int, float)) or str(v).replace('.', '', 1).isdigit())):
                             try:
-                                scores.append(float(scale["score"]))
+                                score_float = float(v)
                             except (ValueError, TypeError):
-                                pass
-                    if scores:
-                        return float(max(scores))
+                                continue
+                            
+                            axis_name = step_id if is_legacy_score else k
+                            axis_description = ""
+                            scale_min = 0.0
+                            scale_max = 100.0
+                            scale_labels = {}
 
-            msg = f"Data source '{slug}' is missing a required 'scales' array in the database to resolve scale_max. Refusing to guess UI parameters."
-            logger.error(f"[BlueprintTransformer] VALIDATION_FAILED: {msg}")
-            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+                            block = blocks_by_slug.get(k)
+                            if block:
+                                label_obj = block.get("label", {})
+                                trans_dict = _extract_i18n(label_obj)
+                                axis_name = trans_dict.get(locale, trans_dict.get("en", k))
 
-        def format_float(val: float | None) -> str:
-            """Formats floats localized for UI layer, stripping formatting logic from PDF/Flutter."""
-            if val is None:
-                return "N/A"
-            formatted = f"{val:.1f}"
-            if locale == "fi":
-                return formatted.replace(".", ",")
-            return formatted
+                                desc_obj = block.get("description", {})
+                                trans_dict_desc = _extract_i18n(desc_obj)
+                                axis_description = trans_dict_desc.get(locale, trans_dict_desc.get("en", ""))
 
-        def calc_pct(val: float | None, maximum: float) -> float:
-            """Calculates visual percentage for UI layer rendering."""
-            if val is None or not maximum:
-                return 0.0
-            clamped = min(max(val, 0.0), maximum)
-            return round((clamped / maximum) * 100.0, 1)
+                                scales_def = block.get("scales", [])
+                                if scales_def:
+                                    scores = [float(s.get("score", 0)) for s in scales_def if "score" in s]
+                                    if scores:
+                                        scale_max = max(scores)
+                                        scale_min = min(scores)
 
-        def get_block_title(data_path: str) -> str:
-            """Resolves the localized name of the block itself (e.g., 'Toulminin Argumentaatio')."""
-            if not data_path:
-                return ""
-            slug = data_path.split(".")[-1]
-            if slug.endswith("_normalized"):
-                 slug = slug.replace("_normalized", "")
-            if slug.endswith("_scaled"):
-                 slug = slug.replace("_scaled", "")
+                                    for s in scales_def:
+                                        s_score = float(s.get("score", 0))
+                                        s_label_obj = s.get("name", {})
+                                        s_trans = _extract_i18n(s_label_obj)
+                                        s_label = s_trans.get(locale, s_trans.get("en", ""))
+                                        # Only write int cleanly for mapping
+                                        cleaned_score = int(s_score) if s_score.is_integer() else s_score
+                                        scale_labels[str(cleaned_score)] = s_label
 
-            block = blocks_by_slug.get(slug)
-            if block and "label" in block:
-                label_obj = block["label"]
-                if isinstance(label_obj, dict):
-                    return get_translation(label_obj.get("translations", {}), label_obj.get("default_locale", "en"))
-                elif isinstance(label_obj, str):
-                    return label_obj
-            # Fallback to just the raw slug if no translation available
-            return slug
+                            justification = ""
+                            cited_source_id = ""
+                            cited_text_quote = ""
+                            cited_web_citation = ""
 
-        def resolve_component(base_dict: dict[str, Any]) -> dict[str, Any] | None:
-            comp_type = base_dict.get("type")
-            if not comp_type:
-                return base_dict
+                            if show_text:
+                                if is_legacy_score:
+                                    justification = step_data.get("justification", "")
+                                else:
+                                    eval_notes = step_data.get("evaluation_notes", "")
+                                    justification = step_data.get(f"{k}_justification", eval_notes)
+                                cited_source_id = step_data.get(f"{k}_cited_source_id", "")
+                                cited_text_quote = step_data.get(f"{k}_cited_text_quote", "")
+                                cited_web_citation = step_data.get(f"{k}_google_citation", "")
 
-            if comp_type == "header":
-                return base_dict
-            elif comp_type == "metadata_header":
-                return base_dict
-            elif comp_type == "bibliography_footer":
-                return base_dict
-            elif comp_type == "grid_row":
-                children = base_dict.get("children", [])
-                resolved_children = []
-                for child in children:
-                    resolved_child = resolve_component(child)
-                    if resolved_child:
-                        resolved_children.append(resolved_child)
-                base_dict["children"] = resolved_children
-                return base_dict
-            elif comp_type == "1d_gauge":
-                val = resolve_data_path(base_dict.get("data_path", ""))
-                base_dict["value"] = safe_float_cast(val, base_dict.get("data_path", ""))
-                if "data_path" in base_dict:
-                    base_dict["scale_text"] = get_scale_text(base_dict["value"], base_dict["data_path"])
-                    base_dict["scale_max"] = get_scale_max(base_dict["data_path"])
-                    if "title" not in base_dict or not base_dict["title"]:
-                        base_dict["title"] = get_block_title(base_dict["data_path"])
-                    elif base_dict["title"] == "overall_system_profile":
-                        base_dict["title"] = dynamic_workflow_title_translation
+                            unsorted_axes[k] = ReportAxisDTO(
+                                name=axis_name,
+                                description=axis_description,
+                                score=score_float,
+                                justification=justification,
+                                cited_source_id=cited_source_id,
+                                cited_text_quote=cited_text_quote,
+                                cited_web_citation=cited_web_citation,
+                                scale_min=scale_min,
+                                scale_max=scale_max,
+                                scale_labels=scale_labels
+                            )
 
-                # Pre-calculate pure-dumb display values and CSS plots
-                v = base_dict.get("value")
-                m = base_dict.get("scale_max", 0.0)
-                base_dict["display_value"] = f"{format_float(v)} / {format_float(m)}" if v is not None else "N/A"
-                base_dict["display_value_only"] = format_float(v)
-                base_dict["display_max_only"] = format_float(m)
-                base_dict["visual_pct"] = calc_pct(v, m)
-
-                return base_dict
-            elif comp_type == "2d_matrix":
-                x_val = resolve_data_path(base_dict.get("x_data_path", ""))
-                y_val = resolve_data_path(base_dict.get("y_data_path", ""))
-
-                base_dict["x_value"] = safe_float_cast(x_val, base_dict.get("x_data_path", ""))
-                base_dict["y_value"] = safe_float_cast(y_val, base_dict.get("y_data_path", ""))
-
-                if "x_data_path" in base_dict:
-                    base_dict["x_scale_text"] = get_scale_text(base_dict["x_value"], base_dict["x_data_path"])
-                    base_dict["x_scale_max"] = get_scale_max(base_dict["x_data_path"])
-                    base_dict["x_title"] = get_block_title(base_dict["x_data_path"])
-                else:
-                    base_dict["x_title"] = ""
-
-                if "y_data_path" in base_dict:
-                    base_dict["y_scale_text"] = get_scale_text(base_dict["y_value"], base_dict["y_data_path"])
-                    base_dict["y_scale_max"] = get_scale_max(base_dict["y_data_path"])
-                    base_dict["y_title"] = get_block_title(base_dict["y_data_path"])
-                else:
-                    base_dict["y_title"] = ""
-
-                # Populate display pre-calc strings
-                xv = base_dict.get("x_value")
-                xm = base_dict.get("x_scale_max", 0.0)
-                yv = base_dict.get("y_value")
-                ym = base_dict.get("y_scale_max", 0.0)
-
-                base_dict["x_display"] = f"{format_float(xv)} / {format_float(xm)}" if xv is not None else "N/A"
-                base_dict["x_display_value_only"] = format_float(xv)
-                base_dict["x_display_max_only"] = format_float(xm)
-                base_dict["x_visual_pct"] = calc_pct(xv, xm)
-
-                base_dict["y_display"] = f"{format_float(yv)} / {format_float(ym)}" if yv is not None else "N/A"
-                base_dict["y_display_value_only"] = format_float(yv)
-                base_dict["y_display_max_only"] = format_float(ym)
-                # CSS positioning Y is inverted from top
-                base_dict["y_visual_pct"] = 100.0 - calc_pct(yv, ym)
-
-                if base_dict.get("x_axis_note"):
-                    base_dict["x_note_text"] = resolve_data_path(base_dict["x_axis_note"])
-                if base_dict.get("y_axis_note"):
-                    base_dict["y_note_text"] = resolve_data_path(base_dict["y_axis_note"])
-
-                return base_dict
-            elif comp_type == "3d_scatter":
-                x_val = resolve_data_path(base_dict.get("x_data_path", ""))
-                y_val = resolve_data_path(base_dict.get("y_data_path", ""))
-                z_val = resolve_data_path(base_dict.get("z_data_path", ""))
-
-                base_dict["x_value"] = safe_float_cast(x_val, base_dict.get("x_data_path", ""))
-                base_dict["y_value"] = safe_float_cast(y_val, base_dict.get("y_data_path", ""))
-                base_dict["z_value"] = safe_float_cast(z_val, base_dict.get("z_data_path", ""))
-
-                if "x_data_path" in base_dict:
-                    base_dict["x_scale_text"] = get_scale_text(base_dict["x_value"], base_dict["x_data_path"])
-                    base_dict["x_scale_max"] = get_scale_max(base_dict["x_data_path"])
-                    base_dict["x_title"] = get_block_title(base_dict["x_data_path"])
-                else:
-                    base_dict["x_title"] = ""
-
-                if "y_data_path" in base_dict:
-                    base_dict["y_scale_text"] = get_scale_text(base_dict["y_value"], base_dict["y_data_path"])
-                    base_dict["y_scale_max"] = get_scale_max(base_dict["y_data_path"])
-                    base_dict["y_title"] = get_block_title(base_dict["y_data_path"])
-                else:
-                    base_dict["y_title"] = ""
-
-                if "z_data_path" in base_dict:
-                    base_dict["z_scale_text"] = get_scale_text(base_dict["z_value"], base_dict["z_data_path"])
-                    base_dict["z_scale_max"] = get_scale_max(base_dict["z_data_path"])
-                    base_dict["z_title"] = get_block_title(base_dict["z_data_path"])
-                else:
-                    base_dict["z_title"] = ""
-
-                # Populate display pre-calc strings for x, y, z
-                xv = base_dict.get("x_value")
-                xm = base_dict.get("x_scale_max", 0.0)
-                yv = base_dict.get("y_value")
-                ym = base_dict.get("y_scale_max", 0.0)
-                zv = base_dict.get("z_value")
-                zm = base_dict.get("z_scale_max", 0.0)
-
-                base_dict["x_display"] = f"{format_float(xv)} / {format_float(xm)}" if xv is not None else "N/A"
-                base_dict["x_display_value_only"] = format_float(xv)
-                base_dict["x_display_max_only"] = format_float(xm)
-                base_dict["x_visual_pct"] = calc_pct(xv, xm)
-
-                base_dict["y_display"] = f"{format_float(yv)} / {format_float(ym)}" if yv is not None else "N/A"
-                base_dict["y_display_value_only"] = format_float(yv)
-                base_dict["y_display_max_only"] = format_float(ym)
-                base_dict["y_visual_pct"] = 100.0 - calc_pct(yv, ym)
-
-                base_dict["z_display"] = f"{format_float(zv)} / {format_float(zm)}" if zv is not None else "N/A"
-                base_dict["z_display_value_only"] = format_float(zv)
-                base_dict["z_display_max_only"] = format_float(zm)
-                z_raw_pct = calc_pct(zv, zm)
-                base_dict["z_visual_pct"] = z_raw_pct
-
-                # 3D Depth sizing formulas
-                z_size = 15.0 + ((z_raw_pct / 100.0) * 35.0)
-                base_dict["z_visual_size"] = round(z_size, 1)
-                base_dict["z_visual_offset"] = round(z_size / 2.0, 1)
-
-                if base_dict.get("x_axis_note"):
-                    base_dict["x_note_text"] = resolve_data_path(base_dict["x_axis_note"])
-                if base_dict.get("y_axis_note"):
-                    base_dict["y_note_text"] = resolve_data_path(base_dict["y_axis_note"])
-                if base_dict.get("z_axis_note"):
-                    base_dict["z_note_text"] = resolve_data_path(base_dict["z_axis_note"])
-
-                return base_dict
-            elif comp_type == "evaluation_notes_panel":
-                resolved_notes = {}
-                for rp in base_dict.get("data_paths", []):
-                    # Auto-translate the ugly JSON path into a beautiful localized UI Role/Step title
-                    parts = rp.strip("$").split(".")
-                    node_slug = parts[1] if len(parts) >= 2 else rp
-                    
-                    # Intercept execution node_id and map back to schema step_id
-                    step_slug = node_to_step.get(node_slug, node_slug)
-                    display_title = step_slug
-
-                    if step_slug in steps_by_slug:
-                        step_def = steps_by_slug[step_slug]
-                        if "title" in step_def:
-                            t_obj = step_def["title"]
-                            if isinstance(t_obj, dict):
-                                trans = get_translation(t_obj.get("translations", {}), t_obj.get("default_locale", "en"))
-                                if trans:
-                                    display_title = trans
-                            elif isinstance(t_obj, str):
-                                display_title = t_obj
-
-                    resolved_notes[display_title] = resolve_data_path(rp)
-                base_dict["resolved_notes"] = resolved_notes
-                return base_dict
+            if target_blocks:
+                for b_id in target_blocks:
+                    if b_id in unsorted_axes:
+                        axes.append(unsorted_axes[b_id])
             else:
-                return base_dict
+                axes = list(unsorted_axes.values())
 
-        rendered_components = []
-        for comp in blueprint.components:
-            base_dict = comp.model_dump(mode="json")
-            resolved = resolve_component(base_dict)
-            if resolved:
-                rendered_components.append(resolved)
-            else:
-                rendered_components.append(base_dict)
+            if axes or preset_view == "text_only":
+                layouts_list.append(
+                    ReportLayoutDTO(
+                        preset_view=preset_view,
+                        title=layout_title,
+                        description=layout_desc,
+                        axes=axes,
+                        show_text=show_text,
+                    )
+                )
 
-        payload = {
-            "execution_id": execution_id,
-            "status": execution.status.value,
-            "target_locale": locale,
-            "metadata": execution.metadata,
-            "blueprint": {
-                "version": blueprint.version,
-                "components": rendered_components
-            }
-        }
+        org_name = execution.organization_id
+        if execution.organization_id:
+            try:
+                # Need to lookup organisation if possible
+                org = await self.repo.get_document("organizations", execution.organization_id)
+                if org and "name" in org:
+                    org_name = org["name"]
+            except Exception:
+                pass
 
-        # Global Bibliography Aggregation
-        biblio = []
-        def _scan_for_citations(obj: Any) -> None:
-             if isinstance(obj, dict):
-                 if "citation_reference" in obj and obj["citation_reference"]:
-                      biblio.append(obj["citation_reference"])
-                 for _, v in obj.items():
-                      _scan_for_citations(v)
-             elif isinstance(obj, list):
-                 for item in obj:
-                      _scan_for_citations(item)
-
-        _scan_for_citations(results)
-        payload["bibliography"] = list(set(biblio))
-
-        return payload
+        try:
+            dto = ReportDataDTO(
+                workflow_id=execution.workflow_id,
+                profile_id=resolved_pid,
+                profile_name=profile_name,
+                available_profiles=available_profiles_map,
+                created_at=execution.created_at,
+                org_name=org_name,
+                synthesis=synthesis,
+                layouts=layouts_list
+            )
+            return dto
+        except Exception as e:
+            msg = f"Failed to map execution {execution.id} results to ReportDataDTO: {e}"
+            logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e

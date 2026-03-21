@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
-import 'package:client_app/features/studio/views/blueprint_editor_view.dart';
+import 'package:client_app/router/router.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/expected_input_editor_box.dart';
 import 'package:client_app/utils/safe_cast.dart';
@@ -62,7 +62,6 @@ class _WorkflowBuilderForm extends StatefulHookConsumerWidget {
 
 class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
   late Map<String, dynamic> _editableWorkflow = {};
-  String? _selectedBlueprintVariant;
   late TextEditingController _idController;
   late TextEditingController _slugController;
 
@@ -84,16 +83,14 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
       _editableWorkflow['steps'] = [];
     }
 
-    // Migrate legacy render_blueprint if modifying an older seed state
-    if (!_editableWorkflow.containsKey('render_blueprints')) {
-      if (_editableWorkflow.containsKey('render_blueprint') &&
-          _editableWorkflow['render_blueprint'] != null) {
-        _editableWorkflow['render_blueprints'] = {
-          'default': _editableWorkflow.remove('render_blueprint'),
-        };
-      } else {
-        _editableWorkflow['render_blueprints'] = <String, dynamic>{};
-      }
+    // Drop legacy SDUI structures to prevent Pydantic Fail-Fast rejections
+    _editableWorkflow.remove('render_blueprints');
+    _editableWorkflow.remove('render_blueprint');
+    _editableWorkflow.remove('output_mapping');
+
+    // Ensure V2 strict output profiles dict exists
+    if (!_editableWorkflow.containsKey('output_profiles')) {
+      _editableWorkflow['output_profiles'] = <String, dynamic>{};
     }
   }
 
@@ -415,108 +412,103 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
 
               const SizedBox(height: 16),
 
-              // Render Blueprints (Dictionary Variants)
+              // Output Mapping (MVC Rules)
               Text(
-                l10n.blueprintTabTitle,
+                l10n.blueprintTabTitle, // Keep translation key active
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 16),
-              if (SafeCast.safeMap(
-                _editableWorkflow['render_blueprints'],
-              ).isNotEmpty)
-                Card(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: l10n.blueprintVariantName,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
+              Card(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Report Output Profiles (V2)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value:
-                                  _selectedBlueprintVariant ??
-                                  SafeCast.safeMap(
-                                    _editableWorkflow['render_blueprints'],
-                                  ).keys.first,
-                              items:
-                                  SafeCast.safeMap(
-                                    _editableWorkflow['render_blueprints'],
-                                  ).keys.map((k) {
-                                    return DropdownMenuItem<String>(
-                                      value: k,
-                                      child: Text(
-                                        l10n.blueprintVariantSelector(k),
-                                      ),
-                                    );
-                                  }).toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedBlueprintVariant = val;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: IconButton.filled(
+                          IconButton.filled(
                             onPressed: () {
-                              final variantKey =
-                                  _selectedBlueprintVariant ??
-                                  SafeCast.safeMap(
-                                    _editableWorkflow['render_blueprints'],
-                                  ).keys.first;
-                              final variantData =
-                                  SafeCast.safeMap(
-                                    _editableWorkflow['render_blueprints'],
-                                  )[variantKey];
-
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder:
-                                      (ctx) => BlueprintEditorView(
-                                        initialBlueprint: SafeCast.safeMap(
-                                          variantData,
-                                        ),
-                                        onSave: (updatedBlueprint) {
-                                          setState(() {
-                                            final blueprints = SafeCast.safeMap(
-                                              _editableWorkflow['render_blueprints'],
-                                            );
-                                            blueprints[variantKey] =
-                                                updatedBlueprint;
-                                            _editableWorkflow['render_blueprints'] =
-                                                blueprints;
-                                          });
-                                        },
-                                      ),
+                              ProfileEditorRoute(
+                                workflowSlug: SafeCast.safeString(
+                                  _editableWorkflow['id'],
                                 ),
-                              );
+                              ).push(context);
                             },
                             icon: const Icon(Icons.edit_document),
+                            tooltip: 'Manage Output Profiles',
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 12,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Builder(
+                        builder: (context) {
+                          final outputProfiles = SafeCast.safeMap(
+                            _editableWorkflow['output_profiles'],
+                          );
+                          final profileKeys = outputProfiles.keys.toList();
+                          if (profileKeys.isEmpty) profileKeys.add('default');
+
+                          final currentDefault = SafeCast.safeString(
+                            _editableWorkflow['default_profile_id'],
+                            'default',
+                          );
+                          final safeDefault =
+                              profileKeys.contains(currentDefault)
+                                  ? currentDefault
+                                  : profileKeys.first;
+
+                          return DropdownButtonFormField<String>(
+                            initialValue: safeDefault,
+                            decoration: const InputDecoration(
+                              labelText: 'Default Fallback Profile',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items:
+                                profileKeys.map((key) {
+                                  final profileData = SafeCast.safeMap(
+                                    outputProfiles[key],
+                                  );
+                                  final nameMap = SafeCast.safeMap(
+                                    profileData['name'],
+                                  );
+                                  final title =
+                                      nameMap['fi'] ?? nameMap['en'] ?? key;
+                                  return DropdownMenuItem(
+                                    value: key,
+                                    child: Text('$title ($key)'),
+                                  );
+                                }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _editableWorkflow['default_profile_id'] = val;
+                                });
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
+              ),
 
               const SizedBox(height: 24),
 

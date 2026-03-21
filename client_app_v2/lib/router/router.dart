@@ -8,6 +8,7 @@ import 'package:client_app/features/studio/views/studio_dashboard_view.dart';
 import 'package:client_app/features/studio/views/workflow_builder_view.dart';
 import 'package:client_app/features/studio/views/prompt_block_builder_view.dart';
 import 'package:client_app/features/studio/views/step_builder_view.dart';
+import 'package:client_app/features/studio/views/profile_editor_view.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -230,6 +231,7 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
     TypedGoRoute<PromptBlockEditRoute>(path: 'prompt-block/edit/:slug'),
     TypedGoRoute<StepNewRoute>(path: 'step/new'),
     TypedGoRoute<StepEditRoute>(path: 'step/edit'),
+    TypedGoRoute<ProfileEditorRoute>(path: 'profiles/:workflowSlug'),
   ],
 )
 class AdminShellRoute extends GoRouteData with $AdminShellRoute {
@@ -287,6 +289,16 @@ class StepEditRoute extends GoRouteData with $StepEditRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) =>
       StepBuilderView(step: $extra ?? const {});
+}
+
+class ProfileEditorRoute extends GoRouteData with $ProfileEditorRoute {
+  const ProfileEditorRoute({required this.workflowSlug, this.$extra});
+  final String workflowSlug;
+  final Map<String, dynamic>? $extra;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      ProfileEditorView(workflowSlug: workflowSlug, initialData: $extra);
 }
 
 @TypedGoRoute<RootRoute>(path: '/')

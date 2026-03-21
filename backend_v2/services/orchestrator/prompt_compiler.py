@@ -244,7 +244,8 @@ class PromptCompiler:
             )
 
     def build_dynamic_schema(
-        self, schema_name: str, criteria: list[dict[str, Any]], require_justification: bool = False
+        self, schema_name: str, criteria: list[dict[str, Any]], require_justification: bool = False,
+        has_search_result: bool = False
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -320,7 +321,7 @@ class PromptCompiler:
 
             # Inject the specific BARS into the description
             bars_text = ""
-            
+
             # --- INCORPORATE ROWS ---
             rows = crit.get("rows")
             if rows and isinstance(rows, list) and len(rows) > 0:
@@ -345,7 +346,7 @@ class PromptCompiler:
                         raise ConfigurationError(msg)
 
                     bars_text += f"- Score {s_val}: {s_lbl}\n"
-                    
+
                     claims = s.get("claims")
                     if claims and isinstance(claims, list):
                         for c in claims:
@@ -422,6 +423,18 @@ class PromptCompiler:
                     "If you cannot find a direct quote from the user to prove your point, return null."
                 )
                 fields[quote_key] = (str | None, Field(default=None, description=quote_desc))
+
+                # 4. Web Intelligence Citation
+                if has_search_result:
+                    citation_key = f"{crit_id}_google_citation"
+                    citation_desc = (
+                        "CRITICAL FAKTANTARKISTUS: Peilaa tulostasi 'search_result' XML-elementistä "
+                        "saatuun Google-hakutietoon. Kirjoita lyhyt suomenkielinen tiivistelmä siitä, tukeeko vai "
+                        "kumoako verkkodata käyttäjän alkuperäisen väitteen. "
+                        "Liitä perään lähteen otsikko ja URL-linkki. "
+                        "Jos Google-data ei liity aiheeseen lainkaan, palauta null."
+                    )
+                    fields[citation_key] = (str | None, Field(default=None, description=citation_desc))
 
             # The actual evaluation value (placed AFTER justification for CoT forcing)
             final_desc = f"{label}: {base_desc}{bars_text}"

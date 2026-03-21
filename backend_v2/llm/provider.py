@@ -343,7 +343,7 @@ class LiteLLMProvider(LLMProvider):
                 reasoning_token = response.model_extra.get("thought_signature")
 
             # Extract Usage
-            usage = {
+            usage: dict[str, Any] = {
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
                 "total_tokens": 0,

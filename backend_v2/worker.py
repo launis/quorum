@@ -130,7 +130,7 @@ async def execute_workflow_job(
                 # Try to extract metrics from actual results dict
                 results = result_dict.get("results", {})
                 if isinstance(results, dict):
-                    for step_id, step_payload in results.items():
+                    for _step_id, step_payload in results.items():
                         if isinstance(step_payload, dict):
                             meta = step_payload.get("_step_metadata", {})
                             if isinstance(meta, dict):
@@ -234,12 +234,17 @@ async def execute_workflow_job(
             raise
 
 
-async def generate_pdf_job(ctx: Any, execution_id: str, accept_language: str | None = None) -> str:
+async def generate_pdf_job(
+    ctx: Any,
+    execution_id: str,
+    accept_language: str | None = None,
+    profile_id: str = "default"
+) -> str:
     """Invoked by Arq Worker to ensure background PDF compilation resilience."""
-    await generate_pdf_task(execution_id, accept_language)
+    await generate_pdf_task(execution_id, accept_language, profile_id)
     return f"PDF Generated for {execution_id}"
 
-async def generate_pdf_task(execution_id: str, accept_language: str | None = None) -> None:
+async def generate_pdf_task(execution_id: str, accept_language: str | None = None, profile_id: str = "default") -> None:
     """Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
     Called by Arq worker for resilient PDF background compilation.
     """
@@ -260,11 +265,11 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
                 accept_language = loc
 
         # 1. Generate Omni-Channel JSON Payload
-        payload = await transformer.build_render_payload(execution_id, accept_language)
+        dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
 
-        # 2. Feed structured JSON to PDF Engine instead of DB fetching
+        # 2. Feed structured DTO to PDF Engine instead of DB fetching
         service = PdfReportService(repo)
-        pdf_bytes = await service.generate_execution_pdf(execution_id, blueprint_payload=payload)
+        pdf_bytes = await service.generate_execution_pdf(execution_id, report_dto=dto)
 
         # 3. Save bytes
         storage = get_storage_driver()
