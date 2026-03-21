@@ -2077,6 +2077,180 @@
           }
         }
       }
+    },
+    "/api/v2/output-profiles/": {
+      "get": {
+        "tags": [
+          "Output Profiles"
+        ],
+        "summary": "List Output Profiles",
+        "description": "List all available Output Profiles. Tenant isolation handled safely by StudioService.",
+        "operationId": "list_output_profiles_api_v2_output_profiles__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OutputProfileResponseDTO"
+                  },
+                  "type": "array",
+                  "title": "Response List Output Profiles Api V2 Output Profiles  Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/output-profiles/{profile_id}": {
+      "get": {
+        "tags": [
+          "Output Profiles"
+        ],
+        "summary": "Get Output Profile",
+        "description": "Get a specific Output Profile.",
+        "operationId": "get_output_profile_api_v2_output_profiles__profile_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputProfileResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Output Profiles"
+        ],
+        "summary": "Upsert Output Profile",
+        "description": "Create or Update an Output Profile. Validation automatically enforced by Pydantic.",
+        "operationId": "upsert_output_profile_api_v2_output_profiles__profile_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputProfileCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputProfileResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Output Profiles"
+        ],
+        "summary": "Delete Output Profile",
+        "description": "Delete an Output Profile.",
+        "operationId": "delete_output_profile_api_v2_output_profiles__profile_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2801,6 +2975,18 @@
         "title": "ImpersonationResponse",
         "description": "Response containing the impersonation token."
       },
+      "LayoutType": {
+        "type": "string",
+        "enum": [
+          "automatic",
+          "box_1d",
+          "matrix_2d",
+          "radar_3d",
+          "excel_row"
+        ],
+        "title": "LayoutType",
+        "description": "Supported render types for Output Profiles."
+      },
       "LoginResponse": {
         "properties": {
           "user": {
@@ -3341,6 +3527,148 @@
         "title": "OutputProfile",
         "description": "A distinct report variant containing a sequence of layout blocks."
       },
+      "OutputProfileCreateDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique string ID for the profile. Must follow Stripe Pattern"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "Human-readable routing identifier."
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id",
+            "description": "References the execution DAG to scope Target Matrices."
+          },
+          "name": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized name."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Localized description."
+          },
+          "layouts": {
+            "items": {
+              "$ref": "#/components/schemas/OutputProfileLayout"
+            },
+            "type": "array",
+            "title": "Layouts",
+            "description": "Sequence of layouts."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "workflow_id",
+          "name"
+        ],
+        "title": "OutputProfileCreateDTO",
+        "description": "DTO for creating a new Output Profile."
+      },
+      "OutputProfileLayout": {
+        "properties": {
+          "layout_type": {
+            "$ref": "#/components/schemas/LayoutType",
+            "description": "The type of layout to render."
+          },
+          "title": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized title for this layout block."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional localized description."
+          },
+          "components": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Components",
+            "description": "List of block IDs (e.g. blk_123abc) representing the axes/components to include."
+          },
+          "show_text": {
+            "type": "boolean",
+            "title": "Show Text",
+            "description": "Whether to include text justifications in this block.",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "layout_type",
+          "title",
+          "components"
+        ],
+        "title": "OutputProfileLayout",
+        "description": "Layout definition mapping a presentation type to DAG components."
+      },
+      "OutputProfileResponseDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id"
+          },
+          "name": {
+            "$ref": "#/components/schemas/I18nText"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "layouts": {
+            "items": {
+              "$ref": "#/components/schemas/OutputProfileLayout"
+            },
+            "type": "array",
+            "title": "Layouts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "workflow_id",
+          "name",
+          "layouts"
+        ],
+        "title": "OutputProfileResponseDTO",
+        "description": "DTO for returning an Output Profile."
+      },
       "PromptBlock-Input": {
         "properties": {
           "id": {
@@ -3703,6 +4031,28 @@
             ],
             "title": "Description",
             "description": "Detailed step context"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "llm",
+              "logic"
+            ],
+            "title": "Type",
+            "description": "Step execution type (llm or native logic)",
+            "default": "llm"
+          },
+          "hook": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hook",
+            "description": "Native Python hook to execute if type is 'logic'"
           },
           "task_key": {
             "anyOf": [

@@ -1,1 +1,0 @@
-wf_d653170e174847559e08af42b938d826: {'default_locale': 'fi', 'translations': {'fi': 'Kokonaisvaltainen Auditointi', 'en': 'Holistic Audit'}}
