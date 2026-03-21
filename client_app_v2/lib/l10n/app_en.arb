@@ -989,5 +989,71 @@
         "type": "String"
       }
     }
-  }
+  },
+  "reportEmptyProfile": "Empty profile (No layout blocks defined)",
+  "reportUnknownOrg": "Unknown organization",
+  "reportTopicProfile": "Topic & Profile: {name}",
+  "@reportTopicProfile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportContext": "Context: {orgName}",
+  "@reportContext": {
+    "placeholders": {
+      "orgName": {
+        "type": "String"
+      }
+    }
+  },
+  "reportTimestamp": "Timestamp: {timestamp}",
+  "@reportTimestamp": {
+    "placeholders": {
+      "timestamp": {
+        "type": "String"
+      }
+    }
+  },
+  "reportCosts": "Costs",
+  "reportApiPrice": "API Price: {price}",
+  "@reportApiPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "reportCognitiveWork": "Cognitive Work (Tokens)",
+  "reportTextSynthesis": "Text / Synthesis",
+  "reportQuoteTitle": "\ud83d\udcac Excerpt from original text:\n{quote}",
+  "@reportQuoteTitle": {
+    "placeholders": {
+      "quote": {
+        "type": "String"
+      }
+    }
+  },
+  "reportFrameworkReference": "\u2696\ufe0f Reference framework: {source}",
+  "@reportFrameworkReference": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "reportGoogleVerified": "Verified from Google sources:\n{citation}",
+  "@reportGoogleVerified": {
+    "placeholders": {
+      "citation": {
+        "type": "String"
+      }
+    }
+  },
+  "reportInteractionMatrix2D": "Interaction Matrix (2D)",
+  "reportRadarAnalysis2D": "Radar Analysis (2D)",
+  "reportComparisonView": "Comparison View",
+  "reportAnalyticalFramework3D": "Analytical Framework (3D)",
+  "reportAnalyticalFramework2D": "Analytical Framework (2D)"
 }

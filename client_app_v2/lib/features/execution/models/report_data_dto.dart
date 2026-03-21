@@ -54,6 +54,7 @@ class ReportAxisDTO {
 /// Strictly typed DTO representing a single layout block dynamically defining how to render axes.
 class ReportLayoutDTO {
   final String presetView;
+  final String? matrixType;
   final Map<String, String> title;
   final Map<String, String> description;
   final List<ReportAxisDTO> axes;
@@ -61,6 +62,7 @@ class ReportLayoutDTO {
 
   const ReportLayoutDTO({
     required this.presetView,
+    this.matrixType,
     required this.title,
     required this.description,
     required this.axes,
@@ -76,6 +78,7 @@ class ReportLayoutDTO {
     }
     return ReportLayoutDTO(
       presetView: preset.isEmpty ? '1d_metrics' : preset,
+      matrixType: json['matrix_type']?.toString(),
       title: Map<String, String>.from(
         SafeCast.safeMap(
           json['title'],

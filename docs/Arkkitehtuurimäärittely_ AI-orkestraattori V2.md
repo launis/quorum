@@ -4,7 +4,7 @@ Tämä dokumentti määrittelee dynaamisen, palvelinohjatun (SDUI) ja sataprosen
 
 ## **1. Arkkitehtuurin Ydinfilosofiat**
 
-1. **Zero-Deploy, SDUI & Responsiivisuus:** Käyttöliittymä ja tulostemoottorit ovat liiketoimintalogiikasta tietämättömiä renderöijiä. Kaikki syötevaatimukset, arviointikriteerit, tekoälymallit ja käyttöliittymäkomponentit konfiguroidaan tietokannassa.
+1. **Zero-Deploy, BFF (Backend-For-Frontend) & Responsiivisuus:** Käyttöliittymä ja tulostemoottorit ovat liiketoimintalogiikasta tietämättömiä renderöijiä. Kaikki syötevaatimukset, arviointikriteerit, tekoälymallit ja käyttöliittymäkomponentit konfiguroidaan tietokannassa.
 2. **Reaktiivinen Tilanhallinta (Riverpod):** Koko käyttöliittymän tilanhallinta ja asynkroniset datavirrat rakennetaan Riverpodilla uusimpien best practice -mallien mukaisesti.
 3. **Schema-Driven AI (Dynaaminen Pydantic):** Tekoälyltä ei koskaan pyydetä tulosteen muotoa vapaassa tekstissä. Tulostevaatimukset käännetään lennosta OpenAPI JSON Schema -validointiluokiksi (`Structured Outputs`).
 4. **Universaali Mittausarkkitehtuuri ("PromptBlocks"):** Vapaamuotoiset laadulliset analyysit, numeeriset/desimaaliset mittaristot ja ohjeistukset yhdistetään yhdeksi "PromptBlock" -tietokantamalliksi poistaen siilot.
@@ -25,7 +25,7 @@ Quorum V2:n työnkulut irrottavat tekoälyn "kognitiivisen" päättelymekanismin
 ### Kerros 1: Staattinen Käyttöliittymä (Compile-Time l10n)
 Flutterin luontaiset `.arb`-tiedostot (esim. `app_fi.arb`) on varattu **ainoastaan** käyttöliittymän kiinteille komponenteille (napit, navigaatio, staattiset otsakkeet). Virheenhallinnassa (RFC 7807) käytetään `AppErrorExt` reititintä, joka muuntaa backendin Enum-tunnisteet yhdistetyksi *Actionable Hintiksi* omalla kielellä.
 
-### Kerros 2: SDUI-Tietokanta & Dynaamiset Säännöt (Runtime Payload)
+### Kerros 2: BFF-Tietokanta & Dynaamiset Tulostusprofiilit (Runtime Payload)
 Kun järjestelmään lisätään matriiseja tai sääntöjä, Pydantic DTO (esim. PromptBlock) tallentaa ne kantaan muodossa `translations: {"fi": "Syyttäjä...", "en": "Prosecutor..."}`. Flutter lukee aina oman lokaalinsa mukaisen käännöksen dynaamisesti (SafeCast).
 
 ### Kerros 3: Kognitiivinen Moottori & English-Only Mandate (The Deep Engine)
@@ -100,11 +100,11 @@ Koska LLM Structured Outputs ohjaa vastaukset usein tasakymmeniin tai vahvoihin 
 
 ---
 
-## **6. Esityskerros (Adaptive SDUI - Flutter)**
+## **6. Esityskerros (Adaptive BFF - Flutter)**
 
 Frontend (`client_app_v2`) on joustava, kognition ulkoistanut renderöintimoottori:
 
 1. **Riverpod ja Koodigeneroitu Reaktiivisuus:** Tilanhallinta rakentuu Riverpod 3.0 (Notifier, AsyncNotifier) varaan hyödyntäen koodigenerointia (`@riverpod`), kieltäen `ChangeNotifier` -käytöt kokonaan.
-2. **Hybridiparillinen Datanhallinta (Freezed vs. SafeCast):** Ydintila parsitaan tiukasti (`freezed`, `json_serializable`). Vahvasti dynaamiset SDUI-määritykset nojaavat defensiiviseen **SafeCast**-parsintaan, jotta ohjelmisto ei kaadu yhteen puuttuvaan avaimeen datassa (Red Screen Mitigation).
+2. **Hybridiparillinen Datanhallinta (Freezed vs. SafeCast):** Ydintila parsitaan tiukasti (`freezed`, `json_serializable`). Vahvasti dynaamiset BFF ViewModel -määritykset nojaavat defensiiviseen **SafeCast**-parsintaan, jotta ohjelmisto ei kaadu yhteen puuttuvaan avaimeen datassa (Red Screen Mitigation).
 3. **Compound Widgets (Grounded UI):** Dynaamiset arviointislaiderit, the LLM-CoT näkymät ja teoriaväitteet rakennetaan Pydantic-datasta yhdeksi skaalautuvaksi widgetiksi jäännöksettömästi.
 4. **Riverpod Hybrid Caching (SWR & TTL):** Käyttöliittymä ei lataa näkymiä toistuvasti alusta navigoinnissa. Lukunäkymät (kuten Dashboard-listat) hyödyntävät Stale-While-Revalidate (SWR) -mallia salamannopeaan navigointiin, ja syöttönäkymät (Lomakkeet) käyttävät lyhyttä Time-To-Live (TTL) -aikakatkaisua suojatakseen keskeneräisen datan väliaikaisesti ennen automaattista roskienkeruuta. (Lisätiedot: `flutterpromptohje.md`)

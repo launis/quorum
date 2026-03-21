@@ -2174,4 +2174,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String blueprintVariantSelector(String variant) {
     return 'Variant: $variant';
   }
+
+  @override
+  String get reportEmptyProfile => 'Empty profile (No layout blocks defined)';
+
+  @override
+  String get reportUnknownOrg => 'Unknown organization';
+
+  @override
+  String reportTopicProfile(String name) {
+    return 'Topic & Profile: $name';
+  }
+
+  @override
+  String reportContext(String orgName) {
+    return 'Context: $orgName';
+  }
+
+  @override
+  String reportTimestamp(String timestamp) {
+    return 'Timestamp: $timestamp';
+  }
+
+  @override
+  String get reportCosts => 'Costs';
+
+  @override
+  String reportApiPrice(String price) {
+    return 'API Price: $price';
+  }
+
+  @override
+  String get reportCognitiveWork => 'Cognitive Work (Tokens)';
+
+  @override
+  String get reportTextSynthesis => 'Text / Synthesis';
+
+  @override
+  String reportQuoteTitle(String quote) {
+    return '💬 Excerpt from original text:\n$quote';
+  }
+
+  @override
+  String reportFrameworkReference(String source) {
+    return '⚖️ Reference framework: $source';
+  }
+
+  @override
+  String reportGoogleVerified(String citation) {
+    return 'Verified from Google sources:\n$citation';
+  }
+
+  @override
+  String get reportInteractionMatrix2D => 'Interaction Matrix (2D)';
+
+  @override
+  String get reportRadarAnalysis2D => 'Radar Analysis (2D)';
+
+  @override
+  String get reportComparisonView => 'Comparison View';
+
+  @override
+  String get reportAnalyticalFramework3D => 'Analytical Framework (3D)';
+
+  @override
+  String get reportAnalyticalFramework2D => 'Analytical Framework (2D)';
 }

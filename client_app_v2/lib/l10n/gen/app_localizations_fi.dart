@@ -2181,4 +2181,69 @@ class AppLocalizationsFi extends AppLocalizations {
   String blueprintVariantSelector(String variant) {
     return 'Vaihtoehto: $variant';
   }
+
+  @override
+  String get reportEmptyProfile => 'Tyhjä profiili (No layout blocks defined)';
+
+  @override
+  String get reportUnknownOrg => 'Tuntematon organisaatio';
+
+  @override
+  String reportTopicProfile(String name) {
+    return 'Aihe & Profiili: $name';
+  }
+
+  @override
+  String reportContext(String orgName) {
+    return 'Konteksti: $orgName';
+  }
+
+  @override
+  String reportTimestamp(String timestamp) {
+    return 'Aikaleima: $timestamp';
+  }
+
+  @override
+  String get reportCosts => 'Kustannukset';
+
+  @override
+  String reportApiPrice(String price) {
+    return 'API-hinta: $price';
+  }
+
+  @override
+  String get reportCognitiveWork => 'Kognitiivinen työ (Tokens)';
+
+  @override
+  String get reportTextSynthesis => 'Teksti / Synteesi';
+
+  @override
+  String reportQuoteTitle(String quote) {
+    return '💬 Ote alkuperäisestä tekstistä:\n$quote';
+  }
+
+  @override
+  String reportFrameworkReference(String source) {
+    return '⚖️ Viitekehys: $source';
+  }
+
+  @override
+  String reportGoogleVerified(String citation) {
+    return 'Tarkistettu Googlen lähteistä:\n$citation';
+  }
+
+  @override
+  String get reportInteractionMatrix2D => 'Vuorovaikutusmatriisi (2D)';
+
+  @override
+  String get reportRadarAnalysis2D => 'Tutka-analyysi (2D)';
+
+  @override
+  String get reportComparisonView => 'Vertailunäkymä';
+
+  @override
+  String get reportAnalyticalFramework3D => 'Analyyttinen Viitekehys (3D)';
+
+  @override
+  String get reportAnalyticalFramework2D => 'Analyyttinen Viitekehys (2D)';
 }

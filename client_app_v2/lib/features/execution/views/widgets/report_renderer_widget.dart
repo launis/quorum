@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/shared/widgets/score_card_radar.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Static MVC View Renderer mapping exactly to the workflow preset views.
 /// Adheres to the De-Generator Zero-Math rule natively traversing the array.
@@ -13,12 +14,13 @@ class ReportRendererWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (payload.layouts.isEmpty) {
-      return const Center(
+      final l10n = AppLocalizations.of(context)!;
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24.0),
           child: Text(
-            'Tyhjä profiili (No layout blocks defined)',
-            style: TextStyle(color: Colors.grey),
+            l10n.reportEmptyProfile,
+            style: const TextStyle(color: Colors.grey),
           ),
         ),
       );
@@ -38,7 +40,8 @@ class ReportRendererWidget extends StatelessWidget {
   }
 
   Widget _buildMetadataHeaderBox(BuildContext context) {
-    final defaultOrgName = payload.orgName ?? "Tuntematon organisaatio";
+    final l10n = AppLocalizations.of(context)!;
+    final defaultOrgName = payload.orgName ?? l10n.reportUnknownOrg;
     final profileNameStr =
         payload.profileName['fi'] ??
         payload.profileName['en'] ??
@@ -61,19 +64,19 @@ class ReportRendererWidget extends StatelessWidget {
           children: [
             // AIHE & PROFIILI
             Text(
-              "Aihe & Profiili: $profileNameStr",
+              l10n.reportTopicProfile(profileNameStr),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
 
             // KONTEKSTI
             Text(
-              "Konteksti: $defaultOrgName",
+              l10n.reportContext(defaultOrgName),
               style: TextStyle(color: Colors.grey.shade800),
             ),
             if (payload.createdAt != null)
               Text(
-                "Aikaleima: ${payload.createdAt}",
+                l10n.reportTimestamp(payload.createdAt.toString()),
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
 
@@ -87,15 +90,15 @@ class ReportRendererWidget extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Kustannukset",
-                        style: TextStyle(
+                      Text(
+                        l10n.reportCosts,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
                       ),
                       Text(
-                        "API-hinta: $costStr",
+                        l10n.reportApiPrice(costStr),
                         style: const TextStyle(fontSize: 13),
                       ),
                     ],
@@ -105,9 +108,9 @@ class ReportRendererWidget extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Kognitiivinen työ (Tokens)",
-                        style: TextStyle(
+                      Text(
+                        l10n.reportCognitiveWork,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -138,6 +141,7 @@ class ReportRendererWidget extends StatelessWidget {
   Widget _buildLayoutSequence(BuildContext context, ReportLayoutDTO layout) {
     if (layout.axes.isEmpty) return const SizedBox.shrink();
 
+    final l10n = AppLocalizations.of(context)!;
     final lang = Localizations.localeOf(context).languageCode;
     final title =
         layout.title[lang] ?? layout.title['en'] ?? layout.title['fi'];
@@ -149,20 +153,20 @@ class ReportRendererWidget extends StatelessWidget {
     Widget content;
     switch (layout.presetView) {
       case '1d_metrics':
-        content = _build1DMetrics(layout);
+        content = _build1DMetrics(context, layout);
         break;
       case '2d_compare':
-        content = _build2DCompare(layout);
+        content = _build2DCompare(context, layout);
         break;
       case '3d_complex':
-        content = _build3DComplex(layout);
+        content = _build3DComplex(context, layout);
         break;
       case 'text_only':
-        content = _buildWip('Teksti / Synteesi');
+        content = _buildWip(l10n.reportTextSynthesis);
         break;
       default:
         // Graceful degradation fallback
-        content = _build1DMetrics(layout);
+        content = _build1DMetrics(context, layout);
     }
 
     if ((title != null && title.isNotEmpty) ||
@@ -207,9 +211,10 @@ class ReportRendererWidget extends StatelessWidget {
     return content;
   }
 
-  Widget _build1DMetrics(ReportLayoutDTO layout) {
+  Widget _build1DMetrics(BuildContext context, ReportLayoutDTO layout) {
     if (layout.axes.isEmpty) return const SizedBox.shrink();
 
+    final l10n = AppLocalizations.of(context)!;
     final Set<String> seenQuotes = {};
     final List<bool> shouldShowQuote = [];
     for (var axis in layout.axes) {
@@ -291,7 +296,7 @@ class ReportRendererWidget extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                "💬 Ote alkuperäisestä tekstistä:\n${axis.citedTextQuote}",
+                                l10n.reportQuoteTitle(axis.citedTextQuote!),
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontStyle: FontStyle.italic,
@@ -305,7 +310,7 @@ class ReportRendererWidget extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
-                                "⚖️ Viitekehys: ${axis.citedSourceId}",
+                                l10n.reportFrameworkReference(axis.citedSourceId!),
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.blueGrey,
@@ -344,7 +349,7 @@ class ReportRendererWidget extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      "Tarkistettu Googlen lähteistä:\n${axis.citedWebCitation}",
+                                      l10n.reportGoogleVerified(axis.citedWebCitation!),
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Colors.green,
@@ -388,8 +393,43 @@ class ReportRendererWidget extends StatelessWidget {
     );
   }
 
-  Widget _build2DCompare(ReportLayoutDTO layout) {
-    if (layout.axes.length < 2) return _build1DMetrics(layout);
+  Widget _build2DCompare(BuildContext context, ReportLayoutDTO layout) {
+    final l10n = AppLocalizations.of(context)!;
+    if (layout.axes.length < 2) return _build1DMetrics(context, layout);
+
+    // If exactly 2 dimensions, a radar chart is geometrically impossible (cannot form a polygon).
+    // Dynamically fallback to a Cartesian 2D matrix view.
+    if (layout.axes.length == 2) {
+      return Column(
+        children: [
+          Card(
+            elevation: 2,
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Text(
+                    l10n.reportInteractionMatrix2D,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  LogicMatrixChart(
+                    xAxis: layout.axes[0],
+                    yAxis: layout.axes[1],
+                    zAxis: null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          _build1DMetrics(context, layout),
+        ],
+      );
+    }
 
     final dimensions =
         layout.axes
@@ -408,24 +448,25 @@ class ReportRendererWidget extends StatelessWidget {
       children: [
         ScoreCardRadar(
           cardData: {
-            'agentName': 'Tutka-analyysi (2D)',
-            'verdict': 'Vertailunäkymä',
+            'agentName': l10n.reportRadarAnalysis2D,
+            'verdict': l10n.reportComparisonView,
             'totalScore': total / layout.axes.length,
             'dimensions': dimensions,
           },
         ),
-        _build1DMetrics(layout),
+        _build1DMetrics(context, layout),
       ],
     );
   }
 
-  Widget _build3DComplex(ReportLayoutDTO layout) {
-    if (layout.axes.length < 2) return _build1DMetrics(layout);
+  Widget _build3DComplex(BuildContext context, ReportLayoutDTO layout) {
+    if (layout.axes.length < 2) return _build1DMetrics(context, layout);
 
+    final l10n = AppLocalizations.of(context)!;
     final String title =
         layout.axes.length > 2
-            ? "Analyyttinen Viitekehys (3D)"
-            : "Analyyttinen Viitekehys (2D)";
+            ? l10n.reportAnalyticalFramework3D
+            : l10n.reportAnalyticalFramework2D;
 
     return Column(
       children: [
@@ -453,7 +494,7 @@ class ReportRendererWidget extends StatelessWidget {
             ),
           ),
         ),
-        _build1DMetrics(layout),
+        _build1DMetrics(context, layout),
       ],
     );
   }

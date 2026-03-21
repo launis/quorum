@@ -726,5 +726,22 @@
         "type": "String"
       }
     }
-  }
+  },
+  "reportEmptyProfile": "Tyhj\u00e4 profiili (No layout blocks defined)",
+  "reportUnknownOrg": "Tuntematon organisaatio",
+  "reportTopicProfile": "Aihe & Profiili: {name}",
+  "reportContext": "Konteksti: {orgName}",
+  "reportTimestamp": "Aikaleima: {timestamp}",
+  "reportCosts": "Kustannukset",
+  "reportApiPrice": "API-hinta: {price}",
+  "reportCognitiveWork": "Kognitiivinen ty\u00f6 (Tokens)",
+  "reportTextSynthesis": "Teksti / Synteesi",
+  "reportQuoteTitle": "\ud83d\udcac Ote alkuper\u00e4isest\u00e4 tekstist\u00e4:\n{quote}",
+  "reportFrameworkReference": "\u2696\ufe0f Viitekehys: {source}",
+  "reportGoogleVerified": "Tarkistettu Googlen l\u00e4hteist\u00e4:\n{citation}",
+  "reportInteractionMatrix2D": "Vuorovaikutusmatriisi (2D)",
+  "reportRadarAnalysis2D": "Tutka-analyysi (2D)",
+  "reportComparisonView": "Vertailun\u00e4kym\u00e4",
+  "reportAnalyticalFramework3D": "Analyyttinen Viitekehys (3D)",
+  "reportAnalyticalFramework2D": "Analyyttinen Viitekehys (2D)"
 }

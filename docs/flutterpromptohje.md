@@ -27,7 +27,7 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näi
 | **Routing** | Use `GoRouteData` (Type-safe classes) | Raw strings: `context.push('/home')` |
 | **API** | Use `Annotated[Dep, Depends()]` | `params: Dep = Depends()` (Old syntax) |
 | **Models (Backend)** | Use `model_validate`, `model_dump` | `.parse_obj()`, `.dict()` |
-| **Domain Data (Frontend)** | `Freezed` for Local UI State (User, Settings). Raw `Map<String, dynamic>` for Dynamic API Payloads (De-Generator Policy). | Pure `Map<String, dynamic>` for Local State (Too slow to type and parse) / Freezed for SDUI (Breaks Zero-Deploy). |
+| **Domain Data (Frontend)** | `Freezed` for Local UI State (User, Settings). Raw `Map<String, dynamic>` for Dynamic API Payloads (De-Generator Policy). | Pure `Map<String, dynamic>` for Local State (Too slow to type and parse) / Freezed for BFF ViewModels (Breaks Zero-Deploy). |
 
 ### 1.3 Routine Quality Gates (Verifications)
 Älä koskaan merkitse työtä valmiiksi tarkistamatta sitä manuaalisesti laadunvarmistustyökaluilla:
@@ -173,7 +173,7 @@ except Exception as e:
 ### 6.3 Non-Fatal Errors (Sallitut läpimenot / Graceful Degradation)
 Myös silloin, kun virheen tai tietyn poikkeuksen annetaan mennä läpi ilman koko sovelluksen kaatumista (esim. poikkeuksen nappaaminen SDUI-renderöijässä, jotta yksi viallinen JSON-noodi ei kaada koko näkymää), **käytetään lähes täsmälleen samaa rakenteellista virheenhallintaa ja lokitusta** kuin fataaleissa tilanteissa. Pelkkää hiljaista ohittamista (`catch: return fallback()`) ei hyväksytä koskaan vikatilanteissa. 
 
-Tyypillinen esimerkki tästä on Frontendin SDUI-widget (Server-Driven UI): jos backendistä tullut payload on osittain korruptoitunut ja yksittäisen komponentin rakentaminen failaa, näytämme näkymässä `SizedBox.shrink()` (Graceful Degradation). VAIKKA sovellus ei kaadu, komponentin on pakko ampua vahva virheloki osoittamaan, että fail-fast periaate toteutui osittain ja data oli viallista.
+Tyypillinen esimerkki tästä on Frontendin BFF-widget (Backend-For-Frontend): jos backendistä tullut payload on osittain korruptoitunut ja yksittäisen komponentin rakentaminen failaa, näytämme näkymässä `SizedBox.shrink()` (Graceful Degradation). VAIKKA sovellus ei kaadu, komponentin on pakko ampua vahva virheloki osoittamaan, että fail-fast periaate toteutui osittain ja data oli viallista.
 
 **Käännösvirheet (TRANSLATION_FAILED):** 
 Uusi The Translation Boundary Hook nojaa LLM:ään kääntääkseen dynaamisia tekstejä (kuten `scratchpad`) asiointikielelle lennosta. Jos käännöspalvelu kaatuu tai timeouttaa, sovellus suorittaa Graceful Degradationin: se logittaa rakenteellisen `TRANSLATION_FAILED` -virheen, mutta tulostaa UI:hin datan sen **alkuperäisellä kielellä** (englanniksi) suojellakseen käyttäjäkokemusta ja sallien arvioinnin jatkumisen. Sovelluskokemus ei koskaan saa kaatua rikkoutuneeseen kääntäjään.
@@ -184,7 +184,7 @@ try {
   return buildDynamicWidget(jsonData);
 } catch (e, st) {
   // 1. Log with STRUCTURED FORMAT (esim. VALIDATION_FAILED tai TRANSLATION_FAILED) vaikka tilanteen annetaankin mennä läpi
-  logger.error('[SDUI Builder] ${ErrorCodes.VALIDATION_FAILED}: Widget render error: $e', e, st);
+  logger.error('[BFF Builder] ${ErrorCodes.VALIDATION_FAILED}: Widget render error: $e', e, st);
   // 2. Fallback UI, mutta vain koska backendin dataongelma ei saa rikkoa koko puhelinta
   return const SizedBox.shrink(); // Tai käännösvirheessä: palauta alkuperäinen englanninkielinen teksti
 }
@@ -201,9 +201,9 @@ Päällekkäinen lokalisointityö vältetään ymmärtämällä selkeä rajanvet
 
 ---
 
-## 🖥️ 7. HYBRID SDUI & OMNI-CHANNEL RENDERING
+## 🖥️ 7. HYBRID BFF & OMNI-CHANNEL RENDERING
 
-### 7.1 Zero-Deploy SDUI & Compound Widgets (Server-Driven UI)
+### 7.1 Zero-Deploy BFF & ViewModel Nodes (Backend-for-Frontend)
 Kaikki kognitiivinen liiketoimintalogiikka ja käyttöliittymän piirtosäännöt konfiguroidaan tietokannassa. Frontend on "tyhmä" renderöintimoottori, joka kääntää isot epäsäännölliset rakenteet nautittavaan dynaamiseen perusformaattiin. 
 Käyttöliittymä piirtää UI-vihjeiden (esim. `slider`) pohjalta dynaamisia yhdistelmäkomponentteja (Compound Widgets), jotka näyttävät LLM:n teoriaperustelun ja virallisen lähdeviitteen automaattisesti laajennettavissa Markdown-laatikoissa.
 
@@ -216,7 +216,7 @@ Rajapinta on ohjelmiston **AINOA PAIKKA**, jossa Fail-Fast ei ole ehdoton standa
 * Ominaisuus hoituu nykyään automaattisesti `ui_hints_snapshot` -mekanismin ja Dartin `SafeCast` -defensiivisen parsinnan yhteistyönä. Frontend on suunniteltu ohittamaan tyhjät (`{}`) tai tuntemattomat blokit nostamatta Punaista Ruutua (Red Screen of Death) `SizedBox.shrink()` avulla.
 
 ### 7.4 Specialist Nested Output Data
-Kaikki erikoisagenttien (kuten Logician tai Archivist) tuottamat erikoistulokset pakataan omaksi avaimekseen rakenteen sisään (Strict Nesting -> `{"logician_data": {"score": ...}}`). Datan luvaton "flättäys" (yhdistäminen root-tasolle) romuttaa SDUI:n dynamiikan.
+Kaikki erikoisagenttien (kuten Logician tai Archivist) tuottamat erikoistulokset pakataan omaksi avaimekseen rakenteen sisään (Strict Nesting -> `{"logician_data": {"score": ...}}`). Datan luvaton "flättäys" (yhdistäminen root-tasolle) romuttaa BFF:n dynamiikan.
 
 ### 7.5 The "Zero-Math UI" & Database Purity Mandate (MANDATORY)
 * **Tietokannan Puhtaus (`ExecutionRecord`)**: V2-tietokanta on puhdas logi! Se ei koskaan saa sisältää esitysmuuttujia (kuten renderöintiprosentteja `visual_pct` tai käännettyjä CSS-mittoja). Tietokanta sisältää vain arkkitehtuurin raakadatan.
@@ -234,7 +234,7 @@ Quorum V2:n työnkulut irrottavat tekoälyn "kognitiivisen" päättelymekanismin
 ### 8.1 Kerros 1: Staattinen Käyttöliittymä (Compile-Time l10n)
 Flutterin luontaiset `.arb`-tiedostot (esim. `app_fi.arb`) on varattu **ainoastaan** käyttöliittymän kiinteille komponenteille (napit, navigaatio, staattiset otsakkeet). Virheenhallinnassa (RFC 7807) käytetään `AppErrorExt` reititintä, joka muuntaa backendin Enum-tunnisteet yhdistetyksi *Actionable Hintiksi* omalla kielellä.
 
-### 8.2 Kerros 2: SDUI-Tietokanta & Dynaamiset Säännöt (Runtime Payload)
+### 8.2 Kerros 2: BFF-Tietokanta & Dynaamiset Säännöt (Runtime Payload)
 Kun järjestelmään lisätään matriiseja tai säännöstöjä, Pydantic DTO tallentaa ne kantaan muodossa `translations: {"fi": "Syyttäjä...", "en": "Prosecutor..."}`. Flutter lukee aina oman lokaalinsa mukaisen käännöksen dynaamisesti Backendin The Translation Schema Doctrine mukaisesti (SafeCast/BlueprintTransformer).
 
 ### 8.3 Kerros 3: Kognitiivinen Moottori & English-Only Mandate (The Deep Engine)
@@ -244,7 +244,7 @@ Tekoälymalli on huomattavasti kyvykkäämpi englanninkielisenä. Asiantuntija-a
 Numeroita, päivämääriä, kellonaikoja ja valuuttoja ei koskaan lokalisoida backendissä. Kaikki aika kulkee ISO 8601 UTC -muodossa (`"2026-03-14T15:30:00Z"`) ja numerot primitiiveinä (esim. `5.0`). Flutter vastaa formatointilogiikasta käyttäjän laitteen paikalleen Dartin `intl`-kirjaston avulla (ICU).
 
 ### 8.5 Kerros 5: The Translation Boundary & Loppusynteesi (Late-Binding)
-Backend **EI KOSKAAN** palauta API:ssa ohjelmallisesti yhdisteltyjä UI-merkkijonoja. Lopullinen muoto (Flutter SDUI, taitettu Jinja2 PDF) purkautuu vasta aivan prosessin lopussa myöhäisellä sidonnalla (Late-Binding). Tarvittaessa backend käyttää erillistä luonnollisen kielen LLM-käntäjää (Translation Hook) asiakkaan kielelle kääntämiseen ennen payloadin siirtoa eteenpäin dokumenteigenerointiin tai web-käyttöliittymään. Koska UI saa valita kielen, backendin status-kentät tulevat tiukkoina Enum-koodeina (esim. `AUTH_ORGANIC`) Fronttiin tai SDUI:n.
+Backend **EI KOSKAAN** palauta API:ssa ohjelmallisesti yhdisteltyjä UI-merkkijonoja. Lopullinen muoto (Flutter BFF, taitettu Jinja2 PDF) purkautuu vasta aivan prosessin lopussa myöhäisellä sidonnalla (Late-Binding). Tarvittaessa backend käyttää erillistä luonnollisen kielen LLM-käntäjää (Translation Hook) asiakkaan kielelle kääntämiseen ennen payloadin siirtoa eteenpäin dokumenteigenerointiin tai web-käyttöliittymään. Koska UI saa valita kielen, backendin status-kentät tulevat tiukkoina Enum-koodeina (esim. `AUTH_ORGANIC`) Fronttiin tai BFF-kerrokseen.
 
 ### 8.6 Frontend ICU Formatting (Ei string-katenointia)
 Manuaalinen ohjelmallinen sanaliitto (`"Score: " + val.toString()`) on ehdottoman **KIELLETTYÄ**. 

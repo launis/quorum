@@ -3,7 +3,7 @@
 **Structured, Auditable, and Deterministic AI Orchestration.**
 
 > **Status:** Phase 9 Hardening (V5.1)
-> **Architecture:** Zero-Deploy DAG Orchestrator & Omni-Channel Renderer
+> **Architecture:** Zero-Deploy DAG Orchestrator & BFF (Backend-For-Frontend) Architecture
 > **Philosophy:** Zero-Magic, Fail-Fast, Strict DTOs.
 
 Cognitive Quorum is a specialized AI orchestration platform designed for high-stakes cognitive labor—scientific peer review, legal auditing, and strategic analysis. Unlike generic chatbot frameworks, Quorum enforces a **Strict Object Mode**, ensuring that every step of the AI's reasoning is validated, persisted, and auditable.
@@ -22,11 +22,11 @@ We reject "black box" agent frameworks. Quorum uses explicit, deterministic Pyth
 We replaced sequential hardcoded agent chains with a dynamic **Directed Acyclic Graph (DAG)** workflow:
 *   **Data-Driven Pipelines**: Workflows and Prompts are defined in `seed_data.json`, meaning new evaluation criteria can be added without modifying backend code.
 *   **PromptCompiler**: Compiles dynamic Pydantic DTOs prior to execution based on the visual blocks requested, ensuring absolute schema conformity from the chosen LLM.
-*   **Omni-Channel UI**: The backend no longer ships formatting. It ships pure Data Models (`ExecutionRecord`) alongside an explicitly frozen snapshot of UI hints, allowing Flutter, Flat/CSV files, and PDF Generators to render with 100% parity.
+*   **Omni-Channel UI**: The backend no longer ships formatting. It ships pure Data Models (`ExecutionRecord`) and compiles them dynamically via a BFF Compiler into ViewModel Nodes. This allows Flutter (Mobile/Web), DataGrids (Excel), and PDF Generators to render 1:N outputs from a single execution with 100% parity.
 
 ### 3. Modular Async Monolith
 The system decouples **User Interaction** from **Cognitive Reasoning**:
-*   **API (FastAPI)**: Handles HTTP requests, generic SDUI view rendering, and enqueues jobs (< 50ms).
+*   **API (FastAPI)**: Handles HTTP requests, generic BFF ViewModel generation (`/report`), and enqueues jobs (< 50ms).
 *   **Worker (Arq/Redis)**: Executes deep reasoning DAGs (10m+) without timeouts.
 *   **Client (Flutter)**: A reactive client (Riverpod) that polls Server-Sent Events (SSE) for real-time DAG node progression updates. See the **[Client Application README](client_app_v2/README.md)** for details.
 
@@ -61,8 +61,9 @@ The `docs/` directory serves as the central repository for the platform's detail
 
 ### Core Architecture & Protocols
 *   **[Master Architecture AI Orchestrator V2](docs/Arkkitehtuurimäärittely_%20AI-orkestraattori%20V2.md)**: The authoritative system reference for the backend Python Engine.
+*   **[Output Profiles & BFF Architecture V2](docs/Arkkitehtuurimaarittely_Tulostus_ja_Raportointi_V2.md)**: The master standard for robust UI/PDF printing, Dynamic Excel Column generation, and the Dumb-Client philosophy.
 *   **[Universal Routing & Hooks V2](docs/Architecture_Universal_Routing_and_Hooks_V2.md)**: Deep dive into the Zero-Deploy workflow mappings, $inputs routing, and strictly typed interceptor hooks.
-*   **[Output Generation Pipeline](docs/output_generation_pipeline.md)**: The lifecycle of generating and rendering `ExecutionRecord` states.
+*   **[Output Generation Pipeline](docs/output_generation_pipeline.md)**: The lifecycle of generating and compiling `ExecutionRecord` states.
 *   **[Holistinen Mestaruus](docs/Holistinen%20Mestaruus.md)**: The theoretical foundation of psychometric assessment, balancing system-1 and system-2 cognition.
 
 ### Development Standards & Tooling

@@ -4057,6 +4057,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Variant: {variant}'**
   String blueprintVariantSelector(String variant);
+
+  /// No description provided for @reportEmptyProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty profile (No layout blocks defined)'**
+  String get reportEmptyProfile;
+
+  /// No description provided for @reportUnknownOrg.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown organization'**
+  String get reportUnknownOrg;
+
+  /// No description provided for @reportTopicProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Topic & Profile: {name}'**
+  String reportTopicProfile(String name);
+
+  /// No description provided for @reportContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Context: {orgName}'**
+  String reportContext(String orgName);
+
+  /// No description provided for @reportTimestamp.
+  ///
+  /// In en, this message translates to:
+  /// **'Timestamp: {timestamp}'**
+  String reportTimestamp(String timestamp);
+
+  /// No description provided for @reportCosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Costs'**
+  String get reportCosts;
+
+  /// No description provided for @reportApiPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'API Price: {price}'**
+  String reportApiPrice(String price);
+
+  /// No description provided for @reportCognitiveWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Cognitive Work (Tokens)'**
+  String get reportCognitiveWork;
+
+  /// No description provided for @reportTextSynthesis.
+  ///
+  /// In en, this message translates to:
+  /// **'Text / Synthesis'**
+  String get reportTextSynthesis;
+
+  /// No description provided for @reportQuoteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'💬 Excerpt from original text:\n{quote}'**
+  String reportQuoteTitle(String quote);
+
+  /// No description provided for @reportFrameworkReference.
+  ///
+  /// In en, this message translates to:
+  /// **'⚖️ Reference framework: {source}'**
+  String reportFrameworkReference(String source);
+
+  /// No description provided for @reportGoogleVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified from Google sources:\n{citation}'**
+  String reportGoogleVerified(String citation);
+
+  /// No description provided for @reportInteractionMatrix2D.
+  ///
+  /// In en, this message translates to:
+  /// **'Interaction Matrix (2D)'**
+  String get reportInteractionMatrix2D;
+
+  /// No description provided for @reportRadarAnalysis2D.
+  ///
+  /// In en, this message translates to:
+  /// **'Radar Analysis (2D)'**
+  String get reportRadarAnalysis2D;
+
+  /// No description provided for @reportComparisonView.
+  ///
+  /// In en, this message translates to:
+  /// **'Comparison View'**
+  String get reportComparisonView;
+
+  /// No description provided for @reportAnalyticalFramework3D.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytical Framework (3D)'**
+  String get reportAnalyticalFramework3D;
+
+  /// No description provided for @reportAnalyticalFramework2D.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytical Framework (2D)'**
+  String get reportAnalyticalFramework2D;
 }
 
 class _AppLocalizationsDelegate
