@@ -89,6 +89,29 @@ class PdfReportService:
             frozen_context = execution.frozen_context.model_dump() if execution.frozen_context else {}
             results = execution.results or {}
 
+            # 2.5 Generate static charts if DTO is provided
+            charts = {}
+            if report_dto and report_dto.layouts:
+                from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
+                for idx, layout in enumerate(report_dto.layouts):
+                    try:
+                        if layout.preset_view in ("radar_3d", "3d_complex"):
+                            b64_data = generate_radar_chart(layout.axes)
+                            if b64_data:
+                                charts[idx] = b64_data
+                        elif layout.preset_view in ("matrix_2d", "2d_compare"):
+                            b64_data = generate_scatter_chart(layout.axes)
+                            if b64_data:
+                                charts[idx] = b64_data
+                    except Exception as e:
+                        msg = f"Failed to render PDF charts for layout {idx}: {e}"
+                        logger.error(f"[PdfReportService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                        ) from e
+
             # 3. Render Template
             template = self.env.get_template("report_template.jinja2")
 
@@ -101,7 +124,8 @@ class PdfReportService:
                 frozen_context=frozen_context,
                 results=results,
                 report_data=report_dto,
-                printed_at=printed_at
+                printed_at=printed_at,
+                charts=charts
             )
 
             # 4. Generate PDF

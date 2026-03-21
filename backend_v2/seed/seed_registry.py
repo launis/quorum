@@ -5,7 +5,9 @@ Strictly maps collections to V2 Pydantic models (Zero V1 leak).
 from pydantic import TypeAdapter
 
 from backend_v2.models.auth import Organization, User
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.v2_core import (
+    ExecutionRecord,
     PromptBlock,
     Role,
     Step,
@@ -21,7 +23,8 @@ STANDARD_REGISTRY = {
     "agents": {"table": "agents", "model": TypeAdapter(Role), "id_field": "id"},
     "prompt_blocks": {"table": "prompt_blocks", "model": TypeAdapter(PromptBlock), "id_field": "id"},
     "steps": {"table": "steps", "model": TypeAdapter(Step), "id_field": "id"},
-
+    "output_profiles": {"table": "output_profiles", "model": TypeAdapter(OutputProfile), "id_field": "id"},
+    "executions": {"table": "executions", "model": TypeAdapter(ExecutionRecord), "id_field": "id"},
 
     # IAM remains shared for now until isolated
     "organizations": {"table": "organizations", "model": TypeAdapter(Organization), "id_field": "id"},

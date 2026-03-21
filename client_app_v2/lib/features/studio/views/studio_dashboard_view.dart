@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/views/model_registry_view.dart';
+import 'package:client_app/features/studio/views/output_profile_list_view.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -107,78 +108,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     WidgetRef ref,
     AppLocalizations l10n,
   ) {
-    final workflowsState = ref.watch(workflowsControllerProvider);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Tulostusprofiilit (Raportit)',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          workflowsState.when(
-            data: (workflows) {
-              if (workflows.isEmpty) return const Text('No workflows defined.');
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: workflows.length,
-                itemBuilder: (context, index) {
-                  final workflow = workflows[index];
-                  // Strict De-Generator map logic
-                  final profiles = SafeCast.safeMap(
-                    workflow['output_profiles'],
-                  );
-                  final profileCount = profiles.keys.length;
-
-                  return Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.print, color: Colors.blueGrey),
-                      title: Text(
-                        (SafeCast.safeMap(workflow['name'])['translations']
-                                as Map?)?['fi'] ??
-                            workflow['slug']?.toString() ??
-                            workflow['id']?.toString() ??
-                            'Unnamed Workflow',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text('$profileCount active profiles'),
-                      trailing: const Icon(Icons.edit_document),
-                      onTap: () {
-                        // Launch the new ProfileEditorView
-                        ProfileEditorRoute(
-                          workflowSlug: workflow['slug'] ?? workflow['id'],
-                          $extra: workflow,
-                        ).go(context);
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => ErrorView(
-                  error: e,
-                  compact: true,
-                  onRetry:
-                      () =>
-                          ref
-                              .read(workflowsControllerProvider.notifier)
-                              .refresh(),
-                ),
-          ),
-        ],
-      ),
-    );
+    return const OutputProfileListView();
   }
 
   Widget _buildWorkflowsTab(

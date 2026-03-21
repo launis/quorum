@@ -96,12 +96,19 @@ def apply_scoring_logic_hook(data: dict[str, Any], context: HookExecutionContext
     # We explicitly define matrices that measure unified system quality and CAN mathematically be averaged.
     # We EXCLUDE orthogonal matrices (e.g. security, bias, certainty).
     EVALUATIVE_MATRICES = {
-        "matrix_judge",
-        "matrix_toulmin",
-        "matrix_bloom",
-        "matrix_archivist",
-        "matrix_causal_analyst",
-        "matrix_causal_abductive"
+        # Opaque (V8)
+        "blk_371c7724eeba40218409b5a3697ac1d3", # Toulmin
+        "blk_a0405e121dbf44bfa8ee80566f8d0c2a", # Bloom
+        "blk_bf8a99a1b3514f6c93aff42a4cc52213", # Causal Analyst
+        "blk_a8e356b276f04ddeb7cc3a0eec58daf6", # Causal & Abductive
+        "blk_d0e240184e0a40759d37138a250bd0aa", # Archivist
+        "blk_d2013b25926f46d7b70903e69e53a61c", # Task Judge
+        "blk_0522f2416e304a54a67b99ed08398ac8", # Analyst
+        "blk_66d7a701ee29444b87cfc9e4471fdd20", # Logical Rigor
+        "blk_affd89e862e84797bd58e7323a793517", # Factuality
+        "blk_9bfcaa19335140faa3b610a1391ed950", # Evidentiary Rigor
+        "blk_49360a958cc7494ebf053294fb7e2faf", # Process Integrity
+        "blk_b17f535c936349e3bce6e7b19f505f2c", # Evidentiary Rigor v2
     }
 
     total_score_accum = 0.0
@@ -557,7 +564,7 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
             except (ValueError, TypeError):
                 # Graceful Degradation: Log info before skipping.
                 # Non-numeric outputs (like JSON blobs or reasoning traces) are expected for text PromptBlocks.
-                # Downgraded from ERROR to DEBUG to avoid terrifying the user with stack traces on intentional JSON outputs.
+                # Downgraded from ERROR to DEBUG to avoid terrifying the user with stack traces.
                 logger.debug(
                     f"[ScoringHook] Non-numeric data for '{slug}', "
                     f"skipping score normalization. Value snippet: {str(new_payload[slug])[:100]}..."
@@ -621,6 +628,14 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
                 new_payload[slug] = raw_val
                 new_payload[f"{slug}_scaled"] = scaled_val
                 new_payload[f"{slug}_normalized"] = normalized_val
+
+                # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification before saving
+                just_key = f"{slug}_justification"
+                if just_key in new_payload and isinstance(new_payload[just_key], str):
+                    import re
+                    # Non-greedy strip of anything resembling ||DECIMAL: X.Y||
+                    cleaned = re.sub(r'\|\|DECIMAL:\s*[0-9.]+\|\|', '', new_payload[just_key])
+                    new_payload[just_key] = cleaned.strip()
 
                 updates_made = True
                 logger.info(

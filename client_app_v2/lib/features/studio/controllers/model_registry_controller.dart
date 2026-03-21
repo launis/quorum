@@ -21,7 +21,7 @@ final availableModelsProvider = FutureProvider<List<String>>((ref) async {
 /// Controller managing the Model Registry strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
 class ModelRegistryController extends AsyncNotifier<Map<String, dynamic>> {
-  static const String _configId = 'model_registry';
+  static const String _configId = 'syscfg_658b86111cb44e658c2d0c868141b841';
 
   @override
   FutureOr<Map<String, dynamic>> build() async {

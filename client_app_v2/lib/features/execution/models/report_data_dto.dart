@@ -104,6 +104,7 @@ class ReportDataDTO {
   final String profileId;
   final Map<String, dynamic> profileName;
   final Map<String, String> availableProfiles;
+  final double? globalScore;
   final List<ReportLayoutDTO> layouts;
   final String synthesis;
 
@@ -120,6 +121,7 @@ class ReportDataDTO {
     required this.profileId,
     required this.profileName,
     required this.availableProfiles,
+    this.globalScore,
     required this.layouts,
     required this.synthesis,
     this.createdAt,
@@ -149,6 +151,10 @@ class ReportDataDTO {
           json['available_profiles'],
         ).map((k, v) => MapEntry(k.toString(), v.toString())),
       ),
+      globalScore:
+          json['global_score'] != null
+              ? SafeCast.safeDouble(json['global_score'])
+              : null,
       layouts:
           SafeCast.safeList(
             json['layouts'],

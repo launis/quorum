@@ -83,9 +83,10 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näi
 ### 3.5 Seed Data Protocol (Tietokannan hallinta)
 **ERITTÄIN TÄRKEÄ SÄÄNTÖ:** Tietokantaa (TinyDB) ei koskaan muokata lennosta tai ohittaen Seed-prosessia kehityksessä. 
 Aina kun tietokannan asetuksia, prompti-lohkoja tai askeleita muutetaan:
-1. **Muokkaa alkuperäistä JSONia:** Tee rakenteellinen muutos ensin tiedostoon `backend_v2/seed/seed_data.json`.
-2. **Kopio (Backup):** Aina ennen isoja muutoksia on varmistettava, että kopiota pidetään `backend_v2/seed/backups/` -hakemistossa turvassa vääristymiseltä.
-3. **Siemennys (Re-Seed):** Vasta tämän jälkeen varsinainen paikallisen kannan päivitys ja synkronointi suoritetaan ajamalla käsky: `python backend_v2/seed/run_seed.py local`.
+1. **Opaque ID -Sääntö:** Kaikkien uusien tunnisteiden on noudatettava Stripe Patternia (ei ihmisluettavia sanoja). Katso luontiohjeet: `Arkkitehtuuristandardi_Tietokannan_Tunnisteet.md`.
+2. **Muokkaa alkuperäistä JSONia:** Tee rakenteellinen muutos ensin tiedostoon `backend_v2/seed/seed_data.json`.
+3. **Kopio (Backup):** Aina ennen isoja muutoksia on varmistettava, että kopiota pidetään `backend_v2/seed/backups/` -hakemistossa turvassa vääristymiseltä.
+4. **Siemennys (Re-Seed):** Vasta tämän jälkeen varsinainen paikallisen kannan päivitys ja synkronointi suoritetaan ajamalla käsky: `python backend_v2/seed/run_seed.py local`.
 Tämän ohjeen kiertäminen ja kannan (`db_v2.json`) sorkkiminen lennossa korruptoi järjestelmän ID:t korjauskelvottomiksi.
 
 ---

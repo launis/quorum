@@ -313,6 +313,8 @@ class Step(V2CoreBase):
     slug: str = Field(description="Human-readable identifier (e.g., 'step_guard')")
     name: I18nText | str = Field(description="Localized step name or string name")
     description: I18nText | str | None = Field(default=None, description="Detailed step context")
+    type: Literal["llm", "logic"] = Field(default="llm", description="Step execution type (llm or native logic)")
+    hook: str | None = Field(default=None, description="Native Python hook to execute if type is 'logic'")
     task_key: str | None = Field(default=None, description="Legacy or internal key reference")
     prompt_blocks: list[str] = Field(
         default_factory=list,
@@ -330,9 +332,17 @@ class Step(V2CoreBase):
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
         """Strict fail-fast validation to ensure Step is not purely empty."""
-        if not self.prompt_blocks:
-            from backend_v2.exceptions import AppException, ErrorCodes
-            msg = f"Step '{self.slug}' must define at least one prompt_block."
+        from backend_v2.exceptions import AppException, ErrorCodes
+        if self.type == "llm" and not self.prompt_blocks:
+            msg = f"LLM Step '{self.slug}' must define at least one prompt_block."
+            logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+            raise AppException(
+                message=msg,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                status_code=400
+            )
+        if self.type == "logic" and not self.hook:
+            msg = f"Logic Step '{self.slug}' must define a native 'hook' execution target."
             logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
             raise AppException(
                 message=msg,
@@ -462,7 +472,9 @@ class ExpectedInput(V2CoreBase):
 
 class ReportAxisDTO(V2CoreBase):
     name: str = Field(description="Axis name, e.g. Y-Akseli")
-    description: str | None = Field(default=None, description="Detailed instructions or prompt context behind this axis.")
+    description: str | None = Field(
+        default=None, description="Detailed instructions or prompt context behind this axis."
+    )
     score: float | None = None
     justification: str | None = None
     cited_source_id: str | None = None
@@ -484,6 +496,9 @@ class ReportDataDTO(V2CoreBase):
     profile_id: str
     profile_name: dict[str, str] = Field(default_factory=dict)
     available_profiles: dict[str, str] = Field(default_factory=dict)
+    global_score: float | None = Field(
+        default=None, description="The mathematical average extracted from the scoring_result hook."
+    )
     layouts: list[ReportLayoutDTO] = Field(default_factory=list)
     synthesis: str | None = None
 

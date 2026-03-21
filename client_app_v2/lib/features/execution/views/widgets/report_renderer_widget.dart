@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
-import 'package:client_app/shared/widgets/score_card_radar.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 /// Static MVC View Renderer mapping exactly to the workflow preset views.
 /// Adheres to the De-Generator Zero-Math rule natively traversing the array.
-class ReportRendererWidget extends StatelessWidget {
+class ReportRendererWidget extends ConsumerWidget {
   final ReportDataDTO payload;
 
   const ReportRendererWidget({super.key, required this.payload});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (payload.layouts.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
       return Center(
@@ -32,8 +33,9 @@ class ReportRendererWidget extends StatelessWidget {
       primary: false,
       children: [
         _buildMetadataHeaderBox(context),
+        if (payload.globalScore != null) _buildGlobalScoreBadge(context),
         ...payload.layouts.map(
-          (layout) => _buildLayoutSequence(context, layout),
+          (layout) => _buildLayoutSequence(context, ref, layout),
         ),
       ],
     );
@@ -138,7 +140,65 @@ class ReportRendererWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildLayoutSequence(BuildContext context, ReportLayoutDTO layout) {
+  Widget _buildGlobalScoreBadge(BuildContext context) {
+    if (payload.globalScore == null) return const SizedBox.shrink();
+    
+    final l10n = AppLocalizations.of(context)!;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        border: Border.all(color: Colors.green, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            l10n.reportScore.toUpperCase(),
+            style: TextStyle(
+              color: Colors.green.shade800,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                payload.globalScore!.toStringAsFixed(1),
+                style: TextStyle(
+                  color: Colors.green.shade900,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '/ 100',
+                style: TextStyle(
+                  color: Colors.green.shade700,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLayoutSequence(
+    BuildContext context,
+    WidgetRef ref,
+    ReportLayoutDTO layout,
+  ) {
     if (layout.axes.isEmpty) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
@@ -151,22 +211,34 @@ class ReportRendererWidget extends StatelessWidget {
         layout.description['fi'];
 
     Widget content;
-    switch (layout.presetView) {
-      case '1d_metrics':
-        content = _build1DMetrics(context, layout);
-        break;
-      case '2d_compare':
-        content = _build2DCompare(context, layout);
-        break;
-      case '3d_complex':
-        content = _build3DComplex(context, layout);
-        break;
-      case 'text_only':
-        content = _buildWip(l10n.reportTextSynthesis);
-        break;
-      default:
-        // Graceful degradation fallback
-        content = _build1DMetrics(context, layout);
+    try {
+      switch (layout.presetView) {
+        case '1d_metrics':
+          content = _build1DMetrics(context, layout);
+          break;
+        case '2d_compare':
+          content = _build2DCompare(context, layout);
+          break;
+        case '3d_complex':
+          content = _build3DComplex(context, layout);
+          break;
+        case 'text_only':
+          content = _buildWip(l10n.reportTextSynthesis);
+          break;
+        default:
+          // Graceful degradation fallback
+          content = _build1DMetrics(context, layout);
+      }
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'ReportRenderer',
+            'VALIDATION_FAILED: Widget render error',
+            e,
+            st,
+          );
+      return const SizedBox.shrink();
     }
 
     if ((title != null && title.isNotEmpty) ||
@@ -310,7 +382,9 @@ class ReportRendererWidget extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
-                                l10n.reportFrameworkReference(axis.citedSourceId!),
+                                l10n.reportFrameworkReference(
+                                  axis.citedSourceId!,
+                                ),
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.blueGrey,
@@ -349,7 +423,9 @@ class ReportRendererWidget extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      l10n.reportGoogleVerified(axis.citedWebCitation!),
+                                      l10n.reportGoogleVerified(
+                                        axis.citedWebCitation!,
+                                      ),
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Colors.green,
@@ -374,9 +450,11 @@ class ReportRendererWidget extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        '${axis.score}',
+                        axis.scaleMax > axis.scaleMin
+                            ? '${axis.score} / ${axis.scaleMax}'
+                            : '${axis.score}',
                         style: const TextStyle(
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.blue,
                         ),
@@ -394,65 +472,37 @@ class ReportRendererWidget extends StatelessWidget {
   }
 
   Widget _build2DCompare(BuildContext context, ReportLayoutDTO layout) {
-    final l10n = AppLocalizations.of(context)!;
-    if (layout.axes.length < 2) return _build1DMetrics(context, layout);
-
-    // If exactly 2 dimensions, a radar chart is geometrically impossible (cannot form a polygon).
-    // Dynamically fallback to a Cartesian 2D matrix view.
-    if (layout.axes.length == 2) {
-      return Column(
-        children: [
-          Card(
-            elevation: 2,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Text(
-                    l10n.reportInteractionMatrix2D,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  LogicMatrixChart(
-                    xAxis: layout.axes[0],
-                    yAxis: layout.axes[1],
-                    zAxis: null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          _build1DMetrics(context, layout),
-        ],
-      );
+    if (layout.axes.length < 2) {
+      return _build1DMetrics(context, layout);
     }
 
-    final dimensions =
-        layout.axes
-            .map(
-              (a) => {
-                'dimensionLabel': a.name,
-                'score': a.score,
-                'reasoning': a.justification,
-              },
-            )
-            .toList();
-
-    double total = layout.axes.fold(0.0, (sum, item) => sum + item.score);
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       children: [
-        ScoreCardRadar(
-          cardData: {
-            'agentName': l10n.reportRadarAnalysis2D,
-            'verdict': l10n.reportComparisonView,
-            'totalScore': total / layout.axes.length,
-            'dimensions': dimensions,
-          },
+        Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Text(
+                  l10n.reportInteractionMatrix2D,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                LogicMatrixChart(
+                  xAxis: layout.axes[0],
+                  yAxis: layout.axes[1],
+                  zAxis: null,
+                ),
+              ],
+            ),
+          ),
         ),
         _build1DMetrics(context, layout),
       ],
@@ -460,7 +510,9 @@ class ReportRendererWidget extends StatelessWidget {
   }
 
   Widget _build3DComplex(BuildContext context, ReportLayoutDTO layout) {
-    if (layout.axes.length < 2) return _build1DMetrics(context, layout);
+    if (layout.axes.length < 2) {
+      return _build1DMetrics(context, layout);
+    }
 
     final l10n = AppLocalizations.of(context)!;
     final String title =
@@ -488,7 +540,7 @@ class ReportRendererWidget extends StatelessWidget {
                 LogicMatrixChart(
                   xAxis: layout.axes[0],
                   yAxis: layout.axes[1],
-                  zAxis: layout.axes.length > 2 ? layout.axes[2] : null,
+                  zAxis: layout.axes.length >= 3 ? layout.axes[2] : null,
                 ),
               ],
             ),

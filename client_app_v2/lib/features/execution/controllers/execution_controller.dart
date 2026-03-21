@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
 import 'package:client_app/features/execution/views/dashboard_view.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'execution_controller.g.dart';
@@ -49,6 +50,14 @@ class ExecutionController extends _$ExecutionController {
       // Connect to SSE stream
       _connectToStream(executionId);
     } catch (e, stack) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'ExecutionController',
+            'START_EXECUTION_FAILED: Failed to start DAG',
+            e,
+            stack,
+          );
       // Automatic RFC 7807 AppException catch
       state = AsyncValue.error(e, stack);
     }

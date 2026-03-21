@@ -1,6 +1,7 @@
 """Validation hooks for structural integrity checks."""
 
 import logging
+import re
 from typing import Any
 
 from fastapi import status
@@ -93,3 +94,61 @@ def verify_structure(data: dict[str, Any], context: HookExecutionContext) -> dic
         logger.debug("[ValidationHook] Checks passed.")
 
     return {"validation_result": result}
+
+
+@hook_registry.register(name="verify_output_language")
+def verify_output_language(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+    """HOOK: verify_output_language.
+
+    Post-execution soft-validation check. Scans generated text for English leakage
+    when the target locale is restricted. Uses a Fail-Soft heuristic to not break
+    execution flow but records RFC 7807 style warnings in _system_warnings.
+    """
+    logger.debug("[ValidationHook] Running output language check...")
+
+    if not data or not isinstance(data, dict):
+        return data  # Can only validate dicts
+
+    target_locale = context.metadata.get("target_locale", "en").lower()
+
+    if target_locale == "en":
+        return data  # English is allowed
+
+    # Heuristics: Extremely common, unambiguous English stop words.
+    # We use word boundary \b to prevent matching inside Finnish words.
+    english_stops = {"the", "and", "is", "are", "was", "were", "this", "that", "these", "those", "from", "with"}
+
+    # We specifically target Generative text fields, not strict citations.
+    target_keys = ["evaluation_notes"]
+    leakage_detected = False
+
+    for key, value in data.items():
+        if not isinstance(value, str):
+            continue
+
+        if key in target_keys or key.endswith("_justification"):
+            words = set(re.findall(r'\b[a-z]{2,}\b', value.lower()))
+            overlap = words.intersection(english_stops)
+
+            # If 3 or more distinct core English stop words are found in the field,
+            # it is highly probable the LLM generated English instead of the target locale.
+            if len(overlap) >= 3:
+                leakage_detected = True
+                logger.warning(
+                    f"[ValidationHook] Language mismatch detected in field '{key}'. "
+                    f"Target locale was '{target_locale}' but detected English stop words: {overlap}. "
+                    f"Text excerpt: {value[:100]}..."
+                )
+
+    if leakage_detected:
+        if "_system_warnings" not in data:
+            data["_system_warnings"] = []
+
+        data["_system_warnings"].append({
+            "type": "https://api.cognitivequorum.com/errors/language-mismatch",
+            "title": "Output Language Mismatch",
+            "detail": f"Model neglected the '{target_locale}' localization mandate and leaked English.",
+            "error_code": ErrorCodes.VALIDATION_FAILED.name
+        })
+
+    return data

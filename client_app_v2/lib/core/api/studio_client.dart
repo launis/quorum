@@ -117,4 +117,26 @@ class StudioClient {
     final response = await _dio.put('studio/model-registry/$id', data: data);
     return response.data as Map<String, dynamic>;
   }
+
+  // --- Output Profiles ---
+
+  /// Retrieves all output profiles.
+  Future<List<Map<String, dynamic>>> getOutputProfiles() async {
+    final response = await _dio.get('output-profiles/');
+    return List<Map<String, dynamic>>.from(response.data as List);
+  }
+
+  /// Appends or updates an output profile.
+  Future<Map<String, dynamic>> saveOutputProfile(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _dio.put('output-profiles/$id', data: data);
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Deletes an output profile.
+  Future<void> deleteOutputProfile(String id) async {
+    await _dio.delete('output-profiles/$id');
+  }
 }

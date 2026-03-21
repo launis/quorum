@@ -9,15 +9,16 @@ if root_dir not in sys.path:
 
 from backend_v2.main import app
 
+
 def main():
     print("Generating OpenAPI schema from FastAPI app...")
     openapi_schema = app.openapi()
-    
+
     output_dir = os.path.join(root_dir, "docs", "swagger")
     os.makedirs(output_dir, exist_ok=True)
-    
+
     output_path = os.path.join(output_dir, "openapi.json")
-    
+
     try:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(openapi_schema, f, indent=2, ensure_ascii=False)

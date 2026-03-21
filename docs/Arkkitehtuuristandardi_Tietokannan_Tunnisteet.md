@@ -202,3 +202,26 @@ Tavoitteet ja QA (Laadunvarmistus) -testauskriteeristö on nelivaiheinen:
 -   **QA Testaus:**
     -   `Testi A:` Python-pään alustus kaatuu silmittömästi ValidationError-sumaan jos VAIHE 1:n lukko löytää VAIHE 2:n ohittaneita vanhoja ID:eitä (Koko The Fail-Fast arkkitehtuuri on rakennettu tämän estämiseksi). Kun testaus ei kaadu, Opaque-injektio on virheetön.
     -   `Testi B:` Flutter käynnistyy HUD:it ovat nättejä alias-suomennoksilla, ilman yhtäkään näkyvää rumuutta, mutta tietokannan kaikki sisuskalut on purettu absoluuttiseen Stripe ID-erotteluun.
+
+---
+
+## 5. Pikaohje: Kuinka Opaque ID:t tehdään ja määritellään
+
+Kertauksena kehittäjille ja tekoälyagenteille, näin Universal Opaque ID (The Stripe Pattern) rakennetaan käytännössä:
+
+**1. Sääntö ja Määritelmä:**
+- ID on aina muotoa `prefix_satunnainenHash`, esim. `blk_4f2a89b1c7d` tai `org_9a8b7ceX`.
+- Pydantic RegEx-lukko: `^([a-z]+)_[a-zA-Z0-9]{8,}$`
+- **Ihmisluettavuus on täysin kielletty.** ID:ssä ei saa olla sanoja (kuten `sys_toulmin`). Kaikki ihmisille näkyvä tieto tallennetaan tietokannan `slug` tai `name/label` -kenttiin.
+
+**2. Kuinka tunnisteet tehdään?**
+- **Käyttöliittymä (Admin Studio):** Generoi ID:t automaattisesti taustalla, kun uusia asioita (Workflows, Steps) luodaan. Käyttäjä ei koskaan näe niitä.
+- **Koodissa ja Migraatioissa (Python):** Tunniste luodaan satunnaisesti uuid-kirjastolla, ei koskaan manuaalisesti keksimällä. Edellytetty Python-koodausmalli on:
+  ```python
+  import uuid
+  def generate_opaque_id(prefix: str) -> str:
+      return f"{prefix}_{uuid.uuid4().hex[:12]}"
+  ```
+
+**3. Relaatiot ja Viittaaminen:**
+- Jos toinen objekti viittaa työnkulkuun, se käyttää kenttää `workflow_id` ja sen arvona säilytetään puhdasta Opaque ID:tä (esim. `wf_A1b2...`), eikä koskaan slugia. Backend ja Frontend huolehtivat "slugin" reitityksestä ihmisen ja koneen välillä muuttaessa URL-polun Opaque ID:ksi tietokantaa varten.

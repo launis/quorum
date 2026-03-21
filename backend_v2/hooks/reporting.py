@@ -327,7 +327,7 @@ def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -
         context["archivist_precedents"] = archival_data
 
     # Scoring Result (Hook)
-    scoring_out = data.get("step_scoring")
+    scoring_out = data.get("step_scoreengine1")
     if isinstance(scoring_out, dict):
         context["penalties_applied"] = scoring_out.get("penalties_applied")
         context["score_summary"] = scoring_out.get("score_summary")

@@ -1,0 +1,38 @@
+from unittest.mock import AsyncMock
+import pytest
+
+from backend_v2.services.pdf_generator import PdfReportService
+from backend_v2.models.v2_core import ExecutionRecord, ReportDataDTO, ReportLayoutDTO, ExecutionStatus
+
+@pytest.mark.asyncio
+async def test_pdf_generator_chart_injection_failure_safe() -> None:
+    # A dummy repository
+    mock_repo = AsyncMock()
+    
+    # Mock an execution record with strict V2 validations
+    mock_execution = ExecutionRecord(
+        id="exe_abcdefgh123",
+        workflow_id="test_wf",
+        status=ExecutionStatus.COMPLETED,
+        results={"ok": True}
+    )
+    mock_repo.get_execution.return_value = mock_execution
+    mock_repo.get_workflow_by_id.return_value = {"name": {"en": "Workflow Name"}}
+    
+    svc = PdfReportService(repository=mock_repo)
+    
+    # Empty layout (should not invoke chart rendering)
+    dto = ReportDataDTO(
+        workflow_id="test_wf",
+        profile_id="prf_test",
+        layouts=[
+            ReportLayoutDTO(
+                preset_view="1d_metrics",
+                axes=[]
+            )
+        ]
+    )
+    
+    pdf_bytes = await svc.generate_execution_pdf(execution_id="exe_abcdefgh123", report_dto=dto)
+    assert pdf_bytes is not None
+    assert type(pdf_bytes) == bytes

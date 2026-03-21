@@ -251,7 +251,10 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
         error_code_enum = ErrorCodes.UNKNOWN_ERROR
 
     logger = logging.getLogger("backend.main")
-    logger.warning(f"[FastAPI] {error_code_enum.name}: HTTP_ERROR: {exc.detail} (Status: {exc.status_code})", exc_info=True)
+    logger.warning(
+        f"[FastAPI] {error_code_enum.name}: HTTP_ERROR: {exc.detail} (Status: {exc.status_code})",
+        exc_info=True,
+    )
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -294,6 +297,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 # ...
 from backend_v2.api.routers.execution import router as execution_router
 from backend_v2.api.routers.iam import router as iam_router
+from backend_v2.api.routers.output_profiles import router as output_profiles_router
 from backend_v2.api.routers.studio import router as studio_router
 from backend_v2.api.routers.system import router as system_router
 
@@ -301,3 +305,4 @@ app.include_router(iam_router, prefix="/api/v2")
 app.include_router(system_router, prefix="/api/v2")
 app.include_router(execution_router, prefix="/api/v2")
 app.include_router(studio_router, prefix="/api/v2")
+app.include_router(output_profiles_router, prefix="/api/v2")

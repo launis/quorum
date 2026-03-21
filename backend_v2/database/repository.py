@@ -381,6 +381,28 @@ class AbstractWorkflowRepository(ABC):
     async def update_system_settings(self, updates: dict[str, Any]) -> bool:
         pass
 
+    # --- Output Profiles ---
+
+    @abstractmethod
+    async def get_all_output_profiles(self) -> list[dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
+    async def create_output_profile(self, profile_data: dict[str, Any]) -> str:
+        pass
+
+    @abstractmethod
+    async def update_output_profile(self, profile_id: str, updates: dict[str, Any]) -> bool:
+        pass
+
+    @abstractmethod
+    async def delete_output_profile(self, profile_id: str) -> bool:
+        pass
+
 
 class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     """Unified implementation using the StorageDriver pattern.
@@ -462,8 +484,9 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Data corruption - Failed to parse execution {execution_id}: {e}",
-                    exc_info=True
+                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Data corruption - "
+                    f"Failed to parse execution {execution_id}: {e}",
+                    exc_info=True,
                 )
                 return None
         return None
@@ -505,8 +528,9 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution {r.get('id')}: {e}",
-                    exc_info=True
+                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution "
+                    f"{r.get('id')}: {e}",
+                    exc_info=True,
                 )
 
         return parsed_results
@@ -529,8 +553,9 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution {r.get('id')}: {e}",
-                    exc_info=True
+                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution "
+                    f"{r.get('id')}: {e}",
+                    exc_info=True,
                 )
 
         return parsed_results
@@ -1193,6 +1218,24 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             "cached_tokens": cached_tokens,
             "reasoning_tokens": reasoning_tokens
         }
+
+    # --- Output Profiles ---
+
+    async def get_all_output_profiles(self) -> list[dict[str, Any]]:
+        return await self.driver.query("output_profiles")
+
+    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any] | None:
+        return await self.driver.get("output_profiles", profile_id)
+
+    async def create_output_profile(self, profile_data: dict[str, Any]) -> str:
+        doc_id = profile_data["id"]
+        return await self.driver.upsert("output_profiles", profile_data, doc_id)
+
+    async def update_output_profile(self, profile_id: str, updates: dict[str, Any]) -> bool:
+        return await self.driver.update("output_profiles", profile_id, updates)
+
+    async def delete_output_profile(self, profile_id: str) -> bool:
+        return await self.driver.delete("output_profiles", profile_id)
 
 class AppendOnlyRepository(UnifiedWorkflowRepository):
     """V2 Append-Only Repository.

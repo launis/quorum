@@ -1,1 +1,54 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="17" time="17.930" timestamp="2026-03-20T22:00:52.882507+02:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.unit.test_api_prompt_blocks" name="test_get_prompt_blocks" time="0.010" /><testcase classname="backend_v2.tests.unit.test_api_prompt_blocks" name="test_delete_prompt_block" time="0.004" /><testcase classname="backend_v2.tests.unit.test_api_workflows" name="test_workflow_rbac_save_member_forbidden" time="12.310" /><testcase classname="backend_v2.tests.unit.test_api_workflows" name="test_workflow_rbac_delete_member_forbidden" time="0.015" /><testcase classname="backend_v2.tests.unit.test_blueprint_transformer" name="test_build_report_dto_maps_correctly" time="0.003" /><testcase classname="backend_v2.tests.unit.test_blueprint_transformer" name="test_graceful_degradation_missing_fields" time="0.002" /><testcase classname="backend_v2.tests.unit.test_dag_executor_prompt_blocks" name="test_dag_executor_uses_prompt_blocks_instead_of_matrices" time="0.004" /><testcase classname="backend_v2.tests.unit.test_llm_dependency" name="test_llm_dep" time="0.001" /><testcase classname="backend_v2.tests.unit.test_llm_dependency" name="test_llm_handler_dependency_injection" time="0.007" /><testcase classname="backend_v2.tests.unit.test_matrix_data_integrity" name="test_all_bars_matrices_allow_decimals" time="0.002" /><testcase classname="backend_v2.tests.unit.test_matrix_data_integrity" name="test_all_bars_matrices_use_discrete_integer_scores" time="0.000" /><testcase classname="backend_v2.tests.unit.test_matrix_data_integrity" name="test_workflows_have_normalization_hook" time="0.000" /><testcase classname="backend_v2.tests.unit.test_prompt_compiler" name="test_prompt_compiler_deep_matrix_schema" time="0.001" /><testcase classname="backend_v2.tests.unit.test_prompt_compiler" name="test_prompt_compiler_dynamic_extraction_resilience" time="0.001" /><testcase classname="backend_v2.tests.unit.test_repo_deletion" name="test_delete_prompt_block_blocks_orphan_data" time="0.002" /><testcase classname="backend_v2.tests.unit.test_v2_core_strictness" name="test_prompt_block_allow_decimals_requires_numeric" time="0.001" /><testcase classname="backend_v2.tests.unit.test_v2_core_strictness" name="test_step_validation_fails_on_empty_execution_logic" time="0.001" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="14.517" timestamp="2026-03-21T17:12:22.633587+02:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.unit.test_hooks_validation" name="test_verify_output_language_detects_english_leakage" time="0.007"><failure message="TypeError: 'dict' object can't be awaited">@pytest.mark.asyncio
+    async def test_verify_output_language_detects_english_leakage() -&gt; None:
+        # Arrange
+        mock_repo = MagicMock()
+        ctx = HookExecutionContext(
+            repository=mock_repo,
+            execution_id="exec-123",
+            workflow_id="wf-123",
+            metadata={"target_locale": "fi"}
+        )
+    
+        # English text with heavy stop words
+        data = {"evaluation_notes": "The user was very good and the system is fine."}
+    
+        # Act
+&gt;       result: dict[str, Any] = await verify_output_language(data, ctx)  # type: ignore
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'dict' object can't be awaited
+
+backend_v2\tests\unit\test_hooks_validation.py:24: TypeError</failure></testcase><testcase classname="backend_v2.tests.unit.test_hooks_validation" name="test_verify_output_language_ignores_finnish_text" time="0.003"><failure message="TypeError: 'dict' object can't be awaited">@pytest.mark.asyncio
+    async def test_verify_output_language_ignores_finnish_text() -&gt; None:
+        mock_repo = MagicMock()
+        ctx = HookExecutionContext(
+            repository=mock_repo,
+            execution_id="exec-123",
+            workflow_id="wf-123",
+            metadata={"target_locale": "fi"}
+        )
+    
+        # Finnish text lacking English stop words
+        data = {"evaluation_notes": "Käyttäjä vaikutti erittäin fiksulta ja ymmärsi asian täydellisesti."}
+    
+&gt;       result: dict[str, Any] = await verify_output_language(data, ctx)  # type: ignore
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'dict' object can't be awaited
+
+backend_v2\tests\unit\test_hooks_validation.py:46: TypeError</failure></testcase><testcase classname="backend_v2.tests.unit.test_hooks_validation" name="test_verify_output_language_allows_english_when_target_en" time="0.002"><failure message="TypeError: 'dict' object can't be awaited">@pytest.mark.asyncio
+    async def test_verify_output_language_allows_english_when_target_en() -&gt; None:
+        mock_repo = MagicMock()
+        ctx = HookExecutionContext(
+            repository=mock_repo,
+            execution_id="exec-123",
+            workflow_id="wf-123",
+            metadata={"target_locale": "en"}
+        )
+    
+        # English text when English is requested
+        data = {"evaluation_notes": "The user was very good and the system is fine."}
+    
+&gt;       result: dict[str, Any] = await verify_output_language(data, ctx)  # type: ignore
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'dict' object can't be awaited
+
+backend_v2\tests\unit\test_hooks_validation.py:65: TypeError</failure></testcase></testsuite></testsuites>

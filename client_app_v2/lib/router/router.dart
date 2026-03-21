@@ -9,6 +9,7 @@ import 'package:client_app/features/studio/views/workflow_builder_view.dart';
 import 'package:client_app/features/studio/views/prompt_block_builder_view.dart';
 import 'package:client_app/features/studio/views/step_builder_view.dart';
 import 'package:client_app/features/studio/views/profile_editor_view.dart';
+import 'package:client_app/features/studio/views/output_profile_crud_view.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -232,6 +233,8 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
     TypedGoRoute<StepNewRoute>(path: 'step/new'),
     TypedGoRoute<StepEditRoute>(path: 'step/edit'),
     TypedGoRoute<ProfileEditorRoute>(path: 'profiles/:workflowSlug'),
+    TypedGoRoute<OutputProfileNewRoute>(path: 'output-profile/new'),
+    TypedGoRoute<OutputProfileEditRoute>(path: 'output-profile/edit/:id'),
   ],
 )
 class AdminShellRoute extends GoRouteData with $AdminShellRoute {
@@ -299,6 +302,23 @@ class ProfileEditorRoute extends GoRouteData with $ProfileEditorRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) =>
       ProfileEditorView(workflowSlug: workflowSlug, initialData: $extra);
+}
+
+class OutputProfileNewRoute extends GoRouteData with $OutputProfileNewRoute {
+  const OutputProfileNewRoute();
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const OutputProfileCrudView(id: 'new');
+}
+
+class OutputProfileEditRoute extends GoRouteData with $OutputProfileEditRoute {
+  const OutputProfileEditRoute({required this.id, this.$extra});
+  final String id;
+  final Map<String, dynamic>? $extra;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      OutputProfileCrudView(id: id, initialData: $extra);
 }
 
 @TypedGoRoute<RootRoute>(path: '/')

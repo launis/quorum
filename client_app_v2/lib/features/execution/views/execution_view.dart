@@ -159,6 +159,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                     ),
                     child: ExecutionTimeline(
                       steps: stepStatesList,
+                      results: results,
                       compact: false,
                     ),
                   ),

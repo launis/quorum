@@ -416,7 +416,15 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             ),
           );
         }
-      } catch (e) {
+      } catch (e, st) {
+        ref
+            .read(loggerServiceProvider)
+            .error(
+              'DashboardView',
+              'DELETE_FAILED: Failed to delete execution',
+              e,
+              st,
+            );
         if (context.mounted) {
           final l10n = AppLocalizations.of(context)!;
           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);

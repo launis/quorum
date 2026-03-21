@@ -245,7 +245,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
             from backend_v2.exceptions import AppException, ErrorCodes
 
-            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to append-only update workflow {workflow_id}: {e}", exc_info=True)
+            logger.error(
+                f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
+                f"Failed to append-only update workflow {workflow_id}: {e}",
+                exc_info=True,
+            )
 
             raise AppException(
                 message=str(e),
@@ -296,7 +300,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
             from backend_v2.exceptions import AppException, ErrorCodes
 
-            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to append-only update agent {agent_id}: {e}", exc_info=True)
+            logger.error(
+                f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
+                f"Failed to append-only update agent {agent_id}: {e}",
+                exc_info=True,
+            )
             raise AppException(
                 message=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -346,7 +354,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
             from backend_v2.exceptions import AppException, ErrorCodes
 
-            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to append-only update matrix {block_id}: {e}", exc_info=True)
+            logger.error(
+                f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
+                f"Failed to append-only update matrix {block_id}: {e}",
+                exc_info=True,
+            )
             raise AppException(
                 message=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -418,7 +430,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
             from backend_v2.exceptions import AppException, ErrorCodes
 
-            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to update step {step_id}: {e}", exc_info=True)
+            logger.error(
+                f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
+                f"Failed to update step {step_id}: {e}",
+                exc_info=True,
+            )
 
             raise AppException(
                 message=str(e),
@@ -524,6 +540,38 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         logger.warning(f"Workflow definition '{workflow_id}' not found in DB or Disk.")
         return None
 
+    # --- Output Profiles ---
+
+    async def get_all_output_profiles(self) -> list[dict[str, Any]]:
+        docs = await self.db.collection("output_profiles").stream()
+        return [doc.to_dict() async for doc in docs]
+
+    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any] | None:
+        doc = await self.db.collection("output_profiles").document(profile_id).get()
+        return doc.to_dict() if doc.exists else None
+
+    async def create_output_profile(self, profile_data: dict[str, Any]) -> str:
+        safe_data = self._serialize_for_firestore(profile_data)
+        doc_id = safe_data["id"]
+        await self.db.collection("output_profiles").document(doc_id).set(safe_data)
+        return str(doc_id)
+
+    async def update_output_profile(self, profile_id: str, updates: dict[str, Any]) -> bool:
+        safe_updates = self._serialize_for_firestore(updates)
+        try:
+            await self.db.collection("output_profiles").document(profile_id).update(safe_updates)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update output profile {profile_id}: {e}")
+            return False
+
+    async def delete_output_profile(self, profile_id: str) -> bool:
+        try:
+            await self.db.collection("output_profiles").document(profile_id).delete()
+            return True
+        except Exception:
+            return False
+
     # --- Missing Abstract Methods Implementation (Added Jan 2026 for Parity) ---
 
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
@@ -560,7 +608,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
             from backend_v2.exceptions import AppException, ErrorCodes
 
-            logger.error(f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to update legacy_prompt_block {component_id}: {e}", exc_info=True)
+            logger.error(
+                f"[FirestoreRepository] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
+                f"Failed to update legacy_prompt_block {component_id}: {e}",
+                exc_info=True,
+            )
 
             raise AppException(
                 message=str(e),

@@ -298,13 +298,59 @@ class DAGExecutor:
             step_def = await self.repository.get_step_by_id(blueprint_slug)
             if not step_def:
                 msg = f"Configuration error: Step '{blueprint_slug}' not found in database."
-                logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                logger.error(f"[DAGExecutor] {ErrorCodes.MISSING_CONFIGURATION.name}: {msg}")
                 raise AppException(
                     message=msg,
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                    details={"error_code": ErrorCodes.MISSING_CONFIGURATION}
                 )
 
+            # Execution logic branches based on node type
+            if step_def.get("type", "llm") == "logic":
+                # Create typed context for the standalone hook
+                hook_ctx = HookExecutionContext(
+                    repository=self.repository,
+                    execution_id=execution_id,
+                    workflow_id=workflow_id,
+                    step_id=step.id,
+                    task_blueprint=getattr(step, "task_blueprint", None),
+                    metadata=metadata
+                )
+                # --- NATIVE LOGIC NODE EXECUTION (No LLM Cost) ---
+                logic_hook: str | None = step_def.get("hook", None)
+                if logic_hook:
+                    # Execute Step-level pre-hooks manually before the designated logic
+                    for hook_name in step_def.get("pre_hooks", []):
+                        hook_result = await hook_registry.execute(hook_name, state_data, hook_ctx)
+                        if hook_result is not None:
+                            state_data.update(hook_result)
+
+                    logger.debug(f"Executing Native Logic Step '{step_def.get('slug', 'unknown')}' via hook: {logic_hook}")
+                    result = await hook_registry.execute(logic_hook, state_data, hook_ctx)
+                    if result is not None:
+                        state_data.update(result)
+
+                    # 4. Post-Hook Execution
+                    for hook_name in getattr(step, "post_hooks", []):
+                        hook_result = await hook_registry.execute(hook_name, state_data, hook_ctx)
+                        if hook_result is not None:
+                            state_data.update(hook_result)
+
+                    for hook_name in step_def.get("post_hooks", []):
+                        hook_result = await hook_registry.execute(hook_name, state_data, hook_ctx)
+                        if hook_result is not None:
+                            state_data.update(hook_result)
+
+                    return state_data
+                else:
+                    raise AppException(
+                        message=f"Logic step '{step_def.slug}' has no hook defined.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                    )
+
+            # --- LLM NODE EXECUTION ---
+            # Step level Pre-Hooks
             from backend_v2.models.v2_core import Step
             step_obj = Step.model_validate(step_def)
 
@@ -375,7 +421,8 @@ class DAGExecutor:
                 schema_name=f"Step_{step.id}_Response",
                 criteria=criteria_blocks,
                 require_justification=True,
-                has_search_result=has_search_result
+                has_search_result=has_search_result,
+                target_locale=target_locale
             )
             frozen_ctx.generated_schemas[step.id] = dynamic_schema.model_json_schema()
 

@@ -102,9 +102,10 @@ Modifying `backend_v2/seed/seed_data.json` autonomously is STRICTLY BLOCKED with
 3. BACKUP: Always take a backup of the current database to the `backend_v2/seed/backups/` directory before major changes.
 4. SCRIPT: Create a dedicated Python script file (e.g. `modify_seed.py`) to perform the changes mathematically if it's large, otherwise manually edit the JSON carefully. 
    - 🚫 NEVER use inline terminal commands (like `python -c`) because PowerShell/Bash will silently expand variables like `$c1f...` and destroy the UUIDs.
-   - 🚫 NEVER use string replacement or regex on the JSON file. 
+   - 🚫 NEVER use string replacement or regex on the JSON file.
    - ✅ ALWAYS use `json.load()` to parse the dict, mutate the Python dictionary intelligently, and `json.dump()` to save it.
    - 🚫 NEVER add undocumented "extra keys" or hallucinated data structures. Only add exactly what the Pydantic domain models define.
+   - 🚫 All new IDs MUST strictly follow the Opaque ID (Stripe Pattern) rule. See `Arkkitehtuuristandardi_Tietokannan_Tunnisteet.md` for generation instructions. Do not use human-readable words in IDs.
 5. EXECUTE: Run your script: `python modify_seed.py`.
 6. VERIFY: Run tests (`pytest backend_v2/tests/unit/test_seed_schema_alignment.py -v`) to mathematically verify the change. If it fails, your mutation corrupted the graph. Fix your script/JSON and try again.
 7. REPORT: Confirm the delta matches expectations and tests pass.

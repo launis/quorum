@@ -245,7 +245,7 @@ class PromptCompiler:
 
     def build_dynamic_schema(
         self, schema_name: str, criteria: list[dict[str, Any]], require_justification: bool = False,
-        has_search_result: bool = False
+        has_search_result: bool = False, target_locale: str = "en"
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -280,8 +280,9 @@ class PromptCompiler:
                     description=(
                         "Comprehensive qualitative synthesis. CRITICAL: You MUST write this strictly "
                         "from the unique perspective of your assigned Role and Matrices. Do not write a "
-                        "generic summary. Focus exclusively on the human user's actions, agency, and biases "
-                        "through your specific analytical lens."
+                        "through your specific analytical lens. "
+                        "STRICT MANDATE: You MUST write this specific field exclusively "
+                        f"in the '{target_locale}' language."
                     )
                 )
             )
@@ -373,7 +374,8 @@ class PromptCompiler:
 
                 justification_desc = (
                     f"Detailed reasoning for the assigned score for '{label}'. "
-                    "Must explicitly adhere to the active STRICTNESS CALIBRATION."
+                    "Must explicitly adhere to the active STRICTNESS CALIBRATION. "
+                    f"STRICT MANDATE: You MUST write your reasoning exclusively in the '{target_locale}' language."
                 )
                 if crit.get("allow_decimals", False):
                     justification_desc += (

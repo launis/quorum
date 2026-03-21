@@ -246,6 +246,14 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
       path: 'profiles/:workflowSlug',
       factory: $ProfileEditorRoute._fromState,
     ),
+    GoRouteData.$route(
+      path: 'output-profile/new',
+      factory: $OutputProfileNewRoute._fromState,
+    ),
+    GoRouteData.$route(
+      path: 'output-profile/edit/:id',
+      factory: $OutputProfileEditRoute._fromState,
+    ),
   ],
 );
 
@@ -428,6 +436,57 @@ mixin $ProfileEditorRoute on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/admin/profiles/${Uri.encodeComponent(_self.workflowSlug)}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+
+  @override
+  Future<T?> push<T>(BuildContext context) =>
+      context.push<T>(location, extra: _self.$extra);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location, extra: _self.$extra);
+
+  @override
+  void replace(BuildContext context) =>
+      context.replace(location, extra: _self.$extra);
+}
+
+mixin $OutputProfileNewRoute on GoRouteData {
+  static OutputProfileNewRoute _fromState(GoRouterState state) =>
+      const OutputProfileNewRoute();
+
+  @override
+  String get location => GoRouteData.$location('/admin/output-profile/new');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $OutputProfileEditRoute on GoRouteData {
+  static OutputProfileEditRoute _fromState(GoRouterState state) =>
+      OutputProfileEditRoute(
+        id: state.pathParameters['id']!,
+        $extra: state.extra as Map<String, dynamic>?,
+      );
+
+  OutputProfileEditRoute get _self => this as OutputProfileEditRoute;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/admin/output-profile/edit/${Uri.encodeComponent(_self.id)}',
   );
 
   @override

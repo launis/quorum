@@ -119,8 +119,8 @@ class LoggerService {
         'stack_trace': stack?.toString(),
         'severity': 'error',
       };
-
-      await _telemetryDio.post('/system/telemetry/client-error', data: payload);
+      // Removed leading slash so it appends to the baseUrl (e.g. /api/v2/system/...)
+      await _telemetryDio.post('system/telemetry/client-error', data: payload);
     } catch (e) {
       // Silently fail telemetry to prevent infinite error loops
       debugPrint('Telemetry sync failed: $e');

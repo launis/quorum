@@ -49,7 +49,7 @@ class ExecutionClient {
   }) async {
     final response = await _dio.get(
       '/execution/executions/$executionId/render',
-      queryParameters: {'lang': lang, 'variant': variant},
+      queryParameters: {'lang': lang, 'profile_id': variant},
     );
     return response.data as Map<String, dynamic>;
   }

@@ -8,6 +8,7 @@ from typing import Any
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigModelRegistry, Workflow
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,9 @@ class StudioService:
     def __init__(self, repo: AbstractWorkflowRepository):
         self.repo = repo
 
-    def _enforce_tenant_isolation(self, initiator: TokenData, data: dict[str, Any], resource_type: str, allow_system: bool = True) -> None:
+    def _enforce_tenant_isolation(
+        self, initiator: TokenData, data: dict[str, Any], resource_type: str, allow_system: bool = True
+    ) -> None:
         """Helper to enforce tenant boundaries for reads."""
         org_id = getattr(initiator, "organization_id", None)
         allowed_orgs = [org_id]
@@ -28,22 +31,36 @@ class StudioService:
         allowed_orgs.append(None)
 
         if initiator.role != "ROOT" and data.get("organization_id") not in allowed_orgs:
-            logger.error(f"[StudioService] PERMISSION_DENIED: User {initiator.id} attempted to access isolated {resource_type} {data.get('id')}.")
+            logger.error(
+                f"[StudioService] PERMISSION_DENIED: User {initiator.id} "
+                f"attempted to access isolated {resource_type} {data.get('id')}."
+            )
             raise PermissionDeniedError(f"You do not have permission to view this {resource_type}.")
 
-    def _enforce_modification_rights(self, initiator: TokenData, data_org_id: str | None, allow_system: bool = False) -> None:
+    def _enforce_modification_rights(
+        self, initiator: TokenData, data_org_id: str | None, allow_system: bool = False
+    ) -> None:
         """Helper to enforce modification boundaries (e.g. only ROOT can modify system)."""
         if initiator.role not in ["ROOT", "ADMIN", "MANAGER", UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
-            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ADMIN or MANAGER can modify resources.")
+            logger.error(
+                f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: "
+                "Only ADMIN or MANAGER can modify resources."
+            )
             raise PermissionDeniedError("Only ADMIN or MANAGER can modify resources.")
 
         org_id = getattr(initiator, "organization_id", None)
         if initiator.role not in ["ROOT", UserRole.ROOT]:
             if data_org_id == "system" and not allow_system:
-                logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify system resources.")
+                logger.error(
+                    f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: "
+                    "Only ROOT can modify system resources."
+                )
                 raise PermissionDeniedError("Only ROOT can modify system resources.")
             if data_org_id not in [org_id, None]:
-                logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Cannot modify resources outside your organization.")
+                logger.error(
+                    f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: "
+                    "Cannot modify resources outside your organization."
+                )
                 raise PermissionDeniedError("Cannot modify resources outside your organization.")
 
     # --- Workflows ---
@@ -211,9 +228,14 @@ class StudioService:
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         return SystemConfigModelRegistry.model_validate(data)
 
-    async def save_system_config(self, initiator: TokenData, id: str, data: SystemConfigModelRegistry) -> SystemConfigModelRegistry:
+    async def save_system_config(
+        self, initiator: TokenData, id: str, data: SystemConfigModelRegistry
+    ) -> SystemConfigModelRegistry:
         if initiator.role != "ROOT":
-             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify system configs.")
+             logger.error(
+                 f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: "
+                 "Only ROOT can modify system configs."
+             )
              raise PermissionDeniedError("Only ROOT can modify system configs.")
 
         dump = data.model_dump(mode="json")
@@ -237,3 +259,76 @@ class StudioService:
             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         await self.repo.delete("system_config", id)
+
+    # --- Output Profiles ---
+
+    async def list_output_profiles(self, initiator: TokenData) -> list[OutputProfile]:
+        all_data = await self.repo.get_all_output_profiles()
+        if initiator.role == "ROOT":
+            return [OutputProfile.model_validate(x) for x in all_data]
+
+        org_id = getattr(initiator, "organization_id", None)
+        data = [x for x in all_data if x.get("organization_id") in [org_id, "system", None]]
+        return [OutputProfile.model_validate(x) for x in data]
+
+    async def get_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
+        data = await self.repo.get_output_profile_by_id(id)
+        if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Output Profile {id} not found.")
+            raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
+
+        self._enforce_tenant_isolation(initiator, data, "output_profile")
+        return OutputProfile.model_validate(data)
+
+    async def save_output_profile(
+        self, initiator: TokenData, id: str, data: dict[str, Any] | OutputProfile
+    ) -> OutputProfile:
+        # Pydantic hydration for validation
+        if isinstance(data, dict):
+            profile = OutputProfile.model_validate(data)
+        else:
+            profile = data
+
+        self._enforce_modification_rights(initiator, getattr(profile, "organization_id", None))
+
+        # Workflow Constraint Validation:
+        # Output Profile components MUST belong to the targeted Workflow DAG.
+        workflow = await self.get_workflow(initiator, profile.workflow_id)
+        all_steps = await self.list_steps(initiator)
+
+        task_blueprints = {rule.task_blueprint for rule in workflow.steps}
+        allowed_blocks = set()
+
+        for step in all_steps:
+            if step.slug in task_blueprints or step.id in task_blueprints:
+                allowed_blocks.update(step.prompt_blocks)
+
+        for layout in profile.layouts:
+            for comp in layout.components:
+                if comp != "*" and comp not in allowed_blocks:
+                    msg = f"Target Component '{comp}' does not exist in the context of Workflow '{workflow.slug}'."
+                    logger.error(f"[StudioService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+                    raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+        dump = profile.model_dump(mode="json")
+        if "id" not in dump:
+            dump["id"] = id
+
+        # Enforce synchronous create
+        await self.repo.create_output_profile(dump)
+
+        saved = await self.repo.get_output_profile_by_id(id)
+        if not saved:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
+                         f"Output Profile {id} not found after save.")
+            raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
+        return OutputProfile.model_validate(saved)
+
+    async def delete_output_profile(self, initiator: TokenData, id: str) -> None:
+        data = await self.repo.get_output_profile_by_id(id)
+        if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Output Profile {id} not found.")
+            raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
+
+        self._enforce_modification_rights(initiator, data.get("organization_id"))
+        await self.repo.delete_output_profile(id)
