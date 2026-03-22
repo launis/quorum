@@ -97,7 +97,10 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
     for expected_input in expected_inputs:
         key = expected_input.input_key
-        raw_val = state.global_context_vars.get(key)
+        # Fallback to state.inputs if global_context_vars wasn't populated by orchestrator
+        raw_val = state.inputs.get(key)
+        if raw_val is None:
+            raw_val = state.global_context_vars.get(key)
 
         # 1. Handle Questionnaire mode specifically if it exists
         if isinstance(raw_val, dict) and any(str(k).startswith("q") for k in raw_val.keys()):
@@ -162,14 +165,20 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
             # V2 STRICT FAIL-FAST: Missing English instruction is fatal
             if not desc_text:
-                logger.error(f"[InputProcessingHook] VALIDATION_FAILED: Missing English translation for {key} ai_description.")
+                logger.error(
+                    f"[InputProcessingHook] VALIDATION_FAILED: "
+                    f"Missing English translation for {key} ai_description."
+                )
                 raise AppException(
-                    message=f"System Configuration Error: Missing mandatory English translation for '{key}' cognitive prompt block.",
+                    message=(
+                        f"System Configuration Error: Missing mandatory "
+                        f"English translation for '{key}' cognitive prompt block."
+                    ),
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={"error_code": "MISSING_ENGLISH_PROMPT", "input_key": key}
                 )
 
-            if desc_text:
+            if desc_text and resolved_text.strip():
                 logger.info(f"[InputProcessingHook] Injecting ai_description for {key} (English-Only Mandate).")
                 header = f"--- AI INSTRUCTION FOR THIS SOURCE ({key}) ---\n"
                 footer = f"\n--- SOURCE: {key} ---"

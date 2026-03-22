@@ -54,7 +54,7 @@ class LLMClient:
         try:
             raw_registry = await repository.get_model_registry()
         except Exception as e:
-            raise ConfigurationError(f"System config 'model_registry' missing or query failed: {e}")
+            raise ConfigurationError(f"System config 'model_registry' missing or query failed: {e}") from e
 
         # 2. Strict Pydantic Inflation (Flattened V2 structure)
         try:
@@ -106,6 +106,7 @@ class LLMClient:
         messages: list[dict[str, Any]],
         response_model: type[T],
         model: str | None = None,
+        max_retries: int = 3,
         **kwargs: Any,
     ) -> tuple[T, dict[str, Any]]:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
@@ -119,6 +120,7 @@ class LLMClient:
         Returns:
             A tuple of (Validated Pydantic Model, Token Usage Dictionary).
         """
+        from backend_v2.exceptions import ErrorCodes
         # 1. Parse Messages to prompt/system inputs expected by LLMProvider.generate
         # Note: LLMProvider interface currently takes (prompt, system_instruction).
         # We flatten the chat history here. For multi-turn support, LLMProvider needs update.
@@ -190,43 +192,107 @@ class LLMClient:
         )
 
         try:
-            # 3. Generate with Structured Output
-            response = await provider.generate(
-                prompt=prompt,
-                system_instruction=system_instruction,
-                response_schema=response_model,
-                temperature=kwargs.get("temperature"),
-                max_tokens=kwargs.get("max_tokens"),
-                mock_identity=kwargs.get("mock_identity")
-            )
+            import pydantic
 
-            # 4. Parse Result
-            # response.content is a JSON string (ensured by LiteLLMProvider)
-            data = json.loads(response.content)
-            validated_model = response_model.model_validate(data)
-
-            # Extract usage securely into a simple dictionary from LLMResponse model
-            usage_obj = getattr(response, "token_usage", {})
-
-            usage_dict = {
-                "prompt_tokens": usage_obj.get("prompt_tokens", 0),
-                "completion_tokens": usage_obj.get("completion_tokens", 0),
-                "total_tokens": usage_obj.get("total_tokens", 0),
-                "cached_tokens": usage_obj.get("cached_tokens", 0),
-                "reasoning_tokens": usage_obj.get("reasoning_tokens", 0),
-                "cost_usd": usage_obj.get("cost_usd", 0.0)
+            current_prompt = prompt
+            cumulative_usage: dict[str, float | int] = {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "cached_tokens": 0,
+                "reasoning_tokens": 0,
+                "cost_usd": 0.0,
             }
 
-            return validated_model, usage_dict
+            for attempt in range(max_retries):
+                response = None
+                try:
+                    # 3. Generate with Structured Output
+                    response = await provider.generate(
+                        prompt=current_prompt,
+                        system_instruction=system_instruction,
+                        response_schema=response_model,
+                        temperature=kwargs.get("temperature"),
+                        max_tokens=kwargs.get("max_tokens"),
+                        mock_identity=kwargs.get("mock_identity")
+                    )
+
+                    # Extract usage securely into a simple dictionary from LLMResponse model
+                    usage_obj = getattr(response, "token_usage", {})
+
+                    cumulative_usage["prompt_tokens"] += int(usage_obj.get("prompt_tokens", 0) or 0)
+                    cumulative_usage["completion_tokens"] += int(usage_obj.get("completion_tokens", 0) or 0)
+                    cumulative_usage["total_tokens"] += int(usage_obj.get("total_tokens", 0) or 0)
+                    cumulative_usage["cached_tokens"] += int(usage_obj.get("cached_tokens", 0) or 0)
+                    cumulative_usage["reasoning_tokens"] += int(usage_obj.get("reasoning_tokens", 0) or 0)
+                    cumulative_usage["cost_usd"] += float(usage_obj.get("cost_usd", 0.0) or 0.0)
+
+                    # 4. Parse Result
+                    raw_content = response.content.strip()
+
+                    # Defensively strip Markdown JSON blocks if the LLM hallucinates them
+                    if raw_content.startswith("```json"):
+                        raw_content = raw_content[7:]
+                    if raw_content.startswith("```"):
+                        raw_content = raw_content[3:]
+                    if raw_content.endswith("```"):
+                        raw_content = raw_content[:-3]
+                    raw_content = raw_content.strip()
+
+                    data = json.loads(raw_content)
+                    validated_model = response_model.model_validate(data)
+
+                    return validated_model, cumulative_usage
+
+                except (json.JSONDecodeError, pydantic.ValidationError) as schema_err:
+                    if attempt == max_retries - 1:
+                        logger.error(
+                            f"[LLMClient] Self-Healing failed after {max_retries} attempts. "
+                            f"Final Error: {schema_err}"
+                        )
+                        raise AgentExecutionError(
+                            detail=f"Structured Task Failed (Self-Healing exhausted): {schema_err} "
+                                   f"[{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
+                        ) from schema_err
+
+                    logger.warning(
+                        f"[LLMClient] Schema Error on attempt {attempt+1}/{max_retries}: {schema_err}. "
+                        "Initiating Self-Healing."
+                    )
+
+                    # 5. Self-Healing: Feed error back to LLM for auto-correction
+                    error_msg = (
+                        schema_err.json() if isinstance(schema_err, pydantic.ValidationError)
+                        else str(schema_err)
+                    )
+                    correction_prompt = (
+                        f"\n\n[SYSTEM: SELF-HEALING CORRECTION]: Your previous response contained structural errors.\n"
+                        f"Validation errors:\n{error_msg}\n"
+                        f"Please carefully correct the JSON output to strictly match the requested schema."
+                    )
+
+                    # Append the hallucinated response and the correction instruction to guide the next iteration
+                    failed_content = getattr(response, "content", "EMPTY_CONTENT") if response else "EMPTY_CONTENT"
+                    current_prompt += f"\n\n{failed_content}{correction_prompt}"
 
         except Exception as e:
-            error_msg = f"Execution Failed for model {model}: {e}"
+            from backend_v2.exceptions import ErrorCodes
+            if isinstance(e, AgentExecutionError):
+                raise
+            error_msg = f"Execution Failed for model {target_model_name}: {e}"
             logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {error_msg}", exc_info=True)
             if "response" in locals() and getattr(locals().get("response"), "content", None):
-                logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: Raw content causing error: {locals()['response'].content}")
+                logger.error(
+                    f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: "
+                    f"Raw content causing error: {locals()['response'].content}"
+                )
             raise AgentExecutionError(
                 detail=f"Structured Task Failed: {e} [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
             ) from e
+            
+        raise AgentExecutionError(
+            detail=f"Unreachable code execution logic flow detected in LLM loop. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
+        )
 
     async def run_chat(
         self,

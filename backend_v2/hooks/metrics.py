@@ -256,35 +256,18 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         # Merge results into a single output dict
         audit_metrics = {
             # Text Metrics
-            "word_count": base_metrics.get("word_count", 0)
-            if isinstance(base_metrics, dict) else getattr(base_metrics, "word_count", 0),
-
-            "sentence_count": base_metrics.get("sentence_count", 0)
-            if isinstance(base_metrics, dict) else getattr(base_metrics, "sentence_count", 0),
-
-            "avg_sentence_length": base_metrics.get("avg_sentence_length", 0.0)
-            if isinstance(base_metrics, dict) else getattr(base_metrics, "avg_sentence_length", 0.0),
-
-            "lexical_diversity": base_metrics.get("lexical_diversity", 0.0)
-            if isinstance(base_metrics, dict) else getattr(base_metrics, "lexical_diversity", 0.0),
-
-            "capitalization_ratio": base_metrics.get("capitalization_ratio", 0.0)
-            if isinstance(base_metrics, dict) else getattr(base_metrics, "capitalization_ratio", 0.0),
-
+            "word_count": base_metrics["word_count"],
+            "sentence_count": base_metrics["sentence_count"],
+            "avg_sentence_length": base_metrics["avg_sentence_length"],
+            "lexical_diversity": base_metrics["lexical_diversity"],
+            "capitalization_ratio": base_metrics["capitalization_ratio"],
             "control_ratio": control_ratio,
 
             # Behavioral Metrics
-            "say_do_gap": behavioral_metrics.get("say_do_gap", 0.0)
-            if isinstance(behavioral_metrics, dict) else getattr(behavioral_metrics, "say_do_gap", 0.0),
-
-            "automation_bias": behavioral_metrics.get("automation_bias", 0.0)
-            if isinstance(behavioral_metrics, dict) else getattr(behavioral_metrics, "automation_bias", 0.0),
-
-            "illusion_of_competence": behavioral_metrics.get("illusion_of_competence", 0.0)
-            if isinstance(behavioral_metrics, dict) else getattr(behavioral_metrics, "illusion_of_competence", 0.0),
-
-            "imperative_command_count": behavioral_metrics.get("imperative_command_count", 0)
-            if isinstance(behavioral_metrics, dict) else getattr(behavioral_metrics, "imperative_command_count", 0),
+            "say_do_gap": behavioral_metrics["say_do_gap"],
+            "automation_bias": behavioral_metrics["automation_bias"],
+            "illusion_of_competence": behavioral_metrics["illusion_of_competence"],
+            "imperative_command_count": behavioral_metrics["imperative_command_count"],
         }
 
         logger.info("[MetricsHook] Metrics calculated successfully.")

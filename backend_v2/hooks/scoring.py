@@ -18,10 +18,8 @@ def _extract_guard_flag(data: dict[str, Any]) -> Any | None:
         Any | None: True if a security threat is detected, False otherwise, or None if guard data is missing/invalid.
     """
     guard_model = data.get("step_guard")
-    if guard_model and isinstance(guard_model, dict):
-        security_check = guard_model.get("security_check", {})
-        if isinstance(security_check, dict) and security_check.get("threat_detected"):
-            return True
+    if guard_model:
+        return guard_model.get("security_check", {}).get("threat_detected", False)
     logger.debug("[ScoringHook] step_guard missing from context or no threat detected.")
     return False
 
@@ -38,10 +36,10 @@ def _extract_falsifier_data(data: dict[str, Any]) -> Any | None:
     falsifier_model = data.get("step_falsifier")
     panel_model = data.get("step_panel")
 
-    if isinstance(falsifier_model, dict) and falsifier_model.get("falsifier_data"):
+    if falsifier_model and falsifier_model.get("falsifier_data"):
         return falsifier_model["falsifier_data"]
 
-    if isinstance(panel_model, dict) and panel_model.get("falsifier_data"):
+    if panel_model and panel_model.get("falsifier_data"):
         return panel_model["falsifier_data"]
 
     return None
@@ -56,9 +54,9 @@ def _calculate_falsifier_penalty(falsifier_data: Any | None) -> bool:
     Returns:
         bool: True if post-hoc rationalization is detected, False otherwise.
     """
-    if isinstance(falsifier_data, dict):
+    if falsifier_data:
         fidelity = falsifier_data.get("fidelity_audit", {})
-        if isinstance(fidelity, dict) and fidelity.get("post_hoc_rationalization"):
+        if fidelity.get("post_hoc_rationalization"):
             return True
     return False
 
@@ -131,20 +129,12 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
 
     def _extract_scores(source: dict[str, Any]) -> None:
         for k, v in source.items():
-            if isinstance(k, str) and k.endswith("_normalized"):
+            if k.endswith("_normalized"):
                 base_key = k.replace("_normalized", "")
                 if base_key in EVALUATIVE_MATRICES:
-                    try:
-                        unique_matrices[base_key] = float(v)
-                    except (ValueError, TypeError) as e:
-                        from backend_v2.exceptions import AppException, ErrorCodes
-                        msg = f"Corrupt scoring data: {k} could not be parsed as float (Value: {v})"
-                        logger.error(f"[ScoringHook] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}", exc_info=True)
-                        raise AppException(
-                            message=msg,
-                            status_code=500,
-                            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
-                        ) from e
+                    # Pydantic validates this as natively mathematical via Schema Compiler upstream,
+                    # so no more naive dict guessing/TypeError exceptions needed.
+                    unique_matrices[base_key] = float(v)
             elif isinstance(v, dict):
                 _extract_scores(v)
 
