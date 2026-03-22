@@ -221,6 +221,7 @@ class ErrorCodes(str, Enum):
     INVALID_FILE_FORMAT = "INVALID_FILE_FORMAT"
 
     # Engine / Workflow
+    WORKFLOW_COMPILATION_ERROR = "WORKFLOW_COMPILATION_ERROR"
     HOOK_EXECUTION_FAILED = "HOOK_EXECUTION_FAILED"
     INPUT_RESOLUTION_FAILED = "INPUT_RESOLUTION_FAILED"
     TASK_NOT_FOUND = "TASK_NOT_FOUND"
@@ -610,3 +611,24 @@ class WorkflowExecutionError(AppException):
             details=error_details,
         )
         self.original_error = original_error
+
+class WorkflowCompilationError(AppException):
+    """Raised when a workflow fails semantic Pre-Flight validation statically."""
+
+    def __init__(self, step_id: str | None, message: str):
+        """Initialize the exception.
+        
+        Args:
+            step_id: The ID of the specific workflow step causing the failure, if applicable.
+            message: Human-readable technical error explanation.
+        """
+        details = {
+            "error_code": ErrorCodes.WORKFLOW_COMPILATION_ERROR,
+            "step_id": step_id
+        }
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            details=details
+        )
+        self.step_id = step_id

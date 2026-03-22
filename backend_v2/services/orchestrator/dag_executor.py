@@ -54,8 +54,9 @@ class DAGExecutor:
             workflow: The hydrated strictly-typed V2 Workflow object.
             raw_inputs: Unvalidated inputs dict (validated per step by models).
         """
-        # Validate acyclic property (Already validated by Pydantic Model but we ensure it)
-        # Note: Pydantic Workflow model handles it on instantiation.
+        # Epic 2: Execution Firewall (Fast Fail Invalid Graphs)
+        from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+        DAGCompilerService.validate_workflow(workflow)
 
         # Fetch existing execution record from DB (created by ExecutionService)
         existing_record_dict = await self.repository.get_execution(execution_id)

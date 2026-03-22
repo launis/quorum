@@ -376,6 +376,14 @@ class StepRule(V2CoreBase):
         default_factory=list, description="Optional hooks running after step execution"
     )
 
+    def extract_variable_references(self) -> list[str]:
+        """Extracts dynamic variable references (e.g. $inputs.x, $steps.y) from input_mappings."""
+        refs = []
+        for val in self.input_mappings.values():
+            if isinstance(val, str) and val.startswith("$"):
+                refs.append(val)
+        return refs
+
 class Role(V2CoreBase):
     """Role definition that locks physical models and pre_hooks."""
     id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Unique Role ID")
@@ -567,54 +575,6 @@ class Workflow(V2CoreBase):
             if "slug" not in data and "id" in data:
                 data["slug"] = data["id"]
         return data
-
-    @model_validator(mode="after")
-    def check_cyclic_dependencies(self) -> Workflow:
-        """Validate workflow steps form a valid DAG without cycles."""
-        adj_list = {step.id: step.depends_on for step in self.steps}
-        visited = set()
-        rec_stack = set()
-
-        def is_cyclic(node: str) -> bool:
-            visited.add(node)
-            rec_stack.add(node)
-
-            for neighbor in adj_list.get(node, []):
-                if neighbor not in visited:
-                    if is_cyclic(neighbor):
-                        return True
-                elif neighbor in rec_stack:
-                    return True
-
-            rec_stack.remove(node)
-            return False
-
-        from backend_v2.exceptions import AppException, ErrorCodes
-        for step in self.steps:
-            if step.id not in visited:
-                if is_cyclic(step.id):
-                    msg = f"Cyclic dependency detected involving step: {step.id}"
-                    logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-                    raise AppException(
-                        message=msg,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                        status_code=400
-                    )
-
-        if self.expected_inputs:
-            if not any(inp.required for inp in self.expected_inputs):
-                msg = (
-                    f"Workflow '{self.id}' is invalid: if 'expected_inputs' are defined, "
-                    "at least one input must be 'required=True'."
-                )
-                logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-                raise AppException(
-                    message=msg,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                    status_code=400
-                )
-
-        return self
 
 
 class FrozenContext(V2CoreBase):

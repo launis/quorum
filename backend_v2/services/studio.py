@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from backend_v2.database.repository import AbstractWorkflowRepository
-from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigModelRegistry, Workflow
@@ -94,6 +94,9 @@ class StudioService:
 
     async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> Workflow:
         self._enforce_modification_rights(initiator, data.organization_id)
+
+        from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+        DAGCompilerService.validate_workflow(data)
 
         dump = data.model_dump(mode="json")
         if "id" not in dump:
@@ -308,7 +311,11 @@ class StudioService:
                 if comp != "*" and comp not in allowed_blocks:
                     msg = f"Target Component '{comp}' does not exist in the context of Workflow '{workflow.slug}'."
                     logger.error(f"[StudioService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-                    raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                    )
 
         dump = profile.model_dump(mode="json")
         if "id" not in dump:

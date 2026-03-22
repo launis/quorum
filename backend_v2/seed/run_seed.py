@@ -82,6 +82,10 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
             try:
                 validated = pyd_adapter.validate_python(item)
 
+                if col_key == "workflows":
+                    from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+                    DAGCompilerService.validate_workflow(validated)
+
                 if hasattr(validated, "model_dump"):
                     dumped = validated.model_dump(mode="json")
                 else:
@@ -154,6 +158,9 @@ def _seed_firestore(seed_data: dict[str, Any]) -> None:
         for item in seed_data.get(col_key, []):
             try:
                 validated = pyd_adapter.validate_python(item)
+                if col_key == "workflows":
+                    from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+                    DAGCompilerService.validate_workflow(validated)
                 valid_items.append(validated.model_dump(mode="json"))
             except ValidationError as ve:
                 _fail_fast(f"Validation Error for {col_key} item {item.get(id_field, 'unknown')}", ve)
