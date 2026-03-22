@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes, SecurityViolationError
 
 logger = logging.getLogger(__name__)
@@ -18,21 +18,21 @@ from backend_v2.core.security import check_banned_phrases, sanitize_text
 
 
 @hook_registry.register(name="sanitize_text")
-def sanitize_text_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for sanitize_text.
 
     Sanitizes all text inputs and stores results in context_variables as SanitizationResult.
     """
     logger.debug("[SecurityHook] Running sanitize_text_hook...")
 
-    if not data:
-        logger.warning("[SecurityHook] Empty initial data. Skipping.")
-        return {}
+    if not state:
+        logger.warning("[SecurityHook] Empty initial state. Skipping.")
+        return HookResult(success=True, state_delta={})
 
     sanitized_inputs: dict[str, str] = {}
     threats_summary: list[str] = []
 
-    inputs = data.get("inputs")
+    inputs = state.inputs
 
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
@@ -90,7 +90,7 @@ def sanitize_text_hook(data: dict[str, Any], context: HookExecutionContext) -> d
     else:
         logger.debug("[SecurityHook] No PII detected.")
 
-    return {"sanitization_result": result}
+    return HookResult(success=True, state_delta={"sanitization_result": result})
 
 
 # Defined per user request (Feb 15, 2026) - used as fallback if DB is empty
@@ -124,7 +124,7 @@ DEFAULT_BANNED_PHRASES: dict[str, list[str]] = {
 
 
 @hook_registry.register(name="check_banned_phrases")
-async def check_banned_phrases_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+async def check_banned_phrases_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for check_banned_phrases.
 
     Scans all text inputs for banned phrases fetched from database.
@@ -135,14 +135,14 @@ async def check_banned_phrases_hook(data: dict[str, Any], context: HookExecution
     """
     logger.debug("[SecurityHook] Running check_banned_phrases_hook...")
 
-    if not data:
-        return {}
+    if not state:
+        return HookResult(success=True, state_delta={})
 
     # Fetch banned phrases from database (Zero-Fallback compliance)
     banned_phrases: list[str] = []
     fetch_error: str | None = None
 
-    repository = context.repository
+    repository = deps.repository
 
     if repository:
         try:
@@ -167,11 +167,11 @@ async def check_banned_phrases_hook(data: dict[str, Any], context: HookExecution
         # Merge EN and FI defaults
         banned_phrases = DEFAULT_BANNED_PHRASES["en"] + DEFAULT_BANNED_PHRASES["fi"]
 
-    inputs = data.get("inputs")
+    inputs = state.inputs
 
     if not inputs:
         # V2 Global Fallback: Text inputs might be flat in the root context
-        inputs = {k: v for k, v in data.items() if not k.startswith("_sys_") and isinstance(v, str)}
+        inputs = {k: v for k, v in state.global_context_vars.items() if not k.startswith("_sys_") and isinstance(v, str)}
 
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
@@ -204,7 +204,7 @@ async def check_banned_phrases_hook(data: dict[str, Any], context: HookExecution
         logger.debug("[SecurityHook] No banned phrases detected.")
 
     # Check if SanitizationResult exists
-    existing_result = data.get("sanitization_result", {})
+    existing_result = state.global_context_vars.get("sanitization_result", {})
 
     # Create new
     new_result = {
@@ -215,4 +215,4 @@ async def check_banned_phrases_hook(data: dict[str, Any], context: HookExecution
         "security_status": "DATA_CHECKED_AND_SECURED",
     }
 
-    return {"sanitization_result": new_result}
+    return HookResult(success=True, state_delta={"sanitization_result": new_result})

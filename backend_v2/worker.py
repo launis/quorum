@@ -259,10 +259,12 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
 
         # 0. Get explicit locale via Execution
         execution_dict = await repo.get_execution(execution_id)
-        if hasattr(execution_dict, "metadata") and execution_dict.metadata:
-            loc = execution_dict.metadata.get("target_locale")
-            if loc and not accept_language:
-                accept_language = loc
+        if execution_dict:
+            metadata = getattr(execution_dict, "metadata", None) or (execution_dict.get("metadata", {}) if isinstance(execution_dict, dict) else None)
+            if metadata:
+                loc = metadata.get("target_locale")
+                if loc and not accept_language:
+                    accept_language = loc
 
         # 1. Generate Omni-Channel JSON Payload
         dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)

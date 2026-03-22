@@ -3,7 +3,7 @@ import copy
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -19,6 +19,7 @@ from backend_v2.models.v2_core import (
     Workflow,
     WorkflowInputs,
 )
+from backend_v2.utils.dict_utils import deep_merge_dicts
 
 logger = logging.getLogger(__name__)
 
@@ -121,17 +122,20 @@ class DAGExecutor:
         try:
             logger.info(f"[DAGExecutor] Initiating Step 0 Base64 Pre-Hydration for Workflow {workflow.id}")
 
-            # Create Hook Context for global hooks
-            global_hook_context = HookExecutionContext(
-                repository=self.repository,
+            # Create strict dependencies and state for global hooks
+            global_hook_deps = HookDependencies(repository=self.repository)
+            global_hook_state = HookState(
                 execution_id=execution_id,
                 workflow_id=workflow.id,
-                metadata=exec_record.metadata
+                metadata=exec_record.metadata,
+                inputs=state_data
             )
 
-            processed = await hook_registry.execute("input_processing", state_data, global_hook_context)
-            if isinstance(processed, dict) and "inputs" in processed:
-                 state_data["inputs"] = processed["inputs"]
+            processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
+            if processed_result.success and isinstance(processed_result.state_delta, dict):
+                 state_data = deep_merge_dicts(state_data, processed_result.state_delta)
+                 if "inputs" in processed_result.state_delta:
+                     state_data["inputs"] = processed_result.state_delta["inputs"]
         except Exception as e:
             msg = f"Pre-Hydration failed to parse raw inputs: {e}"
             logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
@@ -279,18 +283,20 @@ class DAGExecutor:
         # 2. Hook Execution (Deterministic or Async)
         hook_name: str | None = getattr(step, "hook", None)
         if hook_name:
-            # Create typed context for the standalone hook
-            hook_ctx = HookExecutionContext(
-                repository=self.repository,
+            # Create strict state and deps for the standalone hook
+            hook_deps = HookDependencies(repository=self.repository)
+            hook_state = HookState(
                 execution_id=execution_id,
                 workflow_id=workflow_id,
                 step_id=step.id,
                 task_blueprint=getattr(step, "task_blueprint", None),
-                metadata=metadata
+                metadata=metadata,
+                inputs=state_data
             )
 
             logger.debug(f"Executing Hook via Registry: {hook_name}")
-            return await hook_registry.execute(hook_name, state_data, hook_ctx)
+            hook_result = await hook_registry.execute(hook_name, hook_state, hook_deps)
+            return deep_merge_dicts(state_data, hook_result.state_delta or {})
 
         # 3. Role LLM Execution (Non-Deterministic)
         blueprint_slug: str | None = getattr(step, "task_blueprint", None)
@@ -298,53 +304,65 @@ class DAGExecutor:
             step_def = await self.repository.get_step_by_id(blueprint_slug)
             if not step_def:
                 msg = f"Configuration error: Step '{blueprint_slug}' not found in database."
-                logger.error(f"[DAGExecutor] {ErrorCodes.MISSING_CONFIGURATION.name}: {msg}")
+                logger.error(f"[DAGExecutor] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
                 raise AppException(
                     message=msg,
                     status_code=500,
-                    details={"error_code": ErrorCodes.MISSING_CONFIGURATION}
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
                 )
 
             # Execution logic branches based on node type
             if step_def.get("type", "llm") == "logic":
-                # Create typed context for the standalone hook
-                hook_ctx = HookExecutionContext(
-                    repository=self.repository,
+                # Create typed context for the standalone logic node
+                hook_deps = HookDependencies(repository=self.repository)
+                hook_state = HookState(
                     execution_id=execution_id,
                     workflow_id=workflow_id,
                     step_id=step.id,
                     task_blueprint=getattr(step, "task_blueprint", None),
-                    metadata=metadata
+                    metadata=metadata,
+                    inputs=state_data
                 )
+
                 # --- NATIVE LOGIC NODE EXECUTION (No LLM Cost) ---
                 logic_hook: str | None = step_def.get("hook", None)
                 if logic_hook:
                     # Execute Step-level pre-hooks manually before the designated logic
-                    for hook_name in step_def.get("pre_hooks", []):
-                        hook_result = await hook_registry.execute(hook_name, state_data, hook_ctx)
-                        if hook_result is not None:
-                            state_data.update(hook_result)
+                    for pre_hook in step_def.get("pre_hooks", []):
+                        hook_result = await hook_registry.execute(pre_hook, hook_state, hook_deps)
+                        if hook_result.success and hook_result.state_delta:
+                            state_data = deep_merge_dicts(state_data, hook_result.state_delta)
+                            # Update hook_state with the merged state_data for subsequent hooks
+                            hook_state = hook_state.model_copy(update={"inputs": state_data})
 
-                    logger.debug(f"Executing Native Logic Step '{step_def.get('slug', 'unknown')}' via hook: {logic_hook}")
-                    result = await hook_registry.execute(logic_hook, state_data, hook_ctx)
-                    if result is not None:
-                        state_data.update(result)
+                    logger.debug(
+                        f"Executing Native Logic Step '{step_def.get('slug', 'unknown')}' "
+                        f"via hook: {logic_hook}"
+                    )
+                    result = await hook_registry.execute(logic_hook, hook_state, hook_deps)
+                    if result.success and result.state_delta:
+                        state_data = deep_merge_dicts(state_data, result.state_delta)
+                        hook_state = hook_state.model_copy(update={"inputs": state_data})
 
                     # 4. Post-Hook Execution
-                    for hook_name in getattr(step, "post_hooks", []):
-                        hook_result = await hook_registry.execute(hook_name, state_data, hook_ctx)
-                        if hook_result is not None:
-                            state_data.update(hook_result)
+                    # Hooks attached to the StepRule
+                    for post_hook in getattr(step, "post_hooks", []):
+                        hook_result = await hook_registry.execute(post_hook, hook_state, hook_deps)
+                        if hook_result.success and hook_result.state_delta:
+                            state_data = deep_merge_dicts(state_data, hook_result.state_delta)
+                            hook_state = hook_state.model_copy(update={"inputs": state_data})
 
-                    for hook_name in step_def.get("post_hooks", []):
-                        hook_result = await hook_registry.execute(hook_name, state_data, hook_ctx)
-                        if hook_result is not None:
-                            state_data.update(hook_result)
+                    # Hooks attached to the logical Step template
+                    for post_hook in step_def.get("post_hooks", []):
+                        hook_result = await hook_registry.execute(post_hook, hook_state, hook_deps)
+                        if hook_result.success and hook_result.state_delta:
+                            state_data = deep_merge_dicts(state_data, hook_result.state_delta)
+                            hook_state = hook_state.model_copy(update={"inputs": state_data})
 
                     return state_data
                 else:
                     raise AppException(
-                        message=f"Logic step '{step_def.slug}' has no hook defined.",
+                        message=f"Logic step '{step_def.get('slug', 'unknown')}' has no hook defined.",
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED}
                     )
@@ -357,13 +375,14 @@ class DAGExecutor:
             logger.debug(f"Executing Step: {step_obj.id}")
 
             # 3.0 Pre-Hooks Execution
-            hook_ctx = HookExecutionContext(
-                repository=self.repository,
+            hook_deps = HookDependencies(repository=self.repository)
+            hook_state = HookState(
                 execution_id=execution_id,
                 workflow_id=workflow_id,
                 step_id=step.id,
                 task_blueprint=step.task_blueprint,
-                metadata=metadata
+                metadata=metadata,
+                inputs=state_data
             )
 
             # Combine pre-hooks from both the underlying Step and the specific StepRule,
@@ -372,10 +391,11 @@ class DAGExecutor:
 
             for pre_hook in combined_pre_hooks:
                 logger.debug(f"Executing Pre-Hook: {pre_hook}")
-                # We assume pre-hooks modify state_data in-place or return updated dict.
-                result = await hook_registry.execute(pre_hook, state_data, hook_ctx)
-                if isinstance(result, dict):
-                     state_data.update(result)
+                # We assume pre-hooks modify state_data by returning state deltas.
+                result = await hook_registry.execute(pre_hook, hook_state, hook_deps)
+                if result.success and result.state_delta:
+                     state_data = deep_merge_dicts(state_data, result.state_delta)
+                     hook_state = hook_state.model_copy(update={"inputs": state_data})
 
             # 3.1 Resolving xml context
             system_prompt = "Complete the evaluation according to the provided schema."
@@ -447,25 +467,29 @@ class DAGExecutor:
 
             # 3.4 Post-Hooks Execution
             # V2 Isolation: Provide the isolated final_dict, and pass global context in the explicit
-            # HookExecutionContext instead of polluting the result JSON directly via _sys_context_vars
+            # HookState instead of polluting the result JSON directly via _sys_context_vars
 
             safe_context = {
                 k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v
                 for k, v in state_data.items()
             }
 
-            # Post hooks use the same scoped HookCtx, but we inject the global state securely
-            hook_ctx.global_context_vars = safe_context
+            # Post hooks use the strict state, integrating global context securely
+            post_hook_state = hook_state.model_copy(update={
+                "global_context_vars": safe_context,
+                "inputs": final_dict
+            })
 
             # Combine post-hooks from both the underlying Step and the specific StepRule
             combined_post_hooks = list(dict.fromkeys(step_obj.post_hooks + step.post_hooks))
 
             for post_hook in combined_post_hooks:
                 logger.debug(f"Executing Post-Hook: {post_hook}")
-                # Pass the LLM output dict to the post hook for manipulation/normalization
-                ph_result = await hook_registry.execute(post_hook, final_dict, hook_ctx)
-                if isinstance(ph_result, dict):
-                    final_dict.update(ph_result)
+                # Pass the LLM output dict inside the post hook state
+                ph_result = await hook_registry.execute(post_hook, post_hook_state, hook_deps)
+                if ph_result.success and ph_result.state_delta:
+                    final_dict = deep_merge_dicts(final_dict, ph_result.state_delta)
+                    post_hook_state = post_hook_state.model_copy(update={"inputs": final_dict})
 
             # 3.5 Merge Python Hook State into Final Result
             # Pre-hooks often return specific statistical metadata keys. By convention,

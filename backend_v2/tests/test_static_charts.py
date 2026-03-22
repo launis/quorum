@@ -1,7 +1,7 @@
-import base64
 
 from backend_v2.models.v2_core import ReportAxisDTO
-from backend_v2.utils.static_charts import generate_scatter_chart, generate_radar_chart
+from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
+
 
 def test_generate_scatter_chart() -> None:
     axes = [

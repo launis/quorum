@@ -1,11 +1,10 @@
 """Archival hooks for retrieving system precedents."""
 
 import logging
-from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.utils.pydantic_utils import inflate
 
@@ -14,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 @hook_registry.register(name="retrieve_precedent")
 async def retrieve_precedent_hook(
-    data: dict[str, Any], context: HookExecutionContext
-) -> dict[str, Any]:
+    state: HookState, deps: HookDependencies
+) -> HookResult:
     """Workflow Data wrapper for retrieve_precedent.
 
     Retrieve the last N completed executions with a valid Judge score (Case Law).
@@ -23,21 +22,21 @@ async def retrieve_precedent_hook(
     Designed to allow agents to learn from past performance.
 
     Args:
-        data (dict): Current data.
-        context (HookExecutionContext): Strongly typed context.
+        state (HookState): Current executing state.
+        deps (HookDependencies): Strongly typed dependencies.
 
     Returns:
-        dict: Updated data with injected precedents.
+        HookResult: Updated data with injected precedents.
 
     Raises:
         AppException: If repository is missing or retrieval fails.
     """
     logger.debug("[ArchivalHook] Running retrieve_precedent_hook...")
 
-    if not data:
-        return {}
+    if not state:
+        return HookResult(success=True, state_delta={})
 
-    repository = context.repository
+    repository = deps.repository
     if not repository:
         # STRICT CONFIG CHECK
         error_code = ErrorCodes.CONFIGURATION_ERROR
@@ -161,7 +160,7 @@ async def retrieve_precedent_hook(
         logger.debug(f"[ArchivalHook] Found {len(precedents)} precedents.")
 
         # 4. Return STRUCTURED data (List[dict]) matching ArchivistInput schema
-        return {"archivist_precedents": precedents}
+        return HookResult(success=True, state_delta={"archivist_precedents": precedents})
 
     except AppException:
         raise

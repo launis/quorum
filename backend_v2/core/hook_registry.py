@@ -9,10 +9,11 @@ hardcoded domain model dependencies.
 import inspect
 import logging
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Protocol
 
 from fastapi import status
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -21,24 +22,48 @@ logger = logging.getLogger(__name__)
 from backend_v2.database.repository import AbstractWorkflowRepository
 
 
-@dataclass
-class HookExecutionContext:
-    """Strictly typed execution context for V2 Hooks.
+class IExecutionRepository(Protocol):
+    """Protocol for abstracting repository I/O from hook execution."""
+    async def get_execution(self, execution_id: str) -> dict[str, Any] | None: ...
+    async def update_execution(self, execution_id: str, updates: dict[str, Any]) -> None: ...
 
-    Prevents Magic String injection of dependencies into the generic state dictionary.
-    """
+
+class ISearchClient(Protocol):
+    """Protocol for abstracting search client I/O from hook execution."""
+    async def search(self, query: str) -> list[dict[str, Any]]: ...
+
+
+@dataclass(frozen=True)
+class HookDependencies:
+    """Strictly typed DI container separating infrastructure from data."""
     repository: AbstractWorkflowRepository
+    search_client: ISearchClient | None = None
+
+
+class HookState(BaseModel):
+    """Immutable cognitive data model for hook execution.
+    Enforces rules: Fail-Fast, Zero Side-Effects (frozen=True).
+    """
+    model_config = ConfigDict(frozen=True, extra='forbid', strict=True)
     execution_id: str
     workflow_id: str
     step_id: str | None = None
     task_blueprint: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
-    global_context_vars: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    global_context_vars: dict[str, Any] = Field(default_factory=dict)
+    inputs: dict[str, Any]
+
+
+class HookResult(BaseModel):
+    """Explicit state delta returned by Hooks for deep merging."""
+    success: bool
+    state_delta: dict[str, Any] | None = None
+
 
 # Strict type definition for a hook function
-# It accepts a dictionary of inputs and a HookExecutionContext, returning a dictionary of outputs
+# It accepts HookState and HookDependencies, returning a HookResult State Delta
 # It can be either synchronous or asynchronous
-HookFunction = Callable[[dict[str, Any], HookExecutionContext], dict[str, Any] | Awaitable[dict[str, Any]]]
+HookFunction = Callable[[HookState, HookDependencies], HookResult | Awaitable[HookResult]]
 
 
 class HookRegistry:
@@ -104,19 +129,19 @@ class HookRegistry:
             )
         return self._hooks[name]
 
-    async def execute(self, name: str, data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+    async def execute(self, name: str, state: HookState, deps: HookDependencies) -> HookResult:
         """Executes a registered hook securely.
 
         Handles both synchronous and asynchronous functions and enforces
-        the strict input/output format and context injection.
+        the strict HookState and HookDependencies injection, ensuring Fail-Fast protocol.
 
         Args:
             name (str): The name of the hook to execute.
-            data (dict[str, Any]): The input data payload.
-            context (HookExecutionContext): The strictly typed execution context.
+            state (HookState): The immutable data payload.
+            deps (HookDependencies): The strictly typed DI container.
 
         Returns:
-            dict[str, Any]: The result of the hook execution.
+            HookResult: The explicit state delta result.
 
         Raises:
             AppException: If execution fails or returns an invalid type.
@@ -124,17 +149,17 @@ class HookRegistry:
         hook_func = self.get_hook(name)
 
         try:
-            logger.debug(f"Executing hook '{name}' with data: {data}")
+            logger.debug(f"Executing hook '{name}' for step '{state.step_id}'")
 
             # Execute taking into account whether it is a coroutine
             if inspect.iscoroutinefunction(hook_func):
-                result = await hook_func(data, context)
+                result = await hook_func(state, deps)
             else:
-                result = hook_func(data, context)
+                result = hook_func(state, deps)
 
             # Enforce strict return type according to architectural mandate
-            if not isinstance(result, dict):
-                msg = f"Hook '{name}' returned invalid type '{type(result).__name__}'. Must return dict."
+            if not isinstance(result, HookResult):
+                msg = f"Hook '{name}' returned invalid type '{type(result).__name__}'. Must return HookResult."
                 logger.error(f"[HookRegistry] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {msg}")
                 raise AppException(
                     message=msg,

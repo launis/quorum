@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.view.sdui import ReferenceIntent, ReferenceItem
 from backend_v2.settings import get_settings
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="generate_report")
-def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -> dict[str, Any]:
+def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for generate_report.
 
     Post-execution hook that aggregates results from all agents (Judge, Overseer, Reporter)
@@ -36,8 +36,8 @@ def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -
     """
     logger.debug("[ReportingHook] Running generate_report_hook...")
 
-    if not data:
-        return {}
+    if not state:
+        return HookResult(success=True, state_delta={})
 
     get_settings()
 
@@ -57,7 +57,7 @@ def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -
     context: dict[str, Any] = {}
 
     # Inputs
-    inputs = data.get("inputs")
+    inputs = state.inputs
 
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
@@ -76,7 +76,7 @@ def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -
 
     # Helper to fetch safely
     def _get_agent_output(key: str) -> Any | None:
-        return data.get(key)
+        return state.global_context_vars.get(key)
 
     # Fetch all potential agent outputs using the raw dicts
     xai_out = _get_agent_output("step_xai")
@@ -188,7 +188,7 @@ def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -
     context["uncertainty"] = {"status": "Not Assessed"}  # Placeholder
 
     # Bibliography
-    bib_data = data.get("bibliography_result")
+    bib_data = state.global_context_vars.get("bibliography_result")
     if bib_data:
         if isinstance(bib_data, list):
             context["bibliography"] = bib_data
@@ -205,7 +205,7 @@ def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -
     search_items = []
     if isinstance(analyst_out, dict) and analyst_out.get("rag_evidence"):
         search_items.extend(analyst_out.get("rag_evidence", []))
-    sr_obj = data.get("search_result")
+    sr_obj = state.global_context_vars.get("search_result")
     if sr_obj:
         results = (
             getattr(sr_obj, "results", [])
@@ -243,7 +243,7 @@ def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -
             counters["SEARCH"] += 1
 
     # GROUNDING
-    for step_key, step_data in data.items():
+    for step_key, step_data in state.global_context_vars.items():
         if not step_key.startswith("step_") or not isinstance(step_data, dict):
             continue
         p_meta = step_data.get("metadata", {})
@@ -322,23 +322,23 @@ def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -
         context["knowledge_items"] = []
 
     # Archivist
-    archival_data = data.get("step_archivist")
+    archival_data = state.global_context_vars.get("step_archivist")
     if archival_data:
         context["archivist_precedents"] = archival_data
 
     # Scoring Result (Hook)
-    scoring_out = data.get("step_scoreengine1")
+    scoring_out = state.global_context_vars.get("step_scoreengine1")
     if isinstance(scoring_out, dict):
         context["penalties_applied"] = scoring_out.get("penalties_applied")
         context["score_summary"] = scoring_out.get("score_summary")
 
     # Validation Result (Hook)
-    validation_out = data.get("step_validation")
+    validation_out = state.global_context_vars.get("step_validation")
     if isinstance(validation_out, dict):
         context["structural_warnings"] = validation_out.get("warnings")
 
     # Coaching Plan
-    coaching_out = data.get("step_coach")
+    coaching_out = state.global_context_vars.get("step_coach")
     if isinstance(coaching_out, dict):
         context["coaching_plan"] = coaching_out
 
@@ -350,4 +350,4 @@ def generate_report_hook(data: dict[str, Any], hook_ctx: HookExecutionContext) -
 
     # If this hook is just preparing data for separate generation step:
     logger.info("[ReportingHook] Report context prepared and validated successfully.")
-    return {"report_context": validated_context}
+    return HookResult(success=True, state_delta={"report_context": validated_context})

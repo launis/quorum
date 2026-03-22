@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend_v2.core.hook_registry import HookExecutionContext
+from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.hooks.validation import verify_output_language
 
 
@@ -11,59 +11,63 @@ from backend_v2.hooks.validation import verify_output_language
 async def test_verify_output_language_detects_english_leakage() -> None:
     # Arrange
     mock_repo = MagicMock()
-    ctx = HookExecutionContext(
-        repository=mock_repo,
+    # English text with heavy stop words
+    inputs = {"evaluation_notes": "The user was very good and the system is fine."}
+
+    deps = HookDependencies(repository=mock_repo)
+    state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
-        metadata={"target_locale": "fi"}
+        metadata={"target_locale": "fi"},
+        inputs=inputs
     )
 
-    # English text with heavy stop words
-    data = {"evaluation_notes": "The user was very good and the system is fine."}
-
     # Act
-    result: dict[str, Any] = await verify_output_language(data, ctx)  # type: ignore
+    result = await verify_output_language(state, deps)
 
     # Assert
-    assert "_system_warnings" in result
-    assert len(result["_system_warnings"]) == 1
-    assert result["_system_warnings"][0]["error_code"] == "VALIDATION_FAILED"
-    assert "leaked English" in result["_system_warnings"][0]["detail"]
+    assert result.success is True
+    assert "_system_warnings" in result.state_delta
+    assert len(result.state_delta["_system_warnings"]) == 1
+    assert result.state_delta["_system_warnings"][0]["error_code"] == "VALIDATION_FAILED"
+    assert "leaked English" in result.state_delta["_system_warnings"][0]["detail"]
 
 
 @pytest.mark.asyncio
 async def test_verify_output_language_ignores_finnish_text() -> None:
     mock_repo = MagicMock()
-    ctx = HookExecutionContext(
-        repository=mock_repo,
+    # Finnish text lacking English stop words
+    inputs = {"evaluation_notes": "Käyttäjä vaikutti erittäin fiksulta ja ymmärsi asian täydellisesti."}
+
+    deps = HookDependencies(repository=mock_repo)
+    state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
-        metadata={"target_locale": "fi"}
+        metadata={"target_locale": "fi"},
+        inputs=inputs
     )
 
-    # Finnish text lacking English stop words
-    data = {"evaluation_notes": "Käyttäjä vaikutti erittäin fiksulta ja ymmärsi asian täydellisesti."}
-
-    result: dict[str, Any] = await verify_output_language(data, ctx)  # type: ignore
+    result = await verify_output_language(state, deps)
 
     # Assert no warnings injected
-    assert "_system_warnings" not in result
+    assert "_system_warnings" not in result.state_delta
 
 
 @pytest.mark.asyncio
 async def test_verify_output_language_allows_english_when_target_en() -> None:
     mock_repo = MagicMock()
-    ctx = HookExecutionContext(
-        repository=mock_repo,
+    # English text when English is requested
+    inputs = {"evaluation_notes": "The user was very good and the system is fine."}
+
+    deps = HookDependencies(repository=mock_repo)
+    state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
-        metadata={"target_locale": "en"}
+        metadata={"target_locale": "en"},
+        inputs=inputs
     )
 
-    # English text when English is requested
-    data = {"evaluation_notes": "The user was very good and the system is fine."}
-
-    result: dict[str, Any] = await verify_output_language(data, ctx)  # type: ignore
+    result = await verify_output_language(state, deps)
 
     # Assert
-    assert "_system_warnings" not in result
+    assert "_system_warnings" not in result.state_delta

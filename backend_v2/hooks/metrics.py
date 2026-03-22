@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.settings import get_settings
 
@@ -196,9 +196,9 @@ def calculate_behavioral_metrics(metrics: Any) -> Any:
 
 
 @hook_registry.register(name="calculate_control_ratio")
-def calculate_control_ratio_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Standalone hook to provide input control ratio if requested explicitly by a DAG step."""
-    inputs = data.get("inputs", {})
+    inputs = state.inputs
 
     # Dynamically scan all string inputs
     all_text = ""
@@ -206,12 +206,12 @@ def calculate_control_ratio_hook(data: dict[str, Any], context: HookExecutionCon
         all_text = " ".join(str(v) for v in inputs.values() if v)
 
     ratio = calculate_control_ratio(all_text)
-    return {"input_control_ratio": ratio}
+    return HookResult(success=True, state_delta={"input_control_ratio": ratio})
 
 
 
 @hook_registry.register(name="calculate_text_metrics")
-def text_metrics(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     """Calculates text metrics and behavioral heuristics from input data.
 
     Expects 'inputs' containing 'history_text' and 'product_text'.
@@ -220,7 +220,7 @@ def text_metrics(data: dict[str, Any], context: HookExecutionContext) -> dict[st
     logger.debug("[MetricsHook] Running text_metrics hook...")
 
     # Strict: Inputs MUST exist
-    inputs = data.get("inputs")
+    inputs = state.inputs
 
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.INVALID_JSON_PAYLOAD
@@ -290,9 +290,9 @@ def text_metrics(data: dict[str, Any], context: HookExecutionContext) -> dict[st
         logger.info("[MetricsHook] Metrics calculated successfully.")
 
         # Return the strictly enforced dict -> dict output
-        return {
+        return HookResult(success=True, state_delta={
             "profiler_metrics": audit_metrics,
-        }
+        })
 
     except Exception as e:
         error_code = ErrorCodes.INTERNAL_SERVER_ERROR

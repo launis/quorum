@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class CitationAudit(BaseModel):
 
 
 @hook_registry.register(name="verify_citation_integrity")
-async def verify_citation_integrity_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+async def verify_citation_integrity_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for verify_citation_integrity.
 
     Verified dynamic citations against structured texts to enforce the Fail-Fast Protocol
@@ -51,25 +51,25 @@ async def verify_citation_integrity_hook(data: dict[str, Any], context: HookExec
         data (dict): Current workflow data containing results.
 
     Returns:
-        dict: Updated data with stripped citations if they fail validation.
+        HookResult: Updated data with stripped citations if they fail validation.
     """
-    if not data:
-        return {}
+    if not state:
+        return HookResult(success=True, state_delta={})
 
     # Option C: Global Bypass
     import os
 
     if os.getenv("SKIP_CITATION_VERIFICATION", "false").lower() == "true":
         logger.info("[IntegrityHook] Citation verification bypassed (SKIP_CITATION_VERIFICATION=true).")
-        return data
+        return HookResult(success=True, state_delta={})
 
     # 1. Gather Source Text
     # V2 Isolation Support: Since hooks receive local state, "inputs" might be missing if not explicitly passed.
-    inputs = data.get("inputs")
+    inputs = state.inputs
 
     if not inputs:
         # Pull global inputs injected by DAG executor for post-hook lookups
-        global_vars = context.global_context_vars or {}
+        global_vars = state.global_context_vars
         if "$inputs" in global_vars:
             # Note: $inputs resolves to `inputs.raw_inputs` during execution
             inputs_obj = global_vars["$inputs"]
@@ -86,7 +86,7 @@ async def verify_citation_integrity_hook(data: dict[str, Any], context: HookExec
 
     if not inputs:
          logger.warning("[IntegrityHook] Local citation verification requires some text inputs. Bypassing safely.")
-         return data
+         return HookResult(success=True, state_delta={})
 
     # Gather all text inputs dynamically
     source_texts = []
@@ -104,7 +104,7 @@ async def verify_citation_integrity_hook(data: dict[str, Any], context: HookExec
 
     # 1b. Gather Context (RAG)
     rag_text = ""
-    step_ctx = data.get("step_context", {})
+    step_ctx = state.global_context_vars.get("step_context", {})
 
     if step_ctx.get("precedents"):
         rag_text += str(step_ctx.get("precedents")) + "\n"
@@ -197,12 +197,14 @@ async def verify_citation_integrity_hook(data: dict[str, Any], context: HookExec
             for item in obj:
                 scan_and_nullify(item)
 
-    # We mutate `data` recursively in-place
-    scan_and_nullify(data)
+    # We mutate a deep copy of global_context_vars and return it as delta
+    import copy
+    delta = copy.deepcopy(state.global_context_vars)
+    scan_and_nullify(delta)
 
     if total_count == 0:
         logger.warning("[IntegrityHook] No structured citations found to verify.")
-        return data
+        return HookResult(success=True, state_delta={})
 
     # FAIL FAST: Data Integrity (Part 18.1)
     if not source_corpus.strip():
@@ -230,13 +232,13 @@ async def verify_citation_integrity_hook(data: dict[str, Any], context: HookExec
     # In Graceful Degradation, we skip raising an AppException here unless desired. We rely on the nullification.
 
     # Create a dedicated 'integrity_audit' key in context for visibility regardless of metadata presence
-    data["integrity_audit"] = audit.model_dump()
+    delta["integrity_audit"] = audit.model_dump()
 
-    return data
+    return HookResult(success=True, state_delta=delta)
 
 
 @hook_registry.register(name="enforce_hypothesis_linking")
-def enforce_hypothesis_linking_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for enforce_hypothesis_linking.
 
     Ensure that Analyst Hypotheses have sequential, valid IDs (HYP-1, HYP-2...).
@@ -245,20 +247,20 @@ def enforce_hypothesis_linking_hook(data: dict[str, Any], context: HookExecution
         data (dict): Current data.
 
     Returns:
-        dict: Verified data (empty delta).
+        HookResult: Verified data (empty delta).
 
     Raises:
         AppException: If hypothesis IDs are malformed or non-sequential.
     """
-    if not data:
-        return {}
+    if not state:
+        return HookResult(success=True, state_delta={})
 
     # V2 Architecture Isolation: Post hooks receive the local dictionary.
-    step_analyst = data.get("step_analyst", data)
+    step_analyst = state.global_context_vars.get("step_analyst", state.inputs)
 
-    hypotheses = step_analyst.get("hypotheses", [])
+    hypotheses = step_analyst.get("hypotheses", []) if isinstance(step_analyst, dict) else []
     if not hypotheses:
-        return {}
+        return HookResult(success=True, state_delta={})
 
     seen_ids = set()
     expected_idx = 1
@@ -296,4 +298,4 @@ def enforce_hypothesis_linking_hook(data: dict[str, Any], context: HookExecution
         expected_idx += 1
 
     logger.info(f"[IntegrityHook] Verified {len(hypotheses)} sequential hypotheses.")
-    return {}
+    return HookResult(success=True, state_delta={})

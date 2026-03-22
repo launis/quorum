@@ -1,9 +1,8 @@
 """LLM hooks for configuring model providers and context."""
 
 import logging
-from typing import Any
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.settings import get_settings
 
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="configure_llm_context")
-def configure_llm_context_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for configure_llm_context.
 
     Resolve the LLM provider configuration based on the 'model_strategy' in context.
@@ -33,18 +32,18 @@ def configure_llm_context_hook(data: dict[str, Any], context: HookExecutionConte
     """
     logger.debug("[LLMHook] Running configure_llm_context_hook...")
 
-    if not data:
-        return {}
+    if not state:
+        return HookResult(success=True, state_delta={})
 
     # 1. Retrieve Context Variables
     # If no context, nothing to configure, but unusual.
-    ctx = data
+    ctx = state.global_context_vars
 
     # 2. Get Strategy (SSOT)
     # We no longer rely on 'step.config' (which violated SSOT).
     # Instead, we look up the target strategy from the workflow's default_model_mapping,
     # or fallback to the system's global default.
-    step_id = context.step_id or "unknown_agent"
+    step_id = state.step_id or "unknown_agent"
 
     # Since hooks don't easily have 'repository' injected via parameters,
     # we can try to find workflow mapping in state or resolve using registry singleton in real time.
@@ -137,7 +136,7 @@ def configure_llm_context_hook(data: dict[str, Any], context: HookExecutionConte
             f"(Strategy: {model_strategy}, Model: {llm_config.model_name})"
         )
 
-        return {"llm_config": llm_config}
+        return HookResult(success=True, state_delta={"llm_config": llm_config})
 
     except Exception as e:
         error_code = ErrorCodes.CONFIGURATION_ERROR

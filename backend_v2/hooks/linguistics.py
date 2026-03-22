@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ PERFORMATIVE_PATTERNS: dict[str, list[str]] = {
 
 
 @hook_registry.register(name="detect_performative_patterns")
-def detect_performative_patterns(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def detect_performative_patterns(state: HookState, deps: HookDependencies) -> HookResult:
     """HOOK: detect_performative_patterns.
 
     Scans input texts (history, product) for performative/filler language patterns.
@@ -99,8 +99,11 @@ def detect_performative_patterns(data: dict[str, Any], context: HookExecutionCon
     """
     logger.debug("[LinguisticsHook] Running detect_performative_patterns...")
 
+    if not state:
+        return HookResult(success=True, state_delta={})
+
     # Strict Input Validation
-    inputs = data.get("inputs")
+    inputs = state.inputs
 
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
@@ -113,9 +116,9 @@ def detect_performative_patterns(data: dict[str, Any], context: HookExecutionCon
         )
 
     # Detect Language
-    lang_code = data.get("language")
+    lang_code = state.global_context_vars.get("language")
     if not lang_code:
-        lang_code = inputs.get("language", "en")
+        lang_code = inputs.get("language", "en") if isinstance(inputs, dict) else "en"
 
     # Normalize "fi-FI" -> "fi"
     lang_simple = str(lang_code).split("-")[0].lower()
@@ -151,4 +154,4 @@ def detect_performative_patterns(data: dict[str, Any], context: HookExecutionCon
     if detected:
         logger.debug(f"   [LinguisticsHook] Detected patterns ({lang_simple}): {detected}")
 
-    return {"linguistics_result": result}
+    return HookResult(success=True, state_delta={"linguistics_result": result})

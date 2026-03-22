@@ -13,7 +13,7 @@ import fitz
 from fastapi import status
 from fastapi.concurrency import run_in_threadpool
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ async def resolve_input(val: Any) -> str:
 
 
 @hook_registry.register(name="input_processing")
-async def process_inputs(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult:
     """HOOK: input_processing.
 
     Reads raw input modalities passed from the client, normalizes them,
@@ -64,9 +64,12 @@ async def process_inputs(data: dict[str, Any], context: HookExecutionContext) ->
     """
     logger.info("[InputProcessingHook] Running deterministic input normalizer...")
 
+    if not state:
+        return HookResult(success=True, state_delta={})
+
     # Fetch workflow to know about expected_inputs
-    repo = context.repository
-    workflow_id = context.workflow_id
+    repo = deps.repository
+    workflow_id = state.workflow_id
 
     if not repo or not workflow_id:
         logger.error("[InputProcessingHook] Missing repository or workflow_id in context.")
@@ -94,7 +97,7 @@ async def process_inputs(data: dict[str, Any], context: HookExecutionContext) ->
 
     for expected_input in expected_inputs:
         key = expected_input.input_key
-        raw_val = data.get(key)
+        raw_val = state.global_context_vars.get(key)
 
         # 1. Handle Questionnaire mode specifically if it exists
         if isinstance(raw_val, dict) and any(str(k).startswith("q") for k in raw_val.keys()):
@@ -174,4 +177,4 @@ async def process_inputs(data: dict[str, Any], context: HookExecutionContext) ->
 
         output_dict[key] = resolved_text.strip()
 
-    return {"inputs": output_dict}
+    return HookResult(success=True, state_delta={"inputs": output_dict})

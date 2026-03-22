@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ def _calculate_falsifier_penalty(falsifier_data: Any | None) -> bool:
 
 
 @hook_registry.register(name="apply_scoring_logic")
-def apply_scoring_logic_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for apply_scoring_logic.
 
     Aggregates scores from Judge/Evaluation steps, applies penalties based on
@@ -74,13 +74,13 @@ def apply_scoring_logic_hook(data: dict[str, Any], context: HookExecutionContext
     """
     logger.debug("[ScoringHook] Calculating final scores...")
 
-    if not data:
-        return {}
+    if not state:
+        return HookResult(success=True, state_delta={})
 
     # V2 Architecture Isolation: Use the explicit execution context wrapper provided by DAGExecutor.
-    global_vars = context.global_context_vars
+    global_vars = state.global_context_vars
     # Use global vars for lookup if available, otherwise fallback to the isolated node data
-    lookup_ctx = global_vars if global_vars else data
+    lookup_ctx = global_vars if global_vars else state.inputs
 
     # 1. Security Penalty Check (Guard)
     security_threat = _extract_guard_flag(lookup_ctx)
@@ -123,9 +123,9 @@ def apply_scoring_logic_hook(data: dict[str, Any], context: HookExecutionContext
     # The Judge is the final aggregator so by checking context we capture everything.
 
     candidates = [lookup_ctx]  # Default to full history
-    step_id = context.step_id
+    step_id = state.step_id
     if step_id in ["step_judge", "step_judge_cognitive"]:
-        candidates.append(data)
+        candidates.append(state.inputs)
 
     unique_matrices = {}
 
@@ -223,7 +223,7 @@ def apply_scoring_logic_hook(data: dict[str, Any], context: HookExecutionContext
         f"Commensurate Base Average: {average_score:.1f}, "
         f"Final: {final_score:.1f}. Penalties: {len(penalties)}"
     )
-    return {"scoring_result": result}
+    return HookResult(success=True, state_delta={"scoring_result": result})
 
 
 from backend_v2.models.enums import ScoringPenalty
@@ -350,7 +350,7 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
 
 
 @hook_registry.register(name="enforce_passivity_penalty")
-def enforce_passivity_penalty_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Refined Truth Protocol: Enforces passivity penalty if detected in Judge Output.
 
     Checks if any dimension in the Judge Output has the minimum possible score.
@@ -366,12 +366,12 @@ def enforce_passivity_penalty_hook(data: dict[str, Any], context: HookExecutionC
 
     logger.info(f"[ScoringHook] Enforcing passivity penalties (Multiplier: {multiplier})...")
 
-    if not data:
-        return {}
+    if not state:
+        return HookResult(success=True, state_delta={})
 
     # V2 Architecture Isolation: Use the explicit execution context wrapper
-    global_vars = context.global_context_vars
-    lookup_ctx = global_vars if global_vars else data
+    global_vars = state.global_context_vars
+    lookup_ctx = global_vars if global_vars else state.inputs
 
     updates_needed = False
     new_data: dict[str, Any] = {}
@@ -384,9 +384,9 @@ def enforce_passivity_penalty_hook(data: dict[str, Any], context: HookExecutionC
             judges_to_check.append((judge_key, lookup_ctx.get(judge_key), False))
 
     # 2. From V2 Isolation Fix (post-hook)
-    step_id = context.step_id
+    step_id = state.step_id
     if step_id in ["step_judge", "step_judge_cognitive"]:
-        judges_to_check.append((step_id, data, True))
+        judges_to_check.append((step_id, state.inputs, True))
 
     for judge_key, judge_model, is_post_hook in judges_to_check:
         if not judge_model or not isinstance(judge_model, dict):
@@ -492,13 +492,13 @@ def enforce_passivity_penalty_hook(data: dict[str, Any], context: HookExecutionC
                  updates_needed = True
 
     if updates_needed:
-        return new_data
+        return HookResult(success=True, state_delta=new_data)
 
-    return {}
+    return HookResult(success=True, state_delta={})
 
 
 @hook_registry.register(name="normalize_matrix_scores")
-async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Post-Hook to normalize any raw matrix scores into a user-defined target scale.
 
     It scans the current step's output in the state context.
@@ -511,32 +511,32 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
     """
     logger.info("[ScoringHook] Running normalize_matrix_scores_hook...")
 
-    repository = context.repository
+    repository = deps.repository
     if not repository:
-        logger.warning("[ScoringHook] No repository provided in HookExecutionContext. Skipping normalization.")
-        return state
+        logger.warning("[ScoringHook] No repository provided in HookDependencies. Skipping normalization.")
+        return HookResult(success=True, state_delta={})
 
     # V2 Fast-Fail Architecture: State is now a strictly isolated dictionary (DAGExecutor final_dict)
     # We depend on _sys_step_id being injected during the execution context.
-    if not isinstance(state, dict):
-        logger.debug("[ScoringHook] State is not a dictionary. Skipping.")
-        return state
+    if not isinstance(state.inputs, dict):
+        logger.debug("[ScoringHook] State inputs is not a dictionary. Skipping.")
+        return HookResult(success=True, state_delta={})
 
     # Look up the PromptBlocks from the task_blueprint (the actual Step model schema)
     # rather than the workflow's StepRule instance ID, which lacks the prompt_blocks array.
-    blueprint_id = context.task_blueprint or context.step_id
+    blueprint_id = state.task_blueprint or state.step_id
 
-    content_payload = state
+    content_payload = state.inputs
 
     if not blueprint_id:
          logger.debug("[ScoringHook] No blueprint_id or step_id found in execution context. Skipping.")
-         return state
+         return HookResult(success=True, state_delta={})
 
     try:
         step_obj = await repository.get_step_by_id(blueprint_id)
         if not step_obj:
             logger.warning(f"[ScoringHook] Step blueprint '{blueprint_id}' not found in registry.")
-            return state
+            return HookResult(success=True, state_delta={})
 
         prompt_blocks_slugs = (
             step_obj.get("prompt_blocks", [])
@@ -645,8 +645,8 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
                 )
 
         if updates_made:
-             # V2 Dict direct mutation
-             state.update(new_payload)
+             # V2 Dict direct mutation avoided, send back state_delta
+             return HookResult(success=True, state_delta=new_payload)
 
     except Exception as e:
         # Fail Fast Requirement
@@ -660,4 +660,4 @@ async def normalize_matrix_scores_hook(state: dict[str, Any], context: HookExecu
             details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED},
         ) from e
 
-    return state
+    return HookResult(success=True, state_delta={})

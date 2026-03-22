@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
@@ -50,32 +50,32 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any] | None)
 
 
 @hook_registry.register(name="generate_bibliography")
-async def generate_bibliography_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Wrap generate_bibliography and inject its results."""
     logger.debug("[ReferenceHook] Running generate_bibliography_hook...")
 
-    if not data:
-        return {}
+    if not state:
+        return HookResult(success=True, state_delta={})
 
     try:
         text_dump = ""
 
-        inputs = data.get("inputs")
+        inputs = state.inputs
 
         if inputs:
             for val in inputs.values():
                 text = str(val) if val else ""
                 text_dump += text + "\n"
 
-        step_coach = data.get("step_coach")
+        step_coach = state.global_context_vars.get("step_coach")
         if step_coach and isinstance(step_coach, dict):
             text_dump += json.dumps(step_coach, ensure_ascii=False)
 
         if not text_dump.strip():
             logger.warning("[ReferenceHook] No text to scan.")
-            return {}
+            return HookResult(success=True, state_delta={})
 
-        knowledge_base = data.get("knowledge_base")
+        knowledge_base = state.global_context_vars.get("knowledge_base")
 
         # 3. Generate References
         # This might raise REFERENCES_GENERATION_FAILED (AppException)
@@ -90,10 +90,10 @@ async def generate_bibliography_hook(data: dict[str, Any], context: HookExecutio
         logger.debug(f"[ReferenceHook] Generated {len(items)} references.")
         delta: dict[str, Any] = {"bibliography_result": result}
 
-        if "knowledge_base" not in data:
+        if "knowledge_base" not in state.global_context_vars:
             delta["knowledge_base"] = knowledge_base
 
-        return delta
+        return HookResult(success=True, state_delta=delta)
 
     except AppException:
         # Re-raise AppExceptions directly (Fail Fast)

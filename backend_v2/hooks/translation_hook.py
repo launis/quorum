@@ -11,16 +11,15 @@ localized strings for AI-generated content.
 
 import json
 import logging
-from typing import Any
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
 
 @hook_registry.register(name="translation_hook")
-async def translation_hook(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+async def translation_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """HOOK: translation_hook.
     
     Translates the values of the AI output dictionary to the requested target language.
@@ -35,36 +34,36 @@ async def translation_hook(data: dict[str, Any], context: HookExecutionContext) 
     # Check if this is the generic flat data payload or if we have full kwargs context
     # Usually hooks receive the merged dict, so we need to find the target_language
 
-    target_language = data.get("language")
+    target_language = state.inputs.get("language")
     if not target_language:
         # If no language is specified, we assume no translation is needed
         logger.debug("[TranslationHook] No 'language' found in payload. Skipping translation.")
-        return data
+        return HookResult(success=True, state_delta={})
 
     if target_language == "en":
         # English is the native output of the AI, no translation needed
         logger.debug("[TranslationHook] Target language is English. Skipping translation.")
-        return data
+        return HookResult(success=True, state_delta={})
 
-    repo = context.repository
+    repo = deps.repository
     if not repo:
         # Fallback if repository is missing - we cannot initialize LLMClient
         logger.warning(f"[TranslationHook] Missing repository context. Cannot translate to {target_language}.")
-        return data
+        return HookResult(success=False, state_delta={})
 
     # 1. Isolate the actual payload that needs translation.
     # We don't want to translate system keys starting with '_' or known metadata fields.
     payload_to_translate = {}
     preserved_fields = {}
 
-    for k, v in data.items():
+    for k, v in state.inputs.items():
         if k.startswith("_") or k in ("language", "repository", "inputs", "node_id", "workflow_id"):
             preserved_fields[k] = v
         else:
             payload_to_translate[k] = v
 
     if not payload_to_translate:
-        return data
+        return HookResult(success=True, state_delta={})
 
     try:
         # Initialize LLM Client via Strategy Pattern (use 'fast' for translation)
@@ -72,7 +71,7 @@ async def translation_hook(data: dict[str, Any], context: HookExecutionContext) 
     except ConfigurationError as e:
         logger.error(f"[TranslationHook] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to init LLM for translation: {e}")
         # Graceful Degradation: return original data
-        return data
+        return HookResult(success=False, state_delta={})
 
     # 2. Build the exact translation prompt
     prompt = f"""
@@ -109,13 +108,13 @@ async def translation_hook(data: dict[str, Any], context: HookExecutionContext) 
         # Merge back with preserved fields
         final_data = {**preserved_fields, **translated_payload}
         logger.info("[TranslationHook] Translation successful.")
-        return final_data
+        return HookResult(success=True, state_delta=final_data)
 
     except json.JSONDecodeError as e:
         # 1. Log with STRUCTURED FORMAT even for non-fatal errors
         logger.error(f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM returned invalid JSON on translation: {e}", exc_info=True)
         # 2. Graceful Degradation: Return original untranslated data to prevent UI crash
-        return data
+        return HookResult(success=False, state_delta={})
     except Exception as e:
         logger.error(f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM generation failed for translation: {e}", exc_info=True)
-        return data
+        return HookResult(success=False, state_delta={})

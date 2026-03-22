@@ -2,18 +2,17 @@
 
 import logging
 import re
-from typing import Any
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookExecutionContext, hook_registry
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="verify_structure")
-def verify_structure(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
     """HOOK: verify_structure.
 
     Pre-execution validation check to ensure inputs ('history_text', 'product_text', 'reflection_text')
@@ -39,8 +38,8 @@ def verify_structure(data: dict[str, Any], context: HookExecutionContext) -> dic
 
     warnings = []
 
-    if not data:
-        msg = "Context variables missing in validation hook."
+    if not state:
+        msg = "State missing in validation hook."
         logger.error(f"[ValidationHook] {ErrorCodes.EMPTY_INPUT.name}: {msg}")
         raise AppException(
             message=msg,
@@ -48,11 +47,11 @@ def verify_structure(data: dict[str, Any], context: HookExecutionContext) -> dic
             details={"error_code": ErrorCodes.EMPTY_INPUT},
         )
 
-    inputs = data.get("inputs")
+    inputs = state.inputs
 
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
-        msg = "Missing or invalid 'inputs' in data. Expected dict."
+        msg = "Missing or invalid 'inputs' in state. Expected dict."
         status_code = status.HTTP_400_BAD_REQUEST if inputs is None else status.HTTP_500_INTERNAL_SERVER_ERROR
         logger.error(f"[ValidationHook] {error_code.name}: {msg}")
         raise AppException(
@@ -93,11 +92,11 @@ def verify_structure(data: dict[str, Any], context: HookExecutionContext) -> dic
     else:
         logger.debug("[ValidationHook] Checks passed.")
 
-    return {"validation_result": result}
+    return HookResult(success=True, state_delta={"validation_result": result})
 
 
 @hook_registry.register(name="verify_output_language")
-def verify_output_language(data: dict[str, Any], context: HookExecutionContext) -> dict[str, Any]:
+def verify_output_language(state: HookState, deps: HookDependencies) -> HookResult:
     """HOOK: verify_output_language.
 
     Post-execution soft-validation check. Scans generated text for English leakage
@@ -106,13 +105,13 @@ def verify_output_language(data: dict[str, Any], context: HookExecutionContext) 
     """
     logger.debug("[ValidationHook] Running output language check...")
 
-    if not data or not isinstance(data, dict):
-        return data  # Can only validate dicts
+    if not state or not isinstance(state.inputs, dict):
+        return HookResult(success=True, state_delta={})  # Can only validate dicts
 
-    target_locale = context.metadata.get("target_locale", "en").lower()
+    target_locale = state.metadata.get("target_locale", "en").lower()
 
     if target_locale == "en":
-        return data  # English is allowed
+        return HookResult(success=True, state_delta={})  # English is allowed
 
     # Heuristics: Extremely common, unambiguous English stop words.
     # We use word boundary \b to prevent matching inside Finnish words.
@@ -122,7 +121,7 @@ def verify_output_language(data: dict[str, Any], context: HookExecutionContext) 
     target_keys = ["evaluation_notes"]
     leakage_detected = False
 
-    for key, value in data.items():
+    for key, value in state.inputs.items():
         if not isinstance(value, str):
             continue
 
@@ -140,15 +139,14 @@ def verify_output_language(data: dict[str, Any], context: HookExecutionContext) 
                     f"Text excerpt: {value[:100]}..."
                 )
 
+    delta = {}
     if leakage_detected:
-        if "_system_warnings" not in data:
-            data["_system_warnings"] = []
-
-        data["_system_warnings"].append({
+        delta["_system_warnings"] = state.inputs.get("_system_warnings", [])
+        delta["_system_warnings"].append({
             "type": "https://api.cognitivequorum.com/errors/language-mismatch",
             "title": "Output Language Mismatch",
             "detail": f"Model neglected the '{target_locale}' localization mandate and leaked English.",
             "error_code": ErrorCodes.VALIDATION_FAILED.name
         })
 
-    return data
+    return HookResult(success=True, state_delta=delta)
