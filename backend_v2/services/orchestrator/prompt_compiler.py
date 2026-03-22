@@ -466,21 +466,21 @@ class PromptCompiler:
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
-    def compile_instruction_blocks(self, blocks: list[dict[str, Any]], target_locale: str) -> str:
-        """Compile instruction-type V2 PromptBlocks into execution text.
+    def compile_static_instructions(self, blocks: list[dict[str, Any]], target_locale: str) -> str:
+        """Compile static instruction-type V2 PromptBlocks for the Cached System Prompt.
 
-        Extracts the localized label and description from blocks where type == "instruction".
+        Extracts blocks where type == "instruction" AND category_id != "runtime_variables".
 
         Args:
-            blocks: List of PromptBlock (PromptBlock) dictionaries.
+            blocks: List of PromptBlock dictionaries.
             target_locale: The requested language code.
 
         Returns:
-            A formatted string of all instruction directives.
+            A formatted string of all static instruction directives.
         """
         compiled_lines = []
         for block in blocks:
-            if block.get("type") == "instruction":
+            if block.get("type") == "instruction" and block.get("category_id") != "runtime_variables":
                 label = self.resolve_i18n(block.get("label"), target_locale)
                 desc = block.get("ai_description")
                 if not desc:
@@ -490,8 +490,49 @@ class PromptCompiler:
                     raise ConfigurationError(msg)
 
                 if label:
-                    compiled_lines.append(f"[Instruction {target_locale.upper()}]: ### {label}")
+                    compiled_lines.append(f"[Static Instruction {target_locale.upper()}]: ### {label}")
                 if desc:
                     compiled_lines.append(f"{desc}")
 
-        return "\n".join(compiled_lines)
+        return "\n\n".join(compiled_lines) if compiled_lines else ""
+
+    def compile_dynamic_instructions(self, blocks: list[dict[str, Any]], target_locale: str) -> str:
+        """Compile dynamic instruction-type V2 PromptBlocks for the Uncached User Tail.
+
+        Extracts blocks where type == "instruction" AND category_id == "runtime_variables",
+        and performs real-time variable substitutions (e.g. {CURRENT_DATE}).
+
+        Args:
+            blocks: List of PromptBlock dictionaries.
+            target_locale: The requested language code.
+
+        Returns:
+            A formatted string of all dynamic runtime instruction directives.
+        """
+        import datetime
+
+        now_utc = datetime.datetime.now(datetime.UTC)
+        current_date_str = now_utc.strftime("%Y-%m-%d")
+        dynamic_time_str = now_utc.strftime("%H:%M:%S UTC")
+
+        compiled_lines = []
+        for block in blocks:
+            if block.get("type") == "instruction" and block.get("category_id") == "runtime_variables":
+                label = self.resolve_i18n(block.get("label"), target_locale)
+                desc = block.get("ai_description")
+                if not desc:
+                    from backend_v2.exceptions import ConfigurationError
+                    msg = f"PromptBlock '{block.get('id')}' is missing mandatory 'ai_description'."
+                    logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    raise ConfigurationError(msg)
+
+                # Perform Runtime Variable Substitutions
+                desc = desc.replace("{CURRENT_DATE}", current_date_str)
+                desc = desc.replace("{DYNAMIC_TIME}", dynamic_time_str)
+
+                if label:
+                    compiled_lines.append(f"[Dynamic Context {target_locale.upper()}]: ### {label}")
+                if desc:
+                    compiled_lines.append(f"{desc}")
+
+        return "\n\n".join(compiled_lines) if compiled_lines else ""

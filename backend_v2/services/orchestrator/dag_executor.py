@@ -398,22 +398,7 @@ class DAGExecutor:
                      state_data = deep_merge_dicts(state_data, result.state_delta)
                      hook_state = hook_state.model_copy(update={"inputs": state_data})
 
-            # 3.1 Resolving xml context
-            system_prompt = "Complete the evaluation according to the provided schema."
-            target_locale = metadata.get("target_locale")
-            if not target_locale:
-                msg = "Execution metadata is missing the required 'target_locale', violating the Fail-Fast mandate."
-                logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-
-            xml_ctx = self.compiler.build_xml_context(
-                input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},
-                state_data=state_data,
-                target_locale=target_locale, # The LLM outputs in the user's localized language
-                expected_inputs=expected_inputs
-            )
-
-            # 3.2 Criteria Blocks Gathering (prompt_blocks)
+            # 3.1 Criteria Blocks Gathering (prompt_blocks)
             criteria_blocks = []
             all_prompt_blocks = await self.repository.get_all_prompt_blocks()
             block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
@@ -436,6 +421,34 @@ class DAGExecutor:
                         details={"error_code": ErrorCodes.VALIDATION_FAILED}
                     )
 
+            # 3.2 Resolving xml context & Epic 5 Caching Extraction
+            target_locale = metadata.get("target_locale")
+            if not target_locale:
+                msg = "Execution metadata is missing the required 'target_locale', violating the Fail-Fast mandate."
+                logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+
+            # Extract Static & Dynamic Prompts
+            static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
+            dynamic_instructions = self.compiler.compile_dynamic_instructions(criteria_blocks, target_locale)
+
+            # The Head (System Prompt focuses entirely on static cacheable content)
+            system_prompt = "Complete the evaluation according to the provided schema."
+            if static_instructions:
+                system_prompt += f"\n\n{static_instructions}"
+
+            xml_ctx = self.compiler.build_xml_context(
+                input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},
+                state_data=state_data,
+                target_locale=target_locale, # The LLM outputs in the user's localized language
+                expected_inputs=expected_inputs
+            )
+
+            # The Tail (User Prompt terminates with dynamic variables to prevent cache invalidation)
+            user_payload = xml_ctx
+            if dynamic_instructions:
+                user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
+
             # 3.3 Dynamic Schema
             has_search_result = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
             dynamic_schema = self.compiler.build_dynamic_schema(
@@ -449,7 +462,7 @@ class DAGExecutor:
 
             messages = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": xml_ctx}
+                {"role": "user", "content": user_payload}
             ]
 
             # 3.4 LLM Strategy Resolution (V2 Strict Mode)

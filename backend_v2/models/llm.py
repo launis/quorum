@@ -153,6 +153,13 @@ class LLMProviderConfig(BaseModel):
             json_schema_extra={"x-ui-label": "Parsing Mode"},
         ),
     ] = None
+    caching_strategy: Annotated[
+        str | None,
+        Field(
+            description="Caching strategy (e.g. 'anthropic_ephemeral', 'gemini_native').",
+            json_schema_extra={"x-ui-label": "Caching Strategy"},
+        ),
+    ] = None
     vertex_location: Annotated[
         str | None,
         Field(

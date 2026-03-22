@@ -294,6 +294,7 @@ class ModelProfile(V2CoreBase):
     supports_grounding: bool = Field(default=False, description="Supports Google Search Grounding")
     api_key: str | None = Field(default=None, description="Optional override API key")
     parsing_mode: str | None = Field(default=None, description="Parser logic flag (e.g. 'GEMINI_JSON')")
+    caching_strategy: str | None = Field(default=None, description="Cache strategy identifier (e.g. 'anthropic_ephemeral')")
     is_active: bool = Field(default=True, description="Whether the model is actively available")
 
 class SystemConfigModelRegistry(V2CoreBase):

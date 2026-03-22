@@ -56,7 +56,7 @@ class DAGCompilerService:
 
                 # Check $inputs
                 if root_namespace.startswith("$inputs"):
-                    # For $inputs, we check if the exact key "$inputs.doc_id" is declared, 
+                    # For $inputs, we check if the exact key "$inputs.doc_id" is declared,
                     # or if it's the generic "$inputs" namespace which is always allowed.
                     if root_namespace not in available_keys:
                         raise WorkflowCompilationError(

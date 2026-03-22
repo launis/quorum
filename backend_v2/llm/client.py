@@ -121,31 +121,54 @@ class LLMClient:
             A tuple of (Validated Pydantic Model, Token Usage Dictionary).
         """
         from backend_v2.exceptions import ErrorCodes
-        # 1. Parse Messages to prompt/system inputs expected by LLMProvider.generate
-        # Note: LLMProvider interface currently takes (prompt, system_instruction).
-        # We flatten the chat history here. For multi-turn support, LLMProvider needs update.
+        # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
+        # We process the raw messages array dynamically before handing it to the provider.
+        has_anthropic_ephemeral = False
+        if self._config and getattr(self._config, "caching_strategy", None) == "anthropic_ephemeral":
+            logger.info("[LLMClient] Enabling Anthropic Ephemeral Context Caching strategy.")
+            has_anthropic_ephemeral = True
+
+        final_messages = []
+        for msg in messages:
+            # Create a shallow copy to prevent mutating the original Orchestrator payload
+            final_messages.append(dict(msg))
+
+        if has_anthropic_ephemeral:
+            # Anthropic requires "cache_control": {"type": "ephemeral"} on the last static block.
+            # In our architecture, the System Head contains all static matrices and instructions.
+            for msg in reversed(final_messages):
+                if msg.get("role") == "system":
+                    # Convert simple string content to Anthropic's block format
+                    original_text = msg.get("content", "")
+                    # Ensure content is a string before wrapping it
+                    if isinstance(original_text, str):
+                        msg["content"] = [
+                            {
+                                "type": "text",
+                                "text": original_text,
+                                "cache_control": {"type": "ephemeral"}
+                            }
+                        ]
+                    break
+
+        # Fallback strings for Legacy Mock logic where string flattening is required
         system_instruction = None
         prompt = ""
-
-        for msg in messages:
-            role = msg.get("role")
-            content = msg.get("content", "")
-            if role == "system":
-                if system_instruction:
-                    system_instruction += "\n\n" + content
-                else:
-                    system_instruction = content
-            elif role == "user":
-                if prompt:
-                    prompt += "\n\n" + content
-                else:
-                    prompt = content
-            # Flattening assistant/other roles into prompt if necessary,
-            # but currently specific Tasks use only S+U.
-
-        if not prompt:
-            # Fallback if no user message found (rare)
-            prompt = messages[-1]["content"] if messages else ""
+        for m in final_messages:
+            if m.get("role") == "system":
+                if isinstance(m.get("content"), str):
+                    s_cont = str(m.get("content", ""))
+                    if not system_instruction:
+                        system_instruction = m.get("content")
+                    else:
+                        system_instruction += "\n" + s_cont
+            elif m.get("role") == "user":
+                if isinstance(m.get("content"), str):
+                    u_cont = str(m.get("content", ""))
+                    if not prompt:
+                        prompt = m.get("content")
+                    else:
+                        prompt += "\n" + u_cont
 
         # 2. Resolve Configuration (SSOT Priority)
         # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
@@ -207,10 +230,11 @@ class LLMClient:
             for attempt in range(max_retries):
                 response = None
                 try:
-                    # 3. Generate with Structured Output
+                    # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
                     response = await provider.generate(
                         prompt=current_prompt,
                         system_instruction=system_instruction,
+                        messages=final_messages,
                         response_schema=response_model,
                         temperature=kwargs.get("temperature"),
                         max_tokens=kwargs.get("max_tokens"),
@@ -275,6 +299,10 @@ class LLMClient:
                     failed_content = getattr(response, "content", "EMPTY_CONTENT") if response else "EMPTY_CONTENT"
                     current_prompt += f"\n\n{failed_content}{correction_prompt}"
 
+                    # Update messages array for Retry Pipeline
+                    final_messages.append({"role": "assistant", "content": failed_content})
+                    final_messages.append({"role": "user", "content": correction_prompt})
+
         except Exception as e:
             from backend_v2.exceptions import ErrorCodes
             if isinstance(e, AgentExecutionError):
@@ -289,9 +317,9 @@ class LLMClient:
             raise AgentExecutionError(
                 detail=f"Structured Task Failed: {e} [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
             ) from e
-            
+
         raise AgentExecutionError(
-            detail=f"Unreachable code execution logic flow detected in LLM loop. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
+            detail=f"Unreachable flow in LLM loop. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
         )
 
     async def run_chat(

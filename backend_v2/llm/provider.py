@@ -50,8 +50,9 @@ class LLMProvider(ABC):
     @abstractmethod
     async def generate(  # type: ignore
         self,
-        prompt: str,
+        prompt: str | None = None,
         system_instruction: str | None = None,
+        messages: list[dict[str, Any]] | None = None,
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
@@ -173,8 +174,9 @@ class LiteLLMProvider(LLMProvider):
     @retry_strategy
     async def generate(  # type: ignore
         self,
-        prompt: str,
+        prompt: str | None = None,
         system_instruction: str | None = None,
+        messages: list[dict[str, Any]] | None = None,
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
@@ -185,9 +187,14 @@ class LiteLLMProvider(LLMProvider):
 
         Returns unified LLMResponse with content and reasoning state.
         """
-        messages = []
-        if system_instruction:
-            messages.append({"role": "system", "content": system_instruction})
+        final_messages: list[dict[str, Any]] = []
+        if messages:
+            final_messages.extend(messages)
+        else:
+            if system_instruction:
+                final_messages.append({"role": "system", "content": system_instruction})
+            if prompt:
+                final_messages.append({"role": "user", "content": prompt})
 
         # STRICT CONFIGURATION (Jan 2026): Reject defaults.
         if temperature is None:
@@ -210,14 +217,12 @@ class LiteLLMProvider(LLMProvider):
         if pass_reasoning_token:
             # Abstraction: We pass it as a developer hint for now.
             # Real implementation would use provider-specific params in `litellm.acompletion`
-            messages.append(
+            final_messages.append(
                 {
                     "role": "system",
                     "content": f"[SYSTEM: RESUME_THOUGHT_PROCESS] PREVIOUS_STATE_BLOB: {pass_reasoning_token}",
                 }
             )
-
-        messages.append({"role": "user", "content": prompt})
 
         response_format = None
         if response_schema:
@@ -246,14 +251,17 @@ class LiteLLMProvider(LLMProvider):
 
             if system_instruction:
                 _truncate_for_debug(system_instruction, "SYSTEM INSTRUCTION")
-            _truncate_for_debug(prompt, "USER PROMPT")
+            if prompt:
+                _truncate_for_debug(prompt, "USER PROMPT")
+            elif messages:
+                _truncate_for_debug(str(messages)[:100] + "...(truncated)", "MESSAGES ARRAY")
 
             logger.info(f"[LiteLLM] Calling {self.model_name}...")
 
             # Prepare arguments
             call_kwargs = {
                 "model": self.model_name,
-                "messages": messages,
+                "messages": final_messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
                 "response_format": response_format,
@@ -476,7 +484,7 @@ class LiteLLMProvider(LLMProvider):
                 provider_metadata=provider_meta,
                 system_fingerprint=system_fingerprint,
                 tool_calls=[],
-                messages=messages,
+                messages=final_messages,
             )
 
         except Exception as e:

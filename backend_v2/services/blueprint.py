@@ -125,7 +125,7 @@ class BlueprintTransformer:
             if isinstance(step_res, dict) and "scoring_result" in step_res:
                 scoring_out = step_res["scoring_result"]
                 break
-        
+
         # Fallback if somehow placed at root
         if not scoring_out and isinstance(results.get("scoring_result"), dict):
             scoring_out = results.get("scoring_result")
