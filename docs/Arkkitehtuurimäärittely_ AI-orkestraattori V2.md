@@ -15,6 +15,8 @@ Tämä dokumentti määrittelee dynaamisen, palvelinohjatun (SDUI) ja sataprosen
 9. **Single Source of Truth (Domain Service Layer):** API-reitittimet ovat rakenteellisesti aneemisia. Kaikki tietokantaintegraatiot ja Tenant-eristys tapahtuvat suojatussa Service-kerroksessa.
 10. **Strict Pydantic Roolipakotus (Role Enforcement):** Pydantic-skeemat estävät "geneeriset yhteenvedot" aktiivisesti. Kentät (kuten `evaluation_notes`) vaativat kovaa arviointia *vain* kunkin agentin oman roolilinssin läpi, poistaen LLM:n matemaattisen kloonautumisen (cloning effect) rinnakkaissuorituksissa.
 11. **The Anti-Mirror Protocol (Sokkotestaus & Ihmisdatan Eristys):** Järjestelmä ei koskaan salli tekoälyn arvioida toista tekoälyä silloin, kun pisteytetään loppukäyttäjää. Kognitiivisen Groupthinkin estämiseksi kaikki asiantuntija-agentit suoritetaan täysin rinnakkain (Parallel Blind Audit). He lukevat `$inputs`-syötteenä puhtaaksi rajattua "Käyttäjän tekstiä", josta on riisuttu muiden AI-entiteettien tuotokset. Tämä takaa EU:n tekoälyasetuksen (XAI) vaatimukset ihmisen suorituksen selitettävyydestä.
+12. **Itsekorjautuva Tekoäly (Self-Healing LLM):** Jos kielimalli tuottaa vastauksessaan virheellisen tietorakenteen (esim. puuttuva JSON-avain JSON Schemassa), arkkitehtuuri ei kaadu varoittamatta. Se sieppaa virheen (`ValidationError`), palauttaa poikkeuksen suoraan takaisin tekoälylle, ja käskee mallia korjaamaan oman hallusinaationsa lennosta.
+13. **Ennakoiva DAG-Kääntäjä (Pre-Flight Validation):** Työnkuluille tehdään staattinen rakenneanalyysi (Kahnin algoritmi - silmukoiden ja puuttuvien viittausten tunnistus) "kuiva-ajona". Järjestelmä estää mahdottomien kognitiivisten solmujen käynnistämisen matemaattisesti etukäteen (Zero-Token waste), säästäen rahaa reitittimen API-tasolla.
 
 ---
 
@@ -60,7 +62,9 @@ Tietokanta on suunniteltu Firestoren varaan tuotannossa ja lokaalin `db_v2.json`
 ## **4. Syötteet, Roolit ja Datan Reititys (Semantic Data Flow)**
 
 ### **4.1. Odotetut syötteet (Expected Inputs) ja Universaali Reititys**
-Käyttöliittymä lukee ohjelmallisesti `workflows`-dokumentin `expected_inputs`-taulukon ja piirtää vaaditut ohjaimet. Mukaansa jokainen syöte ottaa tiedon roolista (`ai_description`), joka injektoidaan raakadatan yläpuolelle (Universal Routing). 
+Käyttöliittymä lukee ohjelmallisesti `workflows`-dokumentin `expected_inputs`-taulukon ja piirtää vaaditut ohjaimet. Mukaansa jokainen syöte ottaa tiedon roolista (`ai_description`), joka injektoidaan raakadatan yläpuolelle ("ai_instruction" The English-Only Mandaten mukaisesti). 
+
+Ennen syötteiden laittamista LLM-analyysiin niille ajetaan järeä ohjelmallinen raivaus (Pre-Hooks). Esimerkiksi sekavat, kopioidut chattelokit (merkitty `is_chat_history = True`) työnnetään yksinomaan `ChatParserService` -älyn läpi. Tämä parserointi muuttaa sekavan leikepöytätekstin täydellisen puhtaaseen `<Rooli>: <Viesti>` Markdown -formaattiin, ennen kuin varsinainen laadun arviointi ehtii alkaa, ehkäisten mallin matemaattisen harhautumisen.
 
 ### **4.2. Routing Variables ($)**
 DAG-verkossa askelilla on `input_mappings`-määritys:
@@ -79,8 +83,9 @@ DAG-reititys mahdollistaa ihmisen arvioinnista ulos rajatut tekoälyjen väliset
 
 ## **5. FastAPI Backend ja Suoritusmoottori**
 
-### **5.1. Pydantic SSOT (Strict-DTO Protocol)**
-Kaikki datasiirrot API-reitittimissä ja tietokannassa puskevat tiedon V2 Pydantic-validointimoottorin ja tiukan `extra="ignore"` säännön läpi estäen hallusinaatiot ja mallin väärennökset välittömästi HTTP 422 tai 500 virheellä (Fail Fast).
+### **5.1. Pydantic SSOT (Strict-DTO Protocol & Memory Isolation)**
+Kaikki datasiirrot API-reitittimissä ja tietokannassa puskevat tiedon V2 Pydantic-validointimoottorin ja tiukan `extra="ignore"` säännön läpi estäen väärennökset välittömästi (Fail Fast).
+Samalla dynaamisten JSON Schema -luokkien koodigenerointi (`SchemaBuilderService`) optimoidaan nojautumaan lokaaliin MD5-tiivisteen välimuistiin (`lru_cache`), tehden schema-latauksista miljoonien ajojen kohdalla salamannopeita. Orpokielimallin sisäinen muistivuoto (globaalit yhteismuuttujat) on täysin kielletty – kaikki data sidotaan absoluuttisella tarkkuudella eristettyyn `state.inputs` Pydantic-rakenteeseen solmutasolla, ehkäisten "haamusyötteiden" (`Ghost Input`) ylikirjoitukset.
 
 ### **5.2. Dynaaminen Faktantarkistus ja Maadoitus (Model Context Protocol - MCP)**
 Vanha staattinen RAG (theory_grounding.source_url) on korvattu modernilla **Model Context Protocol (MCP)** -arkkitehtuurilla. 

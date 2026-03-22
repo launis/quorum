@@ -107,6 +107,8 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         "blk_9bfcaa19335140faa3b610a1391ed950", # Evidentiary Rigor
         "blk_49360a958cc7494ebf053294fb7e2faf", # Process Integrity
         "blk_b17f535c936349e3bce6e7b19f505f2c", # Evidentiary Rigor v2
+        "blk_b5ec25bb352e4dc09de386f0da991a08", # Performatiivisuus ja Goodhartin Laki
+        "blk_1e33ce78623943af9d5ce39ce6620478", # Falsifioinnin Auditointi
     }
 
     total_score_accum = 0.0

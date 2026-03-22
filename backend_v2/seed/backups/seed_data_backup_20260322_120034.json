@@ -2405,7 +2405,7 @@
           "en": "Establishes the global execution constraints and context."
         }
       },
-      "category_id": "runtime_variables",
+      "category_id": "system_rule",
       "type": "instruction",
       "allow_decimals": false,
       "require_justification": false,

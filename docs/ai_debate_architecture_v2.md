@@ -67,9 +67,9 @@ Kaikkien aikojen korkein oikeusaste. Saa syötteikseen `$step_analyst`, `$step_p
 
 ---
 
-## 3. Kuinka tämä kytketään (DAG Workflow Määritelmä)
+## 3. Kuinka tämä kytketään (V2 Strict DAG Määritelmä)
 
-Kun olemme valmiita ottamaan tämän käyttöön, lisäämme uuden työnkulun `workflow_ai_debate_arena` seed-dataan:
+Kun olemme valmiita ottamaan tämän käyttöön, lisäämme uuden työnkulun `workflow_ai_debate_arena` seed-dataan. **Epic 2:n DAG Compiler** (Kahn's Algorithm) todentaa tämän ketjun turvalliseksi ennen ajoa, varmistaen ettei väittely jää ikuiseen luuppiin. Kytkös käyttää tiukkaa arkkitehtuuria suojaamaan muistivuodoilta (Epic 3 Pydantic Strict Mode).
 
 ```json
 "steps": [
@@ -93,4 +93,10 @@ Kun olemme valmiita ottamaan tämän käyttöön, lisäämme uuden työnkulun `w
 ]
 ```
 
-Kuuma vinkki tulevaisuutta varten: Kun nämä otetaan käyttöön, näille pitää tehdä oma erillinen Matrix (esim. `matrix_debate`), jotta tämä väittely ei saa vahingossa käyttäjän "Quality"- tai "Agency"-arvosanoja (joita Pydantic yrittäisi hakea aiempien tiukennusten takia).
+## 4. V2 Turvamekanismit Väittelyssä (Epic 1-3 Integraatiot)
+
+Koska väittely-areena vaatii tekoälyiltä toistensa tuotosten aggressiivista perkausta, olemme turvanneet ketjun viimeisimmillä arkkitehtuuripäivityksillä:
+
+1. **Self-Healing LLM (Epic 3):** Syyttäjä- tai Tuomari-agentit saattavat innostuessaan tuottaa rakenteellisesti rikkinäisiä "Tuomioita" (JSON-hallusinaatiot). Uusi `handler.py` `max_retries` -mekanismi kimmottaa `ValidationError` -virheet suoraan takaisin väittelijälle, pakoittaen mallin korjaamaan oman oikeusraporttinsa muodon lennosta ilman, että koko väittely kaatuu.
+2. **Tiukka Matriisi-Eristys (Pydantic MD5 välimuisti):** On ehdottoman kriittistä rakentaa näille agenteille oma `matrix_debate` (esim. pelkkä "Tuomio" ja "Perustelut"), tai Pydantic yrittää tiukentuneen validaation (Epic 3) vuoksi pakottaa Metatuomarin antamaan *käyttäjälle* numeroarvosanoja, mikä kaataa työnkulun.
+3. **ChatParser & Input Processing (Epic 1):** Jos väittely koskee alkuperäistä asiakaspalveluchattia, pre-hook (`input_processing.py`) siivoaa `ChatParserService`n avulla raakadatan matemaattiseksi konekieleksi *ennen* kuin väittely alkaa, estäen tekoäly-tuomareita kiistelemästä turhaan siitä, kuka tekstin alunperin sanoi.

@@ -119,12 +119,18 @@ class BlueprintTransformer:
 
         global_score = None
 
-        step_scoring = results.get("steprule_scoreengine1") or results.get("step_scoreengine1")
-        if isinstance(step_scoring, dict):
-            scoring_out = step_scoring.get("scoring_result", step_scoring)
-        else:
+        scoring_out = None
+        # Deep search for the unique 'scoring_result' object embedded by the ScoringHook post-hook into ANY dynamical step
+        for step_res in results.values():
+            if isinstance(step_res, dict) and "scoring_result" in step_res:
+                scoring_out = step_res["scoring_result"]
+                break
+        
+        # Fallback if somehow placed at root
+        if not scoring_out and isinstance(results.get("scoring_result"), dict):
             scoring_out = results.get("scoring_result")
 
+        global_score = None
         if isinstance(scoring_out, dict):
             t_score = scoring_out.get("total_score")
             global_score = float(t_score) if t_score is not None else None
