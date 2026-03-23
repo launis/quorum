@@ -41,7 +41,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       final dio = ref.read(apiClientProvider);
       final response = await dio.get<List<int>>(
         '/execution/executions/${widget.executionId}/render',
-        queryParameters: {'format': 'pdf', 'variant': widget.variant},
+        queryParameters: {'format': 'pdf', 'profile_id': widget.variant},
         options: Options(responseType: ResponseType.bytes),
       );
 
@@ -77,14 +77,16 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
         final errorMsg =
             e.toString().contains('Timeout')
                 ? e.toString().replaceAll('Exception: ', '')
-                : AppLocalizations.of(context)!.errorUnknown;
+                : '${AppLocalizations.of(context)!.errorUnknown}: ${e.toString()}';
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) {
@@ -139,14 +141,16 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
         final errorMsg =
             e.toString().contains('Timeout')
                 ? e.toString().replaceAll('Exception: ', '')
-                : AppLocalizations.of(context)!.errorUnknown;
+                : '${AppLocalizations.of(context)!.errorUnknown}: ${e.toString()}';
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) {

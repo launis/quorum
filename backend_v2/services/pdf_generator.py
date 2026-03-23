@@ -75,7 +75,10 @@ class PdfReportService:
             # Fetch Workflow Name for Header
             workflow_id = execution.workflow_id
             workflow_name = "Dynamic Workflow Execution"
-            if workflow_id:
+            if report_dto and report_dto.profile_name:
+                title_obj = report_dto.profile_name
+                workflow_name = title_obj.get("fi", title_obj.get("en", workflow_name))
+            elif workflow_id:
                 workflow_dict = await self.repository.get_workflow_by_id(workflow_id)
                 if workflow_dict and "name" in workflow_dict:
                     name_obj = workflow_dict["name"]
@@ -99,7 +102,7 @@ class PdfReportService:
                             b64_data = generate_radar_chart(layout.axes)
                             if b64_data:
                                 charts[idx] = b64_data
-                        elif layout.preset_view in ("matrix_2d", "2d_compare"):
+                        elif layout.preset_view in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):
                             b64_data = generate_scatter_chart(layout.axes)
                             if b64_data:
                                 charts[idx] = b64_data

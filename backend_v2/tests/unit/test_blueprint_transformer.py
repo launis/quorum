@@ -15,13 +15,22 @@ def mock_repo():
             "default_locale": "en",
             "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}
         },
+        "default_profile_id": "out_default",
         "output_profiles": {
-            "default": {
+            "out_default": {
                 "name": {"en": "Default"},
                 "layouts": [{"preset_view": "1d_metrics", "steps": [], "show_text": True}]
             }
         }
     }
+    repo.get_all_output_profiles.return_value = [
+        {
+            "id": "out_default", 
+            "slug": "out_default", 
+            "name": {"en": "Default"}, 
+            "layouts": [{"preset_view": "1d_metrics", "steps": [], "show_text": True}]
+        }
+    ]
     repo.get_all_prompt_blocks.return_value = [
         {
             "id": "matrix_logic1234",
@@ -48,7 +57,7 @@ async def test_build_report_dto_maps_correctly(mock_repo):
                 "synthesis": "Great job"
             }
         },
-        active_profile_id="default",
+        active_profile_id="out_default",
         metadata={"target_locale": "en"}
     )
     transformer = BlueprintTransformer(mock_repo)
@@ -71,7 +80,7 @@ async def test_graceful_degradation_missing_fields(mock_repo):
         workflow_id="wf_1",
         status=ExecutionStatus.COMPLETED,
         results={},
-        active_profile_id="default",
+        active_profile_id="out_default",
         metadata={"target_locale": "fi"}
     )
     transformer = BlueprintTransformer(mock_repo)

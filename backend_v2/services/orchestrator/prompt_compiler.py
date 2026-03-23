@@ -244,7 +244,7 @@ class PromptCompiler:
             )
 
     def build_dynamic_schema(
-        self, schema_name: str, criteria: list[dict[str, Any]], require_justification: bool = False,
+        self, schema_name: str, criteria: list[dict[str, Any]],
         has_search_result: bool = False, target_locale: str = "en"
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
@@ -368,7 +368,9 @@ class PromptCompiler:
                         "Return only an exact numeric score from the list."
                     )
 
-            if require_justification or crit.get("require_justification", False):
+            extensions = crit.get("output_extensions", [])
+
+            if "justification" in extensions:
                 # 1. Justification (XAI)
                 justification_key = f"{crit_id}_justification"
 
@@ -386,6 +388,7 @@ class PromptCompiler:
 
                 fields[justification_key] = (str, Field(..., description=justification_desc))
 
+            if "citation" in extensions:
                 # 2. Citation Source ID (Grounded Theory Integration)
                 theory_grounding = crit.get("theory_grounding", {})
                 citation_ref = (
@@ -437,6 +440,30 @@ class PromptCompiler:
                         "Jos Google-data ei liity aiheeseen lainkaan, palauta null."
                     )
                     fields[citation_key] = (str | None, Field(default=None, description=citation_desc))
+
+            if "coaching" in extensions:
+                fields[f"{crit_id}_coaching"] = (str, Field(..., description=f"Concrete coaching tip/remediation advice to the subject. 'Mitä toimenpiteitä lukijan tulisi tehdä parantaakseen suoritustaan ensi kerralla?' MANDATORY LANGUAGE: '{target_locale}'."))
+
+            if "confidence" in extensions:
+                fields[f"{crit_id}_confidence"] = (float, Field(..., ge=0.0, le=100.0, description="Numerical confidence from 0.0 to 100.0 based strictly on source evidence."))
+
+            if "falsification" in extensions:
+                fields[f"{crit_id}_falsification"] = (str, Field(..., description=f"Devil's advocate argument rejecting your own primary justification. Argue against your given score to prevent confirmation bias. MANDATORY LANGUAGE: '{target_locale}'."))
+
+            if "missing_context" in extensions:
+                fields[f"{crit_id}_missing_context"] = (str, Field(..., description=f"Missing context from the provided text that would have improved or changed the score. Clarify what exactly is lacking. MANDATORY LANGUAGE: '{target_locale}'."))
+
+            if "risk_flag" in extensions:
+                fields[f"{crit_id}_risk_flag"] = (bool, Field(..., description="True if there is a severe risk present; False otherwise. Answer strictly boolean."))
+
+            if "remediation_steps" in extensions:
+                fields[f"{crit_id}_remediation_steps"] = (list[str], Field(..., description=f"Actionable array of textual remediation steps to practically fix the issue immediately. MANDATORY LANGUAGE: '{target_locale}'."))
+
+            if "emotional_sentiment" in extensions:
+                fields[f"{crit_id}_emotional_sentiment"] = (str, Field(..., description=f"Analysis of the author's emotional state or tone regarding this metric (e.g., defensive, constructive, proud). MANDATORY LANGUAGE: '{target_locale}'."))
+
+            if "theory_link" in extensions:
+                fields[f"{crit_id}_theory_link"] = (str, Field(..., description=f"Direct logical connection of the observation back to the governing scientific/strategic theory framework provided in the prompt. MANDATORY LANGUAGE: '{target_locale}'."))
 
             # The actual evaluation value (placed AFTER justification for CoT forcing)
             final_desc = f"{label}: {base_desc}{bars_text}"

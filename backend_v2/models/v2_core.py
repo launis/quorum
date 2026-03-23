@@ -138,8 +138,9 @@ class PromptBlock(V2CoreBase):
     allow_decimals: bool = Field(
         default=False, description="Whether float types allow decimals in validation."
     )
-    require_justification: bool = Field(
-        description="If True, dynamically generates `{slug}_justification` and `{slug}_citation` fields.",
+    output_extensions: list[str] = Field(
+        default_factory=list,
+        description="List of requested XAI output extensions (e.g. 'justification', 'risk_flag').",
     )
     theory_grounding: TheoryGrounding | None = Field(
         default=None,
@@ -489,6 +490,17 @@ class ReportAxisDTO(V2CoreBase):
     cited_source_id: str | None = None
     cited_text_quote: str | None = None
     cited_web_citation: str | None = None
+    
+    # Epic 6: XAI Output Extensions
+    coaching: str | None = None
+    confidence: float | None = None
+    falsification: str | None = None
+    missing_context: str | None = None
+    risk_flag: bool | None = None
+    remediation_steps: list[str] | None = None
+    emotional_sentiment: str | None = None
+    theory_link: str | None = None
+
     scale_min: float = 0.0
     scale_max: float = 6.0
     scale_labels: dict[str, str] = Field(default_factory=dict)

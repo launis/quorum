@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 
-def test_prompt_compiler_deep_matrix_schema():
+def test_prompt_compiler_deep_matrix_schema() -> None:
     compiler = PromptCompiler()
 
     # Mocking the JSON structure we confirmed in Phase 1
@@ -62,8 +62,7 @@ def test_prompt_compiler_deep_matrix_schema():
     # Act
     DynamicSchema = compiler.build_dynamic_schema(
         schema_name="TestSchema",
-        criteria=[mock_matrix_block],
-        require_justification=False
+        criteria=[mock_matrix_block]
     )
 
     # Assert
@@ -90,7 +89,7 @@ def test_prompt_compiler_deep_matrix_schema():
 
     assert compiled_desc == expected_snapshot, f"Snapshot mismatch!\nEXPECTED:\n{expected_snapshot}\n\nACTUAL:\n{compiled_desc}"
 
-def test_prompt_compiler_dynamic_extraction_resilience():
+def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     # Test that extracting justification still works
     compiler = PromptCompiler()
 
@@ -99,7 +98,7 @@ def test_prompt_compiler_dynamic_extraction_resilience():
         "type": "float",
         "label": {"default_locale": "en", "translations": {"en": "Test Score"}},
         "ai_description": "Base Desc",
-        "require_justification": True,
+        "output_extensions": ["justification", "citation", "remediation_steps", "confidence"],
         "scales": [
             {
                 "score": 1,
@@ -118,11 +117,15 @@ def test_prompt_compiler_dynamic_extraction_resilience():
         "blk_extract_test_justification": "I gave a 1 because...",
         "blk_extract_test_cited_source_id": None,
         "blk_extract_test_cited_text_quote": "Yes man",
+        "blk_extract_test_remediation_steps": ["Step 1", "Step 2"],
+        "blk_extract_test_confidence": 95.5,
         "blk_extract_test": 1.0
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_extract_test == 1.0
-    assert parsed.reasoning_trace == "Let's think..."
-    assert parsed.blk_extract_test_justification == "I gave a 1 because..."
+    assert getattr(parsed, "blk_extract_test") == 1.0
+    assert getattr(parsed, "blk_extract_test_remediation_steps") == ["Step 1", "Step 2"]
+    assert getattr(parsed, "blk_extract_test_confidence") == 95.5
+    assert getattr(parsed, "reasoning_trace") == "Let's think..."
+    assert getattr(parsed, "blk_extract_test_justification") == "I gave a 1 because..."
 

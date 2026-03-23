@@ -18,8 +18,8 @@ class LogicMatrixChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Coordinate mapping
-    final x = xAxis.score;
-    final y = yAxis.score;
+    final x = xAxis.score ?? 0.0;
+    final y = yAxis.score ?? 0.0;
 
     final double xMin = xAxis.scaleMin < xAxis.scaleMax ? xAxis.scaleMin : 0.0;
     final double xMax =
@@ -43,7 +43,7 @@ class LogicMatrixChart extends StatelessWidget {
       double zMax = zAxis!.scaleMax;
       if (zMax <= zMin) zMax = zMin + 1.0; // Protect div by zero
 
-      double pct = (zAxis!.score - zMin) / (zMax - zMin);
+      double pct = ((zAxis!.score ?? 0.0) - zMin) / (zMax - zMin);
       radius = 8.0 + (pct.clamp(0.0, 1.0) * 16.0); // 8 to 24
     }
 
@@ -203,7 +203,7 @@ class LogicMatrixChart extends StatelessWidget {
         if (zAxis != null) ...[
           const SizedBox(height: 8),
           Text(
-            "${zAxis!.name} (${zAxis!.score} / ${zAxis!.scaleMax})",
+            "${zAxis!.name} (${zAxis!.score ?? 'N/A'} / ${zAxis!.scaleMax})",
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 10,

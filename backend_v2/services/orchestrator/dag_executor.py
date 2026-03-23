@@ -137,6 +137,10 @@ class DAGExecutor:
                  state_data = deep_merge_dicts(state_data, processed_result.state_delta)
                  if "inputs" in processed_result.state_delta:
                      state_data["inputs"] = processed_result.state_delta["inputs"]
+                     # CRITICAL: Destroy Base64 File payloads lingering at the root level
+                     for cleaned_key, cleaned_val in processed_result.state_delta["inputs"].items():
+                         if cleaned_key in state_data:
+                             state_data[cleaned_key] = cleaned_val
         except Exception as e:
             msg = f"Pre-Hydration failed to parse raw inputs: {e}"
             logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
@@ -454,7 +458,6 @@ class DAGExecutor:
             dynamic_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",
                 criteria=criteria_blocks,
-                require_justification=True,
                 has_search_result=has_search_result,
                 target_locale=target_locale
             )
@@ -469,6 +472,26 @@ class DAGExecutor:
             strategy_name = step.model_strategy or "fast"
             from backend_v2.llm.client import LLMClient
             bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
+
+            # --- FORENSIC OBSERVABILITY INJECTION ---
+            try:
+                from backend_v2.services.storage import get_storage_driver
+                storage = get_storage_driver()
+                safe_step_id = "".join(c for c in step.id if c.isalnum() or c in ("_", "-"))
+                prompt_path = f"executions/{execution_id}/prompts/prompt_{safe_step_id}.md"
+                
+                # Format a nice markdown file
+                prompt_content = f"# FORENSIC AI PROMPT LOG\n**Execution:** {execution_id}\n**Step:** {step.id}\n**Strategy:** {strategy_name}\n\n"
+                prompt_content += f"## SYSTEM PROMPT\n\n```text\n{system_prompt}\n```\n\n"
+                prompt_content += f"## USER PAYLOAD\n\n```text\n{user_payload}\n```\n"
+                
+                await storage.save(prompt_path, prompt_content)
+                logger.info(f"[DAGExecutor] Forensic Prompt saved successfully: {prompt_path}")
+            except Exception as e:
+                logger.error(
+                    f"[DAGExecutor] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to save forensic prompt: {e}",
+                    exc_info=True
+                )
 
             # 3.5 LLM Call (Using Strategy-bound Client wrapper)
             result, usage_dict = await bound_client.run_structured_task(

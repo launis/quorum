@@ -4159,6 +4159,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Analytical Framework (2D)'**
   String get reportAnalyticalFramework2D;
+
+  /// No description provided for @reportCoachingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'💡 Coaching Tip'**
+  String get reportCoachingTitle;
+
+  /// No description provided for @reportFalsificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'⚖️ Devil\'s Advocate'**
+  String get reportFalsificationTitle;
+
+  /// No description provided for @reportMissingContextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'🔍 Missing Context'**
+  String get reportMissingContextTitle;
+
+  /// No description provided for @reportRiskFlagTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ High Risk Identified'**
+  String get reportRiskFlagTitle;
+
+  /// No description provided for @reportRemediationStepsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'🛠️ Remediation Steps'**
+  String get reportRemediationStepsTitle;
+
+  /// No description provided for @reportEmotionalSentimentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'🎭 Sentiment Analysis'**
+  String get reportEmotionalSentimentTitle;
+
+  /// No description provided for @reportTheoryLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'📚 Theoretical Connection'**
+  String get reportTheoryLinkTitle;
+
+  /// No description provided for @reportConfidenceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Confidence: {value}%'**
+  String reportConfidenceTitle(String value);
 }
 
 class _AppLocalizationsDelegate

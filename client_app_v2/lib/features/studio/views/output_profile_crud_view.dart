@@ -23,6 +23,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
   late List<dynamic> _layouts;
   bool _isSaving = false;
   final _idController = TextEditingController();
+  final _slugController = TextEditingController();
   final _workflowIdController = TextEditingController();
 
   @override
@@ -40,6 +41,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
 
     _layouts = SafeCast.safeList(_editableProfile['layouts']);
     _idController.text = _editableProfile['id']?.toString() ?? '';
+    _slugController.text = _editableProfile['slug']?.toString() ?? '';
     _workflowIdController.text =
         _editableProfile['workflow_id']?.toString() ?? '';
   }
@@ -47,6 +49,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
   @override
   void dispose() {
     _idController.dispose();
+    _slugController.dispose();
     _workflowIdController.dispose();
     super.dispose();
   }
@@ -58,6 +61,9 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
       if (idToSave.isEmpty) throw Exception("Profile ID is required");
 
       _editableProfile['id'] = idToSave;
+      _editableProfile['slug'] = _slugController.text.trim().isNotEmpty
+          ? _slugController.text.trim()
+          : idToSave; // Fallback sync
       _editableProfile['workflow_id'] = _workflowIdController.text.trim();
       _editableProfile['layouts'] = _layouts;
 
@@ -137,6 +143,10 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
     setState(() {
       _layouts.add({
         'layout_type': 'box_1d',
+        'title': {
+          'default_locale': 'en',
+          'translations': <String, dynamic>{'en': 'New Layout Block'}
+        },
         'show_text': true,
         'components': <String>[],
       });
@@ -228,6 +238,14 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                       ),
                       enabled:
                           widget.id == 'new', // Cannot change ID after creation
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _slugController,
+                      decoration: const InputDecoration(
+                        labelText: 'URL Slug (e.g. default)',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     workflowsState.when(
@@ -458,22 +476,37 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
           ),
 
           const SizedBox(height: 12),
+          I18nTextField(
+            label: 'Layout Block Title',
+            initialData: SafeCast.safeMap(layout['title']),
+            onChanged: (val) {
+              setState(() {
+                layout['title'] = val;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Target Component Matrices',
+              'Target Components',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
           const SizedBox(height: 8),
           promptBlocksState.when(
             data: (blocks) {
-              final matrixBlocks = blocks
+              final targetBlocks = blocks
                   .where((b) {
-                    if (b['category_id']?.toString() != 'matrix') return false;
                     final id = b['id']?.toString() ?? '';
                     final slug = b['slug']?.toString() ?? id;
-                    return allowedBlockIds.contains(id) || allowedBlockIds.contains(slug);
+                    final isAllowed = allowedBlockIds.contains(id) || allowedBlockIds.contains(slug);
+                    if (!isAllowed) return false;
+
+                    // Exclude silent utility blocks (must have visual text extensions or be a scoring matrix)
+                    final isMatrix = b['category_id']?.toString() == 'matrix';
+                    final extensions = SafeCast.safeList(b['output_extensions']);
+                    return isMatrix || extensions.isNotEmpty;
                   })
                   .toList();
               
@@ -490,16 +523,16 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                 if (i < blocksList.length) {
                   final val = blocksList[i];
                   if (val == '*' ||
-                      matrixBlocks.any((b) => b['id'].toString() == val)) {
+                      targetBlocks.any((b) => b['id'].toString() == val)) {
                     selectedValue = val;
                   }
                 }
                 
                 final String axisLabel = switch (i) {
-                  0 => 'X-Axis (Matrix 1)',
-                  1 => 'Y-Axis (Matrix 2)',
-                  2 => 'Z-Axis (Matrix 3)',
-                  _ => 'Matrix \${i + 1}',
+                  0 => 'Component 1 (X-Axis/Primary)',
+                  1 => 'Component 2 (Y-Axis)',
+                  2 => 'Component 3 (Z-Axis)',
+                  _ => 'Component \${i + 1}',
                 };
 
                 dropdowns.add(
@@ -512,11 +545,11 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                         isDense: true,
                         border: const OutlineInputBorder(),
                       ),
-                      hint: const Text('Select Matrix component...'),
+                      hint: const Text('Select component...'),
                       items: [
                         const DropdownMenuItem(
                             value: '*', child: Text('All Components (*)')),
-                        ...matrixBlocks.map((block) {
+                        ...targetBlocks.map((block) {
                           final blockId = block['id']?.toString() ?? '';
                           final labelDict = SafeCast.safeMap(block['label']);
                           final translations =

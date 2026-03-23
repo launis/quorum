@@ -468,7 +468,12 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             if path_key in data and data[path_key]:
                 try:
                     blob_data = await driver.read(data[path_key])
-                    data[field] = json.loads(blob_data.decode("utf-8"))
+                    decoded = blob_data.decode("utf-8").strip()
+                    if decoded:
+                        data[field] = json.loads(decoded)
+                    else:
+                        logger.warning(f"[Repository] Hydration payload is empty for {field} at {data[path_key]}. Defaulting to empty struct.")
+                        data[field] = [] if field == "execution_trace" else {}
                 except Exception as e:
                     logger.error(f"[Repository] Failed to hydrate {field} from {data[path_key]}: {e}", exc_info=True)
 

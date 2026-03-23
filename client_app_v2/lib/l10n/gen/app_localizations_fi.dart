@@ -2246,4 +2246,30 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get reportAnalyticalFramework2D => 'Analyyttinen Viitekehys (2D)';
+
+  @override
+  String get reportCoachingTitle => '💡 Arjen Vinkki';
+
+  @override
+  String get reportFalsificationTitle => '⚖️ Vasta-argumentti';
+
+  @override
+  String get reportMissingContextTitle => '🔍 Puuttuva Konteksti';
+
+  @override
+  String get reportRiskFlagTitle => '⚠️ Vakava Riski Havaittu';
+
+  @override
+  String get reportRemediationStepsTitle => '🛠️ Korjaavat Toimenpiteet';
+
+  @override
+  String get reportEmotionalSentimentTitle => '🎭 Emotionaalinen Sävy';
+
+  @override
+  String get reportTheoryLinkTitle => '📚 Teoreettinen Yhteys';
+
+  @override
+  String reportConfidenceTitle(String value) {
+    return 'Tekoälyn varmuus: $value%';
+  }
 }

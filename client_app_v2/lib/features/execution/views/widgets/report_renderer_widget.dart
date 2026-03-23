@@ -346,7 +346,7 @@ class ReportRendererWidget extends ConsumerWidget {
                             ),
                           ],
                           const SizedBox(height: 8),
-                          if (layout.showText)
+                          if (layout.showText && axis.justification.trim().isNotEmpty)
                             Text(
                               axis.justification,
                               style: const TextStyle(
@@ -354,6 +354,93 @@ class ReportRendererWidget extends ConsumerWidget {
                                 color: Colors.black87,
                               ),
                             ),
+                            
+                          if (layout.showText && axis.confidence != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                l10n.reportConfidenceTitle(axis.confidence!.toStringAsFixed(1)),
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo, fontSize: 12),
+                              ),
+                            ),
+                            
+                          if (layout.showText && axis.riskFlag == true)
+                            Container(
+                              margin: const EdgeInsets.only(top: 8.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                              child: Text(
+                                l10n.reportRiskFlagTitle,
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 12),
+                              ),
+                            ),
+
+                          if (layout.showText && axis.coaching != null && axis.coaching!.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 12.0),
+                              padding: const EdgeInsets.all(12.0),
+                              decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.1), border: Border(left: BorderSide(color: Colors.amber.shade700, width: 4))),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(l10n.reportCoachingTitle, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.amber.shade800)),
+                                const SizedBox(height: 4),
+                                Text(axis.coaching!, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                              ]),
+                            ),
+
+                          if (layout.showText && axis.falsification != null && axis.falsification!.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 12.0),
+                              padding: const EdgeInsets.all(12.0),
+                              decoration: BoxDecoration(color: Colors.deepPurple.withValues(alpha: 0.05), border: Border(left: BorderSide(color: Colors.deepPurple.shade400, width: 4))),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(l10n.reportFalsificationTitle, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.deepPurple.shade600)),
+                                const SizedBox(height: 4),
+                                Text(axis.falsification!, style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black87)),
+                              ]),
+                            ),
+
+                          if (layout.showText && axis.missingContext != null && axis.missingContext!.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 12.0),
+                              padding: const EdgeInsets.all(12.0),
+                              decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), border: const Border(left: BorderSide(color: Colors.grey, width: 4))),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(l10n.reportMissingContextTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54)),
+                                const SizedBox(height: 4),
+                                Text(axis.missingContext!, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                              ]),
+                            ),
+
+                          if (layout.showText && axis.remediationSteps != null && axis.remediationSteps!.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 12.0),
+                              padding: const EdgeInsets.all(12.0),
+                              decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.1), border: const Border(left: BorderSide(color: Colors.teal, width: 4))),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(l10n.reportRemediationStepsTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.teal)),
+                                const SizedBox(height: 4),
+                                Text('- ${axis.remediationSteps!.join('\\n- ')}', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                              ]),
+                            ),
+
+                          if (layout.showText && axis.emotionalSentiment != null && axis.emotionalSentiment!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12.0),
+                              child: Text(
+                                '${l10n.reportEmotionalSentimentTitle}: ${axis.emotionalSentiment!}',
+                                style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.pink),
+                              ),
+                            ),
+
+                          if (layout.showText && axis.theoryLink != null && axis.theoryLink!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                '${l10n.reportTheoryLinkTitle}: ${axis.theoryLink!}',
+                                style: const TextStyle(fontSize: 13, color: Colors.blue),
+                              ),
+                            ),
+
                           if (layout.showText && shouldShowQuote[index])
                             Container(
                               margin: const EdgeInsets.only(top: 12.0),
@@ -439,27 +526,29 @@ class ReportRendererWidget extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        axis.scaleMax > axis.scaleMin
-                            ? '${axis.score} / ${axis.scaleMax}'
-                            : '${axis.score}',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                    if (axis.score != null) ...[
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          axis.scaleMax > axis.scaleMin
+                              ? '${axis.score} / ${axis.scaleMax}'
+                              : '${axis.score}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

@@ -743,5 +743,13 @@
   "reportRadarAnalysis2D": "Tutka-analyysi (2D)",
   "reportComparisonView": "Vertailun\u00e4kym\u00e4",
   "reportAnalyticalFramework3D": "Analyyttinen Viitekehys (3D)",
-  "reportAnalyticalFramework2D": "Analyyttinen Viitekehys (2D)"
+  "reportAnalyticalFramework2D": "Analyyttinen Viitekehys (2D)",
+  "reportCoachingTitle": "💡 Arjen Vinkki",
+  "reportFalsificationTitle": "⚖️ Vasta-argumentti",
+  "reportMissingContextTitle": "🔍 Puuttuva Konteksti",
+  "reportRiskFlagTitle": "⚠️ Vakava Riski Havaittu",
+  "reportRemediationStepsTitle": "🛠️ Korjaavat Toimenpiteet",
+  "reportEmotionalSentimentTitle": "🎭 Emotionaalinen Sävy",
+  "reportTheoryLinkTitle": "📚 Teoreettinen Yhteys",
+  "reportConfidenceTitle": "Tekoälyn varmuus: {value}%"
 }

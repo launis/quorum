@@ -1055,5 +1055,20 @@
   "reportRadarAnalysis2D": "Radar Analysis (2D)",
   "reportComparisonView": "Comparison View",
   "reportAnalyticalFramework3D": "Analytical Framework (3D)",
-  "reportAnalyticalFramework2D": "Analytical Framework (2D)"
+  "reportAnalyticalFramework2D": "Analytical Framework (2D)",
+  "reportCoachingTitle": "💡 Coaching Tip",
+  "reportFalsificationTitle": "⚖️ Devil's Advocate",
+  "reportMissingContextTitle": "🔍 Missing Context",
+  "reportRiskFlagTitle": "⚠️ High Risk Identified",
+  "reportRemediationStepsTitle": "🛠️ Remediation Steps",
+  "reportEmotionalSentimentTitle": "🎭 Sentiment Analysis",
+  "reportTheoryLinkTitle": "📚 Theoretical Connection",
+  "reportConfidenceTitle": "AI Confidence: {value}%",
+  "@reportConfidenceTitle": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  }
 }

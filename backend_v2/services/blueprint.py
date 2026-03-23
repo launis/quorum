@@ -158,48 +158,61 @@ class BlueprintTransformer:
                             is_legacy_score = (k == "score")
                             suffix_list = [
                                 "_justification", "_scaled", "_normalized", "_raw",
-                                "_cited_source_id", "_cited_text_quote", "_google_citation"
+                                "_cited_source_id", "_cited_text_quote", "_google_citation",
+                                "_coaching", "_confidence", "_falsification", "_missing_context",
+                                "_risk_flag", "_remediation_steps", "_emotional_sentiment", "_theory_link"
                             ]
                             is_suffix_key = any(k.endswith(sfx) for sfx in suffix_list)
+                            if is_suffix_key:
+                                continue
 
-                            is_numeric = isinstance(v, (int, float)) or str(v).replace('.', '', 1).isdigit()
-                            if is_legacy_score or (not is_suffix_key and is_numeric):
+                            block = blocks_by_slug.get(k)
+                            
+                            # Adhere to Fail-Fast / Strict Domain Logic: Only print if key is a known Model Block (or legacy score)
+                            if not block and not is_legacy_score:
+                                continue
+
+                            is_matrix_category = block and block.get("category_id") == "matrix"
+                            is_numeric = (isinstance(v, (int, float)) and not isinstance(v, bool)) or str(v).replace('.', '', 1).isdigit()
+                            score_float = None
+                            
+                            # Strict Rendering: Only allow float scores to be parsed for Matrix categories (or the original global score)
+                            if is_numeric and (is_matrix_category or is_legacy_score):
                                 try:
                                     score_float = float(v)
                                 except (ValueError, TypeError):
-                                    continue
+                                    score_float = None
 
-                                axis_name = step_id if is_legacy_score else k
-                                axis_description = ""
-                                scale_min = 0.0
-                                scale_max = 0.0 # 0.0 cleanly suppresses UI scaling badges if undefined
-                                scale_labels = {}
+                            axis_name = step_id if is_legacy_score else k
+                            axis_description = ""
+                            scale_min = 0.0
+                            scale_max = 0.0 # 0.0 cleanly suppresses UI scaling badges if undefined
+                            scale_labels = {}
 
-                                block = blocks_by_slug.get(k)
-                                if block:
-                                    label_obj = block.get("label", {})
-                                    trans_dict = _extract_i18n(label_obj)
-                                    axis_name = trans_dict.get(locale, trans_dict.get("en", k))
+                            if block:
+                                label_obj = block.get("label", {})
+                                trans_dict = _extract_i18n(label_obj)
+                                axis_name = trans_dict.get(locale, trans_dict.get("en", k)) or k
 
-                                    desc_obj = block.get("description", {})
-                                    trans_dict_desc = _extract_i18n(desc_obj)
-                                    axis_description = trans_dict_desc.get(locale, trans_dict_desc.get("en", ""))
+                                desc_obj = block.get("description", {})
+                                trans_dict_desc = _extract_i18n(desc_obj)
+                                axis_description = trans_dict_desc.get(locale, trans_dict_desc.get("en", "")) or ""
 
-                                    scales_def = block.get("scales", [])
-                                    if scales_def:
-                                        scores = [float(s.get("score", 0)) for s in scales_def if "score" in s]
-                                        if scores:
-                                            scale_max = max(scores)
-                                            scale_min = min(scores)
+                                scales_def = block.get("scales", [])
+                                if scales_def:
+                                    scores = [float(s.get("score", 0)) for s in scales_def if "score" in s]
+                                    if scores:
+                                        scale_max = max(scores)
+                                        scale_min = min(scores)
 
-                                        for s in scales_def:
-                                            s_score = float(s.get("score", 0))
-                                            s_label_obj = s.get("name", {})
-                                            s_trans = _extract_i18n(s_label_obj)
-                                            s_label = s_trans.get(locale, s_trans.get("en", ""))
-                                            # Only write int cleanly for mapping
-                                            cleaned_score = int(s_score) if s_score.is_integer() else s_score
-                                            scale_labels[str(cleaned_score)] = s_label
+                                    for s in scales_def:
+                                        s_score = float(s.get("score", 0))
+                                        s_label_obj = s.get("name", {})
+                                        s_trans = _extract_i18n(s_label_obj)
+                                        s_label = s_trans.get(locale, s_trans.get("en", ""))
+                                        # Only write int cleanly for mapping
+                                        cleaned_score = int(s_score) if s_score.is_integer() else s_score
+                                        scale_labels[str(cleaned_score)] = s_label
 
                                 # Collision Avoidance
                                 original_axis_name = axis_name
@@ -220,6 +233,14 @@ class BlueprintTransformer:
                                 cited_source_id = ""
                                 cited_text_quote = ""
                                 cited_web_citation = ""
+                                coaching = None
+                                confidence = None
+                                falsification = None
+                                missing_context = None
+                                risk_flag = None
+                                remediation_steps = None
+                                emotional_sentiment = None
+                                theory_link = None
 
                                 if show_text:
                                     if is_legacy_score:
@@ -230,6 +251,15 @@ class BlueprintTransformer:
                                     cited_source_id = str(step_data.get(f"{k}_cited_source_id", ""))
                                     cited_text_quote = str(step_data.get(f"{k}_cited_text_quote", ""))
                                     cited_web_citation = str(step_data.get(f"{k}_google_citation", ""))
+                                    
+                                    coaching = step_data.get(f"{k}_coaching")
+                                    confidence = step_data.get(f"{k}_confidence")
+                                    falsification = step_data.get(f"{k}_falsification")
+                                    missing_context = step_data.get(f"{k}_missing_context")
+                                    risk_flag = step_data.get(f"{k}_risk_flag")
+                                    remediation_steps = step_data.get(f"{k}_remediation_steps")
+                                    emotional_sentiment = step_data.get(f"{k}_emotional_sentiment")
+                                    theory_link = step_data.get(f"{k}_theory_link")
 
                                 # Use a combined key for uniqueness
                                 unique_k = f"{step_id}_{k}"
@@ -241,6 +271,14 @@ class BlueprintTransformer:
                                     cited_source_id=cited_source_id,
                                     cited_text_quote=cited_text_quote,
                                     cited_web_citation=cited_web_citation,
+                                    coaching=coaching,
+                                    confidence=confidence,
+                                    falsification=falsification,
+                                    missing_context=missing_context,
+                                    risk_flag=risk_flag,
+                                    remediation_steps=remediation_steps,
+                                    emotional_sentiment=emotional_sentiment,
+                                    theory_link=theory_link,
                                     scale_min=scale_min,
                                     scale_max=scale_max,
                                     scale_labels=scale_labels

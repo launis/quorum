@@ -25,7 +25,7 @@ def mock_studio_service():
         description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
         category_id="test_cat",
         type=BlockDataType.STRING,
-        require_justification=False
+        output_extensions=[]
     )
     service.list_prompt_blocks.return_value = [pb]
     service.get_prompt_block.return_value = pb

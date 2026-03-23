@@ -75,9 +75,7 @@ class _PromptBlockBuilderFormState
       text: SafeCast.safeString(_editablePromptBlock['id']),
     );
 
-    if (!_editablePromptBlock.containsKey('criteria')) {
-      _editablePromptBlock['criteria'] = [];
-    }
+    // Deprecated 'criteria' array has been removed from V2 architecture
 
     // "The English-Only Mandate": Ensure new blocks have required 'en' structure
     if (!_editablePromptBlock.containsKey('label')) {
@@ -227,6 +225,8 @@ class _PromptBlockBuilderFormState
                 throw Exception('ID is required');
               }
               _editablePromptBlock['id'] = id;
+
+              _editablePromptBlock.remove('criteria');
 
               if (_editablePromptBlock['theory_grounding'] == null) {
                 _editablePromptBlock.remove('theory_grounding');
@@ -468,30 +468,56 @@ class _PromptBlockBuilderFormState
                                     const Text('Allow Decimals'),
                                   ],
                                 ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Checkbox(
-                                      value:
-                                          _editablePromptBlock['require_justification'] ==
-                                          true,
-                                      onChanged:
-                                          (val) => setState(
-                                            () =>
-                                                _editablePromptBlock['require_justification'] =
-                                                    val,
-                                          ),
-                                    ),
-                                    const Text(
-                                      'Require AI Justification (XAI)',
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: {
+                                  "justification": "Justification",
+                                  "coaching": "Coaching Tip",
+                                  "falsification": "Devil's Advocate",
+                                  "missing_context": "Missing Context",
+                                  "risk_flag": "Risk Flag",
+                                  "remediation_steps": "Remediation",
+                                  "emotional_sentiment": "Sentiment",
+                                  "theory_link": "Theory Link",
+                                  "confidence": "AI Confidence",
+                                  "citation": "Source Citation",
+                                }.entries.map((entry) {
+                                  final extList = SafeCast.safeList(_editablePromptBlock['output_extensions'])
+                                      .map((e) => e.toString())
+                                      .toList();
+                                  final isSelected = extList.contains(entry.key);
+                                  return FilterChip(
+                                    label: Text(entry.value),
+                                    selected: isSelected,
+                                    onSelected: (bool selected) {
+                                      setState(() {
+                                        if (selected) {
+                                          extList.add(entry.key);
+                                        } else {
+                                          extList.remove(entry.key);
+                                        }
+                                        _editablePromptBlock['output_extensions'] = extList;
+                                        // Cleanup deprecated field just in case
+                                        _editablePromptBlock.remove('require_justification');
+                                      });
+                                    },
+                                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                                    checkmarkColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
                       const SizedBox(height: 16),
                       // Theory Grounding Wrapper

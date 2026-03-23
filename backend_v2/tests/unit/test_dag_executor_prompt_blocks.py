@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow
+from backend_v2.core.hook_registry import HookResult
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 
@@ -18,7 +19,7 @@ def mock_repo():
             "category_id": "test",
             "type": BlockDataType.STRING,
             "allow_decimals": False,
-            "require_justification": False
+            "output_extensions": []
         }
     ]
     repo.get_step_by_id.return_value = {
@@ -78,7 +79,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
 
         # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(return_value={"inputs": {"chat_log": "dGVzdA=="}})
+            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {"chat_log": "dGVzdA=="}}))
 
             record = await executor.execute_workflow(
                 execution_id="exec_123123123",

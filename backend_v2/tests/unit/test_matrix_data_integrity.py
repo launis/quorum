@@ -54,7 +54,8 @@ def test_workflows_have_normalization_hook(db):
     """Ensure that all evaluating workflow steps are intercepted by the normalization hook."""
     for workflow in db.get('workflows', []):
         for step in workflow.get('steps', []):
-            if "factcheck" in step.get("id", ""):
+            step_id = step.get("id", "")
+            if "factcheck" in step_id or "scoreengine" in step_id:
                 continue # Structural synthesis nodes do not produce matrices natively
 
             post_hooks = step.get('post_hooks', [])

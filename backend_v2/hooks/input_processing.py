@@ -14,7 +14,7 @@ from fastapi import status
 from fastapi.concurrency import run_in_threadpool
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -137,17 +137,6 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 resolved_text = "\n\n".join(chat_lines)
 
                 logger.info(f"[InputProcessingHook] Successfully structured {key} via ChatParser (Markdown).")
-
-                # --- [DEBUG INJECTION] ---
-                # V2 Zero-Waste sääntö poistaa tekstin muistista ajon jälkeen. Debug-tarkoituksessa
-                # tallennamme sen nyt kovalevylle, jotta käyttäjä näkee millaisen dialogin malli rakensi.
-                try:
-                    with open(r"C:\src\quorum\data\chat_parser_debug_output.md", "w", encoding="utf-8") as _dbo:
-                        _dbo.write(resolved_text)
-                    logger.info("[InputProcessingHook] Debug-tiedosto 'chat_parser_debug_output.md' tallennettu!")
-                except Exception as e:
-                    logger.error(f"Debug-tallennus epäonnistui: {e}")
-                # -------------------------
             except Exception as e:
                 logger.error(f"[InputProcessingHook] Chat parsing failed for {key}: {e}")
                 if isinstance(e, AppException):
@@ -185,5 +174,22 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 resolved_text = f"{header}{desc_text.strip()}\n{footer}\n\n{resolved_text}"
 
         output_dict[key] = resolved_text.strip()
+
+        # --- FORENSIC OBSERVABILITY INJECTION ---
+        # Save every processed input with injected prompts into the execution directory
+        try:
+            from backend_v2.services.storage import get_storage_driver
+            storage = get_storage_driver()
+            exe_id = state.execution_id or "unknown_exe"
+            safe_key = "".join(c for c in key if c.isalnum() or c in ("_", "-"))
+            forensic_path = f"executions/{exe_id}/inputs/input_{safe_key}.md"
+            
+            await storage.save(forensic_path, output_dict[key])
+            logger.info(f"[InputProcessingHook] Forensic Input saved successfully: {forensic_path}")
+        except Exception as e:
+            logger.error(
+                f"[InputProcessingHook] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to save forensic input: {e}",
+                exc_info=True
+            )
 
     return HookResult(success=True, state_delta={"inputs": output_dict})

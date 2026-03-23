@@ -4,11 +4,22 @@ import 'package:client_app/utils/safe_cast.dart';
 class ReportAxisDTO {
   final String name;
   final String? description;
-  final double score;
+  final double? score;
   final String justification;
   final String? citedSourceId;
   final String? citedTextQuote;
   final String? citedWebCitation;
+  
+  // Epic 6: XAI Output Extensions
+  final String? coaching;
+  final double? confidence;
+  final String? falsification;
+  final String? missingContext;
+  final bool? riskFlag;
+  final List<String>? remediationSteps;
+  final String? emotionalSentiment;
+  final String? theoryLink;
+
   final double scaleMin;
   final double scaleMax;
   final Map<String, String> scaleLabels;
@@ -16,11 +27,19 @@ class ReportAxisDTO {
   const ReportAxisDTO({
     required this.name,
     this.description,
-    required this.score,
+    this.score,
     required this.justification,
     this.citedSourceId,
     this.citedTextQuote,
     this.citedWebCitation,
+    this.coaching,
+    this.confidence,
+    this.falsification,
+    this.missingContext,
+    this.riskFlag,
+    this.remediationSteps,
+    this.emotionalSentiment,
+    this.theoryLink,
     required this.scaleMin,
     required this.scaleMax,
     required this.scaleLabels,
@@ -39,11 +58,19 @@ class ReportAxisDTO {
     return ReportAxisDTO(
       name: SafeCast.safeString(json['name']),
       description: json['description']?.toString(),
-      score: SafeCast.safeDouble(json['score']),
+      score: json['score'] != null ? SafeCast.safeDouble(json['score']) : null,
       justification: SafeCast.safeString(json['justification']),
       citedSourceId: json['cited_source_id']?.toString(),
       citedTextQuote: json['cited_text_quote']?.toString(),
       citedWebCitation: json['cited_web_citation']?.toString(),
+      coaching: json['coaching']?.toString(),
+      confidence: json['confidence'] != null ? SafeCast.safeDouble(json['confidence']) : null,
+      falsification: json['falsification']?.toString(),
+      missingContext: json['missing_context']?.toString(),
+      riskFlag: json['risk_flag'] != null ? SafeCast.safeBool(json['risk_flag']) : null,
+      remediationSteps: json['remediation_steps'] != null ? SafeCast.safeList(json['remediation_steps']).map((e) => e.toString()).toList() : null,
+      emotionalSentiment: json['emotional_sentiment']?.toString(),
+      theoryLink: json['theory_link']?.toString(),
       scaleMin: SafeCast.safeDouble(json['scale_min'], 0.0),
       scaleMax: SafeCast.safeDouble(json['scale_max'], 6.0),
       scaleLabels: parsedLabels,

@@ -17,6 +17,10 @@ extension AppExceptionX on AppException {
     // Map specific structured payloads or error codes
     final locCode = _localizeErrorCode(this.errorCode, l10n);
     if (locCode != l10n.errorUnknown) {
+      // For validation errors, the backend provides highly specific 'detail' strings (e.g. which fields failed)
+      if (this.errorCode == 'VALIDATION_FAILED' && this.detail.isNotEmpty && this.detail != 'Unknown error') {
+         return '$locCode\n\nBackend Diagnostics:\n${this.detail}';
+      }
       return locCode;
     }
 

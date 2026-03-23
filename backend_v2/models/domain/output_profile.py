@@ -25,6 +25,7 @@ class LayoutType(str, Enum):
     MATRIX_2D = "matrix_2d"
     RADAR_3D = "radar_3d"
     EXCEL_ROW = "excel_row"
+    TEXT_ONLY = "text_only"
 
 
 class OutputProfileLayout(BaseModel):

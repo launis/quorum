@@ -2239,4 +2239,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportAnalyticalFramework2D => 'Analytical Framework (2D)';
+
+  @override
+  String get reportCoachingTitle => '💡 Coaching Tip';
+
+  @override
+  String get reportFalsificationTitle => '⚖️ Devil\'s Advocate';
+
+  @override
+  String get reportMissingContextTitle => '🔍 Missing Context';
+
+  @override
+  String get reportRiskFlagTitle => '⚠️ High Risk Identified';
+
+  @override
+  String get reportRemediationStepsTitle => '🛠️ Remediation Steps';
+
+  @override
+  String get reportEmotionalSentimentTitle => '🎭 Sentiment Analysis';
+
+  @override
+  String get reportTheoryLinkTitle => '📚 Theoretical Connection';
+
+  @override
+  String reportConfidenceTitle(String value) {
+    return 'AI Confidence: $value%';
+  }
 }
