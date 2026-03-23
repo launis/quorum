@@ -40,6 +40,7 @@ class TraceEvent(BaseModel):
     """Immutable event log item representing a distinct step or state change."""
 
     event_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique event identifier.")
+    v: int = Field(default=1, description="Schema version for forward compatibility and lazy upcasting.")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp.")
 
     step_name: str = Field(
@@ -64,6 +65,14 @@ class TraceEvent(BaseModel):
             logger.error(f"[StateModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
+
+
+class ErrorTraceEvent(TraceEvent):
+    """Specific event representing a fail-fast error katkos."""
+    event_type: Literal["error"] = "error"
+    error_code: str = Field(description="The standard ErrorCode string.")
+    error_message: str = Field(description="Detailed error message.")
+
 
 
 class WorkflowState(BaseModel):

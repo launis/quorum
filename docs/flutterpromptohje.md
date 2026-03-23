@@ -69,12 +69,13 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näi
 * **NO RAW CRUD IN ROUTERS:** Reititin ei koskaan saa kutsua suoraan `repository.create()` tai `repository.get()`, eikä se saa sisältää käyttöoikeuslogiikkaa (esim. `if current_user.role == "ROOT"`). Kaikki tietokanta- ja liiketoimintalogiikka (etenkin Tenant Isolation, RBAC ja Last Admin Guard) **ON PAKKO** reitittää aina kerroksen 2 (Domain Service Layer, esim. `AuthServiceDep`, `StudioServiceDep`, `ExecutionServiceDep`) kautta.
 * **Miksi?** Järjestelmää ajetaan myös ohjelmallisesti tausta-ajoilla (esim. `worker.py`), jotka eivät reitity API:n kautta. Service Layer on backendin ainoa Single Source of Truth luvitukselle ja datan eheyksille.
 
-### 3.2 Dual Backend Parity
-* Kaikki tietokantaa koskevat CRUD-muutokset on peilattava ja päivitettävä säännönmukaisesti kumpaankin ajuriin: `repository.py` (TinyDB) ja `firestore_repo.py` (Cloud).
+### 3.2 Unified Storage Driver (V3 Muutos)
+* Tietokantaa koskevat CRUD-muutokset tehdään vain kerran `UnifiedWorkflowRepository` -luokkaan. Vanha `firestore_repo.py` on poistettu, ja uudet StorageDriverit hoitavat pilvi/lokaali -peilauksen automaattisesti taustalla.
 
-### 3.3 Hybrid State Architecture
-* Tapahtumaloki (`TraceEvent`) on totuuden lähde (Immutable).
-* Työtila (`ExecutionRecord.results` / Blackboard) on nopea ja editoitava hetkittäinen tilanne. Molempia täytyy ylläpitää, kun agentti tekee siirron.
+### 3.3 Event Sourcing & Rehydration (⚠️ V3 BIG BANG MIGRATION IN PROGRESS)
+* **HUOM:** Moottorin V3-refaktorointi on kesken! Osa rajapinnoista palauttaa toistaiseksi vanhaa `ExecutionRecord.results` sanakirjaa. Kun migraatio on valmis, Frontend lukee askeleet ainoastaan `execution_trace` (TraceEvent) -lokista.
+* Tapahtumaloki (`TraceEvent`) tulee olemaan ydinmoottorin AINOA totuuden lähde (SSOT). Vanha, lennosta editoitava `results` blackboard poistuu historiidatasta lopullisesti. 
+* **Rehydration:** Käyttöliittymä tulee tukemaan katkenneen ajon saumatonta jatkamista (Rehydration). Jos ajo päätyy `failed` -tilaan, sitä ei hylätä korruptoituneena. Käyttäjä voi lähettää virhetilassa olevan ajon ID:n takaisin moottorille, joka kelustelee tapahtumanauhan (*fold_trace*) takaisin katkeamispisteeseen ja jatkaa suoritusta ilman toistettuja LLM-kutsuja.
 
 ### 3.4 Reliability Strategy (Timeout)
 * Kaikilla ulospäin lähtevillä verkkopyynnöillä on pakotettu aikakatkaisu (Timeout). Järjestelmä ei saa hirttää kiinni (Zombie).

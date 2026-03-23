@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus
+from backend_v2.models.state import TraceEvent
 
 logger = logging.getLogger(__name__)
 
@@ -330,6 +331,10 @@ class Step(V2CoreBase):
         default_factory=list,
         description="Native Python functions to execute AFTER LLM generation."
     )
+    allowed_mcp_tools: list[str] = Field(
+        default_factory=list,
+        description="List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
+    )
 
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
@@ -637,10 +642,8 @@ class ExecutionRecord(V2CoreBase):
         default_factory=WorkflowInputs, description="Raw user inputs by role")
     frozen_context: FrozenContext = Field(
         default_factory=FrozenContext, description="Immutable snapshot of context")
-    step_states: dict[str, ExecutionStepState] = Field(
-        default_factory=dict, description="Real-time timeline status of individual nodes")
-    results: dict[str, Any] = Field(
-        default_factory=dict, description="Step-by-step LLM output results")
+    execution_trace: list[TraceEvent] = Field(
+        default_factory=list, description="Immutable log of all events (Event Sourcing).")
     results_storage_path: str | None = Field(
         default=None, description="Path to offloaded massive results JSON in Cloud Storage.")
     pdf_report_path: str | None = Field(
