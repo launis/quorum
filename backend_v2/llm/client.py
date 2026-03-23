@@ -106,7 +106,7 @@ class LLMClient:
         messages: list[dict[str, Any]],
         response_model: type[T],
         model: str | None = None,
-        max_retries: int = 3,
+        max_retries: int = 1,
         **kwargs: Any,
     ) -> tuple[T, dict[str, Any]]:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
@@ -166,7 +166,7 @@ class LLMClient:
                 if isinstance(m.get("content"), str):
                     u_cont = str(m.get("content", ""))
                     if not prompt:
-                        prompt = m.get("content")
+                        prompt = u_cont
                     else:
                         prompt += "\n" + u_cont
 

@@ -296,7 +296,10 @@ class ModelProfile(V2CoreBase):
     supports_grounding: bool = Field(default=False, description="Supports Google Search Grounding")
     api_key: str | None = Field(default=None, description="Optional override API key")
     parsing_mode: str | None = Field(default=None, description="Parser logic flag (e.g. 'GEMINI_JSON')")
-    caching_strategy: str | None = Field(default=None, description="Cache strategy identifier (e.g. 'anthropic_ephemeral')")
+    caching_strategy: str | None = Field(
+        default=None,
+        description="Cache strategy identifier (e.g. 'anthropic_ephemeral')"
+    )
     is_active: bool = Field(default=True, description="Whether the model is actively available")
 
 class SystemConfigModelRegistry(V2CoreBase):
@@ -330,6 +333,10 @@ class Step(V2CoreBase):
     post_hooks: list[str] = Field(
         default_factory=list,
         description="Native Python functions to execute AFTER LLM generation."
+    )
+    safety: Literal["safe", "unsafe"] = Field(
+        default="safe",
+        description="Marks step as safe (read-only MCP) or unsafe (email/API mutations) for strict execution security."
     )
     allowed_mcp_tools: list[str] = Field(
         default_factory=list,
@@ -495,7 +502,7 @@ class ReportAxisDTO(V2CoreBase):
     cited_source_id: str | None = None
     cited_text_quote: str | None = None
     cited_web_citation: str | None = None
-    
+
     # Epic 6: XAI Output Extensions
     coaching: str | None = None
     confidence: float | None = None
@@ -652,6 +659,8 @@ class ExecutionRecord(V2CoreBase):
         default=None, description="Path to offloaded frozen context JSON in Cloud Storage.")
     execution_trace_storage_path: str | None = Field(
         default=None, description="Path to offloaded execution trace log in Cloud Storage.")
+    step_states: dict[str, ExecutionStepState] = Field(
+        default_factory=dict, description="Real-time status tracking for DAG nodes")
     cost_estimate: float = Field(
         default=0.0, description="Total estimated cost of the execution in USD"
     )

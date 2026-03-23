@@ -1,3 +1,4 @@
+"""Legacy and Active hook definitions for the AI Orchestrator."""
 # Initialize all hooks to trigger the @hook_registry.register decorators
 from . import (
     archival,
@@ -11,7 +12,6 @@ from . import (
     references,
     reporting,
     scoring,
-    search,
     security,
     translation_hook,
     validation,
@@ -28,7 +28,6 @@ __all__ = [
     "references",
     "reporting",
     "scoring",
-    "search",
     "security",
     "translation_hook",
     "validation",

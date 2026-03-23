@@ -1,15 +1,18 @@
+"""Asynchronous Directed Acyclic Graph (DAG) Executor for V3 Workflows.
+
+Strictly follows Event Sourcing, Fail-Fast principles (RFC 7807) and O(1) Concurrency.
+God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
+"""
+
 import asyncio
-import copy
 import logging
 from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
-from backend_v2.exceptions import AppException, ErrorCodes
-
-# Note: Using V1 LLM Client and Hook Registry since V2 versions don't exist yet/weren't found,
-# but we wrap them in Fail-Fast V2 principles here.
+from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExecutionStatus,
@@ -24,22 +27,288 @@ from backend_v2.utils.dict_utils import deep_merge_dicts
 logger = logging.getLogger(__name__)
 
 
-class DAGExecutor:
-    """Asynchronous Directed Acyclic Graph (DAG) Executor for V2 Workflows.
+class ExecutionCommitter:
+    """Handles Checkpointing of the Event Sourced Trace."""
 
-    Adheres strictly to RFC 7807 Fail-Fast principles. Executes steps concurrently
-    where possible using asyncio.gather. Utilizes PromptCompiler for Schema-Driven AI.
-    """
+    def __init__(self, repository: AbstractWorkflowRepository, execution_id: str):
+        self.repository = repository
+        self.execution_id = execution_id
+
+    async def commit_trace(
+        self,
+        trace: list[TraceEvent],
+        status: ExecutionStatus,
+        step_states: dict[str, ExecutionStepState],
+        error: str | None = None
+    ) -> None:
+        """Flushes the event array to persistent DB safely."""
+        try:
+            payload: dict[str, Any] = {
+                "status": status.value,
+                "execution_trace": [e.model_dump(mode="json") for e in trace],
+                "step_states": {k: v.model_dump(mode="json") for k, v in step_states.items()}
+            }
+            if error:
+                payload["error"] = error
+
+            # The repository natively handles 100KB+ offloading to Blob storage via _offload_payloads()
+            await self.repository.update_execution(self.execution_id, payload)
+        except Exception as e:
+            msg = f"Failed to commit execution trace for {self.execution_id}"
+            logger.error(f"[ExecutionCommitter] {ErrorCodes.PROGRESS_UPDATE_FAILED.name}: {msg}", exc_info=True)
+            raise AppException(
+                message=msg,
+                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
+                status_code=500
+            ) from e
+
+
+class NodeExecutor:
+    """Executes a single step in pure isolation, emitting TraceEvents."""
 
     def __init__(self, repository: AbstractWorkflowRepository, prompt_compiler: Any):
-        """Args:
-        repository: V2 dual-backend repository for persistence.
-        prompt_compiler: Instance of backend_v2 PromptCompiler.
-        """
         self.repository = repository
         self.compiler = prompt_compiler
-        # Singleton LLM context
-        self.llm_client = LLMClient()
+
+    async def execute(
+        self,
+        step: StepRule,
+        execution_id: str,
+        workflow_id: str,
+        metadata: dict[str, Any],
+        projector: StateProjector,
+        expected_inputs: list[Any] | None = None,
+        frozen_ctx: FrozenContext | None = None,
+        trace: list[TraceEvent] | None = None
+    ) -> list[TraceEvent]:
+        emitted_events: list[TraceEvent] = []
+        try:
+            # 1. State extraction (Immutable isolation point)
+            current_state = dict(projector.snapshot)
+
+            blueprint_slug = getattr(step, "task_blueprint", None)
+            if not blueprint_slug:
+                raise AppException(
+                    message=f"Step {step.id} has no task_blueprint configured.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                )
+
+            step_def = await self.repository.get_step_by_id(blueprint_slug)
+            if not step_def:
+                raise AppException(
+                    message=f"Configuration error: Step '{blueprint_slug}' not found.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                )
+
+            hook_deps = HookDependencies(repository=self.repository)
+
+            # --- NATIVE LOGIC NODE EXECUTION ---
+            if step_def.get("type", "llm") == "logic":
+                logic_hook = step_def.get("hook", None)
+                if not logic_hook:
+                    raise AppException(
+                        message=f"Logic step '{blueprint_slug}' has no native hook defined.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                    )
+
+                # Execute synchronous heavy hooks securely wrapped in to_thread!
+                async def run_logic() -> dict[str, Any]:
+                    state_data = dict(current_state)
+                    hook_state = HookState(
+                        execution_id=execution_id,
+                        workflow_id=workflow_id,
+                        step_id=step.id,
+                        task_blueprint=blueprint_slug,
+                        metadata=metadata,
+                        inputs=state_data
+                    )
+
+                    # Pre-hooks
+                    for pre_hook in step_def.get("pre_hooks", []):
+                        res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
+                        if res.success and res.state_delta:
+                            state_data = deep_merge_dicts(state_data, res.state_delta)
+                            hook_state = hook_state.model_copy(update={"inputs": state_data})
+
+                    # Main logic hook
+                    is_async = asyncio.iscoroutinefunction(hook_registry.execute)
+                    if not is_async:
+                        main_res = await asyncio.to_thread(
+                            asyncio.run, hook_registry.execute(logic_hook, hook_state, hook_deps)
+                        )
+                    else:
+                        main_res = await hook_registry.execute(logic_hook, hook_state, hook_deps)
+
+                    if main_res.success and main_res.state_delta:
+                        state_data = deep_merge_dicts(state_data, main_res.state_delta)
+                        hook_state = hook_state.model_copy(update={"inputs": state_data})
+
+                    # Post-hooks
+                    from backend_v2.models.v2_core import Step as V2Step
+                    step_obj = V2Step.model_validate(step_def)
+                    combined_post_hooks = list(dict.fromkeys(step_obj.post_hooks + step.post_hooks))
+                    for post_hook in combined_post_hooks:
+                        res = await hook_registry.execute(post_hook, hook_state, hook_deps)
+                        if res.success and res.state_delta:
+                            state_data = deep_merge_dicts(state_data, res.state_delta)
+                            hook_state = hook_state.model_copy(update={"inputs": state_data})
+
+                    return state_data
+
+                final_outputs = await run_logic()
+                emitted_events.append(TraceEvent(
+                    step_name=step.id,
+                    event_type="output",
+                    content=final_outputs
+                ))
+                return emitted_events
+
+            # --- LLM NODE EXECUTION ---
+            else:
+                from backend_v2.models.v2_core import Step as V2Step
+                step_obj = V2Step.model_validate(step_def)
+                state_data = dict(current_state)
+                hook_state = HookState(
+                    execution_id=execution_id,
+                    workflow_id=workflow_id,
+                    step_id=step.id,
+                    task_blueprint=blueprint_slug,
+                    metadata=metadata,
+                    inputs=state_data
+                )
+
+                # Pre-Hooks
+                combined_pre_hooks = list(dict.fromkeys(step_obj.pre_hooks + step.pre_hooks))
+                for pre_hook in combined_pre_hooks:
+                    res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
+                    if res.success and res.state_delta:
+                        state_data = deep_merge_dicts(state_data, res.state_delta)
+                        hook_state = hook_state.model_copy(update={"inputs": state_data})
+
+                # Compile LLM Prompts & Schemas
+                criteria_blocks = []
+                all_prompt_blocks = await self.repository.get_all_prompt_blocks()
+                block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
+                for m_id in step_obj.prompt_blocks:
+                    b = block_map.get(m_id)
+                    if b:
+                        criteria_blocks.append(b)
+                    else:
+                        raise AppException(
+                            message=f"PromptBlock '{m_id}' not found.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                        )
+
+                target_locale = metadata.get("target_locale", "en")
+                static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
+                dynamic_instructions = self.compiler.compile_dynamic_instructions(criteria_blocks, target_locale)
+
+                system_prompt = "Complete the evaluation according to the provided schema."
+                if static_instructions:
+                    system_prompt += f"\n\n{static_instructions}"
+
+                # P4: Prevent Token Explosion with fold_trace pruning
+                llm_context_data = state_data
+                if trace:
+                    from backend_v2.models.state import StateProjector
+                    pruner = StateProjector()
+                    pruned_history = pruner.fold_trace(trace, max_tokens=20000)
+                    # Merge active hook deltas with pruned history
+                    llm_context_data = {**pruned_history, **state_data}
+
+                xml_ctx = self.compiler.build_xml_context(
+                    input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},
+                    state_data=llm_context_data,
+                    target_locale=target_locale,
+                    expected_inputs=expected_inputs
+                )
+
+                user_payload = xml_ctx
+                if dynamic_instructions:
+                    user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
+
+                has_search = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
+                dynamic_schema = self.compiler.build_dynamic_schema(
+                    schema_name=f"Step_{step.id}_Response",
+                    criteria=criteria_blocks,
+                    has_search_result=has_search,
+                    target_locale=target_locale
+                )
+
+                if frozen_ctx:
+                    frozen_ctx.generated_schemas[step.id] = dynamic_schema.model_json_schema()
+
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_payload}
+                ]
+
+                # LLM Invocation
+                strategy_name = step.model_strategy or "fast"
+                bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
+                # Ensure no results dictionary is directly modified.
+                result, usage_dict = await bound_client.run_structured_task(
+                    messages=messages,
+                    response_model=dynamic_schema,
+                    mock_identity=step.id,
+                )
+
+                final_dict = result.model_dump(mode="json")
+
+                # Post-Hooks
+                safe_context = {
+                    k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v
+                    for k, v in state_data.items()
+                }
+                post_hook_state = hook_state.model_copy(update={
+                    "global_context_vars": safe_context,
+                    "inputs": final_dict
+                })
+                combined_post_hooks = list(dict.fromkeys(step_obj.post_hooks + step.post_hooks))
+                for post_hook in combined_post_hooks:
+                    ph_res = await hook_registry.execute(post_hook, post_hook_state, hook_deps)
+                    if ph_res.success and ph_res.state_delta:
+                        final_dict = deep_merge_dicts(final_dict, ph_res.state_delta)
+                        post_hook_state = post_hook_state.model_copy(update={"inputs": final_dict})
+
+                for key in ["profiler_metrics", "step_metadata", "_audit_signature"]:
+                    if key in state_data:
+                        final_dict[key] = state_data[key]
+
+                if usage_dict:
+                    if "_step_metadata" not in final_dict:
+                        final_dict["_step_metadata"] = {}
+                    final_dict["_step_metadata"]["token_usage"] = usage_dict
+
+                emitted_events.append(TraceEvent(
+                    step_name=step.id,
+                    event_type="output",
+                    content=final_dict
+                ))
+                return emitted_events
+
+        except Exception as e:
+            logger.error(f"[NodeExecutor] Dual-Reporting Exception for step {step.id}: {str(e)}", exc_info=True)
+            return [ErrorTraceEvent(
+                step_name=step.id,
+                error_code="STEP_FAILED",
+                error_message=str(e),
+                content={"traceback": str(e)}
+            )]
+
+
+class DAGExecutor:
+    """The central DAGOrchestrator."""
+
+    def __init__(self, repository: AbstractWorkflowRepository, prompt_compiler: Any):
+        self.repository = repository
+        self.compiler = prompt_compiler
+        self.committer = ExecutionCommitter(repository, "")
+        self.node_executor = NodeExecutor(repository, prompt_compiler)
 
     async def execute_workflow(
         self,
@@ -47,18 +316,14 @@ class DAGExecutor:
         workflow: Workflow,
         raw_inputs: dict[str, Any]
     ) -> ExecutionRecord:
-        """Main entrypoint. Inits execution context, parses graph, runs async tasks.
-
-        Args:
-            execution_id: The requested Execution UUID.
-            workflow: The hydrated strictly-typed V2 Workflow object.
-            raw_inputs: Unvalidated inputs dict (validated per step by models).
-        """
-        # Epic 2: Execution Firewall (Fast Fail Invalid Graphs)
+        """Main entrypoint for Workflow Execution."""
+        # Fast Fail validation
         from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
         DAGCompilerService.validate_workflow(workflow)
 
-        # Fetch existing execution record from DB (created by ExecutionService)
+        self.committer.execution_id = execution_id
+
+        # 1. State Rehydration / Initialization
         existing_record_dict = await self.repository.get_execution(execution_id)
 
         step_states = {
@@ -69,493 +334,180 @@ class DAGExecutor:
         if existing_record_dict:
             exec_record = ExecutionRecord.model_validate(existing_record_dict)
             exec_record.status = ExecutionStatus.RUNNING
-            # Update step states if they were not already populated
-            if not exec_record.step_states:
+            if not getattr(exec_record, "step_states", None) or not exec_record.step_states:
                 exec_record.step_states = step_states
         else:
-            # Fallback if not initialized by service
+            inputs_obj = raw_inputs if isinstance(raw_inputs, WorkflowInputs) else WorkflowInputs(**raw_inputs)
             exec_record = ExecutionRecord(
                 id=execution_id,
                 workflow_id=workflow.id,
                 status=ExecutionStatus.RUNNING,
-                raw_inputs=raw_inputs if isinstance(raw_inputs, WorkflowInputs) else WorkflowInputs(**raw_inputs),
-                frozen_context=FrozenContext(),
-                results={},
+                raw_inputs=inputs_obj,
+                execution_trace=[],
                 step_states=step_states,
+                frozen_context=FrozenContext(),
             )
 
+        # 2. Project Initial State
+        projector = StateProjector()
+        for evt in exec_record.execution_trace:
+            projector.apply_delta(evt)
 
+        # Initial Hydration Phase (if new execution)
+        if not exec_record.execution_trace:
+            inputs_dict = exec_record.raw_inputs.model_dump(mode="json")
+            input_event = TraceEvent(
+                step_name="system_inputs",
+                event_type="input",
+                content=inputs_dict
+            )
+            exec_record.execution_trace.append(input_event)
+            projector.apply_delta(input_event)
 
-        # Upsert cleanly
-        await self.repository.update_execution(
-            execution_id,
-            {
-                "status": exec_record.status.value,
-                "metadata": exec_record.metadata,
-                "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
-            }
-        )
+            try:
+                global_hook_deps = HookDependencies(repository=self.repository)
+                global_hook_state = HookState(
+                    execution_id=execution_id,
+                    workflow_id=workflow.id,
+                    metadata=exec_record.metadata,
+                    inputs=inputs_dict
+                )
+                processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
+                if processed_result.success and isinstance(processed_result.state_delta, dict):
+                    proc_event = TraceEvent(
+                        step_name="system_inputs_processed",
+                        event_type="input",
+                        content=processed_result.state_delta
+                    )
+                    exec_record.execution_trace.append(proc_event)
+                    projector.apply_delta(proc_event)
+            except Exception as e:
+                msg = f"Pre-Hydration failed: {e}"
+                logger.error(msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    status_code=400
+                ) from e
 
-        # Resolve Steps
+        # 3. Topology Setup
         steps_by_id = {step.id: step for step in workflow.steps}
-
-        dependents: dict[str, list[str]] = {step.id: [] for step in workflow.steps}
-
-        for step in workflow.steps:
-            for dep in step.depends_on:
-                if dep not in dependents:
-                    dependents[dep] = []
-                dependents[dep].append(step.id)
-
-        # Execution State variables
         step_events: dict[str, asyncio.Event] = {step.id: asyncio.Event() for step in workflow.steps}
 
-        # Convert to pure dicts for hook compatibility
-        raw_inputs_dict = raw_inputs.model_dump(mode="json") if hasattr(raw_inputs, "model_dump") else dict(raw_inputs)
-        state_data = dict(raw_inputs_dict)
-        state_data["inputs"] = raw_inputs_dict  # Legacy V1 hooks expect data["inputs"]
+        failed_previous_steps = []
+        for step_id, s_state in exec_record.step_states.items():
+            if getattr(s_state, "status", None) == "completed":
+                step_events[step_id].set()
+            elif getattr(s_state, "status", None) == "failed":
+                failed_previous_steps.append(step_id)
+                exec_record.step_states[step_id].status = "pending"
 
-        # --- V2 Strict Execution Hydration Phase ---
-        # With V2 Shallow Copy Concurrency isolation (Phase 9), pre_hooks mutating state_data
-        # inside _execute_step are strictly isolated. Thus, we MUST run global hydrators
-        # like `input_processing` synchronously BEFORE parallel DAG orchestration starts.
+        # Concurrency Limiter
+        semaphore = asyncio.Semaphore(10)
 
-        try:
-            logger.info(f"[DAGExecutor] Initiating Step 0 Base64 Pre-Hydration for Workflow {workflow.id}")
+        async def run_step_wrapper(step_id: str) -> None:
+            step_obj = steps_by_id[step_id]
 
-            # Create strict dependencies and state for global hooks
-            global_hook_deps = HookDependencies(repository=self.repository)
-            global_hook_state = HookState(
-                execution_id=execution_id,
-                workflow_id=workflow.id,
-                metadata=exec_record.metadata,
-                inputs=state_data
-            )
+            # Skip if completed (Rehydration)
+            if exec_record.step_states[step_id].status == "completed":
+                return
 
-            processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
-            if processed_result.success and isinstance(processed_result.state_delta, dict):
-                 state_data = deep_merge_dicts(state_data, processed_result.state_delta)
-                 if "inputs" in processed_result.state_delta:
-                     state_data["inputs"] = processed_result.state_delta["inputs"]
-                     # CRITICAL: Destroy Base64 File payloads lingering at the root level
-                     for cleaned_key, cleaned_val in processed_result.state_delta["inputs"].items():
-                         if cleaned_key in state_data:
-                             state_data[cleaned_key] = cleaned_val
-        except Exception as e:
-            msg = f"Pre-Hydration failed to parse raw inputs: {e}"
-            logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-            raise AppException(
-                message=msg,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                status_code=400
-            ) from e
+            for dep in step_obj.depends_on:
+                await step_events[dep].wait()
 
-        frozen_ctx = exec_record.frozen_context
-
-        try:
-            # Main execution loop
-            async def run_step_wrapper(step_id: str) -> None:
-                step_obj = steps_by_id[step_id]
-                # Wait for dependencies
-                for dep in step_obj.depends_on:
-                    await step_events[dep].wait()
-
+            async with semaphore:
                 try:
-                    # 1. Update status to running
                     exec_record.step_states[step_id].status = "running"
-                    await self.repository.update_execution(
-                        execution_id,
-                        {"step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}}
+
+                    # Proactive status push
+                    await self.committer.commit_trace(
+                        trace=exec_record.execution_trace,
+                        status=exec_record.status,
+                        step_states=exec_record.step_states
                     )
 
-                    result = await self._execute_step(
+                    events = await self.node_executor.execute(
                         step=step_obj,
-                        shared_state_data=state_data,
-                        frozen_ctx=frozen_ctx,
                         execution_id=execution_id,
                         workflow_id=workflow.id,
                         metadata=exec_record.metadata,
-                        expected_inputs=workflow.expected_inputs
+                        projector=projector,
+                        expected_inputs=workflow.expected_inputs,
+                        frozen_ctx=exec_record.frozen_context,
+                        trace=exec_record.execution_trace
                     )
-                    # State update is atomic per step constraint
-                    state_data[step_obj.id] = result
-                    exec_record.results[step_obj.id] = result
 
-                    # 2. Update status to completed
-                    exec_record.step_states[step_id].status = "completed"
+                    for e in events:
+                        exec_record.execution_trace.append(e)
+                        projector.apply_delta(e)
 
-                    # Append results to DB (Optimistic Update)
-                    await self.repository.update_execution(
-                        execution_id,
-                        {
-                            "results": exec_record.results,
-                            "frozen_context": frozen_ctx.model_dump(),
-                            "step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}
-                        }
-                    )
-                    # Signal completion to unblock dependents ONLY ON SUCCESS
-                    step_events[step_id].set()
-                except asyncio.CancelledError:
-                    # Task was cancelled, do not set event
-                    raise
-                except Exception as e:
-                    logger.error(
-                        f"[DAGExecutor] {ErrorCodes.WORKFLOW_EXECUTION_FAILED.name}: "
-                        f"Step {step_id} failed: {e}",
-                        exc_info=True
-                    )
-                    # 3. Update status to failed
-                    if step_id in exec_record.step_states:
+                    # Error Catching Boundary
+                    if any(isinstance(e, ErrorTraceEvent) for e in events):
                         exec_record.step_states[step_id].status = "failed"
-                        await self.repository.update_execution(
-                            execution_id,
-                            {"step_states": {k: v.model_dump() for k, v in exec_record.step_states.items()}}
+                        # Extract the error message from the event
+                        msg = [e.error_message for e in events if isinstance(e, ErrorTraceEvent)][0]
+                        raise AppException(
+                            message=f"Step {step_id} emitted ErrorTraceEvent: {msg}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED}
                         )
-                    from backend_v2.exceptions import WorkflowExecutionError
+
+                    exec_record.step_states[step_id].status = "completed"
+                    await self.committer.commit_trace(
+                        trace=exec_record.execution_trace,
+                        status=exec_record.status,
+                        step_states=exec_record.step_states
+                    )
+                    step_events[step_id].set()
+
+                except Exception as e:
+                    exec_record.step_states[step_id].status = "failed"
+                    await self.committer.commit_trace(
+                        trace=exec_record.execution_trace,
+                        status=ExecutionStatus.FAILED,
+                        step_states=exec_record.step_states,
+                        error=str(e)
+                    )
                     raise WorkflowExecutionError(
                         step_id=step_id,
                         task_key=step_obj.task_blueprint,
                         original_error=e
                     ) from e
 
-            # Schedule all steps immediately, they will block on .wait()
-            tasks = [asyncio.create_task(run_step_wrapper(step.id)) for step in workflow.steps]
-
-            try:
-                # Await all
-                await asyncio.gather(*tasks)
-            except Exception as e:
-                # Cancel all remaining tasks to ensure true Fail-Fast behavior
-                for t in tasks:
-                    if not t.done():
-                        t.cancel()
-                raise e
-
+        tasks = [asyncio.create_task(run_step_wrapper(step.id)) for step in workflow.steps]
+        try:
+            await asyncio.gather(*tasks)
             exec_record.status = ExecutionStatus.COMPLETED
-            await self.repository.update_execution(execution_id, {"status": exec_record.status.value})
-            return exec_record
-
-        except Exception as overall_err:
-            msg = f"Workflow execution {execution_id} failed: {overall_err}"
-            logger.error(
-                f"[DAGExecutor] {ErrorCodes.WORKFLOW_EXECUTION_FAILED.name}: {msg}",
-                exc_info=True
+            await self.committer.commit_trace(
+                trace=exec_record.execution_trace,
+                status=exec_record.status,
+                step_states=exec_record.step_states
             )
+            return exec_record
+        except Exception as overall_err:
+            for t in tasks:
+                if not t.done():
+                    t.cancel()
             exec_record.status = ExecutionStatus.FAILED
             exec_record.error = str(overall_err)
 
-            # Use safe fire-and-forget sync wrapper for DB update if we're crashing
+            # Safe synchronous fire-and-forget save in loop death
             try:
-                # Need a new event loop or run synchronously to ensure it saves before crash
                 loop = asyncio.get_running_loop()
-                loop.create_task(self.repository.update_execution(
-                    execution_id,
-                    {"status": exec_record.status.value, "error": exec_record.error}
+                loop.create_task(self.committer.commit_trace(
+                    trace=exec_record.execution_trace,
+                    status=exec_record.status,
+                    step_states=exec_record.step_states,
+                    error=exec_record.error
                 ))
             except Exception:
                 pass
-
-            # RFC 7807 Fail-Fast Mandate: We MUST raise here. BackgroundTasks in FastAPI
-            # actually handle raising exceptions just fine by logging them to stderr.
-            # Suppressing them violates the V2 Zero-Compromise Pledge.
 
             if isinstance(overall_err, AppException):
                  raise overall_err
 
             raise AppException(
-                message=msg,
+                message=f"Workflow failed: {overall_err}",
                 details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                 status_code=500
             ) from overall_err
-
-    async def _execute_step(
-        self,
-        step: StepRule,
-        shared_state_data: dict[str, Any],
-        frozen_ctx: FrozenContext,
-        execution_id: str,
-        workflow_id: str,
-        metadata: dict[str, Any],
-        expected_inputs: list[Any] | None = None
-    ) -> Any:
-        """Executes a single step: hook, agent, or conditional logic."""
-        # 1. Condition Evaluation (Currently unsupported in V2 StepRule schema)
-
-        # Isolate state deeply to prevent concurrency bleeding between async nodes in Phase 9
-        # Shallow copies (like `dict()`) fail if hooks mutate nested dicts or lists during asyncio.gather
-        state_data = copy.deepcopy(shared_state_data)
-
-        # 2. Hook Execution (Deterministic or Async)
-        hook_name: str | None = getattr(step, "hook", None)
-        if hook_name:
-            # Create strict state and deps for the standalone hook
-            hook_deps = HookDependencies(repository=self.repository)
-            hook_state = HookState(
-                execution_id=execution_id,
-                workflow_id=workflow_id,
-                step_id=step.id,
-                task_blueprint=getattr(step, "task_blueprint", None),
-                metadata=metadata,
-                inputs=state_data
-            )
-
-            logger.debug(f"Executing Hook via Registry: {hook_name}")
-            hook_result = await hook_registry.execute(hook_name, hook_state, hook_deps)
-            return deep_merge_dicts(state_data, hook_result.state_delta or {})
-
-        # 3. Role LLM Execution (Non-Deterministic)
-        blueprint_slug: str | None = getattr(step, "task_blueprint", None)
-        if blueprint_slug:
-            step_def = await self.repository.get_step_by_id(blueprint_slug)
-            if not step_def:
-                msg = f"Configuration error: Step '{blueprint_slug}' not found in database."
-                logger.error(f"[DAGExecutor] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
-                )
-
-            # Execution logic branches based on node type
-            if step_def.get("type", "llm") == "logic":
-                # Create typed context for the standalone logic node
-                hook_deps = HookDependencies(repository=self.repository)
-                hook_state = HookState(
-                    execution_id=execution_id,
-                    workflow_id=workflow_id,
-                    step_id=step.id,
-                    task_blueprint=getattr(step, "task_blueprint", None),
-                    metadata=metadata,
-                    inputs=state_data
-                )
-
-                # --- NATIVE LOGIC NODE EXECUTION (No LLM Cost) ---
-                logic_hook: str | None = step_def.get("hook", None)
-                if logic_hook:
-                    # Execute Step-level pre-hooks manually before the designated logic
-                    for pre_hook in step_def.get("pre_hooks", []):
-                        hook_result = await hook_registry.execute(pre_hook, hook_state, hook_deps)
-                        if hook_result.success and hook_result.state_delta:
-                            state_data = deep_merge_dicts(state_data, hook_result.state_delta)
-                            # Update hook_state with the merged state_data for subsequent hooks
-                            hook_state = hook_state.model_copy(update={"inputs": state_data})
-
-                    logger.debug(
-                        f"Executing Native Logic Step '{step_def.get('slug', 'unknown')}' "
-                        f"via hook: {logic_hook}"
-                    )
-                    result = await hook_registry.execute(logic_hook, hook_state, hook_deps)
-                    if result.success and result.state_delta:
-                        state_data = deep_merge_dicts(state_data, result.state_delta)
-                        hook_state = hook_state.model_copy(update={"inputs": state_data})
-
-                    # 4. Post-Hook Execution
-                    # Hooks attached to the StepRule
-                    for post_hook in getattr(step, "post_hooks", []):
-                        hook_result = await hook_registry.execute(post_hook, hook_state, hook_deps)
-                        if hook_result.success and hook_result.state_delta:
-                            state_data = deep_merge_dicts(state_data, hook_result.state_delta)
-                            hook_state = hook_state.model_copy(update={"inputs": state_data})
-
-                    # Hooks attached to the logical Step template
-                    for post_hook in step_def.get("post_hooks", []):
-                        hook_result = await hook_registry.execute(post_hook, hook_state, hook_deps)
-                        if hook_result.success and hook_result.state_delta:
-                            state_data = deep_merge_dicts(state_data, hook_result.state_delta)
-                            hook_state = hook_state.model_copy(update={"inputs": state_data})
-
-                    return state_data
-                else:
-                    raise AppException(
-                        message=f"Logic step '{step_def.get('slug', 'unknown')}' has no hook defined.",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED}
-                    )
-
-            # --- LLM NODE EXECUTION ---
-            # Step level Pre-Hooks
-            from backend_v2.models.v2_core import Step
-            step_obj = Step.model_validate(step_def)
-
-            logger.debug(f"Executing Step: {step_obj.id}")
-
-            # 3.0 Pre-Hooks Execution
-            hook_deps = HookDependencies(repository=self.repository)
-            hook_state = HookState(
-                execution_id=execution_id,
-                workflow_id=workflow_id,
-                step_id=step.id,
-                task_blueprint=step.task_blueprint,
-                metadata=metadata,
-                inputs=state_data
-            )
-
-            # Combine pre-hooks from both the underlying Step and the specific StepRule,
-            # preserving order and ensuring uniqueness via dict.fromkeys
-            combined_pre_hooks = list(dict.fromkeys(step_obj.pre_hooks + step.pre_hooks))
-
-            for pre_hook in combined_pre_hooks:
-                logger.debug(f"Executing Pre-Hook: {pre_hook}")
-                # We assume pre-hooks modify state_data by returning state deltas.
-                result = await hook_registry.execute(pre_hook, hook_state, hook_deps)
-                if result.success and result.state_delta:
-                     state_data = deep_merge_dicts(state_data, result.state_delta)
-                     hook_state = hook_state.model_copy(update={"inputs": state_data})
-
-            # 3.1 Criteria Blocks Gathering (prompt_blocks)
-            criteria_blocks = []
-            all_prompt_blocks = await self.repository.get_all_prompt_blocks()
-            block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
-
-            # Clone the block list so we don't mutate the db-loaded schema
-            active_prompt_blocks = list(step_obj.prompt_blocks)
-
-            for m_id in active_prompt_blocks:
-                block_dict = block_map.get(m_id)
-                if block_dict:
-                    from backend_v2.models.v2_core import PromptBlock
-                    PromptBlock.model_validate(block_dict) # Fail-Fast validation check
-                    criteria_blocks.append(block_dict)
-                else:
-                    msg = f"PromptBlock '{m_id}' not found. Referenced by Step '{step_obj.slug}'"
-                    logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED}
-                    )
-
-            # 3.2 Resolving xml context & Epic 5 Caching Extraction
-            target_locale = metadata.get("target_locale")
-            if not target_locale:
-                msg = "Execution metadata is missing the required 'target_locale', violating the Fail-Fast mandate."
-                logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-
-            # Extract Static & Dynamic Prompts
-            static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
-            dynamic_instructions = self.compiler.compile_dynamic_instructions(criteria_blocks, target_locale)
-
-            # The Head (System Prompt focuses entirely on static cacheable content)
-            system_prompt = "Complete the evaluation according to the provided schema."
-            if static_instructions:
-                system_prompt += f"\n\n{static_instructions}"
-
-            xml_ctx = self.compiler.build_xml_context(
-                input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},
-                state_data=state_data,
-                target_locale=target_locale, # The LLM outputs in the user's localized language
-                expected_inputs=expected_inputs
-            )
-
-            # The Tail (User Prompt terminates with dynamic variables to prevent cache invalidation)
-            user_payload = xml_ctx
-            if dynamic_instructions:
-                user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
-
-            # 3.3 Dynamic Schema
-            has_search_result = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
-            dynamic_schema = self.compiler.build_dynamic_schema(
-                schema_name=f"Step_{step.id}_Response",
-                criteria=criteria_blocks,
-                has_search_result=has_search_result,
-                target_locale=target_locale
-            )
-            frozen_ctx.generated_schemas[step.id] = dynamic_schema.model_json_schema()
-
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_payload}
-            ]
-
-            # 3.4 LLM Strategy Resolution (V2 Strict Mode)
-            strategy_name = step.model_strategy or "fast"
-            from backend_v2.llm.client import LLMClient
-            bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
-
-            # --- FORENSIC OBSERVABILITY INJECTION ---
-            try:
-                from backend_v2.services.storage import get_storage_driver
-                storage = get_storage_driver()
-                safe_step_id = "".join(c for c in step.id if c.isalnum() or c in ("_", "-"))
-                prompt_path = f"executions/{execution_id}/prompts/prompt_{safe_step_id}.md"
-                
-                # Format a nice markdown file
-                prompt_content = f"# FORENSIC AI PROMPT LOG\n**Execution:** {execution_id}\n**Step:** {step.id}\n**Strategy:** {strategy_name}\n\n"
-                prompt_content += f"## SYSTEM PROMPT\n\n```text\n{system_prompt}\n```\n\n"
-                prompt_content += f"## USER PAYLOAD\n\n```text\n{user_payload}\n```\n"
-                
-                await storage.save(prompt_path, prompt_content)
-                logger.info(f"[DAGExecutor] Forensic Prompt saved successfully: {prompt_path}")
-            except Exception as e:
-                logger.error(
-                    f"[DAGExecutor] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to save forensic prompt: {e}",
-                    exc_info=True
-                )
-
-            # 3.5 LLM Call (Using Strategy-bound Client wrapper)
-            result, usage_dict = await bound_client.run_structured_task(
-                messages=messages,
-                response_model=dynamic_schema,
-                mock_identity=step.id,
-            )
-
-            final_dict = result.model_dump(mode="json")
-
-            # 3.4 Post-Hooks Execution
-            # V2 Isolation: Provide the isolated final_dict, and pass global context in the explicit
-            # HookState instead of polluting the result JSON directly via _sys_context_vars
-
-            safe_context = {
-                k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v
-                for k, v in state_data.items()
-            }
-
-            # Post hooks use the strict state, integrating global context securely
-            post_hook_state = hook_state.model_copy(update={
-                "global_context_vars": safe_context,
-                "inputs": final_dict
-            })
-
-            # Combine post-hooks from both the underlying Step and the specific StepRule
-            combined_post_hooks = list(dict.fromkeys(step_obj.post_hooks + step.post_hooks))
-
-            for post_hook in combined_post_hooks:
-                logger.debug(f"Executing Post-Hook: {post_hook}")
-                # Pass the LLM output dict inside the post hook state
-                ph_result = await hook_registry.execute(post_hook, post_hook_state, hook_deps)
-                if ph_result.success and ph_result.state_delta:
-                    final_dict = deep_merge_dicts(final_dict, ph_result.state_delta)
-                    post_hook_state = post_hook_state.model_copy(update={"inputs": final_dict})
-
-            # 3.5 Merge Python Hook State into Final Result
-            # Pre-hooks often return specific statistical metadata keys. By convention,
-            # we look for known injected objects in the state_data and append them dynamically
-            # to the Pydantic-validated output dictionary.
-            for key in ["profiler_metrics", "step_metadata", "_audit_signature"]:
-                if key in state_data:
-                    final_dict[key] = state_data[key]
-
-            # Inject Usage Metadata into the result for worker.py extraction
-            if usage_dict:
-                if "_step_metadata" not in final_dict:
-                    final_dict["_step_metadata"] = {}
-                final_dict["_step_metadata"]["token_usage"] = {
-                    "prompt_tokens": usage_dict.get("prompt_tokens", 0),
-                    "completion_tokens": usage_dict.get("completion_tokens", 0),
-                    "total_tokens": usage_dict.get("total_tokens", 0),
-                    "cached_tokens": usage_dict.get("cached_tokens", 0),
-                    "reasoning_tokens": usage_dict.get("reasoning_tokens", 0),
-                    "cost_usd": usage_dict.get("cost_usd", 0.0)
-                }
-
-            return final_dict
-
-        else:
-            msg = f"Step {step.id} has no valid execution target (no hook or matrix_ids)."
-            logger.error(f"[DAGExecutor] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED}
-            )

@@ -47,7 +47,7 @@ class TraceEvent(BaseModel):
         ..., description="Name of the step that generated this event.", json_schema_extra={"x-ui-label": "Step Name"}
     )
 
-    event_type: Literal["input", "reasoning", "decision", "error", "output"] = Field(
+    event_type: Literal["input", "reasoning", "decision", "error", "output", "tombstone"] = Field(
         ..., description="Type of the event.", json_schema_extra={"x-ui-label": "Event Type"}
     )
 
@@ -74,12 +74,23 @@ class ErrorTraceEvent(TraceEvent):
     error_message: str = Field(description="Detailed error message.")
 
 
+class TombstoneEvent(TraceEvent):
+    """Specific event representing GDPR-redacted or deleted data."""
+    event_type: Literal["tombstone"] = "tombstone"
+    redacted_hash: str = Field(
+        description="Cryptographic hash or identifier of the original redacted data."
+    )
+
+
 
 class WorkflowState(BaseModel):
     """Aggregate root containing the execution trace and current state."""
 
     execution_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
     workflow_id: str = Field(..., description="The ID of the workflow definition.")
+    trace_version: int = Field(
+        default=0, description="Optimistic Concurrency Control version."
+    )
 
     status: Literal["pending", "running", "completed", "failed"] = Field(
         default="pending",
@@ -125,7 +136,10 @@ class WorkflowState(BaseModel):
     def add_event(self, event: TraceEvent) -> WorkflowState:
         """Returns a new WorkflowState with the added event (Functional style)."""
         new_trace = self.execution_trace + [event]
-        return self.model_copy(update={"execution_trace": new_trace})
+        return self.model_copy(update={
+            "execution_trace": new_trace,
+            "trace_version": self.trace_version + 1
+        })
 
     def get_context(self, key: str, model_class: type[BaseModel] | None = None) -> Any | None:
         """Best Practice: Typed Accessor for Context Variables.
@@ -258,6 +272,78 @@ class WorkflowState(BaseModel):
     @property
     def step_judge_cognitive(self) -> Any | None:
         from backend_v2.models.domain.judge import JudgeOutput
-
         return self.get_context("step_judge_cognitive", JudgeOutput)
+
+
+class StateProjector:
+    """In-Memory cache and reducer for Event Sourcing read models.
+
+    Maintains a folded O(1) read model of the execution trace.
+    """
+
+    def __init__(self, trace: list[TraceEvent] | None = None) -> None:
+        self._snapshot: dict[str, Any] = {}
+        self._schema_version: int = 0
+        self._trace_length: int = 0
+        if trace:
+            self.fold_trace(trace)
+
+    @property
+    def snapshot(self) -> dict[str, Any]:
+        """Returns the current flattened read model."""
+        return self._snapshot
+
+    @property
+    def schema_version(self) -> int:
+        """Returns the highest applied schema version from events."""
+        return self._schema_version
+
+    def fold_trace(self, trace: list[TraceEvent], max_tokens: int | None = None) -> dict[str, Any]:
+        """Folds the entire trace into a flat read model dictionary.
+        
+        If max_tokens is provided, reads the trace backwards (newest first),
+        accumulating events until the estimated token limit is reached,
+        dropping older events to prevent LLM Token Explosion.
+        """
+        self._snapshot = {}
+        self._schema_version = 0
+        self._trace_length = 0
+
+        # Sort newest first to prioritize recent state
+        sorted_trace = sorted(trace, key=lambda e: e.timestamp, reverse=True)
+
+        current_tokens = 0
+        accepted_events = []
+
+        for event in sorted_trace:
+            if max_tokens is not None:
+                import json
+                event_str = json.dumps(event.content) if isinstance(event.content, dict) else str(event.content)
+                est_tokens = len(event_str) // 4
+                if current_tokens + est_tokens > max_tokens:
+                    # Token limit reached, drop older events from LLM context
+                    break
+                current_tokens += est_tokens
+
+            accepted_events.append(event)
+
+        # Apply accepted events in chronological order to build the snapshot
+        for event in reversed(accepted_events):
+            self.apply_delta(event)
+
+        return self._snapshot
+
+    def apply_delta(self, event: TraceEvent) -> None:
+        """Applies a single event to the snapshot in O(1) time."""
+        if event.v > self._schema_version:
+            self._schema_version = event.v
+
+        self._trace_length += 1
+
+        if event.event_type == "output":
+            self._snapshot[event.step_name] = event.content
+        elif event.event_type == "tombstone":
+            # For GDPR redactions, replace content with a tombstone marker
+            redacted_hash = getattr(event, "redacted_hash", "unknown")
+            self._snapshot[event.step_name] = {"_redacted": True, "hash": redacted_hash}
 
