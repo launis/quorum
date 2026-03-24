@@ -50,9 +50,23 @@ class SseClient {
         if (dataStr.isNotEmpty) {
           try {
             // Mandate 5.3: Concurrency & Performance via Isolate.run
-            final Map<String, dynamic> payload = await Isolate.run(
-              () => jsonDecode(dataStr),
-            );
+            // V3: Refactor to Delta Signal exclusively. Only process lightweight changes.
+            final Map<String, dynamic> payload = await Isolate.run(() {
+              final raw = jsonDecode(dataStr) as Map<String, dynamic>;
+              return {
+                'id': raw['id'],
+                'workflow_id': raw['workflow_id'],
+                'status': raw['status'],
+                'trace_version': raw['trace_version'],
+                'logs': raw['logs'], // keep short logs if any
+                'step_states':
+                    raw['step_states'], // Lightweight Timeline status
+                'frozen_context':
+                    (raw['frozen_context'] is Map && (raw['frozen_context'] as Map).containsKey('version_id'))
+                        ? {'version_id': raw['frozen_context']['version_id']}
+                        : null, // Only version_id for Drift Warning, strip heavy context
+              };
+            });
             yield payload;
           } catch (e) {
             // Log but graceful degradation: ignore malformed chunk

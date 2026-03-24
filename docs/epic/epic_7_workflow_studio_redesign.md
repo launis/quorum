@@ -22,14 +22,15 @@ Työnkulkujen hallinnan "Etusivu".
 - **Teknologia:** Riverpod `keepAlive()` mahdollistaa nollaviiveen selailussa. Tallennukset operoivat `Mutation<void>` optimistisina päivityksinä.
 
 ### Milestone 2: App Shell & Meta/Syötteet (Tabs A & B)
-- **Tab A: Yleiset (General):** Nimi, Slug ja metadata. Käyttää `I18nTextField` -komponenttia Pydantic I18nText mallin luontiin.
-- **Tab B: Odotetut Syötteet (Expected Inputs):** Tässä määritellään globaalit syöteroolit (esim. `doc_pdf`). Relational Integrity -säännön mukaisesti uudet syöteroolit rekisteröidään keskitettyyn sanastoon, josta niitä valitaan putosiin. Tämä suojaa backendin $inputs -reititystä.
+- **Tab A: Yleiset & Näkyvyys (General & Visibility):** Nimi, Slug ja metadata. Pakollisena lisäyksenä **Tila (Status)** -pudotusvalikko (`draft`, `active`, `archived`) ja **Julkisuus (is_public)** -vipukytkin. Kuten aiemmin todettiin, uusi työnkulku ei päädy "Uusi analyysi" -näkymään ilman näitä elintärkeitä V3-tilamerkintöjä. Käyttää `I18nTextField` -komponenttia Pydantic I18nText mallin luontiin.
+- **Tab B: Syötteet & UI-Skeema (Expected Inputs & UI Schema):** Tässä määritellään globaalit syöteroolit (esim. `doc_pdf`). Relational Integrity -säännön mukaisesti uudet syöteroolit rekisteröidään keskitettyyn sanastoon, josta niitä valitaan pudotusvalikoista. Tämän lisäksi Studion on tuotettava **`ui_schema`** -rakenne (fields & widgets), joka kertoo "Uusi analyysi" -sivulle tismalleen minkälaisen dynaamisen syötelomakkeen (esim. Input Text, File Picker) se piirtää loppukäyttäjälle.
 
 ### Milestone 3: Työnkulun Rakentaja & Node Inspector (Tab C)
 Graafinen verkkoeditori (DAG Builder) askeleille ja riippuvuuksille (`depends_on`). Kun askel (Node) klikataan, aukeaa Property Drawer -paneeli, johon V3-innovaatiot purkautuvat:
 - **Strategiat:** `model_strategy` pudotusvalikko (Controlled Vocabulary Pydantic-skemoista).
 - **Turvallisuustaso (Safety Slider):** Pakollinen valinta (`safe`, `moderate`, `unsafe`), määrittää Agentin autonomian rajoitteen Fail-Fast -putkessa.
-- **MCP Työkalut (Ulkoiset Integraatiot):** Vanhat `pre_hooks` / `search.py` -kovakoodaukset ovat poissa. Studion UI kysyy Backendin uudesta Tool Keystoresta sallitut The Model Context Protocol (MCP) -työkalut (kuten `google-search`, `fetch-url`). Käyttäjä raksii `allowed_mcp_tools` taulukkoon ne työkalut, joita askeleella on valtuus käyttää (Principle of Least Privilege).
+- **Koukut (Hooks):** Jokaisen askeleen (Step) ominaisuuksiin lisätään monivalintakentät **`pre_hooks`** ja **`post_hooks`** -taulukoille (esim. `inject_step_metadata`, `normalize_matrix_scores`, `translation_hook`). Nämä ovat elinehto arkkitehtuurin läpäisylle ja tiedon tarttumiselle V3-Event Sourcing -malliin.
+- **MCP Työkalut (Ulkoiset Integraatiot):** Vanhat `search.py` -kovakoodaukset ovat poissa. Studion UI kysyy Backendin uudesta Tool Keystoresta sallitut The Model Context Protocol (MCP) -työkalut. Käyttäjä raksii `allowed_mcp_tools` taulukkoon ne työkalut, joita askeleella on valtuus käyttää (Principle of Least Privilege).
 - **Datan reititys (Semantic Data Flow):** Älykäs Pydantic mapping UI. Dropdown-valikoita, jotka pakottavat askeleiden syötteet joko olemassa olevaan `$inputs` tai edellisen `$steps.x` datarajapintaan.
 
 ### Milestone 4: Flat MVC Layout Roolituksen Luonti (Tab D)

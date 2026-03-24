@@ -90,7 +90,9 @@ class PdfReportService:
 
             # 2. Extract context and results
             frozen_context = execution.frozen_context.model_dump() if execution.frozen_context else {}
-            results = execution.results or {}
+            from backend_v2.models.state import StateProjector
+            projector = StateProjector()
+            results = projector.fold_trace(execution.execution_trace)
 
             # 2.5 Generate static charts if DTO is provided
             charts = {}

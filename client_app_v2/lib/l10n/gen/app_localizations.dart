@@ -4207,6 +4207,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI Confidence: {value}%'**
   String reportConfidenceTitle(String value);
+
+  /// Actionable hint label for resuming a failed execution
+  ///
+  /// In en, this message translates to:
+  /// **'Resume Execution (Try Again)'**
+  String get resumeActionableHint;
+
+  /// Error message when execution resume fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to resume execution.'**
+  String get failedToResume;
+
+  /// Error message when an external tool or MCP call fails
+  ///
+  /// In en, this message translates to:
+  /// **'Tool execution failed'**
+  String get toolExecutionFailed;
+
+  /// Actionable hint given when a tool fails
+  ///
+  /// In en, this message translates to:
+  /// **'Check the tool connection, verify the prompt context, or try again later.'**
+  String get actionHintToolFailed;
 }
 
 class _AppLocalizationsDelegate

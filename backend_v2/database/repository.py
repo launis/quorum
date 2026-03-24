@@ -440,7 +440,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         driver = get_storage_driver()
         logger = logging.getLogger(__name__)
 
-        for field in ["execution_trace", "results", "frozen_context", "context_variables"]:
+        for field in ["execution_trace", "frozen_context", "context_variables"]:
             if field in data and data[field]:
                 try:
                     payload = json.dumps(data[field], default=str)
@@ -463,7 +463,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         driver = get_storage_driver()
         logger = logging.getLogger(__name__)
 
-        for field in ["execution_trace", "results", "frozen_context", "context_variables"]:
+        for field in ["execution_trace", "frozen_context", "context_variables"]:
             path_key = f"{field}_storage_path"
             if path_key in data and data[path_key]:
                 try:

@@ -97,10 +97,22 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
     for expected_input in expected_inputs:
         key = expected_input.input_key
-        # Fallback to state.inputs if global_context_vars wasn't populated by orchestrator
-        raw_val = state.inputs.get(key)
+        # Case-insensitive fetch to support Flutter client sending snake_case while DB expects UPPER_SNAKE
+        key_lower = key.lower()
+        
+        # 1. Check state.inputs
+        raw_val = None
+        for k, v in state.inputs.items():
+            if k.lower() == key_lower:
+                raw_val = v
+                break
+                
+        # 2. Check state.global_context_vars
         if raw_val is None:
-            raw_val = state.global_context_vars.get(key)
+            for k, v in state.global_context_vars.items():
+                if k.lower() == key_lower:
+                    raw_val = v
+                    break
 
         # 1. Handle Questionnaire mode specifically if it exists
         if isinstance(raw_val, dict) and any(str(k).startswith("q") for k in raw_val.keys()):
@@ -121,6 +133,18 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         else:
             # 2. Standard resolution (File, Paste)
             resolved_text = await resolve_input(raw_val)
+
+        # V2 STRICT FAIL-FAST: Validate required inputs immediately
+        if expected_input.required and not resolved_text.strip():
+            logger.error(f"[InputProcessingHook] VALIDATION_FAILED: Missing required input for {key}.")
+            raise AppException(
+                message=(
+                    f"Workflow Input Validation Error: The block '{key}' is required "
+                    "but no content was provided or file extraction yielded empty text."
+                ),
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": "MISSING_REQUIRED_INPUT", "input_key": key}
+            )
 
         # 3. V2 ChatParser LLM Hook (if designated as chat history)
         if expected_input.is_chat_history and resolved_text and not resolved_text.strip().startswith("{"):

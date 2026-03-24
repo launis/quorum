@@ -115,47 +115,14 @@ async def execute_workflow_job(
 
             # Final Status Update (Completed)
             if execution_id:
-                # Extract cost estimate
-                cost_estimate = 0.0
-                prompt_tokens_total = 0
-                completion_tokens_total = 0
-                total_tokens_total = 0
-                cached_tokens_total = 0
-                reasoning_tokens_total = 0
                 models_used: dict[str, int] = {}
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
-
-                result_dict = result.model_dump(mode="json")
-
-                # Try to extract metrics from actual results dict
-                results = result_dict.get("results", {})
-                if isinstance(results, dict):
-                    for _step_id, step_payload in results.items():
-                        if isinstance(step_payload, dict):
-                            meta = step_payload.get("_step_metadata", {})
-                            if isinstance(meta, dict):
-                                # Extract tokens dynamically injected by Engine
-                                tu = meta.get("token_usage", {})
-                                if isinstance(tu, dict):
-                                    prompt_tokens_total += tu.get("prompt_tokens", 0)
-                                    completion_tokens_total += tu.get("completion_tokens", 0)
-                                    total_tokens_total += tu.get("total_tokens", 0)
-                                    cached_tokens_total += tu.get("cached_tokens", 0)
-                                    reasoning_tokens_total += tu.get("reasoning_tokens", 0)
-                                    cost_estimate += tu.get("cost_usd", 0.0)
 
                 await repository.update_execution(
                     execution_id,
                     {
                         "status": "completed",
-                        "results": result_dict.get("results", {}),
                         "completed_at": datetime.now(UTC).isoformat(),
-                        "cost_estimate": cost_estimate,
-                        "prompt_tokens": prompt_tokens_total,
-                        "completion_tokens": completion_tokens_total,
-                        "total_tokens": total_tokens_total,
-                        "cached_tokens": cached_tokens_total,
-                        "reasoning_tokens": reasoning_tokens_total,
                         "duration_ms": duration_ms,
                         "models_used": models_used
                     }
@@ -170,20 +137,12 @@ async def execute_workflow_job(
                 else:
                     logger.warning(f"[Job] Redis context missing. Could not enqueue PDF generation for {execution_id}")
 
-            # --- TEMPORARY DEBUG DUMP (User Request) ---
-            try:
-                debug_path = (
-                    f"C:\\Users\\risto\\Downloads\\debug_output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                )
-                with open(debug_path, "w", encoding="utf-8") as f:
-                    import json
-                    json.dump(result_dict, f, indent=2)
-                logger.info(f"[Job] Temporary Debug Dump saved to: {debug_path}")
-            except Exception as dump_err:
-                logger.error(f"[Job] Failed to save debug dump: {dump_err}")
-            # -------------------------------------------
-
-            return result_dict
+            return {
+                "status": "COMPLETED",
+                "execution_id": execution_id,
+                "workflow_id": workflow_id,
+                 "duration_ms": duration_ms if execution_id else 0
+            }
 
         except Exception as e:
             from backend_v2.exceptions import AppException

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/shared/widgets/execution_timeline.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/state/mutation.dart';
+import 'package:client_app/shared/widgets/global_error_view.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
+import 'package:client_app/features/execution/models/report_data_dto.dart';
 
 import 'package:client_app/router/router.dart';
 import 'dart:convert';
@@ -14,7 +19,7 @@ import 'dart:convert';
 /// V2 Architecture: Uses `StreamNotifier` for real-time SSE updates.
 /// Iterates over `frozen_context['ui_hints_snapshot']` blindly to render
 /// the raw backend state.
-class ExecutionView extends ConsumerStatefulWidget {
+class ExecutionView extends StatefulHookConsumerWidget {
   final String executionId;
 
   const ExecutionView({super.key, required this.executionId});
@@ -37,6 +42,19 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
 
   @override
   Widget build(BuildContext context) {
+    // Setup pessimistic Rehydration mutation
+    final resumeMutation = useMutation<void>(
+      onError: (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.failedToResume),
+            ),
+          );
+        }
+      },
+    );
+
     // Watch the live stream
     final executionState = ref.watch(executionControllerProvider);
 
@@ -86,23 +104,49 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
                         children: [
-                          if (status == 'running' || status == 'pending')
-                            const CircularProgressIndicator()
+                          if (status == 'running' ||
+                              status == 'pending' ||
+                              resumeMutation.isLoading)
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: status == 'failed' ? Colors.white : null,
+                              ),
+                            )
                           else if (status == 'completed')
                             const Icon(Icons.check_circle, color: Colors.green)
                           else if (status == 'failed')
                             const Icon(Icons.error, color: Colors.white),
                           const SizedBox(width: 16),
-                          Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.statusLabel(status.toUpperCase()),
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleMedium?.copyWith(
-                              color: status == 'failed' ? Colors.white : null,
+                          Expanded(
+                            child: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.statusLabel(status.toUpperCase()),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium?.copyWith(
+                                color: status == 'failed' ? Colors.white : null,
+                              ),
                             ),
                           ),
+                          if (status == 'failed')
+                            MutationButton<void>(
+                              mutation: resumeMutation,
+                              label:
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.resumeActionableHint,
+                              icon: Icons.refresh,
+                              action:
+                                  () => ref
+                                      .read(
+                                        executionControllerProvider.notifier,
+                                      )
+                                      .submitRehydration(widget.executionId),
+                            ),
                         ],
                       ),
                     ),
@@ -149,6 +193,32 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   ),
                 ),
 
+              // V3 Global Error View for Actionable Hints
+              if (status == 'failed' &&
+                  record.containsKey('error') &&
+                  record['error'] != null)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    child: GlobalErrorView(
+                      error: AppException(
+                        title: 'Execution Failed',
+                        detail: record['error'].toString(),
+                        extensions: {'error_code': record['error'].toString()},
+                      ),
+                      actionLabel:
+                          AppLocalizations.of(context)!.resumeActionableHint,
+                      onAction:
+                          () => ref
+                              .read(executionControllerProvider.notifier)
+                              .submitRehydration(widget.executionId),
+                    ),
+                  ),
+                ),
+
               // Real-Time Execution Timeline
               if (stepStatesList.isNotEmpty)
                 SliverToBoxAdapter(
@@ -165,11 +235,16 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   ),
                 ),
 
-              // SDUI Grid rendering has been strictly isolated to ExecutionReportView
-              // to prevent pure DB records from being mutated with rendering math.
-
-              // ALWAYS show Raw Data JSON on completion
-              if (status == 'completed' && results.isNotEmpty)
+              // V3 Flat MVC Report Rendering
+              if (record.containsKey('report_data') &&
+                  record['report_data'] != null)
+                SliverToBoxAdapter(
+                  child: ReportRendererWidget(
+                    payload: record['report_data'] as ReportDataDTO,
+                  ),
+                )
+              else if (status == 'completed' && results.isNotEmpty)
+                // ALWAYS show Raw Data JSON on completion if Heavy Fetch failed
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -215,7 +290,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
             (error, stackTrace) => ErrorView(
               error: error,
               stackTrace: stackTrace,
-              onRetry: () => ref.invalidate(executionControllerProvider),
+              onRetry: () => ref.read(executionControllerProvider.notifier).resumeExecution(widget.executionId),
             ),
       ),
     );

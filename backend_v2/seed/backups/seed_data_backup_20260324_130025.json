@@ -5195,19 +5195,31 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "fast",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_02dd32906f4145bea6f6bf0a807d60111",
                     "task_blueprint": "step_02dd32906f4145bea6f6bf0a807d6011",
-                    "depends_on": [],
+                    "depends_on": [
+                        "steprule_f15853d2584e4096aeb60f11a3e6ea7c1"
+                    ],
                     "input_mappings": {
                         "inputs": "$inputs"
                     },
                     "model_strategy": "fast",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_factcheck1234ab",
@@ -5220,7 +5232,9 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "fast",
-                    "pre_hooks": [],
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
                     "post_hooks": []
                 },
                 {
@@ -5233,8 +5247,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "fast",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_95dc2243345d401b8df6def0a068e5af1",
@@ -5246,8 +5265,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "precise",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_8f3af4a2e3e14dd8bc34fca49bb0b1cb1",
@@ -5259,8 +5283,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "strict",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_12fbdac607d74edbbffaec3eea62fdc31",
@@ -5272,8 +5301,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "strict",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_fa42b362e50e4a30b8acb6dae391efa81",
@@ -5285,8 +5319,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "deep",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_937b0c4a2819466c97277659edd2ee201",
@@ -5298,8 +5337,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "precise",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_038947d22fbf4677b4cb90149e358a3e1",
@@ -5311,8 +5355,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "strict",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_29914cfb27a9433ca2b0e78a1d88e1011",
@@ -5324,8 +5373,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "fast",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_64a49f52b7394d9e99b92bb0397a60491",
@@ -5337,8 +5391,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "precise",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_e9dd765ba98841ddb0059b49df3527d51",
@@ -5350,8 +5409,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "precise",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_8071dfe6c2a84663b4429bc44a83381e1",
@@ -5372,8 +5436,13 @@
                         "inputs": "$inputs"
                     },
                     "model_strategy": "precise",
-                    "pre_hooks": [],
-                    "post_hooks": []
+                    "pre_hooks": [
+                        "inject_step_metadata"
+                    ],
+                    "post_hooks": [
+                        "normalize_matrix_scores",
+                        "translation_hook"
+                    ]
                 },
                 {
                     "id": "steprule_scoreengine1",
@@ -5732,10 +5801,11 @@
                 "blk_cf081a3325f44dc49bbe06d600f268fc"
             ],
             "pre_hooks": [
-                "input_processing",
                 "inject_step_metadata"
             ],
-            "post_hooks": []
+            "post_hooks": [],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_a6112fc48780491b9247683216b1c26d",
@@ -5780,7 +5850,9 @@
                 "verify_citation_integrity",
                 "enforce_hypothesis_linking",
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_29914cfb27a9433ca2b0e78a1d88e101",
@@ -5817,7 +5889,9 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_fa42b362e50e4a30b8acb6dae391efa8",
@@ -5857,7 +5931,9 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_e9dd765ba98841ddb0059b49df3527d5",
@@ -5908,7 +5984,9 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_937b0c4a2819466c97277659edd2ee20",
@@ -5945,7 +6023,9 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_12fbdac607d74edbbffaec3eea62fdc3",
@@ -5985,7 +6065,9 @@
             "post_hooks": [
                 "verify_citation_integrity",
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_02dd32906f4145bea6f6bf0a807d6011",
@@ -6027,7 +6109,9 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_64a49f52b7394d9e99b92bb0397a6049",
@@ -6069,7 +6153,9 @@
                 "verify_citation_integrity",
                 "enforce_passivity_penalty",
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_8f3af4a2e3e14dd8bc34fca49bb0b1cb",
@@ -6109,7 +6195,9 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_038947d22fbf4677b4cb90149e358a3e",
@@ -6161,7 +6249,9 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_95dc2243345d401b8df6def0a068e5af",
@@ -6203,7 +6293,9 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_8071dfe6c2a84663b4429bc44a83381e",
@@ -6239,7 +6331,9 @@
             ],
             "post_hooks": [
                 "normalize_matrix_scores"
-            ]
+            ],
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         },
         {
             "id": "step_factchecker1234abcd",
@@ -6267,7 +6361,8 @@
             "post_hooks": [],
             "allowed_mcp_tools": [
                 "google_search"
-            ]
+            ],
+            "safety": "safe"
         },
         {
             "id": "step_scoreengine1",
@@ -6287,7 +6382,9 @@
                     "en": "Aggregates final holistic scores",
                     "fi": "Laskee loppupisteet"
                 }
-            }
+            },
+            "allowed_mcp_tools": [],
+            "safety": "safe"
         }
     ],
     "organizations": [

@@ -468,56 +468,69 @@ class _PromptBlockBuilderFormState
                                     const Text('Allow Decimals'),
                                   ],
                                 ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: {
-                                  "justification": "Justification",
-                                  "coaching": "Coaching Tip",
-                                  "falsification": "Devil's Advocate",
-                                  "missing_context": "Missing Context",
-                                  "risk_flag": "Risk Flag",
-                                  "remediation_steps": "Remediation",
-                                  "emotional_sentiment": "Sentiment",
-                                  "theory_link": "Theory Link",
-                                  "confidence": "AI Confidence",
-                                  "citation": "Source Citation",
-                                }.entries.map((entry) {
-                                  final extList = SafeCast.safeList(_editablePromptBlock['output_extensions'])
-                                      .map((e) => e.toString())
-                                      .toList();
-                                  final isSelected = extList.contains(entry.key);
-                                  return FilterChip(
-                                    label: Text(entry.value),
-                                    selected: isSelected,
-                                    onSelected: (bool selected) {
-                                      setState(() {
-                                        if (selected) {
-                                          extList.add(entry.key);
-                                        } else {
-                                          extList.remove(entry.key);
-                                        }
-                                        _editablePromptBlock['output_extensions'] = extList;
-                                        // Cleanup deprecated field just in case
-                                        _editablePromptBlock.remove('require_justification');
-                                      });
-                                    },
-                                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                                    checkmarkColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children:
+                                  {
+                                    "justification": "Justification",
+                                    "coaching": "Coaching Tip",
+                                    "falsification": "Devil's Advocate",
+                                    "missing_context": "Missing Context",
+                                    "risk_flag": "Risk Flag",
+                                    "remediation_steps": "Remediation",
+                                    "emotional_sentiment": "Sentiment",
+                                    "theory_link": "Theory Link",
+                                    "confidence": "AI Confidence",
+                                    "citation": "Source Citation",
+                                  }.entries.map((entry) {
+                                    final extList =
+                                        SafeCast.safeList(
+                                          _editablePromptBlock['output_extensions'],
+                                        ).map((e) => e.toString()).toList();
+                                    final isSelected = extList.contains(
+                                      entry.key,
+                                    );
+                                    return FilterChip(
+                                      label: Text(entry.value),
+                                      selected: isSelected,
+                                      onSelected: (bool selected) {
+                                        setState(() {
+                                          if (selected) {
+                                            extList.add(entry.key);
+                                          } else {
+                                            extList.remove(entry.key);
+                                          }
+                                          _editablePromptBlock['output_extensions'] =
+                                              extList;
+                                          // Cleanup deprecated field just in case
+                                          _editablePromptBlock.remove(
+                                            'require_justification',
+                                          );
+                                        });
+                                      },
+                                      selectedColor:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.primaryContainer,
+                                      checkmarkColor:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimaryContainer,
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
                         ),
+                      ),
 
                       const SizedBox(height: 16),
                       // Theory Grounding Wrapper

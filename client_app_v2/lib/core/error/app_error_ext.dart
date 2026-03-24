@@ -18,8 +18,10 @@ extension AppExceptionX on AppException {
     final locCode = _localizeErrorCode(this.errorCode, l10n);
     if (locCode != l10n.errorUnknown) {
       // For validation errors, the backend provides highly specific 'detail' strings (e.g. which fields failed)
-      if (this.errorCode == 'VALIDATION_FAILED' && this.detail.isNotEmpty && this.detail != 'Unknown error') {
-         return '$locCode\n\nBackend Diagnostics:\n${this.detail}';
+      if (this.errorCode == 'VALIDATION_FAILED' &&
+          this.detail.isNotEmpty &&
+          this.detail != 'Unknown error') {
+        return '$locCode\n\nBackend Diagnostics:\n${this.detail}';
       }
       return locCode;
     }
@@ -100,6 +102,8 @@ extension AppExceptionX on AppException {
         '${l10n.errServiceUnavailable}\n\n${l10n.actionHintTryAgainLater}',
       'AGENT_EXECUTION_CRITICAL' =>
         '${l10n.errAgentExecutionCritical}\n\n${l10n.actionHintContactSupport}',
+      'TOOL_EXECUTION_FAILED' =>
+        '${l10n.toolExecutionFailed}\n\n${l10n.actionHintToolFailed}',
       'URL_INVALID' => '${l10n.errorValidation}\n\n${l10n.actionHintCheckUrl}',
       'FETCH_FAILED' =>
         '${l10n.errorNetwork}\n\n${l10n.actionHintCheckConnection}',

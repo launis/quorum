@@ -35,6 +35,15 @@ class ExecutionClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Manually triggers a backend Rehydration for an interrupted/FAILED execution.
+  /// Used alongside Riverpod Mutations for Optimistic UI updates.
+  Future<Map<String, dynamic>> resumeExecution(String executionId) async {
+    final response = await _dio.post(
+      '/execution/executions/$executionId/resume',
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
   /// Retrieves the current status and results of an execution.
   Future<Map<String, dynamic>> getExecutionStatus(String executionId) async {
     final response = await _dio.get('/execution/executions/$executionId');

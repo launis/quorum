@@ -30,7 +30,10 @@ class BlueprintTransformer:
             logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-        results = execution.results or {}
+        from backend_v2.models.state import StateProjector
+        projector = StateProjector()
+        results = projector.fold_trace(execution.execution_trace)
+        
         locale = accept_language or execution.metadata.get("target_locale", "en")
 
         import typing
@@ -344,11 +347,41 @@ class BlueprintTransformer:
                 )
 
         try:
-            cost = getattr(execution, "cost_estimate", 0.0)
-            p_tokens = getattr(execution, "prompt_tokens", 0)
-            c_tokens = getattr(execution, "completion_tokens", 0)
-            r_tokens = getattr(execution, "reasoning_tokens", 0)
-            t_tokens = getattr(execution, "total_tokens", 0)
+            # Event Sensed V3 Token Aggregation
+            p_tokens = 0
+            c_tokens = 0
+            r_tokens = 0
+            t_tokens = 0
+            cost = 0.0
+
+            if execution.execution_trace:
+                for step_key, step_data in results.items():
+                    if isinstance(step_data, dict) and "_step_metadata" in step_data:
+                        usage = step_data["_step_metadata"].get("token_usage", {})
+                        if isinstance(usage, dict):
+                            p_tokens += usage.get("prompt_tokens", 0)
+                            c_tokens += usage.get("completion_tokens", 0)
+                            r_tokens += usage.get("reasoning_tokens", 0)
+                            t_tokens += usage.get("total_tokens", 0)
+                            cost += float(usage.get("cost_usd", 0.0))
+
+            # Backward compatibility / fallback for tests
+            if t_tokens == 0:
+                cost = getattr(execution, "cost_estimate", 0.0)
+                p_tokens = getattr(execution, "prompt_tokens", 0)
+                c_tokens = getattr(execution, "completion_tokens", 0)
+                r_tokens = getattr(execution, "reasoning_tokens", 0)
+                t_tokens = getattr(execution, "total_tokens", 0)
+
+            # --- V3 SANITY CHECK / HEALTH ALERTS ---
+            if t_tokens == 0 and execution.execution_trace:
+                logger.warning(f"[BlueprintTransformer] ALARM: Reporting 0 tokens for execution {execution.id}. Telemetry or V3 metadata sync might be broken.")
+            
+            if not synthesis:
+                logger.warning(f"[BlueprintTransformer] ALARM: Empty Synthesis (Overall string) for execution {execution.id}. Core summarization may have failed.")
+            
+            if not layouts_list:
+                logger.warning(f"[BlueprintTransformer] ALARM: 0 Layouts generated for execution {execution.id}. UI will render empty.")
 
             dto = ReportDataDTO(
                 workflow_id=execution.workflow_id,

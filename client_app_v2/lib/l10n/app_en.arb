@@ -1070,5 +1070,21 @@
         "type": "String"
       }
     }
+  },
+  "resumeActionableHint": "Resume Execution (Try Again)",
+  "@resumeActionableHint": {
+    "description": "Actionable hint label for resuming a failed execution"
+  },
+  "failedToResume": "Failed to resume execution.",
+  "@failedToResume": {
+    "description": "Error message when execution resume fails."
+  },
+  "toolExecutionFailed": "Tool execution failed",
+  "@toolExecutionFailed": {
+    "description": "Error message when an external tool or MCP call fails"
+  },
+  "actionHintToolFailed": "Check the tool connection, verify the prompt context, or try again later.",
+  "@actionHintToolFailed": {
+    "description": "Actionable hint given when a tool fails"
   }
 }

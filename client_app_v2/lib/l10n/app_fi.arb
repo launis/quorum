@@ -751,5 +751,9 @@
   "reportRemediationStepsTitle": "🛠️ Korjaavat Toimenpiteet",
   "reportEmotionalSentimentTitle": "🎭 Emotionaalinen Sävy",
   "reportTheoryLinkTitle": "📚 Teoreettinen Yhteys",
-  "reportConfidenceTitle": "Tekoälyn varmuus: {value}%"
+  "reportConfidenceTitle": "Tekoälyn varmuus: {value}%",
+  "resumeActionableHint": "Jatka ajoa (Yritä uudelleen)",
+  "failedToResume": "Ajon jatkaminen epäonnistui.",
+  "toolExecutionFailed": "Työkalun suoritus epäonnistui",
+  "actionHintToolFailed": "Tarkista työkaluasetukset, varmista syötteen laatu tai yritä myöhemmin uudelleen."
 }

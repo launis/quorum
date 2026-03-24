@@ -46,6 +46,21 @@ async def get_execution_status(
     return await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
 
 
+@router.post("/{execution_id}/resume", response_model=ExecutionRecord, status_code=status.HTTP_202_ACCEPTED)
+async def resume_execution(
+    execution_id: str,
+    arq_pool: ArqPoolDep,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> ExecutionRecord:
+    """Resume a failed execution securely via SSOT."""
+    return await execution_service.resume_execution(
+        initiator=current_user,
+        execution_id=execution_id,
+        arq_pool=arq_pool
+    )
+
+
 @router.get("/{execution_id}/stream")
 async def stream_execution_status(
     execution_id: str,

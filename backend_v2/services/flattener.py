@@ -34,12 +34,16 @@ class FlatFileService:
             "status": execution.status.value,
         }
 
-        if not execution.results:
-            return flat_record
+        from backend_v2.models.state import StateProjector
+        projector = StateProjector()
+        results = projector.fold_trace(execution.execution_trace)
 
+        if not results:
+            return flat_record
+            
         # Currently in V2, DAG Executor dumps step outputs under the 'results' dictionary
         # with keys usually corresponding to step_ids (e.g., 'results': {'step_judge': {...}}).
-        for step_id, step_output in execution.results.items():
+        for step_id, step_output in results.items():
             if isinstance(step_output, dict):
                 # We prefix all keys inside this step output with the step_id
                 for key, value in step_output.items():

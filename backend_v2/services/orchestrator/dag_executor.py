@@ -357,7 +357,7 @@ class DAGExecutor:
         if not exec_record.execution_trace:
             inputs_dict = exec_record.raw_inputs.model_dump(mode="json")
             input_event = TraceEvent(
-                step_name="system_inputs",
+                step_name="raw_inputs",
                 event_type="input",
                 content=inputs_dict
             )
@@ -375,7 +375,7 @@ class DAGExecutor:
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
                 if processed_result.success and isinstance(processed_result.state_delta, dict):
                     proc_event = TraceEvent(
-                        step_name="system_inputs_processed",
+                        step_name="inputs",
                         event_type="input",
                         content=processed_result.state_delta
                     )

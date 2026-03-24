@@ -572,7 +572,6 @@ class Workflow(V2CoreBase):
     version: int = Field(default=1)
     is_public: bool = Field(default=False)
     organization_id: str | None = Field(default=None)
-    scoring_logic: list[Any] = Field(default_factory=list)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
     output_profiles: dict[str, OutputProfile] = Field(
         default_factory=dict, description="Dictionary of named output profiles for reporting."
@@ -635,6 +634,7 @@ class ExecutionStepState(V2CoreBase):
     id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Step ID")
     label: str = Field(description="Localized label for UI tracking")
     status: str = Field(default="pending", description="Status: pending, running, completed, failed")
+    last_error: str | None = Field(default=None, description="Error message if the step failed")
 
 class ExecutionRecord(V2CoreBase):
     """Record of a workflow execution, including the frozen context and results."""
@@ -651,8 +651,6 @@ class ExecutionRecord(V2CoreBase):
         default_factory=FrozenContext, description="Immutable snapshot of context")
     execution_trace: list[TraceEvent] = Field(
         default_factory=list, description="Immutable log of all events (Event Sourcing).")
-    results_storage_path: str | None = Field(
-        default=None, description="Path to offloaded massive results JSON in Cloud Storage.")
     pdf_report_path: str | None = Field(
         default=None, description="Path to the generated PDF Execution Report.")
     frozen_context_storage_path: str | None = Field(
@@ -661,24 +659,7 @@ class ExecutionRecord(V2CoreBase):
         default=None, description="Path to offloaded execution trace log in Cloud Storage.")
     step_states: dict[str, ExecutionStepState] = Field(
         default_factory=dict, description="Real-time status tracking for DAG nodes")
-    cost_estimate: float = Field(
-        default=0.0, description="Total estimated cost of the execution in USD"
-    )
-    prompt_tokens: int = Field(
-        default=0, description="Cumulative input tokens used"
-    )
-    completion_tokens: int = Field(
-        default=0, description="Cumulative output tokens generated"
-    )
-    total_tokens: int = Field(
-        default=0, description="Cumulative total tokens consumed"
-    )
-    cached_tokens: int = Field(
-        default=0, description="Cumulative tokens retrieved from cache (discounted)"
-    )
-    reasoning_tokens: int = Field(
-        default=0, description="Cumulative tokens generated through internal reasoning (CoT)"
-    )
+
     duration_ms: int = Field(
         default=0, description="Total execution duration in milliseconds"
     )

@@ -17,6 +17,7 @@ Tämä dokumentti määrittelee dynaamisen, palvelinohjatun (SDUI) ja sataprosen
 11. **The Anti-Mirror Protocol (Sokkotestaus & Ihmisdatan Eristys):** Järjestelmä ei koskaan salli tekoälyn arvioida toista tekoälyä silloin, kun pisteytetään loppukäyttäjää. Kognitiivisen Groupthinkin estämiseksi kaikki asiantuntija-agentit suoritetaan täysin rinnakkain (Parallel Blind Audit). He lukevat `$inputs`-syötteenä puhtaaksi rajattua "Käyttäjän tekstiä", josta on riisuttu muiden AI-entiteettien tuotokset. Tämä takaa EU:n tekoälyasetuksen (XAI) vaatimukset ihmisen suorituksen selitettävyydestä.
 12. **Itsekorjautuva Tekoäly (Self-Healing LLM):** Jos kielimalli tuottaa vastauksessaan virheellisen tietorakenteen (esim. puuttuva JSON-avain JSON Schemassa), arkkitehtuuri ei kaadu varoittamatta. Se sieppaa virheen (`ValidationError`), palauttaa poikkeuksen suoraan takaisin tekoälylle, ja käskee mallia korjaamaan oman hallusinaationsa lennosta.
 13. **Ennakoiva DAG-Kääntäjä (Pre-Flight Validation):** Työnkuluille tehdään staattinen rakenneanalyysi (Kahnin algoritmi - silmukoiden ja puuttuvien viittausten tunnistus) "kuiva-ajona". Järjestelmä estää mahdottomien kognitiivisten solmujen käynnistämisen matemaattisesti etukäteen (Zero-Token waste), säästäen rahaa reitittimen API-tasolla.
+14. **Älykäs Kuormanhallinta (Concurrency Limiting):** Järjestelmä suojelee ulkoisia LLM-rajapintoja (kuten Google Vertex AI) dynaamisella asynkronisella nopeusrajoittimella. Laajatkin rinnakkaisverkot kykenevät hidastamaan omaa suoritustaan automaattisesti Model Registryn mallikohtaisten `rpm_limit` ja `tpm_limit` -määritteiden pohjalta, suojaten arkkitehtuuria `429 Resource Exhausted` -pullonkauloilta.
 
 ---
 
@@ -51,7 +52,7 @@ Tietokanta on suunniteltu Firestoren varaan tuotannossa ja lokaalin `db_v2.json`
 ### KERROS 2: ORKESTRAATIO (Äly ja Työnkulut)
 * **prompt_blocks (Matrix & Rules):** Sisältää kaikki kognitiiviset ohjeet (`type`: `instruction`, `matrix`, `hook`).
 * **steps (TaskBlueprints):** Sitovat abstraktin ohjeen (`prompt_block`) kognitiiviseen strategiaan (`model_strategy`) tehden nieluista uudelleenkäytettäviä palikoita verkolle. Oletuksena näissä asuu myös sisäinen **ydin-hookkien** lista (`Step.pre/post_hooks`), joka ajetaan poikkeuksetta (esim. `json_parser_hook`) estääkseen kaatumiset missä tahansa työnkulussa.
-* **workflows (DAG Router):** Määrittelevät dynaamiset syötteet (`expected_inputs`). Työnkulun tärkein osa on `steps`-taulukko (Käännettynä uutena `StepRule` Node-instansseina), joka luo riippuvuusverkon eri solmujen välille.
+* **workflows (DAG Router):** Määrittelevät laajan datamallin käyttöliittymän piirtämiseksi (`ui_schema` json-valikot) sekä dynaamiset syötteet (`expected_inputs`). Työnkulun loppukäyttäjänäkyvyys ohjataan suoraan absoluuttisilla tilalipuilla (`status: active`, `is_public: true`), jotka estävät keskeneräisten (draft) luonnosten laukeamisen tuotantoon. Työnkulun tärkein osa on `steps`-taulukko (Käännettynä uutena `StepRule` Node-instansseina), joka luo riippuvuusverkon eri solmujen välille.
   * **StepRule (The DAG Node):** Blueprintin ilmentymä tietyssä reitissä. Antaa mahdollisuuden hyödyntää samaa syyte-mallia samassa putkessa viidesti, jokaisella kerralla omilla **lokaaleilla, työnkulkukohtaisilla hookeillaan** (esim. `normalize_matrix_scores` tai `translation_hook_en`). Moottorin tehtävä on liimata ydin-hookit ja lokaalit hookit turvallisesti yhteen (Union-Combined Execution). Määrittelee myös lokaalin **datareitityksen** (`input_mappings`).
 
 ### KERROS 3: HISTORIA JA AUDITOINTI
@@ -83,8 +84,8 @@ DAG-reititys mahdollistaa ihmisen arvioinnista ulos rajatut tekoälyjen väliset
 
 ## **5. FastAPI Backend ja Suoritusmoottori**
 
-### **5.1. Pydantic SSOT (Strict-DTO Protocol & Memory Isolation)**
-Kaikki datasiirrot API-reitittimissä ja tietokannassa puskevat tiedon V2 Pydantic-validointimoottorin ja tiukan `extra="ignore"` säännön läpi estäen väärennökset välittömästi (Fail Fast).
+### **5.1. Pydantic SSOT (Strict-DTO Protocol, Memory Isolation & Fail-Fast)**
+Kaikki datasiirrot API-reitittimissä ja tietokannassa puskevat tiedon V2 Pydantic-validointimoottorin läpi. Mallit hyödyntävät tiukasti tyypitettyä `extra="forbid"` -sääntöä, joka kaataa tiedon sisäänoton heti (Fail-Fast), jos kanta yrittää tarjota yhtäkään hylättyä asetusavainta (ghost field).
 Samalla dynaamisten JSON Schema -luokkien koodigenerointi (`SchemaBuilderService`) optimoidaan nojautumaan lokaaliin MD5-tiivisteen välimuistiin (`lru_cache`), tehden schema-latauksista miljoonien ajojen kohdalla salamannopeita. Orpokielimallin sisäinen muistivuoto (globaalit yhteismuuttujat) on täysin kielletty – kaikki data sidotaan absoluuttisella tarkkuudella eristettyyn `state.inputs` Pydantic-rakenteeseen solmutasolla, ehkäisten "haamusyötteiden" (`Ghost Input`) ylikirjoitukset.
 
 ### **5.2. Dynaaminen Faktantarkistus ja Maadoitus (Model Context Protocol - MCP)**
@@ -103,13 +104,64 @@ API rajapinnoissa virheet hoidetaan **RFC 7807** standardin mukaisesti:
 ### **5.5. CoT String-Tuple Pre-Parsing (LLM Decimal Bias Ohitus)**
 Koska LLM Structured Outputs ohjaa vastaukset usein tasakymmeniin tai vahvoihin kokonaislukuihin, V2 soveltaa dynaamista CoT String-Tuple ratkaisua (esim. ohjelmoi LLMn palauttamaan perustelun perään `||DECIMAL: 4.2||`). `normalize_matrix_scores`-hook sieppaa tiedon Pydanticissa, regexaa kätketyn liukuluvun ja ylikirjoittaa "tyhmän" kokonaisluvun tietokantaan säilyttäen API-tyyppiturvallisuuden.
 
+### **5.6. O(1) Asynkroninen Orkestraatio ja Tilanhallinta (Event Sourcing)**
+Moottori ei koskaan mutatoi ajon tilaa (esim. ylikirjoita vanhoja sanakirjoja). Suoritus on täysin puhdas asynkroninen "Append-Only" -nauha yksittäisiä `TraceEvent` -tapahtumia. Ajon tila rakennetaan muistiin deterministisellä ja lukkiutumattomalla `fold_trace()` -kokoajalla. Tämä mahdollistaa massiivisen satojen agenttien rinnakkaisuuden (`asyncio.gather`) ilman thread-lukkoja ja tarjoaa täydellisen toistettavuuden (Rehydration) vikatiloista toipumiseen ilman redundantteja API-kutsuja LLM:lle.
+
+### **5.7. Checkpointing ja "The Flush Strategy"**
+Kun työnkulun looginen solmu valmistuu, I/O-viiveiden ja tietokantalukkojen eliminoimiseksi `ExecutionCommitter` purskauttaa (flush) In-Memory puskuriin kertyneen `execution_trace` -taulukon sellaisenaan kerralla tietokantaan / Blob-storageen. Tästä muodostuu synkronoitu palautumispiste. Menetelmä mahdollistaa jopa gigatavujen tila-analyysien käsittelyn suojellen FastAPI-podien RAM-muistia.
+
 ---
 
 ## **6. Esityskerros (Adaptive BFF - Flutter)**
 
-Frontend (`client_app_v2`) on joustava, kognition ulkoistanut renderöintimoottori:
+1. **Riverpod Mutaatiot ja Koodigeneroitu Reaktiivisuus:** Tilanhallinta rakentuu Riverpod 3.0 (Notifier, AsyncNotifier) varaan hyödyntäen koodigenerointia (`@riverpod`). Optimistiset UI-päivitykset (Loading Statet) pakotetaan vahvasti tyypitetyillä `Mutation<void>` -funktioilla, kieltäen tunkkaiset lokaalit `_isLoading` -liput kokonaan.
+2. **Litteä MVC ja Isolate-Parsinta (Main Thread Protection):** Renderöinti ja graafit perustuvat ainoastaan yksinkertaiseen litteään `ReportDataDTO`:hon (The De-Generator Mandaatti, SDUI on poistettu). Koska RAG-raporttien JSONit ovat valtavia, niiden Pydantic DTO kuorinta (deserialisaatio) siirretään ehdottomasti Dartin **`Isolate.run()`** -taustasäikeeseen. Tämä estää käyttöliittymän jäätymiset (Main Thread Jank) kokonaisuudessaan.
+3. **Signal & Fetch (The Payload Trap -esto):** Raskasta Lukumallia ei koskaan työnnetä SSE-putken kautta (Server-Sent Events) tukkimaan verkkokaistaa. SSE välittää ainoastaan ohuita tilamuutoksia ja versiotunnisteita (Deltas & `trace_version`). Vasta kun SSE-ping merkitsee askeleen valmiiksi, Frontend noutaa raskaamman `ReportDataDTO`:n erillisellä asynkronisella HTTP GET -haulla (Heavy Fetch).
+4. **Hybridiparillinen Datanhallinta (Freezed & SafeCast):** Ydintila parsitaan tiukasti (`freezed`), mutta vahvasti dynaamiset näkymät nojaavat defensiiviseen **SafeCast**-parsintaan ja sokaiseviin `SizedBox.shrink()` turvatulppiin korruptoituneiden kenttien varalta (Graceful Degradation). Vika ei saa aiheuttaa "Red Screen of Death" -kaatumista mobiilissa.
+5. **Actionable Hints (Global Error Handling V3):** Jos Backend katkaisee ajon (Fail-Fast RFC 7807 poikkeuksella esim. `TOOL_EXECUTION_FAILED`), Frontend ei kaadu vaan uudelleenreitittää sivun `GlobalErrorView V3` -komponenttiin. Se kääntää konerajatiedon ymmärrettäväksi ohjeeksi lokaalien `.arb` tiedostojen avulla ("Välivaiheen verkkoyhteys katkesi. [Jatka ajoa]"). "Jatka ajoa" -painike herättää backendin Rehydration-tilan ilman ajon nollausta.
 
-1. **Riverpod ja Koodigeneroitu Reaktiivisuus:** Tilanhallinta rakentuu Riverpod 3.0 (Notifier, AsyncNotifier) varaan hyödyntäen koodigenerointia (`@riverpod`), kieltäen `ChangeNotifier` -käytöt kokonaan.
-2. **Hybridiparillinen Datanhallinta (Freezed vs. SafeCast):** Ydintila parsitaan tiukasti (`freezed`, `json_serializable`). Vahvasti dynaamiset BFF ViewModel -määritykset nojaavat defensiiviseen **SafeCast**-parsintaan, jotta ohjelmisto ei kaadu yhteen puuttuvaan avaimeen datassa (Red Screen Mitigation).
-3. **Compound Widgets (Grounded UI):** Dynaamiset arviointislaiderit, the LLM-CoT näkymät ja teoriaväitteet rakennetaan Pydantic-datasta yhdeksi skaalautuvaksi widgetiksi jäännöksettömästi.
-4. **Riverpod Hybrid Caching (SWR & TTL):** Käyttöliittymä ei lataa näkymiä toistuvasti alusta navigoinnissa. Lukunäkymät (kuten Dashboard-listat) hyödyntävät Stale-While-Revalidate (SWR) -mallia salamannopeaan navigointiin, ja syöttönäkymät (Lomakkeet) käyttävät lyhyttä Time-To-Live (TTL) -aikakatkaisua suojatakseen keskeneräisen datan väliaikaisesti ennen automaattista roskienkeruuta. (Lisätiedot: `flutterpromptohje.md`)
+---
+
+## **7. Tulostusprofiilit ja Kääntäjä (The BFF Compiler)**
+
+Järjestelmä erottaa kognitiivisen datan esittämisestä täydellisesti (Zero-Math Frontend). Yksittäistä työnkulkua voidaan välittömästi lukea erilaisten dynaamisten tulostusprofiilien (esim. Tiivistelmä, DataGrid/Excel) läpi ilman mutaatioita historiadataan.
+
+### **7.1 The BFF Compiler (Geometrinen Degradaatio)**
+Sielu lepää `blueprint.py` Kääntäjässä. Tämä rajapinta purkaa pyydetyn Output-profiilin, etsii vastaavuudet ajon tulosdatasta ja laskee näytön/PDF:n tarvitseman ViewModel-rakenteen lennosta.
+1. **Collision Avoidance Hierarchy:** Kun kääntäjä kohtaa kaksi samannimistä komponenttia (esim. "Riski"), se kiipeää automaattisesti isä-puulistan (DAG) ylemmille tasoille eriyttääkseen nimen uniikiksi (esim. "Myynti - Riski"), taaten 100% uniikit Excel-sarakeotsikot ohjelmallisesti.
+2. **Geometrinen Degradaatio (Geometric Degradation):** Jos tulostin odottaa `2D Matriisia`, mutta ohitetun askeleen takia data sisältää vain 1 akselin, Backendin Kääntäjä ei lähetä rikkinäistä 2D-koodia eteenpäin. Se suorittaa automaattisen degradaation, lakkauttaen paketin turvallisesti "1D Info Box" muotoon suojaten vikaherkkää Frontendiä kaatumisilta.
+
+### **7.2 Pariteetti (Flutter vs. PDF-Worker)**
+Tavoitteena on 100% pariteetti Flutter-näytön ja palvelimella generoidun PDF-raportin välillä. Molemmat moottorit saavat täsmälleen saman kääntäjän generoiman litteän `ReportDataDTO` -paketin (Backend-For-Frontend). Kun Flutter puskee kortteja laitteen ruudulle, PDF-Worker käyttää Jinja2 HTML/CSS -moottoria ja WeasyPrintiä palvelimella iteroidakseen saman asettelun puhtaana statiikkana. Matematiikka asuu vain Kääntäjässä.
+
+---
+
+## **8. The Tool Loop & Serverless MCP Integraatio (V2.6)**
+Quorum käyttää ohjelmistosta riippumatonta asynkronista reititystä tiedonhaussa varmistaen determinismin. 
+1. **The Gateway Array (Firebase/Cloud Run):** MCP (Model Context Protocol) Etsivät (The Tools) pyörivät joko täysin erillisissä Cloud Run -mikropalveluissa tai ulkoisissa SaaS-Soketeissa (Tavily AI). Quorum Backend kommunikoi näiden kanssa asynkronisella HTTP/SSE-tekstillä (`SystemConfigMCPGateways`).
+2. **The Injector (Faktantarkistus):** Kun LLM valitsee "Tool Choicen" (Epistemic Uncertainty), moottori hakee faktan netistä tai RAG:ista ToolLoopin kautta. Faktan sisältävä `ToolMessage` isketään ohjelmallisesti LLM:n työmuistiin pakottaen BARS Matrix -arvioijat (Toisella Pydantic-pakotuskierroksella) antamaan arvosanan ulkoisen todistusaineiston (Evidence), ei subjektiivisen tiedon perusteella.
+3. **FrozenContext Audit:** Kaikki verkkohaut ja palautetut raakatekstit tallennetaan välittömästi `MCPAuditTrace` -komponenttiin osana Execution-lokia (Forensic XAI Audit).
+
+---
+
+## **9. Tietokannan Tunnisteet ja Relaatiot (The Stripe Pattern)**
+Välttääksemme hajautetun NoSQL-kannan ID-kollisiot (DocumentTooLarge) ja IDOR-tietoturvavuodot, kaikki kantaan asetettava data Quorumissa on alistettu tiukalle The Stripe Pattern -suojaukselle (`^([a-z]+)_[a-zA-Z0-9]{8,}$`).
+1. **Opaque Primary Keys:** Yksikään tietokannan `id` (esim. `org_9a8b7c`, `wf_K8j2P`) ei saa koskaan sisältää ihmisluettavaa sanaa. Lukkolyöty salakirjoitus takaa "Zero Exceptions" Pydantic-validoinnin.
+2. **The Slug Routing:** Ihmisluettavuus ja nätit URL-osoitteet hoituvat ainoastaan erillisellä `slug` -kentällä. Backend erottaa dynaamiset reititykset (Slug) täydellisesti erikseen turvatarkastuksia varten. Asiakas saa vaihtaa Slugiansa vapaasti rikkomatta sisäistä relaatiopuuta.
+3. **Flat Referencing (Ei Embeddingiä):** Äärettömästi kasvavia datalistoja (Käyttäjät, Työnkulut, Ajot) ei ikinä upoteta (Embed) Isäntädokumentteihin. Ne viitataan täysin litistettyinä Document Reference -vierailla avaimilla (esim. `organization_id`).
+
+---
+
+## **10. Identiteetin ja Pääsynhallinta (Hybrid IAM & SaaS)**
+Quorum nojaa vahvaan 2-tasoiseen SaaS-malliin (System-tason ylläpito vs. Eristetyt Tenant/Asiakas-organisaatiot).
+1. **SaaS Isolaatio:** Asiakkailla on omat UUID-pohjaiset organisaationsa. Firestore kieltää tasollaan Backend/Frontend-kyselyt, joissa käyttäjän JWT Tokenin `organization_id` risteää dokumentin datan kanssa (Defense in Depth).
+2. **Rooleihin Perustuva (RBAC):** Roolit nojaavat hierarkiaan: ROOT (Järjestelmänvaltias) > ADMIN (Asiakkaan Pääkäyttäjä) > MANAGER (Ai-Asiantuntija) > MEMBER (Ajaa työnkulkuja) > VIEWER (Lukulupa).
+3. **Hybrid Auth:** Salasanojen ja sähköpostien turva, sekä Enterprise SSO (Entra ID / SAML) on kokonaan delegoitu Firebase Authille. Tietokanta säilyttää täällä ainoastaan valtuuttamisen (Authority/Roolit).
+4. **Deep Copy -Kloonaus (GDPR & AI Act):** Asiakkaat eivät koskaan linkitä System-tason julkisiin AI-sääntöihin tuotantoajoissaan. Asiakkaan on aina kloonattava (`Kopioi Omaksi / Cascading Clone`) säännöt omaan Tenantiinsa. Tämä takaa AI Act -jäljitettävyyden: sääntöjen ohjeistukset eivät voi koskaan muuttua System-ylläpitäjän toimesta asiakkaan tietämättä.
+
+---
+
+## **11. Admin Studion UX Abstraktio (The Cascading Dropdowns)**
+Koska Backend V2 puhuu ainoastaan Opaque Stripe ID -kryptografiaa (`steprule_d90f...`), Pääkäyttäjiltä ohjelmoidaan tämä monimutkaisuus piiloon käyttöliittymätasolla (Flutter).
+1. **Reaaliaikainen Nimenkäännös (Nomenclature):** Työnkulkuja kootessa (DAG Builder) Admin UI agentit lukevat Riverpodin varastoiman koko puun rakenteen (State) läpi ja kääntävät Opaque ID:t visuaalisesti ihmisluettaviksi nimiksi.
+2. **Data Path -Kaskadit:** Kun ylläpitäjä asettaa Blueprint Editorissa Matriisin lähteeksi aiemman työnkulun askeleen datan, UI paljastaa ainoastaan toisistaan riippuvaisia Pudotusvalikoita (Cascading Dropdowns) estäen manuaalisen typo-syöttämisen. UI "kääntää" säädöt The `$results.steprule_XYZ.output...` ohjelmointimuotoon vain JSON-tallennushetkellä.

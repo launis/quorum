@@ -36,7 +36,7 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
 
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
-        msg = "Missing or invalid 'inputs' in data. Expected dict."
+        msg = f"Missing or invalid 'inputs' in data. Expected dict. Got type: {type(inputs)}, Value: {inputs}"
         status_code = status.HTTP_400_BAD_REQUEST if inputs is None else status.HTTP_500_INTERNAL_SERVER_ERROR
         logger.error(f"[SecurityHook] {error_code.name}: {msg}")
         raise AppException(

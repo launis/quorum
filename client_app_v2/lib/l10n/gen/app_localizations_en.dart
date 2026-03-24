@@ -2265,4 +2265,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String reportConfidenceTitle(String value) {
     return 'AI Confidence: $value%';
   }
+
+  @override
+  String get resumeActionableHint => 'Resume Execution (Try Again)';
+
+  @override
+  String get failedToResume => 'Failed to resume execution.';
+
+  @override
+  String get toolExecutionFailed => 'Tool execution failed';
+
+  @override
+  String get actionHintToolFailed =>
+      'Check the tool connection, verify the prompt context, or try again later.';
 }

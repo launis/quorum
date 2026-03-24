@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
@@ -67,7 +69,34 @@ class ExecutionController extends _$ExecutionController {
   Future<void> resumeExecution(String executionId) async {
     state = const AsyncValue.loading();
     await _sseSubscription?.cancel();
+
     _connectToStream(executionId);
+  }
+
+  /// Submits a Rehydration request to the backend for an interrupted/FAILED execution.
+  /// This adheres to the Riverpod 3.0 Mutation pattern by optimistically updating the state.
+  Future<void> submitRehydration(String executionId) async {
+    state = const AsyncValue.loading();
+    await _sseSubscription?.cancel();
+    try {
+      final client = ref.read(executionClientProvider);
+      await client.resumeExecution(executionId);
+      // Wait a tiny bit for the backend to transition state before we hook SSE again
+      await Future.delayed(const Duration(milliseconds: 500));
+      _connectToStream(executionId);
+    } catch (e, stack) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'ExecutionController',
+            'REHYDRATION_FAILED: Failed to resume execution',
+            e,
+            stack,
+          );
+      state = AsyncValue.error(e, stack);
+      // Let the mutation Hook catch the exception
+      rethrow;
+    }
   }
 
   /// Manually refreshes the current status by reconnecting the stream
@@ -80,6 +109,39 @@ class ExecutionController extends _$ExecutionController {
     }
   }
 
+  /// Extracts the heavy blueprint JSON and deserializes it off-thread.
+  Future<void> _performHeavyFetch(String executionId) async {
+    try {
+      final client = ref.read(executionClientProvider);
+      final renderData = await client.renderExecution(executionId);
+
+      // We parse it in Isolate to guarantee no Jank.
+      final reportData = await ReportDataDTO.parseInBackground(
+        jsonEncode(renderData),
+      );
+
+      if (state.hasValue && state.value != null) {
+        // Merge the heavy DTO back into the raw Map state for backward compatibility
+        // with the temporary ExecutionView payload before Milestone 4 applies Flat MVC.
+        final Map<String, dynamic> merged = Map<String, dynamic>.from(
+          state.value!,
+        );
+        merged['report_data'] = reportData;
+        merged['results'] = renderData; // Temporary legacy support
+        state = AsyncValue.data(merged);
+      }
+    } catch (e, stack) {
+      ref
+          .read(loggerServiceProvider)
+          .warning(
+            'ExecutionController',
+            'HEAVY_FETCH_FAILED: Failed to download heavy payload',
+            e,
+            stack,
+          );
+    }
+  }
+
   void _connectToStream(String executionId) {
     final sseClient = ref.read(sseClientProvider);
 
@@ -87,7 +149,46 @@ class ExecutionController extends _$ExecutionController {
         .subscribeToExecution(executionId)
         .listen(
           (update) {
+            final currentState = state.value;
+            bool needsHeavyFetch = false;
+
+            if (currentState != null) {
+              // Preserve heavy fetched properties that SSE payload dropped
+              if (currentState.containsKey('report_data')) {
+                update['report_data'] = currentState['report_data'];
+              }
+              if (currentState.containsKey('results')) {
+                update['results'] = currentState['results'];
+              }
+
+              // Detect Trace Version change
+              final oldVersion = currentState['trace_version']?.toString();
+              final newVersion = update['trace_version']?.toString();
+
+              if (newVersion != null && newVersion != oldVersion) {
+                needsHeavyFetch = true;
+              }
+
+              // Detect completion
+              final oldStatus =
+                  (currentState['status'] as String?)?.toLowerCase();
+              final newStatus = (update['status'] as String?)?.toLowerCase();
+              if (newStatus == 'completed' && oldStatus != 'completed') {
+                needsHeavyFetch = true;
+              }
+            } else {
+              // Bootstrapping initial stream state
+              final newStatus = (update['status'] as String?)?.toLowerCase();
+              if (update['trace_version'] != null || newStatus == 'completed') {
+                needsHeavyFetch = true;
+              }
+            }
+
             state = AsyncValue.data(update);
+
+            if (needsHeavyFetch) {
+              _performHeavyFetch(executionId);
+            }
 
             final status = (update['status'] as String?)?.toLowerCase();
             if (status == 'completed' || status == 'failed') {

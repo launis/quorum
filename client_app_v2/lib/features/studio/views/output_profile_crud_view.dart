@@ -61,9 +61,10 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
       if (idToSave.isEmpty) throw Exception("Profile ID is required");
 
       _editableProfile['id'] = idToSave;
-      _editableProfile['slug'] = _slugController.text.trim().isNotEmpty
-          ? _slugController.text.trim()
-          : idToSave; // Fallback sync
+      _editableProfile['slug'] =
+          _slugController.text.trim().isNotEmpty
+              ? _slugController.text.trim()
+              : idToSave; // Fallback sync
       _editableProfile['workflow_id'] = _workflowIdController.text.trim();
       _editableProfile['layouts'] = _layouts;
 
@@ -82,62 +83,62 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
       }
     } catch (e) {
       if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Save failed: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Save failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _deleteProfile() async {
+    final String idToDelete = _editableProfile['id']?.toString() ?? '';
+    if (idToDelete.isEmpty || widget.id == 'new') return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Delete Profile?'),
+            content: Text('Are you sure you want to delete $idToDelete?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isSaving = true);
+      try {
+        await ref
+            .read(outputProfilesControllerProvider.notifier)
+            .deleteProfile(idToDelete);
+        if (mounted) {
+          context.pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
         }
       } finally {
         if (mounted) setState(() => _isSaving = false);
       }
     }
-  
-    Future<void> _deleteProfile() async {
-      final String idToDelete = _editableProfile['id']?.toString() ?? '';
-      if (idToDelete.isEmpty || widget.id == 'new') return;
-  
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: const Text('Delete Profile?'),
-              content: Text('Are you sure you want to delete $idToDelete?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-      );
-  
-      if (confirm == true) {
-        setState(() => _isSaving = true);
-        try {
-          await ref
-              .read(outputProfilesControllerProvider.notifier)
-              .deleteProfile(idToDelete);
-          if (mounted) {
-            context.pop();
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
-          }
-        } finally {
-          if (mounted) setState(() => _isSaving = false);
-        }
-      }
-    }
+  }
 
   void _addLayout() {
     setState(() {
@@ -145,7 +146,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
         'layout_type': 'box_1d',
         'title': {
           'default_locale': 'en',
-          'translations': <String, dynamic>{'en': 'New Layout Block'}
+          'translations': <String, dynamic>{'en': 'New Layout Block'},
         },
         'show_text': true,
         'components': <String>[],
@@ -162,7 +163,9 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
     final String selectedWorkflowId = _workflowIdController.text;
     Set<String> allowedBlockIds = {};
 
-    if (selectedWorkflowId.isNotEmpty && workflowsState.hasValue && stepsState.hasValue) {
+    if (selectedWorkflowId.isNotEmpty &&
+        workflowsState.hasValue &&
+        stepsState.hasValue) {
       final workflows = workflowsState.value!;
       final steps = stepsState.value!;
 
@@ -173,17 +176,21 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
 
       if (workflow != null) {
         final stepRules = SafeCast.safeList(workflow['steps']);
-        final taskBlueprintIds = stepRules
-            .map((s) => SafeCast.safeMap(s)['task_blueprint']?.toString())
-            .where((s) => s != null)
-            .cast<String>()
-            .toSet();
+        final taskBlueprintIds =
+            stepRules
+                .map((s) => SafeCast.safeMap(s)['task_blueprint']?.toString())
+                .where((s) => s != null)
+                .cast<String>()
+                .toSet();
 
         for (final step in steps) {
           final stepId = step['id']?.toString() ?? '';
           final stepSlug = step['slug']?.toString() ?? stepId;
-          if (taskBlueprintIds.contains(stepId) || taskBlueprintIds.contains(stepSlug)) {
-            final promptBlocks = SafeCast.safeList(step['prompt_blocks']).map((b) => b.toString());
+          if (taskBlueprintIds.contains(stepId) ||
+              taskBlueprintIds.contains(stepSlug)) {
+            final promptBlocks = SafeCast.safeList(
+              step['prompt_blocks'],
+            ).map((b) => b.toString());
             allowedBlockIds.addAll(promptBlocks);
           }
         }
@@ -250,24 +257,42 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                     const SizedBox(height: 16),
                     workflowsState.when(
                       data: (workflows) {
-                        String? currentValue = _workflowIdController.text.isNotEmpty ? _workflowIdController.text : null;
-                        final bool hasValidValue = currentValue != null && (workflows.any((w) => w['id']?.toString() == currentValue) || currentValue == '');
+                        String? currentValue =
+                            _workflowIdController.text.isNotEmpty
+                                ? _workflowIdController.text
+                                : null;
+                        final bool hasValidValue =
+                            currentValue != null &&
+                            (workflows.any(
+                                  (w) => w['id']?.toString() == currentValue,
+                                ) ||
+                                currentValue == '');
 
                         return DropdownButtonFormField<String>(
-                          value: hasValidValue ? currentValue : null,
+                          initialValue: hasValidValue ? currentValue : null,
                           decoration: const InputDecoration(
                             labelText: 'Workflow ID Binding',
                             border: OutlineInputBorder(),
                           ),
                           hint: const Text('Select a Workflow...'),
                           items: [
-                            const DropdownMenuItem(value: '', child: Text('None (Default)')),
+                            const DropdownMenuItem(
+                              value: '',
+                              child: Text('None (Default)'),
+                            ),
                             ...workflows.map((flow) {
                               final flowId = flow['id']?.toString() ?? '';
                               final labelDict = SafeCast.safeMap(flow['name']);
-                              final translations = SafeCast.safeMap(labelDict['translations']);
-                              final localeCode = Localizations.localeOf(context).languageCode;
-                              final displayName = translations[localeCode] ?? translations['fi'] ?? translations['en'] ?? flowId;
+                              final translations = SafeCast.safeMap(
+                                labelDict['translations'],
+                              );
+                              final localeCode =
+                                  Localizations.localeOf(context).languageCode;
+                              final displayName =
+                                  translations[localeCode] ??
+                                  translations['fi'] ??
+                                  translations['en'] ??
+                                  flowId;
 
                               return DropdownMenuItem(
                                 value: flowId,
@@ -285,7 +310,9 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                           },
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator()),
+                      loading:
+                          () =>
+                              const Center(child: CircularProgressIndicator()),
                       error: (e, _) => Text('Error loading workflows: $e'),
                     ),
                     const SizedBox(height: 16),
@@ -301,7 +328,9 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                     const SizedBox(height: 16),
                     I18nTextField(
                       label: 'Profile Description (Optional)',
-                      initialData: SafeCast.safeMap(_editableProfile['description']),
+                      initialData: SafeCast.safeMap(
+                        _editableProfile['description'],
+                      ),
                       onChanged: (val) {
                         setState(() {
                           _editableProfile['description'] = val;
@@ -319,7 +348,10 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                 child: Center(
                   child: Text(
                     '⚠️ Please select a Workflow ID Binding above to configure report layouts.',
-                    style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               )
@@ -342,7 +374,9 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
               if (_layouts.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(16.0),
-                  child: Text('No layout blocks defined. Report will be empty.'),
+                  child: Text(
+                    'No layout blocks defined. Report will be empty.',
+                  ),
                 )
               else
                 ListView.builder(
@@ -420,10 +454,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                     isDense: true,
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: 'box_1d',
-                      child: Text('1D Table'),
-                    ),
+                    DropdownMenuItem(value: 'box_1d', child: Text('1D Table')),
                     DropdownMenuItem(
                       value: 'matrix_2d',
                       child: Text('2D Grid'),
@@ -496,20 +527,23 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
           const SizedBox(height: 8),
           promptBlocksState.when(
             data: (blocks) {
-              final targetBlocks = blocks
-                  .where((b) {
+              final targetBlocks =
+                  blocks.where((b) {
                     final id = b['id']?.toString() ?? '';
                     final slug = b['slug']?.toString() ?? id;
-                    final isAllowed = allowedBlockIds.contains(id) || allowedBlockIds.contains(slug);
+                    final isAllowed =
+                        allowedBlockIds.contains(id) ||
+                        allowedBlockIds.contains(slug);
                     if (!isAllowed) return false;
 
                     // Exclude silent utility blocks (must have visual text extensions or be a scoring matrix)
                     final isMatrix = b['category_id']?.toString() == 'matrix';
-                    final extensions = SafeCast.safeList(b['output_extensions']);
+                    final extensions = SafeCast.safeList(
+                      b['output_extensions'],
+                    );
                     return isMatrix || extensions.isNotEmpty;
-                  })
-                  .toList();
-              
+                  }).toList();
+
               final int requiredDropdowns = switch (currentPreset) {
                 'box_1d' => 1,
                 'matrix_2d' => 2,
@@ -527,7 +561,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                     selectedValue = val;
                   }
                 }
-                
+
                 final String axisLabel = switch (i) {
                   0 => 'Component 1 (X-Axis/Primary)',
                   1 => 'Component 2 (Y-Axis)',
@@ -539,7 +573,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
                     child: DropdownButtonFormField<String>(
-                      value: selectedValue,
+                      initialValue: selectedValue,
                       decoration: InputDecoration(
                         labelText: axisLabel,
                         isDense: true,
@@ -548,20 +582,26 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                       hint: const Text('Select component...'),
                       items: [
                         const DropdownMenuItem(
-                            value: '*', child: Text('All Components (*)')),
+                          value: '*',
+                          child: Text('All Components (*)'),
+                        ),
                         ...targetBlocks.map((block) {
                           final blockId = block['id']?.toString() ?? '';
                           final labelDict = SafeCast.safeMap(block['label']);
-                          final translations =
-                              SafeCast.safeMap(labelDict['translations']);
+                          final translations = SafeCast.safeMap(
+                            labelDict['translations'],
+                          );
                           final localeCode =
                               Localizations.localeOf(context).languageCode;
-                          final blockName = translations[localeCode] ??
+                          final blockName =
+                              translations[localeCode] ??
                               translations['fi'] ??
                               translations['en'] ??
                               blockId;
                           return DropdownMenuItem(
-                              value: blockId, child: Text(blockName));
+                            value: blockId,
+                            child: Text(blockName),
+                          );
                         }),
                       ],
                       onChanged: (val) {

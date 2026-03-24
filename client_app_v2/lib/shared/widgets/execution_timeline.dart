@@ -41,17 +41,25 @@ class ExecutionTimeline extends StatelessWidget {
           if (isFailed) labelColor = Theme.of(context).colorScheme.error;
 
           final stepId = step['step_id']?.toString() ?? '';
-          final stepResult = results != null && results!.containsKey(stepId)
-              ? (results![stepId] as Map<String, dynamic>?) ?? {}
-              : {};
-              
+          final stepResult =
+              results != null && results!.containsKey(stepId)
+                  ? (results![stepId] as Map<String, dynamic>?) ?? {}
+                  : {};
+
           final warningsList = stepResult['_system_warnings'] as List<dynamic>?;
           final hasWarnings = warningsList != null && warningsList.isNotEmpty;
+
+          final lastError = step['last_error']?.toString();
 
           return ListTile(
             dense: true,
             visualDensity: compact ? VisualDensity.compact : null,
-            leading: _buildStepIcon(isCompleted, isRunning, isFailed, hasWarnings),
+            leading: _buildStepIcon(
+              isCompleted,
+              isRunning,
+              isFailed,
+              hasWarnings,
+            ),
             title: Text(
               stepLabel,
               style: TextStyle(
@@ -62,6 +70,15 @@ class ExecutionTimeline extends StatelessWidget {
                 color: labelColor,
               ),
             ),
+            subtitle: (isFailed && lastError != null && lastError.isNotEmpty)
+                ? Text(
+                    lastError,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  )
+                : null,
             trailing:
                 isRunning
                     ? const SizedBox(
@@ -76,12 +93,21 @@ class ExecutionTimeline extends StatelessWidget {
     );
   }
 
-  Widget _buildStepIcon(bool isCompleted, bool isRunning, bool isFailed, bool hasWarnings) {
+  Widget _buildStepIcon(
+    bool isCompleted,
+    bool isRunning,
+    bool isFailed,
+    bool hasWarnings,
+  ) {
     if (isFailed) {
       return const Icon(Icons.error, color: Colors.red, size: 20);
     }
     if (hasWarnings) {
-      return const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20);
+      return const Icon(
+        Icons.warning_amber_rounded,
+        color: Colors.orange,
+        size: 20,
+      );
     }
     if (isCompleted) {
       return const Icon(Icons.check_circle, color: Colors.green, size: 20);

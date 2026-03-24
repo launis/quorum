@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:isolate';
 import 'package:client_app/utils/safe_cast.dart';
 
 /// Strictly typed DTO for a single reporting axis (e.g., metric, category).
@@ -9,7 +11,7 @@ class ReportAxisDTO {
   final String? citedSourceId;
   final String? citedTextQuote;
   final String? citedWebCitation;
-  
+
   // Epic 6: XAI Output Extensions
   final String? coaching;
   final double? confidence;
@@ -64,11 +66,22 @@ class ReportAxisDTO {
       citedTextQuote: json['cited_text_quote']?.toString(),
       citedWebCitation: json['cited_web_citation']?.toString(),
       coaching: json['coaching']?.toString(),
-      confidence: json['confidence'] != null ? SafeCast.safeDouble(json['confidence']) : null,
+      confidence:
+          json['confidence'] != null
+              ? SafeCast.safeDouble(json['confidence'])
+              : null,
       falsification: json['falsification']?.toString(),
       missingContext: json['missing_context']?.toString(),
-      riskFlag: json['risk_flag'] != null ? SafeCast.safeBool(json['risk_flag']) : null,
-      remediationSteps: json['remediation_steps'] != null ? SafeCast.safeList(json['remediation_steps']).map((e) => e.toString()).toList() : null,
+      riskFlag:
+          json['risk_flag'] != null
+              ? SafeCast.safeBool(json['risk_flag'])
+              : null,
+      remediationSteps:
+          json['remediation_steps'] != null
+              ? SafeCast.safeList(
+                json['remediation_steps'],
+              ).map((e) => e.toString()).toList()
+              : null,
       emotionalSentiment: json['emotional_sentiment']?.toString(),
       theoryLink: json['theory_link']?.toString(),
       scaleMin: SafeCast.safeDouble(json['scale_min'], 0.0),
@@ -210,5 +223,14 @@ class ReportDataDTO {
               ? SafeCast.safeInt(json['reasoning_tokens'])
               : null,
     );
+  }
+
+  /// Parses a heavy raw JSON string into a ReportDataDTO entirely off the Main Thread.
+  /// This is mandatory for large RAG synthesis payloads to prevent Main Thread Jank.
+  static Future<ReportDataDTO> parseInBackground(String rawJson) async {
+    return Isolate.run(() {
+      final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
+      return ReportDataDTO.fromJson(decoded);
+    });
   }
 }

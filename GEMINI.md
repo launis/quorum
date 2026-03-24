@@ -14,8 +14,10 @@ Your Single Sources of Truth for this project are:
 - **CLIENT LOGS:** `c:\src\quorum\client_debug.log` (Flutter Riverpod states, GoRouter navigation, and HTTP requests. Check this for UI/Network failures.)
 
 🛑 MANDATORY: Before proposing or writing ANY code, you MUST read the relevant document above using your file reading tools to understand:
-- The Strict V2 Architecture (SSOT, Event Sourcing, Fail-Fast).
-- The Banned Patterns (No fallbacks, No hardcoding, No UI string literals).
+- The Strict V2/V3 Architecture (Event Sourcing, The Opaque Stripe ID Pattern, Fail-Fast Pydantic).
+- The New Serverless Tool Loop (Tavily AI Fact Check Injection).
+- The Flat MVC Mandate (NO SDUI, JSON Parsing exclusively via Dart `Isolate.run()`).
+- The Banned Patterns (No fallbacks, No hardcoding UUIDs, No UI string literals).
 - The Tech Stack (Python 3.14, Riverpod 3.0, Pydantic V2) or the corresponding frontend stack.
 
 If you act contrary to these documents, you are failing the task.

@@ -208,7 +208,6 @@ class ExecutionService:
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             step_states=step_states,
             metadata={"target_locale": target_locale},
-            results={},
             created_by=initiator.id,
             organization_id=getattr(initiator, "organization_id", None)
         )
@@ -226,3 +225,37 @@ class ExecutionService:
         )
 
         return initial_record
+
+    async def resume_execution(
+        self,
+        initiator: TokenData,
+        execution_id: str,
+        arq_pool: ArqRedis
+    ) -> ExecutionRecord:
+        """Securely resume an existing FAILED execution."""
+        # 1. Authorize via get (Fail-Fast ResourceNotFound / PermissionDenied)
+        record = await self.get_execution(initiator, execution_id)
+        
+        if record.status not in [ExecutionStatus.FAILED, ExecutionStatus.PENDING]:
+            msg = f"Cannot resume execution in state {record.status.value}. Only FAILED or PENDING executions can be resumed."
+            logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED}
+            )
+            
+        record.status = ExecutionStatus.RUNNING
+        await self.repo.update_execution(execution_id, {"status": "running"})
+            
+        # 2. Fire Async Process into durable Redis Queue using original raw inputs
+        await arq_pool.enqueue_job(
+            "execute_workflow_job",
+            workflow_id=record.workflow_id,
+            inputs=record.raw_inputs.model_dump(mode="json"),
+            execution_id=execution_id,
+            organization_id=getattr(initiator, "organization_id", None),
+            user_id=initiator.id
+        )
+
+        return record

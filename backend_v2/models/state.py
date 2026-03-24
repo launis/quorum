@@ -340,7 +340,7 @@ class StateProjector:
 
         self._trace_length += 1
 
-        if event.event_type == "output":
+        if event.event_type in ["output", "input"]:
             self._snapshot[event.step_name] = event.content
         elif event.event_type == "tombstone":
             # For GDPR redactions, replace content with a tombstone marker

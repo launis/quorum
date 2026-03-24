@@ -2272,4 +2272,17 @@ class AppLocalizationsFi extends AppLocalizations {
   String reportConfidenceTitle(String value) {
     return 'Tekoälyn varmuus: $value%';
   }
+
+  @override
+  String get resumeActionableHint => 'Jatka ajoa (Yritä uudelleen)';
+
+  @override
+  String get failedToResume => 'Ajon jatkaminen epäonnistui.';
+
+  @override
+  String get toolExecutionFailed => 'Työkalun suoritus epäonnistui';
+
+  @override
+  String get actionHintToolFailed =>
+      'Tarkista työkaluasetukset, varmista syötteen laatu tai yritä myöhemmin uudelleen.';
 }
