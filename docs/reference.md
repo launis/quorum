@@ -15,6 +15,7 @@ quorum/backend_v2/
 ├── api/                        # FastAPI Control Plane
 │   └── routers/                # Eriytetyt HTTP REST V2 -ruuterit
 │       ├── execution/          # DAG-ajojen hallinta ja /report BFF-päätepiste
+│       ├── iam/                # Identiteetin ja roolien hallinta
 │       └── studio/             # CRUD-rajapinnat säännöstölle (Output Profiles, Workflows)
 │
 ├── core/                       # Keskitetyt konfiguraatiot ja luokat (BaseException, Dependency Injection)
