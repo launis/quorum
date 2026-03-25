@@ -20,21 +20,22 @@ import 'package:client_app/core/ui/error_view.dart';
 /// Admin can define global inputs (`expected_inputs`) and sequence
 /// processing steps (`steps`) including `depends_on` and `input_mappings`.
 class WorkflowBuilderView extends ConsumerWidget {
+  final String? id;
   final String? slug;
   final Map<String, dynamic>? initialData;
 
-  const WorkflowBuilderView({super.key, this.slug, this.initialData});
+  const WorkflowBuilderView({super.key, this.id, this.slug, this.initialData});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (initialData != null && initialData!.isNotEmpty) {
       return _WorkflowBuilderForm(workflow: initialData!);
     }
-    if (slug == null || slug!.isEmpty || slug == 'new') {
+    if (id == null || id!.isEmpty || id == 'new') {
       return const _WorkflowBuilderForm(workflow: {});
     }
 
-    final asyncData = ref.watch(workflowBySlugProvider(slug!));
+    final asyncData = ref.watch(workflowByIdProvider(id!));
     return asyncData.when(
       data: (wf) => _WorkflowBuilderForm(workflow: wf),
       loading:
@@ -44,7 +45,7 @@ class WorkflowBuilderView extends ConsumerWidget {
           (e, st) => ErrorView(
             error: e,
             stackTrace: st,
-            onRetry: () => ref.invalidate(workflowBySlugProvider(slug!)),
+            onRetry: () => ref.invalidate(workflowByIdProvider(id!)),
           ),
     );
   }
@@ -183,7 +184,7 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
                         builder:
                             (context) => WorkflowBuilderView(
                               initialData: cloned,
-                              slug: 'new',
+                              id: 'new',
                             ),
                       ),
                     );

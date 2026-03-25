@@ -25,18 +25,18 @@ class LogicNodeStrategy(NodeStrategy):
         # 1. State Extraction
         current_state = dict(projector.snapshot)
 
-        blueprint_slug = getattr(step, "task_blueprint", None)
-        if not blueprint_slug:
+        blueprint_id = getattr(step, "task_blueprint", None)
+        if not blueprint_id:
             raise AppException(
                 message=f"Step {step.id} has no task_blueprint configured.",
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
-        step_def = await self.repository.get_step_by_id(blueprint_slug)
+        step_def = await self.repository.get_step_by_id(blueprint_id)
         if not step_def:
             raise AppException(
-                message=f"Configuration error: Step '{blueprint_slug}' not found.",
+                message=f"Configuration error: Step '{blueprint_id}' not found.",
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
@@ -44,7 +44,7 @@ class LogicNodeStrategy(NodeStrategy):
         logic_hook = step_def.get("hook", None)
         if not logic_hook:
             raise AppException(
-                message=f"Logic step '{blueprint_slug}' has no native hook defined.",
+                message=f"Logic step '{blueprint_id}' has no native hook defined.",
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
             )
@@ -57,7 +57,7 @@ class LogicNodeStrategy(NodeStrategy):
             execution_id=context.execution_id,
             workflow_id=context.workflow_id,
             step_id=step.id,
-            task_blueprint=blueprint_slug,
+            task_blueprint=blueprint_id,
             metadata=context.metadata,
             inputs=state_data,
         )

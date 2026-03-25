@@ -83,15 +83,6 @@ class StudioService:
         self._enforce_tenant_isolation(initiator, data, "workflow")
         return Workflow.model_validate(data)
 
-    async def get_workflow_by_slug(self, initiator: TokenData, slug: str) -> Workflow:
-        data = await self.repo.get_workflow_by_slug(slug)
-        if not data:
-            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow slug {slug} not found.")
-            raise ResourceNotFoundError(resource_type="workflow", resource_id=slug)
-
-        self._enforce_tenant_isolation(initiator, data, "workflow")
-        return Workflow.model_validate(data)
-
     async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> Workflow:
         self._enforce_modification_rights(initiator, data.organization_id)
 
@@ -176,15 +167,6 @@ class StudioService:
         if not data:
             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: PromptBlock {id} not found.")
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
-
-        self._enforce_tenant_isolation(initiator, data, "prompt_block")
-        return PromptBlock.model_validate(data)
-
-    async def get_prompt_block_by_slug(self, initiator: TokenData, slug: str) -> PromptBlock:
-        data = await self.repo.get_prompt_block_by_slug(slug)
-        if not data:
-            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: PromptBlock slug {slug} not found.")
-            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=slug)
 
         self._enforce_tenant_isolation(initiator, data, "prompt_block")
         return PromptBlock.model_validate(data)

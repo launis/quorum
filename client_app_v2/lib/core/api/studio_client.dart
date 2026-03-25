@@ -24,9 +24,9 @@ class StudioClient {
     return List<Map<String, dynamic>>.from(response.data as List);
   }
 
-  /// Retrieves a specific prompt block by slug.
-  Future<Map<String, dynamic>> getPromptBlockBySlug(String slug) async {
-    final response = await _dio.get('studio/prompt-blocks/by-slug/$slug');
+  /// Retrieves a specific prompt block by id.
+  Future<Map<String, dynamic>> getPromptBlock(String id) async {
+    final response = await _dio.get('studio/prompt-blocks/$id');
     return response.data as Map<String, dynamic>;
   }
 
@@ -53,9 +53,9 @@ class StudioClient {
     return List<Map<String, dynamic>>.from(response.data as List);
   }
 
-  /// Retrieves a specific workflow definition by slug.
-  Future<Map<String, dynamic>> getWorkflowBySlug(String slug) async {
-    final response = await _dio.get('studio/workflows/by-slug/$slug');
+  /// Retrieves a specific workflow definition by id.
+  Future<Map<String, dynamic>> getWorkflow(String id) async {
+    final response = await _dio.get('studio/workflows/$id');
     return response.data as Map<String, dynamic>;
   }
 

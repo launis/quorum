@@ -370,7 +370,7 @@ class Step(V2CoreBase):
     task_key: str | None = Field(default=None, description="Legacy or internal key reference")
     prompt_blocks: list[str] = Field(
         default_factory=list,
-        description="List of PromptBlock slugs containing directives and matrices for this step."
+        description="List of PromptBlock IDs containing directives and matrices for this step."
     )
     pre_hooks: list[str] = Field(
         default_factory=list,
@@ -418,7 +418,7 @@ class StepRule(V2CoreBase):
         description="Unique node ID in the workflow (e.g. blk_node_1)."
     )
     task_blueprint: str = Field(
-        description="Slug reference to the isolated Step (e.g., 'step_input_processing')"
+        description="ID reference to the isolated Step (e.g., 'step_f15853d2584e4096aeb60f11a3e6ea7c')"
     )
     depends_on: list[str] = Field(default_factory=list, description="IDs of steps that must complete first.")
     input_mappings: dict[str, str] = Field(

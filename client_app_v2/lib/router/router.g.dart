@@ -229,7 +229,7 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
       factory: $WorkflowNewRoute._fromState,
     ),
     GoRouteData.$route(
-      path: 'workflow/edit/:slug',
+      path: 'workflow/edit/:id/:slug',
       factory: $WorkflowEditRoute._fromState,
     ),
     GoRouteData.$route(
@@ -237,7 +237,7 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
       factory: $PromptBlockNewRoute._fromState,
     ),
     GoRouteData.$route(
-      path: 'prompt-block/edit/:slug',
+      path: 'prompt-block/edit/:id/:slug',
       factory: $PromptBlockEditRoute._fromState,
     ),
     GoRouteData.$route(path: 'step/new', factory: $StepNewRoute._fromState),
@@ -301,6 +301,7 @@ mixin $WorkflowNewRoute on GoRouteData {
 
 mixin $WorkflowEditRoute on GoRouteData {
   static WorkflowEditRoute _fromState(GoRouterState state) => WorkflowEditRoute(
+    id: state.pathParameters['id']!,
     slug: state.pathParameters['slug']!,
     $extra: state.extra as Map<String, dynamic>?,
   );
@@ -309,7 +310,7 @@ mixin $WorkflowEditRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location(
-    '/admin/workflow/edit/${Uri.encodeComponent(_self.slug)}',
+    '/admin/workflow/edit/${Uri.encodeComponent(_self.id)}/${Uri.encodeComponent(_self.slug)}',
   );
 
   @override
@@ -352,6 +353,7 @@ mixin $PromptBlockNewRoute on GoRouteData {
 mixin $PromptBlockEditRoute on GoRouteData {
   static PromptBlockEditRoute _fromState(GoRouterState state) =>
       PromptBlockEditRoute(
+        id: state.pathParameters['id']!,
         slug: state.pathParameters['slug']!,
         $extra: state.extra as Map<String, dynamic>?,
       );
@@ -360,7 +362,7 @@ mixin $PromptBlockEditRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location(
-    '/admin/prompt-block/edit/${Uri.encodeComponent(_self.slug)}',
+    '/admin/prompt-block/edit/${Uri.encodeComponent(_self.id)}/${Uri.encodeComponent(_self.slug)}',
   );
 
   @override

@@ -46,8 +46,8 @@ class BlueprintTransformer:
             return {}
 
         # Fetch the selected output profile from repository
-        default_profile_slug = workflow_data.get("default_profile_id", "default")
-        resolved_pid_request = profile_id if profile_id else default_profile_slug
+        default_profile_ref = workflow_data.get("default_profile_id", "default")
+        resolved_pid_request = profile_id if profile_id else default_profile_ref
 
         profile_data = None
 
@@ -68,10 +68,10 @@ class BlueprintTransformer:
                     break
 
         # 3. Fallback to default routing slug if requested was missing completely
-        if not profile_data and resolved_pid_request != default_profile_slug:
-            logger.warning(f"Profile {resolved_pid_request} not found, falling back to slug '{default_profile_slug}'")
+        if not profile_data and resolved_pid_request != default_profile_ref:
+            logger.warning(f"Profile {resolved_pid_request} not found, falling back to slug '{default_profile_ref}'")
             for p_dict in all_profiles_data:
-                if p_dict.get("slug") == default_profile_slug:
+                if p_dict.get("slug") == default_profile_ref:
                     profile_data = p_dict
                     break
 
@@ -110,7 +110,7 @@ class BlueprintTransformer:
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
         all_blocks = await self.repo.get_all_prompt_blocks()
-        blocks_by_slug = {b["id"]: b for b in all_blocks if "id" in b}
+        blocks_by_id = {b["id"]: b for b in all_blocks if "id" in b}
 
         # Pre-fetch DAG workflow steps for collision avoidance renaming
         workflow_steps = {s["id"]: s for s in workflow_data.get("steps", [])}
@@ -164,7 +164,7 @@ class BlueprintTransformer:
                             if is_suffix_key:
                                 continue
 
-                            block = blocks_by_slug.get(k)
+                            block = blocks_by_id.get(k)
 
                             # Adhere to Fail-Fast / Strict Domain Logic: Only print if key is a known Model Block (or legacy score)
                             if not block and not is_legacy_score:

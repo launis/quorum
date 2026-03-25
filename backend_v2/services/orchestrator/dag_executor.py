@@ -83,18 +83,18 @@ class NodeExecutor:
         trace: list[TraceEvent] | None = None
     ) -> list[TraceEvent]:
         try:
-            blueprint_slug = getattr(step, "task_blueprint", None)
-            if not blueprint_slug:
+            blueprint_id = getattr(step, "task_blueprint", None)
+            if not blueprint_id:
                 raise AppException(
                     message=f"Step {step.id} has no task_blueprint configured.",
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
                 )
 
-            step_def = await self.repository.get_step_by_id(blueprint_slug)
+            step_def = await self.repository.get_step_by_id(blueprint_id)
             if not step_def:
                 raise AppException(
-                    message=f"Configuration error: Step '{blueprint_slug}' not found.",
+                    message=f"Configuration error: Step '{blueprint_id}' not found.",
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
                 )

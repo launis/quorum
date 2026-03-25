@@ -227,9 +227,9 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
   path: '/admin',
   routes: <TypedRoute<RouteData>>[
     TypedGoRoute<WorkflowNewRoute>(path: 'workflow/new'),
-    TypedGoRoute<WorkflowEditRoute>(path: 'workflow/edit/:slug'),
+    TypedGoRoute<WorkflowEditRoute>(path: 'workflow/edit/:id/:slug'),
     TypedGoRoute<PromptBlockNewRoute>(path: 'prompt-block/new'),
-    TypedGoRoute<PromptBlockEditRoute>(path: 'prompt-block/edit/:slug'),
+    TypedGoRoute<PromptBlockEditRoute>(path: 'prompt-block/edit/:id/:slug'),
     TypedGoRoute<StepNewRoute>(path: 'step/new'),
     TypedGoRoute<StepEditRoute>(path: 'step/edit'),
     TypedGoRoute<ProfileEditorRoute>(path: 'profiles/:workflowSlug'),
@@ -248,34 +248,36 @@ class WorkflowNewRoute extends GoRouteData with $WorkflowNewRoute {
   const WorkflowNewRoute();
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const WorkflowBuilderView(slug: 'new');
+      const WorkflowBuilderView(id: 'new', slug: 'create');
 }
 
 class WorkflowEditRoute extends GoRouteData with $WorkflowEditRoute {
-  const WorkflowEditRoute({required this.slug, this.$extra});
+  const WorkflowEditRoute({required this.id, required this.slug, this.$extra});
+  final String id;
   final String slug;
   final Map<String, dynamic>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      WorkflowBuilderView(slug: slug, initialData: $extra);
+      WorkflowBuilderView(id: id, slug: slug, initialData: $extra);
 }
 
 class PromptBlockNewRoute extends GoRouteData with $PromptBlockNewRoute {
   const PromptBlockNewRoute();
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const PromptBlockBuilderView(slug: 'new');
+      const PromptBlockBuilderView(id: 'new', slug: 'create');
 }
 
 class PromptBlockEditRoute extends GoRouteData with $PromptBlockEditRoute {
-  const PromptBlockEditRoute({required this.slug, this.$extra});
+  const PromptBlockEditRoute({required this.id, required this.slug, this.$extra});
+  final String id;
   final String slug;
   final Map<String, dynamic>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      PromptBlockBuilderView(slug: slug, initialData: $extra);
+      PromptBlockBuilderView(id: id, slug: slug, initialData: $extra);
 }
 
 class StepNewRoute extends GoRouteData with $StepNewRoute {

@@ -158,7 +158,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         WorkflowEditRoute(
-                          slug: workflow['slug'] ?? workflow['id'],
+                          id: workflow['id']?.toString() ?? 'new',
+                          slug: workflow['slug']?.toString() ?? 'unknown-slug',
                           $extra: workflow,
                         ).go(context);
                       },
@@ -220,7 +221,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         PromptBlockEditRoute(
-                          slug: matrix['slug'] ?? matrix['id'],
+                          id: matrix['id']?.toString() ?? 'new',
+                          slug: matrix['slug']?.toString() ?? 'unknown-slug',
                           $extra: matrix,
                         ).go(context);
                       },

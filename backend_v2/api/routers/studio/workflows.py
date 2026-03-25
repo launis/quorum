@@ -15,10 +15,10 @@ async def get_workflows(current_user: CurrentUserDep, studio_service: StudioServ
     """Retrieve all V2 dynamic workflow definition blocks securely via SSOT Service Layer."""
     return await studio_service.list_workflows(current_user)
 
-@router.get("/by-slug/{slug}", response_model=Workflow)
-async def get_workflow_by_slug(slug: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
-    """Retrieve a specific workflow definition by slug securely via SSOT Service Layer."""
-    return await studio_service.get_workflow_by_slug(current_user, slug)
+@router.get("/{id}", response_model=Workflow)
+async def get_workflow(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
+    """Retrieve a specific workflow definition by id securely via SSOT Service Layer."""
+    return await studio_service.get_workflow(current_user, id)
 
 
 

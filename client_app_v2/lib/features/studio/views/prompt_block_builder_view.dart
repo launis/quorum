@@ -20,21 +20,22 @@ import 'package:client_app/core/models/prompt_block_category.dart';
 /// Integrates XAI (Explainable AI) controls directly into criteria definitions
 /// and provides a global "Strictness/Kireys" calibration slider.
 class PromptBlockBuilderView extends ConsumerWidget {
+  final String? id;
   final String? slug;
   final Map<String, dynamic>? initialData;
 
-  const PromptBlockBuilderView({super.key, this.slug, this.initialData});
+  const PromptBlockBuilderView({super.key, this.id, this.slug, this.initialData});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (initialData != null && initialData!.isNotEmpty) {
       return _PromptBlockBuilderForm(promptBlock: initialData!);
     }
-    if (slug == null || slug!.isEmpty || slug == 'new') {
+    if (id == null || id!.isEmpty || id == 'new') {
       return const _PromptBlockBuilderForm(promptBlock: {});
     }
 
-    final asyncData = ref.watch(promptBlockBySlugProvider(slug!));
+    final asyncData = ref.watch(promptBlockByIdProvider(id!));
     return asyncData.when(
       data: (matrix) => _PromptBlockBuilderForm(promptBlock: matrix),
       loading:
@@ -44,7 +45,7 @@ class PromptBlockBuilderView extends ConsumerWidget {
           (e, st) => ErrorView(
             error: e,
             stackTrace: st,
-            onRetry: () => ref.invalidate(promptBlockBySlugProvider(slug!)),
+            onRetry: () => ref.invalidate(promptBlockByIdProvider(id!)),
           ),
     );
   }

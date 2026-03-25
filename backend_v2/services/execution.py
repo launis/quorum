@@ -153,13 +153,13 @@ class ExecutionService:
             )
 
             prompt_blocks_refs = step_dict.get("prompt_blocks", [])
-            for pb_slug in prompt_blocks_refs:
-                pb_dict = await self.repo.get_prompt_block(pb_slug)
+            for pb_id in prompt_blocks_refs:
+                pb_dict = await self.repo.get_prompt_block(pb_id)
                 if not pb_dict:
                      # V2 strictly says Fail Fast to guarantee auditability:
                      from backend_v2.exceptions import ConfigurationError
                      msg = (
-                         f"SDUI Engine Error: PromptBlock '{pb_slug}' is missing "
+                         f"SDUI Engine Error: PromptBlock '{pb_id}' is missing "
                          f"but referenced in step '{step_rule.task_blueprint}'."
                      )
                      logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
@@ -189,8 +189,8 @@ class ExecutionService:
                 label_obj = pb_dict.get("label", {})
 
                 # Lock the hint
-                ui_hints[pb_slug] = DataDictionaryField(
-                    field_id=pb_slug,
+                ui_hints[pb_id] = DataDictionaryField(
+                    field_id=pb_id,
                     component_type=comp_type,
                     options=[{"label": label_obj}] if label_obj else None,
                     validation_rules={"max": max_val}
