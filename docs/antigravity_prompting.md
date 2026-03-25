@@ -19,15 +19,16 @@ Select the appropriate instruction block from the text and copy it as a whole to
 ```text
 Goal: [WRITE GOAL. Ex: "Design and implement a new reporting module and UI"]
 
-ROLE: Principal Solutions Architect (2026 Context - Phase 9 Hardening).
+ROLE: Principal Solutions Architect (2026 Context - Phase 9 Hardening & Desktop-Class IDE).
 REFERENCE: `GEMINI.md` or `AGENTS.md` (Read first. Absolute law).
 
 INSTRUCTIONS (LEVEL 1):
 1. READ: Do NOT write code yet. Familiarize yourself with the architectural laws.
 2. PLAN: Create an `implementation_plan.md` breaking this goal into several smaller independent Milestones.
-3. SEQUENCE: Every milestone MUST strictly follow the V2 architecture sequence (Dependencies -> Pydantic Models -> L10n -> Repo -> API -> Frontend Controller -> UI). Note: Frontend domain data MUST NOT use generated models (See `flutterpromptohje.md` - Section 1.2 Banned Patterns).
-4. SCOPING: Explicitly map which files are `TARGET (Modify)` and which are `CONTEXT (Read-Only)`.
-5. PAUSE: Present the plan and WAIT for explicit approval ("PERMISSION GRANTED"). Do not implement anything.
+3. SEQUENCE: Every milestone MUST strictly follow the V2 architecture sequence (Dependencies -> Pydantic Models -> L10n -> Repo -> API -> Frontend Controller -> UI). Note: Frontend domain data MUST NOT use generated models.
+4. UI/UX SCOPING (DESKTOP-FIRST): Remember the Frontend is an IDE-like Desktop-Class Pro Tool. Plan for PC constraints first (>1200dp Three-Pane Layouts, 2D Infinite Canvas, high information density), and gracefully degrade to mobile.
+5. SCOPING: Explicitly map which files are `TARGET (Modify)` and which are `CONTEXT (Read-Only)`.
+6. PAUSE: Present the plan and WAIT for explicit approval ("PERMISSION GRANTED"). Do not implement anything.
 ```
 
 ---
@@ -61,8 +62,8 @@ Goal: [WRITE GOAL HERE. Ex: "Create a new tab in settings" OR "Refactor file X t
 ROLE: Senior Developer (2026 Context).
 INSTRUCTIONS (LEVEL 3A):
 1. PLAN: Read related files. Create a quick execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files.
-2. FAIL-FAST: State where `AppException` will be raised if data is missing. Do not use fallbacks (Ref: `flutterpromptohje.md` - Section 6.1 Strict RFC 7807 Pattern).
-3. UI/UX: Output localized keys only via the API. Do not hardcode frontend strings (Ref: `flutterpromptohje.md` - Section 8.6 Frontend ICU Formatting).
+2. FAIL-FAST: State where `AppException` will be raised if data is missing. Do not use fallbacks.
+3. PRO-TOOL UI/UX: Output localized keys only via the API. Do not hardcode frontend strings. If building UI, ensure PC-class support (Compact density, keyboard shortcuts, hover states, right-click menus) alongside touch fallbacks. Do not build mobile-only layouts for the Admin Studio.
 4. EXECUTE & PAUSE: Present the root cause or execution plan, get confirmation ("PERMISSION GRANTED"), and write the code adhering strictly to the Single Source of Truth rules defined in `GEMINI.md` or `AGENTS.md`.
 ```
 
@@ -72,7 +73,7 @@ Goal: [WRITE BUG HERE. Ex: "API throws a 500 error on the /profile route"]
 
 ROLE: Lead Security & Quality Auditor (2026 Context).
 INSTRUCTIONS (LEVEL 3B):
-1. IDENTIFY: Trace data flow to its origin. DO NOT patch symptoms (Ref: `flutterpromptohje.md` - Section 2.2 Root Cause Mandate). DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.
+1. IDENTIFY: Trace data flow to its origin. DO NOT patch symptoms. DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.
 2. EXPLAIN: Explain the Root Cause of the bug briefly.
 3. FIX: Propose an atomic code fix that forces the code back into the Pydantic V2 Strict / Fail-Fast paradigm. Wait for "PERMISSION GRANTED" before modifying files.
 ```
@@ -84,7 +85,7 @@ Goal: Audit the newly written files: [WRITE FILES HERE, e.g., /backend/api/route
 ROLE: Ruthless Code Reviewer (2026 Context).
 INSTRUCTIONS (LEVEL 3C):
 1. Review the provided targets aggressively against the Single Source of Truth architecture rules linked in `GEMINI.md` or `AGENTS.md`.
-2. Look strictly for: `try-except pass` blocks, silent `{}` returns masking data errors, naked `ValueError` raises, implicit domain defaults (like `score = 0.0`), and hardcoded localization strings in the backend.
+2. Look strictly for: `try-except pass` blocks, silent `{}` returns masking data errors, naked `ValueError` raises, implicit domain defaults (like `score = 0.0`), Main Thread Jank risks (missing `Isolate.run` on heavy JSON), and hardcoded localization strings.
 3. REPORT: If ANY critical violation is discovered, refuse to pass the code. Fix them immediately using strict best practices.
 ```
 
@@ -115,12 +116,21 @@ Bypassing these instructions and tinkering with the live DB (`db_v2.json`) corru
 
 ---
 
+### 💡 BEST PRACTICES FOR EPIC EXECUTION (Mitigating AI Fatigue & Amnesia)
+*Use these strategies when executing long Epics (Tier 1 -> Tier 2).*
+
+1. **Mitigate "Testing Mandate Fatigue":** Do not group backend features, frontend UI, and their tests into a single `task.md` milestone. If an AI is asked to write all 3 at once and test them, its context window and token output limit will be exhausted, leading to truncated code and bugs. **Solution:** Split milestones surgically (e.g., Step 1a: Backend Router, 1b: Backend Test, 1c: Flutter UI).
+2. **Prevent V2 vs V3 "Amnesia" (Legacy Mimicking):** The Quorum codebase is migrating to V3 Event Sourcing. When the AI reads old V2 code, it tends to mimic old anti-patterns (e.g., dictionary mutations, `try-except pass`). **Solution:** Always remind the AI to prioritize the V5.2 Mandate over existing surrounding legacy code. Warn it: "Do NOT mimic legacy patterns you see in this file. Force strictly into V3 Pydantic."
+3. **Prevent Context Drift:** After 10+ messages of deep debugging (e.g. executing Tier 3B), the AI will start forgetting the Universal Mandate originally given at the start of the chat. **Solution:** Every time you start a new day, or finish a long debugging detour, re-paste the **Tier 2 Prompt + Universal Mandate** to reset the AI's architectural awareness before saying "PROCEED" to the next step.
+
+---
+
 ## 🚨 UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (ALWAYS attach to everything)
 
 *(Always copy this after all Tier 1, 2, and 3 prompts.)*
 
 ```text
-*** UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (V5.1 - PHASE 9 HARDENING) ***
+*** UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (V5.2 - PHASE 9 HARDENING & DESKTOP UI) ***
 
 1. ANTI-HALLUCINATION & FILE SCOPING PROTOCOL:
    - Read-Before-Write: NEVER guess the contents of a file. Use your tools to read the current context before proposing modifications.
@@ -128,27 +138,35 @@ Bypassing these instructions and tinkering with the live DB (`db_v2.json`) corru
 
 2. ARCHITECTURAL BANS & MANDATORY VERIFICATION (Non-Negotiable - Enforced by Strict Mandates):
    - You MUST adhere to the Single Sources of Truth defined in `GEMINI.md` or `AGENTS.md`.
-   - AI VERIFICATION MANDATE: You (the AI assistant) MUST actively verify your compliance with the V2 Architecture on EVERY task. Before writing any code, you MUST explicitly state that the V2 Architecture has been taken into account and briefly explain how your proposed solution complies with its core tenets (e.g., Pydantic schemas, Zero-Deploy logic, SDUI, Riverpod state).
+   - AI VERIFICATION MANDATE: You (the AI assistant) MUST actively verify your compliance with the V2 Architecture on EVERY task. Before writing any code, you MUST explicitly state that the V2 Architecture has been taken into account.
    - Backend: NO `try-except pass`. NO raw `dict` returns from Agents (Strict Pydantic V2 only). NO legacy `Depends` (Use `Annotated`). NO business logic in Routers. NO `HTTPException` (Use `AppException` & RFC 7807). No default values in domain models unless logically strictly necessary.
    - The Three Pydantic Boundaries (API, Service, Middleware):
-     1. **API Ingestion (Generic IN -> Strict OUT)**: The API Routers (`backend_v2/api/`) MUST take raw JSON/Dict from the web and immediately force it into a strict Pydantic DTO before handing it to the Service layer. Services never accept raw dicts from routers.
-     2. **Service Layer (Strict IN -> Strict OUT)**: The business logic (`backend_v2/services/`) is the absolute gatekeeper. It ONLY accepts Pydantic models from the routers, and any data it fetches from the `repository` (TinyDB/Firestore) MUST be instantly hydrated into a Pydantic model (`Model.model_validate(data)`) before any logic is applied. 
-     3. **DAG/Middleware (⚠️ V3 EVENT SOURCING IN PROGRESS)**: The execution pipeline is actively moving away from dictionary mutations (`shared_state_data`). Logic Nodes (Reducers) are now pure functions that MUST read the folded state via `StateProjector` and emit new `TraceEvent` objects. They DO NOT mutate old dictionaries and DO NOT perform batch database I/O (this is handled by the `ExecutionCommitter`). Until the migration is complete, some older V2 hooks may still require dictionaries, BUT any new logic MUST adhere to the V3 append-only Event Sourcing pattern.
-   - Frontend: Code MUST comply with the rules defined in `c:\src\quorum\docs\flutterpromptohje.md` (See Section 5. FLUTTER CLIENT MANDATES and Section 7. HYBRID BFF & OMNI-CHANNEL RENDERING). Use Riverpod 3.0 code generation (`@riverpod`). **Use Freezed ONLY for static local UI state (e.g. User, Settings). Dynamic Backend-For-Frontend (BFF) ViewModel Payloads MUST use raw `Map<String, dynamic>` (De-Generator Policy)** to maintain Zero-Deploy flexibility. Data management is kept small and concise. All asynchronous data must be rendered in the UI following the formal model. Routing MUST use `GoRouteData`. NO manual `if(isLoading)` checks (Use `.when()`). NO `Future.wait` monoliths for State.
-   - L10N (No-String Policy & 5-Layer Localization Strategy, defined in `flutterpromptohje.md` - Section 8. INTERNATIONALIZATION POLICY): Backend MUST return Enum Keys (e.g., `AUTH_ORGANIC`). Raw UI strings are BANNED in Python APIs. Backend resolves dynamic translations late in the pipeline (Layer 5) via The Translation Schema Doctrine (`BlueprintTransformer`). Static translations live exclusively in Frontend `.arb` files executing ICU formats. No manual string concatenation.
-   - Error Handling: Errors in UI must be localized and caught using double-reporting following the protocol in `flutterpromptohje.md` (See Section 6. ERROR HANDLING CONTRACT).
+     1. **API Ingestion (Generic IN -> Strict OUT)**: The API Routers (`backend_v2/api/`) MUST take raw JSON/Dict from the web and immediately force it into a strict Pydantic DTO.
+     2. **Service Layer (Strict IN -> Strict OUT)**: The business logic (`backend_v2/services/`) ONLY accepts Pydantic models from the routers and instantly hydrates DB data into Pydantic models before logic. 
+     3. **DAG/Middleware (⚠️ V3 EVENT SOURCING IN PROGRESS)**: Logic Nodes (Reducers) are pure functions emitting new `TraceEvent` objects. They DO NOT mutate old dictionaries and DO NOT perform batch database I/O.
+   - Frontend (Flutter UI / State Rules): Code MUST comply with the rules defined in `c:\src\quorum\docslutterpromptohje.md`. Use Riverpod 3.0 code generation (`@riverpod`). **Use Freezed ONLY for static local UI state. Dynamic Backend-For-Frontend (BFF) ViewModel Payloads MUST use raw `Map<String, dynamic>` (De-Generator Policy)**. Routing MUST use strongly typed `GoRouteData` to support PC multi-tab Deep Linking. NO manual `if(isLoading)` checks (Use `.when()`). NO `Future.wait` monoliths for State.
+   - DESKTOP-FIRST & PRO-TOOL MANDATE (Flutter): Admin Studio is a professional IDE, NOT a consumer mobile app. All UI must be designed "Desktop-First".
+     1. Breakpoints: >1200dp (PC/Ultrawide) MUST use a Three-Pane Layout (Nav -> Master List -> Inspector/Canvas). Tablets (600-1199dp) use Two-Pane splits. Mobile (<600dp) uses standard NavigationBar/Stack.
+     2. Information Density: For PC, force `VisualDensity.compact` to maximize data visibility (e.g., DataGrids instead of space-wasting ListViews).
+     3. Power-User Modalities: You MUST support keyboard shortcuts (e.g. `Ctrl+S`), Context Menus (Right-click), and Hover tooltips.
+     4. Infinite Canvas: Complex DAGs/Workflows on PC must be built on a pan/zoomable 2D Canvas (`InteractiveViewer`), not vertical lists.
+     5. Accessibility Fallback: All drag & drop or precise mouse interactions MUST have a touch-accessible fallback (e.g., Up/Down arrows).
+     6. Performance (Isolates): Heavy JSON deserialization MUST run in background isolates (`Isolate.run()`) to prevent Main Thread Jank on 120Hz/144Hz PC displays.
+     7. Zero-Math UI: UI must NOT calculate DAGs or format data mathematically. Use backend `/render` and `/simulate` endpoints.
+   - L10N (No-String Policy & 5-Layer Localization Strategy): Backend MUST return Enum Keys (e.g., `AUTH_ORGANIC`). Raw UI strings are BANNED in Python APIs. Backend resolves dynamic translations late in the pipeline via `BlueprintTransformer`. Static translations live exclusively in Frontend `.arb` files executing ICU formats. No manual string concatenation.
+   - Error Handling: Errors in UI must be localized and caught using double-reporting following the protocol in `flutterpromptohje.md` (See Section 6. ERROR HANDLING CONTRACT). Display PC errors as Snackbars, not full-screen modals.
 
 3. THE ZERO-COMPROMISE PLEDGE (Fail Fast & Root Cause):
    - If data is invalid or missing, crash immediately at the Service boundary. Do not return `None` or `{}` to silently bypass errors. Fix the root cause.
-   - Exception: The Omni-Channel Rendering layer MUST use graceful degradation (e.g., returning `{}` or `SizedBox.shrink()` on UI) for missing specialist data to prevent total UI crashes, but must log an explicit warning (`logger.warning(...)` / `debugPrint(...)`).
+   - Exception: The Omni-Channel Rendering layer MUST use graceful degradation (e.g., returning `{}` or `SizedBox.shrink()` on UI) for missing specialist data to prevent total UI crashes, but must log an explicit warning.
    - Dual-Reporting Python: Always log errors structurally (`logger.error`) BEFORE raising `AppException`.
 
 4. EDITING SAFETY (Anti-Duplication Protocol):
    - When modifying a file, explicitly DELETE or OVERWRITE the old version. NEVER append the new version to the end of the file while leaving the old one intact.
 
-5. DATA PARITY & OPTIMISTIC UI:
-   - Backend: Any database repository change MUST be implemented centrally in `UnifiedWorkflowRepository`. The underlying `StorageDriver` pattern automates the physical Cloud/Local parity. (Note: The legacy dual-write `firestore_repo.py` pattern is BANNED and deleted).
-   - Frontend: Implement Optimistic Updates for all mutations (update cache before network call, rollback if error).
+5. DATA PARITY & OPTIMISTIC UI (ZERO-LATENCY ILLUSION):
+   - Backend: Any database repository change MUST be implemented centrally in `UnifiedWorkflowRepository`. 
+   - Frontend: Implement Optimistic Updates for all mutations via Riverpod 3.0 `Mutation<void>`. **Full-screen loading spinners and manual `_isLoading` flags are BANNED in desktop IDE views.** Update the UI cache instantly to maintain the zero-latency PC illusion, and rollback ONLY if the backend throws a Fail-Fast error.
    
 6. OUTPUT FORMAT REQUIREMENTS:
    - Language Strategy: Antigravity Prompts / Code Blocks MUST be in English. Explanations/Context MUST be in Finnish.
@@ -160,7 +178,7 @@ Bypassing these instructions and tinkering with the live DB (`db_v2.json`) corru
    - Resolve ALL syntax and typing errors before declaring the step or ticket complete.
 
 8. DATABASE:
-   - If changing database execute it according to `docs/antigravity_prompting.md` / `3D. SEED DATA VAULT PROTOCOL (C-level configuration changes)` rules.
+   - If changing database execute it according to `3D. SEED DATA VAULT PROTOCOL (C-level configuration changes)` rules.
 
 9. TESTING MANDATE (WHENEVER YOU CHANGE CODE):
    - Whenever code is changed, refactored, or new features are added, you MUST ALWAYS write new automated tests OR fix existing old tests for both the Flutter and Python sides. The code is not considered complete until a reliable test verifies the change.

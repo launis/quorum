@@ -15,23 +15,27 @@
 
 ## 🛑 1. PRE-FLIGHT CHECKLIST & TOOLING (MANDATORY)
 
-### 1.1 Baseline Dependencies (Latest Stable Mandate)
-Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla. Pysy näissä tai uudemmissa:
+### 1.1 Baseline Dependencies & Tooling (2026 Standard)
+Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla tai vanhoilla pakettimanagereilla.
+* **Paketinhallinta:** Järjestelmä käyttää yksinomaan salamannopeaa **`uv`**-työkalua (Rust-pohjainen). Kaikki skriptit ja linterit ajetaan komennolla `uv run`. `pip`, `poetry` tai `pipenv` ovat kiellettyjä.
 * **Backend (Python 3.14.2+, FastAPI 0.128+)**: `pydantic 2.12.5+`, `litellm 1.81.3+`, `tenacity 9.1.2+`.
 * **Frontend (Dart 3.11, Flutter)**: `flutter_riverpod ^3.1.0`, `go_router ^17.0.1+`, `freezed ^3.2.3`.
 
-### 1.2 Banned Patterns
+### 1.2 Banned Patterns (Language & State)
 | Area | Modern Requirement (MANDATORY) | Banned Pattern |
 | :--- | :--- | :--- |
-| **State** | Use `@riverpod` (Generator) + `ref.watch()` | `ChangeNotifier`, `StateProvider`, manual `Provider` |
-| **Routing** | Use `GoRouteData` (Type-safe classes) | Raw strings: `context.push('/home')` |
+| **Python Typing** | `str \| None`, `list[int]`, `dict[str, Any]` | `Optional[str]`, `Union[...]`, `typing.List`, `typing.Dict` |
+| **Python Generics** | PEP 695: `type Alias = ...`, `def func[T](x: T):` | `TypeVar('T')` (Legacy generics), `TypeAlias` |
+| **Python Async** | `asyncio.TaskGroup()` (Structured Concurrency) | Bare `asyncio.create_task()`, raw `asyncio.gather()` |
+| **Python Logging** | Structured Logs: `logger.error("fail", extra={"id": 1})` | F-strings in logs: `logger.error(f"fail {id}")` |
+| **Inheritance** | PEP 698: Use `@override` from `typing` | Silently overriding interface methods |
+| **State (Flutter)** | Use `@riverpod` (Generator) + `ref.watch()` | `ChangeNotifier`, `StateProvider`, manual `Provider` |
+| **Routing (Flutter)**| Use strongly typed `GoRouteData` classes | Raw strings: `context.push('/home')` |
 | **API** | Use `Annotated[Dep, Depends()]` | `params: Dep = Depends()` (Old syntax) |
-| **Models (Backend)** | Use `model_validate`, `model_dump` | `.parse_obj()`, `.dict()` |
-| **Domain Data (Frontend)** | `Freezed` for Local UI State (User, Settings). Raw `Map<String, dynamic>` for Dynamic API Payloads (De-Generator Policy). | Pure `Map<String, dynamic>` for Local State (Too slow to type and parse) / Freezed for BFF ViewModels (Breaks Zero-Deploy). |
 
 ### 1.3 Routine Quality Gates (Verifications)
 Älä koskaan merkitse työtä valmiiksi tarkistamatta sitä manuaalisesti laadunvarmistustyökaluilla:
-* **Backend**: `ruff check . --fix` AND `mypy .` (Strict typing).
+* **Backend**: `uv run ruff check . --fix` AND `uv run mypy .` (Strict typing).
 * **Frontend**: `dart run custom_lint` AND `dart run build_runner build -d`.
 
 ### 1.4 Environment Constraints
@@ -92,58 +96,68 @@ Tämän ohjeen kiertäminen ja kannan (`db_v2.json`) sorkkiminen lennossa korrup
 
 ---
 
-## 🐍 4. PYTHON BACKEND MANDATES
+## 🐍 4. PYTHON BACKEND MANDATES (3.14+ STRICT STANDARDS)
 
-### 4.1 Framework Features
-* **DI (Dependency Injection)**: Pakotettu `Annotated[Type, Depends()]` -syntaksi. Suojaa tyypit ja poistaa "Any" -vuodot reiteistä.
-* **Asynk/Synk Rajoite**: Jos reitti lukee vain TinyDB:tä (joka on luksattu blocking-ajuri), reitin määritys tulee olla puhdas `def`. Jos tiedonlähde on Cloud (Firebase), käytä asynkronista `async def`. FastAPI optimoi nämä omiin lankapoolihinsa.
+### 4.1 Framework Features & FastAPI Lifespan
+* **DI (Dependency Injection)**: Pakotettu `Annotated[Type, Depends()]` -syntaksi. Suojaa tyypit ja poistaa "Any" -vuodot reiteistä. Vanha `param: Type = Depends()` on legacyä.
+* **FastAPI Lifespan**: Vanhat `@app.on_event("startup")` dekoraattorit ovat poistuneet (deprecated). Kaikki tietokanta- ja worker-alustukset tehdään puhtaalla `@asynccontextmanager` (Lifespan) -rakenteella `main.py`:ssä.
+* **Asynk/Synk Rajoite**: Jos reitti lukee vain TinyDB:tä (joka on lukittu blocking-ajuri), reitin määritys tulee olla puhdas `def`. Jos tiedonlähde on Cloud (Firebase) tai suoritetaan LLM-kutsu, käytä asynkronista `async def`. FastAPI optimoi nämä omiin lankapoolihinsa.
 
-### 4.2 API Boundary & Schema-First (No-ORM)
+### 4.2 Modern Syntax & Typing Strictness (PEP 695, PEP 604, PEP 698)
+Python 3.14 -ympäristössä koodin on oltava sataprosenttisesti modernia syntaksia. "Legacy"-tyypityksen käyttö hylätään linterissä (Mypy Strict).
+* **Kielletyt**: `typing.Union`, `typing.Optional`, `typing.List`, `typing.Dict`, `TypeAlias`, `TypeVar`.
+* **Vaaditut**: Käytä or-operaattoria (`str | None`), natiivikokoelmia (`list[MyModel]`) sekä uutta tyyppiparametrisyntaksia (esim. `type StripeId = str` ja `class Service[T]:`).
+* **Perintä (`@override`)**: Kun implementoit Service-kerroksessa tai Repositoryssa perusluokan/interfacen metodia, sinun **ON PAKKO** käyttää `typing.override` -dekoraattoria. Se katkaisee ohjelman (Fail-Fast) heti `mypy`:ssä, jos rajapinnan muoto on muuttunut, suojellen koodikantaa hiljaisilta virheiltä.
+
+### 4.3 Structured Concurrency & TaskGroups (Ei Orpoja Säikeitä)
+Rinnakkaiset LLM-pyynnöt ja asynkronisten I/O-tehtävien hallinta (esim. rinnakkaiset reititykset tai MCP-haut) **ei saa koskaan** käyttää vanhaa `asyncio.gather()` tai vapaata `asyncio.create_task()` -metodia, koska ne voivat jättää taustalle zombiprosesseja yhden kaatuessa.
+* **Mandaatti:** Kaikki uusi asynkroninen rinnakkaisuus kääritään Python 3.11+ **`asyncio.TaskGroup()`** -kontekstiin.
+* **Miksi?** Jos DAG-verkossa yksi LLM-agentti nostaa virheen tai aikakatkeaa (Fail-Fast), `TaskGroup` peruuttaa automaattisesti (Graceful Cancellation) kaikki muut käynnissä olevat rinnakkaiset LLM-kyselyt. Tämä säästää välittömästi Token-kustannuksia, estää muistivuodot ja poistaa orpojen säikeiden riskin. Rinnakkaiset virheet napataan kiinni `ExceptionGroup` -oliosta uudella `except*` -syntaksilla.
+
+### 4.4 API Boundary, Schema-First & Event Sourcing
 * JSON-datansiirtoon on kiellettyä käyttää `dict` tai tyypittämätöntä datakenttää HTTP-rajapinnassa. Request/Response -kappaleet ovat aina vahvasti rajattuja Pydantic-malleja (`response_model`).
 * **The Three Pydantic Boundaries (API, Service, Middleware)**: 
-  1. **API Ingestion (Generic IN -> Strict OUT)**: Kun data saapuu ulkomaailmasta (Web/Flutter) sisään Backendin API-reitittimiin (`backend_v2/api/`), se ON PAKOTETTAVA välittömästi tiukkaan Pydantic DTO -malliin ennen kuin sitä saa siirtää Service-kerrokselle. Service-kerros ei ota vastaan tyhmiä sanakirjoja.
-  2. **Service Layer (Strict IN -> Strict OUT)**: Liiketoimintalogiikka (`backend_v2/services/`) on järjestelmän ehdoton portinvartija. Se ottaa API:lta vastaan vain puhdasta Pydanticia. Kaikki tietokannasta (`repository`) haettava data on myös VÄLITTÖMÄSTI hydratoitava Pydantic-malleihin (`Model.model_validate(data)`) ennen kuin logiikkaa suoritetaan.
-  3. **Middleware (Strict Context -> Generic Data OUT)**: Koko post-hook arkkitehtuuri (`backend_v2/hooks/`), DAG-putkisto ja tallennuslokit toimivat päinvastoin datan suhteen: ne ovat 100% litetyssä Sanakirja-maailmassa. Middlewaren sisään EI SAA kirjoittaa Pydantic-fallbackeja kognitiiviseen dataan (esim. `hasattr(item, "model_dump")`). Agentit pakottavat Pydanticin luontihetkellä (Fail-Fast), mutta DAG takaa, että eteenpäin hookeille siirrettävä tulosdata on aina turvallisesti riisuttua `.model_dump(mode="json")` muotoa. **KUITENKIN: Ohjelman sisäiset riippuvuudet ja kontrollimuuttujat (esim. `_sys_repository`, `execution_id`) EIVÄT OLE sanakirjadataa, vaan ne on pakastettava tiukasti tyypitettyyn `HookExecutionContext` -objektiin Fail-Fast injektion ja tyyppiturvallisuuden takaamiseksi.**
+  1. **API Ingestion (Generic IN -> Strict OUT)**: Reitittimien ON PAKOTETTAVA data heti tiukkaan Pydantic DTO -malliin. Service-kerros ei ota vastaan tyhmiä sanakirjoja.
+  2. **Service Layer (Strict IN -> Strict OUT)**: Liiketoimintalogiikka on ehdoton portinvartija. Se ottaa API:lta ja Tietokannasta vastaan vain puhdasta, validoitua Pydanticia (`Model.model_validate(data)`).
+  3. **Middleware / Event Sourcing (V3)**: DAG-putkisto ja tallennuslokit (`TraceEvent`) on käsiteltävä tyyppiturvallisesti. Reititä uudet tapahtumat (esim. Event Reducers) käyttämällä Pythonin **Pattern Matchingia (`match / case`)**. Pitkät `if isinstance()` -ketjut ovat kiellettyjä solmujen tyyppien arvioinnissa, sillä `match/case` on tyyppiturvallisempi, nopeampi ja pakottaa käsittelemään kaikki vaihtoehdot. Ohjelman sisäiset riippuvuudet pakastetaan tiukasti tyypitettyyn `HookExecutionContext` -objektiin Fail-Fast injektion takaamiseksi.
 * **No-ORM**: Ei SQLAlchemyä. Pydantic kuvaa suoraan tietokannan dokumenttirakenteen (NoSQL) 1:1.
 
-### 4.3 Null-Safety v2.12
+### 4.5 Null-Safety & Date Handling (Temporal Standard)
 * API-rajapinta ei halua palauttaa asiakkaalle tyhjän listan tilalla `null`. Käytä listoille Pydanticissä automaattisesti reagoivaa syntaksia: `Field(default_factory=list)`.
-
-### 4.4 Date Handling (Temporal Standard)
-* Talletus aina formatoituna aikaleimana UTC-ajassa (`datetime.now(timezone.utc)`). API:ssa muunnetaan muotoon `isoformat()` automaattisesti.
+* Kentät, jotka voivat olla tyhjiä, määritellään aina muodossa `field_name: str | None = None`. Implisiittinen arvon arvaaminen on kielletty.
+* **Aikaleimat:** Talletus aina formatoituna aikaleimana UTC-ajassa käyttäen modernia Python-singletonia: `datetime.now(datetime.UTC)`. Hitaampi `timezone.utc` on legacyä. API:ssa muunnetaan muotoon `isoformat()` automaattisesti. Älä ikinä käytä aikaleimoja ilman aikavyöhykettä (naive datetime).
 
 ---
 
-## 💙 5. FLUTTER CLIENT MANDATES
+## 💙 5. FLUTTER CLIENT MANDATES (DESKTOP-FIRST & PRO-TOOL)
 
-### 5.1 Riverpod 3.0 State & Optimistic Updates
-* Luovu "Odotan vastausta 2 sekuntia - spinneri pyörii" UX-suunnittelusta.
-* Kaikkiin tilamuutoksiin käytetään **Optimistista Päivitystä** (Tila paikallisesti = Päivitetty jono $\rightarrow$ Lähetä serverille $\rightarrow$ Jos ei onnistunut, peruuta näyttö tilaan x). Muuten käyttöliittymä reagoi liian viiveellä (Network latency hit).
+### 5.1 Desktop-First, PC Breakpoints & Information Density
+Quorum ei ole kuluttajille suunnattu mobiilisovellus, vaan **ammattilaisten IDE-työkalu (Pro Tool)**. Käyttöliittymä ja komponentit suunnitellaan aina työpöytä (Desktop) edellä:
+* **PC-luokan Breakpointit:** Näyttötila jaetaan kolmeen tiukkaan murtumispisteeseen:
+  1. **PC / Ultrawide (>1200dp):** Vaatii **Three-Pane Layoutin** (Sivupalkki -> Master-lista -> Työtila/Canvas). Sarakkeiden välillä käytetään hiirellä säädettäviä jakajia (Resizable Splitters).
+  2. **Tabletti / Kannettava (600dp - 1199dp):** Vaatii **TwoPane (Split-Screen)** -asettelun rinnakkain.
+  3. **Mobiili (<600dp):** Degradoituu alalaidan `NavigationBar`-komponenttiin ja koko ruudun peittäväksi pino-navigaatioksi (Stack Navigation).
+* **Information Density (Datan tiheys):** Isoilla näytöillä tyhjän tilan ("white space") tuhlaus on kielletty. Yli 600dp näytöillä Flutterin teema pakotetaan tilaan `VisualDensity.compact`, mikä maksimoi kerralla näkyvän informaation. Pitkissä luetteloissa suositaan tiheitä DataGrid-taulukoita löyhien listojen sijaan.
+* **Power-User Modalities (Hiiri ja Näppäimistö):** Järjestelmän on tuettava natiivisti tehokäyttöä: Context Menus (hiiren oikea painike), Hover-työkaluvihjeet (esim. XAI-rajoitteet), pikanäppäimet (`Ctrl+S`, `Del`) ja Shift/Ctrl -monivalinnat. Kaikille monimutkaisille hiirieleille (kuten Drag & Drop) on tarjottava kosketusnäytöllä toimiva saavutettava varamekanismi (esim. Ylös/Alas -painikkeet) virhepainallusten ("Fat Finger") estämiseksi.
 
-### 5.2 GoRouter & Declarative UI
+### 5.2 GoRouter, Deep Linking & Moniajo (Multi-Tab)
 * Sovelluksen sisälle navigoiminen tapahtuu luokkapohjaisesti `GoRouteData`. Raakamuotoisten `/` ja `/login` reittien kirjoittelu UI:n sekaan on bugi.
-* **Guard Clauses:** Reitinvalintalogiikka (kuka saa mennä minnekin ja tila) keskitetään yksinomaan reitittimen `redirect`-funktioon, ei manuaalisesti widgetien `build()`-luokkiin.
-* Unohda `if(isLoading) return Spinner()`. Tieto tulee syleillä muodossa `ref.watch(provider).when(data: ..., loading: ..., error: ...)`.
-* **Relaatiodatan Hallinta:** Vältä massiivisia `Future.wait` monoliitiveja asynk-tarpeissa. "Yhden providerin tulisi ladata yksi asia." litteästi ja natiivisti erillään muista.
+* **Deep Linking ja Moniajo (PC):** PC-käyttäjät avaavat näkymiä säännöllisesti uusiin selaimen välilehtiin (Multi-Tab). Vahvasti tyypitetty reititys (jossa "Opaque Stripe ID" kulkee validina parametrina tyyliin `/workflows/wf_xyz`) on elinehto, jotta syvälinkit toimivat saumattomasti ja yksittäisiä työnkulkuja voidaan jakaa URL-osoitteena tiimin kesken ilman tilan korruptoitumista.
+* **Hybrid URL Pattern (Opaque ID + Slug):** Jos halutaan SEO:n tai ihmisluettavuuden takia näyttää entiteetin nimi URL:ssa (esim. `/workflows/wf_xyz/my-workflow`), reititin ja Backend poimivat hakuihin AINA vain muuttumattoman Opaque ID:n (`wf_xyz`). Slug on järjestelmälle pelkkää merkityksetöntä kosmetiikkaa. Näin taataan, että nimien muuttaminen ei koskaan riko vanhoja linkkejä (Link Rot) tai tietokantakytköksiä.
+* **Guard Clauses:** Reitinvalintalogiikka keskitetään yksinomaan reitittimen `redirect`-funktioon, ei manuaalisesti widgetien `build()`-luokkiin.
 
-### 5.3 Concurrency & Performance (Dart 3.11)
+### 5.3 Concurrency, Performance & Zero-Latency Illusion (Isolate Mandate)
 * Raskaat Backendistä tuodut ylisuuret JSON-rakenteet tai datan transformoinnit **SIIRRETÄÄN VÄKISTEN** erilliseen säikeeseen: `Isolate.run(...)`. Vanha Flutterin `compute` -funktio on poistettu näistä tehtävistä käytöstä.
-* **Tausta-Tallennus:** Sovelluksen asetusten (Theme, Kieli) lukeminen hyödyntää `SharedPreferencesAsync`-rajapintaa, joka estää päälangan (UI Thread) hidastumisen I/O-operaatioiden aikana.
+* **Main Thread Jank -suojaus (PC-näytöt):** Erityisesti PC-työpöytänäkymissä massiivisten DAG-puiden (satoja solmuja) ja Pydantic DTO -rakenteiden deserialisointi välimuistiin on pakko eristää päälangoista. Vain näin taataan "Zero-Latency Illusion", eli hiiren kursori ja raskaiden 2D-kankaiden zoomaus pysyvät täydellisen sulavina huippunäytöillä (120Hz/144Hz).
 
-### 5.4 UI/UX Responsiveness & Theming
-* **Responsiveness Breakpoint:** Järjestelmä asettaa ehdottoman rajan `600dp` pöytäkone-/tablettikokoonpanon (`NavigationRail`) ja mobiilin (`NavigationBar`) välille.
-* **Teemoitus:** App-teema käyttää yksinomaan dynaamista, automaattisesti generoituvaa `FlexColorScheme` -kirjastoa. Manuaalinen värien ja elementtien hardkoodaus suoraan `ThemeDataan` on kielletty, ellei sitä ole otettu suoraan kontekstista `Theme.of(context)`.
+### 5.4 Riverpod 3.0 State, Optimistic Updates & Mutaatiot
+* Luovu "Odotan vastausta 2 sekuntia - spinneri pyörii" UX-suunnittelusta. **Koko ruudun latausanimaatiot (Loading Spinners) ovat IDE-työkalussa ankarasti kiellettyjä.** PC-käytön illuusio nollaviiveestä säilytetään **Optimistisilla päivityksillä** (Tila paikallisesti = Päivitetty jono $\rightarrow$ Lähetä serverille $\rightarrow$ Jos ei onnistunut, peruuta näyttö tilaan x).
+* Kaikki **sivuvaikutukset (Side Effects)** – tallennukset, poistot – on ohjelmistossa **PAKOTETUSTI** hallittava kokeellisen (mutta stabiilin) Riverpod 3.0 `Mutation<T>` objektin kautta. Älä tee enää manuaalisia state-lippuja kuten `bool _isLoading`.
 
 ### 5.5 Riverpod Hybrid Caching Strategy (SWR & TTL)
-* Järjestelmän listat ja lomakkeet EIVÄT käytä pelkkää aggressiivista `autoDispose`:a (mikä aiheuttaa hidasta navigointia), vaan tilaa hallitaan älykkäästi kahdella mallilla:
-  1. **Lukunäkymät (Luku-Listat, Dashboard):** Käytetään SWR (Stale-While-Revalidate) -mallia. Riverpod-provider pidetään elossa (`ref.keepAlive()`), jolloin paluunavigointi on välitöntä nollaviiveellä. Tiedot päivittyvät taustalla huomaamattomasti (Silent Background Fetch) ilman blokkaavia latausanimaatioita.
-  2. **Syöttönäkymät (Forms, Uudet Analyysit):** Käytetään TTL (Time-To-Live) välimuistia. Keskeneräiset lomakkeet säilytetään aktiivisina ram-muistissa vain lyhyen turva-ajan (esim. 3 minuuttia) poistumisen jälkeen (`ref.onDispose` Timerilla), jolloin vahinkonavigointi ei hukkaa työtä. Jos käyttäjä palaa myöhemmin uudestaan, lomake on nollautunut automaattisesti roskista tyhjältä pöydältä aloittamista varten. Lomakkeille tarjotaan aina myös manuaalinen Nollaa/Tyhjennä -painike.
-
-### 5.6 UI Mutations Mandate (Mandaatti: Riverpod 3.0 Mutations)
-* Kaikki **sivuvaikutukset (Side Effects)** – asiat kuten painikkeiden painallukset, lomakkeiden tallennukset (POST), tietuieden poistamiset – ovat ohjelmistossa **PAKOTETUSTI** hallittava kokeellisen (mutta stabiilin) Riverpod 3.0 `Mutation<T>` objektin kautta.
-* **Käytäntö:** ÄLÄ tee enää manuaalisia state-lippuja kuten `bool _isLoading` tai hyödynnä sokeasti `AsyncLoading()` Notifiereissa tallennustoimenpiteitä varten. Määrittele sen sijaan napille tai lomakkeelle dedikoitu `final executeXMutation = Mutation<void>();`
-  * UI voi lukea dynaamisesti ja turvallisesti lomakkeen tilan: `MutationIdle`, `MutationPending` (Näytä spinneri), `MutationSuccess` (Näytä Toast ja onnistuminen) tai `MutationError` (Error hint).
-  * Painikkeet laukaisevat suorituksen tyyppiturvallisesti: `mutation.run(ref, (tsx) async { await tsx.get(provider.notifier).saveAction(); });` 
+* Järjestelmän listat ja lomakkeet EIVÄT käytä pelkkää aggressiivista `autoDispose`:a.
+  1. **Lukunäkymät (Luku-Listat, Dashboard):** Käytetään SWR (Stale-While-Revalidate) -mallia. Riverpod-provider pidetään elossa (`ref.keepAlive()`), jolloin PC:llä paluunavigointi on välitöntä nollaviiveellä. Tiedot päivittyvät taustalla huomaamattomasti.
+  2. **Syöttönäkymät (Forms, Uudet Analyysit):** Käytetään TTL (Time-To-Live) välimuistia. Keskeneräiset lomakkeet säilytetään aktiivisina vain lyhyen turva-ajan (esim. 3 minuuttia) poistumisen jälkeen vahinkonavigaation varalta.
 
 ---
 
@@ -152,54 +166,42 @@ Tämän ohjeen kiertäminen ja kannan (`db_v2.json`) sorkkiminen lennossa korrup
 **SINGLE SOURCE OF TRUTH**: `backend/exceptions.py` & `client_app/lib/core/error/app_exception.dart`
 
 ### 6.1 Strict RFC 7807 Pattern (AppException)
-Backendissä ei saa enää ikinä esiintyä paljaita (`ValueError` / `HTTPException`) nostoja rajapinnoilla. Kaikki poikkeukset tulee heittää paketoituna `AppException` tai sen semanttisilla aliluokilla.
-**Frontend V3 Mandaatti:** Flutter-asiakas on velvoitettu mallintamaan nämä virheet 1:1 `AppException` Freezed-luokkana. Kun HTTP-virhe (Dio) saapuu, ErrorInterceptor **PURSII** RFC 7807 "Problem Details" payloadin tiukasti tähän Freezed-malliin, joka sisältää resoluutiotasot (`errorCode`, `status`, `detail`). Paljaita DioException tai String-virheitä ei saa päätyä käyttöliittymäkerrokselle asti.
+Backendissä ei saa enää ikinä esiintyä paljaita (`ValueError` / `HTTPException`) nostoja rajapinnoilla. Kaikki poikkeukset tulee heittää paketoituna `AppException` tai sen semanttisilla aliluokilla. Frontend parsii ne 1:1 Freezed-malliin.
 
 ### 6.2 Dual-Reporting & Telemetry Mandate
 Ainoa sallittu tapa ottaa virhe kiinni ja heittää se ylemmäs on **Kaksinkertainen Raportointi** (Dual-Reporting).
-
-**Backendissä:** Ensin rakenteellinen printti serverille (`logger.error(..., exc_info=True)`), sitten tyyppiturvallisen poikkeuksen nosto `AppException(error_code=...)`.
-**Frontendissä:**
-1. Kaikki kiinniotetut HTTP-verkkovirheet, mutaatio-epäonnistumiset ja `ErrorBoundary`-poikkeukset on **kirjattava Riverpod-LoggerServiceen**.
-2. LoggerService välittää kriittiset virheet asynkronisesti Backendin etätelemetria-päätepisteeseen (Logfire/Sentry -injektio), kantaen mukanaan asiakkaan asiointikielen ja session ID:n.
+**Backendissä:** Ensin rakenteellinen printti serverille (`logger.error(..., exc_info=True)`), sitten nosto `AppException(error_code=...)`.
+**Frontendissä:** HTTP-verkkovirheet kirjataan Riverpod-LoggerServiceen, joka välittää ne Backendin etätelemetria-päätepisteeseen.
 
 ```python
-# Backend Esimerkki
+# Backend Esimerkki (Python 2026 / Logfire Standard)
 try:
     result = some_operation()
 except Exception as e:
-    logger.error(f"[Component] {ErrorCodes.VALIDATION_FAILED.name}: Error: {e}", exc_info=True)
-    raise AppException(message=..., error_code=ErrorCodes.VALIDATION_FAILED, ...) from e
+    # 1. SERVER LOKI: Yksityiskohtainen ja tekninen (Vain koodareille/Logfireen).
+    # EI f-stringiä viestissä! logger.error(f"Error: {e}") on KIELLETTY.
+    logger.error(
+        "Validation failed during execute_node for block_id xyz",
+        extra={
+            "error_code": ErrorCodes.VALIDATION_FAILED.name,
+            "detail": str(e)
+        },
+        exc_info=True
+    )
+    # 2. ASIAKAS/API-VIESTI: Geneerinen ja turvallinen. (Menee HTTP-verkon yli Flutterille)
+    # HUOM: ÄLÄ KOSKAAN yhdistä Server-lokiviestiä ja API-viestiä samaan muuttujaan
+    # Tietoturvan (Information Leakage) ja eriytyksen takia!
+    raise AppException(
+        message="Invalid data structure.",
+        error_code=ErrorCodes.VALIDATION_FAILED
+    ) from e
 ```
 
 ### 6.3 Non-Fatal Errors (Sallitut läpimenot / Graceful Degradation)
-Myös silloin, kun virheen tai tietyn poikkeuksen annetaan mennä läpi ilman koko sovelluksen kaatumista (esim. poikkeuksen nappaaminen SDUI-renderöijässä, jotta yksi viallinen JSON-noodi ei kaada koko näkymää), **käytetään lähes täsmälleen samaa rakenteellista virheenhallintaa ja lokitusta** kuin fataaleissa tilanteissa. Pelkkää hiljaista ohittamista (`catch: return fallback()`) ei hyväksytä koskaan vikatilanteissa. 
+Jos backendistä tullut payload on osittain korruptoitunut (esim. yksittäisen komponentin rakentaminen failaa BFF-näkymässä), näytämme näkymässä `SizedBox.shrink()` (**Graceful Degradation**). Yksi viallinen solmu ei saa kaataa koko työpöytänäkymää (Red Screen of Death). VAIKKA sovellus ei kaadu, komponentin on pakko ampua vahva virheloki osoittamaan datavirhe.
 
-Tyypillinen esimerkki tästä on Frontendin BFF-widget (Backend-For-Frontend): jos backendistä tullut payload on osittain korruptoitunut ja yksittäisen komponentin rakentaminen failaa, näytämme näkymässä `SizedBox.shrink()` (Graceful Degradation). VAIKKA sovellus ei kaadu, komponentin on pakko ampua vahva virheloki osoittamaan, että fail-fast periaate toteutui osittain ja data oli viallista.
-
-**Käännösvirheet (TRANSLATION_FAILED):** 
-Uusi The Translation Boundary Hook nojaa LLM:ään kääntääkseen dynaamisia tekstejä (kuten `scratchpad`) asiointikielelle lennosta. Jos käännöspalvelu kaatuu tai timeouttaa, sovellus suorittaa Graceful Degradationin: se logittaa rakenteellisen `TRANSLATION_FAILED` -virheen, mutta tulostaa UI:hin datan sen **alkuperäisellä kielellä** (englanniksi) suojellakseen käyttäjäkokemusta ja sallien arvioinnin jatkumisen. Sovelluskokemus ei koskaan saa kaatua rikkoutuneeseen kääntäjään.
-
-**Esimerkki (Dart / Flutter):**
-```dart
-try {
-  return buildDynamicWidget(jsonData);
-} catch (e, st) {
-  // 1. Log with STRUCTURED FORMAT (esim. VALIDATION_FAILED tai TRANSLATION_FAILED) vaikka tilanteen annetaankin mennä läpi
-  logger.error('[BFF Builder] ${ErrorCodes.VALIDATION_FAILED}: Widget render error: $e', e, st);
-  // 2. Fallback UI, mutta vain koska backendin dataongelma ei saa rikkoa koko puhelinta
-  return const SizedBox.shrink(); // Tai käännösvirheessä: palauta alkuperäinen englanninkielinen teksti
-}
-```
-### 6.4 Mapping Exceptions to the UI (Actionable Hints & GlobalErrorView)
-* Backendin virhedata (`AppException`) tuodaan sellaisenaan koodina UI:hin (`"VALIDATION_FAILED"`), ilman käännöstä.
-* UI lokalisoi viestin asiakkaalle `AppExceptionX` laajennuksessa (`app_error_ext.dart`). Sanomaan kirjataan **miksi kävi näin ja mitä käyttäjän pitäisi yrittää seuraavaksi (Actionable Hint).** Ei kuitteja mallia "Tapahtui virhe" tai "Tuntematon virhe". *Kaikki* backend-virheet kuvataan asiakkaalle Actionable Hinteiksi `.arb` -tiedostoissa.
-* **Standardisoitu UI-Komponentti (GlobalErrorView V3):** Kaikki virheet (`.when(error: ...)` ja GoRouter `errorBuilder`) ohjataan **standardoidun** `GlobalErrorView` (asiakkaassa `ErrorView`) komponentin kautta. Se osaa purkaa `AppException`in lokalisoiduksi toimintakehotteeksi. **Ainoastaan kehitystilassa (Debug Mode)** ErrorView paljastaa laajennettavan `Technical Details` -paneelin, joka näyttää koko stack tracen ja raa'an poikkeusdatan. Tuotannossa asiakas näkee vain tyylikkään ja ystävällisen kehotteen.
-
-### 6.5 Separation of Concerns: Framework vs. Domain Errors (Päällekkäisen työn estäminen)
-Päällekkäinen lokalisointityö vältetään ymmärtämällä selkeä rajanveto **Framework-virheiden** ja **Domain-virheiden** välillä:
-* **Framework-tason l10n (Automaattinen):** Flutterin omat SDK-paketit ja natiivikomponentit hoitavat OS-tason virheiden ja ilmoitusten lokalisoinnin. Näitä *ei koskaan* yritetä kääntää uudelleen omilla `.arb` tiedostoilla.
-* **Domain-tason l10n (Global Error Handling V3):** Tämä kokonaisuus (`AppException` ja backendin `exceptions.py`) on varattu **puhtaasti liiketoimintalogiikan** räätälöidyille virheille (esim. `WORKFLOW_EXECUTION_FAILED`). Me kartoitamme ja käännämme ainoastaan nämä omat Enum-koodimme Actionable Hinteiksi.
+### 6.4 Mapping Exceptions to the UI (Actionable Hints)
+Backend-virheet käännetään UI:ssa lokalisoiduiksi **Actionable Hinteiksi** (esim. "Ikuinen silmukka havaittu. [Poista kytkös]"). PC-näkymässä nämä esitetään tyylikkäinä leijuvina Toast- tai Snackbar-komponentteina työtilan alakulmassa, ei koko ruutua blokkaavina modaaleina.
 
 ---
 
@@ -207,23 +209,22 @@ Päällekkäinen lokalisointityö vältetään ymmärtämällä selkeä rajanvet
 
 ### 7.1 Zero-Deploy BFF & ViewModel Nodes (Backend-for-Frontend)
 Kaikki kognitiivinen liiketoimintalogiikka ja käyttöliittymän piirtosäännöt konfiguroidaan tietokannassa. Frontend on "tyhmä" renderöintimoottori, joka kääntää isot epäsäännölliset rakenteet nautittavaan dynaamiseen perusformaattiin. 
-Käyttöliittymä piirtää UI-vihjeiden (esim. `slider`) pohjalta dynaamisia yhdistelmäkomponentteja (Compound Widgets), jotka näyttävät LLM:n teoriaperustelun ja virallisen lähdeviitteen automaattisesti laajennettavissa Markdown-laatikoissa.
 
 ### 7.2 Omni-Channel Data Feed
 Tässä kerroksessa isot domain mallit tarjoillaan Pydantic DTO:ina ja liitetään jäädytettyyn `ui_hints_snapshot` -sääntöjoukkoon. Backend ei enää sisällä kovakoodattuja UI-reittejä (BFF).
 
-### 7.3 Graceful Degradation Protocol (The Only Exception to Fail-Fast)
-Rajapinta on ohjelmiston **AINOA PAIKKA**, jossa Fail-Fast ei ole ehdoton standardi.
-* Jos Agentti tuottaa laajan monihierarkisen raportin, ja yhdestä sen palasesta rikkoutuu yksi solu, emme kaada koko näkymää. 
-* Ominaisuus hoituu nykyään automaattisesti `ui_hints_snapshot` -mekanismin ja Dartin `SafeCast` -defensiivisen parsinnan yhteistyönä. Frontend on suunniteltu ohittamaan tyhjät (`{}`) tai tuntemattomat blokit nostamatta Punaista Ruutua (Red Screen of Death) `SizedBox.shrink()` avulla.
+### 7.3 Specialist Nested Output Data
+Kaikki erikoisagenttien (kuten Logician tai Archivist) tuottamat erikoistulokset pakataan omaksi avaimekseen rakenteen sisään. Datan luvaton "flättäys" (yhdistäminen root-tasolle) romuttaa BFF:n dynamiikan.
 
-### 7.4 Specialist Nested Output Data
-Kaikki erikoisagenttien (kuten Logician tai Archivist) tuottamat erikoistulokset pakataan omaksi avaimekseen rakenteen sisään (Strict Nesting -> `{"logician_data": {"score": ...}}`). Datan luvaton "flättäys" (yhdistäminen root-tasolle) romuttaa BFF:n dynamiikan.
+### 7.4 The "Zero-Math UI" & Database Purity Mandate (MANDATORY)
+* **Tietokannan Puhtaus (`ExecutionRecord`)**: V2-tietokanta on puhdas logi! Se ei koskaan saa sisältää esitysmuuttujia.
+* **Laskentavastuu (`/render` API)**: Kaikki visuaalinen matematiikka ja näyttöarvojen formatointi on keskitetty Python-backendin `BlueprintTransformer`-palveluun!
+* **Zero-Math UI (Frontend)**: Flutterin widgetit (kuten `gauge_1d_widget.dart` tai Simulaattori) MÄÄRÄTÄÄN nollamatematiikka-sääntöön. Ne EIVÄT SAA ikinä suorittaa algoritmeja (esim. Kahnin algoritmi) lokaalisti prosessorilla. Kaikki on ohjattava Backend-mutaatioiden (esim. `/simulate`) kautta, joiden palauttaman "UI Hintin" mukaan Frontend vain värittää solmut.
 
-### 7.5 The "Zero-Math UI" & Database Purity Mandate (MANDATORY)
-* **Tietokannan Puhtaus (`ExecutionRecord`)**: V2-tietokanta on puhdas logi! Se ei koskaan saa sisältää esitysmuuttujia (kuten renderöintiprosentteja `visual_pct` tai käännettyjä CSS-mittoja). Tietokanta sisältää vain arkkitehtuurin raakadatan.
-* **Laskentavastuu (`/render` API)**: Kaikki visuaalinen matematiikka ja näyttöarvojen formatointi (esim. `12.3 / 100`) on keskitetty Python-backendin `BlueprintTransformer`-palveluun, joka injektoidaan lennosta vain lukuhetkellä!
-* **Zero-Math UI (Frontend)**: Flutterin widgetit (kuten `gauge_1d_widget.dart` tai `scatter_3d_widget.dart`) MÄÄRÄTÄÄN nollamatematiikka-sääntöön. Ne EIVÄT SAA ikinä sisältää `.toStringAsFixed(1)` muotoiluja tai prosenttilaskuja. UI-näkymien ja Debuggerin (esim. `ExecutionView`) on täysin kiellettyä yrittää piirtää käyttöliittymää suoraan raa'asta DB-objektista ilman `/render` -päätepisteen esilaskentaa.
+### 7.5 The Infinite Canvas & Inspector Mandate (DAG & Workflows)
+Isolla PC-näytöllä monimutkaisia työnkulkuja (Workflows) ja riippuvuusverkkoja (DAG) **ei koskaan** piirretä staattisina pystysuuntaisina listanäkyminä tai yksinkertaisina pudotusvalikkoina. 
+* Ne toteutetaan Flutterin `InteractiveViewer` -komponentilla varustettuna **2D-kankaana (Infinite Canvas)**, jota voi zoomata hiiren rullalla ja panoroida vapaasti.
+* Kun kankaalla klikataan yksittäistä solmua, sen dynaamiset asetukset avautuvat erilliseen oikean reunan sivupaneeliin (**The Inspector**). Näin itse graafin visuaalinen kokonaisuus pysyy aina käyttäjän näkyvillä ja muokattavissa.
 
 ---
 
@@ -231,54 +232,34 @@ Kaikki erikoisagenttien (kuten Logician tai Archivist) tuottamat erikoistulokset
 
 **"The No-String Mandate" & Kognitiivinen Monikielisyys (The 5-Layer Strategy)**
 
-Quorum V2:n työnkulut irrottavat tekoälyn "kognitiivisen" päättelymekanismin (aina englanniksi laadun maksimoimiseksi) loppukäyttäjän "esitys- ja asiointikielestä" (esim. suomi) hyödyntäen Holistic Localization Strategy -mallia.
+### 8.1 The 5-Layer Strategy
+1. **Compile-Time l10n:** Staattiset käyttöliittymäkomponentit (`.arb`).
+2. **Runtime Payload:** Dynaamiset säännöt tallennetaan `translations: {"fi": "...", "en": "..."}`.
+3. **The Deep Engine:** Tekoälyn järjestelmäohjeet pakotetaan englanniksi laadun maksimoimiseksi.
+4. **Temporal Standard:** Numerot ja ajat käsitellään UTC ISO 8601 -muodossa ja formatoidaan Dartin ICU:lla.
+5. **Translation Boundary:** Backend ratkaisee käännökset vasta myöhäisellä sidonnalla. UI:lle toimitetaan aina Enum-koodeja (`AUTH_ORGANIC`).
 
-### 8.1 Kerros 1: Staattinen Käyttöliittymä (Compile-Time l10n)
-Flutterin luontaiset `.arb`-tiedostot (esim. `app_fi.arb`) on varattu **ainoastaan** käyttöliittymän kiinteille komponenteille (napit, navigaatio, staattiset otsakkeet). Virheenhallinnassa (RFC 7807) käytetään `AppErrorExt` reititintä, joka muuntaa backendin Enum-tunnisteet yhdistetyksi *Actionable Hintiksi* omalla kielellä.
+### 8.2 Computed Enum Fields (The Safety Check)
+LLM:n datakenttä-valinnat (`"RISK_LOW"`) ajetaan Pydanticin `@computed_field`in läpi `Enum`-mallina.
 
-### 8.2 Kerros 2: BFF-Tietokanta & Dynaamiset Säännöt (Runtime Payload)
-Kun järjestelmään lisätään matriiseja tai säännöstöjä, Pydantic DTO tallentaa ne kantaan muodossa `translations: {"fi": "Syyttäjä...", "en": "Prosecutor..."}`. Flutter lukee aina oman lokaalinsa mukaisen käännöksen dynaamisesti Backendin The Translation Schema Doctrine mukaisesti (SafeCast/BlueprintTransformer).
-
-### 8.3 Kerros 3: Kognitiivinen Moottori & English-Only Mandate (The Deep Engine)
-Tekoälymalli on huomattavasti kyvykkäämpi englanninkielisenä. Asiantuntija-agenttien metatiedot ja PromptBlockien järjestelmätason ohjeet on **pakko kirjoittaa englanniksi** (`translations["en"]`). Malli pakotetaan ajattelemaan (JSON `reasoning_trace`) englanniksi, mutta se on velvoitettu poimimaan käyttäjän alkuperäiset lainaukset täysin koskemattomina alkukielellä.
-
-### 8.4 Kerros 4: Numeerinen ja Temporaalinen Standardi (Dates, Numbers)
-Numeroita, päivämääriä, kellonaikoja ja valuuttoja ei koskaan lokalisoida backendissä. Kaikki aika kulkee ISO 8601 UTC -muodossa (`"2026-03-14T15:30:00Z"`) ja numerot primitiiveinä (esim. `5.0`). Flutter vastaa formatointilogiikasta käyttäjän laitteen paikalleen Dartin `intl`-kirjaston avulla (ICU).
-
-### 8.5 Kerros 5: The Translation Boundary & Loppusynteesi (Late-Binding)
-Backend **EI KOSKAAN** palauta API:ssa ohjelmallisesti yhdisteltyjä UI-merkkijonoja. Lopullinen muoto (Flutter BFF, taitettu Jinja2 PDF) purkautuu vasta aivan prosessin lopussa myöhäisellä sidonnalla (Late-Binding). Tarvittaessa backend käyttää erillistä luonnollisen kielen LLM-käntäjää (Translation Hook) asiakkaan kielelle kääntämiseen ennen payloadin siirtoa eteenpäin dokumenteigenerointiin tai web-käyttöliittymään. Koska UI saa valita kielen, backendin status-kentät tulevat tiukkoina Enum-koodeina (esim. `AUTH_ORGANIC`) Fronttiin tai BFF-kerrokseen.
-
-### 8.6 Frontend ICU Formatting (Ei string-katenointia)
-Manuaalinen ohjelmallinen sanaliitto (`"Score: " + val.toString()`) on ehdottoman **KIELLETTYÄ**. 
-Jos sanoilla tai sanamuodoilla joudutaan pelaamaan (monikko, sanajärjestys, viivaukset), kaikki logiikka siirretään kielen omistavaan `.arb`-tiedostoon käyttäen tehokasta ICU-syntaksia:
-`"scoreVal": "Pisteesi on {val}"`. UI saa välittää lauseeseen ainoastaan muuttujan.
-
-### 8.7 Computed Enum Fields (The Safety Check)
-Kun LLM antaa datakenttään valinnan, kuten `"RISK_LOW"`, tämä ei korreloidu kovakoodattuna numerona koodin seassa. Se ajetaan Pydantic V2 `@computed_field`in läpi `Enum`-mallina varmistaen datan eheyden juuri ennen arvon (`1.0`) lukitsemista.
-
-### 8.8 Studio/Builder Safety ("Edit values, never keys")
-* Cognitive Studion "Raw Mode" koskee suoraan kantoihin/siemendataan (`seed_data.json`). Kun editoit ominaisuuksia muista: Et ole Excelissä kirjoittamassa sarakeotsikoita!
-* Kirjaamasi `History Text` on **lokalisointiavain** (Translation Key), ei en-käyttäjän otsikko. Jos käännät sen täällä muotoon `Historiateksti`, särjet englannin käännöksen ja hajotat järjestelmän globaalin lokalisaation. Muokkaa arvoja, älä avaimia sorkkiessasi "SSOT"-rekistereitä.
+### 8.3 Studio/Builder Safety ("Edit values, never keys")
+Admin Studion raakadatan avaimia (kuten `History Text`) ei saa kääntää suomeksi. Ne ovat lokalisaatioavaimia. Muokkaa arvoja, älä avaimia.
 
 ---
 
 ## 📝 9. DOCUMENTATION & HYGIENE
 
 ### 9.1 English-Only Policy
-Järjestelmän lähdekoodi (muuttujat, funktiokutsut, luokat, SQL) sekä sen mukana liikkuvat dokumentit (`task_key`) on nimettävä täysin globaalilla englannilla (US English). Poikkeuksia suomen käytöstä koodin sisällä ei tunneta.
+Järjestelmän lähdekoodi (muuttujat, funktiokutsut, luokat, SQL) on nimettävä täysin englanniksi.
 
 ### 9.2 Imperative Mood Docstrings
-Julkiset funktiot (sekä Dart `///` että Python `"""`) alkavat käskymuodossa, komentaen lukijaa.
-* ❌ Kertova/Kuvaileva (Banned): "Returns the calculated score from the matrix."
-* ✅ Imperatiivi (Mandatory): "Calculate the matrix score and return the numeric equivalent."
+Julkiset funktiot alkavat imperatiivissa (käskymuodossa): "Calculate the matrix score..."
 
 ### 9.3 The "Why" Mandate for Inline Comments
-Ohjelmoijat (ja Tekoälyagentit) lukevat koodia erittäin hyvin. Kukaan ei tarvitse selitystä siihen **Mitä (What)** mekaanisesti tehtiin (esim `# Yhdistä taulukot`).
-Sisäisten rivikommenttien ainoa tehtävä arkkitehtuurissa on avata poikkeuksia, tai avata **Miksi (Why)** koodi käyttäytyy kyseisellä tavalla (esim. liikesalaisuudet, oudot matemaattiset ratkaisut, arkkitehtuuricorner-caset). Jos käytät yllättävää rakennusratkaisua reunaehdon voittamiseksi, aloita docstring lauseella: `NOTE (Architecture): ...`. Tämä estää seuraavaa devaajaa vahingossa "korjaamasta" tuikitärkeää hackiasi olettaen sitä virheeksi.
+Älä kommentoi MITÄ koodi tekee. Kommentoi MIKSI se on tehty (esim. `NOTE (Architecture): ...`).
 
 ### 9.4 Code Ownership (No Zombies)
-* Zombie koodia, eli passivoituja koodiblokkeja (`// class OldSettings()...`) ei pidetä kiusaamassa lintereitä ja versionhallintaa. Ne deletoidaan ronskisti, git historia muistaa hävikkisi.
-* Orphaned (Orvot) TODO:t ovat kiellettyjä. Merkintä vaatii kontekstin ratkaisulle: `TODO(risto) [2026-03] Remove after api-V2 rolls out.`
+Poiskommentoidut zombie-koodiblokit ja orvot TODO:t on poistettava säälimättä.
 
 ---
 
