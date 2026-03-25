@@ -101,21 +101,24 @@ class AuthRepository {
   }
 
   /// **Debug Only**: Bypasses Firebase and authenticates directly with Backend Mock Token.
-  /// **Debug Only**: Bypasses Firebase and authenticates directly with Backend Mock Token.
   Future<Either<AppException, User>> debugSignInWithMockToken(String id) async {
     try {
-      // 1. Bypass Backend (IAM routes were purged in V3)
-      // Creates a pure local mock session for the UI.
-      // The Mock Token interceptor will still pass 'mock-token:$id' to the backend,
-      // which handles authorization without an explicit /verify route.
+      // 1. Verify with Backend (using special mock-token prefix logic)
+      final response = await _client.post<Map<String, dynamic>>(
+        '/iam/auth/verify',
+        data: {'token': 'mock-token:$id'},
+      );
+
+      if (response.data == null || response.data!['user'] == null) {
+        return Left(AppException(detail: ''));
+      }
+
+      // 2. Return Hydrated User
+      // Note: We don't have a Firebase User, so the calls to `authStateChanges` stream
+      // won't fire. The Controller must handle this manually or we create a fake internal session.
+      // For Phase 2, we will just return the User and let the Controller manage state.
       return Right(
-        User(
-          id: id,
-          email: '$id@mock.com',
-          role: id == 'ROOT_MASTER' ? UserRole.root : (id == 'ADMIN' ? UserRole.admin : UserRole.manager),
-          organizationId: 'mock-org',
-          displayName: 'Debug $id',
-        ),
+        User.fromJson(response.data!['user'] as Map<String, dynamic>),
       );
     } catch (e) {
       // DEBUG: Return raw error to UI
