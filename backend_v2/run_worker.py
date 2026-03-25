@@ -19,7 +19,8 @@ try:
     # it gets caught and written to the newly configured file log!
     from backend_v2.worker import WorkerSettings
 except Exception as e:
-    logging.critical(f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to import worker module (Crash on start): {e}", exc_info=True)
+    msg = f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to import worker module (Crash on start): {e}"
+    logging.critical(msg, exc_info=True)
     sys.exit(1)
 
 # Force loop policy for Windows if needed, though asyncio.run usually handles it.
@@ -27,7 +28,7 @@ except Exception as e:
 # Arq expects to just work on the loop.
 
 
-async def main():
+async def main() -> None:
     """Manual entrypoint for Arq Worker to avoid CLI loop issues."""
     try:
         logging.info("Starting Arq Worker (Manual Script)...")
@@ -51,7 +52,8 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        pass
+        logging.info("Worker process interrupted by user. Shutting down.")
+        sys.exit(0)
     except SystemExit as e:
         sys.exit(e.code)
     except Exception as e:

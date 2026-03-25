@@ -39,15 +39,15 @@ However, the Flutter client currently lacks a unified, global strategy for catch
   * It acts as a switch statement, mapping `error_code` enums to `AppLocalizations.of(context)` getters (e.g., `case 'VALIDATION_FAILED': return loc.errorValidationFailedHint;`).
 * **Riverpod AsyncValue Handling:** All AsyncNotifier build methods must use `.when(data: ..., loading: ..., error: (e, st) => ...)` to catch these typed exceptions.
 
-### Phase C: Presentation (UI Layer)
-* **Standardized `ErrorView` Widget:** Create a reusable widget (`GlobalErrorView`) that takes an `AppException` as a parameter.
-  * **Visuals:** Uses the `colorScheme.errorContainer` for background.
-  * **Content:** Displays an icon, the localized Actionable Hint, and an expandable "Technical Details" section (only visible in `kDebugMode` or for Admins) showing the raw `error_code` and `instance` trace.
-  * **Action:** Provides a "Retry" or "Go Back" button based on context.
-* **GoRouter Integration:** Set the GoRouter's `errorBuilder` to point to a full-screen version of the `GlobalErrorView` to catch entirely broken navigation routes.
+### Phase C: Presentation (UI Layer - Desktop First)
+* **Floating Error Topologies (No Red Screens):** Per Epic 7 and the 2026 System Architecture Manifesto, full-screen blocking modals ("Red Screen of Death") and global error views are strictly forbidden in PC/Desktop usage.
+  * Errors must be presented as non-blocking, floating `Toast` or `Snackbar` notifications anchored to the bottom corner of the workspace, ensuring they never steal active focus from the user.
+* **Graceful Degradation (Infinite Canvas):** Local component failures within the display matrix or DAG canvas must be caught dynamically via `AppErrorBoundary`.
+  * Broken components must silently degrade and hide themselves using `SizedBox.shrink()` instead of crashing the parent view or forcing a fallback UI.
+* **GoRouter Integration:** The `errorBuilder` must gracefully redirect the user to a safe ambient state (e.g., the root dashboard) while pushing a floating transient error notification, completely avoiding dead-end full-screen error routes.
 
 ## 4. Execution Plan (Next Steps for Developer)
 1. Define the `AppException` Freezed model in Dart.
 2. Update the `app_en.arb` and `app_fi.arb` dictionaries with translated actionable hints for all known backend `ErrorCodes`.
 3. Build the `ErrorInterceptor` for the Dio network client.
-4. Construct the `GlobalErrorView` component and test it by artificially triggering a `VALIDATION_FAILED` error from the backend.
+4. Construct the `AppErrorBoundary` and `Toast/Snackbar` presentation logic, verifying that artificially triggered `VALIDATION_FAILED` errors degrade gracefully via `SizedBox.shrink()` without causing full-screen UI crashes.

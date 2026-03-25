@@ -589,8 +589,15 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                     if val is not None:
                         try:
                             scores_in_scales.append(float(val))
-                        except (TypeError, ValueError):
-                            pass
+                        except (TypeError, ValueError) as e:
+                            from backend_v2.exceptions import AppException, ErrorCodes
+                            msg = f"Corrupted scale value '{val}' in PromptBlock '{slug}'. Expected float."
+                            logger.error(f"[ScoringHook] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}", exc_info=True)
+                            raise AppException(
+                                message=msg,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                            ) from e
                 if scores_in_scales:
                     target_min = min(scores_in_scales)
                     target_max = max(scores_in_scales)
@@ -641,15 +648,18 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
              return HookResult(success=True, state_delta=new_payload)
 
     except Exception as e:
-        # Fail Fast Requirement
         from backend_v2.exceptions import AppException, ErrorCodes
+        if isinstance(e, AppException):
+            raise
+            
+        # Fail Fast Requirement
         msg = f"Normalization failed for step '{blueprint_id}': {e}"
         logger.error(f"[ScoringHook] {ErrorCodes.HOOK_EXECUTION_FAILED.name}: {msg}", exc_info=True)
 
         raise AppException(
             message=msg,
             status_code=500,
-            details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED},
+            details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value},
         ) from e
 
     return HookResult(success=True, state_delta={})

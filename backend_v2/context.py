@@ -14,7 +14,7 @@ execution_id_var: ContextVar[str | None] = ContextVar("execution_id", default=No
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 
-def set_execution_context(execution_id: str):
+def set_execution_context(execution_id: str) -> None:
     """Set the current thread's execution ID.
 
     Raises:
@@ -36,12 +36,12 @@ def get_execution_context() -> str | None:
     return execution_id_var.get()
 
 
-def clear_execution_context():
+def clear_execution_context() -> None:
     """Clear the current thread's execution ID."""
     execution_id_var.set(None)
 
 
-def set_request_context(request_id: str):
+def set_request_context(request_id: str) -> None:
     """Set the current thread's request ID.
 
     Raises:
@@ -63,6 +63,6 @@ def get_request_context() -> str | None:
     return request_id_var.get()
 
 
-def clear_request_context():
+def clear_request_context() -> None:
     """Clear the current thread's request ID."""
     request_id_var.set(None)

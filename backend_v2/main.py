@@ -106,8 +106,11 @@ app = FastAPI(
 try:
     import logfire
     logfire.instrument_fastapi(app)
-except Exception:
+except ImportError:
     pass
+except Exception:
+    logging.getLogger("backend.main").error("Failed to instrument FastAPI with Logfire.", exc_info=True)
+    raise
 
 # (duplicate validation handler removed)
 
@@ -296,8 +299,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 # --- 5. Routers ---
 
 # ...
-from backend_v2.api.routers.iam import router as iam_router
 from backend_v2.api.routers.execution import router as execution_router
+from backend_v2.api.routers.iam import router as iam_router
 from backend_v2.api.routers.output_profiles import router as output_profiles_router
 from backend_v2.api.routers.studio import router as studio_router
 from backend_v2.api.routers.system import router as system_router

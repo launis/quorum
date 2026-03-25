@@ -48,8 +48,11 @@ class OutputProfileLayout(BaseModel):
         if isinstance(v, str):
             try:
                 return LayoutType(v)
-            except ValueError:
-                pass
+            except ValueError as e:
+                msg = f"OutputProfileLayout parsing failed: Invalid LayoutType '{v}'."
+                logger.error(f"[OutputProfileDomain] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                raise AppException(message=msg, status_code=422, details=err_details) from e
         return v
 
     @field_validator("components")
@@ -58,7 +61,7 @@ class OutputProfileLayout(BaseModel):
         if not v:
             msg = "An OutputProfileLayout must have at least one component mapped."
             logger.error(f"[OutputProfileDomain] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -83,7 +86,7 @@ class OutputProfile(BaseModel):
         if not re.match(r"^([a-z]+)_[a-zA-Z0-9]{8,}$", v):
             msg = f"Profile ID '{v}' does not match Opaque Stripe Pattern."
             logger.error(f"[OutputProfileDomain] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @field_validator("slug")
@@ -92,5 +95,5 @@ class OutputProfile(BaseModel):
         if not v or not v.strip():
             msg = "Profile Slug cannot be empty."
             logger.error(f"[OutputProfileDomain] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v.strip()

@@ -28,7 +28,9 @@ class PerformativityInput(BaseModel):
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
     """
 
-    chat_log: str = Field(..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
+    chat_log: str = Field(
+        ..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"}
+    )
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -63,7 +65,7 @@ class PerformativityHeuristic(BaseModel):
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v.strip()
 
 
@@ -110,7 +112,10 @@ class PerformativityAnalysis(BaseModel):
         ...,
         ge=1.0,
         le=3.0,
-        description="Numeric authenticity score (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
+        description=(
+            "Numeric authenticity score (1.0 to 3.0), required 1-decimal precision. "
+            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+        ),
         json_schema_extra={"x-ui-label": "Authenticity Score"},
     )
     description_key: str = Field(
@@ -138,8 +143,11 @@ class PerformativityAnalysis(BaseModel):
                 try:
                     val = AuthenticityLevel(val)
                     data["authenticity_assessment"] = val
-                except ValueError:
-                    pass  # Validation core will catch this immediately
+                except ValueError as e:
+                    msg = f"Performativity parsing failed: Invalid AuthenticityLevel '{val}'."
+                    logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
 
             if data.get("authenticity_score") is None:
                 if isinstance(val, AuthenticityLevel) and val in mapping:
@@ -161,7 +169,7 @@ class PerformativityAnalysis(BaseModel):
         if not (1.0 <= v <= 3.0):
             msg = "Authenticity score must be between 1.0 and 3.0."
             logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -201,7 +209,7 @@ class PerformativePattern(BaseModel):
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v.strip()
 
 

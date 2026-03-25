@@ -182,8 +182,12 @@ class PromptBlock(V2CoreBase):
             if isinstance(t, str):
                 try:
                     data["type"] = BlockDataType(t)
-                except ValueError:
-                    pass # Let standard validation catch invalid strings
+                except ValueError as e:
+                    from backend_v2.exceptions import AppException, ErrorCodes
+                    msg = f"PromptBlock parsing failed: Invalid BlockDataType '{t}'."
+                    logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
         return data
 
     @model_validator(mode="after")
@@ -343,8 +347,12 @@ class MCPAuditTrace(V2CoreBase):
             if isinstance(ts, str):
                 try:
                     data["timestamp"] = datetime.fromisoformat(ts.replace('Z', '+00:00'))
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    from backend_v2.exceptions import AppException, ErrorCodes
+                    msg = f"MCPAuditTrace parsing failed: Invalid timestamp '{ts}'."
+                    logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
         return data
 
 class SystemConfigMCPGateways(V2CoreBase):
@@ -751,24 +759,36 @@ class ExecutionRecord(V2CoreBase):
             if isinstance(st, str):
                 try:
                     data["status"] = ExecutionStatus(st)
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    from backend_v2.exceptions import AppException, ErrorCodes
+                    msg = f"ExecutionRecord parsing failed: Invalid status '{st}'."
+                    logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
             # Datetimes
             for df in ["created_at", "updated_at", "completed_at"]:
                 dt = data.get(df)
                 if isinstance(dt, str):
                     try:
                         data[df] = datetime.fromisoformat(dt.replace('Z', '+00:00'))
-                    except ValueError:
-                        pass
+                    except ValueError as e:
+                        from backend_v2.exceptions import AppException, ErrorCodes
+                        msg = f"ExecutionRecord parsing failed: Invalid {df} '{dt}'."
+                        logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                        err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                        raise AppException(message=msg, status_code=422, details=err_details) from e
 
             # Dictionary fallback for results if stringified
             if "results" in data and isinstance(data["results"], str):
                 try:
                     import ast
                     data["results"] = ast.literal_eval(data["results"])
-                except (ValueError, SyntaxError):
-                    pass
+                except (ValueError, SyntaxError) as e:
+                    from backend_v2.exceptions import AppException, ErrorCodes
+                    msg = "ExecutionRecord parsing failed: Invalid results AST literal."
+                    logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
         return data
 
 

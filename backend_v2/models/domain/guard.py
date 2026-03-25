@@ -69,7 +69,11 @@ class GuardInput(BaseModel):
                     if phrase.lower() in value.lower():
                         msg = f"SECURITY_BANNED_PHRASE_DETECTED: Found '{phrase}' in field '{key}'"
                         logger.error(f"[GuardModel] {ErrorCodes.PERMISSION_DENIED.name}: {msg}")
-                        raise AppException(message=msg, status_code=403, details={"error_code": ErrorCodes.PERMISSION_DENIED})
+                        raise AppException(
+                            message=msg,
+                            status_code=403,
+                            details={"error_code": ErrorCodes.PERMISSION_DENIED}
+                        )
         return self
 
 
@@ -77,7 +81,9 @@ class TaintedDataContent(BaseModel):
     """Raw input data wrapper."""
 
     chat_history: str = Field(..., description="Chat history.", json_schema_extra={"x-ui-label": "INPUT_CHAT_HISTORY"})
-    product_text: str | None = Field(None, description="Product text.", json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"})
+    product_text: str | None = Field(
+        None, description="Product text.", json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"}
+    )
     reflection_text: str = Field(
         ..., description="Reflection text.", json_schema_extra={"x-ui-label": "INPUT_REFLECTION_TEXT"}
     )
@@ -140,8 +146,11 @@ class SecurityCheck(BaseModel):
                         # Try to convert string to Enum
                         risk_enum = RiskLevel(risk_level)
                         data["risk_score"] = risk_map[risk_enum]
-                    except ValueError:
-                        pass
+                    except ValueError as e:
+                        msg = f"SecurityCheck parsing failed: Invalid RiskLevel '{risk_level}'."
+                        logger.error(f"[GuardModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                        err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                        raise AppException(message=msg, status_code=422, details=err_details) from e
 
             # 2. Calc Simulation
             sim_map = {SimulationType.PASSIVE: 1.0, SimulationType.ACTIVE: 2.0, SimulationType.MALICIOUS: 3.0}
@@ -154,8 +163,11 @@ class SecurityCheck(BaseModel):
                 try:
                     sim_enum = SimulationType(sim_res)
                     data["simulation_score"] = sim_map[sim_enum]
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    msg = f"SecurityCheck parsing failed: Invalid SimulationType '{sim_res}'."
+                    logger.error(f"[GuardModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
 
         return data
 

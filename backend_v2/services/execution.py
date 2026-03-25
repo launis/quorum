@@ -183,7 +183,12 @@ class ExecutionService:
                          # Attempt to find actual scaling max dynamically
                          max_val = float(max([s.get("score", 0) for s in pb_dict["scales"]]))
                     except Exception:
-                         pass
+                         # Tier 3B Graceful Degradation: Log telemetry but do not crash the UI hint generator
+                         logger.warning(
+                             f"[ExecutionService] SDUI Hint Generator Failed: Could not calculate max_val "
+                             f"for PromptBlock '{pb_id}'. Safely falling back to default max_val={max_val}.",
+                             exc_info=True
+                         )
 
                 # Extract translation map for UI label
                 label_obj = pb_dict.get("label", {})
@@ -237,12 +242,15 @@ class ExecutionService:
         record = await self.get_execution(initiator, execution_id)
 
         if record.status not in [ExecutionStatus.FAILED, ExecutionStatus.PENDING]:
-            msg = f"Cannot resume execution in state {record.status.value}. Only FAILED or PENDING executions can be resumed."
+            msg = (
+                f"Cannot resume execution in state {record.status.value}. "
+                "Only FAILED or PENDING executions can be resumed."
+            )
             logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
             raise AppException(
                 message=msg,
                 status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
             )
 
         record.status = ExecutionStatus.RUNNING

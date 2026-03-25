@@ -118,15 +118,21 @@ class Organization(BaseModel):
                 try:
                     # Handle typical ISO strings
                     data["created_at"] = datetime.fromisoformat(data["created_at"])
-                except ValueError:
-                    pass  # Let Pydantic fail strictly if format is wrong
+                except ValueError as e:
+                    msg = f"Organization parsing failed: Invalid datetime '{data['created_at']}'."
+                    logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
 
             # 2. subscription_status (str -> Enum)
             if "subscription_status" in data and isinstance(data["subscription_status"], str):
                 try:
                     data["subscription_status"] = SubscriptionStatus(data["subscription_status"])
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    msg = f"Organization parsing failed: Invalid subscription status '{data['subscription_status']}'."
+                    logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
         return data
 
 
@@ -215,15 +221,21 @@ class User(UserBase):
             if "created_at" in data and isinstance(data["created_at"], str):
                 try:
                     data["created_at"] = datetime.fromisoformat(data["created_at"])
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    msg = f"User parsing failed: Invalid datetime '{data['created_at']}'."
+                    logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
 
             # 2. role (str -> Enum) - From UserBase
             if "role" in data and isinstance(data["role"], str):
                 try:
                     data["role"] = UserRole(data["role"])
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    msg = f"User parsing failed: Invalid role '{data['role']}'."
+                    logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
         return data
 
 

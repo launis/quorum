@@ -72,21 +72,30 @@ class ReasoningFidelity(BaseModel):
         ...,
         ge=1.0,
         le=3.0,
-        description="Numeric fidelity score (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
+        description=(
+            "Numeric fidelity score (1.0 to 3.0), required 1-decimal precision. "
+            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+        ),
         json_schema_extra={"x-ui-label": "Fidelity Numeric"},
     )
     abductive_score: float = Field(
         ...,
         ge=1.0,
         le=3.0,
-        description="Numeric abductive score (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
+        description=(
+            "Numeric abductive score (1.0 to 3.0), required 1-decimal precision. "
+            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+        ),
         json_schema_extra={"x-ui-label": "Abductive Score"},
     )
     plausibility_score: float = Field(
         ...,
         ge=1.0,
         le=3.0,
-        description="Numeric plausibility score (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
+        description=(
+            "Numeric plausibility score (1.0 to 3.0), required 1-decimal precision. "
+            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+        ),
         json_schema_extra={"x-ui-label": "Plausibility Score"},
     )
     justification: str = Field(..., description="Justification.", json_schema_extra={"x-ui-label": "Justification"})
@@ -112,7 +121,7 @@ class ReasoningFidelity(BaseModel):
         if not (1.0 <= v <= 3.0):
             msg = "Score must be between 1.0 and 3.0."
             logger.error(f"[FalsifierModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @field_validator("quote", mode="before")
@@ -150,8 +159,11 @@ class ReasoningFidelity(BaseModel):
                     enum_val = val if isinstance(val, FidelityLevel) else FidelityLevel(val)
                     if enum_val in mapping:
                         data["fidelity_numeric"] = mapping[enum_val]
-                except ValueError:
-                    pass  # Let Pydantic fail
+                except ValueError as e:
+                    msg = f"Falsifier parsing failed: Invalid FidelityLevel '{val}'."
+                    logger.error(f"[FalsifierModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    raise AppException(message=msg, status_code=422, details=err_details) from e
         return data
 
     model_config = ConfigDict(frozen=True, strict=False)

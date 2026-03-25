@@ -10,8 +10,15 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 try:
     import logfire
-except Exception:
+except ImportError:
     logfire: Any = None  # type: ignore
+    logging.getLogger(__name__).info("Logfire module not found. Cloud observability will be disabled.")
+except Exception as e:
+    logging.getLogger(__name__).error("Unexpected error importing logfire.", exc_info=True)
+    raise AppException(
+        message="Unexpected error importing logfire.",
+        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+    ) from e
 
 _LOGFIRE_CONFIGURED = False
 
@@ -19,7 +26,7 @@ _LOGFIRE_CONFIGURED = False
 class ContextFilter(logging.Filter):
     """Injects execution_id from contextvars into log records."""
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         """Filter record to inject execution or request ID."""
         from backend_v2.context import get_request_context
 
@@ -40,7 +47,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def configure_logfire():
+def configure_logfire() -> None:
     """Configures Logfire for observability.
 
     Should be called early in the application lifecycle.
@@ -75,13 +82,11 @@ def configure_logfire():
         litellm.success_callback = ["logfire"]   # Instrument LLM Calls
         litellm.failure_callback = ["logfire"]
     except Exception as e:
-        logging.getLogger(__name__).warning(
-            f"[LoggingConfig] {ErrorCodes.CONFIGURATION_ERROR.name}: Logfire validation failed (likely no token): {e}. Observability disabled.",
-            exc_info=True
-        )
+        msg = f"[LoggingConfig] {ErrorCodes.CONFIGURATION_ERROR.name}: Logfire validation failed: {e}."
+        logging.getLogger(__name__).warning(f"{msg} Observability disabled.", exc_info=True)
 
 
-def setup_logging(log_level=logging.INFO):
+def setup_logging(log_level: int = logging.INFO) -> None:
     """Configures the root logger to write to a file and the console.
 
     Log File: backend_debug.log (in the project root)
@@ -159,7 +164,8 @@ def setup_logging(log_level=logging.INFO):
             logfire_handler.addFilter(context_filter)
             root_logger.addHandler(logfire_handler)
         except Exception as e:
-            logging.getLogger(__name__).warning(f"[LoggingConfig] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to attach Logfire handler: {e}", exc_info=True)
+            msg = f"[LoggingConfig] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to attach Logfire: {e}"
+            logging.getLogger(__name__).warning(msg, exc_info=True)
 
     # Set external libraries to warning to reduce noise
     # Configure uvicorn to use our format (propagate to root handler)
@@ -187,10 +193,16 @@ def setup_logging(log_level=logging.INFO):
     try:
         import litellm
 
-        litellm.set_verbose = False  # Keep DEBUG off
+        litellm.set_verbose = False  # type: ignore[attr-defined]
         litellm.suppress_debug_info = True  # Suppress print statements
-    except Exception:
-        pass
+    except ImportError:
+        logging.getLogger(__name__).info("LiteLLM module not found. Skipping LiteLLM debug configuration.")
+    except Exception as e:
+        logging.getLogger(__name__).error("Unexpected error configuring LiteLLM.", exc_info=True)
+        raise AppException(
+            message="Failed to configure LiteLLM logging.",
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+        ) from e
 
     logging.info(f"Logging configured. Writing to: {log_file_path}")
 
@@ -198,7 +210,7 @@ def setup_logging(log_level=logging.INFO):
 class JSONFormatter(logging.Formatter):
     """JSON Formatter for Production Logging."""
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         """Format the record as JSON."""
         log_record = {
             "timestamp": self.formatTime(record, self.datefmt),
@@ -223,7 +235,7 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_record)
 
 
-def log_error(logger: logging.Logger, exc: Exception, message: str = "An error occurred"):
+def log_error(logger: logging.Logger, exc: Exception, message: str = "An error occurred") -> None:
     """Standardized error logging helper.
 
     Extracts error_code and details from the exception if available,
@@ -236,7 +248,7 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
 
     # 1. Try to extract from AppException (duck typing)
     if hasattr(exc, "error_code"):
-        error_code = exc.error_code  # type: ignore
+        error_code = exc.error_code
     elif hasattr(exc, "details"):
         # FastAPI HTTPException doesn't have error_code but might have detail
         pass
@@ -248,9 +260,9 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
 
     # 3. Extract Details
     if hasattr(exc, "details"):
-        details = exc.details  # type: ignore
+        details = exc.details
     elif hasattr(exc, "detail"):
-        details = exc.detail  # type: ignore
+        details = exc.detail
 
     extra = {"error_code": error_code.name if hasattr(error_code, "name") else str(error_code)}
     if details:
