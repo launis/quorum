@@ -20,10 +20,7 @@ async def get_workflow_by_slug(slug: str, current_user: CurrentUserDep, studio_s
     """Retrieve a specific workflow definition by slug securely via SSOT Service Layer."""
     return await studio_service.get_workflow_by_slug(current_user, slug)
 
-@router.get("/{id}", response_model=Workflow)
-async def get_workflow(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
-    """Retrieve a specific workflow definition securely via SSOT Service Layer."""
-    return await studio_service.get_workflow(current_user, id)
+
 
 @router.put("/{id}", response_model=Workflow)
 async def save_workflow(id: str, data: Workflow, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:

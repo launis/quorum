@@ -31,8 +31,8 @@ def test_state_projector_fold_trace():
     
     # step_a should have the latest output
     assert projector.snapshot.get("step_a") == {"val": 3}
-    # step_b was an input, our current projector ignores inputs in fold output cache.
-    assert "step_b" not in projector.snapshot
+    # step_b was an input, projector now includes inputs in fold cache.
+    assert projector.snapshot.get("step_b") == {"val": 2}
     # step_c should be a tombstone
     assert projector.snapshot.get("step_c") == {"_redacted": True, "hash": "xyz123"}
     # Schema version should be max(v)

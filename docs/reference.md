@@ -15,7 +15,6 @@ quorum/backend_v2/
 ├── api/                        # FastAPI Control Plane
 │   └── routers/                # Eriytetyt HTTP REST V2 -ruuterit
 │       ├── execution/          # DAG-ajojen hallinta ja /report BFF-päätepiste
-│       ├── iam/                # Identiteetin ja roolien hallinta
 │       └── studio/             # CRUD-rajapinnat säännöstölle (Output Profiles, Workflows)
 │
 ├── core/                       # Keskitetyt konfiguraatiot ja luokat (BaseException, Dependency Injection)
@@ -60,6 +59,13 @@ quorum/backend_v2/
 │   └── usage_service.py        # Token-telemetrian, kustannusten ja Logfiren keskitetty käsittely
 │
 ├── tests/                      # Yksikkö/Integraatiotestit (Pytest) joiden kattavuus varmistaa luotettavuuden
+│
+├── utils/                      # Pienet hajautetut apufunktiot (Fail-Fast)
+│   ├── dict_utils.py           # Sanakirjojen syväyhdistämiset
+│   ├── math_utils.py           # Numeeriset normalisoinnit ja skaalaukset
+│   ├── pydantic_utils.py       # Pydantic-mallien dynaaminen konvertointi (inflate)
+│   ├── redis_patcher.py        # Fakeredis fixit asynkroniseen ajoon
+│   └── static_charts.py        # PDF-raporttien staattiset kuvaajat (Radar/Scatter)
 │
 ├── main.py                     # FastAPI ohjelman käynnistystiedosto ja reititysten aktivointi
 ├── worker.py                   # ARQ (Asynchronous Redis Queue) Worker. Ajaa DAG-jonot ja PDF-luonnit taustalla

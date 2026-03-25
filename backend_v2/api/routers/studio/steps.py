@@ -15,10 +15,7 @@ async def get_steps(current_user: CurrentUserDep, studio_service: StudioServiceD
     """Retrieve all independent Steps securely via SSOT Service Layer."""
     return await studio_service.list_steps(current_user)
 
-@router.get("/{id}", response_model=Step)
-async def get_step(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Step:
-    """Retrieve a specific Step securely via SSOT Service Layer."""
-    return await studio_service.get_step(current_user, id)
+
 
 @router.put("/{id}", response_model=Step)
 async def save_step(id: str, data: Step, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Step:

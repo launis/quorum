@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
   testWidgets(
@@ -30,16 +32,24 @@ void main() {
             ],
           ),
         ],
-        synthesis: 'Good',
+
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: ReportRendererWidget(payload: dto))),
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: ReportRendererWidget(payload: dto)),
+          ),
+        ),
       );
+
+      await tester.pumpAndSettle();
 
       expect(find.text('Mock Axis'), findsOneWidget);
       expect(find.text('Perfect'), findsOneWidget);
-      expect(find.text('100.0'), findsOneWidget); // Raw score value
+      expect(find.text('100.0 / 6.0'), findsOneWidget); // Raw score value is formatted this way
     },
   );
 }

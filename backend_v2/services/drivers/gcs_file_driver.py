@@ -6,11 +6,9 @@ import logging
 # Conditional import or type checking if direct dependency is optional,
 # but effectively expected here.
 try:
-    from google.api_core import exceptions as google_exceptions
     from google.cloud import storage
 except ImportError:
     storage = None  # type: ignore[assignment, unused-ignore]
-    google_exceptions = None  # type: ignore[assignment, unused-ignore]
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.file_driver import FileDriver

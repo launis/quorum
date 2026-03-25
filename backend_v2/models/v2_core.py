@@ -712,10 +712,6 @@ class ExecutionRecord(V2CoreBase):
         default_factory=list, description="Immutable log of all events (Event Sourcing).")
     pdf_report_path: str | None = Field(
         default=None, description="Path to the generated PDF Execution Report.")
-    frozen_context_storage_path: str | None = Field(
-        default=None, description="Path to offloaded frozen context JSON in Cloud Storage.")
-    execution_trace_storage_path: str | None = Field(
-        default=None, description="Path to offloaded execution trace log in Cloud Storage.")
     step_states: dict[str, ExecutionStepState] = Field(
         default_factory=dict, description="Real-time status tracking for DAG nodes")
 

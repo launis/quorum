@@ -51,6 +51,8 @@ Jokainen epäilty tiedosto/kenttä käy läpi vähintään kolme toisistaan riip
 - **Rogue Formatting:** Ei uudelleenmuotoilua + poistoa samassa commitissa
 - **Modifying Seed/DB:** Seed/DB muutokset noudattavat Configuration Backup Protocolia
 - **Partial Removal:** Kentän poiston PITÄÄ kattaa: malli → palvelu → frontend DTO → testit → .arb-käännökset
+- **Data Migrations (Legacy Support):** Tuotantodataa ei ole, joten tietokannassa olevia vanhoja dokumentteja ei yritetä migroida tietorakenteiden muuttuessa. Sen sijaan käytetään aina "Wipe & Seed" -strategiaa: nollaa ja uudelleenseedaa tietokanta työkaluilla (`backend_v2/seed/wipe_user_data.py`, `backend_v2/seed/run_seed.py` ja `.agent/workflows/wipe_and_seed_database.md`).
+- **Löysä Validointi (extra = "ignore"):** Pydantic-mallit eivät saa sallia ylimääräistä dataa. V3-arkkitehtuurin ydinmalleissa `extra = "ignore"` on kielletty. Fail-Fast on maksimoitava kytkemällä malleihin oletuksena `extra = "forbid"`, jolloin yksikin ylimääräinen/kuollut kenttä payloadissa tai tietokannassa kaataa pyynnön heti.
 
 ---
 
@@ -123,7 +125,7 @@ dart run dart_code_metrics:metrics check-unused-files lib
 ### Milestone 3: Backend Routers & Database
 **Scope:** `backend_v2/routers/`, `backend_v2/database/`
 
-- [ ] Analysoi API-endpointit: vanhat SDUI-polut
+- [ ] Analysoi API-endpointit: Kaikki API-reitit, joihin ei ole suoraa kutsua `client_app_v2/lib/core/network/` tai vastaavasta sijainnista, poistetaan välittömästi (No API Versioning Needed).
 - [ ] Tarkista tietokantamallit vs. repositorymetodit
 - [ ] Dokumentoi V3-rajapinnat → `docs/reference.md`
 
