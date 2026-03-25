@@ -943,6 +943,24 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
                 ],
               ),
             ),
+
+            // MCP Tool — single toggle per StepRule
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: Text(l10n.stepBuilderMCPToolsTitle),
+              subtitle: Text(l10n.stepBuilderToolHint),
+              secondary: Icon(Icons.travel_explore, color: Colors.teal.shade700),
+              value: SafeCast.safeList(stepDef['allowed_mcp_tools']).isNotEmpty,
+              onChanged: (enabled) {
+                setState(() {
+                  if (enabled) {
+                    stepDef['allowed_mcp_tools'] = ['mcp_tavily_search'];
+                  } else {
+                    stepDef['allowed_mcp_tools'] = <String>[];
+                  }
+                });
+              },
+            ),
           ],
         ),
       ),

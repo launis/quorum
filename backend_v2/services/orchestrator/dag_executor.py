@@ -33,13 +33,13 @@ class ExecutionCommitter:
     def __init__(self, repository: AbstractWorkflowRepository, execution_id: str):
         self.repository = repository
         self.execution_id = execution_id
-
     async def commit_trace(
         self,
         trace: list[TraceEvent],
         status: ExecutionStatus,
         step_states: dict[str, ExecutionStepState],
-        error: str | None = None
+        error: str | None = None,
+        frozen_context: Any | None = None
     ) -> None:
         """Flushes the event array to persistent DB safely."""
         try:
@@ -48,6 +48,9 @@ class ExecutionCommitter:
                 "execution_trace": [e.model_dump(mode="json") for e in trace],
                 "step_states": {k: v.model_dump(mode="json") for k, v in step_states.items()}
             }
+            if frozen_context:
+                payload["frozen_context"] = frozen_context.model_dump(mode="json")
+                
             if error:
                 payload["error"] = error
 
@@ -247,17 +250,39 @@ class NodeExecutor:
                     {"role": "user", "content": user_payload}
                 ]
 
-                # LLM Invocation
+                # LLM Invocation — Route through MCP Tool Loop if tools are configured
                 strategy_name = step.model_strategy or "fast"
                 bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
-                # Ensure no results dictionary is directly modified.
-                result, usage_dict = await bound_client.run_structured_task(
-                    messages=messages,
-                    response_model=dynamic_schema,
-                    mock_identity=step.id,
-                )
 
-                final_dict = result.model_dump(mode="json")
+                # NOTE (Architecture): allowed_mcp_tools gates the Tool Loop.
+                # StepRule (workflow-level) overrides Step template default.
+                # If empty, we bypass entirely — zero overhead for non-MCP steps.
+                effective_mcp_tools = step.allowed_mcp_tools or step_obj.allowed_mcp_tools
+                if effective_mcp_tools:
+                    from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
+
+                    loop_result = await execute_tool_loop(
+                        llm_client=bound_client,
+                        messages=messages,
+                        response_model=dynamic_schema,
+                        allowed_tools=effective_mcp_tools,
+                        step_name=step.id,
+                        mock_identity=step.id,
+                    )
+                    final_dict = loop_result.result_data
+                    usage_dict = loop_result.usage
+
+                    # Persist audit trail to FrozenContext (immutable log)
+                    if frozen_ctx and loop_result.audit_traces:
+                        frozen_ctx.mcp_tool_audit.extend(loop_result.audit_traces)
+                else:
+                    # Original path — direct structured output
+                    result, usage_dict = await bound_client.run_structured_task(
+                        messages=messages,
+                        response_model=dynamic_schema,
+                        mock_identity=step.id,
+                    )
+                    final_dict = result.model_dump(mode="json")
 
                 # Post-Hooks
                 safe_context = {
@@ -423,7 +448,8 @@ class DAGExecutor:
                     await self.committer.commit_trace(
                         trace=exec_record.execution_trace,
                         status=exec_record.status,
-                        step_states=exec_record.step_states
+                        step_states=exec_record.step_states,
+                        frozen_context=exec_record.frozen_context
                     )
 
                     events = await self.node_executor.execute(
@@ -456,7 +482,8 @@ class DAGExecutor:
                     await self.committer.commit_trace(
                         trace=exec_record.execution_trace,
                         status=exec_record.status,
-                        step_states=exec_record.step_states
+                        step_states=exec_record.step_states,
+                        frozen_context=exec_record.frozen_context
                     )
                     step_events[step_id].set()
 
@@ -466,7 +493,8 @@ class DAGExecutor:
                         trace=exec_record.execution_trace,
                         status=ExecutionStatus.FAILED,
                         step_states=exec_record.step_states,
-                        error=str(e)
+                        error=str(e),
+                        frozen_context=exec_record.frozen_context
                     )
                     raise WorkflowExecutionError(
                         step_id=step_id,

@@ -99,14 +99,14 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         key = expected_input.input_key
         # Case-insensitive fetch to support Flutter client sending snake_case while DB expects UPPER_SNAKE
         key_lower = key.lower()
-        
+
         # 1. Check state.inputs
         raw_val = None
         for k, v in state.inputs.items():
             if k.lower() == key_lower:
                 raw_val = v
                 break
-                
+
         # 2. Check state.global_context_vars
         if raw_val is None:
             for k, v in state.global_context_vars.items():
@@ -207,7 +207,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
             exe_id = state.execution_id or "unknown_exe"
             safe_key = "".join(c for c in key if c.isalnum() or c in ("_", "-"))
             forensic_path = f"executions/{exe_id}/inputs/input_{safe_key}.md"
-            
+
             await storage.save(forensic_path, output_dict[key])
             logger.info(f"[InputProcessingHook] Forensic Input saved successfully: {forensic_path}")
         except Exception as e:

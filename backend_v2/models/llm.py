@@ -58,7 +58,7 @@ class LLMResponse(BaseModel):
         Field(description="Provider-specific raw metadata (e.g. finish_reason)."),
     ] = Field(default_factory=dict)
     messages: Annotated[
-        list[dict[str, str]] | None,
+        list[dict[str, Any]] | None,
         Field(description="The full list of messages (prompts) sent to the model for audit purposes."),
     ] = None
     override_reason: Annotated[str | None, Field(description="Reason for override if applicable.")] = None

@@ -65,16 +65,12 @@ class Settings(BaseSettings):
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
     openai_api_key: Annotated[str | None, Field(description="OpenAI API Key (Optional)")] = None
     anthropic_api_key: Annotated[str | None, Field(description="Anthropic API Key (Optional)")] = None
+    tavily_api_key: Annotated[str | None, Field(description="Tavily AI Search API Key")] = None
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
     discovery_location: Annotated[
         str | None, Field(description="Source Region for Model Discovery (e.g. us-west1)")
     ] = None
 
-    # --- Vertex Search Configuration (Fail Fast: Must be in .env) ---
-    vertex_search_model: Annotated[str | None, Field(description="Model used for Vertex AI Grounding")] = None
-    enable_vertex_search: Annotated[
-        bool | None, Field(default=False, description="Feature flag to enable/disable actual Vertex AI search calls.")
-    ] = False
     # --- LLM Configuration ---
     # initial_model REMOVED per Zero-Fallback Policy
     default_model_strategy: Annotated[

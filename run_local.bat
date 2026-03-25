@@ -39,10 +39,15 @@ IF %ERRORLEVEL% NEQ 0 (
     echo Docker started.
 )
 
-docker-compose up -d redis
-echo [Debug] Docker command finished.
-echo [Debug] Waiting 2 seconds...
-timeout /t 2 /nobreak >nul
+:: Check if Redis is already running on port 6379
+netstat -an | findstr "6379.*LISTENING" >nul 2>&1
+IF %ERRORLEVEL% EQU 0 (
+    echo [+] Redis already running on port 6379 - reusing existing instance.
+) ELSE (
+    docker-compose up -d redis
+    echo [Debug] Waiting 2 seconds for Redis startup...
+    timeout /t 2 /nobreak >nul
+)
 
 echo [2/3] Launching Backend ^& Worker (Uvicorn + Arq)...
 echo       Mode: LOCAL (POOR MAN'S PROD)

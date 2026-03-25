@@ -69,6 +69,7 @@ def configure_logfire():
         logfire.configure(send_to_logfire=True)
         logfire.instrument_pydantic()
         logfire.instrument_httpx()
+        logfire.instrument_redis()
 
         import litellm
         litellm.success_callback = ["logfire"]   # Instrument LLM Calls

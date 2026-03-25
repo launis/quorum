@@ -2,7 +2,9 @@
 Strictly maps collections to V2 Pydantic models (Zero V1 leak).
 """
 
-from pydantic import TypeAdapter
+from typing import Annotated, Union
+
+from pydantic import Discriminator, Tag, TypeAdapter
 
 from backend_v2.models.auth import Organization, User
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -11,11 +13,26 @@ from backend_v2.models.v2_core import (
     PromptBlock,
     Role,
     Step,
+    SystemConfigMCPGateways,
     SystemConfigModelRegistry,
     Workflow,
 )
 
-SystemConfigUnion = SystemConfigModelRegistry
+
+def _system_config_discriminator(v: dict) -> str:  # type: ignore[type-arg]
+    """Polymorphic Seeding: route by 'type' field."""
+    if isinstance(v, dict):
+        return v.get("type", "model_registry")
+    return getattr(v, "type", "model_registry")
+
+
+SystemConfigUnion = Annotated[
+    Union[
+        Annotated[SystemConfigModelRegistry, Tag("model_registry")],
+        Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")],
+    ],
+    Discriminator(_system_config_discriminator),
+]
 
 STANDARD_REGISTRY = {
     "system_config": {"table": "system_config", "model": TypeAdapter(SystemConfigUnion), "id_field": "id"},

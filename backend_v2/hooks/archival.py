@@ -70,25 +70,15 @@ async def retrieve_precedent_hook(
                 )
 
         for res in recent_executions:
-            # Check if it has judge output
-            # ExecutionRecord -> results (WorkflowState) -> execution_trace (List[TraceEvent])
+            # V2 Event Sourcing: TraceEvents live directly on ExecutionRecord.execution_trace
+            # (Legacy V1 used res.results which no longer exists)
+            trace_events = getattr(res, "execution_trace", []) or []
 
-            # FAIL FAST: Strict Type Enforcement
-            wf_state = res.results
-
-            if not isinstance(wf_state, dict) and not getattr(wf_state, "execution_trace", None):
-                # If it's still not a valid object, we have invalid data structure for a completed execution
-                logger.warning(f"Execution {res.id} results is not valid. Skipping.")
+            if not trace_events:
+                logger.warning(f"Execution {res.id} has no trace events. Skipping.")
                 continue
 
-            # Find ALL Judge outputs in trace (Generic Detection)
             judge_outputs = {}
-
-            # TraceEvents are needing access. Check if WorkflowState has trace?
-            if isinstance(wf_state, dict):
-                trace_events = wf_state.get("execution_trace", [])
-            else:
-                trace_events = getattr(wf_state, "execution_trace", [])
 
             for event in trace_events:
                 event_type = event.get("event_type") if isinstance(event, dict) else getattr(event, "event_type", "")

@@ -82,10 +82,11 @@ async def lifespan(app: FastAPI) -> Any:
         logger.info("Shutting down...")
         if hasattr(app.state, "arq_pool") and app.state.arq_pool:
             try:
-                # Close real Arq connections
-                if hasattr(app.state.arq_pool, "close"):
-                    app.state.arq_pool.close()
-                    await app.state.arq_pool.wait_closed()
+                # Modern redis-py: use aclose() or close(), wait_closed() is removed
+                if hasattr(app.state.arq_pool, "aclose"):
+                    await app.state.arq_pool.aclose()
+                elif hasattr(app.state.arq_pool, "close"):
+                    await app.state.arq_pool.close()
             except Exception as close_err:
                 logger.error(f"Error closing Arq pool: {close_err}")
 

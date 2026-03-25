@@ -31,7 +31,6 @@ class XAIReporterInput(BaseModel):
     step_judge_cognitive: JudgeOutput | None = Field(default=None, description="Cognitive Judge output.")
 
     # --- Universal Routing Inputs ---
-    search_result: Any | None = Field(default=None, description="Vertex AI Grounding search results.")
     step_analyst: Any | None = Field(default=None, description="Analyst hypotheses and RAG data.")
     step_profiler: Any | None = Field(default=None, description="Profiler cognitive bias data.")
     step_falsifier: Any | None = Field(default=None, description="Falsifier critical distance data.")
@@ -76,7 +75,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
     )
     verified_facts: str = Field(
         ...,
-        description="Synthesis of Vertex Search facts.",
+        description="Synthesis of facts.",
         json_schema_extra={"x-ui-label": "Verified Facts"},
     )
     cognitive_behavior: str = Field(

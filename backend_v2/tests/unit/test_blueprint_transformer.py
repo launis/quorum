@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ReportDataDTO
 from backend_v2.services.blueprint import BlueprintTransformer
 
@@ -15,26 +16,29 @@ def mock_repo():
             "default_locale": "en",
             "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}
         },
-        "default_profile_id": "out_default",
+        "default_profile_id": "prf_default1",
         "output_profiles": {
-            "out_default": {
-                "name": {"en": "Default"},
-                "layouts": [{"preset_view": "1d_metrics", "steps": [], "show_text": True}]
+            "prf_default1": {
+                "name": {"default_locale": "en", "translations": {"en": "Default"}},
+                "workflow_id": "wf_1",
+                "layouts": [{"layout_type": "box_1d", "title": {"default_locale": "en", "translations": {"en": "Title"}}, "components": ["*"], "show_text": True}]
             }
         }
     }
     repo.get_all_output_profiles.return_value = [
         {
-            "id": "out_default", 
-            "slug": "out_default", 
-            "name": {"en": "Default"}, 
-            "layouts": [{"preset_view": "1d_metrics", "steps": [], "show_text": True}]
+            "id": "prf_default1",
+            "slug": "prf_default1",
+            "name": {"default_locale": "en", "translations": {"en": "Default"}},
+            "workflow_id": "wf_1",
+            "layouts": [{"layout_type": "box_1d", "title": {"default_locale": "en", "translations": {"en": "Title"}}, "components": ["*"], "show_text": True}]
         }
     ]
     repo.get_all_prompt_blocks.return_value = [
         {
             "id": "matrix_logic1234",
             "slug": "matrix_logic1234",
+            "category_id": "matrix",
             "label": {"translations": {"fi": "Logiikka", "en": "Logic"}},
             "scales": [
                 {"score": 0, "name": {"translations": {"fi": "Nolla", "en": "Zero"}}},
@@ -50,26 +54,34 @@ async def test_build_report_dto_maps_correctly(mock_repo):
         id="testexec_0000test001",
         workflow_id="wf_1",
         status=ExecutionStatus.COMPLETED,
-        results={
-            "step_analyst": {
-                "score": 75.0,
-                "justification": "Very logical",
-                "synthesis": "Great job"
-            }
-        },
-        active_profile_id="out_default",
+        execution_trace=[
+            TraceEvent(
+                step_name="step_analyst",
+                event_type="output",
+                content={
+                    "matrix_logic1234": 75.0,
+                    "matrix_logic1234_justification": "Very logical",
+                    "synthesis": "Great job"
+                }
+            )
+        ],
+        active_profile_id="prf_default1",
         metadata={"target_locale": "en"}
     )
     transformer = BlueprintTransformer(mock_repo)
     dto = await transformer.build_report_dto("testexec_0000test001", accept_language="en")
 
     assert isinstance(dto, ReportDataDTO)
-    assert dto.synthesis == "Great job"
+    print(f"DEBUG: layout components from profile: {mock_repo.get_all_output_profiles.return_value}")
+    projector = __import__("backend_v2.models.state", fromlist=["StateProjector"]).StateProjector()
+    res = projector.fold_trace(mock_repo.get_execution.return_value.execution_trace)
+    print(f"DEBUG: folded results: {res}")
+    print(f"DEBUG: layouts array lengths: {len(dto.layouts)}")
     assert len(dto.layouts) == 1
     assert len(dto.layouts[0].axes) == 1
 
     axis = dto.layouts[0].axes[0]
-    assert axis.name in ["Mock Workflow", "step_analyst", "score", "test_k"]
+    assert axis.name in ["Mock Workflow", "step_analyst", "matrix_logic1234", "test_k", "Logic"]
     assert axis.score == 75.0
     assert axis.justification == "Very logical"
 
@@ -79,13 +91,12 @@ async def test_graceful_degradation_missing_fields(mock_repo):
         id="testexec_0000test002",
         workflow_id="wf_1",
         status=ExecutionStatus.COMPLETED,
-        results={},
-        active_profile_id="out_default",
+        execution_trace=[],
+        active_profile_id="prf_default1",
         metadata={"target_locale": "fi"}
     )
     transformer = BlueprintTransformer(mock_repo)
     dto = await transformer.build_report_dto("testexec_0000test002")
 
     assert isinstance(dto, ReportDataDTO)
-    assert dto.synthesis is None
     assert len(dto.layouts) == 0

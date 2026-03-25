@@ -22,7 +22,9 @@ __all__ = [
     "I18nText",
     "ModelProfile",
     "SystemConfigModelRegistry",
-    "SystemConfigModelRegistry",
+    "SystemConfigMCPGateways",
+    "AllowedMCPTool",
+    "MCPAuditTrace",
     "Step",
     "StepRule",
     "Role",
@@ -33,7 +35,6 @@ __all__ = [
     "FrozenContext",
     "ExecutionCreate",
     "ExecutionRecord",
-    "ExpectedInput",
     "ExpectedInput",
     "WorkflowInputs",
     "QuestionnaireItem",
@@ -311,6 +312,51 @@ class SystemConfigModelRegistry(V2CoreBase):
         description="Dictionary mapping generic role names to specific ModelProfiles"
     )
 
+class AllowedMCPTool(V2CoreBase):
+    """Declares a single MCP tool available for LLM function calling."""
+    tool_id: str = Field(description="Unique slug (e.g. 'mcp_tavily_search').")
+    name: I18nText = Field(description="Localized display name.")
+    description: str = Field(description="English-only LLM description for function calling schema.")
+    input_schema: dict[str, Any] = Field(
+        default_factory=dict,
+        description="JSON Schema defining the tool's input parameters."
+    )
+
+class MCPAuditTrace(V2CoreBase):
+    """Immutable audit log entry for a single MCP tool invocation."""
+    tool_id: str = Field(description="Which tool was called.")
+    step_name: str = Field(description="DAG step that triggered the call.")
+    query: str = Field(description="The search query or tool input.")
+    response_summary: str = Field(default="", description="Extracted text summary.")
+    source_urls: list[str] = Field(default_factory=list, description="Source URLs returned.")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="UTC timestamp of the tool call."
+    )
+    duration_ms: int = Field(default=0, description="Round-trip latency in milliseconds.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_timestamp(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            ts = data.get("timestamp")
+            if isinstance(ts, str):
+                try:
+                    data["timestamp"] = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                except ValueError:
+                    pass
+        return data
+
+class SystemConfigMCPGateways(V2CoreBase):
+    """System-level registry of available MCP tool gateways."""
+    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="System config ID")
+    slug: str = Field(description="Slug identifier.")
+    type: str = Field(default="mcp_gateways", description="Config type discriminator.")
+    tools: list[AllowedMCPTool] = Field(
+        default_factory=list,
+        description="Registry of all available MCP tools in the system."
+    )
+
 class Step(V2CoreBase):
     """Isolated, reusable orchestrator cognitive module (e.g. Guard or step_input_processing).
     Formerly known as TaskBlueprint.
@@ -388,6 +434,10 @@ class StepRule(V2CoreBase):
     )
     post_hooks: list[str] = Field(
         default_factory=list, description="Optional hooks running after step execution"
+    )
+    allowed_mcp_tools: list[str] = Field(
+        default_factory=list,
+        description="Workflow-level MCP tools override (e.g. ['mcp_tavily_search']). Takes priority over Step template."
     )
 
     def extract_variable_references(self) -> list[str]:
@@ -533,7 +583,6 @@ class ReportDataDTO(V2CoreBase):
         default=None, description="The mathematical average extracted from the scoring_result hook."
     )
     layouts: list[ReportLayoutDTO] = Field(default_factory=list)
-    synthesis: str | None = None
 
     # Execution Diagnostic Metadata
     created_at: datetime | None = None
@@ -543,6 +592,12 @@ class ReportDataDTO(V2CoreBase):
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
     reasoning_tokens: int | None = None
+
+    # MCP Tool Loop Audit Trail (XAI Evidence for Frontend)
+    mcp_tool_audit: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
+    )
 
 class OutputLayoutBlock(V2CoreBase):
     """A single sequential rendering block for a report profile."""
@@ -611,6 +666,10 @@ class FrozenContext(V2CoreBase):
         default_factory=dict, description="JSON schemas used.")
     ui_hints_snapshot: dict[str, DataDictionaryField] = Field(
         default_factory=dict, description="UI rendering instructions.")
+    mcp_tool_audit: list[MCPAuditTrace] = Field(
+        default_factory=list,
+        description="Immutable log of all external MCP tool calls made during execution."
+    )
 
 
 

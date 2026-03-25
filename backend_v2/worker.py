@@ -216,14 +216,18 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         repo = await get_repository(get_settings())
         transformer = BlueprintTransformer(repo)
 
-        # 0. Get explicit locale via Execution
+        # 0. Guard: Execution may have been deleted while PDF job was queued
         execution_dict = await repo.get_execution(execution_id)
-        if execution_dict:
-            metadata = getattr(execution_dict, "metadata", None) or (execution_dict.get("metadata", {}) if isinstance(execution_dict, dict) else None)
-            if metadata:
-                loc = metadata.get("target_locale")
-                if loc and not accept_language:
-                    accept_language = loc
+        if not execution_dict:
+            logger.warning(f"[Task] Execution {execution_id} no longer exists (deleted?). Skipping PDF generation.")
+            return
+
+        # 0b. Get explicit locale via Execution
+        metadata = getattr(execution_dict, "metadata", None) or (execution_dict.get("metadata", {}) if isinstance(execution_dict, dict) else None)
+        if metadata:
+            loc = metadata.get("target_locale")
+            if loc and not accept_language:
+                accept_language = loc
 
         # 1. Generate Omni-Channel JSON Payload
         dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)

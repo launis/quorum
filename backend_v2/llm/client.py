@@ -4,7 +4,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from backend_v2.exceptions import AgentExecutionError, ErrorCodes
+from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.llm import LLMProviderConfig
 
@@ -85,16 +85,32 @@ class LLMClient:
 
         target_provider = getattr(target_strategy, "provider", "google")
 
-        # 4. Construct Provider Config
+        # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry
+        if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:
+            raise ConfigurationError(
+                f"Strict Mode: Strategy '{strategy_name}' is missing required 'tpm_limit' or 'rpm_limit' in Model Registry.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            )
+        if target_strategy.temperature is None:
+            raise ConfigurationError(
+                f"Strict Mode: Strategy '{strategy_name}' is missing required 'temperature' in Model Registry.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            )
+        if target_strategy.max_tokens is None:
+            raise ConfigurationError(
+                f"Strict Mode: Strategy '{strategy_name}' is missing required 'max_tokens' in Model Registry.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            )
+
         provider_config = LLMProviderConfig(
             id=f"{target_provider}/{strategy_name}",
             provider=target_provider,
             model_name=target_strategy.model_name,
             api_key=target_strategy.api_key,
-            temperature=target_strategy.temperature if target_strategy.temperature is not None else 0.7,
-            tpm_limit=target_strategy.tpm_limit if target_strategy.tpm_limit is not None else 100000,
-            rpm_limit=target_strategy.rpm_limit if target_strategy.rpm_limit is not None else 10,
-            default_max_tokens=target_strategy.max_tokens if target_strategy.max_tokens is not None else 65536,
+            temperature=target_strategy.temperature,
+            tpm_limit=target_strategy.tpm_limit,
+            rpm_limit=target_strategy.rpm_limit,
+            default_max_tokens=target_strategy.max_tokens,
             supports_grounding=target_strategy.supports_grounding,
             parsing_mode=target_strategy.parsing_mode,
         )
@@ -107,7 +123,9 @@ class LLMClient:
         response_model: type[T],
         model: str | None = None,
         max_retries: int = 1,
-        **kwargs: Any,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        mock_identity: str | None = None,
     ) -> tuple[T, dict[str, Any]]:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
 
@@ -115,12 +133,14 @@ class LLMClient:
             messages: List of chat messages (system, user, etc.)
             response_model: The Pydantic model class to valid output against.
             model: Optional direct model override. If omitted, uses Strategy-bound config.
-            **kwargs: Additional arguments for the completion call.
+            max_retries: Number of self-healing retries on schema errors.
+            temperature: Sampling temperature override.
+            max_tokens: Max tokens override.
+            mock_identity: Identity key for mock provider routing.
 
         Returns:
             A tuple of (Validated Pydantic Model, Token Usage Dictionary).
         """
-        from backend_v2.exceptions import ErrorCodes
         # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
         # We process the raw messages array dynamically before handing it to the provider.
         has_anthropic_ephemeral = False
@@ -174,8 +194,6 @@ class LLMClient:
         # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
         if model is None:
             if not self._config:
-                from backend_v2.exceptions import AppException, ErrorCodes
-
                 raise AppException(
                     message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
                     status_code=500,
@@ -189,21 +207,19 @@ class LLMClient:
             )
             target_provider_type = "litellm"  # Base Default
 
-            # Apply Default Overrides from Strategy
-            temp = (
-                self._config.temperature
-                if hasattr(self._config, "temperature")
-                else self._config.get("temperature")
-            )
-            max_tok = (
-                self._config.default_max_tokens
-                if hasattr(self._config, "default_max_tokens")
-                else self._config.get("default_max_tokens")
-            )
-
-            kwargs.setdefault("temperature", temp)
-            kwargs.setdefault("max_tokens", max_tok)
-            # Future: Tools could be injected here automatically from self._config.allowed_tools
+            # Apply Strategy defaults only if caller didn't override
+            if temperature is None:
+                temperature = (
+                    self._config.temperature
+                    if hasattr(self._config, "temperature")
+                    else self._config.get("temperature")
+                )
+            if max_tokens is None:
+                max_tokens = (
+                    self._config.default_max_tokens
+                    if hasattr(self._config, "default_max_tokens")
+                    else self._config.get("default_max_tokens")
+                )
         else:
             # Legacy pass-through
             target_model_name = model
@@ -236,9 +252,9 @@ class LLMClient:
                         system_instruction=system_instruction,
                         messages=final_messages,
                         response_schema=response_model,
-                        temperature=kwargs.get("temperature"),
-                        max_tokens=kwargs.get("max_tokens"),
-                        mock_identity=kwargs.get("mock_identity")
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        mock_identity=mock_identity,
                     )
 
                     # Extract usage securely into a simple dictionary from LLMResponse model
@@ -304,7 +320,6 @@ class LLMClient:
                     final_messages.append({"role": "user", "content": correction_prompt})
 
         except Exception as e:
-            from backend_v2.exceptions import ErrorCodes
             if isinstance(e, AgentExecutionError):
                 raise
             error_msg = f"Execution Failed for model {target_model_name}: {e}"
@@ -326,25 +341,29 @@ class LLMClient:
         self,
         messages: list[dict[str, Any]],
         model: str | None = None,
-        **kwargs: Any,
-    ) -> str:
-        """Execute a free-form chat task returning a string.
+        tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> str | dict[str, Any]:
+        """Execute a free-form chat task returning a string or tool_calls dict.
 
         Args:
             messages: List of chat messages.
             model: Model identifier. MUST be provided (Zero-Fallback).
-            **kwargs: Additional args (temperature, max_tokens).
+            tools: Optional OpenAI-format tool declarations for function calling.
+            tool_choice: Optional tool_choice mode ('auto', 'none', 'required').
+            temperature: Sampling temperature override.
+            max_tokens: Max tokens override.
 
         Returns:
-            The generated text content.
+            str if LLM returns text, or dict with 'tool_calls' key if LLM invokes tools.
         """
         # ZERO-FALLBACK ENFORCEMENT
-        # 2. Resolve Configuration (SSOT Priority)
+        # Resolve Configuration (SSOT Priority)
         # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
         if model is None:
             if not self._config:
-                from backend_v2.exceptions import AppException, ErrorCodes
-
                 raise AppException(
                     message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
                     status_code=500,
@@ -358,53 +377,79 @@ class LLMClient:
             )
             target_provider_type = "litellm"
 
-            # Apply Default Overrides from Strategy
-            temp = (
-                self._config.temperature
-                if hasattr(self._config, "temperature")
-                else self._config.get("temperature")
-            )
-            max_tok = (
-                self._config.default_max_tokens
-                if hasattr(self._config, "default_max_tokens")
-                else self._config.get("default_max_tokens")
-            )
-
-            kwargs.setdefault("temperature", temp)
-            kwargs.setdefault("max_tokens", max_tok)
+            # Apply Strategy defaults only if caller didn't override
+            if temperature is None:
+                temperature = (
+                    self._config.temperature
+                    if hasattr(self._config, "temperature")
+                    else self._config.get("temperature")
+                )
+            if max_tokens is None:
+                max_tokens = (
+                    self._config.default_max_tokens
+                    if hasattr(self._config, "default_max_tokens")
+                    else self._config.get("default_max_tokens")
+                )
         else:
             # Legacy pass-through
             target_model_name = model
             target_provider_type = "litellm"
 
-        # 1. Parse Prompt (Flattening)
-        # Similar logic to run_structured_task
-        system_instruction = None
-        prompt = ""
+        # Parse Prompt — detect if this is a multi-turn tool conversation
+        # If messages contain roles other than system/user (e.g. assistant, tool),
+        # we MUST pass them as-is to generate(messages=...) for correct tool loop behavior.
+        has_tool_messages = any(
+            msg.get("role") in ("assistant", "tool") for msg in messages
+        )
 
-        for msg in messages:
-            role = msg.get("role")
-            content = msg.get("content", "")
-            if role == "system":
-                system_instruction = (system_instruction + "\n\n" + content) if system_instruction else content
-            elif role == "user":
-                prompt = (prompt + "\n\n" + content) if prompt else content
+        if has_tool_messages:
+            # Multi-turn tool conversation: pass messages directly (no flattening)
+            system_instruction = None
+            prompt = None
+        else:
+            # Simple system+user: flatten as before (backward compatible)
+            system_instruction = None
+            prompt = ""
 
-        if not prompt:
-            prompt = messages[-1]["content"] if messages else ""
+            for msg in messages:
+                role = msg.get("role")
+                content = msg.get("content", "")
+                if role == "system":
+                    system_instruction = (system_instruction + "\n\n" + content) if system_instruction else content
+                elif role == "user":
+                    prompt = (prompt + "\n\n" + content) if prompt else content
 
-        # 2. Create Provider
-        provider = LLMFactory.create_provider(provider_type=target_provider_type, model_name=str(target_model_name))
+            if not prompt:
+                prompt = messages[-1]["content"] if messages else ""
 
-        # 3. Generate
+        # Create Provider — pass self._config for TPM/RPM (Strict Mode compliance)
+        provider = LLMFactory.create_provider(provider_type=target_provider_type, model_name=str(target_model_name), config=self._config)
+
+        # Generate
         try:
-            response = await provider.generate(
-                prompt=prompt,
-                system_instruction=system_instruction,
-                temperature=kwargs.get("temperature"),
-                max_tokens=kwargs.get("max_tokens"),
-                **kwargs,
-            )
+            if has_tool_messages:
+                # Pass full message array for tool conversations
+                response = await provider.generate(
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    tools=tools,
+                    tool_choice=tool_choice,
+                )
+            else:
+                response = await provider.generate(
+                    prompt=prompt,
+                    system_instruction=system_instruction,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    tools=tools,
+                    tool_choice=tool_choice,
+                )
+
+            # If LLM returned tool_calls, return as dict for Tool Loop processing
+            if response.tool_calls:
+                return {"tool_calls": response.tool_calls, "content": response.content}
+
             return response.content
         except Exception as e:
             error_msg = f"Chat Execution Failed: {e}"

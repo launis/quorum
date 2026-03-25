@@ -138,6 +138,44 @@ class ReportLayoutDTO {
   }
 }
 
+/// Strictly typed DTO for a single MCP Tool Loop audit trace entry.
+/// Used by XAIEvidenceBox to display AI fact-check sources.
+class MCPToolAuditDTO {
+  final String toolId;
+  final String stepName;
+  final String query;
+  final String responseSummary;
+  final List<String> sourceUrls;
+  final String? timestamp;
+  final int durationMs;
+
+  const MCPToolAuditDTO({
+    required this.toolId,
+    required this.stepName,
+    required this.query,
+    required this.responseSummary,
+    required this.sourceUrls,
+    this.timestamp,
+    required this.durationMs,
+  });
+
+  /// SafeCast parsing — Graceful Degradation (§6.3).
+  factory MCPToolAuditDTO.fromJson(Map<String, dynamic> json) {
+    return MCPToolAuditDTO(
+      toolId: SafeCast.safeString(json['tool_id']),
+      stepName: SafeCast.safeString(json['step_name']),
+      query: SafeCast.safeString(json['query']),
+      responseSummary: SafeCast.safeString(json['response_summary']),
+      sourceUrls:
+          SafeCast.safeList(json['source_urls'])
+              .map((e) => e.toString())
+              .toList(),
+      timestamp: json['timestamp']?.toString(),
+      durationMs: SafeCast.safeInt(json['duration_ms']),
+    );
+  }
+}
+
 /// Strictly typed DTO representing the universal V3 Render Payload.
 class ReportDataDTO {
   final String workflowId;
@@ -146,7 +184,6 @@ class ReportDataDTO {
   final Map<String, String> availableProfiles;
   final double? globalScore;
   final List<ReportLayoutDTO> layouts;
-  final String synthesis;
 
   final String? createdAt;
   final String? orgName;
@@ -156,6 +193,9 @@ class ReportDataDTO {
   final int? completionTokens;
   final int? reasoningTokens;
 
+  // MCP Tool Loop Audit Trail (XAI Evidence for Frontend)
+  final List<MCPToolAuditDTO> mcpToolAudit;
+
   const ReportDataDTO({
     required this.workflowId,
     required this.profileId,
@@ -163,7 +203,6 @@ class ReportDataDTO {
     required this.availableProfiles,
     this.globalScore,
     required this.layouts,
-    required this.synthesis,
     this.createdAt,
     this.orgName,
     this.costEstimate,
@@ -171,6 +210,7 @@ class ReportDataDTO {
     this.promptTokens,
     this.completionTokens,
     this.reasoningTokens,
+    this.mcpToolAudit = const [],
   });
 
   /// Instantiates a strictly typed [ReportDataDTO] from raw JSON.
@@ -199,7 +239,6 @@ class ReportDataDTO {
           SafeCast.safeList(
             json['layouts'],
           ).map((e) => ReportLayoutDTO.fromJson(SafeCast.safeMap(e))).toList(),
-      synthesis: SafeCast.safeString(json['synthesis']),
       createdAt: json['created_at']?.toString(),
       orgName: json['org_name']?.toString(),
       costEstimate:
@@ -222,6 +261,12 @@ class ReportDataDTO {
           json['reasoning_tokens'] != null
               ? SafeCast.safeInt(json['reasoning_tokens'])
               : null,
+      mcpToolAudit:
+          json['mcp_tool_audit'] != null
+              ? SafeCast.safeList(json['mcp_tool_audit'])
+                  .map((e) => MCPToolAuditDTO.fromJson(SafeCast.safeMap(e)))
+                  .toList()
+              : const [],
     );
   }
 

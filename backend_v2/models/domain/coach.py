@@ -37,7 +37,6 @@ class CoachInput(BaseModel):
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
     # --- Universal Routing Inputs ---
-    search_result: Any | None = Field(default=None, description="Vertex AI Grounding search results.")
     step_analyst: Any | None = Field(default=None, description="Analyst hypotheses and RAG data.")
     step_profiler: Any | None = Field(default=None, description="Profiler cognitive bias data.")
     step_falsifier: Any | None = Field(default=None, description="Falsifier critical distance data.")

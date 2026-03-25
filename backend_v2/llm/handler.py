@@ -409,6 +409,23 @@ class LLMHandler:
             # Construct strict config object
             # We map dict fields to LLMProviderConfig
             # Note: 'cd' is the raw dict from DB
+            tpm = cd.get("tpm_limit")
+            rpm = cd.get("rpm_limit")
+            if not tpm or not rpm:
+                raise ConfigurationError(
+                    message=f"Strict Mode: Strategy '{provider}/{mode}' is missing required 'tpm_limit' or 'rpm_limit'.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                )
+            if "supports_grounding" not in cd:
+                raise ConfigurationError(
+                    message=f"Strict Mode: Strategy '{provider}/{mode}' is missing required 'supports_grounding'.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                )
+            if "is_active" not in cd:
+                raise ConfigurationError(
+                    message=f"Strict Mode: Strategy '{provider}/{mode}' is missing required 'is_active'.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                )
             provider_config = LLMProviderConfig(
                 id=f"{provider}/{mode}",
                 provider=provider,
@@ -416,12 +433,12 @@ class LLMHandler:
                 api_key=api_key,
                 base_url=cd.get("base_url"),
                 temperature=temperature,
-                tpm_limit=cd.get("tpm_limit", 0),
-                rpm_limit=cd.get("rpm_limit", 0),
+                tpm_limit=tpm,
+                rpm_limit=rpm,
                 default_max_tokens=max_tokens,
                 vertex_location=cd.get("vertex_location"),
-                supports_grounding=cd.get("supports_grounding", False),
-                is_active=cd.get("is_active", True),
+                supports_grounding=cd["supports_grounding"],
+                is_active=cd["is_active"],
                 additional_params=cd.get("additional_params", {}),
             )
 

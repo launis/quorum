@@ -1,7 +1,5 @@
 from unittest.mock import MagicMock
 
-import pytest
-
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.hooks.validation import verify_output_language
 

@@ -7,7 +7,6 @@ import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 
 class StepBuilderView extends StatefulHookConsumerWidget {
   final Map<String, dynamic> step;
@@ -65,6 +64,7 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
     });
   }
 
+
   void _deleteStep(BuildContext context, MutationState<void> deleteMutation) {
     final id = _idController.text.trim();
     if (id.isEmpty) return;
@@ -99,10 +99,6 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
     final promptBlocks = promptBlocksAsync.value ?? [];
 
-    final modelRegistryAsync = ref.watch(modelRegistryControllerProvider);
-    final modelRegistry = modelRegistryAsync.value ?? {};
-    final modelsMap = SafeCast.safeMap(modelRegistry['models']);
-    final strategyKeys = modelsMap.keys.toList().cast<String>();
 
     final saveMutation = useMutation<void>(
       onSuccess: (_) {
@@ -174,20 +170,7 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
                 );
                 throw Exception('ID is required');
               }
-              final modelStrategy = _editableStep['model_strategy'];
-              if (modelStrategy == null ||
-                  modelStrategy.toString().isEmpty ||
-                  modelStrategy == 'null') {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Fail-Fast: You must explicitly select a Model Strategy.',
-                    ),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                throw Exception('Missing Strategy');
-              }
+
               _editableStep['id'] = id;
               _editableStep['slug'] = _slugController.text.trim();
               await ref
@@ -251,35 +234,7 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
                         ),
                         onChanged: (val) => _editableStep['description'] = val,
                       ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'Model Strategy',
-                        ),
-                        initialValue:
-                            strategyKeys.contains(
-                                  _editableStep['model_strategy'],
-                                )
-                                ? _editableStep['model_strategy'] as String?
-                                : null,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Fail-Fast: Strategy must be explicitly selected.';
-                          }
-                          return null;
-                        },
-                        items:
-                            strategyKeys.map((key) {
-                              return DropdownMenuItem(
-                                value: key,
-                                child: Text(key),
-                              );
-                            }).toList(),
-                        onChanged:
-                            (val) => setState(
-                              () => _editableStep['model_strategy'] = val,
-                            ),
-                      ),
+
                     ],
                   ),
                 ),
@@ -336,6 +291,7 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
                   promptBlocks,
                 );
               }),
+
             ],
           ),
         ),

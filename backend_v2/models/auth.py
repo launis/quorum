@@ -85,8 +85,8 @@ class Organization(BaseModel):
         SubscriptionStatus.TRIAL
     )
     quota_limit: Annotated[float, Field(ge=0.0, description="Monthly API call quota (USD)")] = 10.0
-    tpm_limit: Annotated[int, Field(ge=1000, description="Tokens Per Minute Limit")] = 100000
-    rpm_limit: Annotated[int, Field(ge=1, description="Requests Per Minute Limit")] = 60
+    tpm_limit: Annotated[int, Field(ge=1000, description="Tokens Per Minute Limit")]
+    rpm_limit: Annotated[int, Field(ge=1, description="Requests Per Minute Limit")]
 
     model_config = ConfigDict(frozen=True, strict=True)
 
@@ -278,8 +278,8 @@ class OrganizationCreate(BaseModel):
     admin_email: EmailStr
     admin_password: str
     admin_name: str
-    tpm_limit: int = 100000
-    rpm_limit: int = 60
+    tpm_limit: int
+    rpm_limit: int
 
     model_config = ConfigDict(frozen=True, strict=True)
 

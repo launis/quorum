@@ -4,6 +4,7 @@ import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
 
 /// Static MVC View Renderer mapping exactly to the workflow preset views.
 /// Adheres to the De-Generator Zero-Math rule natively traversing the array.
@@ -37,6 +38,9 @@ class ReportRendererWidget extends ConsumerWidget {
         ...payload.layouts.map(
           (layout) => _buildLayoutSequence(context, ref, layout),
         ),
+        // XAI Evidence Box — only renders when MCP tool searches were executed
+        if (payload.mcpToolAudit.isNotEmpty)
+          XAIEvidenceBox(auditTraces: payload.mcpToolAudit),
       ],
     );
   }

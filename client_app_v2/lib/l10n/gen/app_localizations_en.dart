@@ -2278,4 +2278,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get actionHintToolFailed =>
       'Check the tool connection, verify the prompt context, or try again later.';
+
+  @override
+  String get xaiEvidenceTitle => 'AI Expert Sources (Fact-Check)';
+
+  @override
+  String get xaiEvidenceQuery => 'Search query';
+
+  @override
+  String get xaiEvidenceSources => 'Sources';
+
+  @override
+  String get xaiEvidenceDuration => 'Duration';
+
+  @override
+  String get stepBuilderMCPToolsTitle => 'Allowed MCP Tools';
+
+  @override
+  String get stepBuilderAddTool => 'Add Tool';
+
+  @override
+  String get stepBuilderToolHint => 'Tool slug (e.g. mcp_tavily_search)';
 }

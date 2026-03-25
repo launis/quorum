@@ -14,7 +14,7 @@ backup_path = os.path.join(backup_dir, f"seed_data_backup_p6_{timestamp}.json")
 shutil.copy2(seed_path, backup_path)
 print(f"Backed up to: {backup_path}")
 
-with open(seed_path, "r", encoding="utf-8") as f:
+with open(seed_path, encoding="utf-8") as f:
     data = json.load(f)
 
 mod_count = 0

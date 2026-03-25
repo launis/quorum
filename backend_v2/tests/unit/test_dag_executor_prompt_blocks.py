@@ -2,8 +2,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow
 from backend_v2.core.hook_registry import HookResult
+from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 
@@ -91,4 +91,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
     mock_repo.get_all_prompt_blocks.assert_called_once()
     assert not hasattr(mock_repo, "get_all_matrices") or not mock_repo.get_all_matrices.called
     assert record.status == ExecutionStatus.COMPLETED
-    assert record.results["step_11111111"]["test_res"] == 1
+    from backend_v2.models.state import StateProjector
+    projector = StateProjector()
+    results = projector.fold_trace(record.execution_trace)
+    assert results["step_11111111"]["test_res"] == 1

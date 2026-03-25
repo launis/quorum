@@ -40,7 +40,7 @@ class FlatFileService:
 
         if not results:
             return flat_record
-            
+
         # Currently in V2, DAG Executor dumps step outputs under the 'results' dictionary
         # with keys usually corresponding to step_ids (e.g., 'results': {'step_judge': {...}}).
         for step_id, step_output in results.items():

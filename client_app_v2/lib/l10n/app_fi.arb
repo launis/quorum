@@ -755,5 +755,12 @@
   "resumeActionableHint": "Jatka ajoa (Yritä uudelleen)",
   "failedToResume": "Ajon jatkaminen epäonnistui.",
   "toolExecutionFailed": "Työkalun suoritus epäonnistui",
-  "actionHintToolFailed": "Tarkista työkaluasetukset, varmista syötteen laatu tai yritä myöhemmin uudelleen."
+  "actionHintToolFailed": "Tarkista työkaluasetukset, varmista syötteen laatu tai yritä myöhemmin uudelleen.",
+  "xaiEvidenceTitle": "Tekoälyn Asiantuntijalähteet (Faktantarkistus)",
+  "xaiEvidenceQuery": "Hakukysely",
+  "xaiEvidenceSources": "Lähteet",
+  "xaiEvidenceDuration": "Kesto",
+  "stepBuilderMCPToolsTitle": "Sallitut MCP-työkalut",
+  "stepBuilderAddTool": "Lisää työkalu",
+  "stepBuilderToolHint": "Työkalun tunniste (esim. mcp_tavily_search)"
 }

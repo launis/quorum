@@ -1086,5 +1086,33 @@
   "actionHintToolFailed": "Check the tool connection, verify the prompt context, or try again later.",
   "@actionHintToolFailed": {
     "description": "Actionable hint given when a tool fails"
+  },
+  "xaiEvidenceTitle": "AI Expert Sources (Fact-Check)",
+  "@xaiEvidenceTitle": {
+    "description": "Title for the XAI Evidence Box showing MCP tool search results"
+  },
+  "xaiEvidenceQuery": "Search query",
+  "@xaiEvidenceQuery": {
+    "description": "Label for the search query in XAI evidence entries"
+  },
+  "xaiEvidenceSources": "Sources",
+  "@xaiEvidenceSources": {
+    "description": "Label for source URLs in XAI evidence entries"
+  },
+  "xaiEvidenceDuration": "Duration",
+  "@xaiEvidenceDuration": {
+    "description": "Label for search duration in XAI evidence entries"
+  },
+  "stepBuilderMCPToolsTitle": "Allowed MCP Tools",
+  "@stepBuilderMCPToolsTitle": {
+    "description": "Title for MCP tools section in step builder"
+  },
+  "stepBuilderAddTool": "Add Tool",
+  "@stepBuilderAddTool": {
+    "description": "Button label to add a new MCP tool to a step"
+  },
+  "stepBuilderToolHint": "Tool slug (e.g. mcp_tavily_search)",
+  "@stepBuilderToolHint": {
+    "description": "Hint text for MCP tool input field"
   }
 }

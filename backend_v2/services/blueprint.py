@@ -33,7 +33,7 @@ class BlueprintTransformer:
         from backend_v2.models.state import StateProjector
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
-        
+
         locale = accept_language or execution.metadata.get("target_locale", "en")
 
         import typing
@@ -106,11 +106,6 @@ class BlueprintTransformer:
         profile_name_dict = _extract_i18n(profile.name.model_dump())
         layout_defs = profile.layouts
 
-        synthesis = None
-        for _step_id, step_data in results.items():
-            if isinstance(step_data, dict) and "synthesis" in step_data:
-                synthesis = step_data.get("synthesis")
-                break
 
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
@@ -170,7 +165,7 @@ class BlueprintTransformer:
                                 continue
 
                             block = blocks_by_slug.get(k)
-                            
+
                             # Adhere to Fail-Fast / Strict Domain Logic: Only print if key is a known Model Block (or legacy score)
                             if not block and not is_legacy_score:
                                 continue
@@ -178,7 +173,7 @@ class BlueprintTransformer:
                             is_matrix_category = block and block.get("category_id") == "matrix"
                             is_numeric = (isinstance(v, (int, float)) and not isinstance(v, bool)) or str(v).replace('.', '', 1).isdigit()
                             score_float = None
-                            
+
                             # Strict Rendering: Only allow float scores to be parsed for Matrix categories (or the original global score)
                             if is_numeric and (is_matrix_category or is_legacy_score):
                                 try:
@@ -254,7 +249,7 @@ class BlueprintTransformer:
                                     cited_source_id = str(step_data.get(f"{k}_cited_source_id", ""))
                                     cited_text_quote = str(step_data.get(f"{k}_cited_text_quote", ""))
                                     cited_web_citation = str(step_data.get(f"{k}_google_citation", ""))
-                                    
+
                                     coaching = step_data.get(f"{k}_coaching")
                                     confidence = step_data.get(f"{k}_confidence")
                                     falsification = step_data.get(f"{k}_falsification")
@@ -376,12 +371,18 @@ class BlueprintTransformer:
             # --- V3 SANITY CHECK / HEALTH ALERTS ---
             if t_tokens == 0 and execution.execution_trace:
                 logger.warning(f"[BlueprintTransformer] ALARM: Reporting 0 tokens for execution {execution.id}. Telemetry or V3 metadata sync might be broken.")
-            
-            if not synthesis:
-                logger.warning(f"[BlueprintTransformer] ALARM: Empty Synthesis (Overall string) for execution {execution.id}. Core summarization may have failed.")
-            
+
+
             if not layouts_list:
                 logger.warning(f"[BlueprintTransformer] ALARM: 0 Layouts generated for execution {execution.id}. UI will render empty.")
+
+            # Extract MCP Tool Loop audit trail from FrozenContext (XAI Evidence for Frontend)
+            mcp_audit_data: list[dict[str, typing.Any]] = []
+            if hasattr(execution, "frozen_context") and execution.frozen_context:
+                if hasattr(execution.frozen_context, "mcp_tool_audit") and execution.frozen_context.mcp_tool_audit:
+                    mcp_audit_data = [
+                        t.model_dump(mode="json") for t in execution.frozen_context.mcp_tool_audit
+                    ]
 
             dto = ReportDataDTO(
                 workflow_id=execution.workflow_id,
@@ -391,13 +392,13 @@ class BlueprintTransformer:
                 created_at=execution.created_at,
                 org_name=org_name,
                 global_score=global_score,
-                synthesis=synthesis,
                 layouts=layouts_list,
                 cost_estimate=cost,
                 total_tokens=t_tokens,
                 prompt_tokens=p_tokens,
                 completion_tokens=c_tokens,
-                reasoning_tokens=r_tokens
+                reasoning_tokens=r_tokens,
+                mcp_tool_audit=mcp_audit_data,
             )
             return dto
         except Exception as e:

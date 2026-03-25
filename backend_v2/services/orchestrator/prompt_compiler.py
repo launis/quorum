@@ -1,7 +1,7 @@
 """Prompt Compiler for generating dynamic Pydantic schemas and LLM prompts.
 
 Transforms abstract workflow state and domain models into executable
-LLM payloads with RAG context, strictness calibration, and format enforcement.
+LLM payloads with system context, strictness calibration, and format enforcement.
 """
 
 from __future__ import annotations

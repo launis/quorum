@@ -4231,6 +4231,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check the tool connection, verify the prompt context, or try again later.'**
   String get actionHintToolFailed;
+
+  /// Title for the XAI Evidence Box showing MCP tool search results
+  ///
+  /// In en, this message translates to:
+  /// **'AI Expert Sources (Fact-Check)'**
+  String get xaiEvidenceTitle;
+
+  /// Label for the search query in XAI evidence entries
+  ///
+  /// In en, this message translates to:
+  /// **'Search query'**
+  String get xaiEvidenceQuery;
+
+  /// Label for source URLs in XAI evidence entries
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get xaiEvidenceSources;
+
+  /// Label for search duration in XAI evidence entries
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get xaiEvidenceDuration;
+
+  /// Title for MCP tools section in step builder
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed MCP Tools'**
+  String get stepBuilderMCPToolsTitle;
+
+  /// Button label to add a new MCP tool to a step
+  ///
+  /// In en, this message translates to:
+  /// **'Add Tool'**
+  String get stepBuilderAddTool;
+
+  /// Hint text for MCP tool input field
+  ///
+  /// In en, this message translates to:
+  /// **'Tool slug (e.g. mcp_tavily_search)'**
+  String get stepBuilderToolHint;
 }
 
 class _AppLocalizationsDelegate

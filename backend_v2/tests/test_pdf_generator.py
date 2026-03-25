@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, ReportDataDTO, ReportLayoutDTO
 from backend_v2.services.pdf_generator import PdfReportService
 
@@ -16,7 +17,13 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
         id="exe_abcdefgh123",
         workflow_id="test_wf",
         status=ExecutionStatus.COMPLETED,
-        results={"ok": True}
+        execution_trace=[
+            TraceEvent(
+                step_name="test_step",
+                event_type="output",
+                content={"ok": True}
+            )
+        ]
     )
     mock_repo.get_execution.return_value = mock_execution
     mock_repo.get_workflow_by_id.return_value = {"name": {"en": "Workflow Name"}}

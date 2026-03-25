@@ -2285,4 +2285,27 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get actionHintToolFailed =>
       'Tarkista työkaluasetukset, varmista syötteen laatu tai yritä myöhemmin uudelleen.';
+
+  @override
+  String get xaiEvidenceTitle =>
+      'Tekoälyn Asiantuntijalähteet (Faktantarkistus)';
+
+  @override
+  String get xaiEvidenceQuery => 'Hakukysely';
+
+  @override
+  String get xaiEvidenceSources => 'Lähteet';
+
+  @override
+  String get xaiEvidenceDuration => 'Kesto';
+
+  @override
+  String get stepBuilderMCPToolsTitle => 'Sallitut MCP-työkalut';
+
+  @override
+  String get stepBuilderAddTool => 'Lisää työkalu';
+
+  @override
+  String get stepBuilderToolHint =>
+      'Työkalun tunniste (esim. mcp_tavily_search)';
 }

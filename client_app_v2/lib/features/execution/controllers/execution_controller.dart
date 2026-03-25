@@ -115,10 +115,16 @@ class ExecutionController extends _$ExecutionController {
       final client = ref.read(executionClientProvider);
       final renderData = await client.renderExecution(executionId);
 
+      // Guard: Provider may have been disposed during the network call
+      if (!ref.mounted) return;
+
       // We parse it in Isolate to guarantee no Jank.
       final reportData = await ReportDataDTO.parseInBackground(
         jsonEncode(renderData),
       );
+
+      // Guard: Provider may have been disposed during isolate parsing
+      if (!ref.mounted) return;
 
       if (state.hasValue && state.value != null) {
         // Merge the heavy DTO back into the raw Map state for backward compatibility
@@ -131,6 +137,8 @@ class ExecutionController extends _$ExecutionController {
         state = AsyncValue.data(merged);
       }
     } catch (e, stack) {
+      // Guard: Don't try to log via ref if provider is disposed
+      if (!ref.mounted) return;
       ref
           .read(loggerServiceProvider)
           .warning(

@@ -476,6 +476,13 @@ class LiteLLMProvider(LLMProvider):
 
             from typing import cast
 
+            # Extract tool_calls from LLM response (MCP Tool Loop support)
+            extracted_tool_calls: list[dict[str, Any]] = []
+            if hasattr(message, "tool_calls") and message.tool_calls:
+                for tc in message.tool_calls:
+                    tc_dict = tc.model_dump() if hasattr(tc, "model_dump") else dict(tc)
+                    extracted_tool_calls.append(tc_dict)
+
             return LLMResponse(
                 content=final_content,
                 parsed_content=parsed_obj if response_schema else None,
@@ -483,7 +490,7 @@ class LiteLLMProvider(LLMProvider):
                 token_usage=cast(dict[str, float | int], usage),
                 provider_metadata=provider_meta,
                 system_fingerprint=system_fingerprint,
-                tool_calls=[],
+                tool_calls=extracted_tool_calls if extracted_tool_calls else [],
                 messages=final_messages,
             )
 
