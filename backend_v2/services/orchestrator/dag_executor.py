@@ -11,7 +11,6 @@ from typing import Any
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
-from backend_v2.llm.client import LLMClient
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -22,7 +21,6 @@ from backend_v2.models.v2_core import (
     Workflow,
     WorkflowInputs,
 )
-from backend_v2.utils.dict_utils import deep_merge_dicts
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +48,7 @@ class ExecutionCommitter:
             }
             if frozen_context:
                 payload["frozen_context"] = frozen_context.model_dump(mode="json")
-                
+
             if error:
                 payload["error"] = error
 
@@ -84,11 +82,7 @@ class NodeExecutor:
         frozen_ctx: FrozenContext | None = None,
         trace: list[TraceEvent] | None = None
     ) -> list[TraceEvent]:
-        emitted_events: list[TraceEvent] = []
         try:
-            # 1. State extraction (Immutable isolation point)
-            current_state = dict(projector.snapshot)
-
             blueprint_slug = getattr(step, "task_blueprint", None)
             if not blueprint_slug:
                 raise AppException(
@@ -105,216 +99,31 @@ class NodeExecutor:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
                 )
 
-            hook_deps = HookDependencies(repository=self.repository)
+            from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
+            from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
+            from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
-            # --- NATIVE LOGIC NODE EXECUTION ---
+            context = StrategyContext(
+                execution_id=execution_id,
+                workflow_id=workflow_id,
+                metadata=metadata,
+                expected_inputs=expected_inputs
+            )
+
+            strategy_impl: NodeStrategy
             if step_def.get("type", "llm") == "logic":
-                logic_hook = step_def.get("hook", None)
-                if not logic_hook:
-                    raise AppException(
-                        message=f"Logic step '{blueprint_slug}' has no native hook defined.",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED}
-                    )
-
-                # Execute synchronous heavy hooks securely wrapped in to_thread!
-                async def run_logic() -> dict[str, Any]:
-                    state_data = dict(current_state)
-                    hook_state = HookState(
-                        execution_id=execution_id,
-                        workflow_id=workflow_id,
-                        step_id=step.id,
-                        task_blueprint=blueprint_slug,
-                        metadata=metadata,
-                        inputs=state_data
-                    )
-
-                    # Pre-hooks
-                    for pre_hook in step_def.get("pre_hooks", []):
-                        res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
-                        if res.success and res.state_delta:
-                            state_data = deep_merge_dicts(state_data, res.state_delta)
-                            hook_state = hook_state.model_copy(update={"inputs": state_data})
-
-                    # Main logic hook
-                    is_async = asyncio.iscoroutinefunction(hook_registry.execute)
-                    if not is_async:
-                        main_res = await asyncio.to_thread(
-                            asyncio.run, hook_registry.execute(logic_hook, hook_state, hook_deps)
-                        )
-                    else:
-                        main_res = await hook_registry.execute(logic_hook, hook_state, hook_deps)
-
-                    if main_res.success and main_res.state_delta:
-                        state_data = deep_merge_dicts(state_data, main_res.state_delta)
-                        hook_state = hook_state.model_copy(update={"inputs": state_data})
-
-                    # Post-hooks
-                    from backend_v2.models.v2_core import Step as V2Step
-                    step_obj = V2Step.model_validate(step_def)
-                    combined_post_hooks = list(dict.fromkeys(step_obj.post_hooks + step.post_hooks))
-                    for post_hook in combined_post_hooks:
-                        res = await hook_registry.execute(post_hook, hook_state, hook_deps)
-                        if res.success and res.state_delta:
-                            state_data = deep_merge_dicts(state_data, res.state_delta)
-                            hook_state = hook_state.model_copy(update={"inputs": state_data})
-
-                    return state_data
-
-                final_outputs = await run_logic()
-                emitted_events.append(TraceEvent(
-                    step_name=step.id,
-                    event_type="output",
-                    content=final_outputs
-                ))
-                return emitted_events
-
-            # --- LLM NODE EXECUTION ---
+                strategy_impl = LogicNodeStrategy(self.repository, self.compiler)
             else:
-                from backend_v2.models.v2_core import Step as V2Step
-                step_obj = V2Step.model_validate(step_def)
-                state_data = dict(current_state)
-                hook_state = HookState(
-                    execution_id=execution_id,
-                    workflow_id=workflow_id,
-                    step_id=step.id,
-                    task_blueprint=blueprint_slug,
-                    metadata=metadata,
-                    inputs=state_data
-                )
+                strategy_impl = LLMNodeStrategy(self.repository, self.compiler)
 
-                # Pre-Hooks
-                combined_pre_hooks = list(dict.fromkeys(step_obj.pre_hooks + step.pre_hooks))
-                for pre_hook in combined_pre_hooks:
-                    res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
-                    if res.success and res.state_delta:
-                        state_data = deep_merge_dicts(state_data, res.state_delta)
-                        hook_state = hook_state.model_copy(update={"inputs": state_data})
-
-                # Compile LLM Prompts & Schemas
-                criteria_blocks = []
-                all_prompt_blocks = await self.repository.get_all_prompt_blocks()
-                block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
-                for m_id in step_obj.prompt_blocks:
-                    b = block_map.get(m_id)
-                    if b:
-                        criteria_blocks.append(b)
-                    else:
-                        raise AppException(
-                            message=f"PromptBlock '{m_id}' not found.",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED}
-                        )
-
-                target_locale = metadata.get("target_locale", "en")
-                static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
-                dynamic_instructions = self.compiler.compile_dynamic_instructions(criteria_blocks, target_locale)
-
-                system_prompt = "Complete the evaluation according to the provided schema."
-                if static_instructions:
-                    system_prompt += f"\n\n{static_instructions}"
-
-                # P4: Prevent Token Explosion with fold_trace pruning
-                llm_context_data = state_data
-                if trace:
-                    from backend_v2.models.state import StateProjector
-                    pruner = StateProjector()
-                    pruned_history = pruner.fold_trace(trace, max_tokens=20000)
-                    # Merge active hook deltas with pruned history
-                    llm_context_data = {**pruned_history, **state_data}
-
-                xml_ctx = self.compiler.build_xml_context(
-                    input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},
-                    state_data=llm_context_data,
-                    target_locale=target_locale,
-                    expected_inputs=expected_inputs
-                )
-
-                user_payload = xml_ctx
-                if dynamic_instructions:
-                    user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
-
-                has_search = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
-                dynamic_schema = self.compiler.build_dynamic_schema(
-                    schema_name=f"Step_{step.id}_Response",
-                    criteria=criteria_blocks,
-                    has_search_result=has_search,
-                    target_locale=target_locale
-                )
-
-                if frozen_ctx:
-                    frozen_ctx.generated_schemas[step.id] = dynamic_schema.model_json_schema()
-
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_payload}
-                ]
-
-                # LLM Invocation — Route through MCP Tool Loop if tools are configured
-                strategy_name = step.model_strategy or "fast"
-                bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
-
-                # NOTE (Architecture): allowed_mcp_tools gates the Tool Loop.
-                # StepRule (workflow-level) overrides Step template default.
-                # If empty, we bypass entirely — zero overhead for non-MCP steps.
-                effective_mcp_tools = step.allowed_mcp_tools or step_obj.allowed_mcp_tools
-                if effective_mcp_tools:
-                    from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
-
-                    loop_result = await execute_tool_loop(
-                        llm_client=bound_client,
-                        messages=messages,
-                        response_model=dynamic_schema,
-                        allowed_tools=effective_mcp_tools,
-                        step_name=step.id,
-                        mock_identity=step.id,
-                    )
-                    final_dict = loop_result.result_data
-                    usage_dict = loop_result.usage
-
-                    # Persist audit trail to FrozenContext (immutable log)
-                    if frozen_ctx and loop_result.audit_traces:
-                        frozen_ctx.mcp_tool_audit.extend(loop_result.audit_traces)
-                else:
-                    # Original path — direct structured output
-                    result, usage_dict = await bound_client.run_structured_task(
-                        messages=messages,
-                        response_model=dynamic_schema,
-                        mock_identity=step.id,
-                    )
-                    final_dict = result.model_dump(mode="json")
-
-                # Post-Hooks
-                safe_context = {
-                    k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v
-                    for k, v in state_data.items()
-                }
-                post_hook_state = hook_state.model_copy(update={
-                    "global_context_vars": safe_context,
-                    "inputs": final_dict
-                })
-                combined_post_hooks = list(dict.fromkeys(step_obj.post_hooks + step.post_hooks))
-                for post_hook in combined_post_hooks:
-                    ph_res = await hook_registry.execute(post_hook, post_hook_state, hook_deps)
-                    if ph_res.success and ph_res.state_delta:
-                        final_dict = deep_merge_dicts(final_dict, ph_res.state_delta)
-                        post_hook_state = post_hook_state.model_copy(update={"inputs": final_dict})
-
-                for key in ["profiler_metrics", "step_metadata", "_audit_signature"]:
-                    if key in state_data:
-                        final_dict[key] = state_data[key]
-
-                if usage_dict:
-                    if "_step_metadata" not in final_dict:
-                        final_dict["_step_metadata"] = {}
-                    final_dict["_step_metadata"]["token_usage"] = usage_dict
-
-                emitted_events.append(TraceEvent(
-                    step_name=step.id,
-                    event_type="output",
-                    content=final_dict
-                ))
-                return emitted_events
+            emitted_events = await strategy_impl.execute(
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=frozen_ctx,
+                trace=trace,
+            )
+            return emitted_events
 
         except Exception as e:
             logger.error(f"[NodeExecutor] Dual-Reporting Exception for step {step.id}: {str(e)}", exc_info=True)

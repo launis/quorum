@@ -107,7 +107,14 @@ Koska LLM Structured Outputs ohjaa vastaukset usein tasakymmeniin tai vahvoihin 
 ### **5.6. O(1) Asynkroninen Orkestraatio ja Tilanhallinta (Event Sourcing)**
 Moottori ei koskaan mutatoi ajon tilaa (esim. ylikirjoita vanhoja sanakirjoja). Suoritus on täysin puhdas asynkroninen "Append-Only" -nauha yksittäisiä `TraceEvent` -tapahtumia. Ajon tila rakennetaan muistiin deterministisellä ja lukkiutumattomalla `fold_trace()` -kokoajalla. Tämä mahdollistaa massiivisen satojen agenttien rinnakkaisuuden (`asyncio.gather`) ilman thread-lukkoja ja tarjoaa täydellisen toistettavuuden (Rehydration) vikatiloista toipumiseen ilman redundantteja API-kutsuja LLM:lle.
 
-### **5.7. Checkpointing, "The Flush Strategy" ja Liitetty Konteksti (FrozenContext)**
+### **5.7. Polymorfinen Node-Orkestraatio (The Strategy Pattern)**
+Työnkulkujen ydin on eristetty tiukasti Pydantic-rajatun **Strategy Pattern**in mukaisesti toisistaan:
+1. **LLMNodeStrategy:** Kääntää dynaamiset JSON-skemat, asettaa `fold_trace` Token-leikkurit suojaamaan kontekstiräjähdyksiltä, ja hallinnoi MCP Tool Loopin The Injector -kyselyt puhtaana.
+2. **LogicNodeStrategy:** Käsittelee natiivin CPU-bound -koodin täysin erillään tekoäly-yhteyksistä luotettavana ohjelmistokehyksenä.
+
+Tämä puhdas eristys takaa LLM-palveluiden RAG-liiketoimintalogiikan täydellisen eristämisen deterministisistä data-askeleista estäen "haamusyötteiden" (`Ghost Input`) ylikirjoitukset.
+
+### **5.8. Checkpointing, "The Flush Strategy" ja Liitetty Konteksti (FrozenContext)**
 Kun työnkulun looginen solmu valmistuu, I/O-viiveiden ja tietokantalukkojen eliminoimiseksi `ExecutionCommitter` purskauttaa (flush) In-Memory puskuriin kertyneen `execution_trace` -taulukon sellaisenaan kerralla tietokantaan / Blob-storageen. Tästä muodostuu synkronoitu palautumispiste. 
 Menetelmä mahdollistaa jopa gigatavujen tila-analyysien käsittelyn suojellen FastAPI-podien RAM-muistia. Tärkeänä arkkitehtuurisena sääntönä Flush-operaation on **aina** tallennettava myös päivittynyt `FrozenContext`-olio, sillä dynaamiset tapahtumat (kuten asynkronisten MCP-työkalujen tuottamat auditoinnit) kertyvät siihen ajon aikana (esim. `mcp_tool_audit`). Pelkän Event Trace -taulukon tallentaminen johtaa "Amnesia-tietokantaan", jossa jäljitettävyys katoaa muistista.
 

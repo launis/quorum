@@ -423,7 +423,9 @@ class LLMClient:
                 prompt = messages[-1]["content"] if messages else ""
 
         # Create Provider — pass self._config for TPM/RPM (Strict Mode compliance)
-        provider = LLMFactory.create_provider(provider_type=target_provider_type, model_name=str(target_model_name), config=self._config)
+        provider = LLMFactory.create_provider(
+            provider_type=target_provider_type, model_name=str(target_model_name), config=self._config  # type: ignore
+        )
 
         # Generate
         try:

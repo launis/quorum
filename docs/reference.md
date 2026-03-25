@@ -55,7 +55,9 @@ quorum/backend_v2/
 │   ├── auth.py                 # Kirjautumis-, Organisaatio- ja JWT-logiikka
 │   ├── blueprint.py            # Yhdistää Tulostusprofiilit DAG-tuloksiin. (BFF Compiler)
 │   ├── execution.py            # Suorittaa / Alustaa DAG-ajot
-│   ├── orchestrator/           # Laaja kansio: DAGExecutor - Rengastaa askeleet graphina
+│   ├── orchestrator/           # Autonominen Ydinsuoritin (Askelten reititys ja validointi)
+│   │   ├── dag_executor.py     # Yhdistää DAG Async-verkot 
+│   │   └── strategies/         # Strategy Pattern: Eristetyt LLMNodeStrategy & LogicNodeStrategy
 │   ├── pdf_generator.py        # Renderöi PDF-dokumentit ajamalla BFF Kääntäjää palvelussa
 │   └── usage_service.py        # Token-telemetrian, kustannusten ja Logfiren keskitetty käsittely
 │

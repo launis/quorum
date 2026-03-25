@@ -708,8 +708,12 @@ class ExecutionRecord(V2CoreBase):
         default_factory=WorkflowInputs, description="Raw user inputs by role")
     frozen_context: FrozenContext = Field(
         default_factory=FrozenContext, description="Immutable snapshot of context")
+    frozen_context_storage_path: str | None = Field(
+        default=None, description="Optional path to Blob Storage offloaded Frozen Context JSON")
     execution_trace: list[TraceEvent] = Field(
         default_factory=list, description="Immutable log of all events (Event Sourcing).")
+    execution_trace_storage_path: str | None = Field(
+        default=None, description="Optional path to Blob Storage offloaded Execution Trace JSON")
     pdf_report_path: str | None = Field(
         default=None, description="Path to the generated PDF Execution Report.")
     step_states: dict[str, ExecutionStepState] = Field(
