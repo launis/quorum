@@ -107,8 +107,9 @@ Koska LLM Structured Outputs ohjaa vastaukset usein tasakymmeniin tai vahvoihin 
 ### **5.6. O(1) Asynkroninen Orkestraatio ja Tilanhallinta (Event Sourcing)**
 Moottori ei koskaan mutatoi ajon tilaa (esim. ylikirjoita vanhoja sanakirjoja). Suoritus on täysin puhdas asynkroninen "Append-Only" -nauha yksittäisiä `TraceEvent` -tapahtumia. Ajon tila rakennetaan muistiin deterministisellä ja lukkiutumattomalla `fold_trace()` -kokoajalla. Tämä mahdollistaa massiivisen satojen agenttien rinnakkaisuuden (`asyncio.gather`) ilman thread-lukkoja ja tarjoaa täydellisen toistettavuuden (Rehydration) vikatiloista toipumiseen ilman redundantteja API-kutsuja LLM:lle.
 
-### **5.7. Checkpointing ja "The Flush Strategy"**
-Kun työnkulun looginen solmu valmistuu, I/O-viiveiden ja tietokantalukkojen eliminoimiseksi `ExecutionCommitter` purskauttaa (flush) In-Memory puskuriin kertyneen `execution_trace` -taulukon sellaisenaan kerralla tietokantaan / Blob-storageen. Tästä muodostuu synkronoitu palautumispiste. Menetelmä mahdollistaa jopa gigatavujen tila-analyysien käsittelyn suojellen FastAPI-podien RAM-muistia.
+### **5.7. Checkpointing, "The Flush Strategy" ja Liitetty Konteksti (FrozenContext)**
+Kun työnkulun looginen solmu valmistuu, I/O-viiveiden ja tietokantalukkojen eliminoimiseksi `ExecutionCommitter` purskauttaa (flush) In-Memory puskuriin kertyneen `execution_trace` -taulukon sellaisenaan kerralla tietokantaan / Blob-storageen. Tästä muodostuu synkronoitu palautumispiste. 
+Menetelmä mahdollistaa jopa gigatavujen tila-analyysien käsittelyn suojellen FastAPI-podien RAM-muistia. Tärkeänä arkkitehtuurisena sääntönä Flush-operaation on **aina** tallennettava myös päivittynyt `FrozenContext`-olio, sillä dynaamiset tapahtumat (kuten asynkronisten MCP-työkalujen tuottamat auditoinnit) kertyvät siihen ajon aikana (esim. `mcp_tool_audit`). Pelkän Event Trace -taulukon tallentaminen johtaa "Amnesia-tietokantaan", jossa jäljitettävyys katoaa muistista.
 
 ---
 
@@ -134,13 +135,18 @@ Sielu lepää `blueprint.py` Kääntäjässä. Tämä rajapinta purkaa pyydetyn 
 ### **7.2 Pariteetti (Flutter vs. PDF-Worker)**
 Tavoitteena on 100% pariteetti Flutter-näytön ja palvelimella generoidun PDF-raportin välillä. Molemmat moottorit saavat täsmälleen saman kääntäjän generoiman litteän `ReportDataDTO` -paketin (Backend-For-Frontend). Kun Flutter puskee kortteja laitteen ruudulle, PDF-Worker käyttää Jinja2 HTML/CSS -moottoria ja WeasyPrintiä palvelimella iteroidakseen saman asettelun puhtaana statiikkana. Matematiikka asuu vain Kääntäjässä.
 
+### **7.3 Globaali XAI Auditointi (XAIEvidenceBox)**
+Erona tavallisiin arviointimatriiseihin (Component-tasoinen kuvaaja), tekoälyn tiedonhankinnan auditoinnit (MCP Tool Audits) ovat **globaalia raporttimetadataa**. Niitä ei koskaan tarvitse (eikä saa) mapata käsin Admin Studion Output Profile -tulostusmäärittelyissä yksittäisiksi laatikoksi. Kääntäjä (`BlueprintTransformer`) liittää `mcp_tool_audit` -tiedot suoraan `ReportDataDTO`:n juureen, ja käyttöliittymä renderöi ne dynaamisesti raportin alalaitaan (esim. Flutterin automaattinen `XAIEvidenceBox`), jos ajo käytti hakukoneita. Tämä erottaa subjektiivisen analyysin ja objektiivisen faktapohjan arkkitehtuurisesti toisistaan.
+
 ---
 
 ## **8. The Tool Loop & Serverless MCP Integraatio (V2.6)**
 Quorum käyttää ohjelmistosta riippumatonta asynkronista reititystä tiedonhaussa varmistaen determinismin. 
 1. **The Gateway Array (Firebase/Cloud Run):** MCP (Model Context Protocol) Etsivät (The Tools) pyörivät joko täysin erillisissä Cloud Run -mikropalveluissa tai ulkoisissa SaaS-Soketeissa (Tavily AI). Quorum Backend kommunikoi näiden kanssa asynkronisella HTTP/SSE-tekstillä (`SystemConfigMCPGateways`).
 2. **The Injector (Faktantarkistus):** Kun LLM valitsee "Tool Choicen" (Epistemic Uncertainty), moottori hakee faktan netistä tai RAG:ista ToolLoopin kautta. Faktan sisältävä `ToolMessage` isketään ohjelmallisesti LLM:n työmuistiin pakottaen BARS Matrix -arvioijat (Toisella Pydantic-pakotuskierroksella) antamaan arvosanan ulkoisen todistusaineiston (Evidence), ei subjektiivisen tiedon perusteella.
-3. **FrozenContext Audit:** Kaikki verkkohaut ja palautetut raakatekstit tallennetaan välittömästi `MCPAuditTrace` -komponenttiin osana Execution-lokia (Forensic XAI Audit).
+3. **The Multi-Turn Message Pass-Through (Sääntö):** Työkalusilmukka (Tool Loop) vaatii monivaiheisen keskusteluhistorian ehdotonta säilyttämistä (`system`, `user`, `assistant` + `tool_calls`, `tool`). Vanhan mallista viestien "litistämistä" (Flattening) yhdeksi käyttäjäpromptiksi ei saa koskaan tehdä, sillä se tuhoaa roolit ja kaataa Pydanticin validoinnin (esim. Assistant-viestit, joissa `content` on tyhjä, koska se sisältää vain funktiokutsun).
+4. **Tool ID Sovereignty:** LLM:n itsensä luomaa funktiotunnistetta (`tool_call_id`) on kunnioitettava ehdottomasti koko asynkronisen hakukierroksen ajan (Pass-Through). Moottori ei saa koskaan yliajaa alkuperäisiä ID-tunnisteita omilla kryptografisilla tunnisteillaan, sillä tämä rikkoo kielikauppiaiden (kuten Gemini) oman API-yhteyden "APIConnectionError" poikkeuksella askeleen palatessa takaisin mallille.
+5. **FrozenContext Audit:** Kaikki verkkohaut ja palautetut raakatekstit tallennetaan välittömästi `MCPAuditTrace` -komponenttiin osana Execution-lokia (Forensic XAI Audit).
 
 ---
 
