@@ -1,11 +1,9 @@
-import asyncio
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
-from backend_v2.exceptions import AgentExecutionError, ConfigurationError
+from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
 
 
@@ -48,8 +46,7 @@ def mock_repository():
 
 @pytest.mark.asyncio
 async def test_run_structured_task_self_healing_success(mock_repository):
-    """
-    Tests that the self-healing retry loop successfully catches a JSON error
+    """Tests that the self-healing retry loop successfully catches a JSON error
     on the first attempt and successfully recovers with valid JSON on the second.
     """
     client = LLMClient()
@@ -64,7 +61,7 @@ async def test_run_structured_task_self_healing_success(mock_repository):
 
     with patch("backend_v2.llm.client.LLMFactory.create_provider", return_value=mock_provider):
         messages = [{"role": "user", "content": "Hello"}]
-        
+
         result, usage = await client.run_structured_task(
             messages=messages,
             response_model=DummyModel,
@@ -81,8 +78,7 @@ async def test_run_structured_task_self_healing_success(mock_repository):
 
 @pytest.mark.asyncio
 async def test_run_structured_task_self_healing_exhaustion(mock_repository):
-    """
-    Tests that the self-healing circuit breaker triggers an AgentExecutionError
+    """Tests that the self-healing circuit breaker triggers an AgentExecutionError
     if the maximum number of retries is exhausted with invalid schema outputs.
     """
     client = LLMClient()

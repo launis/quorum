@@ -1,9 +1,10 @@
+import os
 import subprocess
 import time
-import requests
-import pytest
-import os
 from pathlib import Path
+
+import pytest
+import requests
 
 # Paths relative to the project root
 PROJECT_ROOT = Path("c:/src/quorum")
@@ -34,8 +35,7 @@ def check_backend_health() -> bool:
 
 @pytest.mark.order("last")
 def test_e2e_orchestration():
-    """
-    End-to-End Orchestration Test for V2 Architecture.
+    """End-to-End Orchestration Test for V2 Architecture.
     
     Validates the Fail-Fast doctrine and Single Source of Truth by running a simulated
     Flutter client request against a live FastAPI backend and asserting that both logs
@@ -43,7 +43,7 @@ def test_e2e_orchestration():
     """
     # 1. Clear previous logs
     clear_logs()
-    
+
     backend_process = None
     worker_process = None
     started_by_test = False
@@ -53,7 +53,7 @@ def test_e2e_orchestration():
         if not check_backend_health():
             print("Backend not running. Starting Backend and Worker...")
             started_by_test = True
-            
+
             # Start backend
             env = os.environ.copy()
             env["USE_FIREBASE_AUTH"] = "false"
@@ -62,9 +62,9 @@ def test_e2e_orchestration():
             env["NO_COLOR"] = "1"
             env["TERM"] = "dumb"
             env["PYTHONPATH"] = str(PROJECT_ROOT)
-            
+
             backend_log_fp = open(BACKEND_LOG, "a", encoding="utf-8")
-            
+
             backend_cmd = (
                 "chcp 65001 > nul && uv run python -c "
                 "\"import sys; "
@@ -81,7 +81,7 @@ def test_e2e_orchestration():
                 stderr=subprocess.STDOUT,
                 shell=True
             )
-            
+
             # Start worker
             worker_cmd = (
                 "chcp 65001 > nul && uv run python -c "
@@ -99,7 +99,7 @@ def test_e2e_orchestration():
                 stderr=subprocess.STDOUT,
                 shell=True
             )
-            
+
             # Wait for backend to be healthy
             max_retries = 30
             for i in range(max_retries):
@@ -126,7 +126,7 @@ def test_e2e_orchestration():
         # Print script output for debugging if it fails
         print("Dart Script STDOUT:", result.stdout)
         print("Dart Script STDERR:", result.stderr)
-        
+
         # We expect the dart script to either succeed or cleanly fail with known logs.
         # Epic 16 uses real LLM, but here we just need to ensure the logs are populated.
         # But wait, execution will fail if Redis isn't running, etc. If it returns non-zero,
@@ -137,13 +137,13 @@ def test_e2e_orchestration():
         assert BACKEND_LOG.exists(), "Backend debug log was not created."
         assert CLIENT_LOG.exists(), "Client debug log was not created."
 
-        with open(BACKEND_LOG, "r", encoding="utf-8") as f:
+        with open(BACKEND_LOG, encoding="utf-8") as f:
             backend_content = f.read()
             assert len(backend_content) > 0, "Backend log is empty."
             # Verify it processed an execution (DAGExecutor or routing)
             assert "api" in backend_content.lower() or "workflow" in backend_content.lower() or "execution" in backend_content.lower(), "Backend log does not contain expected execution traces."
 
-        with open(CLIENT_LOG, "r", encoding="utf-8") as f:
+        with open(CLIENT_LOG, encoding="utf-8") as f:
             client_content = f.read()
             assert len(client_content) > 0, "Client log is empty."
             assert "E2E Simulation Started" in client_content, "Client log missing start marker."

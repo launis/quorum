@@ -17,6 +17,18 @@ Rakentaa täysin eristetty ja O(1)-nopeudella skaalautuva B2B SaaS IAM \-järjes
 3. **Anemic Routers:** FastAPI-reitittimet tekevät vain Pydantic-validoinnin. RBAC (Role-Based Access Control) ja tietokantakutsut delegoidaan aina Service-kerrokseen.  
 4. **Fail-Fast Error Handling:** Oikeuksien puute nostaa välittömästi AppException(error\_code=ErrorCodes.FORBIDDEN) RFC 7807 \-standardin mukaisesti (Dual-Reporting: Lokiin tekninen syy, API:in turvallinen enum).
 
+## **🌉 1. Testimaailman silta: The Emulator Protocol**
+Lokaalin kehitysympäristön on kyettävä kryptografiseen JWT-purkuun aivan kuten tuotannonkin. Pakotamme järjestelmän käyttämään **Firebase Local Emulator Suitea**.
+- **Backend (backend_v2/core/firebase_setup.py)**: Kun `.env`-tiedostossa on `USE_MOCK_DB=true`, FastAPI asettaa OS-tason ympäristömuuttujan `FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"`. Pythonin `firebase_admin` reitittää kaikki `verify_id_token` ja `set_custom_user_claims` -kutsut lokaaliin emulaattoriin.
+- **Frontend (Flutter)**: Sovelluksen käynnistyessä tarkistetaan ympäristö. Jos ajetaan debug-tilassa ja mock on päällä, suoritetaan `await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);`.
+- **Lopputulos**: Järjestelmä toimii millisekunnilleen samalla logiikalla koodatessa lokaalisti ja globaalissa pilvessä. Käyttäjätunnukset elävät emulaattorissa, mutta luvitukset tallentuvat litteään `db_v2.json` (TinyDB) -tiedostoon.
+
+## **🚀 2. Firebasen 2026 B2B-Kärkiominaisuudet (OOTB)**
+- **A. Salasanaton B2B Onboarding (Passkeys & Magic Links):** Passkey (biometriikka) on ensisijainen. Kutsut (InvitationDTO) luodaan backendissä `auth.generate_sign_in_with_email_link()` -metodilla, mistä GoRouter nappaa syvälinkin (/invite/inv_8x7y6z) ja kirjaa sisään ilman salasanaa.
+- **B. Enterprise SSO (SAML & OIDC):** Firebase Identity Platform hoitaa SAML/OIDC-tulkkauksen (Entra ID / Okta). Backend on SSO-agnostikko ja saa aina saman standardin Firebase JWT -tokenin.
+- **C. The Invite Guard (Blocking Functions):** Firebasen `beforeCreate` -webhook pysäyttää tilinluonnin ja ampuu pyynnön (POST /api/internal/auth/before-create) FastAPI-backendille. Jos kutsuttua sähköpostia ei löydy kannasta, järjestelmä palauttaa synkronisesti 403 Forbidden.
+- **D. Pakotettu Step-Up MFA:** Reititin lukee JWT-tokenista `amr` (Authentication Methods References) -taulukon. Jos reititin vaatii MFA:n mutta leima puuttuu, syntyy Fail-Fast `AppException(ErrorCodes.MFA_REQUIRED)`. Riverpod nappaa virheen, aukaisee Firebasen natiivin MFA-haasteen, virkistää tokenin ja jatkaa.
+
 ## ---
 
 **📋 VAIHEISTUS JA TYÖTEHTÄVÄT**
@@ -24,6 +36,8 @@ Rakentaa täysin eristetty ja O(1)-nopeudella skaalautuva B2B SaaS IAM \-järjes
 ## **VAIHE 1: Tietomallit ja Pydantic V2 Validointi (Backend SSOT)**
 
 **Kuvaus:** Rakennetaan tiukasti tyypitetyt Pydantic-mallit, jotka kuvaavat järjestelmän SSOT-tilan (Single Source of Truth). Relaatiot hoidetaan litteänä (Flat Referencing).
+
+> **Graceful Migration Strategy:** Uudet tiukat mallit nimetään päätteellä `*DTO` (esim. `OrganizationDTO`, `UserDTO`, `TokenDataDTO`), ja ne luodaan olemassa olevien legacy-mallien viereen. Tämä estää välittömän "Big Bang" -rikkoutumisen niissä kymmenissä FastAPI-reitittimissä, jotka vielä nojaavat vanhaan `TokenData`-luokkaan (jossa rooli ja org_id olivat suoraan juuressa). `seed_registry.py` päivitetään välittömästi käyttämään uusia DTO-malleja, ja reitittimet siirretään näihin iteratiivisesti.
 
 * **Task 1.1: Opaque ID \-tyypit ja Enumit (PEP 695\) (models/auth.py)**  
   * Määritä tyyppialiakset: type StripeUserId \= str ja type StripeOrgId \= str.  
@@ -34,6 +48,10 @@ Rakentaa täysin eristetty ja O(1)-nopeudella skaalautuva B2B SaaS IAM \-järjes
   * **MembershipDTO:** user\_id: StripeUserId, org\_id: StripeOrgId, role: TenantRole.  
 * **Task 1.3: Token Payload DTO (models/dtos/auth\_dto.py)**  
   * Luo TokenDataDTO, johon Firebasesta saapuva JWT purkautuu: custom\_claims: dict\[StripeOrgId, TenantRole\] ja system\_role: SystemRole | None.
+* **Task 1.6: Emulator-Aware Admin SDK (backend_v2/core/firebase_setup.py)**
+  * Alusta firebase_admin siten, että se lukee `FIREBASE_AUTH_EMULATOR_HOST` -ympäristömuuttujan ja käyttää sitä saumattomasti, kun `USE_MOCK_DB=true`.
+* **Task 1.7: MFA Claim DTO (models/dtos/auth_dto.py)**
+  * Laajenna `TokenDataDTO` lukemaan tokenista MFA-status: `amr: list[str] = Field(default_factory=list)`. Pydantic parsii lennosta tiedon toisesta vaiheesta.
 
 ## **VAIHE 2: Firebase Custom Claims & Service Layer (Backend)**
 
@@ -49,6 +67,10 @@ Rakentaa täysin eristetty ja O(1)-nopeudella skaalautuva B2B SaaS IAM \-järjes
   * *Sääntö:* Kääri asynkroniset tietokanta- ja verkkopyynnöt Python 3.11+ asyncio.TaskGroup() \-kontekstiin.  
 * **Task 2.2: Tokenin vahvistus (services/auth\_service.py)**  
   * Toteuta rutiini, joka käyttää Firebase Adminia vahvistamaan Frontendiltä saapuvan tokenin ja palauttaa puhtaan TokenDataDTO:n.
+* **Task 2.4: Magic Link Invitation Engine**
+  * Toteuta Service-metodi, joka luo Opaque ID:llä varustetun InvitationDTO:n kantaan ja generoi kirjautumislinkin: `auth.generate_sign_in_with_email_link(email, ActionCodeSettings(url="https://app.quorum.fi/invite/inv_123xyz"))`.
+* **Task 2.5: FastAPI Blocking Webhook (api/routers/iam_hooks.py)**
+  * Toteuta `POST /api/internal/auth/before-create`. Tämä webhook ottaa vastaan Firebasen pyynnön, tarkistaa InvitationDTO:n ja hylkää tilinluonnin nollatoleranssilla (Zero-Trust), jos kutsua ei löydy.
 
 ## **VAIHE 3: FastAPI Portinvartijat & Aneemiset Reitittimet**
 
@@ -70,6 +92,8 @@ Rakentaa täysin eristetty ja O(1)-nopeudella skaalautuva B2B SaaS IAM \-järjes
         iam\_service: Annotated\[IAMService, Depends()\]  
     ) \-\> list\[MembershipDTO\]:  
         return await iam\_service.get\_org\_members(org\_id)
+* **Task 3.4: Step-Up MFA Guard (api/dependencies.py)**
+  * Luo `RequireMFA()` -injektio. Guard tarkistaa: `if "mfa" not in current_user.amr: raise AppException(ErrorCodes.MFA_REQUIRED)`.
 
 ## **VAIHE 4: Flutter Client & The Pro-Tool Experience**
 
@@ -85,16 +109,20 @@ Rakentaa täysin eristetty ja O(1)-nopeudella skaalautuva B2B SaaS IAM \-järjes
   * Jos käyttäjä lisätään uuteen organisaatioon (Mutaatio), Frontendin on **pakotettava** tokenin päivitys (await user.getIdToken(true)), jotta uusi Custom Claim aktivoituu käyttöliittymässä ilman uloskirjautumista.  
 * **Task 4.4: Actionable Hints (Graceful Degradation)**  
   * Käytä lokaalia JWT-tilaa piilottamaan käyttöliittymäelementit (esim. "Kutsu jäsen" \-nappi piilotetaan SizedBox.shrink() avulla, jos rooli on VIEWER). Jos Backend ampuu 403-virheen, näytä tyylikäs Actionable Hint \-Toast alakulmassa.
+* **Task 4.7: Emulator Auto-Connect & Passkey First**
+  * Määritä `main.dart` yhdistämään `FirebaseAuth.instance.useAuthEmulator` lokaalissa debug-tilassa. Käytä `firebase_ui_auth` -paketin modernia käyttöliittymää, jossa Passkey ja Enterprise SSO ovat priorisoituna ja sähköposti jää "Magic Link" -fallbackiksi.
+* **Task 4.8: MFA Interceptor (Riverpod)**
+  * Jos API-verkkovirhe palauttaa `MFA_REQUIRED`, Riverpod-interceptor näyttää Actionable Hintin, avaa lokaalin Firebase MFA -haasteikkunan, virkistää tokenin, ja yrittää API-kutsua automaattisesti uudelleen.
 
 ## **VAIHE 5: The "Root" Bootstrap (Seed Protocol)**
 
 **Kuvaus:** Tietokantaa ei saa käsin muokata lennosta (ID:t korruptoituvat). Luomme Seed-skriptin ensimmäisen Root-käyttäjän (sinun) luomiseksi.
 
-* **Task 5.1: Seed Data JSON (backend\_v2/seed/seed\_data.json)**  
-  * Määritä JSONiin "System Administration" \-organisaatio (esim. org\_system000001).  
-* **Task 5.2: Siemennysskripti (run\_seed.py local)**  
-  * Skripti luo organisaation kantaan.  
-  * Skripti etsii antamasi sähköpostiosoitteen perusteella Firebase UID:si, luo MembershipDTO:n kantaan, ja käyttää Firebase Admin SDK:ta ampumaan profiiliisi leiman: {"system\_role": "ROOT"}.  
+* **Task 5.1: Seed Data JSON (backend_v2/seed/seed_data.json)**  
+  * Määritä JSONiin "System Administration" -organisaatio (esim. org_system000001).
+* **Task 5.2: Siemennysskripti (run_seed.py local)**  
+  * Skripti luo organisaation kantaan.
+  * Skripti etsii antamasi sähköpostiosoitteen perusteella Firebase UID:si, luo MembershipDTO:n kantaan, ja käyttää Firebase Admin SDK:ta ampumaan profiiliisi leiman: `{"system_role": "ROOT"}`.
   * Tämän jälkeen kirjaudut sisään ja järjestelmä aukeaa sinulle "Jumal-tilassa", josta voit käyttöliittymän kautta luoda ensimmäiset B2B-asiakkaat.
 
 ## ---

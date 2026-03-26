@@ -283,6 +283,7 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: DropdownButtonFormField<String>(
+        key: ValueKey(items.length),
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),

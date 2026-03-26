@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookState, HookDependencies
+from backend_v2.core.hook_registry import HookDependencies, HookState
 
 
 def test_hook_state_immutability():

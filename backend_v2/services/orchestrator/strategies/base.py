@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
-from backend_v2.models.enums import ModelStrategy
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import FrozenContext, StepRule
 from backend_v2.models.v2_core import Step as V2Step
@@ -25,7 +24,7 @@ class StrategyContext(BaseModel):
     workflow_id: str
     metadata: dict[str, Any]
     expected_inputs: list[Any] | None = None
-    model_strategy: ModelStrategy | str | None = None
+    model_strategy: str | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 

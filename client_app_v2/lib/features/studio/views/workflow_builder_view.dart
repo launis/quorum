@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/router/router.dart';
+import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/expected_input_editor_box.dart';
 import 'package:client_app/utils/safe_cast.dart';
@@ -472,39 +473,68 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
                         onChanged: (val) => _editableWorkflow['name'] = val,
                       ),
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        initialValue: SafeCast.safeString(
-                          _editableWorkflow['model_strategy'],
-                          'fast',
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Model Strategy (Cost/Cognition Profile)',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'fast',
-                            child: Text('Fast (o3-mini / GPT-4o-mini)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'deep',
-                            child: Text('Deep (GPT-4o / Claude 3.5)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'strict',
-                            child: Text('Strict (O1)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'precise',
-                            child: Text('Precise (O3-mini-high)'),
-                          ),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(
-                              () => _editableWorkflow['model_strategy'] = val,
+                      Builder(
+                        builder: (context) {
+                          final configsAsync = ref.watch(modelRegistryControllerProvider);
+
+                          if (configsAsync.isLoading) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.0),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
                             );
                           }
+
+                          if (configsAsync.hasError) {
+                            return Text('Error loading model registry: ${configsAsync.error}');
+                          }
+
+                          final configs = configsAsync.value ?? [];
+                          final registryConfig = configs.firstWhere(
+                            (c) => c['type'] == 'model_registry',
+                            orElse: () => <String, dynamic>{},
+                          );
+
+                          final modelsObj = SafeCast.safeMap(registryConfig['models']);
+                          final modelKeys = modelsObj.keys.toList();
+                          
+                          if (modelKeys.isEmpty) {
+                            return const Text('Warning: No models found in model_registry.', style: TextStyle(color: Colors.red));
+                          }
+
+                          // Zero defaults. If it's invalid, it stays null forcing user to pick.
+                          final currentStrategy = SafeCast.safeString(_editableWorkflow['model_strategy']);
+                          final safeValue = modelKeys.contains(currentStrategy) ? currentStrategy : null;
+
+                          return DropdownButtonFormField<String>(
+                            key: ValueKey(modelKeys.length),
+                            initialValue: safeValue,
+                            decoration: const InputDecoration(
+                              labelText: 'Model Strategy (Cost/Cognition Profile)',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: modelKeys.map((key) {
+                              final modelData = SafeCast.safeMap(modelsObj[key]);
+                              final label = modelData['model_name'] != null 
+                                  ? '${key.toUpperCase()} (${modelData['model_name']})'
+                                  : key.toUpperCase();
+                                  
+                              return DropdownMenuItem(
+                                value: key,
+                                child: Text(label),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _editableWorkflow['model_strategy'] = val);
+                              }
+                            },
+                          );
                         },
                       ),
                     ],

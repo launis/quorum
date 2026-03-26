@@ -6,10 +6,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus, ModelStrategy
+from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus
 from backend_v2.models.state import TraceEvent
 
 logger = logging.getLogger(__name__)
@@ -640,20 +640,10 @@ class Workflow(V2CoreBase):
         description="List of dynamic expected inputs required by the workflow",
     )
     steps: list[StepRule] = Field(default_factory=list)
-    model_strategy: ModelStrategy | None = Field(
+    model_strategy: str | None = Field(
         default=None,
         description="Global cognitive strategy profile for this entire workflow (e.g., 'fast', 'deep')"
     )
-
-    @field_validator("model_strategy", mode="before")
-    @classmethod
-    def validate_enum_strategy(cls, v: Any) -> Any:
-        if isinstance(v, str):
-            try:
-                return ModelStrategy(v)
-            except ValueError:
-                raise ValueError(f"Invalid model strategy: {v}")
-        return v
 
     @model_validator(mode="before")
     @classmethod

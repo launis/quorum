@@ -80,21 +80,21 @@ def deep_logic_compare(old_trace: list[dict[str, Any]], new_trace: list[dict[str
         missing_keys = old_keys - new_keys
         if missing_keys:
             logger.warning(f"Step {step_name} output missing keys compared to historical trace: {missing_keys}")
-            
+
         # 2. Heuristic & Semantic Sanity Checks
         content_str = json.dumps(new_content).lower()
-        
+
         # Negative heuristics: no AI apologies
         assert "as an ai language model" not in content_str, f"Step {step_name} failed: Contains AI apology."
         assert "i cannot fulfill" not in content_str, f"Step {step_name} failed: Contains AI refusal."
-        
+
         # Length heuristic: if old was substantial, new should be too
         if len(str(old_content)) > 100:
             assert len(content_str) > 50, f"Step {step_name} failed: Undersized payload compared to historical size."
 
     # 3. Contextual Keyword Matching across the whole trace
     full_new_trace_str = json.dumps(new_trace).lower()
-    
+
     # We know the inputs for exe_c0bc contained "Test Org", "Technology", "Developers"
     # The final output DAG should naturally contain references to these.
     expected_keywords = ["technology", "developers"]
@@ -124,7 +124,7 @@ async def test_real_llm_e2e_orchestration():
         env["PYTHONIOENCODING"] = "utf-8"
         env["NO_COLOR"] = "1"
         env["TERM"] = "dumb"
-        
+
         backend_log_fp = open(BACKEND_LOG_FILE, "a", encoding="utf-8")
         backend_cmd = (
             "chcp 65001 > nul && uv run python -c "
@@ -142,7 +142,7 @@ async def test_real_llm_e2e_orchestration():
             stderr=subprocess.STDOUT,
             shell=True
         )
-        
+
         worker_cmd = (
             "chcp 65001 > nul && uv run python -c "
             "\"import sys; "
@@ -159,7 +159,7 @@ async def test_real_llm_e2e_orchestration():
             stderr=subprocess.STDOUT,
             shell=True
         )
-        
+
         # Wait for boot
         time.sleep(10)
 
@@ -194,38 +194,38 @@ async def test_real_llm_e2e_orchestration():
         logger.info(f"Polling local database for execution completion (max {WAIT_TIMEOUT}s)...")
         # Find the latest execution ID from Dart output or just poll db_v2.json
         db_path = os.path.join(WORKSPACE_ROOT, "data", "db_v2.json")
-        
+
         # Ensure the test data directory exists
         os.makedirs(os.path.dirname(NEW_TRACE_FILE), exist_ok=True)
-        
+
         max_retries = int(WAIT_TIMEOUT / 2) # e.g. 600 seconds limit
         completed_trace = None
         for i in range(max_retries):
             time.sleep(2)
             try:
-                with open(db_path, "r", encoding="utf-8") as f:
+                with open(db_path, encoding="utf-8") as f:
                     db_data = json.load(f)
-                
+
                 # Get the latest execution for this workflow
                 executions = [v for k,v in db_data.get("executions", {}).items() if v.get("workflow_id") == TARGET_WORKFLOW_ID]
                 if not executions:
                     continue
-                    
+
                 # Sort by created_at or just take last
                 latest_exe = sorted(executions, key=lambda x: x.get("created_at", ""), reverse=True)[0]
-                
+
                 if latest_exe.get("status") in ["COMPLETED", "FAILED"]:
                     completed_trace = latest_exe
                     break
             except Exception as e:
                 logger.warning(f"Error reading DB: {e}")
-                
+
         if not completed_trace:
             pytest.fail("Timeout waiting for background execution to complete.")
-            
+
         if completed_trace.get("status") == "FAILED":
             pytest.fail(f"Background execution failed: {completed_trace.get('error_reason')}")
-            
+
         new_trace = completed_trace.get("execution_results", [])
 
         with open(ORIGINAL_TRACE_FILE, encoding="utf-8") as f:
@@ -251,7 +251,7 @@ async def test_real_llm_e2e_orchestration():
         if worker_process:
             logger.info(f"Terminating local worker process tree (PID: {worker_process.pid})...")
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(worker_process.pid)], capture_output=True)
-            
+
         try:
             backend_log_fp.close()
         except Exception:

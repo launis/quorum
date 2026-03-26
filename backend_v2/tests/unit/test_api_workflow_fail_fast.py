@@ -225,13 +225,13 @@ def test_workflow_api_succeeds_with_valid_data(client_admin, mock_studio_service
             }
         ]
     }
-    
+
     response = client_admin.put("/api/v2/studio/workflows/wf_valid1234567", json=payload)
     if response.status_code == 404:
          response = client_admin.put("/studio/workflows/wf_valid1234567", json=payload)
-         
+
     assert response.status_code == 200, f"API unexpectedly rejected valid configuration: {response.text}"
-    
+
     # Assert that the mocked save_workflow was actually executed
     assert mock_studio_service_admin.save_workflow.called == True
 

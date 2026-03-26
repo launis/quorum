@@ -142,7 +142,10 @@ class StudioService:
 
         saved = await self.repo.get("workflows", new_id)
         if not saved:
-            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {new_id} not found after clone.")
+            logger.error(
+                f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
+                f"Workflow {new_id} not found after clone."
+            )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=new_id)
 
         return Workflow.model_validate(saved)
@@ -444,7 +447,7 @@ class StudioService:
         available_inputs = [inp.input_key for inp in data.expected_inputs]
 
         # 2. Track provided outputs step by step
-        provided_outputs = set(available_inputs)
+        _provided_outputs = set(available_inputs)
 
         # 3. Build Dependency Graph
         dag_order = []
@@ -453,7 +456,7 @@ class StudioService:
 
         all_steps = {s.id: s for s in data.steps}
 
-        def resolve_deps(step_id: str):
+        def resolve_deps(step_id: str) -> None:
             if step_id in in_progress:
                 errors.append(f"Cycle detected involving step {step_id}")
                 return
@@ -487,7 +490,7 @@ class StudioService:
             step_errors = []
 
             # Check mappings
-            for tgt, src in step.input_mappings.items():
+            for _tgt, src in step.input_mappings.items():
                 if isinstance(src, str) and src.startswith("$"):
                     if src.startswith("$inputs."):
                         var = src.split(".")[1]
@@ -515,25 +518,24 @@ class StudioService:
             "execution_order": dag_order
         }
 
-    async def simulate_prompt_block(self, initiator: TokenData, data: PromptBlock, mock_inputs: dict[str, Any]) -> dict[str, Any]:
+    async def simulate_prompt_block(
+        self, initiator: TokenData, data: PromptBlock, mock_inputs: dict[str, Any]
+    ) -> dict[str, Any]:
         """Provides a static analysis of a PromptBlock template rendering, including BARS matrix claims."""
         import string
 
-        errors = []
+        errors: list[str] = []
         rendered = data.ai_description or ""
 
         # 1. Base rendering using template syntax if needed
         if rendered and mock_inputs:
-            try:
-                # Basic python formatting simulation if {} brackets exist
-                if "{" in rendered and "}" in rendered:
-                    # Very simple loose formatting for dry-run safely
-                    t = string.Formatter()
-                    keys = [k[1] for k in t.parse(rendered) if k[1] is not None]
-                    clean_mocks = {k: mock_inputs.get(k, f"[{k} MOCKED]") for k in keys}
-                    rendered = rendered.format(**clean_mocks)
-            except Exception as e:
-                logger.warning(f"[StudioService] Simulation formatting failed (ignored for UI fallback): {e}")
+            # Basic python formatting simulation if {} brackets exist
+            if "{" in rendered and "}" in rendered:
+                # Very simple loose formatting for dry-run safely
+                t = string.Formatter()
+                keys = [k[1] for k in t.parse(rendered) if k[1] is not None]
+                clean_mocks = {k: mock_inputs.get(k, f"[{k} MOCKED]") for k in keys}
+                rendered = rendered.format(**clean_mocks)
 
         # 2. Append Matrix Logic
         if data.category_id == "matrix" and data.scales:
@@ -541,7 +543,12 @@ class StudioService:
             for scale in data.scales:
                 rendered += f"\nScore {scale.score}:\n"
                 for claim in scale.claims:
-                    rendered += f"- {claim.en.strip()}\n"
+                    fallback = claim.label.translations.get(claim.label.default_locale, "")
+                    en_text = claim.label.translations.get("en", fallback)
+                    if en_text:
+                        rendered += f"- {en_text.strip()}\n"
+                    if getattr(claim, "ai_description", None):
+                        rendered += f"  Rule: {claim.ai_description.strip()}\n"
 
         return {
             "valid": len(errors) == 0,
@@ -564,7 +571,7 @@ class StudioService:
 
                 rendered_parts.append(f"--- Prompt Block: {block.slug} ---")
                 rendered_parts.append(sim.get("rendered_prompt", ""))
-            except Exception:
+            except ResourceNotFoundError:
                 errors.append(f"Missing referenced Prompt Block: {block_ref}")
                 rendered_parts.append(f"--- Prompt Block: {block_ref} [NOT FOUND] ---")
 
