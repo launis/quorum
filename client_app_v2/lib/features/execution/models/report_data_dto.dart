@@ -167,9 +167,9 @@ class MCPToolAuditDTO {
       query: SafeCast.safeString(json['query']),
       responseSummary: SafeCast.safeString(json['response_summary']),
       sourceUrls:
-          SafeCast.safeList(json['source_urls'])
-              .map((e) => e.toString())
-              .toList(),
+          SafeCast.safeList(
+            json['source_urls'],
+          ).map((e) => e.toString()).toList(),
       timestamp: json['timestamp']?.toString(),
       durationMs: SafeCast.safeInt(json['duration_ms']),
     );

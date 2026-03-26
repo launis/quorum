@@ -2,7 +2,7 @@
 Strictly maps collections to V2 Pydantic models (Zero V1 leak).
 """
 
-from typing import Annotated, Union
+from typing import Annotated
 
 from pydantic import Discriminator, Tag, TypeAdapter
 
@@ -27,10 +27,7 @@ def _system_config_discriminator(v: dict) -> str:  # type: ignore[type-arg]
 
 
 SystemConfigUnion = Annotated[
-    Union[
-        Annotated[SystemConfigModelRegistry, Tag("model_registry")],
-        Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")],
-    ],
+    Annotated[SystemConfigModelRegistry, Tag("model_registry")] | Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")],
     Discriminator(_system_config_discriminator),
 ]
 

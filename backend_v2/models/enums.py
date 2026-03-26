@@ -27,6 +27,14 @@ class ComponentType(str, Enum):
     HIDDEN = "hidden"
 
 
+class ModelStrategy(str, Enum):
+    """Execution strategy profile dictating LLM capability and cost."""
+    FAST = "fast"
+    DEEP = "deep"
+    STRICT = "strict"
+    PRECISE = "precise"
+
+
 class ExecutionStatus(str, Enum):
     """Execution lifecycle status."""
     PENDING = "pending"

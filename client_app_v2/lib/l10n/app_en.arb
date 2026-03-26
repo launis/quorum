@@ -1114,5 +1114,17 @@
   "stepBuilderToolHint": "Tool slug (e.g. mcp_tavily_search)",
   "@stepBuilderToolHint": {
     "description": "Hint text for MCP tool input field"
-  }
+  },
+  "studioDashboardGatewaysTitle": "MCP Gateways",
+  "studioDashboardGatewaysDesc": "Manage external tools and AI fact-checking integrations.",
+  "mcpGatewaysTitle": "MCP Gateways",
+  "mcpGatewaysDesc": "Configure system-level MCP tool gateways for AI execution.",
+  "mcpToolSettings": "MCP Tool Settings",
+  "mcpToolIdLabel": "Tool ID",
+  "mcpToolNameLabel": "Tool Name",
+  "mcpToolDescLabel": "Description",
+  "mcpToolInputSchemaLabel": "Input Schema (JSON)",
+  "mcpAddToolBtn": "Add Tool",
+  "mcpEditToolBtn": "Edit Tool",
+  "noMcpGatewaysDefined": "No MCP gateways defined."
 }

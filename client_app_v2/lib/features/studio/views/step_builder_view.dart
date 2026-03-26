@@ -3,10 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/error/app_exception.dart';
 
 class StepBuilderView extends StatefulHookConsumerWidget {
   final Map<String, dynamic> step;
@@ -64,7 +66,6 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
     });
   }
 
-
   void _deleteStep(BuildContext context, MutationState<void> deleteMutation) {
     final id = _idController.text.trim();
     if (id.isEmpty) return;
@@ -97,8 +98,13 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
   @override
   Widget build(BuildContext context) {
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
-    final promptBlocks = promptBlocksAsync.value ?? [];
 
+    // Absolute Fail-Fast: Do not use `?? []` to mask data loading or corruption.
+    if (promptBlocksAsync.hasError) throw promptBlocksAsync.error!;
+    if (!promptBlocksAsync.hasValue) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final promptBlocks = promptBlocksAsync.value!;
 
     final saveMutation = useMutation<void>(
       onSuccess: (_) {
@@ -143,6 +149,49 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
       },
     );
 
+    final validateMutation = useMutation<Map<String, dynamic>>(
+      onSuccess: (data) {
+        if (mounted) {
+          final rendered = data['rendered_prompt']?.toString();
+          if (rendered == null) {
+            throw AppException.validation('Simulator did not return rendered_prompt. Data corruption detected.');
+          }
+          showDialog(
+            context: context,
+            builder:
+                (ctx) => AlertDialog(
+                  title: const Text('Simulator Output'),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: SingleChildScrollView(
+                      child: Text(
+                        rendered,
+                        style: const TextStyle(fontFamily: 'monospace'),
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+          );
+        }
+      },
+      onError: (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Simulation Error: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+    );
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -158,6 +207,31 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
               icon: const Icon(Icons.delete, color: Colors.red),
               tooltip: 'Delete',
             ),
+          IconButton(
+            onPressed:
+                validateMutation.isLoading
+                    ? null
+                    : () {
+                      validateMutation.mutate(() async {
+                        final payload = {
+                          'step': _editableStep,
+                          'mock_inputs': <String, dynamic>{},
+                        };
+                        return await ref
+                            .read(stepsControllerProvider.notifier)
+                            .simulateStep(payload);
+                      });
+                    },
+            icon:
+                validateMutation.isLoading
+                    ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : const Icon(Icons.bug_report, color: Colors.green),
+            tooltip: 'Simulate Step',
+          ),
           MutationButton<void>(
             mutation: saveMutation,
             label: 'Save',
@@ -234,7 +308,6 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
                         ),
                         onChanged: (val) => _editableStep['description'] = val,
                       ),
-
                     ],
                   ),
                 ),
@@ -258,11 +331,28 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
                 ],
               ),
               const SizedBox(height: 16),
-              ...SafeCast.safeList(
-                _editableStep['pre_hooks'],
-              ).asMap().entries.map((entry) {
-                return _buildPreHookCard(entry.key, entry.value.toString());
-              }),
+              ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: SafeCast.safeList(_editableStep['pre_hooks']).length,
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (oldIndex < newIndex) newIndex -= 1;
+                    final hooks = SafeCast.safeList(_editableStep['pre_hooks']);
+                    final item = hooks.removeAt(oldIndex);
+                    hooks.insert(newIndex, item);
+                    _editableStep['pre_hooks'] = hooks;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final hooks = SafeCast.safeList(_editableStep['pre_hooks']);
+                  return _buildPreHookCard(
+                    ValueKey('hook_$index\_${hooks[index]}'),
+                    index,
+                    hooks[index].toString(),
+                  );
+                },
+              ),
 
               const SizedBox(height: 24),
 
@@ -282,16 +372,34 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
                 ],
               ),
               const SizedBox(height: 16),
-              ...SafeCast.safeList(
-                _editableStep['prompt_blocks'],
-              ).asMap().entries.map((entry) {
-                return _buildPromptBlockCard(
-                  entry.key,
-                  entry.value.toString(),
-                  promptBlocks,
-                );
-              }),
-
+              ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount:
+                    SafeCast.safeList(_editableStep['prompt_blocks']).length,
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (oldIndex < newIndex) newIndex -= 1;
+                    final blocks = SafeCast.safeList(
+                      _editableStep['prompt_blocks'],
+                    );
+                    final item = blocks.removeAt(oldIndex);
+                    blocks.insert(newIndex, item);
+                    _editableStep['prompt_blocks'] = blocks;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final blocks = SafeCast.safeList(
+                    _editableStep['prompt_blocks'],
+                  );
+                  return _buildPromptBlockCard(
+                    ValueKey('block_$index\_${blocks[index]}'),
+                    index,
+                    blocks[index].toString(),
+                    promptBlocks,
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -299,30 +407,66 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
     );
   }
 
-  Widget _buildPreHookCard(int index, String hookDef) {
-    final hookController = TextEditingController(text: hookDef);
+  Widget _buildPreHookCard(Key key, int index, String hookDef) {
+    final knownHooks = [
+      'search_hook',
+      'memory_hook',
+      'validation_hook',
+      'score_hook',
+    ];
+    final bool isCustom = hookDef.isNotEmpty && !knownHooks.contains(hookDef);
 
     return Card(
+      key: key,
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
+            const Padding(
+              padding: EdgeInsets.only(right: 8.0),
+              child: Icon(Icons.drag_indicator, color: Colors.grey),
+            ),
             Expanded(
-              child: Focus(
-                onFocusChange: (f) {
-                  if (!f) {
-                    final hooks = SafeCast.safeList(_editableStep['pre_hooks']);
-                    hooks[index] = hookController.text;
-                    _editableStep['pre_hooks'] = hooks;
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Pre-Execution Hook Engine',
+                ),
+                initialValue: hookDef.isEmpty ? null : hookDef,
+                items: [
+                  const DropdownMenuItem(
+                    value: 'search_hook',
+                    child: Text('Tavily Web Search (search_hook)'),
+                  ),
+                  const DropdownMenuItem(
+                    value: 'memory_hook',
+                    child: Text('Contextual Memory (memory_hook)'),
+                  ),
+                  const DropdownMenuItem(
+                    value: 'validation_hook',
+                    child: Text('Strict Validation (validation_hook)'),
+                  ),
+                  const DropdownMenuItem(
+                    value: 'score_hook',
+                    child: Text('Grading Matrix (score_hook)'),
+                  ),
+                  if (isCustom)
+                    DropdownMenuItem(
+                      value: hookDef,
+                      child: Text('Legacy: $hookDef'),
+                    ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      final hooks = SafeCast.safeList(
+                        _editableStep['pre_hooks'],
+                      );
+                      hooks[index] = val;
+                      _editableStep['pre_hooks'] = hooks;
+                    });
                   }
                 },
-                child: TextField(
-                  controller: hookController,
-                  decoration: const InputDecoration(
-                    labelText: 'Hook Name (e.g. search_hook)',
-                  ),
-                ),
               ),
             ),
             IconButton(
@@ -340,16 +484,22 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
   }
 
   Widget _buildPromptBlockCard(
+    Key key,
     int index,
     String blockDef,
     List<Map<String, dynamic>> promptBlocks,
   ) {
     return Card(
+      key: key,
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
+            const Padding(
+              padding: EdgeInsets.only(right: 8.0),
+              child: Icon(Icons.drag_indicator, color: Colors.grey),
+            ),
             Expanded(
               child: DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Prompt Block'),

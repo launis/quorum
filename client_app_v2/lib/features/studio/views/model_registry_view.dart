@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -43,25 +44,28 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
     }
 
     // Otherwise, we are deep-linked natively. Fetch from backend:
-    final asyncData = (widget.id == 'new') 
-        ? AsyncValue.data({'id': 'syscfg_new', 'type': 'model_registry'}) 
-        : ref.watch(modelRegistryByIdProvider(widget.id));
-
+    final asyncData =
+        (widget.id == 'new')
+            ? AsyncValue.data({'id': 'syscfg_new', 'type': 'model_registry'})
+            : ref.watch(modelRegistryByIdProvider(widget.id));
 
     return asyncData.when(
-      loading: () => Scaffold(
-        appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
-        body: const Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, st) => Scaffold(
-        appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
-        body: ErrorView(
-          error: e,
-          stackTrace: st,
-          compact: false,
-          onRetry: () => ref.invalidate(modelRegistryByIdProvider(widget.id)),
-        ),
-      ),
+      loading:
+          () => Scaffold(
+            appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
+            body: const Center(child: CircularProgressIndicator()),
+          ),
+      error:
+          (e, st) => Scaffold(
+            appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
+            body: ErrorView(
+              error: e,
+              stackTrace: st,
+              compact: false,
+              onRetry:
+                  () => ref.invalidate(modelRegistryByIdProvider(widget.id)),
+            ),
+          ),
       data: (data) {
         _editableState ??= _deepCopy(data);
         return _buildScaffold(l10n, availableModels, false);
@@ -69,11 +73,21 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
     );
   }
 
-  Widget _buildScaffold(AppLocalizations l10n, List<String> availableModels, bool isSaving) {
+  Widget _buildScaffold(
+    AppLocalizations l10n,
+    List<String> availableModels,
+    bool isSaving,
+  ) {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.modelRegistryTitle),
         actions: [
+          if (widget.id != 'new')
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.orange),
+              onPressed: _deleteRegistry,
+              tooltip: 'Delete Config',
+            ),
           FilledButton.icon(
             icon: const Icon(Icons.save),
             label: Text(l10n.studioSaveButton),
@@ -371,7 +385,10 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
       _formKey.currentState!.save();
 
       try {
-        final idToSave = widget.id == 'new' ? (_editableState!['id'] ?? 'syscfg_new') : widget.id;
+        final idToSave =
+            widget.id == 'new'
+                ? (_editableState!['id'] ?? 'syscfg_new')
+                : widget.id;
         await ref
             .read(modelRegistryControllerProvider.notifier)
             .saveConfig(idToSave, _editableState!);
@@ -385,6 +402,49 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Save failed: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteRegistry() async {
+    final String idToDelete = _editableState?['id']?.toString() ?? '';
+    if (idToDelete.isEmpty || widget.id == 'new') return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Delete Configuration?'),
+            content: Text('Are you sure you want to delete config $idToDelete?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref
+            .read(modelRegistryControllerProvider.notifier)
+            .deleteConfig(idToDelete);
+        if (!mounted) return;
+        context.pop();
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Delete failed: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );

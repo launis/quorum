@@ -68,4 +68,14 @@ Koska Admin Studio tukee power-user ominaisuuksia, työnkulkujen ylläpitäjät 
 1. **Jank-Free Rendering (Isolate):** Massiivisten DAG-puiden graafinen laskenta ja lajittelu (Topological Sort Canvasille) siirretään rutiinilla `Isolate.run()` -taustasäikeeseen. Pääthread pyhitetään vain kankaan 120Hz/144Hz -renderöinnille.
 2. **Optimistic Mutations:** Työnkulkujen rakenteen päivittäminen kankaalla (esim. poistot tai relaatiot) pakotetaan tyyppiturvallisen Riverpod `Mutation` -objektin läpi. Muutos toteutuu UI:n Canvasilla nanosekunnissa optimistisena päivityksenä, ja peruutetaan Rollbackillä vain silloin, jos BFF-palvelimen Pydantic Fail-Fast verifiointi palauttaa 4xx/5xx virheen.
 3. **Ohjelmallinen tiheys (Information Density):** V3 hylkää avarat listat teemoituksella `VisualDensity.compact` yli 600dp resoluutioilla.
-4. **Hiiri:** Ylläpitotasolla oletetaan järjestelmällisesti mahdollisuus Hover-työkaluvihjeisiin, Context-Menuihin (Oikea ja painallus hiirissä luo uuden askeleen graafiin) ja Pikanäppäimiin (Ctrl+S, Delete node). Kosketustuen ollessa rajoittuneempi alaspäin degradoidaan nämä napit kankaan kelluvaksi Toolbariksi mobiili/tablettilaitteilla.
+7. **Hiiri:** Ylläpitotasolla oletetaan järjestelmällisesti mahdollisuus Hover-työkaluvihjeisiin, Context-Menuihin (Oikea ja painallus hiirissä luo uuden askeleen graafiin) ja Pikanäppäimiin (Ctrl+S, Delete node). Kosketustuen ollessa rajoittuneempi alaspäin degradoidaan nämä napit kankaan kelluvaksi Toolbariksi mobiili/tablettilaitteilla.
+
+---
+
+## 6. 🛑 The Absolute Death & Diagnostic Node (Fallbacks Banned)
+
+Quorum Admin Studio on ehdoton Fail-Fast -ympäristö. Hiljainen datan selviytyminen (Graceful Degradation) on BANNATTU.
+
+1. **Ei paikkausarvoja (No Fallbacks / Initial Values):** Käyttöliittymä ei saa koskaan asettaa implisiittisiä oletusarvoja puuttuvalle backend-datalle (esim. `?? "Fallback"` tai `score: 0.0`).
+2. **Absolute Death:** Jos yksittäinen UX-solmu (esim. kankaan DAG-nodi tai lista-elementti) vastaanottaa invalidia tai epätäydellistä dataa Pydantic-rajapinnasta, sen **ON KUOLTAVA** (heitettävä Exception tai palautettava `AsyncError`). Se ei saa yrittää pelastautua palauttamalla tyhjää komponenttia (`SizedBox.shrink()`).
+3. **Diagnostic Node:** Kun solmu kuolee, sen ylempi suojakerros (`AppErrorBoundary`) aktivoituu ja asettaa solmun tilalle lokaalin ja räikeästi erottuvan "Error Boxin" (esim. punaisella katkoviivalla ja ErrorCode:lla varustettu laatikko). Näin järjestelmänvalvoja näkee välittömästi, mikä tietty datakomponentti on korruptoitunut kankaalla. Viat eivät enää piiloudu.

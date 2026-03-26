@@ -11,7 +11,6 @@ import pytest
 from backend_v2.exceptions import AppException, ConfigurationError
 from backend_v2.services.mcp.tavily_search_client import TavilySearchResult, tavily_search
 
-
 MOCK_TAVILY_RESPONSE = {
     "answer": "Finland has 5.5 million people.",
     "results": [

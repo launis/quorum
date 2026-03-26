@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/views/step_builder_view.dart';
-import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
@@ -81,4 +81,16 @@ class MockPromptBlocksController
 
   @override
   Future<void> deletePromptBlock(String id) async {}
+
+  @override
+  Future<Map<String, dynamic>> clonePromptBlock(String id) async {
+    return {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> simulatePromptBlock(
+    Map<String, dynamic> payload,
+  ) async {
+    return {'rendered_prompt': 'MOCK', 'valid': true};
+  }
 }

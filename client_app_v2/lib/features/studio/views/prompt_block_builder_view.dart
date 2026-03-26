@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
-import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
@@ -11,6 +11,7 @@ import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/models/prompt_block_category.dart';
+import 'package:client_app/core/error/app_exception.dart';
 
 /// **Universal Matrix Builder**
 ///
@@ -24,7 +25,12 @@ class PromptBlockBuilderView extends ConsumerWidget {
   final String? slug;
   final Map<String, dynamic>? initialData;
 
-  const PromptBlockBuilderView({super.key, this.id, this.slug, this.initialData});
+  const PromptBlockBuilderView({
+    super.key,
+    this.id,
+    this.slug,
+    this.initialData,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,19 +70,12 @@ class _PromptBlockBuilderForm extends StatefulHookConsumerWidget {
 class _PromptBlockBuilderFormState
     extends ConsumerState<_PromptBlockBuilderForm> {
   late Map<String, dynamic> _editablePromptBlock;
-  late TextEditingController _idController;
 
   @override
   void initState() {
     super.initState();
     // Deepish copy for isolated editing
     _editablePromptBlock = Map<String, dynamic>.from(widget.promptBlock);
-
-    _idController = TextEditingController(
-      text: SafeCast.safeString(_editablePromptBlock['id']),
-    );
-
-    // Deprecated 'criteria' array has been removed from V2 architecture
 
     // "The English-Only Mandate": Ensure new blocks have required 'en' structure
     if (!_editablePromptBlock.containsKey('label')) {
@@ -95,7 +94,6 @@ class _PromptBlockBuilderFormState
 
   @override
   void dispose() {
-    _idController.dispose();
     super.dispose();
   }
 
@@ -178,6 +176,51 @@ class _PromptBlockBuilderFormState
       },
     );
 
+    final validateMutation = useMutation<Map<String, dynamic>>(
+      onSuccess: (data) {
+        if (mounted) {
+          final rendered = data['rendered_prompt']?.toString();
+          if (rendered == null) {
+            throw AppException.validation(
+              'Simulator did not return rendered_prompt. Data corruption detected.',
+            );
+          }
+          showDialog(
+            context: context,
+            builder:
+                (ctx) => AlertDialog(
+                  title: const Text('Simulator Output'),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: SingleChildScrollView(
+                      child: Text(
+                        rendered,
+                        style: const TextStyle(fontFamily: 'monospace'),
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+          );
+        }
+      },
+      onError: (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Simulation Error: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+    );
+
     final deleteMutation = useMutation<void>(
       onSuccess: (_) {
         if (mounted) {
@@ -213,28 +256,68 @@ class _PromptBlockBuilderFormState
               icon: const Icon(Icons.delete, color: Colors.red),
               tooltip: 'Delete',
             ),
+          IconButton(
+            onPressed:
+                validateMutation.isLoading
+                    ? null
+                    : () {
+                      validateMutation.mutate(() async {
+                        final payload = {
+                          'block': _editablePromptBlock,
+                          'mock_inputs':
+                              <
+                                String,
+                                dynamic
+                              >{}, // Provide empty mock inputs for now
+                        };
+                        return await ref
+                            .read(promptBlocksControllerProvider.notifier)
+                            .simulatePromptBlock(payload);
+                      });
+                    },
+            icon:
+                validateMutation.isLoading
+                    ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : const Icon(Icons.bug_report, color: Colors.green),
+            tooltip: 'Simulate Prompt',
+          ),
           MutationButton<void>(
             mutation: saveMutation,
             label: 'Save',
             icon: Icons.save,
+            // UI must not ask for ID manually (Opaque ID Ban).
+            // It will be auto-generated by the backend if missing.
             action: () async {
-              final id = _idController.text.trim();
-              if (id.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ID is required.')),
-                );
-                throw Exception('ID is required');
-              }
-              _editablePromptBlock['id'] = id;
+              // Validating mandatory translations
+              final labelMap = SafeCast.safeMap(_editablePromptBlock['label']);
+              final transMap = SafeCast.safeMap(labelMap['translations']);
+              final enLabel = SafeCast.safeString(transMap['en']);
 
-              _editablePromptBlock.remove('criteria');
+              if (enLabel.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'English Label is required (English-Only Mandate).',
+                    ),
+                  ),
+                );
+                throw Exception('English Label is required');
+              }
 
               if (_editablePromptBlock['theory_grounding'] == null) {
                 _editablePromptBlock.remove('theory_grounding');
               }
+              final currentId =
+                  _editablePromptBlock['id']?.toString() ??
+                  'blk_${DateTime.now().millisecondsSinceEpoch}';
+              _editablePromptBlock['id'] = currentId;
               await ref
                   .read(promptBlocksControllerProvider.notifier)
-                  .savePromptBlock(id, _editablePromptBlock);
+                  .savePromptBlock(currentId, _editablePromptBlock);
             },
           ),
           const SizedBox(width: 16),
@@ -261,17 +344,17 @@ class _PromptBlockBuilderFormState
                         ),
                       ),
                       const SizedBox(height: 16),
-                      TextField(
-                        controller: _idController,
-                        decoration: const InputDecoration(
-                          labelText: 'Unique ID (e.g. bloom_rubric_v1)',
-                          border: OutlineInputBorder(),
+                      if (widget.promptBlock['id'] != null) ...[
+                        Text(
+                          'Opaque ID: ${widget.promptBlock['id']}',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        enabled:
-                            widget.promptBlock['id'] == null ||
-                            widget.promptBlock['id'].toString().isEmpty,
-                      ),
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 24),
+                      ],
                     ],
                   ),
                 ),

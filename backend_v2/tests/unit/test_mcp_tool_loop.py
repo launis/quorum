@@ -95,8 +95,9 @@ async def test_tool_loop_single_search():
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 200}))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
-        from backend_v2.models.v2_core import MCPAuditTrace
         from datetime import datetime, timezone
+
+        from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
@@ -145,8 +146,9 @@ async def test_tool_loop_max_calls_enforced():
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 300}))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
-        from backend_v2.models.v2_core import MCPAuditTrace
         from datetime import datetime, timezone
+
+        from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
@@ -197,8 +199,9 @@ async def test_tool_loop_tavily_failure_graceful():
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 150}))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
-        from backend_v2.models.v2_core import MCPAuditTrace
         from datetime import datetime, timezone
+
+        from backend_v2.models.v2_core import MCPAuditTrace
 
         # Simulate a failed search — audit trace with empty response (Graceful Degradation)
         mock_search.return_value = MCPAuditTrace(
@@ -264,8 +267,9 @@ async def test_tool_call_id_preserved_from_llm():
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 100}))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
-        from backend_v2.models.v2_core import MCPAuditTrace
         from datetime import datetime, timezone
+
+        from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
@@ -302,9 +306,10 @@ async def test_tool_call_id_preserved_from_llm():
 
 def test_build_tool_evidence_message_uses_explicit_id():
     """Regression: _build_tool_evidence_message must use the provided tool_call_id."""
-    from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
-    from backend_v2.models.v2_core import MCPAuditTrace
     from datetime import datetime, timezone
+
+    from backend_v2.models.v2_core import MCPAuditTrace
+    from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
 
     audit = MCPAuditTrace(
         tool_id="mcp_tavily_search",
@@ -326,9 +331,10 @@ def test_build_tool_evidence_message_uses_explicit_id():
 
 def test_build_tool_evidence_message_empty_results():
     """Empty search results still use the correct tool_call_id."""
-    from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
-    from backend_v2.models.v2_core import MCPAuditTrace
     from datetime import datetime, timezone
+
+    from backend_v2.models.v2_core import MCPAuditTrace
+    from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
 
     audit = MCPAuditTrace(
         tool_id="mcp_tavily_search",
@@ -378,8 +384,9 @@ async def test_phase2_messages_contain_tool_roles():
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 150}))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
-        from backend_v2.models.v2_core import MCPAuditTrace
         from datetime import datetime, timezone
+
+        from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
@@ -418,9 +425,10 @@ def test_static_tool_call_id_causes_mismatch():
     """FAULT INJECTION: Proves that generating a static ID instead of using LLM's ID
     would produce a mismatched tool_call_id — the exact bug that crashed LiteLLM/Gemini.
     """
-    from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
-    from backend_v2.models.v2_core import MCPAuditTrace
     from datetime import datetime, timezone
+
+    from backend_v2.models.v2_core import MCPAuditTrace
+    from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
 
     audit = MCPAuditTrace(
         tool_id="mcp_tavily_search",
@@ -497,8 +505,9 @@ def test_llm_response_rejects_missing_content():
     """LLMResponse.content (the top-level field) must still be a required string.
     Only messages[].content can be None (for assistant tool_call messages).
     """
-    from backend_v2.models.llm import LLMResponse
     import pydantic
+
+    from backend_v2.models.llm import LLMResponse
 
     with pytest.raises(pydantic.ValidationError):
         LLMResponse(

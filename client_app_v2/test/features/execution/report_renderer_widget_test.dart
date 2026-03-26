@@ -32,7 +32,6 @@ void main() {
             ],
           ),
         ],
-
       );
 
       await tester.pumpWidget(
@@ -49,7 +48,10 @@ void main() {
 
       expect(find.text('Mock Axis'), findsOneWidget);
       expect(find.text('Perfect'), findsOneWidget);
-      expect(find.text('100.0 / 6.0'), findsOneWidget); // Raw score value is formatted this way
+      expect(
+        find.text('100.0 / 6.0'),
+        findsOneWidget,
+      ); // Raw score value is formatted this way
     },
   );
 }

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.models.enums import ModelStrategy
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import FrozenContext, StepRule
 from backend_v2.models.v2_core import Step as V2Step
@@ -24,6 +25,7 @@ class StrategyContext(BaseModel):
     workflow_id: str
     metadata: dict[str, Any]
     expected_inputs: list[Any] | None = None
+    model_strategy: ModelStrategy | str | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 
@@ -76,10 +78,13 @@ class NodeStrategy(ABC):
 
         Extracts common pre-hook loops previously bundled inside the God Method execution branches.
         """
-        combined_pre_hooks = list(dict.fromkeys(step_obj.pre_hooks + step.pre_hooks))
         current_data = dict(state_data)
 
-        for pre_hook in combined_pre_hooks:
+        # SSOT Enforcement: Only the Blueprint (step_obj) owns pre_hooks
+        if not step_obj.pre_hooks:
+            return hook_state
+
+        for pre_hook in step_obj.pre_hooks:
             res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
             if res.success and res.state_delta:
                 current_data = deep_merge_dicts(current_data, res.state_delta)
@@ -107,8 +112,11 @@ class NodeStrategy(ABC):
             }
         )
 
-        combined_post_hooks = list(dict.fromkeys(step_obj.post_hooks + step.post_hooks))
-        for post_hook in combined_post_hooks:
+        # SSOT Enforcement: Only the Blueprint (step_obj) owns post_hooks.
+        if not step_obj.post_hooks:
+            return final_dict
+
+        for post_hook in step_obj.post_hooks:
             ph_res = await hook_registry.execute(post_hook, post_hook_state, hook_deps)
             if ph_res.success and ph_res.state_delta:
                 final_dict = deep_merge_dicts(final_dict, ph_res.state_delta)

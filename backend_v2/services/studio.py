@@ -9,7 +9,7 @@ from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigModelRegistry, Workflow
+from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigMCPGateways, SystemConfigModelRegistry, Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +109,44 @@ class StudioService:
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete("workflows", id)
 
+    async def clone_workflow(self, initiator: TokenData, id: str) -> Workflow:
+        """Deep Clones a Workflow into the initiator's tenant organization.
+        Implements Shallow-Deep Copy constraint: StepRules are copied, TaskBlueprints are referenced.
+        """
+        data = await self.repo.get("workflows", id)
+        if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {id} not found.")
+            raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
+
+        self._enforce_tenant_isolation(initiator, data, "workflow")
+
+        import uuid
+        new_id = f"wf_{uuid.uuid4().hex}"
+
+        cloned_data = Workflow.model_validate(data).model_dump(mode="json")
+        cloned_data["id"] = new_id
+
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
+             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+
+        if "name" in cloned_data and isinstance(cloned_data["name"], dict):
+             default_locale = cloned_data["name"].get("default_locale", "en")
+             translations = cloned_data["name"].get("translations", {})
+             if default_locale in translations:
+                 translations[default_locale] = translations[default_locale] + " (Copy)"
+                 cloned_data["name"]["translations"] = translations
+        elif "name" in cloned_data and isinstance(cloned_data["name"], str):
+             cloned_data["name"] = cloned_data["name"] + " (Copy)"
+
+        await self.repo.create_raw("workflows", cloned_data)
+
+        saved = await self.repo.get("workflows", new_id)
+        if not saved:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {new_id} not found after clone.")
+            raise ResourceNotFoundError(resource_type="workflow", resource_id=new_id)
+
+        return Workflow.model_validate(saved)
+
     async def list_steps(self, initiator: TokenData) -> list[Step]:
         all_data = await self.repo.get_all("steps")
         if initiator.role == "ROOT":
@@ -195,6 +233,43 @@ class StudioService:
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete_prompt_block(id, force_delete=force_delete)
 
+    async def clone_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
+        """Deep Clones a PromptBlock into the initiator's tenant organization."""
+        data = await self.repo.get("prompt_blocks", id)
+        if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: PromptBlock {id} not found.")
+            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
+
+        self._enforce_tenant_isolation(initiator, data, "prompt_block")
+
+        import uuid
+        new_id = f"blk_{uuid.uuid4().hex}"
+
+        cloned_data = PromptBlock.model_validate(data).model_dump(mode="json")
+        cloned_data["id"] = new_id
+
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
+             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+
+        if "label" in cloned_data and isinstance(cloned_data["label"], dict):
+             default_locale = cloned_data["label"].get("default_locale", "en")
+             translations = cloned_data["label"].get("translations", {})
+             if default_locale in translations:
+                 translations[default_locale] = translations[default_locale] + " (Copy)"
+                 cloned_data["label"]["translations"] = translations
+
+        await self.repo.create_raw("prompt_blocks", cloned_data)
+
+        saved = await self.repo.get("prompt_blocks", new_id)
+        if not saved:
+            logger.error(
+                f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
+                f"PromptBlock {new_id} not found after clone."
+            )
+            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=new_id)
+
+        return PromptBlock.model_validate(saved)
+
     # --- System Configs (ROOT Only usually) ---
 
     async def list_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
@@ -244,6 +319,43 @@ class StudioService:
             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         await self.repo.delete("system_config", id)
+
+    async def list_mcp_gateways(self, initiator: TokenData) -> list[SystemConfigMCPGateways]:
+        all_data = await self.repo.get_all("system_config")
+        if initiator.role == "ROOT":
+            return [SystemConfigMCPGateways.model_validate(x) for x in all_data if x.get("type") == "mcp_gateways"]
+        return []
+
+    async def get_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
+        if initiator.role != "ROOT":
+             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can view system configs.")
+             raise PermissionDeniedError("Only ROOT can view system configs.")
+        data = await self.repo.get("system_config", id)
+        if not data or data.get("type") != "mcp_gateways":
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: MCP Gateways Config {id} not found.")
+            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+        return SystemConfigMCPGateways.model_validate(data)
+
+    async def save_mcp_gateways(
+        self, initiator: TokenData, id: str, data: SystemConfigMCPGateways
+    ) -> SystemConfigMCPGateways:
+        if initiator.role != "ROOT":
+             logger.error(
+                 f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: "
+                 "Only ROOT can modify system configs."
+             )
+             raise PermissionDeniedError("Only ROOT can modify system configs.")
+
+        dump = data.model_dump(mode="json")
+        if "id" not in dump:
+            dump["id"] = id
+        await self.repo.create_raw("system_config", dump)
+
+        saved = await self.repo.get("system_config", id)
+        if not saved:
+             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: MCP Gateways Config {id} not found.")
+             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+        return SystemConfigMCPGateways.model_validate(saved)
 
     # --- Output Profiles ---
 
@@ -321,3 +433,146 @@ class StudioService:
 
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete_output_profile(id)
+
+    # --- Workflow Simulation (DAG Dry-Run) ---
+    async def simulate_workflow(self, initiator: TokenData, data: Workflow) -> dict[str, Any]:
+        """Provides a static analysis of a Workflow DAG to validate dependencies and input wirings."""
+        errors = []
+        step_status = {}
+
+        # 1. Map expected inputs
+        available_inputs = [inp.input_key for inp in data.expected_inputs]
+
+        # 2. Track provided outputs step by step
+        provided_outputs = set(available_inputs)
+
+        # 3. Build Dependency Graph
+        dag_order = []
+        visited = set()
+        in_progress = set()
+
+        all_steps = {s.id: s for s in data.steps}
+
+        def resolve_deps(step_id: str):
+            if step_id in in_progress:
+                errors.append(f"Cycle detected involving step {step_id}")
+                return
+            if step_id in visited:
+                return
+
+            in_progress.add(step_id)
+            step = all_steps.get(step_id)
+            if not step:
+                # Missing reference in depends_on
+                return
+
+            for dep in step.depends_on:
+                resolve_deps(dep)
+
+            in_progress.remove(step_id)
+            visited.add(step_id)
+            dag_order.append(step_id)
+
+        try:
+            for s_id in all_steps:
+                resolve_deps(s_id)
+        except Exception as e:
+            logger.error(f"[StudioService] Simulation graph resolution failed: {e}")
+            errors.append("Fatal error resolving DAG structure.")
+
+        # 4. Step-by-Step topological check
+        for step_id in dag_order:
+            step = all_steps[step_id]
+            is_valid = True
+            step_errors = []
+
+            # Check mappings
+            for tgt, src in step.input_mappings.items():
+                if isinstance(src, str) and src.startswith("$"):
+                    if src.startswith("$inputs."):
+                        var = src.split(".")[1]
+                        if var not in available_inputs:
+                            step_errors.append(f"Missing input reference: {var}")
+                            is_valid = False
+                    elif src.startswith("$steps."):
+                        parts = src.split(".")
+                        if len(parts) >= 3:
+                            dep_step = parts[1]
+                            if dep_step not in step.depends_on:
+                                step_errors.append(f"Undeclared dependency on step: {dep_step}")
+                                is_valid = False
+
+            if is_valid:
+                step_status[step_id] = "OK"
+            else:
+                step_status[step_id] = "ERROR"
+                errors.extend([f"Step {step_id}: {e}" for e in step_errors])
+
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "step_status": step_status,
+            "execution_order": dag_order
+        }
+
+    async def simulate_prompt_block(self, initiator: TokenData, data: PromptBlock, mock_inputs: dict[str, Any]) -> dict[str, Any]:
+        """Provides a static analysis of a PromptBlock template rendering, including BARS matrix claims."""
+        import string
+
+        errors = []
+        rendered = data.ai_description or ""
+
+        # 1. Base rendering using template syntax if needed
+        if rendered and mock_inputs:
+            try:
+                # Basic python formatting simulation if {} brackets exist
+                if "{" in rendered and "}" in rendered:
+                    # Very simple loose formatting for dry-run safely
+                    t = string.Formatter()
+                    keys = [k[1] for k in t.parse(rendered) if k[1] is not None]
+                    clean_mocks = {k: mock_inputs.get(k, f"[{k} MOCKED]") for k in keys}
+                    rendered = rendered.format(**clean_mocks)
+            except Exception as e:
+                logger.warning(f"[StudioService] Simulation formatting failed (ignored for UI fallback): {e}")
+
+        # 2. Append Matrix Logic
+        if data.category_id == "matrix" and data.scales:
+            rendered += "\n\n--- EVALUATION SCALES ---\n"
+            for scale in data.scales:
+                rendered += f"\nScore {scale.score}:\n"
+                for claim in scale.claims:
+                    rendered += f"- {claim.en.strip()}\n"
+
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "rendered_prompt": rendered.strip()
+        }
+
+    async def simulate_step(self, initiator: TokenData, data: Step, mock_inputs: dict[str, Any]) -> dict[str, Any]:
+        """Provides a static analysis of a Step's generated context by resolving all its Prompt Blocks."""
+        errors = []
+        rendered_parts = []
+
+        # Resolve prompt blocks
+        for block_ref in data.prompt_blocks:
+            try:
+                block = await self.get_prompt_block(initiator, block_ref)
+                sim = await self.simulate_prompt_block(initiator, block, mock_inputs)
+                if not sim["valid"]:
+                    errors.extend(sim.get("errors", []))
+
+                rendered_parts.append(f"--- Prompt Block: {block.slug} ---")
+                rendered_parts.append(sim.get("rendered_prompt", ""))
+            except Exception:
+                errors.append(f"Missing referenced Prompt Block: {block_ref}")
+                rendered_parts.append(f"--- Prompt Block: {block_ref} [NOT FOUND] ---")
+
+        if data.hook:
+            rendered_parts.append(f"\n[Execution Hook: {data.hook}]")
+
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "rendered_prompt": "\n\n".join(rendered_parts)
+        }

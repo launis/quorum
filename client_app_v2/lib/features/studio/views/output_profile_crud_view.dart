@@ -6,6 +6,7 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 
 class OutputProfileCrudView extends ConsumerStatefulWidget {
   final String id;

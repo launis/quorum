@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/core/error/app_exception.dart';
 
 class ScaleEditorModal extends StatefulWidget {
   final Map<String, dynamic> initialScale;
@@ -85,7 +86,10 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (val) {
-                  _editableScale['score'] = int.tryParse(val) ?? 0;
+                  final parsed = int.tryParse(val);
+                  if (parsed != null) {
+                    _editableScale['score'] = parsed;
+                  }
                 },
               ),
               const SizedBox(height: 16),
@@ -132,11 +136,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                 final index = entry.key;
                 final claim = SafeCast.safeMap(entry.value);
                 final claimLabel = SafeCast.safeMap(
-                  claim['label'] ??
-                      {
-                        'default_locale': 'en',
-                        'translations': <String, dynamic>{'en': ''},
-                      },
+                  claim['label'] ?? (throw AppException.validation('Claim data is corrupted: missing localized label.')),
                 );
 
                 return Card(

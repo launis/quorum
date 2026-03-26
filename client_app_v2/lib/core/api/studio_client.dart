@@ -40,9 +40,26 @@ class StudioClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Dry-runs a prompt block or matrix rendering with mock variables.
+  Future<Map<String, dynamic>> simulatePromptBlock(
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _dio.post(
+      'studio/prompt-blocks/simulate',
+      data: data,
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
   /// Deletes a prompt block.
   Future<void> deletePromptBlock(String id) async {
     await _dio.delete('studio/prompt-blocks/$id');
+  }
+
+  /// Deep clones a prompt block securely via SSOT Service Layer.
+  Future<Map<String, dynamic>> clonePromptBlock(String id) async {
+    final response = await _dio.post('studio/prompt-blocks/$id/clone');
+    return response.data as Map<String, dynamic>;
   }
 
   // --- Workflows (DAG definitions) ---
@@ -68,9 +85,23 @@ class StudioClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Validates a workflow definition using the Pre-Flight Simulator API.
+  Future<Map<String, dynamic>> simulateWorkflow(
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _dio.post('studio/workflows/simulate', data: data);
+    return response.data as Map<String, dynamic>;
+  }
+
   /// Deletes a workflow definition.
   Future<void> deleteWorkflow(String id) async {
     await _dio.delete('studio/workflows/$id');
+  }
+
+  /// Deep clones a workflow definition securely via SSOT Service Layer.
+  Future<Map<String, dynamic>> cloneWorkflow(String id) async {
+    final response = await _dio.post('studio/workflows/$id/clone');
+    return response.data as Map<String, dynamic>;
   }
 
   // --- Steps ---
@@ -95,6 +126,11 @@ class StudioClient {
     await _dio.delete('studio/steps/$id');
   }
 
+  /// Validates a step definition using the Pre-Flight Simulator API.
+  Future<Map<String, dynamic>> simulateStep(Map<String, dynamic> data) async {
+    final response = await _dio.post('studio/steps/simulate', data: data);
+    return response.data as Map<String, dynamic>;
+  }
   // --- Model Registry ---
 
   /// Retrieves available models.
@@ -127,6 +163,34 @@ class StudioClient {
   /// Deletes a system config.
   Future<void> deleteSystemConfig(String id) async {
     await _dio.delete('studio/model-registry/$id');
+  }
+
+  // --- MCP Gateways ---
+
+  /// Retrieves all MCP Gateways.
+  Future<List<Map<String, dynamic>>> getMcpGateways() async {
+    final response = await _dio.get('studio/mcp-gateways/');
+    return List<Map<String, dynamic>>.from(response.data as List);
+  }
+
+  /// Retrieves a specific MCP Gateway by ID.
+  Future<Map<String, dynamic>> getMcpGateway(String id) async {
+    final response = await _dio.get('studio/mcp-gateways/$id');
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Appends or updates an MCP Gateway.
+  Future<Map<String, dynamic>> saveMcpGateway(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _dio.put('studio/mcp-gateways/$id', data: data);
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Deletes an MCP Gateway.
+  Future<void> deleteMcpGateway(String id) async {
+    await _dio.delete('studio/mcp-gateways/$id');
   }
 
   // --- Output Profiles ---

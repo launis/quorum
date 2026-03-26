@@ -289,6 +289,16 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_mcp_gateways(self) -> dict[str, Any]:
+        """Fetch MCP Gateways system configuration."""
+        pass
+
+    @abstractmethod
+    async def update_mcp_gateways(self, gateways_data: dict[str, Any]) -> bool:
+        """Update MCP Gateways system configuration."""
+        pass
+
+    @abstractmethod
     async def count_executions_by_matrix(self, matrix_id: str) -> int:
         pass
 
@@ -945,6 +955,28 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         if doc_id != "model_registry" and "slug" not in registry_data:
             registry_data["slug"] = "model_registry"
         await self.driver.upsert("system_config", registry_data, doc_id)
+        return True
+
+    async def get_mcp_gateways(self) -> dict[str, Any]:
+        from backend_v2.database.driver import Filter
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
+        res = res_list[0] if res_list else None
+        if not res:
+            logger.error(
+                "[MockRepository] SYSTEM_CONFIG_NOT_FOUND: "
+                "'mcp_gateways' document is missing from database."
+            )
+            from backend_v2.exceptions import ResourceNotFoundError
+            raise ResourceNotFoundError(resource_type="system_config", resource_id="mcp_gateways")
+        return res
+
+    async def update_mcp_gateways(self, gateways_data: dict[str, Any]) -> bool:
+        from backend_v2.database.driver import Filter
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
+        doc_id = res_list[0]["id"] if res_list else gateways_data.get("id", "cfg_mcpGateways01")
+        if doc_id != "cfg_mcpGateways01" and "slug" not in gateways_data:
+            gateways_data["slug"] = "mcp_gateways"
+        await self.driver.upsert("system_config", gateways_data, doc_id)
         return True
 
     async def get_system_settings(self) -> dict[str, Any] | None:

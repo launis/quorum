@@ -5222,15 +5222,7 @@
           "depends_on": [],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "fast",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_02dd32906f4145bea6f6bf0a807d60111",
@@ -5240,15 +5232,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "fast",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_factcheck1234ab",
@@ -5259,12 +5243,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "fast",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": []
+          }
         },
         {
           "id": "steprule_a6112fc48780491b9247683216b1c26d1",
@@ -5274,15 +5253,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "fast",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_95dc2243345d401b8df6def0a068e5af1",
@@ -5292,15 +5263,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "precise",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_8f3af4a2e3e14dd8bc34fca49bb0b1cb1",
@@ -5310,15 +5273,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "strict",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_12fbdac607d74edbbffaec3eea62fdc31",
@@ -5328,15 +5283,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "strict",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_fa42b362e50e4a30b8acb6dae391efa81",
@@ -5346,15 +5293,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "deep",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_937b0c4a2819466c97277659edd2ee201",
@@ -5364,15 +5303,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "precise",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_038947d22fbf4677b4cb90149e358a3e1",
@@ -5382,15 +5313,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "strict",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_29914cfb27a9433ca2b0e78a1d88e1011",
@@ -5400,15 +5323,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "fast",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_64a49f52b7394d9e99b92bb0397a60491",
@@ -5418,15 +5333,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "precise",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_e9dd765ba98841ddb0059b49df3527d51",
@@ -5436,15 +5343,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "precise",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_8071dfe6c2a84663b4429bc44a83381e1",
@@ -5463,15 +5362,7 @@
           ],
           "input_mappings": {
             "inputs": "$inputs"
-          },
-          "model_strategy": "precise",
-          "pre_hooks": [
-            "inject_step_metadata"
-          ],
-          "post_hooks": [
-            "normalize_matrix_scores",
-            "translation_hook"
-          ]
+          }
         },
         {
           "id": "steprule_scoreengine1",
@@ -5480,9 +5371,6 @@
             "steprule_8071dfe6c2a84663b4429bc44a83381e1"
           ]
         }
-      ],
-      "post_hooks": [
-        "normalize_matrix_scores"
       ],
       "slug": "kokonaisvaltainen_auditointi",
       "output_profiles": {
@@ -5807,7 +5695,8 @@
         }
       },
       "status": "active",
-      "is_public": true
+      "is_public": true,
+      "model_strategy": "precise"
     }
   ],
   "steps": [
@@ -5834,7 +5723,9 @@
       "pre_hooks": [
         "inject_step_metadata"
       ],
-      "post_hooks": [],
+      "post_hooks": [
+        "normalize_matrix_scores"
+      ],
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm"

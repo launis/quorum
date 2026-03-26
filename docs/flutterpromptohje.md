@@ -56,8 +56,9 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla tai vanhoi
 * Oireita ei paikata pintapuolisesti `if x is None: return` -tarkistuksilla tai `.get('field', default)` defensiivisillä oletuksilla.
 * Etsi ja korjaa datan alkuperä. Miksi data on viallinen? Korjaa lukija tai generoija, älä laita putkeen purkkaa.
 
-### 2.3 Strict Typing & No Defaults
-* Domain-malleissa ei saa olla implisiittisiä oletusarvoja pakollisille kentille (esim. `score: float = 0.0` on kielletty, ellet ole matemaattisesti aivan varma oletuksen alkuperästä).
+### 2.3 Strict Typing & Banned Fallbacks (No Defaults)
+* Domain-malleissa ja UI-tiloissa **EI SAA OLLA** implisiittisiä oletusarvoja pakollisille kentille. Alkuarvojen asettaminen (esim. `score: float = 0.0` tai `String text = ""`) puuttuvan serveridatan paikkaamiseksi on ankarasti KIELLETTY.
+* **Kielletty:** Null-coalescing -operaattoreiden (`data ?? defaultData`) käyttö käyttöliittymäkomponenteissa tai backend-logiikassa datan selviytymiseksi on täysin BANNATTU.
 * Pydantic V2 on käytössä tilassa `ConfigDict(strict=True)`. Tyyppipakotuksia ei tehdä lennosta (esim. ei merkkijonoa `"1"` numerokenttään `1`).
 
 ### 2.4 Deterministic Execution Mandate (Python Authority)
@@ -170,10 +171,24 @@ Quorum ei ole kuluttajille suunnattu mobiilisovellus, vaan **ammattilaisten IDE-
 
 **SINGLE SOURCE OF TRUTH**: `backend/exceptions.py` & `client_app/lib/core/error/app_exception.dart`
 
-### 6.1 Strict RFC 7807 Pattern (AppException)
+### 6.1 Strict RFC 7807 Pattern & The "No Pass" Rule
 Backendissä ei saa enää ikinä esiintyä paljaita (`ValueError` / `HTTPException`) nostoja rajapinnoilla. Kaikki poikkeukset tulee heittää paketoituna `AppException` tai sen semanttisilla aliluokilla. Frontend parsii ne 1:1 Freezed-malliin.
 
-### 6.2 Dual-Reporting & Telemetry Mandate
+**THE "NO PASS" RULE (Silent failure is banned):**
+Poikkeusten hiljainen nieleminen eli koodin yskiminen rikkinäisenä eteenpäin on EHDOTTOMASTI KIELLETTY.
+* **Python:** `try: ... except Exception: pass` on **anasti kielletty**.
+* **Dart/Flutter:** Tyhjät catch-lohkot `try { ... } catch (e) {}` ovat **täysin kiellettyjä**.
+* **Ratkaisu:** Virheet on AINA joko käsiteltävä näyttämällä `ErrorView`, lokitettava rakenteellisesti (Dual-Reporting) tai heitettävä eteenpäin (`rethrow` / `raise`). Älä koskaan peitä järjestelmän kaatumista.
+
+### 6.2 THE ZERO-HARDCODING MANDATE (Kovakoodaus kielletty)
+Kaikki koodatut "oikotiet" ovat EHDOTTOMASTI KIELLETTYJÄ koko järjestelmässä.
+* **Ei kovakoodattuja avaimia:** Älä keksi dart-koodissa sanakirja-avaimia (kuten `'criteria'`), jotka on julistettu kuolleiksi backendin Pydantic-malleissa. Pydantic on _Single Source of Truth_.
+* **Ei kovakoodattuja tilaratkaisuja:** UI ei saa asettaa tila-logiikkaa manuaalisesti (esim. ohjelmoidut vakio ID:t kentissä). Kaiken on joustettava ja luettava suoraan backendin tarjoamasta skeemasta ja rajapinnoilta.
+* **Ei ID-kenttien kysymistä käyttäjältä (Opaque ID Ban):** Luonti- ja muokkauslomakkeissa (Forms) ei saa IKINÄ olla näkyvissä "ID" tekstikenttää, jota käyttäjä tai pääkäyttäjä täyttäisi käsin. Kaikki Stripe Pattern ID:t (esim. `blk_abc123`) generoidaan järjestelmän toimesta aina taustalla The Cascading Clone tai luontiprosessien aikana. Käyttäjä syöttää ainoastaan `slug`, `label` yms.
+* **Kieliperusteinen Relaationpurku (Nomenclature Resolution):** Kun relaatioita tai JSON-puuta täytetään (esim. liitetään askeleita työnkulkuun pudotusvalikosta), käyttöliittymän on EHDOTTOMASTI esitettävä elementit inhimillisesti luettavilla Nimi-arvoilla (esim. `label.translations[locale]`). Nämä arvot on haettava dynaamisesti ID:n perusteella käyttäjän valitsemalla kielellä. Käyttäjä näkee nimen, järjestelmä tallentaa taustalla ID:n. Pelkkien ID-koodien näyttäminen valikoissa on kielletty.
+* **Virheiden piilotus Default-arvoilla:** (esim. `score=0.0` tai `name="Nimetön"`) on rinnastettavissa kovakoodaukseen ja tiedon väärentämiseen. Se on kielletty.
+
+### 6.3 Dual-Reporting & Telemetry Mandate
 Ainoa sallittu tapa ottaa virhe kiinni ja heittää se ylemmäs on **Kaksinkertainen Raportointi** (Dual-Reporting).
 **Backendissä:** Ensin rakenteellinen printti serverille (`logger.error(..., exc_info=True)`), sitten nosto `AppException(error_code=...)`.
 **Frontendissä:** HTTP-verkkovirheet kirjataan Riverpod-LoggerServiceen, joka välittää ne Backendin etätelemetria-päätepisteeseen.
@@ -202,8 +217,10 @@ except Exception as e:
     ) from e
 ```
 
-### 6.3 Non-Fatal Errors (Sallitut läpimenot / Graceful Degradation)
-Jos backendistä tullut payload on osittain korruptoitunut (esim. yksittäisen komponentin rakentaminen failaa BFF-näkymässä), näytämme näkymässä `SizedBox.shrink()` (**Graceful Degradation**). Yksi viallinen solmu ei saa kaataa koko työpöytänäkymää (Red Screen of Death). VAIKKA sovellus ei kaadu, komponentin on pakko ampua vahva virheloki osoittamaan datavirhe.
+### 6.3 Absolute Death & Diagnostic Node (Ei "Graceful Degradationia")
+Käyttöliittymäkomponentit EIVÄT SAA ikinä jatkaa toimintaansa ("Graceful Degradation", `SizedBox.shrink()`), jos ne vastaanottavat viallista dataa.
+* **Absolute Death:** Jos komponentti saa invalidia dataa, sen ON KUOLTAVA heti poikkeukseen (throw Exception tai palauta AsyncError).
+* **Diagnostic Node:** Ylemmän tason **`AppErrorBoundary`** (tai Riverpodin `.when(error: ...)`) nappaa kaatumisen ja tulostaa komponentin tilalle lokaalin ja selkeän "Error Boxin" (esim. punainen katkoviiva, virheikoni ja spesifi `ErrorCode`), jotta data-korruptio on pro-työkalussa välittömästi havaittavissa, eikä piiloudu näkymättömiin.
 
 ### 6.4 Mapping Exceptions to the UI (Actionable Hints)
 Backend-virheet käännetään UI:ssa lokalisoiduiksi **Actionable Hinteiksi** (esim. "Ikuinen silmukka havaittu. [Poista kytkös]"). PC-näkymässä nämä esitetään tyylikkäinä leijuvina Toast- tai Snackbar-komponentteina työtilan alakulmassa, ei koko ruutua blokkaavina modaaleina.

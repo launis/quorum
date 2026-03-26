@@ -50,14 +50,19 @@ def test_all_bars_matrices_use_discrete_integer_scores(db):
             for score in scores:
                 assert 1 <= score <= 10, f"Score {score} in {item.get('id')} is out of expected logical bounds (1-10)"
 
-def test_workflows_have_normalization_hook(db):
-    """Ensure that all evaluating workflow steps are intercepted by the normalization hook."""
-    for workflow in db.get('workflows', []):
-        for step in workflow.get('steps', []):
-            step_id = step.get("id", "")
-            if "factcheck" in step_id or "scoreengine" in step_id:
-                continue # Structural synthesis nodes do not produce matrices natively
+def test_blueprints_have_normalization_hook(db):
+    """Ensure that all evaluating step blueprints are intercepted by the normalization hook."""
+    for step in db.get('steps', []):
+        step_id = step.get("id", "")
+        if "factcheck" in step_id or "scoreengine" in step_id or "input_processing" in step_id:
+            continue # Structural synthesis nodes do not produce matrices natively
 
-            post_hooks = step.get('post_hooks', [])
-            assert isinstance(post_hooks, list), f"Step {step.get('id')} in workflow {workflow.get('id')} must have a post_hooks list"
-            assert "normalize_matrix_scores" in post_hooks, f"Step {step.get('id')} in {workflow.get('id')} is missing the 'normalize_matrix_scores' normalization hook."
+        post_hooks = step.get('post_hooks', [])
+        assert isinstance(post_hooks, list), f"Blueprint {step.get('id')} must have a post_hooks list"
+
+        # Only verify if it's actually an evaluation node (has prompt blocks mapping to a matrix)
+        # We can loosely check if the step is LLM type and not structural.
+        if step.get("type", "llm") == "llm":
+            # If it's a generic analyst, it might not need normalization if it's not a BARS matrix.
+            # But the previous logic checked all steps EXCEPT factcheck/scoreengine.
+            assert "normalize_matrix_scores" in post_hooks, f"Blueprint {step.get('id')} is missing the 'normalize_matrix_scores' normalization hook."

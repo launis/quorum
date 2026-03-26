@@ -76,8 +76,8 @@ class ErrorInterceptor extends Interceptor {
     // Handle Proxy/Gateway failures (502, 503, 504) where payload is not RFC 7807
     if (err.response != null &&
         (err.response!.statusCode == 502 ||
-         err.response!.statusCode == 503 ||
-         err.response!.statusCode == 504)) {
+            err.response!.statusCode == 503 ||
+            err.response!.statusCode == 504)) {
       handler.reject(
         DioException(
           requestOptions: err.requestOptions,

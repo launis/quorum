@@ -20,7 +20,15 @@ async def get_workflow(id: str, current_user: CurrentUserDep, studio_service: St
     """Retrieve a specific workflow definition by id securely via SSOT Service Layer."""
     return await studio_service.get_workflow(current_user, id)
 
+@router.post("/simulate", response_model=dict[str, Any])
+async def simulate_workflow(data: Workflow, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> dict[str, Any]:
+    """Dry-run and validate a workflow DAG topology before saving."""
+    return await studio_service.simulate_workflow(current_user, data)
 
+@router.post("/{id}/clone", response_model=Workflow)
+async def clone_workflow(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
+    """Deep clone a workflow block securely via SSOT Service Layer."""
+    return await studio_service.clone_workflow(current_user, id)
 
 @router.put("/{id}", response_model=Workflow)
 async def save_workflow(id: str, data: Workflow, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:

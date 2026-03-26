@@ -90,7 +90,9 @@ class GlobalErrorView extends StatelessWidget {
                 color: theme.colorScheme.onErrorContainer,
               ),
             ),
-            if (rawDetail != null && rawDetail.isNotEmpty && rawDetail != hintText) ...[
+            if (rawDetail != null &&
+                rawDetail.isNotEmpty &&
+                rawDetail != hintText) ...[
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
@@ -106,7 +108,9 @@ class GlobalErrorView extends StatelessWidget {
                   rawDetail,
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontFamily: 'monospace',
-                    color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.8),
+                    color: theme.colorScheme.onErrorContainer.withValues(
+                      alpha: 0.8,
+                    ),
                     height: 1.4,
                   ),
                 ),

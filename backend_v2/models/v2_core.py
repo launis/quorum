@@ -6,10 +6,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus
+from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus, ModelStrategy
 from backend_v2.models.state import TraceEvent
 
 logger = logging.getLogger(__name__)
@@ -426,6 +426,7 @@ class StepRule(V2CoreBase):
         description="Unique node ID in the workflow (e.g. blk_node_1)."
     )
     task_blueprint: str = Field(
+        min_length=1,
         description="ID reference to the isolated Step (e.g., 'step_f15853d2584e4096aeb60f11a3e6ea7c')"
     )
     depends_on: list[str] = Field(default_factory=list, description="IDs of steps that must complete first.")
@@ -433,20 +434,12 @@ class StepRule(V2CoreBase):
         default_factory=dict,
         description='Maps upstream results to LLM inputs. e.g. {"context": "$inputs.document"}',
     )
-    model_strategy: str | None = Field(
-        default=None,
-        description="Logical strategy profile from model registry (e.g., 'fast', 'deep')"
-    )
-    pre_hooks: list[str] = Field(
-        default_factory=list, description="Optional hooks running before step execution"
-    )
-    post_hooks: list[str] = Field(
-        default_factory=list, description="Optional hooks running after step execution"
-    )
     allowed_mcp_tools: list[str] = Field(
         default_factory=list,
         description="Workflow-level MCP tools override (e.g. ['mcp_tavily_search']). Takes priority over Step template."
     )
+    ui_pos_x: float = Field(default=0.0, description="X coordinate on the 2D DAG canvas.")
+    ui_pos_y: float = Field(default=0.0, description="Y coordinate on the 2D DAG canvas.")
 
     def extract_variable_references(self) -> list[str]:
         """Extracts dynamic variable references (e.g. $inputs.x, $steps.y) from input_mappings."""
@@ -647,12 +640,20 @@ class Workflow(V2CoreBase):
         description="List of dynamic expected inputs required by the workflow",
     )
     steps: list[StepRule] = Field(default_factory=list)
-    pre_hooks: list[str] = Field(
-        default_factory=list, description="Optional hooks running before entire workflow"
+    model_strategy: ModelStrategy | None = Field(
+        default=None,
+        description="Global cognitive strategy profile for this entire workflow (e.g., 'fast', 'deep')"
     )
-    post_hooks: list[str] = Field(
-        default_factory=list, description="Optional hooks running after entire workflow"
-    )
+
+    @field_validator("model_strategy", mode="before")
+    @classmethod
+    def validate_enum_strategy(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            try:
+                return ModelStrategy(v)
+            except ValueError:
+                raise ValueError(f"Invalid model strategy: {v}")
+        return v
 
     @model_validator(mode="before")
     @classmethod
@@ -662,6 +663,58 @@ class Workflow(V2CoreBase):
             if "slug" not in data and "id" in data:
                 data["slug"] = data["id"]
         return data
+
+    @model_validator(mode="after")
+    def validate_dag_integrity(self) -> Workflow:
+        """Enforces Directed Acyclic Graph (DAG) structural integrity."""
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        step_ids = {step.id for step in self.steps}
+        graph: dict[str, list[str]] = {step.id: [] for step in self.steps}
+
+        # 1. Orphan Reference Check
+        for step in self.steps:
+            for dep in step.depends_on:
+                if dep not in step_ids:
+                    msg = f"Step '{step.id}' depends on '{dep}', which does not exist in this workflow."
+                    logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+                    raise AppException(
+                        message=msg,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        status_code=422
+                    )
+                graph[step.id].append(dep)
+
+        # 2. Cycle Detection (DFS)
+        visited = set()
+        rec_stack = set()
+
+        def is_cyclic(node: str) -> bool:
+            visited.add(node)
+            rec_stack.add(node)
+
+            for neighbor in graph[node]:
+                if neighbor not in visited:
+                    if is_cyclic(neighbor):
+                        return True
+                elif neighbor in rec_stack:
+                    return True
+
+            rec_stack.remove(node)
+            return False
+
+        for node in step_ids:
+            if node not in visited:
+                if is_cyclic(node):
+                    msg = f"Circular dependency detected involving step '{node}'. Workflows must be strict Directed Acyclic Graphs (DAG)."
+                    logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+                    raise AppException(
+                        message=msg,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        status_code=422
+                    )
+
+        return self
 
 
 class FrozenContext(V2CoreBase):

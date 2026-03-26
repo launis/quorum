@@ -2299,4 +2299,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stepBuilderToolHint => 'Tool slug (e.g. mcp_tavily_search)';
+
+  @override
+  String get studioDashboardGatewaysTitle => 'MCP Gateways';
+
+  @override
+  String get studioDashboardGatewaysDesc =>
+      'Manage external tools and AI fact-checking integrations.';
+
+  @override
+  String get mcpGatewaysTitle => 'MCP Gateways';
+
+  @override
+  String get mcpGatewaysDesc =>
+      'Configure system-level MCP tool gateways for AI execution.';
+
+  @override
+  String get mcpToolSettings => 'MCP Tool Settings';
+
+  @override
+  String get mcpToolIdLabel => 'Tool ID';
+
+  @override
+  String get mcpToolNameLabel => 'Tool Name';
+
+  @override
+  String get mcpToolDescLabel => 'Description';
+
+  @override
+  String get mcpToolInputSchemaLabel => 'Input Schema (JSON)';
+
+  @override
+  String get mcpAddToolBtn => 'Add Tool';
+
+  @override
+  String get mcpEditToolBtn => 'Edit Tool';
+
+  @override
+  String get noMcpGatewaysDefined => 'No MCP gateways defined.';
 }

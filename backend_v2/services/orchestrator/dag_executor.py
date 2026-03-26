@@ -80,7 +80,8 @@ class NodeExecutor:
         projector: StateProjector,
         expected_inputs: list[Any] | None = None,
         frozen_ctx: FrozenContext | None = None,
-        trace: list[TraceEvent] | None = None
+        trace: list[TraceEvent] | None = None,
+        model_strategy: Any | None = None
     ) -> list[TraceEvent]:
         try:
             blueprint_id = getattr(step, "task_blueprint", None)
@@ -107,7 +108,8 @@ class NodeExecutor:
                 execution_id=execution_id,
                 workflow_id=workflow_id,
                 metadata=metadata,
-                expected_inputs=expected_inputs
+                expected_inputs=expected_inputs,
+                model_strategy=model_strategy
             )
 
             strategy_impl: NodeStrategy
@@ -269,7 +271,8 @@ class DAGExecutor:
                         projector=projector,
                         expected_inputs=workflow.expected_inputs,
                         frozen_ctx=exec_record.frozen_context,
-                        trace=exec_record.execution_trace
+                        trace=exec_record.execution_trace,
+                        model_strategy=workflow.model_strategy
                     )
 
                     for e in events:

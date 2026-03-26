@@ -62,7 +62,8 @@ void main() {
   });
 }
 
-class MockModelRegistryController extends AsyncNotifier<List<Map<String, dynamic>>>
+class MockModelRegistryController
+    extends AsyncNotifier<List<Map<String, dynamic>>>
     implements ModelRegistryController {
   @override
   Future<List<Map<String, dynamic>>> build() async {
@@ -76,7 +77,7 @@ class MockModelRegistryController extends AsyncNotifier<List<Map<String, dynamic
             'is_active': true,
           },
         },
-      }
+      },
     ];
   }
 
@@ -84,7 +85,10 @@ class MockModelRegistryController extends AsyncNotifier<List<Map<String, dynamic
   Future<void> refresh() async {}
 
   @override
-  Future<Map<String, dynamic>> saveConfig(String id, Map<String, dynamic> config) async {
+  Future<Map<String, dynamic>> saveConfig(
+    String id,
+    Map<String, dynamic> config,
+  ) async {
     return config;
   }
 

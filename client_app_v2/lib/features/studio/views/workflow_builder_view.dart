@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
@@ -11,6 +10,8 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/features/studio/utils/workflow_cloner.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/features/studio/views/widgets/dag_canvas_view.dart';
+import 'package:client_app/features/studio/views/widgets/inspector_pane.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 
@@ -65,6 +66,7 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
   late Map<String, dynamic> _editableWorkflow = {};
   late TextEditingController _idController;
   late TextEditingController _slugController;
+  String? _selectedNodeId;
 
   @override
   void initState() {
@@ -259,7 +261,13 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final stepsAsync = ref.watch(stepsControllerProvider);
-    final stepsList = stepsAsync.value ?? [];
+
+    // Absolute Fail-Fast: Do not use `?? []` to mask data loading or corruption.
+    if (stepsAsync.hasError) throw stepsAsync.error!;
+    if (!stepsAsync.hasValue) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final stepsList = stepsAsync.value!;
 
     final saveMutation = useMutation<Map<String, dynamic>>(
       onSuccess: (_) {
@@ -277,6 +285,34 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${l10n.errorUnknown}: $errorMsg'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+    );
+
+    final validateMutation = useMutation<Map<String, dynamic>>(
+      onSuccess: (data) {
+        if (mounted) {
+          final isValid = data['valid'] == true;
+          final errors = SafeCast.safeList(data['errors']);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isValid ? 'DAG is Valid!' : 'DAG Errors: ${errors.join(', ')}',
+              ),
+              backgroundColor: isValid ? Colors.green : Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      },
+      onError: (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Simulation Error: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -311,12 +347,20 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
           tooltip: 'Back to Studio',
           onPressed: () => context.go('/admin'),
         ),
-        title: Text(
-          (SafeCast.safeMap(widget.workflow['name'])['translations']
-                  as Map?)?['fi'] ??
-              (SafeCast.safeMap(widget.workflow['name'])['translations']
-                  as Map?)?['en'] ??
-              l10n.workflowEditTitle,
+        title: Builder(
+          builder: (context) {
+            final nameObj = SafeCast.safeMap(widget.workflow['name']);
+            final translations = SafeCast.safeMap(nameObj['translations']);
+            final titleStr = translations['fi'] ?? translations['en'];
+
+            // New workflows might legitimately not have a name yet, but if it has an ID, the name MUST exist.
+            if (titleStr == null && widget.workflow['id'] != null) {
+              throw AppException.validation(
+                'Workflow name is missing for existing workflow.',
+              );
+            }
+            return Text(titleStr?.toString() ?? l10n.workflowEditTitle);
+          },
         ),
         actions: [
           if (widget.workflow['id']?.toString().isNotEmpty == true) ...[
@@ -331,6 +375,27 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
               tooltip: 'Delete',
             ),
           ],
+          IconButton(
+            onPressed:
+                validateMutation.isLoading
+                    ? null
+                    : () {
+                      validateMutation.mutate(() async {
+                        return await ref
+                            .read(workflowsControllerProvider.notifier)
+                            .simulateWorkflow(_editableWorkflow);
+                      });
+                    },
+            icon:
+                validateMutation.isLoading
+                    ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : const Icon(Icons.bug_report, color: Colors.green),
+            tooltip: 'Validate DAG',
+          ),
           MutationButton<Map<String, dynamic>>(
             mutation: saveMutation,
             label: 'Save',
@@ -405,6 +470,42 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
                           _editableWorkflow['name'],
                         ),
                         onChanged: (val) => _editableWorkflow['name'] = val,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        initialValue: SafeCast.safeString(
+                          _editableWorkflow['model_strategy'],
+                          'fast',
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Model Strategy (Cost/Cognition Profile)',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'fast',
+                            child: Text('Fast (o3-mini / GPT-4o-mini)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'deep',
+                            child: Text('Deep (GPT-4o / Claude 3.5)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'strict',
+                            child: Text('Strict (O1)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'precise',
+                            child: Text('Precise (O3-mini-high)'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(
+                              () => _editableWorkflow['model_strategy'] = val,
+                            );
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -542,37 +643,71 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
                 );
               }),
 
-              const SizedBox(height: 24),
-
-              // DAG Steps
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.workflowStepsTitle,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _addStep,
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.workflowAddStepBtn),
-                  ),
-                ],
-              ),
+              // DAG Steps Canvas (V2 V3 Architecture)
               const SizedBox(height: 16),
-              ...SafeCast.safeList(
-                _editableWorkflow['steps'],
-              ).asMap().entries.map((entry) {
-                return _buildStepCard(
-                  entry.key,
-                  SafeCast.safeMap(entry.value),
-                  l10n,
-                  stepsList,
-                );
-              }),
+              Container(
+                height: 600,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: DagCanvasView(
+                        workflow: _editableWorkflow,
+                        onNodeSelected:
+                            (id) => setState(() => _selectedNodeId = id),
+                        onWorkflowUpdated:
+                            (updated) =>
+                                setState(() => _editableWorkflow = updated),
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    InspectorPane(
+                      selectedStepId: _selectedNodeId,
+                      workflow: _editableWorkflow,
+                      availableBlueprints: stepsList,
+                      onStepUpdated: (id, mutatedStep) {
+                        setState(() {
+                          final steps = SafeCast.safeList(
+                            _editableWorkflow['steps'],
+                          );
+                          final i = steps.indexWhere((s) {
+                            final sMap = SafeCast.safeMap(s);
+                            final cId = SafeCast.safeString(
+                              sMap['id'],
+                              sMap['step_id'],
+                            );
+                            return cId == id;
+                          });
+                          if (i >= 0) steps[i] = mutatedStep;
+                          _editableWorkflow['steps'] = steps;
+                        });
+                      },
+                      onAddStep: _addStep,
+                      onDeleteStep: (id) {
+                        setState(() {
+                          final steps = SafeCast.safeList(
+                            _editableWorkflow['steps'],
+                          );
+                          steps.removeWhere((s) {
+                            final sMap = SafeCast.safeMap(s);
+                            final cId = SafeCast.safeString(
+                              sMap['id'],
+                              sMap['step_id'],
+                            );
+                            return cId == id;
+                          });
+                          _editableWorkflow['steps'] = steps;
+                          _selectedNodeId = null;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -599,372 +734,6 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
           // Trigger rebuild if necessary deep within
         });
       },
-    );
-  }
-
-  Widget _buildStepCard(
-    int index,
-    Map<String, dynamic> stepDef,
-    AppLocalizations l10n,
-    List<Map<String, dynamic>> stepsList,
-  ) {
-    final rawId = stepDef['id'];
-    final rawStepId = stepDef['step_id'];
-    final stepIdController = TextEditingController(
-      text: SafeCast.safeString(rawId != null ? rawId : rawStepId),
-    );
-    final dependsOn =
-        SafeCast.safeList(
-          stepDef['depends_on'],
-        ).map((e) => e.toString()).toList();
-    final mappings = SafeCast.safeMap(stepDef['input_mappings']);
-
-    final previousSteps =
-        SafeCast.safeList(_editableWorkflow['steps'])
-            .take(index)
-            .map((s) {
-              final sm = SafeCast.safeMap(s);
-              final id = sm['id'];
-              return SafeCast.safeString(id != null ? id : sm['step_id']);
-            })
-            .where((s) => s.isNotEmpty)
-            .toList();
-
-    final availableSources = <String>[
-      '\$inputs',
-      ...SafeCast.safeList(_editableWorkflow['expected_inputs'])
-          .map((e) {
-            final key = SafeCast.safeString(SafeCast.safeMap(e)['input_key']);
-            return key.isNotEmpty ? '\$inputs.$key' : '';
-          })
-          .where((s) => s.isNotEmpty),
-      ...previousSteps.map((s) => '\$steps.$s.outputs'),
-    ];
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Step ${index + 1}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () {
-                    setState(() {
-                      SafeCast.safeList(
-                        _editableWorkflow['steps'],
-                      ).removeAt(index);
-                    });
-                  },
-                ),
-              ],
-            ),
-            const Divider(),
-
-            Row(
-              children: [
-                Expanded(
-                  child: Focus(
-                    onFocusChange: (f) {
-                      if (!f) stepDef['id'] = stepIdController.text;
-                    },
-                    child: TextField(
-                      controller: stepIdController,
-                      decoration: InputDecoration(
-                        labelText: l10n.workflowStepIdLabel,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Step (Logical Block)',
-                    ),
-                    initialValue:
-                        stepsList.any(
-                              (bp) => bp['slug'] == stepDef['task_blueprint'],
-                            )
-                            ? stepDef['task_blueprint'] as String?
-                            : null,
-                    items:
-                        stepsList.map((bp) {
-                          final slug = SafeCast.safeString(bp['slug']);
-                          final nameMap = SafeCast.safeMap(bp['name']);
-                          final enName = SafeCast.safeString(nameMap['en']);
-                          final label = enName.isNotEmpty ? enName : slug;
-                          return DropdownMenuItem(
-                            value: slug,
-                            child: Text(label),
-                          );
-                        }).toList(),
-                    onChanged:
-                        (val) =>
-                            setState(() => stepDef['task_blueprint'] = val),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-            Text(
-              l10n.workflowDependsOnLabel,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Wrap(
-              spacing: 8,
-              children:
-                  previousSteps.map((prevStepId) {
-                    final isSelected = dependsOn.contains(prevStepId);
-                    return FilterChip(
-                      label: Text(prevStepId),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            dependsOn.add(prevStepId);
-                          } else {
-                            dependsOn.remove(prevStepId);
-                          }
-                          stepDef['depends_on'] = dependsOn;
-                        });
-                      },
-                    );
-                  }).toList(),
-            ),
-            if (previousSteps.isEmpty)
-              Text(
-                l10n.workflowNoPrevSteps,
-                style: const TextStyle(
-                  fontStyle: FontStyle.italic,
-                  color: Colors.grey,
-                ),
-              ),
-
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Text(
-                  l10n.workflowInputMappingsLabel,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.info_outline, size: 20),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder:
-                          (ctx) => AlertDialog(
-                            title: Text(
-                              // Using hardcoded fallback just in case, but prefer generated l10n
-                              (l10n as dynamic).workflowMappingHelperTitle ??
-                                  'How does Semantic Routing work?',
-                            ),
-                            content: Text(
-                              (l10n as dynamic).workflowMappingHelperDesc ??
-                                  '1. Left side (Agent Input Key) is the XML tag name the AI will use to read the data. Just type "inputs" (snake_case).\n2. Right side is the Data Source. "\$inputs" gets user data, "\$steps.step_x.outputs" connects previous agents.\nTo pass hardcoded text, type without the \$ sign.',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(),
-                                child: Text(l10n.close),
-                              ),
-                            ],
-                          ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: [
-                  ...mappings.entries.map((m) {
-                    final targetCtrl = TextEditingController(text: m.key);
-                    final sourceCtrl = TextEditingController(
-                      text: m.value.toString(),
-                    );
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Focus(
-                              onFocusChange: (f) {
-                                if (!f &&
-                                    targetCtrl.text.isNotEmpty &&
-                                    sourceCtrl.text.isNotEmpty) {
-                                  mappings.remove(m.key);
-                                  mappings[targetCtrl.text] = sourceCtrl.text;
-                                  stepDef['input_mappings'] = mappings;
-                                }
-                              },
-                              child: TextField(
-                                controller: targetCtrl,
-                                decoration: InputDecoration(
-                                  labelText: l10n.workflowAgentInputKey,
-                                  isDense: true,
-                                ),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp(r'[a-z0-9_]'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Icon(Icons.arrow_back),
-                          ),
-                          Expanded(
-                            child: Autocomplete<String>(
-                              initialValue: TextEditingValue(
-                                text: sourceCtrl.text,
-                              ),
-                              optionsBuilder: (textEditingValue) {
-                                if (textEditingValue.text.isEmpty) {
-                                  return availableSources;
-                                }
-                                return availableSources.where(
-                                  (opt) => opt.toLowerCase().contains(
-                                    textEditingValue.text.toLowerCase(),
-                                  ),
-                                );
-                              },
-                              onSelected: (selection) {
-                                setState(() {
-                                  sourceCtrl.text = selection;
-                                  mappings[targetCtrl.text] = selection;
-                                  stepDef['input_mappings'] = mappings;
-
-                                  // Dependency Guard Logic
-                                  if (selection.startsWith('\$steps.')) {
-                                    final parts = selection.split('.');
-                                    if (parts.length > 1) {
-                                      final stepId = parts[1];
-                                      if (!dependsOn.contains(stepId) &&
-                                          previousSteps.contains(stepId)) {
-                                        dependsOn.add(stepId);
-                                        stepDef['depends_on'] = dependsOn;
-                                      }
-                                    }
-                                  }
-                                });
-                              },
-                              fieldViewBuilder: (
-                                context,
-                                textEditingController,
-                                focusNode,
-                                onFieldSubmitted,
-                              ) {
-                                return Focus(
-                                  onFocusChange: (f) {
-                                    if (!f &&
-                                        targetCtrl.text.isNotEmpty &&
-                                        textEditingController.text.isNotEmpty) {
-                                      mappings[targetCtrl.text] =
-                                          textEditingController.text;
-                                      stepDef['input_mappings'] = mappings;
-
-                                      // Dependency Guard Logic
-                                      final sel = textEditingController.text;
-                                      if (sel.startsWith('\$steps.')) {
-                                        final parts = sel.split('.');
-                                        if (parts.length > 1) {
-                                          final stepId = parts[1];
-                                          if (!dependsOn.contains(stepId) &&
-                                              previousSteps.contains(stepId)) {
-                                            setState(() {
-                                              dependsOn.add(stepId);
-                                              stepDef['depends_on'] = dependsOn;
-                                            });
-                                          }
-                                        }
-                                      }
-                                    }
-                                  },
-                                  child: TextField(
-                                    controller: textEditingController,
-                                    focusNode: focusNode,
-                                    decoration: InputDecoration(
-                                      labelText: l10n.workflowSourceVarLabel,
-                                      isDense: true,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.remove_circle,
-                              color: Colors.red,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                mappings.remove(m.key);
-                                stepDef['input_mappings'] = mappings;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        mappings['new_input_key_${mappings.length}'] =
-                            '\$inputs.';
-                        stepDef['input_mappings'] = mappings;
-                      });
-                    },
-                    icon: const Icon(Icons.add_link),
-                    label: Text(l10n.workflowAddMappingBtn),
-                  ),
-                ],
-              ),
-            ),
-
-            // MCP Tool — single toggle per StepRule
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: Text(l10n.stepBuilderMCPToolsTitle),
-              subtitle: Text(l10n.stepBuilderToolHint),
-              secondary: Icon(Icons.travel_explore, color: Colors.teal.shade700),
-              value: SafeCast.safeList(stepDef['allowed_mcp_tools']).isNotEmpty,
-              onChanged: (enabled) {
-                setState(() {
-                  if (enabled) {
-                    stepDef['allowed_mcp_tools'] = ['mcp_tavily_search'];
-                  } else {
-                    stepDef['allowed_mcp_tools'] = <String>[];
-                  }
-                });
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

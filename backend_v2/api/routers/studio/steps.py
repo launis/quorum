@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
 from backend_v2.models.v2_core import Step
@@ -9,6 +10,19 @@ from backend_v2.models.v2_core import Step
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/steps", tags=["Admin Studio V2 - Steps"])
+
+class StepSimulationRequest(BaseModel):
+    step: Step
+    mock_inputs: dict[str, Any] = {}
+
+@router.post("/simulate", response_model=dict[str, Any])
+async def simulate_step(
+    data: StepSimulationRequest,
+    current_user: CurrentUserDep,
+    studio_service: StudioServiceDep,
+) -> dict[str, Any]:
+    """Dry-run and validate a Step (TaskBlueprint) by compiling its prompt blocks."""
+    return await studio_service.simulate_step(current_user, data.step, data.mock_inputs)
 
 @router.get("/", response_model=list[Step])
 async def get_steps(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> list[Step]:

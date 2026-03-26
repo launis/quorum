@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/views/output_profile_list_view.dart';
-import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/features/studio/views/mcp_gateways_master_view.dart';
+import 'package:client_app/features/studio/views/workflows_master_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
+import 'package:client_app/core/error/app_exception.dart';
 
 /// **Studio Dashboard View**
 ///
@@ -28,7 +31,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
   }
 
   @override
@@ -63,20 +66,26 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         ],
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           tabs: [
             Tab(
               icon: const Icon(Icons.schema),
               text: l10n.studioDashboardWorkflowsTitle,
             ),
+            const Tab(icon: Icon(Icons.chat), text: 'Prompt Blocks'),
             Tab(
               icon: const Icon(Icons.dataset),
               text: l10n.studioDashboardMatricesTitle,
             ),
-            Tab(icon: const Icon(Icons.extension), text: 'Steps'),
-            Tab(icon: const Icon(Icons.print), text: 'Profiles'),
+            const Tab(icon: Icon(Icons.extension), text: 'Steps'),
+            const Tab(icon: Icon(Icons.print), text: 'Profiles'),
             Tab(
               icon: const Icon(Icons.settings),
               text: l10n.modelRegistryTitle,
+            ),
+            Tab(
+              icon: const Icon(Icons.hub),
+              text: l10n.studioDashboardGatewaysTitle,
             ),
           ],
         ),
@@ -85,19 +94,25 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         controller: _tabController,
         children: [
           // TAB 1: Workflows
-          _buildWorkflowsTab(context, ref, l10n),
+          const WorkflowsMasterView(),
 
-          // TAB 2: Prompt Blocks
-          _buildPromptBlocksTab(context, ref, l10n),
+          // TAB 2: Regular Prompt Blocks
+          _buildRegularBlocksTab(context, ref, l10n),
 
-          // TAB 3: Steps
+          // TAB 3: Matrices (BARS)
+          _buildMatricesTab(context, ref, l10n),
+
+          // TAB 4: Steps
           _buildStepsTab(context, ref, l10n),
 
-          // TAB 4: Profiles (Tulostusprofiilit)
+          // TAB 5: Profiles (Tulostusprofiilit)
           _buildProfilesTab(context, ref, l10n),
 
-          // TAB 5: Model Registry
+          // TAB 6: Model Registry
           _buildModelRegistryTab(context, ref, l10n),
+
+          // TAB 7: MCP Gateways
+          const McpGatewaysMasterView(),
         ],
       ),
     );
@@ -111,82 +126,85 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     return const OutputProfileListView();
   }
 
-  Widget _buildWorkflowsTab(
+  Widget _buildRegularBlocksTab(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
   ) {
-    final workflowsState = ref.watch(workflowsControllerProvider);
+    final promptBlocksState = ref.watch(promptBlocksControllerProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(context, l10n.studioDashboardWorkflowsTitle, () {
-            const WorkflowNewRoute().go(context);
+          _buildSectionHeader(context, 'Prompt Blocks (Standard)', () {
+            const PromptBlockNewRoute().go(context);
           }),
           const SizedBox(height: 16),
-          workflowsState.when(
-            data: (workflows) {
-              if (workflows.isEmpty) return const Text('No workflows defined.');
+          promptBlocksState.when(
+            data: (allBlocks) {
+              final regularBlocks =
+                  allBlocks.where((b) => b['category_id'] != 'matrix').toList();
+              if (regularBlocks.isEmpty)
+                return const Text('No standard prompt blocks defined.');
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: workflows.length,
+                itemCount: regularBlocks.length,
                 itemBuilder: (context, index) {
-                  final workflow = workflows[index];
-                  final stepCount = (workflow['steps'] as List?)?.length ?? 0;
-                  final inputCount =
-                      (workflow['expected_inputs'] as List?)?.length ?? 0;
+                  try {
+                    final block = regularBlocks[index];
+                    final blockId =
+                        block['id']?.toString() ??
+                        (throw AppException.validation(
+                          'PromptBlock ID is missing.',
+                        ));
+                    final slugStr =
+                        block['slug']?.toString() ??
+                        (throw AppException.validation(
+                          'PromptBlock slug is missing.',
+                        ));
 
-                  return Card(
-                    child: ListTile(
-                      title: Text(
-                        (SafeCast.safeMap(workflow['name'])['translations']
-                                as Map?)?['fi'] ??
-                            (SafeCast.safeMap(workflow['name'])['translations']
-                                as Map?)?['en'] ??
-                            workflow['slug']?.toString() ??
-                            workflow['id']?.toString() ??
-                            'Unnamed',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                    return Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.text_snippet),
+                        title: Text(blockId),
+                        subtitle: Text('Slug: $slugStr'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          PromptBlockEditRoute(
+                            id: blockId,
+                            slug: slugStr,
+                            $extra: block,
+                          ).go(context);
+                        },
                       ),
-                      subtitle: Text(
-                        l10n.workflowSubtitle(stepCount, inputCount),
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        WorkflowEditRoute(
-                          id: workflow['id']?.toString() ?? 'new',
-                          slug: workflow['slug']?.toString() ?? 'unknown-slug',
-                          $extra: workflow,
-                        ).go(context);
-                      },
-                    ),
-                  );
+                    );
+                  } catch (e) {
+                    return ErrorView(error: e, compact: true);
+                  }
                 },
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) {
-              return ErrorView(
-                error: e,
-                compact: true,
-                onRetry:
-                    () =>
-                        ref
-                            .read(workflowsControllerProvider.notifier)
-                            .refresh(),
-              );
-            },
+            error:
+                (e, _) => ErrorView(
+                  error: e,
+                  compact: true,
+                  onRetry:
+                      () =>
+                          ref
+                              .read(promptBlocksControllerProvider.notifier)
+                              .refresh(),
+                ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPromptBlocksTab(
+  Widget _buildMatricesTab(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
@@ -199,50 +217,69 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildSectionHeader(context, l10n.studioDashboardMatricesTitle, () {
+            // Future UI feature: Pre-fill category_id = 'matrix'
             const PromptBlockNewRoute().go(context);
           }),
           const SizedBox(height: 16),
           promptBlocksState.when(
-            data: (promptBlocks) {
-              if (promptBlocks.isEmpty)
-                return const Text('No prompt blocks defined.');
+            data: (allBlocks) {
+              final matrices =
+                  allBlocks.where((b) => b['category_id'] == 'matrix').toList();
+              if (matrices.isEmpty) return const Text('No matrices defined.');
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: promptBlocks.length,
+                itemCount: matrices.length,
                 itemBuilder: (context, index) {
-                  final matrix = promptBlocks[index];
-                  final ruleCount = (matrix['criteria'] as List?)?.length ?? 0;
+                  try {
+                    final matrix = matrices[index];
+                    final matrixId =
+                        matrix['id']?.toString() ??
+                        (throw AppException.validation(
+                          'Matrix data is corrupted: missing ID.',
+                        ));
+                    final slugStr =
+                        matrix['slug']?.toString() ??
+                        (throw AppException.validation(
+                          'Matrix slug is missing.',
+                        ));
 
-                  return Card(
-                    child: ListTile(
-                      title: Text(matrix['id']?.toString() ?? 'Unnamed'),
-                      subtitle: Text(l10n.matrixSubtitle(ruleCount)),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        PromptBlockEditRoute(
-                          id: matrix['id']?.toString() ?? 'new',
-                          slug: matrix['slug']?.toString() ?? 'unknown-slug',
-                          $extra: matrix,
-                        ).go(context);
-                      },
-                    ),
-                  );
+                    // NO HARDCODING MANDATE: Read 'scales', default to empty if null.
+                    final scalesList = matrix['scales'] as List?;
+                    final ruleCount = scalesList?.length ?? 0;
+
+                    return Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.grid_on),
+                        title: Text(matrixId),
+                        subtitle: Text(l10n.matrixSubtitle(ruleCount)),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          PromptBlockEditRoute(
+                            id: matrixId,
+                            slug: slugStr,
+                            $extra: matrix,
+                          ).go(context);
+                        },
+                      ),
+                    );
+                  } catch (e) {
+                    return ErrorView(error: e, compact: true);
+                  }
                 },
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) {
-              return ErrorView(
-                error: e,
-                compact: true,
-                onRetry:
-                    () =>
-                        ref
-                            .read(promptBlocksControllerProvider.notifier)
-                            .refresh(),
-              );
-            },
+            error:
+                (e, _) => ErrorView(
+                  error: e,
+                  compact: true,
+                  onRetry:
+                      () =>
+                          ref
+                              .read(promptBlocksControllerProvider.notifier)
+                              .refresh(),
+                ),
           ),
         ],
       ),
@@ -274,22 +311,44 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: blueprints.length,
                 itemBuilder: (context, index) {
-                  final blueprint = blueprints[index];
-                  final blockCount =
-                      (blueprint['prompt_blocks'] as List?)?.length ?? 0;
-                  final hookCount =
-                      (blueprint['pre_hooks'] as List?)?.length ?? 0;
+                  try {
+                    final blueprint = blueprints[index];
+                    final blueprintId = blueprint['id']?.toString();
+                    if (blueprintId == null) {
+                      throw AppException.validation(
+                        'Blueprint step is corrupted: missing ID.',
+                      );
+                    }
+                    final blocks = blueprint['prompt_blocks'] as List?;
+                    if (blocks == null) {
+                      throw AppException.validation(
+                        'Blueprint prompt_blocks is missing for ID: $blueprintId',
+                      );
+                    }
+                    final hooks = blueprint['pre_hooks'] as List?;
+                    if (hooks == null) {
+                      throw AppException.validation(
+                        'Blueprint pre_hooks is missing for ID: $blueprintId',
+                      );
+                    }
+                    final blockCount = blocks.length;
+                    final hookCount = hooks.length;
 
-                  return Card(
-                    child: ListTile(
-                      title: Text(blueprint['id']?.toString() ?? 'Unnamed'),
-                      subtitle: Text('Blocks: $blockCount | Hooks: $hookCount'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        StepEditRoute($extra: blueprint).go(context);
-                      },
-                    ),
-                  );
+                    return Card(
+                      child: ListTile(
+                        title: Text(blueprintId),
+                        subtitle: Text(
+                          'Blocks: $blockCount | Hooks: $hookCount',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          StepEditRoute($extra: blueprint).go(context);
+                        },
+                      ),
+                    );
+                  } catch (e) {
+                    return ErrorView(error: e, compact: true);
+                  }
                 },
               );
             },
@@ -326,28 +385,45 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           const SizedBox(height: 16),
           registryState.when(
             data: (configs) {
-              if (configs.isEmpty) return const Text('No System Configs defined.');
+              if (configs.isEmpty)
+                return const Text('No System Configs defined.');
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: configs.length,
                 itemBuilder: (context, index) {
-                  final config = configs[index];
-                  final modelCount = (config['models'] as Map?)?.length ?? 0;
+                  try {
+                    final config = configs[index];
+                    final configId = config['id']?.toString();
+                    if (configId == null) {
+                      throw AppException.validation(
+                        'Model Registry config is missing ID.',
+                      );
+                    }
+                    final modelsMap = config['models'] as Map?;
+                    if (modelsMap == null) {
+                      throw AppException.validation(
+                        'Model Registry models object is missing for ID: $configId',
+                      );
+                    }
+                    final modelCount = modelsMap.length;
 
-                  return Card(
-                    child: ListTile(
-                      title: Text(config['id']?.toString() ?? 'Unnamed Config'),
-                      subtitle: Text('Configured Models: $modelCount'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        ModelRegistryEditRoute(
-                          id: config['id']?.toString() ?? 'new',
-                          $extra: config,
-                        ).go(context);
-                      },
-                    ),
-                  );
+                    return Card(
+                      child: ListTile(
+                        title: Text(configId),
+                        subtitle: Text('Configured Models: $modelCount'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          ModelRegistryEditRoute(
+                            id: configId,
+                            $extra: config,
+                          ).go(context);
+                        },
+                      ),
+                    );
+                  } catch (e) {
+                    return ErrorView(error: e, compact: true);
+                  }
                 },
               );
             },
@@ -357,7 +433,10 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 error: e,
                 compact: true,
                 onRetry:
-                    () => ref.read(modelRegistryControllerProvider.notifier).refresh(),
+                    () =>
+                        ref
+                            .read(modelRegistryControllerProvider.notifier)
+                            .refresh(),
               );
             },
           ),

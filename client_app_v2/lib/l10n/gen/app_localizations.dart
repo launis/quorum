@@ -4273,6 +4273,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tool slug (e.g. mcp_tavily_search)'**
   String get stepBuilderToolHint;
+
+  /// No description provided for @studioDashboardGatewaysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'MCP Gateways'**
+  String get studioDashboardGatewaysTitle;
+
+  /// No description provided for @studioDashboardGatewaysDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage external tools and AI fact-checking integrations.'**
+  String get studioDashboardGatewaysDesc;
+
+  /// No description provided for @mcpGatewaysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'MCP Gateways'**
+  String get mcpGatewaysTitle;
+
+  /// No description provided for @mcpGatewaysDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure system-level MCP tool gateways for AI execution.'**
+  String get mcpGatewaysDesc;
+
+  /// No description provided for @mcpToolSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'MCP Tool Settings'**
+  String get mcpToolSettings;
+
+  /// No description provided for @mcpToolIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool ID'**
+  String get mcpToolIdLabel;
+
+  /// No description provided for @mcpToolNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool Name'**
+  String get mcpToolNameLabel;
+
+  /// No description provided for @mcpToolDescLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get mcpToolDescLabel;
+
+  /// No description provided for @mcpToolInputSchemaLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Input Schema (JSON)'**
+  String get mcpToolInputSchemaLabel;
+
+  /// No description provided for @mcpAddToolBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Tool'**
+  String get mcpAddToolBtn;
+
+  /// No description provided for @mcpEditToolBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Tool'**
+  String get mcpEditToolBtn;
+
+  /// No description provided for @noMcpGatewaysDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'No MCP gateways defined.'**
+  String get noMcpGatewaysDefined;
 }
 
 class _AppLocalizationsDelegate

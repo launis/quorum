@@ -120,7 +120,10 @@ class LoggerService {
         'severity': 'error',
       };
       // Added leading slash since Env.apiUrl doesn't guarantee a trailing slash.
-      await _telemetryDio.post('/api/v2/system/telemetry/client-error', data: payload);
+      await _telemetryDio.post(
+        '/api/v2/system/telemetry/client-error',
+        data: payload,
+      );
     } catch (e) {
       // Silently fail telemetry to prevent infinite error loops
       debugPrint('Telemetry sync failed: $e');

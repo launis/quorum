@@ -262,6 +262,19 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
       path: 'model-registry/edit/:id',
       factory: $ModelRegistryEditRoute._fromState,
     ),
+    GoRouteData.$route(
+      path: 'mcp-gateway/new',
+      factory: $McpGatewayNewRoute._fromState,
+    ),
+    GoRouteData.$route(
+      path: 'mcp-gateway/edit/:id',
+      factory: $McpGatewayEditRoute._fromState,
+    ),
+    GoRouteData.$route(path: 'matrix/new', factory: $MatrixNewRoute._fromState),
+    GoRouteData.$route(
+      path: 'matrix/edit/:id',
+      factory: $MatrixEditRoute._fromState,
+    ),
   ],
 );
 
@@ -548,6 +561,107 @@ mixin $ModelRegistryEditRoute on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/admin/model-registry/edit/${Uri.encodeComponent(_self.id)}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+
+  @override
+  Future<T?> push<T>(BuildContext context) =>
+      context.push<T>(location, extra: _self.$extra);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location, extra: _self.$extra);
+
+  @override
+  void replace(BuildContext context) =>
+      context.replace(location, extra: _self.$extra);
+}
+
+mixin $McpGatewayNewRoute on GoRouteData {
+  static McpGatewayNewRoute _fromState(GoRouterState state) =>
+      const McpGatewayNewRoute();
+
+  @override
+  String get location => GoRouteData.$location('/admin/mcp-gateway/new');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $McpGatewayEditRoute on GoRouteData {
+  static McpGatewayEditRoute _fromState(GoRouterState state) =>
+      McpGatewayEditRoute(
+        id: state.pathParameters['id']!,
+        $extra: state.extra as Map<String, dynamic>?,
+      );
+
+  McpGatewayEditRoute get _self => this as McpGatewayEditRoute;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/admin/mcp-gateway/edit/${Uri.encodeComponent(_self.id)}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+
+  @override
+  Future<T?> push<T>(BuildContext context) =>
+      context.push<T>(location, extra: _self.$extra);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location, extra: _self.$extra);
+
+  @override
+  void replace(BuildContext context) =>
+      context.replace(location, extra: _self.$extra);
+}
+
+mixin $MatrixNewRoute on GoRouteData {
+  static MatrixNewRoute _fromState(GoRouterState state) =>
+      const MatrixNewRoute();
+
+  @override
+  String get location => GoRouteData.$location('/admin/matrix/new');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $MatrixEditRoute on GoRouteData {
+  static MatrixEditRoute _fromState(GoRouterState state) => MatrixEditRoute(
+    id: state.pathParameters['id']!,
+    $extra: state.extra as Map<String, dynamic>?,
+  );
+
+  MatrixEditRoute get _self => this as MatrixEditRoute;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/admin/matrix/edit/${Uri.encodeComponent(_self.id)}',
   );
 
   @override

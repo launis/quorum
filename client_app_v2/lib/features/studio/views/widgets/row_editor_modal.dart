@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/core/error/app_exception.dart';
 
 class RowEditorModal extends StatefulWidget {
   final Map<String, dynamic> initialRow;
@@ -84,11 +85,7 @@ class _RowEditorModalState extends State<RowEditorModal> {
                 I18nTextField(
                   label: 'Item Content (UI/PDF)',
                   initialData: SafeCast.safeMap(
-                    _editableRow['label'] ??
-                        {
-                          'default_locale': 'en',
-                          'translations': <String, dynamic>{'en': ''},
-                        },
+                    _editableRow['label'] ?? (throw AppException.validation('Matrix row data corrupted: missing localized label.'))
                   ),
                   onChanged: (val) {
                     _editableRow['label'] = val;

@@ -121,7 +121,7 @@ class LLMNodeStrategy(NodeStrategy):
         ]
 
         # 4. Invoke LLM Model (Tool Loop vs Direct Output)
-        strategy_name = step.model_strategy or "fast"
+        strategy_name = context.model_strategy or "fast"
         bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
         effective_mcp_tools = step.allowed_mcp_tools or step_obj.allowed_mcp_tools
 

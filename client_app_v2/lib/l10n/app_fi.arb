@@ -762,5 +762,17 @@
   "xaiEvidenceDuration": "Kesto",
   "stepBuilderMCPToolsTitle": "Sallitut MCP-työkalut",
   "stepBuilderAddTool": "Lisää työkalu",
-  "stepBuilderToolHint": "Työkalun tunniste (esim. mcp_tavily_search)"
+  "stepBuilderToolHint": "Työkalun tunniste (esim. mcp_tavily_search)",
+  "studioDashboardGatewaysTitle": "MCP-yhdyskäytävät",
+  "studioDashboardGatewaysDesc": "Hallinnoi ulkoisia työkaluja ja tekoälyn tiedonhakuintegraatioita.",
+  "mcpGatewaysTitle": "MCP-yhdyskäytävät",
+  "mcpGatewaysDesc": "Määritä järjestelmätason MCP-työkalujen yhdyskäytävät tekoälysuorituksia varten.",
+  "mcpToolSettings": "MCP-työkalun asetukset",
+  "mcpToolIdLabel": "Työkalun ID",
+  "mcpToolNameLabel": "Työkalun Nimi",
+  "mcpToolDescLabel": "Kuvaus",
+  "mcpToolInputSchemaLabel": "Syöteskeema (JSON)",
+  "mcpAddToolBtn": "Lisää työkalu",
+  "mcpEditToolBtn": "Muokkaa työkalua",
+  "noMcpGatewaysDefined": "MCP-yhdyskäytäviä ei ole määritelty."
 }

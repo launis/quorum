@@ -87,10 +87,7 @@ class XAIEvidenceBox extends ConsumerWidget {
                   ),
                   child: Text(
                     '${l10n.xaiEvidenceDuration}: ${audit.durationMs}ms',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade700,
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
                   ),
                 ),
               ],
@@ -154,8 +151,7 @@ class XAIEvidenceBox extends ConsumerWidget {
               ),
             ],
 
-            if (index < auditTraces.length - 1)
-              const Divider(height: 24),
+            if (index < auditTraces.length - 1) const Divider(height: 24),
           ],
         ),
       );

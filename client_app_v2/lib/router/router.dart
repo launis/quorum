@@ -11,6 +11,8 @@ import 'package:client_app/features/studio/views/step_builder_view.dart';
 import 'package:client_app/features/studio/views/profile_editor_view.dart';
 import 'package:client_app/features/studio/views/output_profile_crud_view.dart';
 import 'package:client_app/features/studio/views/model_registry_view.dart';
+import 'package:client_app/features/studio/views/mcp_gateway_view.dart';
+import 'package:client_app/features/studio/views/matrix_editor_view.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -58,8 +60,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     debugLogDiagnostics: true,
     observers: [routeObserver],
-    errorBuilder:
-        (context, state) => SafeNavigationFallback(state: state),
+    errorBuilder: (context, state) => SafeNavigationFallback(state: state),
     redirect: (context, state) {
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
@@ -229,6 +230,10 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
     TypedGoRoute<OutputProfileEditRoute>(path: 'output-profile/edit/:id'),
     TypedGoRoute<ModelRegistryNewRoute>(path: 'model-registry/new'),
     TypedGoRoute<ModelRegistryEditRoute>(path: 'model-registry/edit/:id'),
+    TypedGoRoute<McpGatewayNewRoute>(path: 'mcp-gateway/new'),
+    TypedGoRoute<McpGatewayEditRoute>(path: 'mcp-gateway/edit/:id'),
+    TypedGoRoute<MatrixNewRoute>(path: 'matrix/new'),
+    TypedGoRoute<MatrixEditRoute>(path: 'matrix/edit/:id'),
   ],
 )
 class AdminShellRoute extends GoRouteData with $AdminShellRoute {
@@ -264,7 +269,11 @@ class PromptBlockNewRoute extends GoRouteData with $PromptBlockNewRoute {
 }
 
 class PromptBlockEditRoute extends GoRouteData with $PromptBlockEditRoute {
-  const PromptBlockEditRoute({required this.id, required this.slug, this.$extra});
+  const PromptBlockEditRoute({
+    required this.id,
+    required this.slug,
+    this.$extra,
+  });
   final String id;
   final String slug;
   final Map<String, dynamic>? $extra;
@@ -334,6 +343,40 @@ class ModelRegistryEditRoute extends GoRouteData with $ModelRegistryEditRoute {
       ModelRegistryView(id: id, initialData: $extra);
 }
 
+class McpGatewayNewRoute extends GoRouteData with $McpGatewayNewRoute {
+  const McpGatewayNewRoute();
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const McpGatewayView(id: 'new');
+}
+
+class McpGatewayEditRoute extends GoRouteData with $McpGatewayEditRoute {
+  const McpGatewayEditRoute({required this.id, this.$extra});
+  final String id;
+  final Map<String, dynamic>? $extra;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      McpGatewayView(id: id, initialData: $extra);
+}
+
+class MatrixNewRoute extends GoRouteData with $MatrixNewRoute {
+  const MatrixNewRoute();
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const MatrixEditorView(id: 'new');
+}
+
+class MatrixEditRoute extends GoRouteData with $MatrixEditRoute {
+  const MatrixEditRoute({required this.id, this.$extra});
+  final String id;
+  final Map<String, dynamic>? $extra;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      MatrixEditorView(id: id, initialData: $extra);
+}
+
 @TypedGoRoute<RootRoute>(path: '/')
 class RootRoute extends GoRouteData with $RootRoute {
   const RootRoute();
@@ -370,7 +413,9 @@ class _SafeNavigationFallbackState extends State<SafeNavigationFallback> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Navigation Error: ${widget.state.uri} not found. Returning to workspace...'),
+            content: Text(
+              'Navigation Error: ${widget.state.uri} not found. Returning to workspace...',
+            ),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -385,4 +430,3 @@ class _SafeNavigationFallbackState extends State<SafeNavigationFallback> {
     return const Scaffold(body: SizedBox.shrink());
   }
 }
-

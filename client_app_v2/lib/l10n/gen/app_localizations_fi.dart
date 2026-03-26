@@ -2308,4 +2308,42 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get stepBuilderToolHint =>
       'Työkalun tunniste (esim. mcp_tavily_search)';
+
+  @override
+  String get studioDashboardGatewaysTitle => 'MCP-yhdyskäytävät';
+
+  @override
+  String get studioDashboardGatewaysDesc =>
+      'Hallinnoi ulkoisia työkaluja ja tekoälyn tiedonhakuintegraatioita.';
+
+  @override
+  String get mcpGatewaysTitle => 'MCP-yhdyskäytävät';
+
+  @override
+  String get mcpGatewaysDesc =>
+      'Määritä järjestelmätason MCP-työkalujen yhdyskäytävät tekoälysuorituksia varten.';
+
+  @override
+  String get mcpToolSettings => 'MCP-työkalun asetukset';
+
+  @override
+  String get mcpToolIdLabel => 'Työkalun ID';
+
+  @override
+  String get mcpToolNameLabel => 'Työkalun Nimi';
+
+  @override
+  String get mcpToolDescLabel => 'Kuvaus';
+
+  @override
+  String get mcpToolInputSchemaLabel => 'Syöteskeema (JSON)';
+
+  @override
+  String get mcpAddToolBtn => 'Lisää työkalu';
+
+  @override
+  String get mcpEditToolBtn => 'Muokkaa työkalua';
+
+  @override
+  String get noMcpGatewaysDefined => 'MCP-yhdyskäytäviä ei ole määritelty.';
 }

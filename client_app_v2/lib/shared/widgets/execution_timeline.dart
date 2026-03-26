@@ -70,15 +70,16 @@ class ExecutionTimeline extends StatelessWidget {
                 color: labelColor,
               ),
             ),
-            subtitle: (isFailed && lastError != null && lastError.isNotEmpty)
-                ? Text(
-                    lastError,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
-                    ),
-                  )
-                : null,
+            subtitle:
+                (isFailed && lastError != null && lastError.isNotEmpty)
+                    ? Text(
+                      lastError,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    )
+                    : null,
             trailing:
                 isRunning
                     ? const SizedBox(

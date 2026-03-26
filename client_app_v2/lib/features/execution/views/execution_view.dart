@@ -290,7 +290,10 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
             (error, stackTrace) => ErrorView(
               error: error,
               stackTrace: stackTrace,
-              onRetry: () => ref.read(executionControllerProvider.notifier).resumeExecution(widget.executionId),
+              onRetry:
+                  () => ref
+                      .read(executionControllerProvider.notifier)
+                      .resumeExecution(widget.executionId),
             ),
       ),
     );

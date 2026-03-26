@@ -28,7 +28,9 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
         if (mounted && _error == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('UI Render Error: Internal component crashed and was gracefully hidden.'),
+              content: const Text(
+                'UI Render Error: Internal component crashed and was gracefully hidden.',
+              ),
               behavior: SnackBarBehavior.floating,
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
