@@ -59,7 +59,25 @@ class ErrorInterceptor extends Interceptor {
 
     // Handle network errors without response
     if (err.type == DioExceptionType.connectionError ||
-        err.type == DioExceptionType.connectionTimeout) {
+        err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout ||
+        err.type == DioExceptionType.sendTimeout) {
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          response: err.response,
+          type: err.type,
+          error: AppException.network(err),
+        ),
+      );
+      return;
+    }
+
+    // Handle Proxy/Gateway failures (502, 503, 504) where payload is not RFC 7807
+    if (err.response != null &&
+        (err.response!.statusCode == 502 ||
+         err.response!.statusCode == 503 ||
+         err.response!.statusCode == 504)) {
       handler.reject(
         DioException(
           requestOptions: err.requestOptions,

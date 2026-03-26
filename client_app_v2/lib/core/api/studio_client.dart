@@ -103,6 +103,12 @@ class StudioClient {
     return List<String>.from(response.data as List);
   }
 
+  /// Retrieves all system configs (Model Registries).
+  Future<List<Map<String, dynamic>>> getSystemConfigs() async {
+    final response = await _dio.get('studio/model-registry/');
+    return List<Map<String, dynamic>>.from(response.data as List);
+  }
+
   /// Retrieves a system config by ID.
   Future<Map<String, dynamic>> getSystemConfig(String id) async {
     final response = await _dio.get('studio/model-registry/$id');
@@ -116,6 +122,11 @@ class StudioClient {
   ) async {
     final response = await _dio.put('studio/model-registry/$id', data: data);
     return response.data as Map<String, dynamic>;
+  }
+
+  /// Deletes a system config.
+  Future<void> deleteSystemConfig(String id) async {
+    await _dio.delete('studio/model-registry/$id');
   }
 
   // --- Output Profiles ---

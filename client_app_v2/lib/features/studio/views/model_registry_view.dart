@@ -7,7 +7,10 @@ import 'package:client_app/core/ui/error_view.dart';
 /// Admin Studio View for managing the Model Registry (SystemConfig).
 /// Uses raw `Map<String, dynamic>` to adhere to V2 De-Generator principles.
 class ModelRegistryView extends ConsumerStatefulWidget {
-  const ModelRegistryView({super.key});
+  final String id;
+  final Map<String, dynamic>? initialData;
+
+  const ModelRegistryView({super.key, required this.id, this.initialData});
 
   @override
   ConsumerState<ModelRegistryView> createState() => _ModelRegistryViewState();
@@ -20,50 +23,75 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
   Map<String, dynamic>? _editableState;
 
   @override
+  void initState() {
+    super.initState();
+    // Use extra payload directly if available, bypassing network logic instantly
+    if (widget.initialData != null) {
+      _editableState = _deepCopy(widget.initialData!);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final state = ref.watch(modelRegistryControllerProvider);
     final availableModelsAsync = ref.watch(availableModelsProvider);
     final availableModels = availableModelsAsync.value ?? [];
 
+    // If we have an eagerly initialData from Riverpod Navigation, skip loading states
+    if (_editableState != null) {
+      return _buildScaffold(l10n, availableModels, false);
+    }
+
+    // Otherwise, we are deep-linked natively. Fetch from backend:
+    final asyncData = (widget.id == 'new') 
+        ? AsyncValue.data({'id': 'syscfg_new', 'type': 'model_registry'}) 
+        : ref.watch(modelRegistryByIdProvider(widget.id));
+
+
+    return asyncData.when(
+      loading: () => Scaffold(
+        appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, st) => Scaffold(
+        appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
+        body: ErrorView(
+          error: e,
+          stackTrace: st,
+          compact: false,
+          onRetry: () => ref.invalidate(modelRegistryByIdProvider(widget.id)),
+        ),
+      ),
+      data: (data) {
+        _editableState ??= _deepCopy(data);
+        return _buildScaffold(l10n, availableModels, false);
+      },
+    );
+  }
+
+  Widget _buildScaffold(AppLocalizations l10n, List<String> availableModels, bool isSaving) {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.modelRegistryTitle),
         actions: [
-          if (state.hasValue && !state.isLoading)
-            FilledButton.icon(
-              icon: const Icon(Icons.save),
-              label: Text(l10n.studioSaveButton),
-              onPressed: _saveRegistry,
-            ),
+          FilledButton.icon(
+            icon: const Icon(Icons.save),
+            label: Text(l10n.studioSaveButton),
+            onPressed: isSaving ? null : _saveRegistry,
+          ),
           const SizedBox(width: 16),
         ],
       ),
-      body: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error:
-            (e, st) => ErrorView(
-              error: e,
-              stackTrace: st,
-              compact: true,
-              onRetry: () => ref.invalidate(modelRegistryControllerProvider),
-            ),
-        data: (data) {
-          // Initialize working copy if not already done. Map.from enables deep-ish copy.
-          _editableState ??= _deepCopy(data);
-
-          return Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.all(16.0),
-              children: [
-                _buildSystemAttributes(l10n, _editableState!),
-                const SizedBox(height: 24),
-                _buildModelsSection(l10n, _editableState!, availableModels),
-              ],
-            ),
-          );
-        },
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            _buildSystemAttributes(l10n, _editableState!),
+            const SizedBox(height: 24),
+            _buildModelsSection(l10n, _editableState!, availableModels),
+          ],
+        ),
       ),
     );
   }
@@ -343,9 +371,10 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
       _formKey.currentState!.save();
 
       try {
+        final idToSave = widget.id == 'new' ? (_editableState!['id'] ?? 'syscfg_new') : widget.id;
         await ref
             .read(modelRegistryControllerProvider.notifier)
-            .saveConfig(_editableState!);
+            .saveConfig(idToSave, _editableState!);
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

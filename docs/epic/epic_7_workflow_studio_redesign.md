@@ -28,11 +28,12 @@ Studio jaetaan viiteen selkeään pääkategoriaan, joilla jokaisella on oma lis
 Tämä näkymä jaetaan kahteen selkeään välilehteen tai alivalikkoon, mikä erottaa LLM-mallit työkalujen reitityksestä:
 
 - **SaaS / Tenant Eristys:** Järjestelmä erottaa globaalit (System) mallit ja paikalliset (Tenant) instanssit. Globaaleja objekteja ei voi muokata suoraan, vaan UI tarjoaa "Cascading Clone" -ominaisuuden, joka tekee syväkopion säännöistä asiakkaan omaan Tenant-kantaan (AI Act jäljitettävyyden takaamiseksi).
-- **Model Registry (CRUD & Deep Copy):**
-  - **Master:** Lista saatavilla olevista tekoälymalleista ja niiden rooleista (esim. `fast`, `deep`, `strict`).
-  - **Detail:** Määritellään mallin fyysinen API-reitti (esim. `vertex_ai/gemini-2.5-pro`), token-rajat (`max_tokens`), lämpötila (`temperature`) ja älykkäät kuormanhallinnan rajat (`tpm_limit`, `rpm_limit`).
+- **✅ Model Registry (CRUD & Deep Copy):** *(Toteutettu onnistuneesti The Flat MVC List -arkkitehtuurilla)*
+  - **Master:** Lista saatavilla olevista tekoälymalleista ja niiden rooleista (esim. `fast`, `deep`, `strict`). Toimii puhtaasti Riverpodin `AsyncNotifier<List>`-tilanhallinnalla ja Optimistic UI:lla.
+  - **Detail:** Määritellään mallin fyysinen API-reitti (esim. `vertex_ai/gemini-2.5-pro`), token-rajat (`max_tokens`), lämpötila (`temperature`) ja älykkäät kuormanhallinnan rajat (`tpm_limit`, `rpm_limit`). Reititys tukee Syvälinkkejä (Deep Linking) `modelRegistryByIdProvider`:n kautta.
+  - *Backend-huomio:* `system_config` tietokantakokoelma pitää sisällään useita eri konfiguraatiotyyppejä. Listaukset on ehdottomasti suodatettava Pydantic-tason tyypillä (`type == "model_registry"`) ennen objektin validointia Fail-Fast räsähdysten estämiseksi.
 - **MCP Gateways (CRUD & Deep Copy):**
-  - **Master:** Lista ulkoisista työkaluista ja agenteista (Model Context Protocol).
+  - **Master:** Lista ulkoisista työkaluista ja agenteista (Model Context Protocol). Käyttää täysin samaa `AsyncNotifier<List>` -logiikkaa ja suodatusta (`type == "mcp_gateways"`) kuin Model Registry.
   - **Detail:** Konfiguroidaan reitit ulkoisiin SaaS-palveluihin (esim. Tavily Search) tai omiin sisäisiin Cloud Run -mikropalveluihin, joita tekoäly voi kutsua.
 
 ### 2. Kognitio (Prompt Blocks & BARS)
@@ -41,7 +42,8 @@ Koska asennepromptit ja arviointimatriisit ovat täysin erilaisia petoja, ne ero
 - **The 5-Layer Language Strategy (I18n):** Kielipuskuri (UI): Otsikot, kuvaukset ja lokaalit käännökset syötetään uudella `i18n_text_field` -komponentilla (esim. tabit FI/EN).
 - **English-Only Mandate:** Tekoälyn järjestelmäohjeet (system instructions) on rajoitettu käyttöliittymässä tiukasti vain englanninkielisiksi laadun maksimoimiseksi. Käyttöliittymän tulee pakottaa tämä visuaalisella varoituksella (esim. "AI Reasoning Mandate: System prompts must be in English").
 - **Prompt Blocks (Ohjeistukset & Deep Copy):**
-  - Tavallisten teksti- ja Markdown-pohjaisten systeemiohjeiden CRUD.
+  - Tavallisten teksti- ja Markdown-pohjaisten systeemiohjeiden CRUD. 
+  - *Tekninen vaatimus:* Toteutetaan `AsyncNotifier<List>` -tilanhallinnalla ja Optimistic UI -mutaatioilla (esim. `savePromptBlock`). Kaikki listahaut deserialisoidaan taustasäikeessä (`Isolate.run`).
 - **BARS-matriisit (Behaviorally Anchored Rating Scales & Deep Copy):**
   - UI suodattaa näkyviin vain ne, joissa `category_id: "matrix"`.
   - **Detail-näkymä:** Oma erikoistunut matriisieditori, jossa hallitaan arviointikriteerejä, numeerisia asteikkoja (esim. 1-5 tai 0-100) ja niihin sidottuja käyttäytymiskuvauksia.
@@ -49,21 +51,22 @@ Koska asennepromptit ja arviointimatriisit ovat täysin erilaisia petoja, ne ero
 ### 3. Työvaiheet (Steps)
 Tämä on työnkulkujen moottorin ydin. Askel on uudelleenkäytettävä palikka.
 
-- **Master:** Lista kaikista saatavilla olevista työvaiheista (Task Blueprints). (Sisältää Deep Copy).
-- **Detail (Muokkausnäkymä):**
+- **Master:** Lista kaikista saatavilla olevista työvaiheista (Task Blueprints). (Sisältää Deep Copy). Toimii the Flat MVC List -arkkitehtuurilla (`AsyncNotifier<List<Map>>`).
+- **Detail (Muokkausnäkymä):** Reititys Hybrid URL Patternilla (`/steps/edit/:id/:slug`) syvälinkityksen takaamiseksi.
   - **Hook-hallinta:** `pre_hooks` ja `post_hooks` esitetään monivalintapudotusvalikkoina (Multi-select dropdown). Nämä molemmat lukevat arvonsa samalta, backendin tarjoamalta dynaamiselta Enum-listalta (esim. `json_parser_hook`, `normalize_matrix_scores`). Koska näitä on yleensä vähemmän, valintaruudut tai "chips"-tyylinen käyttöliittymä on paras.
   - **Prompt Blocks -lista:** Järjestettävä lista (Drag & Drop -käyttöliittymä). Käyttäjä voi lisätä blokkeja kohdassa 2 luodusta listasta, poistaa niitä ja muuttaa niiden järjestystä vetämällä. Järjestys määrittää lopullisen kontekstin prioriteetin tekoälylle.
 
 ### 4. Esityskerros (Layouts)
 Abstrakti `output_profiles` siirretään taka-alalle, ja käyttöliittymä keskittyy suoraan konkreettisiin asetteluihin (Layouts).
 
-- **Master:** Lista saatavilla olevista asetteluista (esim. "Standardi auditointiraportti", "Tiivistelmäverkko"). (Sisältää Deep Copy).
-- **Detail:** Visuaalinen tai rakenteellinen editori, johon lisätään suoraan arvoja (esim. näytetäänkö XAI-todistusaineistolaatikko, käytetäänkö DataGridiä vai 2D-matriisia). Koko renderöintisäännöstö (Flat DTO) konfiguroidaan täällä ilman välillisiä profiilikerroksia.
+- **Master:** Lista saatavilla olevista asetteluista (esim. "Standardi auditointiraportti", "Tiivistelmäverkko"). (Sisältää Deep Copy). Tilanhallinta `AsyncNotifier<List>` kautta.
+- **Detail:** Visuaalinen tai rakenteellinen editori, johon lisätään suoraan arvoja (esim. näytetäänkö XAI-todistusaineistolaatikko, käytetäänkö DataGridiä vai 2D-matriisia). Koko renderöintisäännöstö (Flat DTO) konfiguroidaan täällä ilman välillisiä profiilikerroksia. Reititys vahvasti tyypitetyllä `GoRouteData`-luokalla (ID-perustainen haku).
 
 ### 5. Työnkulut (Workflows)
 Tämä on kokonaisuuden sitova, raskain näkymä.
 
-- **Master:** Työnkulkujen (Workflows) päälista. (Sisältää Deep Copy).
+- **Master:** Työnkulkujen (Workflows) päälista. (Sisältää Deep Copy). Lista haetaan ja ylläpidetään optimisesti standardin `AsyncNotifier<List>`-kaavan mukaisesti.
+- **Datan räjähdysmäinen kasvu (Tietokannan turvallisuus):** Jos Workflow'lle (`wf_xyz`) valitaan "Deep Copy" Tenantiin, suoritetaan ehdottomasti ns. **Shallow-Deep Copy**. Tämä tarkoittaa, että vain itse DAG-reititys (`StepRules`) kopioidaan fyysisesti. Työnkulun alla olevat Stepit (`TaskBlueprints`), Asennepromptit ja Matriisit **EI** kopioidu rekursiivisesti uusiin objekteihin, vaan ne jäävät osoittamaan alkuperäisiin The Stripe Pattern UUID -viittauksiin. Jos kopioitaisiin kaikki rekursiivisesti, Tenantin tietokanta räjähtäisi hallitsemattomaksi kymmenillä orvoilla Prompteilla, joita ei voida enää pitää synkassa System-tason LLM-päivitysten kanssa.
 - **Detail (DAG Builder):**
   - Sisältää useita erilaisia listoja.
   - **StepRules-lista:** Käyttäjä valitsee aiemmin luotuja "Steppejä" ja sitoo ne osaksi tätä työnkulkua. Tässä vaiheessa Stepeille voidaan antaa lokaaleja, työnkulkukohtaisia ylikirjoituksia tai datareitityksiä (`$inputs` ja aiemmat `$steps.x`).

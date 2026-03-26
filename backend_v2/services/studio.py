@@ -200,7 +200,7 @@ class StudioService:
     async def list_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
         all_data = await self.repo.get_all("system_config")
         if initiator.role == "ROOT":
-            return [SystemConfigModelRegistry.model_validate(x) for x in all_data]
+            return [SystemConfigModelRegistry.model_validate(x) for x in all_data if x.get("type") == "model_registry"]
         return [] # Non-root sees no configs
 
     async def get_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:

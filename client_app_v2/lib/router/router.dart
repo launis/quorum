@@ -10,13 +10,12 @@ import 'package:client_app/features/studio/views/prompt_block_builder_view.dart'
 import 'package:client_app/features/studio/views/step_builder_view.dart';
 import 'package:client_app/features/studio/views/profile_editor_view.dart';
 import 'package:client_app/features/studio/views/output_profile_crud_view.dart';
+import 'package:client_app/features/studio/views/model_registry_view.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:client_app/core/ui/error_view.dart';
-import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/execution/views/dashboard_view.dart';
 import 'package:client_app/features/execution/views/execution_view.dart';
@@ -60,14 +59,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     observers: [routeObserver],
     errorBuilder:
-        (context, state) => ErrorView(
-          title: 'Navigation Error',
-          error: AppException.notFound(
-            'Route ${state.uri.toString()} not found or broken. ${state.error?.message ?? ""}',
-          ),
-          onAction: () => context.go('/dashboard'),
-          actionLabel: 'Return Home',
-        ),
+        (context, state) => SafeNavigationFallback(state: state),
     redirect: (context, state) {
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
@@ -235,6 +227,8 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
     TypedGoRoute<ProfileEditorRoute>(path: 'profiles/:workflowSlug'),
     TypedGoRoute<OutputProfileNewRoute>(path: 'output-profile/new'),
     TypedGoRoute<OutputProfileEditRoute>(path: 'output-profile/edit/:id'),
+    TypedGoRoute<ModelRegistryNewRoute>(path: 'model-registry/new'),
+    TypedGoRoute<ModelRegistryEditRoute>(path: 'model-registry/edit/:id'),
   ],
 )
 class AdminShellRoute extends GoRouteData with $AdminShellRoute {
@@ -323,6 +317,23 @@ class OutputProfileEditRoute extends GoRouteData with $OutputProfileEditRoute {
       OutputProfileCrudView(id: id, initialData: $extra);
 }
 
+class ModelRegistryNewRoute extends GoRouteData with $ModelRegistryNewRoute {
+  const ModelRegistryNewRoute();
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const ModelRegistryView(id: 'new');
+}
+
+class ModelRegistryEditRoute extends GoRouteData with $ModelRegistryEditRoute {
+  const ModelRegistryEditRoute({required this.id, this.$extra});
+  final String id;
+  final Map<String, dynamic>? $extra;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      ModelRegistryView(id: id, initialData: $extra);
+}
+
 @TypedGoRoute<RootRoute>(path: '/')
 class RootRoute extends GoRouteData with $RootRoute {
   const RootRoute();
@@ -341,3 +352,37 @@ String targetRouteForUser(UserRole role) {
       return '/dashboard';
   }
 }
+
+/// A Safe Navigation Fallback that kicks the user back to the dashboard with an ambient floating alert instead of a full-screen red dead-end.
+class SafeNavigationFallback extends StatefulWidget {
+  final GoRouterState state;
+  const SafeNavigationFallback({super.key, required this.state});
+
+  @override
+  State<SafeNavigationFallback> createState() => _SafeNavigationFallbackState();
+}
+
+class _SafeNavigationFallbackState extends State<SafeNavigationFallback> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Navigation Error: ${widget.state.uri} not found. Returning to workspace...'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        context.go('/dashboard');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: SizedBox.shrink());
+  }
+}
+

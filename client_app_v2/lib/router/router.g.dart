@@ -254,6 +254,14 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
       path: 'output-profile/edit/:id',
       factory: $OutputProfileEditRoute._fromState,
     ),
+    GoRouteData.$route(
+      path: 'model-registry/new',
+      factory: $ModelRegistryNewRoute._fromState,
+    ),
+    GoRouteData.$route(
+      path: 'model-registry/edit/:id',
+      factory: $ModelRegistryEditRoute._fromState,
+    ),
   ],
 );
 
@@ -489,6 +497,57 @@ mixin $OutputProfileEditRoute on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/admin/output-profile/edit/${Uri.encodeComponent(_self.id)}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+
+  @override
+  Future<T?> push<T>(BuildContext context) =>
+      context.push<T>(location, extra: _self.$extra);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location, extra: _self.$extra);
+
+  @override
+  void replace(BuildContext context) =>
+      context.replace(location, extra: _self.$extra);
+}
+
+mixin $ModelRegistryNewRoute on GoRouteData {
+  static ModelRegistryNewRoute _fromState(GoRouterState state) =>
+      const ModelRegistryNewRoute();
+
+  @override
+  String get location => GoRouteData.$location('/admin/model-registry/new');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $ModelRegistryEditRoute on GoRouteData {
+  static ModelRegistryEditRoute _fromState(GoRouterState state) =>
+      ModelRegistryEditRoute(
+        id: state.pathParameters['id']!,
+        $extra: state.extra as Map<String, dynamic>?,
+      );
+
+  ModelRegistryEditRoute get _self => this as ModelRegistryEditRoute;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/admin/model-registry/edit/${Uri.encodeComponent(_self.id)}',
   );
 
   @override

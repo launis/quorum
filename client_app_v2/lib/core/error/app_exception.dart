@@ -1,3 +1,4 @@
+// ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'app_exception.freezed.dart';
@@ -17,6 +18,7 @@ abstract class AppException with _$AppException implements Exception {
     @Default(500) int status,
     @Default('Unknown error') String detail,
     String? instance,
+    @JsonKey(name: 'request_id') String? requestId,
     @Default(<String, dynamic>{}) Map<String, dynamic> extensions,
   }) = _AppException;
 

@@ -159,6 +159,11 @@ Quorum ei ole kuluttajille suunnattu mobiilisovellus, vaan **ammattilaisten IDE-
   1. **Lukunäkymät (Luku-Listat, Dashboard):** Käytetään SWR (Stale-While-Revalidate) -mallia. Riverpod-provider pidetään elossa (`ref.keepAlive()`), jolloin PC:llä paluunavigointi on välitöntä nollaviiveellä. Tiedot päivittyvät taustalla huomaamattomasti.
   2. **Syöttönäkymät (Forms, Uudet Analyysit):** Käytetään TTL (Time-To-Live) välimuistia. Keskeneräiset lomakkeet säilytetään aktiivisina vain lyhyen turva-ajan (esim. 3 minuuttia) poistumisen jälkeen vahinkonavigaation varalta.
 
+### 5.6 The Flat MVC List Architecture (Master-Detail Mandate)
+* **Kielletyt rakenteet:** Älä koskaan lataa dynaamisia tietokantakokoelmia (kuten koko Model Registryä tai Prompteja) valtavaksi `AsyncNotifier<Map<String, dynamic>>` -monoliitiksi, mistä UI yrittää onkia yksittäisiä objekteja.
+* **The Flat MVC List:** Kaikki Master-näkymän listat mallinnetaan litteänä taulukkona: `AsyncNotifier<List<Map<String, dynamic>>>`. 
+* **Detail-haku:** Kun käyttäjä siirtyy Detail-muokkausnäkymään Reitittimen ("Hybrid URL") kautta, yksittäinen objekti noudetaan erillisellä "IdProviderilla" (esim. `modelRegistryByIdProvider(id)`), ei suodattamalla ylätason Master-listaa. Tämä takaa saumattoman Syvälinkityksen (Deep Linking) vaikka Master-listaa ei oltaisi edes vierailtu.
+
 ---
 
 ## ⚠️ 6. ERROR HANDLING CONTRACT (GLOBAL ERROR HANDLING V3 / RFC 7807)

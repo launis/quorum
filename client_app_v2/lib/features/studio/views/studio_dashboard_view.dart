@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
-import 'package:client_app/features/studio/views/model_registry_view.dart';
+import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/views/output_profile_list_view.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -97,7 +97,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           _buildProfilesTab(context, ref, l10n),
 
           // TAB 5: Model Registry
-          const ModelRegistryView(),
+          _buildModelRegistryTab(context, ref, l10n),
         ],
       ),
     );
@@ -254,6 +254,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     WidgetRef ref,
     AppLocalizations l10n,
   ) {
+    // ... Existing implementation of Steps Tab ...
     final blueprintsState = ref.watch(stepsControllerProvider);
 
     return SingleChildScrollView(
@@ -299,6 +300,64 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 compact: true,
                 onRetry:
                     () => ref.read(stepsControllerProvider.notifier).refresh(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModelRegistryTab(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
+    final registryState = ref.watch(modelRegistryControllerProvider);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSectionHeader(context, l10n.modelRegistryTitle, () {
+            const ModelRegistryNewRoute().go(context);
+          }),
+          const SizedBox(height: 16),
+          registryState.when(
+            data: (configs) {
+              if (configs.isEmpty) return const Text('No System Configs defined.');
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: configs.length,
+                itemBuilder: (context, index) {
+                  final config = configs[index];
+                  final modelCount = (config['models'] as Map?)?.length ?? 0;
+
+                  return Card(
+                    child: ListTile(
+                      title: Text(config['id']?.toString() ?? 'Unnamed Config'),
+                      subtitle: Text('Configured Models: $modelCount'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        ModelRegistryEditRoute(
+                          id: config['id']?.toString() ?? 'new',
+                          $extra: config,
+                        ).go(context);
+                      },
+                    ),
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) {
+              return ErrorView(
+                error: e,
+                compact: true,
+                onRetry:
+                    () => ref.read(modelRegistryControllerProvider.notifier).refresh(),
               );
             },
           ),

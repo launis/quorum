@@ -23,7 +23,19 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const ModelRegistryView(),
+            home: const ModelRegistryView(
+              id: 'syscfg_123',
+              initialData: {
+                'id': 'syscfg_123',
+                'models': {
+                  'fast': {
+                    'model_name': 'gpt-4o',
+                    'provider': 'OpenAI',
+                    'is_active': true,
+                  },
+                },
+              },
+            ),
           ),
         ),
       );
@@ -50,24 +62,32 @@ void main() {
   });
 }
 
-class MockModelRegistryController extends AsyncNotifier<Map<String, dynamic>>
+class MockModelRegistryController extends AsyncNotifier<List<Map<String, dynamic>>>
     implements ModelRegistryController {
   @override
-  Future<Map<String, dynamic>> build() async {
-    return {
-      'models': {
-        'fast': {
-          'model_name': 'gpt-4o',
-          'provider': 'OpenAI',
-          'is_active': true,
+  Future<List<Map<String, dynamic>>> build() async {
+    return [
+      {
+        'id': 'syscfg_123',
+        'models': {
+          'fast': {
+            'model_name': 'gpt-4o',
+            'provider': 'OpenAI',
+            'is_active': true,
+          },
         },
-      },
-    };
+      }
+    ];
   }
 
   @override
   Future<void> refresh() async {}
 
   @override
-  Future<void> saveConfig(Map<String, dynamic> config) async {}
+  Future<Map<String, dynamic>> saveConfig(String id, Map<String, dynamic> config) async {
+    return config;
+  }
+
+  @override
+  Future<void> deleteConfig(String id) async {}
 }

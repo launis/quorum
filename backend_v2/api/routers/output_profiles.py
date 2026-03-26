@@ -35,6 +35,15 @@ async def list_output_profiles(
 
 
 
+@router.get("/{profile_id}", response_model=OutputProfileResponseDTO)
+async def get_output_profile(
+    profile_id: str,
+    initiator: CurrentUserDep,
+    service: StudioServiceDep,
+) -> dict[str, Any]:
+    """Get a specific Output Profile."""
+    profile = await service.get_output_profile(initiator=initiator, id=profile_id)
+    return profile.model_dump()
 
 @router.put("/{profile_id}", response_model=OutputProfileResponseDTO)
 async def upsert_output_profile(

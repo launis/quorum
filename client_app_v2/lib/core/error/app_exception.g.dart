@@ -13,6 +13,7 @@ _AppException _$AppExceptionFromJson(Map<String, dynamic> json) =>
       status: (json['status'] as num?)?.toInt() ?? 500,
       detail: json['detail'] as String? ?? 'Unknown error',
       instance: json['instance'] as String?,
+      requestId: json['request_id'] as String?,
       extensions:
           json['extensions'] as Map<String, dynamic>? ??
           const <String, dynamic>{},
@@ -25,5 +26,6 @@ Map<String, dynamic> _$AppExceptionToJson(_AppException instance) =>
       'status': instance.status,
       'detail': instance.detail,
       'instance': instance.instance,
+      'request_id': instance.requestId,
       'extensions': instance.extensions,
     };

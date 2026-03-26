@@ -73,6 +73,10 @@ Future<void> main() async {
       return true;
     }());
 
+    if (!isDebug) {
+      return const SizedBox.shrink();
+    }
+
     return Material(
       color: Colors.red.shade50,
       child: Center(
