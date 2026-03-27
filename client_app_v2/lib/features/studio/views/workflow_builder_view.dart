@@ -3,24 +3,24 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
-import 'package:client_app/router/router.dart';
-import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
-import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-import 'package:client_app/features/studio/views/widgets/expected_input_editor_box.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/features/studio/utils/workflow_cloner.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
-import 'package:client_app/features/studio/views/widgets/dag_canvas_view.dart';
-import 'package:client_app/features/studio/views/widgets/inspector_pane.dart';
+import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+
+import 'widgets/workflow/workflow_general_tab.dart';
+import 'widgets/workflow/workflow_inputs_tab.dart';
+import 'widgets/workflow/workflow_steps_tab.dart';
 
 /// **Workflow DAG Builder**
 ///
 /// CRUD interface for managing Semantic Routing & DAG structures.
 /// Admin can define global inputs (`expected_inputs`) and sequence
 /// processing steps (`steps`) including `depends_on` and `input_mappings`.
+/// Componentized to enforce Flat MVC architecture using the Sub-Tabs pattern.
 class WorkflowBuilderView extends ConsumerWidget {
   final String? id;
   final String? slug;
@@ -67,7 +67,6 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
   late Map<String, dynamic> _editableWorkflow = {};
   late TextEditingController _idController;
   late TextEditingController _slugController;
-  String? _selectedNodeId;
 
   @override
   void initState() {
@@ -105,43 +104,8 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
     super.dispose();
   }
 
-  void _addExpectedInput() {
-    setState(() {
-      final inputs = SafeCast.safeList(_editableWorkflow['expected_inputs']);
-      inputs.add({
-        'input_key': 'new_input_key',
-        'label': {
-          'default_locale': 'en',
-          'translations': {'en': ''},
-        },
-        'description': {
-          'default_locale': 'en',
-          'translations': {'en': ''},
-        },
-        'ai_description': {
-          'default_locale': 'en',
-          'translations': {'en': ''},
-        },
-        'required': false,
-        'is_chat_history': false,
-        'input_modes': ['file'],
-        'questionnaire_definition': [],
-      });
-      _editableWorkflow['expected_inputs'] = inputs;
-    });
-  }
-
-  void _addStep() {
-    setState(() {
-      final steps = SafeCast.safeList(_editableWorkflow['steps']);
-      steps.add({
-        'id': 'step_${steps.length + 1}',
-        'task_blueprint': '',
-        'depends_on': <String>[],
-        'input_mappings': <String, dynamic>{'inputs': '\$inputs'},
-      });
-      _editableWorkflow['steps'] = steps;
-    });
+  void _triggerUpdate() {
+    if (mounted) setState(() {});
   }
 
   void _cloneWorkflow(BuildContext context) {
@@ -173,10 +137,10 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
                         nameMap['translations'],
                       );
                       if (translations.containsKey('en')) {
-                        translations['en'] = 'Copy of ${translations['en']}';
+                        translations['en'] = "Copy of ${translations['en']}";
                       }
                       if (translations.containsKey('fi')) {
-                        translations['fi'] = 'Kopio - ${translations['fi']}';
+                        translations['fi'] = "Kopio - ${translations['fi']}";
                       }
                       nameMap['translations'] = translations;
                       cloned['name'] = nameMap;
@@ -262,13 +226,15 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final stepsAsync = ref.watch(stepsControllerProvider);
+    final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
+    final mcpGateways = mcpGatewaysAsync.value ?? [];
 
     // Absolute Fail-Fast: Do not use `?? []` to mask data loading or corruption.
     if (stepsAsync.hasError) throw stepsAsync.error!;
     if (!stepsAsync.hasValue) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final stepsList = stepsAsync.value!;
+    final blueprints = stepsAsync.value!;
 
     final saveMutation = useMutation<Map<String, dynamic>>(
       onSuccess: (_) {
@@ -285,7 +251,7 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${l10n.errorUnknown}: $errorMsg'),
+              content: Text("${l10n.errorUnknown}: $errorMsg"),
               backgroundColor: Colors.red,
             ),
           );
@@ -301,7 +267,7 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                isValid ? 'DAG is Valid!' : 'DAG Errors: ${errors.join(', ')}',
+                isValid ? 'DAG is Valid!' : "DAG Errors: ${errors.join(', ')}",
               ),
               backgroundColor: isValid ? Colors.green : Colors.red,
               duration: const Duration(seconds: 4),
@@ -341,429 +307,119 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
       },
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Back to Studio',
-          onPressed: () => context.go('/admin'),
-        ),
-        title: Builder(
-          builder: (context) {
-            final nameObj = SafeCast.safeMap(widget.workflow['name']);
-            final translations = SafeCast.safeMap(nameObj['translations']);
-            final titleStr = translations['fi'] ?? translations['en'];
-
-            // New workflows might legitimately not have a name yet, but if it has an ID, the name MUST exist.
-            if (titleStr == null && widget.workflow['id'] != null) {
-              throw AppException.validation(
-                'Workflow name is missing for existing workflow.',
-              );
-            }
-            return Text(titleStr?.toString() ?? l10n.workflowEditTitle);
-          },
-        ),
-        actions: [
-          if (widget.workflow['id']?.toString().isNotEmpty == true) ...[
-            IconButton(
-              onPressed: () => _cloneWorkflow(context),
-              icon: const Icon(Icons.content_copy),
-              tooltip: l10n.workflowCloneBtn,
-            ),
-            IconButton(
-              onPressed: () => _deleteWorkflow(context, deleteMutation),
-              icon: const Icon(Icons.delete, color: Colors.red),
-              tooltip: 'Delete',
-            ),
-          ],
-          IconButton(
-            onPressed:
-                validateMutation.isLoading
-                    ? null
-                    : () {
-                      validateMutation.mutate(() async {
-                        return await ref
-                            .read(workflowsControllerProvider.notifier)
-                            .simulateWorkflow(_editableWorkflow);
-                      });
-                    },
-            icon:
-                validateMutation.isLoading
-                    ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : const Icon(Icons.bug_report, color: Colors.green),
-            tooltip: 'Validate DAG',
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            tooltip: 'Back to Studio',
+            onPressed: () => context.go('/admin'),
           ),
-          MutationButton<Map<String, dynamic>>(
-            mutation: saveMutation,
-            label: 'Save',
-            icon: Icons.save,
-            action: () async {
-              final id = _idController.text.trim();
-              final slug = _slugController.text.trim();
-              if (id.isEmpty) {
-                throw AppException.validation('ID is required');
+          title: Builder(
+            builder: (context) {
+              final nameObj = SafeCast.safeMap(widget.workflow['name']);
+              final translations = SafeCast.safeMap(nameObj['translations']);
+              final titleStr = translations['fi'] ?? translations['en'];
+
+              // New workflows might legitimately not have a name yet, but if it has an ID, the name MUST exist.
+              if (titleStr == null && widget.workflow['id'] != null) {
+                throw AppException.validation(
+                  'Workflow name is missing for existing workflow.',
+                );
               }
-              _editableWorkflow['id'] = id;
-              if (slug.isNotEmpty) {
-                _editableWorkflow['slug'] = slug;
-              } else {
-                _editableWorkflow.remove('slug');
-              }
-              return ref
-                  .read(workflowsControllerProvider.notifier)
-                  .saveWorkflow(id, _editableWorkflow);
+              return Text(titleStr?.toString() ?? l10n.workflowEditTitle);
             },
           ),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Metadata
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.workflowConfigTitle,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _idController,
-                        decoration: InputDecoration(
-                          labelText: l10n.workflowIdLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                        enabled:
-                            widget.workflow['id'] == null ||
-                            widget.workflow['id'].toString().isEmpty,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _slugController,
-                        decoration: InputDecoration(
-                          // Fallback to English if generation fails during dev
-                          labelText:
-                              (l10n as dynamic).workflowSlugLabel ??
-                              'Workflow Slug (URL Path)',
-                          border: const OutlineInputBorder(),
-                        ),
-                        onChanged: (val) => _editableWorkflow['slug'] = val,
-                      ),
-                      const SizedBox(height: 16),
-                      I18nTextField(
-                        label: l10n.workflowNameLabel,
-                        initialData: SafeCast.safeMap(
-                          _editableWorkflow['name'],
-                        ),
-                        onChanged: (val) => _editableWorkflow['name'] = val,
-                      ),
-                      const SizedBox(height: 16),
-                      Builder(
-                        builder: (context) {
-                          final configsAsync = ref.watch(modelRegistryControllerProvider);
-
-                          if (configsAsync.isLoading) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8.0),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              ),
-                            );
-                          }
-
-                          if (configsAsync.hasError) {
-                            return Text('Error loading model registry: ${configsAsync.error}');
-                          }
-
-                          final configs = configsAsync.value ?? [];
-                          final registryConfig = configs.firstWhere(
-                            (c) => c['type'] == 'model_registry',
-                            orElse: () => <String, dynamic>{},
-                          );
-
-                          final modelsObj = SafeCast.safeMap(registryConfig['models']);
-                          final modelKeys = modelsObj.keys.toList();
-                          
-                          if (modelKeys.isEmpty) {
-                            return const Text('Warning: No models found in model_registry.', style: TextStyle(color: Colors.red));
-                          }
-
-                          // Zero defaults. If it's invalid, it stays null forcing user to pick.
-                          final currentStrategy = SafeCast.safeString(_editableWorkflow['model_strategy']);
-                          final safeValue = modelKeys.contains(currentStrategy) ? currentStrategy : null;
-
-                          return DropdownButtonFormField<String>(
-                            key: ValueKey(modelKeys.length),
-                            initialValue: safeValue,
-                            decoration: const InputDecoration(
-                              labelText: 'Model Strategy (Cost/Cognition Profile)',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: modelKeys.map((key) {
-                              final modelData = SafeCast.safeMap(modelsObj[key]);
-                              final label = modelData['model_name'] != null 
-                                  ? '${key.toUpperCase()} (${modelData['model_name']})'
-                                  : key.toUpperCase();
-                                  
-                              return DropdownMenuItem(
-                                value: key,
-                                child: Text(label),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() => _editableWorkflow['model_strategy'] = val);
-                              }
-                            },
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+          actions: [
+            if (widget.workflow['id']?.toString().isNotEmpty == true) ...[
+              IconButton(
+                onPressed: () => _cloneWorkflow(context),
+                icon: const Icon(Icons.content_copy),
+                tooltip: l10n.workflowCloneBtn,
               ),
-
-              const SizedBox(height: 16),
-
-              // Output Mapping (MVC Rules)
-              Text(
-                l10n.blueprintTabTitle, // Keep translation key active
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              IconButton(
+                onPressed: () => _deleteWorkflow(context, deleteMutation),
+                icon: const Icon(Icons.delete, color: Colors.red),
+                tooltip: 'Delete',
               ),
-              const SizedBox(height: 16),
-              Card(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Report Output Profiles (V2)',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          IconButton.filled(
-                            onPressed: () {
-                              ProfileEditorRoute(
-                                workflowSlug: SafeCast.safeString(
-                                  _editableWorkflow['id'],
-                                ),
-                              ).push(context);
-                            },
-                            icon: const Icon(Icons.edit_document),
-                            tooltip: 'Manage Output Profiles',
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Builder(
-                        builder: (context) {
-                          final outputProfiles = SafeCast.safeMap(
-                            _editableWorkflow['output_profiles'],
-                          );
-                          final profileKeys = outputProfiles.keys.toList();
-                          if (profileKeys.isEmpty) profileKeys.add('default');
-
-                          final currentDefault = SafeCast.safeString(
-                            _editableWorkflow['default_profile_id'],
-                            'default',
-                          );
-                          final safeDefault =
-                              profileKeys.contains(currentDefault)
-                                  ? currentDefault
-                                  : profileKeys.first;
-
-                          return DropdownButtonFormField<String>(
-                            initialValue: safeDefault,
-                            decoration: const InputDecoration(
-                              labelText: 'Default Fallback Profile',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            items:
-                                profileKeys.map((key) {
-                                  final profileData = SafeCast.safeMap(
-                                    outputProfiles[key],
-                                  );
-                                  final nameMap = SafeCast.safeMap(
-                                    profileData['name'],
-                                  );
-                                  final title =
-                                      nameMap['fi'] ?? nameMap['en'] ?? key;
-                                  return DropdownMenuItem(
-                                    value: key,
-                                    child: Text('$title ($key)'),
-                                  );
-                                }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() {
-                                  _editableWorkflow['default_profile_id'] = val;
-                                });
-                              }
-                            },
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Expected Inputs
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.workflowInputsTitle,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _addExpectedInput,
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.workflowAddInputBtn),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ...SafeCast.safeList(
-                _editableWorkflow['expected_inputs'],
-              ).asMap().entries.map((entry) {
-                return _buildInputCard(
-                  entry.key,
-                  SafeCast.safeMap(entry.value),
-                  l10n,
-                );
-              }),
-
-              // DAG Steps Canvas (V2 V3 Architecture)
-              const SizedBox(height: 16),
-              Container(
-                height: 600,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: DagCanvasView(
-                        workflow: _editableWorkflow,
-                        onNodeSelected:
-                            (id) => setState(() => _selectedNodeId = id),
-                        onWorkflowUpdated:
-                            (updated) =>
-                                setState(() => _editableWorkflow = updated),
-                      ),
-                    ),
-                    const VerticalDivider(width: 1),
-                    InspectorPane(
-                      selectedStepId: _selectedNodeId,
-                      workflow: _editableWorkflow,
-                      availableBlueprints: stepsList,
-                      onStepUpdated: (id, mutatedStep) {
-                        setState(() {
-                          final steps = SafeCast.safeList(
-                            _editableWorkflow['steps'],
-                          );
-                          final i = steps.indexWhere((s) {
-                            final sMap = SafeCast.safeMap(s);
-                            final cId = SafeCast.safeString(
-                              sMap['id'],
-                              sMap['step_id'],
-                            );
-                            return cId == id;
-                          });
-                          if (i >= 0) steps[i] = mutatedStep;
-                          _editableWorkflow['steps'] = steps;
+            ],
+            IconButton(
+              onPressed:
+                  validateMutation.isLoading
+                      ? null
+                      : () {
+                        validateMutation.mutate(() async {
+                          return await ref
+                              .read(workflowsControllerProvider.notifier)
+                              .simulateWorkflow(_editableWorkflow);
                         });
                       },
-                      onAddStep: _addStep,
-                      onDeleteStep: (id) {
-                        setState(() {
-                          final steps = SafeCast.safeList(
-                            _editableWorkflow['steps'],
-                          );
-                          steps.removeWhere((s) {
-                            final sMap = SafeCast.safeMap(s);
-                            final cId = SafeCast.safeString(
-                              sMap['id'],
-                              sMap['step_id'],
-                            );
-                            return cId == id;
-                          });
-                          _editableWorkflow['steps'] = steps;
-                          _selectedNodeId = null;
-                        });
-                      },
-                    ),
-                  ],
-                ),
+              icon:
+                  validateMutation.isLoading
+                      ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(Icons.bug_report, color: Colors.green),
+              tooltip: 'Validate DAG',
+            ),
+            MutationButton<Map<String, dynamic>>(
+              mutation: saveMutation,
+              label: 'Save',
+              icon: Icons.save,
+              action: () async {
+                final id = _idController.text.trim();
+                final slug = _slugController.text.trim();
+                if (id.isEmpty) {
+                  throw AppException.validation('ID is required');
+                }
+                _editableWorkflow['id'] = id;
+                if (slug.isNotEmpty) {
+                  _editableWorkflow['slug'] = slug;
+                } else {
+                  _editableWorkflow.remove('slug');
+                }
+                return ref
+                    .read(workflowsControllerProvider.notifier)
+                    .saveWorkflow(id, _editableWorkflow);
+              },
+            ),
+            const SizedBox(width: 16),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.settings), text: '1. Yleiset & Tulosteet'),
+              Tab(icon: Icon(Icons.input), text: '2. Syötteet'),
+              Tab(
+                icon: Icon(Icons.account_tree),
+                text: '3. Stepit & Riippuvuudet',
               ),
             ],
           ),
         ),
+        body: TabBarView(
+          children: [
+            WorkflowGeneralTab(
+              workflow: _editableWorkflow,
+              idController: _idController,
+              slugController: _slugController,
+              onChanged: _triggerUpdate,
+            ),
+            WorkflowInputsTab(
+              workflow: _editableWorkflow,
+              onChanged: _triggerUpdate,
+            ),
+            WorkflowStepsTab(
+              workflow: _editableWorkflow,
+              blueprints: blueprints,
+              mcpGateways: mcpGateways,
+              onChanged: _triggerUpdate,
+            ),
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildInputCard(
-    int index,
-    Map<String, dynamic> inputDef,
-    AppLocalizations l10n,
-  ) {
-    return ExpectedInputEditorBox(
-      inputDef: inputDef,
-      onDelete: () {
-        setState(() {
-          SafeCast.safeList(
-            _editableWorkflow['expected_inputs'],
-          ).removeAt(index);
-        });
-      },
-      onChanged: () {
-        setState(() {
-          // Trigger rebuild if necessary deep within
-        });
-      },
     );
   }
 }

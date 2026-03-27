@@ -136,7 +136,10 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                 final index = entry.key;
                 final claim = SafeCast.safeMap(entry.value);
                 final claimLabel = SafeCast.safeMap(
-                  claim['label'] ?? (throw AppException.validation('Claim data is corrupted: missing localized label.')),
+                  claim['label'] ??
+                      (throw AppException.validation(
+                        'Claim data is corrupted: missing localized label.',
+                      )),
                 );
 
                 return Card(

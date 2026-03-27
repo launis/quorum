@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 void main(List<String> args) async {
   // 1. Initialize Logging matching LoggerService format
   final logFile = File('c:\\src\\quorum\\client_debug.log');
-  
+
   void logInfo(String context, String message) {
     final time = DateTime.now().toString().substring(0, 19);
     final logLine = '$time | INFO | [$context] | client | $message\n';
@@ -36,18 +36,20 @@ void main(List<String> args) async {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-token:usr_43ec77a438104814bd937f28853d569c',
+        'Authorization':
+            'Bearer mock-token:usr_43ec77a438104814bd937f28853d569c',
       },
     ),
   );
 
   // 3. Execution Data (Using the trace from Epic 16)
-  final workflowId = 'wf_d653170e174847559e08af42b938d826'; // Default Kokonaisvaltainen Auditointierates new ID usually, but we need to trigger an execution. We'll start a new one.
+  final workflowId =
+      'wf_d653170e174847559e08af42b938d826'; // Default Kokonaisvaltainen Auditointierates new ID usually, but we need to trigger an execution. We'll start a new one.
 
   final rawInputs = {
     "organization_name": "Test Org",
     "industry": "Technology",
-    "target_audience": "Developers"
+    "target_audience": "Developers",
   };
 
   logInfo('EXECUTION', 'Triggering execution for workflow: \$workflowId');
@@ -65,7 +67,10 @@ void main(List<String> args) async {
 
     // 5. Parse using Isolate.run() simulation (fail-fast JSON parsing)
     final responseData = response.data as Map<String, dynamic>;
-    logInfo('NETWORK', "Received successful execution response: \${responseData['execution_id']}");
+    logInfo(
+      'NETWORK',
+      "Received successful execution response: \${responseData['execution_id']}",
+    );
 
     // Basic Fail-Fast validation of payload structure
     if (!responseData.containsKey('status')) {
@@ -74,9 +79,12 @@ void main(List<String> args) async {
 
     logInfo('SYSTEM', 'E2E Simulation Completed Successfully');
     exit(0);
-
   } on DioException catch (e) {
-    logError('NETWORK', 'DioException during execution: \${e.message}', e.response?.data);
+    logError(
+      'NETWORK',
+      'DioException during execution: \${e.message}',
+      e.response?.data,
+    );
     exit(1);
   } catch (e) {
     logError('SYSTEM', 'Unknown error during execution', e);

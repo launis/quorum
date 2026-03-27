@@ -376,7 +376,9 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
       builder:
           (ctx) => AlertDialog(
             title: const Text('Delete MCP Gateway?'),
-            content: Text('Are you sure you want to delete gateway $idToDelete?'),
+            content: Text(
+              'Are you sure you want to delete gateway $idToDelete?',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),

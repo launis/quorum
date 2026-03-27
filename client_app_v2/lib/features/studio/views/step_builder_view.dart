@@ -154,7 +154,9 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
         if (mounted) {
           final rendered = data['rendered_prompt']?.toString();
           if (rendered == null) {
-            throw AppException.validation('Simulator did not return rendered_prompt. Data corruption detected.');
+            throw AppException.validation(
+              'Simulator did not return rendered_prompt. Data corruption detected.',
+            );
           }
           showDialog(
             context: context,

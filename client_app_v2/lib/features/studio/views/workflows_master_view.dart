@@ -58,21 +58,27 @@ class WorkflowsMasterView extends ConsumerWidget {
                     final translations = SafeCast.safeMap(
                       labelMap['translations'],
                     );
-                    final defaultLocale = labelMap['default_locale']?.toString();
+                    final defaultLocale =
+                        labelMap['default_locale']?.toString();
                     if (defaultLocale == null) {
-                      throw AppException.validation('Workflow configuration corrupted: missing default_locale.');
+                      throw AppException.validation(
+                        'Workflow configuration corrupted: missing default_locale.',
+                      );
                     }
 
                     // Support legacy direct strings or V2 I18n block
                     final nameVal = workflow['name'];
                     final String displayName;
-                    
+
                     if (nameVal is String) {
                       displayName = nameVal;
                     } else {
-                      final localizedName = translations[defaultLocale]?.toString();
+                      final localizedName =
+                          translations[defaultLocale]?.toString();
                       if (localizedName == null) {
-                        throw AppException.validation('Workflow name missing for locale: $defaultLocale.');
+                        throw AppException.validation(
+                          'Workflow name missing for locale: $defaultLocale.',
+                        );
                       }
                       displayName = localizedName;
                     }
@@ -80,10 +86,15 @@ class WorkflowsMasterView extends ConsumerWidget {
                     final stepsList = SafeCast.safeList(workflow['steps']);
                     final steps = stepsList.length;
                     final status = SafeCast.safeString(workflow['status']);
-                    
+
                     final slugStr = SafeCast.safeString(workflow['slug']);
-                    final slug = slugStr.isNotEmpty ? slugStr : (throw AppException.validation('Workflow slug is missing.'));
-                    
+                    final slug =
+                        slugStr.isNotEmpty
+                            ? slugStr
+                            : (throw AppException.validation(
+                              'Workflow slug is missing.',
+                            ));
+
                     final workflowId = workflow['id']?.toString();
                     if (workflowId == null || workflowId.isEmpty) {
                       throw AppException.validation('Workflow ID is missing.');
@@ -114,12 +125,16 @@ class WorkflowsMasterView extends ConsumerWidget {
 
                                 try {
                                   await ref
-                                      .read(workflowsControllerProvider.notifier)
+                                      .read(
+                                        workflowsControllerProvider.notifier,
+                                      )
                                       .cloneWorkflow(id);
                                   if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Workflow cloned securely.'),
+                                      content: Text(
+                                        'Workflow cloned securely.',
+                                      ),
                                     ),
                                   );
                                 } catch (e) {

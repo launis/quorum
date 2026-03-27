@@ -85,7 +85,10 @@ class _RowEditorModalState extends State<RowEditorModal> {
                 I18nTextField(
                   label: 'Item Content (UI/PDF)',
                   initialData: SafeCast.safeMap(
-                    _editableRow['label'] ?? (throw AppException.validation('Matrix row data corrupted: missing localized label.'))
+                    _editableRow['label'] ??
+                        (throw AppException.validation(
+                          'Matrix row data corrupted: missing localized label.',
+                        )),
                   ),
                   onChanged: (val) {
                     _editableRow['label'] = val;
