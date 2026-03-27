@@ -114,4 +114,28 @@ class McpGatewaysController extends AsyncNotifier<List<Map<String, dynamic>>> {
       throw Exception('Failed to delete MCP Gateway: $e');
     }
   }
+
+  /// Clones an MCP Gateway utilizing Optimistic UI.
+  Future<Map<String, dynamic>> cloneGateway(String id) async {
+    final previousState = state;
+    try {
+      // 1. Network Call
+      final client = ref.read(studioClientProvider);
+      final clonedGateway = await client.cloneMcpGateway(id);
+
+      // 2. Update State
+      if (state.hasValue && state.value != null) {
+        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        currentList.add(clonedGateway);
+        state = AsyncValue.data(currentList);
+      }
+      return clonedGateway;
+    } catch (e) {
+      state = previousState;
+      if (e is DioException && e.error is AppException) {
+        throw e.error!;
+      }
+      throw Exception('Failed to clone MCP Gateway: $e');
+    }
+  }
 }

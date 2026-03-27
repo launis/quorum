@@ -107,4 +107,28 @@ class OutputProfilesController
       throw Exception('Failed to delete output profile: $e');
     }
   }
+
+  /// Clones an Output Profile utilizing Optimistic UI.
+  Future<Map<String, dynamic>> cloneProfile(String id) async {
+    final previousState = state;
+    try {
+      // 1. Network Call
+      final client = ref.read(studioClientProvider);
+      final clonedProfile = await client.cloneOutputProfile(id);
+
+      // 2. Update State
+      if (state.hasValue && state.value != null) {
+        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        currentList.insert(0, clonedProfile); // prepend for visibility
+        state = AsyncValue.data(currentList);
+      }
+      return clonedProfile;
+    } catch (e) {
+      state = previousState;
+      if (e is DioException && e.error is AppException) {
+        throw e.error!;
+      }
+      throw Exception('Failed to clone output profile: $e');
+    }
+  }
 }

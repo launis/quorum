@@ -126,4 +126,28 @@ class ModelRegistryController
       throw Exception('Failed to delete model registry config: $e');
     }
   }
+
+  /// Clones a system config utilizing Optimistic UI.
+  Future<Map<String, dynamic>> cloneConfig(String id) async {
+    final previousState = state;
+    try {
+      // 1. Network Call
+      final client = ref.read(studioClientProvider);
+      final clonedConfig = await client.cloneSystemConfig(id);
+
+      // 2. Update State
+      if (state.hasValue && state.value != null) {
+        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        currentList.add(clonedConfig);
+        state = AsyncValue.data(currentList);
+      }
+      return clonedConfig;
+    } catch (e) {
+      state = previousState;
+      if (e is DioException && e.error is AppException) {
+        throw e.error!;
+      }
+      throw Exception('Failed to clone system config: $e');
+    }
+  }
 }

@@ -81,7 +81,11 @@ class WorkflowStepsTab extends StatelessWidget {
                 allSteps: allSteps,
                 mcpGateways: mcpGateways,
                 l10n: l10n,
-                onChanged: onChanged,
+                onChanged: () {
+                  allSteps[entry.key] = entry.value;
+                  workflow['steps'] = allSteps;
+                  onChanged();
+                },
                 onDelete: () {
                   allSteps.removeAt(entry.key);
                   workflow['steps'] = allSteps;

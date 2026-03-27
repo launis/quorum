@@ -774,5 +774,15 @@
   "mcpToolInputSchemaLabel": "Syöteskeema (JSON)",
   "mcpAddToolBtn": "Lisää työkalu",
   "mcpEditToolBtn": "Muokkaa työkalua",
-  "noMcpGatewaysDefined": "MCP-yhdyskäytäviä ei ole määritelty."
+  "noMcpGatewaysDefined": "MCP-yhdyskäytäviä ei ole määritelty.",
+  "tooltipDuplicate": "Kopioi (Shallow-Deep Copy)",
+  "msgEntityClonedSuccess": "Entiteetti kopioitu turvallisesti.",
+  "msgEntityCloneFailed": "Kopiointi epäonnistui: {error}",
+  "@msgEntityCloneFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

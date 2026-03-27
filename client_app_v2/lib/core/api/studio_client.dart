@@ -131,6 +131,12 @@ class StudioClient {
     final response = await _dio.post('studio/steps/simulate', data: data);
     return response.data as Map<String, dynamic>;
   }
+
+  /// Deep clones a step securely.
+  Future<Map<String, dynamic>> cloneStep(String id) async {
+    final response = await _dio.post('studio/steps/$id/clone');
+    return response.data as Map<String, dynamic>;
+  }
   // --- Model Registry ---
 
   /// Retrieves available models.
@@ -165,6 +171,12 @@ class StudioClient {
     await _dio.delete('studio/model-registry/$id');
   }
 
+  /// Deep clones a system config.
+  Future<Map<String, dynamic>> cloneSystemConfig(String id) async {
+    final response = await _dio.post('studio/model-registry/$id/clone');
+    return response.data as Map<String, dynamic>;
+  }
+
   // --- MCP Gateways ---
 
   /// Retrieves all MCP Gateways.
@@ -193,6 +205,12 @@ class StudioClient {
     await _dio.delete('studio/mcp-gateways/$id');
   }
 
+  /// Deep clones an MCP Gateway.
+  Future<Map<String, dynamic>> cloneMcpGateway(String id) async {
+    final response = await _dio.post('studio/mcp-gateways/$id/clone');
+    return response.data as Map<String, dynamic>;
+  }
+
   // --- Output Profiles ---
 
   /// Retrieves all output profiles.
@@ -213,5 +231,11 @@ class StudioClient {
   /// Deletes an output profile.
   Future<void> deleteOutputProfile(String id) async {
     await _dio.delete('output-profiles/$id');
+  }
+
+  /// Deep clones an output profile.
+  Future<Map<String, dynamic>> cloneOutputProfile(String id) async {
+    final response = await _dio.post('output-profiles/$id/clone');
+    return response.data as Map<String, dynamic>;
   }
 }

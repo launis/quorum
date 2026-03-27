@@ -45,3 +45,12 @@ async def delete_step(id: str, current_user: CurrentUserDep, studio_service: Stu
     """Delete a Step securely via SSOT Service Layer."""
     await studio_service.delete_step(current_user, id, force_delete=force_delete)
     return {"status": "success", "deleted_id": id}
+
+@router.post("/{id}/clone", response_model=Step)
+async def clone_step(
+    id: str,
+    current_user: CurrentUserDep,
+    studio_service: StudioServiceDep,
+) -> Step:
+    """Deep clone a step securely via SSOT Service Layer."""
+    return await studio_service.clone_step(current_user, id)

@@ -4,6 +4,7 @@ import 'package:client_app/features/studio/controllers/mcp_gateways_controller.d
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
+import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 
 class McpGatewaysMasterView extends ConsumerWidget {
   const McpGatewaysMasterView({super.key});
@@ -64,7 +65,21 @@ class McpGatewaysMasterView extends ConsumerWidget {
                       subtitle: Text(
                         'Allowed Tools: $tools | Status: ${gateway['is_active'] == true ? "Active" : "Inactive"}',
                       ),
-                      trailing: const Icon(Icons.settings_ethernet),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CloneEntityButton(
+                            onClone: () async {
+                              final id = gateway['id']?.toString();
+                              if (id == null) return;
+                              await ref
+                                  .read(mcpGatewaysControllerProvider.notifier)
+                                  .cloneGateway(id);
+                            },
+                          ),
+                          const Icon(Icons.settings_ethernet),
+                        ],
+                      ),
                       onTap: () {
                         McpGatewayEditRoute(
                           id: gateway['id'] ?? '',

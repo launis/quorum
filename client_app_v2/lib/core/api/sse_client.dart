@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'package:dio/dio.dart';
 import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'sse_client.g.dart';
@@ -9,7 +11,10 @@ part 'sse_client.g.dart';
 /// SSE API Client Provider
 @riverpod
 SseClient sseClient(Ref ref) {
-  return SseClient(ref.watch(apiClientProvider));
+  return SseClient(
+    ref.watch(apiClientProvider),
+    ref.watch(loggerServiceProvider),
+  );
 }
 
 /// Client for interacting with Server-Sent Events (SSE).
@@ -17,8 +22,9 @@ SseClient sseClient(Ref ref) {
 /// Strictly adheres to V2 De-Generator policy. Yields raw Maps.
 class SseClient {
   final Dio _dio;
+  final LoggerService _logger;
 
-  SseClient(this._dio);
+  SseClient(this._dio, this._logger);
 
   /// Subscribes to an execution's live SSE stream.
   ///
@@ -35,7 +41,7 @@ class SseClient {
 
     final stream = response.data?.stream;
     if (stream == null) {
-      throw Exception('Failed to establish SSE connection');
+      throw AppException.network('Failed to establish SSE connection');
     }
 
     // Process the raw byte stream into continuous lines to prevent fragmentation
@@ -71,12 +77,15 @@ class SseClient {
               };
             });
             yield payload;
-          } catch (e) {
-            // Log but graceful degradation: ignore malformed chunk
-            // Exception to Fail-Fast since SSE chunks can sometimes fragment.
+          } catch (e, st) {
+            // Dual-Reporting Mandate: First log structurally before Graceful Degradation
+            _logger.error('SseClient', 'Malformed SSE chunk received or processing failed', e, st);
+            // Exception to Fail-Fast strictly because SSE chunks can sometimes fragment. 
+            // Logging secures diagnostic traceability.
           }
         }
       }
     }
   }
 }
+

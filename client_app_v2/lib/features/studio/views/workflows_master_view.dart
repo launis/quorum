@@ -5,6 +5,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 
 /// Flat MVC List view for Workflows (DAG definitions).
 /// Adheres strictly to De-Generator constraints using List<Map<String, dynamic>>.
@@ -116,36 +117,13 @@ class WorkflowsMasterView extends ConsumerWidget {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.copy),
-                              tooltip: 'Duplicate (Shallow-Deep Copy)',
-                              onPressed: () async {
+                            CloneEntityButton(
+                              onClone: () async {
                                 final id = workflow['id']?.toString();
                                 if (id == null) return;
-
-                                try {
-                                  await ref
-                                      .read(
-                                        workflowsControllerProvider.notifier,
-                                      )
-                                      .cloneWorkflow(id);
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Workflow cloned securely.',
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to clone: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
+                                await ref
+                                    .read(workflowsControllerProvider.notifier)
+                                    .cloneWorkflow(id);
                               },
                             ),
                             const Icon(Icons.settings_ethernet),

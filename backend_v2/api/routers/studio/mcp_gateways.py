@@ -43,3 +43,12 @@ async def delete_mcp_gateway(
     """Delete an MCP Gateway configuration securely via SSOT Service Layer."""
     await studio_service.delete_system_config(current_user, gateway_id)
     return {"status": "success", "deleted_id": gateway_id}
+
+@router.post("/{gateway_id}/clone", response_model=SystemConfigMCPGateways)
+async def clone_mcp_gateway(
+    gateway_id: str,
+    current_user: CurrentUserDep,
+    studio_service: StudioServiceDep,
+) -> SystemConfigMCPGateways:
+    """Deep clone an MCP Gateway configuration securely via SSOT Service Layer."""
+    return await studio_service.clone_mcp_gateways(current_user, gateway_id)

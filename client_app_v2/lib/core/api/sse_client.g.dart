@@ -52,4 +52,4 @@ final class SseClientProvider
   }
 }
 
-String _$sseClientHash() => r'aafabc50c06d32556064a5b39fdc0c445a4959ef';
+String _$sseClientHash() => r'652cbc0f5b8db900ea207917da0a5e5aa659ef15';

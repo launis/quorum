@@ -65,3 +65,12 @@ async def delete_model_registry(
     """Delete a model registry configuration securely via SSOT Service Layer."""
     await studio_service.delete_system_config(current_user, registry_id)
     return {"status": "success", "deleted_id": registry_id}
+
+@router.post("/{registry_id}/clone", response_model=SystemConfigModelRegistry)
+async def clone_model_registry(
+    registry_id: str,
+    current_user: CurrentUserDep,
+    studio_service: StudioServiceDep,
+) -> SystemConfigModelRegistry:
+    """Deep clone a model registry configuration securely via SSOT Service Layer."""
+    return await studio_service.clone_system_config(current_user, registry_id)

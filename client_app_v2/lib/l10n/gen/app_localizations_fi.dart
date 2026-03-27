@@ -2346,4 +2346,15 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get noMcpGatewaysDefined => 'MCP-yhdyskäytäviä ei ole määritelty.';
+
+  @override
+  String get tooltipDuplicate => 'Kopioi (Shallow-Deep Copy)';
+
+  @override
+  String get msgEntityClonedSuccess => 'Entiteetti kopioitu turvallisesti.';
+
+  @override
+  String msgEntityCloneFailed(String error) {
+    return 'Kopiointi epäonnistui: $error';
+  }
 }

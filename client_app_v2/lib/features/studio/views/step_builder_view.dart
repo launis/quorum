@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
+import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
@@ -40,6 +41,9 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
     }
     if (!_editableStep.containsKey('pre_hooks')) {
       _editableStep['pre_hooks'] = [];
+    }
+    if (!_editableStep.containsKey('allowed_mcp_tools')) {
+      _editableStep['allowed_mcp_tools'] = [];
     }
   }
 
@@ -98,13 +102,16 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
   @override
   Widget build(BuildContext context) {
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
+    final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
 
     // Absolute Fail-Fast: Do not use `?? []` to mask data loading or corruption.
     if (promptBlocksAsync.hasError) throw promptBlocksAsync.error!;
-    if (!promptBlocksAsync.hasValue) {
+    if (mcpGatewaysAsync.hasError) throw mcpGatewaysAsync.error!;
+    if (!promptBlocksAsync.hasValue || !mcpGatewaysAsync.hasValue) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final promptBlocks = promptBlocksAsync.value!;
+    final mcpGateways = mcpGatewaysAsync.value!;
 
     final saveMutation = useMutation<void>(
       onSuccess: (_) {
@@ -313,6 +320,44 @@ class _StepBuilderViewState extends ConsumerState<StepBuilderView> {
                     ],
                   ),
                 ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // allowed_mcp_tools
+              const Text(
+                'XAI Reporting / Toolkit Injection (MCP Gateways)',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                children:
+                    mcpGateways.map((toolMap) {
+                      final slug = SafeCast.safeString(toolMap['slug']);
+                      final allowedMcpTools =
+                          SafeCast.safeList(
+                            _editableStep['allowed_mcp_tools'],
+                          ).map((e) => e.toString()).toList();
+                      final isSelected = allowedMcpTools.contains(slug);
+                      return FilterChip(
+                        label: Text(slug),
+                        selected: isSelected,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            if (selected) {
+                              if (!allowedMcpTools.contains(slug)) {
+                                allowedMcpTools.add(slug);
+                              }
+                            } else {
+                              allowedMcpTools.remove(slug);
+                            }
+                            _editableStep['allowed_mcp_tools'] =
+                                allowedMcpTools;
+                          });
+                        },
+                      );
+                    }).toList(),
               ),
 
               const SizedBox(height: 24),

@@ -262,6 +262,30 @@ class StepsController extends AsyncNotifier<List<Map<String, dynamic>>> {
     }
   }
 
+  /// Clones a step utilizing Optimistic UI.
+  Future<Map<String, dynamic>> cloneStep(String id) async {
+    final previousState = state;
+    try {
+      // 1. Network Call
+      final client = ref.read(studioClientProvider);
+      final clonedStep = await client.cloneStep(id);
+
+      // 2. Update State
+      if (state.hasValue && state.value != null) {
+        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        currentList.add(clonedStep);
+        state = AsyncValue.data(currentList);
+      }
+      return clonedStep;
+    } catch (e) {
+      state = previousState;
+      if (e is DioException && e.error is AppException) {
+        throw e.error!;
+      }
+      throw Exception('Failed to clone step: $e');
+    }
+  }
+
   /// Simulates a step on the backend without saving it.
   Future<Map<String, dynamic>> simulateStep(
     Map<String, dynamic> payload,

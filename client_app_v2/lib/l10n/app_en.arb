@@ -1126,5 +1126,15 @@
   "mcpToolInputSchemaLabel": "Input Schema (JSON)",
   "mcpAddToolBtn": "Add Tool",
   "mcpEditToolBtn": "Edit Tool",
-  "noMcpGatewaysDefined": "No MCP gateways defined."
+  "noMcpGatewaysDefined": "No MCP gateways defined.",
+  "tooltipDuplicate": "Duplicate (Shallow-Deep Copy)",
+  "msgEntityClonedSuccess": "Entity cloned securely.",
+  "msgEntityCloneFailed": "Failed to clone: {error}",
+  "@msgEntityCloneFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

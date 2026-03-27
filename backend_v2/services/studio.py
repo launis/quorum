@@ -192,6 +192,42 @@ class StudioService:
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete_step(id, force_delete=force_delete)
 
+    async def clone_step(self, initiator: TokenData, id: str) -> Step:
+        """Deep Clones a Step into the initiator's tenant organization."""
+        data = await self.repo.get("steps", id)
+        if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Step {id} not found.")
+            raise ResourceNotFoundError(resource_type="step", resource_id=id)
+
+        self._enforce_tenant_isolation(initiator, data, "step")
+
+        import uuid
+        new_id = f"step_{uuid.uuid4().hex}"
+
+        cloned_data = Step.model_validate(data).model_dump(mode="json")
+        cloned_data["id"] = new_id
+
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
+             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+
+        if "name" in cloned_data and isinstance(cloned_data["name"], dict):
+             default_locale = cloned_data["name"].get("default_locale", "en")
+             translations = cloned_data["name"].get("translations", {})
+             if default_locale in translations:
+                 translations[default_locale] = translations[default_locale] + " (Copy)"
+                 cloned_data["name"]["translations"] = translations
+        elif "name" in cloned_data and isinstance(cloned_data["name"], str):
+             cloned_data["name"] = cloned_data["name"] + " (Copy)"
+
+        await self.repo.create_raw("steps", cloned_data)
+
+        saved = await self.repo.get("steps", new_id)
+        if not saved:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Step {new_id} not found after clone.")
+            raise ResourceNotFoundError(resource_type="step", resource_id=new_id)
+
+        return Step.model_validate(saved)
+
     # --- Prompt Blocks ---
 
     async def list_prompt_blocks(self, initiator: TokenData) -> list[PromptBlock]:
@@ -323,6 +359,29 @@ class StudioService:
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         await self.repo.delete("system_config", id)
 
+    async def clone_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
+        """Deep Clones a System Config for the ROOT tenant."""
+        if initiator.role != "ROOT":
+             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can clone system configs.")
+             raise PermissionDeniedError("Only ROOT can clone system configs.")
+        data = await self.repo.get("system_config", id)
+        if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
+            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+
+        import uuid
+        new_id = f"system_config_{uuid.uuid4().hex}"
+
+        cloned_data = SystemConfigModelRegistry.model_validate(data).model_dump(mode="json")
+        cloned_data["id"] = new_id
+        if "description" in cloned_data:
+             cloned_data["description"] = f"{cloned_data['description']} (Copy)"
+
+        await self.repo.create_raw("system_config", cloned_data)
+
+        saved = await self.repo.get("system_config", new_id)
+        return SystemConfigModelRegistry.model_validate(saved)
+
     async def list_mcp_gateways(self, initiator: TokenData) -> list[SystemConfigMCPGateways]:
         all_data = await self.repo.get_all("system_config")
         if initiator.role == "ROOT":
@@ -358,6 +417,31 @@ class StudioService:
         if not saved:
              logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: MCP Gateways Config {id} not found.")
              raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+        return SystemConfigMCPGateways.model_validate(saved)
+
+    async def clone_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
+        """Deep Clones an MCP Gateway Config for the ROOT tenant."""
+        if initiator.role != "ROOT":
+             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can clone system configs.")
+             raise PermissionDeniedError("Only ROOT can clone system configs.")
+        data = await self.repo.get("system_config", id)
+        if not data or data.get("type") != "mcp_gateways":
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: MCP Gateway Config {id} not found.")
+            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+
+        import uuid
+        new_id = f"mcp_{uuid.uuid4().hex}"
+
+        cloned_data = SystemConfigMCPGateways.model_validate(data).model_dump(mode="json")
+        cloned_data["id"] = new_id
+        
+        # Opaque pattern: copy the original slug so user realizes it needs modification
+        if "description" in cloned_data and cloned_data["description"]:
+             pass 
+
+        await self.repo.create_raw("system_config", cloned_data)
+
+        saved = await self.repo.get("system_config", new_id)
         return SystemConfigMCPGateways.model_validate(saved)
 
     # --- Output Profiles ---
@@ -436,6 +520,42 @@ class StudioService:
 
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete_output_profile(id)
+
+    async def clone_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
+        """Deep Clones an Output Profile into the initiator's tenant organization."""
+        data = await self.repo.get_output_profile_by_id(id)
+        if not data:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: OutputProfile {id} not found.")
+            raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
+
+        self._enforce_tenant_isolation(initiator, data, "output_profile")
+
+        import uuid
+        new_id = f"profile_{uuid.uuid4().hex}"
+
+        cloned_data = OutputProfile.model_validate(data).model_dump(mode="json")
+        cloned_data["id"] = new_id
+
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
+             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+
+        if "name" in cloned_data and isinstance(cloned_data["name"], dict):
+             default_locale = cloned_data["name"].get("default_locale", "en")
+             translations = cloned_data["name"].get("translations", {})
+             if default_locale in translations:
+                 translations[default_locale] = translations[default_locale] + " (Copy)"
+                 cloned_data["name"]["translations"] = translations
+        elif "name" in cloned_data and isinstance(cloned_data["name"], str):
+             cloned_data["name"] = cloned_data["name"] + " (Copy)"
+
+        await self.repo.create_output_profile(cloned_data)
+
+        saved = await self.repo.get_output_profile_by_id(new_id)
+        if not saved:
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: OutputProfile {new_id} not found after clone.")
+            raise ResourceNotFoundError(resource_type="output_profile", resource_id=new_id)
+
+        return OutputProfile.model_validate(saved)
 
     # --- Workflow Simulation (DAG Dry-Run) ---
     async def simulate_workflow(self, initiator: TokenData, data: Workflow) -> dict[str, Any]:

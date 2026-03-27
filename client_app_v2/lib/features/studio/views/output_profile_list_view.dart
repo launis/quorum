@@ -4,6 +4,7 @@ import 'package:client_app/features/studio/controllers/output_profile_controller
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
+import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 
 class OutputProfileListView extends ConsumerWidget {
   const OutputProfileListView({super.key});
@@ -63,7 +64,23 @@ class OutputProfileListView extends ConsumerWidget {
                       subtitle: Text(
                         'ID: ${profile['id']} | Workflow: ${profile['workflow_id'] ?? 'None'} | ${layouts.length} Layout Blocks',
                       ),
-                      trailing: const Icon(Icons.edit_document),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CloneEntityButton(
+                            onClone: () async {
+                              final id = profile['id']?.toString();
+                              if (id == null) return;
+                              await ref
+                                  .read(
+                                    outputProfilesControllerProvider.notifier,
+                                  )
+                                  .cloneProfile(id);
+                            },
+                          ),
+                          const Icon(Icons.edit_document),
+                        ],
+                      ),
                       onTap: () {
                         OutputProfileEditRoute(
                           id: profile['id'] ?? '',

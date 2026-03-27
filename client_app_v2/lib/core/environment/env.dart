@@ -1,5 +1,8 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'env.g.dart';
 
 /// **Environment Configuration Service**
 ///
@@ -11,15 +14,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Loads values from the `.env` file via `flutter_dotenv`.
 ///
 /// **Business Logic**:
-/// - Provides a safe fallback for the `API_URL` to `http://localhost:8000` to ensure
-///   local development works out-of-the-box.
+/// - Enforces the Zero-Compromise Pledge (Fail-Fast) by requiring all variables
+///   to be present in the `.env` file. No silent fallbacks exist.
+@riverpod
+Env env(Ref ref) {
+  return Env();
+}
+
 class Env {
   /// The base URL for the Python Backend API.
   ///
   /// Examples:
-  /// - Local: `http://localhost:8000`
+  /// - Local: `http://127.0.0.1:8000`
   /// - Prod: `https://api.cognitivequorum.com`
-  static String get apiUrl => dotenv.env['API_URL'] ?? 'http://127.0.0.1:8000';
+  static String get apiUrl {
+    final url = dotenv.env['API_URL'];
+    if (url == null || url.isEmpty) {
+      throw AppException.validation('API_URL environment variable is missing from .env.');
+    }
+    return url;
+  }
 }
 
-final envProvider = Provider<Env>((ref) => Env());

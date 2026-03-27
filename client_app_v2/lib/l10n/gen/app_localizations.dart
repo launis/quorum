@@ -4345,6 +4345,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No MCP gateways defined.'**
   String get noMcpGatewaysDefined;
+
+  /// No description provided for @tooltipDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate (Shallow-Deep Copy)'**
+  String get tooltipDuplicate;
+
+  /// No description provided for @msgEntityClonedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Entity cloned securely.'**
+  String get msgEntityClonedSuccess;
+
+  /// No description provided for @msgEntityCloneFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clone: {error}'**
+  String msgEntityCloneFailed(String error);
 }
 
 class _AppLocalizationsDelegate

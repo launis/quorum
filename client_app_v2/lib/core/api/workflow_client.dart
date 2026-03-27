@@ -1,11 +1,14 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/network/api_client.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'workflow_client.g.dart';
 
 /// Workflow API Client Provider
-final workflowClientProvider = Provider<WorkflowClient>((ref) {
+@riverpod
+WorkflowClient workflowClient(Ref ref) {
   return WorkflowClient(ref.watch(apiClientProvider));
-});
+}
 
 /// Client for interacting with the V2 Workflows API.
 class WorkflowClient {

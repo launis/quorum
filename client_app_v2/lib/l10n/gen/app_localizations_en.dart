@@ -2337,4 +2337,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noMcpGatewaysDefined => 'No MCP gateways defined.';
+
+  @override
+  String get tooltipDuplicate => 'Duplicate (Shallow-Deep Copy)';
+
+  @override
+  String get msgEntityClonedSuccess => 'Entity cloned securely.';
+
+  @override
+  String msgEntityCloneFailed(String error) {
+    return 'Failed to clone: $error';
+  }
 }

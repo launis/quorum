@@ -74,3 +74,13 @@ async def delete_output_profile(
 ) -> None:
     """Delete an Output Profile."""
     await service.delete_output_profile(initiator=initiator, id=profile_id)
+
+@router.post("/{profile_id}/clone", response_model=OutputProfileResponseDTO)
+async def clone_output_profile(
+    profile_id: str,
+    initiator: CurrentUserDep,
+    service: StudioServiceDep,
+) -> dict[str, Any]:
+    """Deep clone an Output Profile."""
+    profile = await service.clone_output_profile(initiator=initiator, id=profile_id)
+    return profile.model_dump()

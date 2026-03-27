@@ -11,6 +11,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 
 /// **Studio Dashboard View**
 ///
@@ -171,7 +172,22 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         leading: const Icon(Icons.text_snippet),
                         title: Text(blockId),
                         subtitle: Text('Slug: $slugStr'),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CloneEntityButton(
+                              onClone: () async {
+                                final id = blockId;
+                                await ref
+                                    .read(
+                                      promptBlocksControllerProvider.notifier,
+                                    )
+                                    .clonePromptBlock(id);
+                              },
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onTap: () {
                           PromptBlockEditRoute(
                             id: blockId,
@@ -253,7 +269,22 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         leading: const Icon(Icons.grid_on),
                         title: Text(matrixId),
                         subtitle: Text(l10n.matrixSubtitle(ruleCount)),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CloneEntityButton(
+                              onClone: () async {
+                                final id = matrixId;
+                                await ref
+                                    .read(
+                                      promptBlocksControllerProvider.notifier,
+                                    )
+                                    .clonePromptBlock(id);
+                              },
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onTap: () {
                           PromptBlockEditRoute(
                             id: matrixId,
@@ -340,7 +371,20 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         subtitle: Text(
                           'Blocks: $blockCount | Hooks: $hookCount',
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CloneEntityButton(
+                              onClone: () async {
+                                final id = blueprintId;
+                                await ref
+                                    .read(stepsControllerProvider.notifier)
+                                    .cloneStep(id);
+                              },
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onTap: () {
                           StepEditRoute($extra: blueprint).go(context);
                         },
@@ -412,7 +456,22 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       child: ListTile(
                         title: Text(configId),
                         subtitle: Text('Configured Models: $modelCount'),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CloneEntityButton(
+                              onClone: () async {
+                                final id = configId;
+                                await ref
+                                    .read(
+                                      modelRegistryControllerProvider.notifier,
+                                    )
+                                    .cloneConfig(id);
+                              },
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onTap: () {
                           ModelRegistryEditRoute(
                             id: configId,

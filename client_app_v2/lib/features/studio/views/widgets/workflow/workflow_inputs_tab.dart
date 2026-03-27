@@ -92,7 +92,11 @@ class WorkflowInputsTab extends StatelessWidget {
                   workflow['expected_inputs'] = inputsList;
                   onChanged();
                 },
-                onChanged: onChanged,
+                onChanged: () {
+                  inputsList[index] = inputDef;
+                  workflow['expected_inputs'] = inputsList;
+                  onChanged();
+                },
               );
             }),
           ],
