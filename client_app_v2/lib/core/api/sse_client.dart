@@ -79,13 +79,17 @@ class SseClient {
             yield payload;
           } catch (e, st) {
             // Dual-Reporting Mandate: First log structurally before Graceful Degradation
-            _logger.error('SseClient', 'Malformed SSE chunk received or processing failed', e, st);
-            // Exception to Fail-Fast strictly because SSE chunks can sometimes fragment. 
-            // Logging secures diagnostic traceability.
+            _logger.error(
+              'SseClient',
+              'Malformed SSE chunk received or processing failed',
+              e,
+              st,
+            );
+            // Absolute Death Mandate: Fail-fast and terminate the stream on fragment corruption
+            rethrow;
           }
         }
       }
     }
   }
 }
-

@@ -1,52 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'dart:convert';
 
-class McpGatewayView extends ConsumerStatefulWidget {
+/// Admin Studio View for managing the MCP Gateways.
+/// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
+class McpGatewayView extends HookConsumerWidget {
   final String id;
-  final Map<String, dynamic>? initialData;
-
-  const McpGatewayView({super.key, required this.id, this.initialData});
-
-  @override
-  ConsumerState<McpGatewayView> createState() => _McpGatewayViewState();
-}
-
-class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
-  final _formKey = GlobalKey<FormState>();
-  Map<String, dynamic>? _editableState;
+  // initialData is dropped here if any exists, deep-links should fetch fresh native data
+  const McpGatewayView({super.key, required this.id});
 
   @override
-  void initState() {
-    super.initState();
-    if (widget.initialData != null) {
-      _editableState = _deepCopy(widget.initialData!);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final formKey = useMemoized(() => GlobalKey<FormState>());
 
-    if (_editableState != null) {
-      return _buildScaffold(l10n, false);
-    }
+    // 1. Data and loading states are read from Riverpod! No useEffect for fetching!
+    final formState = ref.watch(mcpGatewayFormProvider(id));
 
-    final asyncData =
-        (widget.id == 'new')
-            ? AsyncValue.data({
-              'id': 'mcpcfg_new',
-              'slug': 'new-gateway',
-              'type': 'mcp_gateways',
-              'tools': [],
-            })
-            : ref.watch(mcpGatewayByIdProvider(widget.id));
-
-    return asyncData.when(
+    return formState.when(
       loading:
           () => Scaffold(
             appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
@@ -59,43 +35,129 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
               error: e,
               stackTrace: st,
               compact: false,
-              onRetry: () => ref.invalidate(mcpGatewayByIdProvider(widget.id)),
+              onRetry: () => ref.invalidate(mcpGatewayFormProvider(id)),
             ),
           ),
-      data: (data) {
-        _editableState ??= _deepCopy(data);
-        return _buildScaffold(l10n, false);
+      data: (payload) {
+        // The UI is a pure renderer of the business payload
+        return _buildScaffold(context, ref, l10n, formKey, formState, payload);
       },
     );
   }
 
-  Widget _buildScaffold(AppLocalizations l10n, bool isSaving) {
+  Widget _buildScaffold(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    GlobalKey<FormState> formKey,
+    AsyncValue<Map<String, dynamic>> formState,
+    Map<String, dynamic> payload,
+  ) {
+    Future<void> deleteGateway() async {
+      final String idToDelete = payload['id']?.toString() ?? '';
+      if (idToDelete.isEmpty || id == 'new') return;
+
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: Text(l10n.deleteGatewayTitle),
+              content: Text(l10n.deleteGatewayConfirmation(idToDelete)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n.cancelButton),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.deleteButton),
+                ),
+              ],
+            ),
+      );
+
+      if (confirm == true) {
+        try {
+          await ref
+              .read(mcpGatewaysControllerProvider.notifier)
+              .deleteGateway(idToDelete);
+          if (!context.mounted) return;
+          context.pop();
+        } catch (e) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.deleteFailedError(e.toString())),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
+
+    Future<void> saveGateway() async {
+      if (formKey.currentState!.validate()) {
+        formKey.currentState!.save();
+        try {
+          final notifier = ref.read(mcpGatewayFormProvider(id).notifier);
+          await notifier.submit(payload);
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.gatewaySavedSuccess)));
+        } catch (e) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.saveFailedError(e.toString())),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.studioDashboardGatewaysTitle),
         actions: [
-          if (widget.id != 'new')
+          if (formState.isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.only(right: 16.0),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+          if (id != 'new')
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.orange),
-              onPressed: _deleteGateway,
-              tooltip: 'Delete Gateway',
+              onPressed: formState.isLoading ? null : deleteGateway,
+              tooltip: l10n.deleteGatewayTitle,
             ),
           FilledButton.icon(
             icon: const Icon(Icons.save),
             label: Text(l10n.studioSaveButton),
-            onPressed: isSaving ? null : _saveGateway,
+            onPressed:
+                formState.isLoading
+                    ? null
+                    : saveGateway, // Read isLoading directly from Riverpod!
           ),
           const SizedBox(width: 16),
         ],
       ),
       body: Form(
-        key: _formKey,
+        key: formKey,
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            _buildSystemAttributes(l10n, _editableState!),
+            _buildSystemAttributes(l10n, payload),
             const SizedBox(height: 24),
-            _buildToolsSection(l10n, _editableState!),
+            _buildToolsSection(context, ref, l10n, payload),
           ],
         ),
       ),
@@ -113,19 +175,19 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Gateway Metadata',
-              style: Theme.of(context).textTheme.titleLarge,
+              l10n.gatewayMetadataTitle,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
             TextFormField(
               initialValue: data['id']?.toString(),
               decoration: InputDecoration(labelText: l10n.configIdLabel),
-              readOnly: true,
+              readOnly: true, // Opaque ID Mandate: NEVER editable manually
             ),
             const SizedBox(height: 8),
             TextFormField(
               initialValue: data['slug']?.toString(),
-              decoration: const InputDecoration(labelText: 'Slug'),
+              decoration: InputDecoration(labelText: l10n.slugLabel),
               onSaved: (val) => data['slug'] = val,
             ),
             const SizedBox(height: 8),
@@ -140,9 +202,13 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
     );
   }
 
-  Widget _buildToolsSection(AppLocalizations l10n, Map<String, dynamic> data) {
+  Widget _buildToolsSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    Map<String, dynamic> data,
+  ) {
     final tools = List<Map<String, dynamic>>.from(data['tools'] ?? []);
-    data['tools'] = tools; // Ensure reference binds
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -151,30 +217,20 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Allowed MCP Tools',
-              style: Theme.of(context).textTheme.titleLarge,
+              l10n.allowedMcpToolsTitle,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             FilledButton.icon(
               onPressed: () {
-                setState(() {
-                  tools.add({
-                    'tool_id': 'new_tool',
-                    'name': {
-                      'default_locale': 'en',
-                      'translations': {'en': 'New Tool', 'fi': 'Uusi työkalu'},
-                    },
-                    'description': '',
-                    'input_schema': {},
-                  });
-                });
+                ref.read(mcpGatewayFormProvider(id).notifier).addTool();
               },
               icon: const Icon(Icons.add),
-              label: const Text('Add Tool'),
+              label: Text(l10n.addToolButton),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        if (tools.isEmpty) const Text('No tools defined for this gateway.'),
+        if (tools.isEmpty) Text(l10n.noToolsDefinedGateway),
         ...tools.asMap().entries.map((entry) {
           final index = entry.key;
           final tool = entry.value;
@@ -183,11 +239,13 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
             margin: const EdgeInsets.only(bottom: 16.0),
             child: ExpansionTile(
               initiallyExpanded: true,
-              title: Text('Tool: ${tool['tool_id']}'),
+              title: Text(l10n.toolTitlePrefix(tool['tool_id'].toString())),
               trailing: IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: () {
-                  setState(() => tools.removeAt(index));
+                  ref
+                      .read(mcpGatewayFormProvider(id).notifier)
+                      .removeTool(index);
                 },
               ),
               children: [
@@ -195,17 +253,20 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      _buildStringField(tool, 'tool_id', 'Tool ID (Slug)'),
-                      _buildI18nGroup(tool, l10n),
+                      _buildStringField(ref, tool, 'tool_id', l10n.toolIdLabel),
+                      _buildI18nGroup(ref, tool, l10n),
                       _buildLargeStringField(
+                        ref,
                         tool,
                         'description',
-                        'Tool Description (English only for LLM)',
+                        l10n.toolDescriptionLabel,
                       ),
                       _buildJsonEditorField(
+                        ref,
                         tool,
                         'input_schema',
-                        'JSON Input Schema',
+                        l10n.jsonInputSchemaLabel,
+                        l10n,
                       ),
                     ],
                   ),
@@ -218,7 +279,12 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
     );
   }
 
-  Widget _buildStringField(Map<String, dynamic> map, String key, String label) {
+  Widget _buildStringField(
+    WidgetRef ref,
+    Map<String, dynamic> map,
+    String key,
+    String label,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: TextFormField(
@@ -227,12 +293,19 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
           labelText: label,
           border: const OutlineInputBorder(),
         ),
+        onChanged: (val) {
+          map[key] =
+              val; // Synchronous in-place update (Hook/TextController is also fine here)
+          // If we need the title to update instantly, we can call forceRebuild()
+          // but normally onSaved or normal Reactivity via onEditingComplete is used.
+        },
         onSaved: (val) => map[key] = val,
       ),
     );
   }
 
   Widget _buildLargeStringField(
+    WidgetRef ref,
     Map<String, dynamic> map,
     String key,
     String label,
@@ -252,9 +325,11 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
   }
 
   Widget _buildJsonEditorField(
+    WidgetRef ref,
     Map<String, dynamic> map,
     String key,
     String label,
+    AppLocalizations l10n,
   ) {
     final currentObj = map[key] ?? {};
     final currentStr = const JsonEncoder.withIndent('  ').convert(currentObj);
@@ -272,10 +347,10 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
         validator: (val) {
           if (val == null || val.trim().isEmpty) return null;
           try {
-            jsonDecode(val);
+            jsonDecode(val); // UI validation is fast, allowed.
             return null;
           } catch (e) {
-            return 'Invalid JSON';
+            return l10n.invalidJsonError;
           }
         },
         onSaved: (val) {
@@ -289,7 +364,11 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
     );
   }
 
-  Widget _buildI18nGroup(Map<String, dynamic> tool, AppLocalizations l10n) {
+  Widget _buildI18nGroup(
+    WidgetRef ref,
+    Map<String, dynamic> tool,
+    AppLocalizations l10n,
+  ) {
     final nameObj =
         tool['name'] as Map<String, dynamic>? ??
         {
@@ -305,18 +384,18 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'UI Display Name (I18nText)',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          l10n.uiDisplayNameTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
           child: TextFormField(
             initialValue: translations['en']?.toString() ?? '',
-            decoration: const InputDecoration(
-              labelText: 'English Name',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.englishNameLabel,
+              border: const OutlineInputBorder(),
             ),
             onSaved: (val) => translations['en'] = val,
           ),
@@ -325,90 +404,14 @@ class _McpGatewayViewState extends ConsumerState<McpGatewayView> {
           padding: const EdgeInsets.only(bottom: 12.0),
           child: TextFormField(
             initialValue: translations['fi']?.toString() ?? '',
-            decoration: const InputDecoration(
-              labelText: 'Finnish Name',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.finnishNameLabel,
+              border: const OutlineInputBorder(),
             ),
             onSaved: (val) => translations['fi'] = val,
           ),
         ),
       ],
     );
-  }
-
-  Map<String, dynamic> _deepCopy(Map<String, dynamic> source) {
-    return jsonDecode(jsonEncode(source)) as Map<String, dynamic>;
-  }
-
-  Future<void> _saveGateway() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      try {
-        final idToSave =
-            widget.id == 'new'
-                ? (_editableState!['id'] ?? 'mcpcfg_new')
-                : widget.id;
-        await ref
-            .read(mcpGatewaysControllerProvider.notifier)
-            .saveGateway(idToSave, _editableState!);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('MCP Gateway saved successfully.')),
-        );
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Save failed: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _deleteGateway() async {
-    final String idToDelete = _editableState?['id']?.toString() ?? '';
-    if (idToDelete.isEmpty || widget.id == 'new') return;
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Delete MCP Gateway?'),
-            content: Text(
-              'Are you sure you want to delete gateway $idToDelete?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirm == true) {
-      try {
-        await ref
-            .read(mcpGatewaysControllerProvider.notifier)
-            .deleteGateway(idToDelete);
-        if (!mounted) return;
-        context.pop();
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Delete failed: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
   }
 }

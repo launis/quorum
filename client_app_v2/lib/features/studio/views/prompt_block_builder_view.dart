@@ -5,6 +5,7 @@ import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
 import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
@@ -17,10 +18,8 @@ import 'package:client_app/core/error/app_exception.dart';
 ///
 /// CRUD interface for editing evaluation matrices adhering strictly to the
 /// De-Generator policy (`Map<String, dynamic>`).
-///
-/// Integrates XAI (Explainable AI) controls directly into criteria definitions
-/// and provides a global "Strictness/Kireys" calibration slider.
-class PromptBlockBuilderView extends ConsumerWidget {
+/// Now compliant with the Gold Standard Riverpod Form UI pattern.
+class PromptBlockBuilderView extends HookConsumerWidget {
   final String? id;
   final String? slug;
   final Map<String, dynamic>? initialData;
@@ -34,75 +33,65 @@ class PromptBlockBuilderView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (initialData != null && initialData!.isNotEmpty) {
-      return _PromptBlockBuilderForm(promptBlock: initialData!);
-    }
-    if (id == null || id!.isEmpty || id == 'new') {
-      return const _PromptBlockBuilderForm(promptBlock: {});
-    }
+    final l10n = AppLocalizations.of(context)!;
+    final blockId = (id == null || id!.isEmpty) ? 'new' : id!;
+    final formState = ref.watch(promptBlockFormProvider(blockId));
 
-    final asyncData = ref.watch(promptBlockByIdProvider(id!));
-    return asyncData.when(
-      data: (matrix) => _PromptBlockBuilderForm(promptBlock: matrix),
+    return formState.when(
       loading:
-          () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error:
-          (e, st) => ErrorView(
-            error: e,
-            stackTrace: st,
-            onRetry: () => ref.invalidate(promptBlockByIdProvider(id!)),
+          () => Scaffold(
+            appBar: AppBar(title: Text(l10n.promptBlockEditTitle)),
+            body: const Center(child: CircularProgressIndicator()),
           ),
+      error:
+          (e, st) => Scaffold(
+            appBar: AppBar(title: Text(l10n.promptBlockEditTitle)),
+            body: ErrorView(
+              error: e,
+              stackTrace: st,
+              compact: false,
+              onRetry: () => ref.invalidate(promptBlockFormProvider(blockId)),
+            ),
+          ),
+      data: (payload) {
+        return _buildScaffold(context, ref, l10n, formState, payload, blockId);
+      },
     );
   }
-}
 
-class _PromptBlockBuilderForm extends StatefulHookConsumerWidget {
-  final Map<String, dynamic> promptBlock;
-
-  const _PromptBlockBuilderForm({required this.promptBlock});
-
-  @override
-  ConsumerState<_PromptBlockBuilderForm> createState() =>
-      _PromptBlockBuilderFormState();
-}
-
-class _PromptBlockBuilderFormState
-    extends ConsumerState<_PromptBlockBuilderForm> {
-  late Map<String, dynamic> _editablePromptBlock;
-
-  @override
-  void initState() {
-    super.initState();
-    // Deepish copy for isolated editing
-    _editablePromptBlock = Map<String, dynamic>.from(widget.promptBlock);
-
-    // "The English-Only Mandate": Ensure new blocks have required 'en' structure
-    if (!_editablePromptBlock.containsKey('label')) {
-      _editablePromptBlock['label'] = {
-        'default_locale': 'en',
-        'translations': <String, dynamic>{'en': ''},
-      };
-    }
-    if (!_editablePromptBlock.containsKey('description')) {
-      _editablePromptBlock['description'] = {
-        'default_locale': 'en',
-        'translations': <String, dynamic>{'en': ''},
-      };
-    }
+  void _addListItem(
+    WidgetRef ref,
+    Map<String, dynamic> payload,
+    String blockId,
+    String key,
+    Map<String, dynamic> initialValue,
+  ) {
+    final list = SafeCast.safeList(payload[key]);
+    list.add(initialValue);
+    payload[key] = list;
+    ref.read(promptBlockFormProvider(blockId).notifier).forceRebuild();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  void _removeListItem(
+    WidgetRef ref,
+    Map<String, dynamic> payload,
+    String blockId,
+    String key,
+    int index,
+  ) {
+    final list = SafeCast.safeList(payload[key]);
+    list.removeAt(index);
+    payload[key] = list;
+    ref.read(promptBlockFormProvider(blockId).notifier).forceRebuild();
   }
 
-  void _deletePromptBlock(BuildContext context, MutationState<void> deleteMut) {
-    final id = _editablePromptBlock['id']?.toString();
-    if (id == null || id.isEmpty) return;
-
-    final l10n = AppLocalizations.of(context)!;
-
+  void _deletePromptBlock(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    String id,
+    MutationState<void> deleteMut,
+  ) {
     showDialog(
       context: context,
       builder:
@@ -133,63 +122,26 @@ class _PromptBlockBuilderFormState
     );
   }
 
-  void _addListItem(String key, Map<String, dynamic> initialValue) {
-    setState(() {
-      final list = SafeCast.safeList(_editablePromptBlock[key]);
-      list.add(initialValue);
-      _editablePromptBlock[key] = list;
-    });
-  }
-
-  void _removeListItem(String key, int index) {
-    setState(() {
-      final list = SafeCast.safeList(_editablePromptBlock[key]);
-      list.removeAt(index);
-      _editablePromptBlock[key] = list;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    final saveMutation = useMutation<void>(
-      onSuccess: (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Prompt Block saved (Optimistic).')),
-          );
-          Navigator.of(context).pop();
-        }
-      },
-      onError: (e) {
-        if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
-          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${l10n.errorUnknown}: $errorMsg'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      },
-    );
-
+  Widget _buildScaffold(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    AsyncValue<Map<String, dynamic>> formState,
+    Map<String, dynamic> payload,
+    String blockId,
+  ) {
     final validateMutation = useMutation<Map<String, dynamic>>(
       onSuccess: (data) {
-        if (mounted) {
+        if (context.mounted) {
           final rendered = data['rendered_prompt']?.toString();
           if (rendered == null) {
-            throw AppException.validation(
-              'Simulator did not return rendered_prompt. Data corruption detected.',
-            );
+            throw AppException.validation(l10n.simulatorCorruptionError);
           }
           showDialog(
             context: context,
             builder:
                 (ctx) => AlertDialog(
-                  title: const Text('Simulator Output'),
+                  title: Text(l10n.simulatorOutputTitle),
                   content: SizedBox(
                     width: double.maxFinite,
                     child: SingleChildScrollView(
@@ -202,7 +154,7 @@ class _PromptBlockBuilderFormState
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Close'),
+                      child: Text(l10n.closeModalBtn),
                     ),
                   ],
                 ),
@@ -210,10 +162,10 @@ class _PromptBlockBuilderFormState
         }
       },
       onError: (e) {
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Simulation Error: $e'),
+              content: Text(l10n.simulatorFailedError(e.toString())),
               backgroundColor: Colors.red,
             ),
           );
@@ -223,16 +175,15 @@ class _PromptBlockBuilderFormState
 
     final deleteMutation = useMutation<void>(
       onSuccess: (_) {
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Deleted successfully')));
-          Navigator.of(context).pop();
+          ).showSnackBar(SnackBar(content: Text(l10n.studioSaveSuccess)));
+          context.pop();
         }
       },
       onError: (e) {
-        if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
+        if (context.mounted) {
           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
@@ -241,483 +192,565 @@ class _PromptBlockBuilderFormState
       },
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Back to Studio',
-          onPressed: () => context.go('/admin'),
-        ),
-        title: const Text('Edit Prompt Block'),
-        actions: [
-          if (widget.promptBlock['id']?.toString().isNotEmpty == true)
-            IconButton(
-              onPressed: () => _deletePromptBlock(context, deleteMutation),
-              icon: const Icon(Icons.delete, color: Colors.red),
-              tooltip: 'Delete',
+    Future<void> savePromptBlock() async {
+      final labelMap = SafeCast.safeMap(payload['label']);
+      final transMap = SafeCast.safeMap(labelMap['translations']);
+      final enLabel = SafeCast.safeString(transMap['en']);
+
+      if (enLabel.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.promptBlockMandatoryEnglishError)),
+        );
+        return;
+      }
+
+      if (payload['theory_grounding'] == null) {
+        payload.remove('theory_grounding');
+      }
+
+      final currentId =
+          payload['id']?.toString() != null &&
+                  payload['id'].toString().isNotEmpty
+              ? payload['id'].toString()
+              : 'blk_${DateTime.now().millisecondsSinceEpoch}';
+
+      payload['id'] = currentId;
+
+      try {
+        await ref
+            .read(promptBlockFormProvider(blockId).notifier)
+            .submit(payload);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.promptBlockSavedSuccess),
+              backgroundColor: Colors.green,
             ),
-          IconButton(
-            onPressed:
-                validateMutation.isLoading
-                    ? null
-                    : () {
-                      validateMutation.mutate(() async {
-                        final payload = {
-                          'block': _editablePromptBlock,
-                          'mock_inputs':
-                              <
-                                String,
-                                dynamic
-                              >{}, // Provide empty mock inputs for now
-                        };
-                        return await ref
-                            .read(promptBlocksControllerProvider.notifier)
-                            .simulatePromptBlock(payload);
-                      });
-                    },
-            icon:
-                validateMutation.isLoading
-                    ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : const Icon(Icons.bug_report, color: Colors.green),
-            tooltip: 'Simulate Prompt',
-          ),
-          MutationButton<void>(
-            mutation: saveMutation,
-            label: 'Save',
-            icon: Icons.save,
-            // UI must not ask for ID manually (Opaque ID Ban).
-            // It will be auto-generated by the backend if missing.
-            action: () async {
-              // Validating mandatory translations
-              final labelMap = SafeCast.safeMap(_editablePromptBlock['label']);
-              final transMap = SafeCast.safeMap(labelMap['translations']);
-              final enLabel = SafeCast.safeString(transMap['en']);
+          );
+          context.pop();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.saveFailedError(e.toString())),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
 
-              if (enLabel.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'English Label is required (English-Only Mandate).',
+    return AppExceptionBoundary(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            tooltip: 'Back to Studio',
+            onPressed: () => context.go('/admin'),
+          ),
+          title: Text(l10n.promptBlockEditTitle),
+          actions: [
+            if (payload['id']?.toString().isNotEmpty == true)
+              IconButton(
+                onPressed:
+                    () => _deletePromptBlock(
+                      context,
+                      ref,
+                      l10n,
+                      payload['id'].toString(),
+                      deleteMutation,
                     ),
-                  ),
-                );
-                throw Exception('English Label is required');
-              }
-
-              if (_editablePromptBlock['theory_grounding'] == null) {
-                _editablePromptBlock.remove('theory_grounding');
-              }
-              final currentId =
-                  _editablePromptBlock['id']?.toString() ??
-                  'blk_${DateTime.now().millisecondsSinceEpoch}';
-              _editablePromptBlock['id'] = currentId;
-              await ref
-                  .read(promptBlocksControllerProvider.notifier)
-                  .savePromptBlock(currentId, _editablePromptBlock);
-            },
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Matrix Metadata
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Prompt Block Configuration',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (widget.promptBlock['id'] != null) ...[
-                        Text(
-                          'Opaque ID: ${widget.promptBlock['id']}',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    ],
+                icon: const Icon(Icons.delete, color: Colors.red),
+                tooltip: l10n.delete,
+              ),
+            IconButton(
+              onPressed:
+                  validateMutation.isLoading
+                      ? null
+                      : () {
+                        validateMutation.mutate(() async {
+                          final simulatePayload = {
+                            'block': payload,
+                            'mock_inputs':
+                                <
+                                  String,
+                                  dynamic
+                                >{}, // Provide empty mock inputs for now
+                          };
+                          return await ref
+                              .read(promptBlocksControllerProvider.notifier)
+                              .simulatePromptBlock(simulatePayload);
+                        });
+                      },
+              icon:
+                  validateMutation.isLoading
+                      ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(Icons.bug_report, color: Colors.green),
+              tooltip: 'Simulate Prompt',
+            ),
+            if (formState.isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
+              )
+            else
+              TextButton.icon(
+                onPressed: savePromptBlock,
+                icon: const Icon(Icons.save),
+                label: Text(l10n.studioSaveButton),
               ),
-
-              const SizedBox(height: 24),
-
-              // --- ROOT CONFIGURATION (NO MORE CRITERIA ARRAY) ---
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Prompt Block Properties',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Categories
-                      DropdownButtonFormField<PromptBlockCategory>(
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                        ),
-                        initialValue: PromptBlockCategory.fromId(
-                          _editablePromptBlock['category_id'] as String? ??
-                              'system_rule',
-                        ),
-                        items:
-                            PromptBlockCategory.values.map((category) {
-                              return DropdownMenuItem(
-                                value: category,
-                                child: Text(category.displayName),
-                              );
-                            }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(
-                              () =>
-                                  _editablePromptBlock['category_id'] = val.id,
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Label (I18N)
-                      I18nTextField(
-                        label: 'Block Label (Name)',
-                        initialData: SafeCast.safeMap(
-                          _editablePromptBlock['label'],
-                        ),
-                        onChanged: (val) => _editablePromptBlock['label'] = val,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Description (I18N) - Short UI Hint
-                      I18nTextField(
-                        label: 'Short Description (UI Hint)',
-                        initialData: SafeCast.safeMap(
-                          _editablePromptBlock['description'],
-                        ),
-                        onChanged:
-                            (val) => _editablePromptBlock['description'] = val,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // AI Description - Core LLM Prompt (English Only)
-                      TextFormField(
-                        initialValue:
-                            _editablePromptBlock['ai_description']?.toString(),
-                        decoration: const InputDecoration(
-                          labelText:
-                              'System Prompt / Cognitive Blueprint (MANDATORY ENGLISH)',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 8,
-                        onChanged: (val) {
-                          _editablePromptBlock['ai_description'] = val;
-                        },
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          l10n.adminAiDescriptionHint,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontSize: 13,
+            const SizedBox(width: 16),
+          ],
+        ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Matrix Metadata
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.promptBlockConfigTitle,
+                          style: const TextStyle(
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          l10n.adminPromptBestPracticesHint,
+                        const SizedBox(height: 16),
+                        if (payload['id']?.toString().isNotEmpty == true) ...[
+                          Text(
+                            l10n.opaqueIdLabel(payload['id'].toString()),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // --- ROOT CONFIGURATION (NO MORE CRITERIA ARRAY) ---
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          l10n.promptBlockPropertiesTitle,
                           style: const TextStyle(
-                            color: Colors.blueGrey,
-                            fontSize: 13,
-                            fontStyle: FontStyle.italic,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                      // XAI & Constraints Container
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        color:
-                            Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Text(
-                              'Data Type & Execution Constraints',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                        // Categories
+                        DropdownButtonFormField<PromptBlockCategory>(
+                          decoration: InputDecoration(
+                            labelText: l10n.categoryLabel,
+                          ),
+                          initialValue: PromptBlockCategory.fromId(
+                            payload['category_id'] as String? ?? 'system_rule',
+                          ),
+                          items:
+                              PromptBlockCategory.values.map((category) {
+                                return DropdownMenuItem(
+                                  value: category,
+                                  child: Text(category.displayName(context)),
+                                );
+                              }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              payload['category_id'] = val.id;
+                              ref
+                                  .read(
+                                    promptBlockFormProvider(blockId).notifier,
+                                  )
+                                  .forceRebuild();
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Label (I18N)
+                        I18nTextField(
+                          label: l10n.blockLabelName,
+                          initialData: SafeCast.safeMap(payload['label']),
+                          onChanged: (val) {
+                            payload['label'] = val;
+                            ref
+                                .read(promptBlockFormProvider(blockId).notifier)
+                                .forceRebuild();
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Description (I18N) - Short UI Hint
+                        I18nTextField(
+                          label: l10n.shortDescriptionHint,
+                          initialData: SafeCast.safeMap(payload['description']),
+                          onChanged: (val) {
+                            payload['description'] = val;
+                            ref
+                                .read(promptBlockFormProvider(blockId).notifier)
+                                .forceRebuild();
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // AI Description - Core LLM Prompt (English Only)
+                        TextFormField(
+                          initialValue: payload['ai_description']?.toString(),
+                          decoration: InputDecoration(
+                            labelText: l10n.systemPromptMandatory,
+                            border: const OutlineInputBorder(),
+                          ),
+                          maxLines: 8,
+                          onChanged: (val) {
+                            payload['ai_description'] = val;
+                            // Opting to not constantly rebuild on text changes to avoid losing focus,
+                            // mutation occurs implicitly in payload reference.
+                          },
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            l10n.adminAiDescriptionHint,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 16,
-                              runSpacing: 8,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                DropdownButton<String>(
-                                  value:
-                                      [
-                                            'int',
-                                            'float',
-                                            'number',
-                                            'string',
-                                            'instruction',
-                                            'bool',
-                                          ].contains(
-                                            _editablePromptBlock['type'],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            l10n.adminPromptBestPracticesHint,
+                            style: const TextStyle(
+                              color: Colors.blueGrey,
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // XAI & Constraints Container
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          color:
+                              Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                l10n.dataTypeExecutionConstraints,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 16,
+                                runSpacing: 8,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  DropdownButton<String>(
+                                    value:
+                                        [
+                                              'int',
+                                              'float',
+                                              'number',
+                                              'string',
+                                              'instruction',
+                                              'bool',
+                                            ].contains(payload['type'])
+                                            ? payload['type'] as String
+                                            : 'instruction',
+                                    items: [
+                                      DropdownMenuItem(
+                                        value: 'instruction',
+                                        child: Text(l10n.typeInstruction),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'string',
+                                        child: Text(l10n.typeString),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'number',
+                                        child: Text(l10n.typeNumber),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'int',
+                                        child: Text(l10n.typeInteger),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'float',
+                                        child: Text(l10n.typeFloat),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'bool',
+                                        child: Text(l10n.typeBoolean),
+                                      ),
+                                    ],
+                                    onChanged: (val) {
+                                      payload['type'] = val;
+                                      ref
+                                          .read(
+                                            promptBlockFormProvider(
+                                              blockId,
+                                            ).notifier,
                                           )
-                                          ? _editablePromptBlock['type']
-                                              as String
-                                          : 'instruction',
-                                  items: const [
-                                    DropdownMenuItem(
-                                      value: 'instruction',
-                                      child: Text(
-                                        'Text Instruction (No JSON Output)',
+                                          .forceRebuild();
+                                    },
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Checkbox(
+                                        value:
+                                            payload['allow_decimals'] == true,
+                                        onChanged: (val) {
+                                          payload['allow_decimals'] = val;
+                                          ref
+                                              .read(
+                                                promptBlockFormProvider(
+                                                  blockId,
+                                                ).notifier,
+                                              )
+                                              .forceRebuild();
+                                        },
                                       ),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'string',
-                                      child: Text('String'),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'number',
-                                      child: Text('Number (Numeric)'),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'int',
-                                      child: Text('Integer'),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'float',
-                                      child: Text('Float'),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'bool',
-                                      child: Text('Boolean'),
-                                    ),
-                                  ],
-                                  onChanged:
-                                      (val) => setState(
-                                        () =>
-                                            _editablePromptBlock['type'] = val,
-                                      ),
+                                      Text(l10n.allowDecimals),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                l10n.xaiOutputExtensionsTitle,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Checkbox(
-                                      value:
-                                          _editablePromptBlock['allow_decimals'] ==
-                                          true,
-                                      onChanged:
-                                          (val) => setState(
-                                            () =>
-                                                _editablePromptBlock['allow_decimals'] =
-                                                    val,
-                                          ),
-                                      // Disable checkbox if type is instruction
-                                    ),
-                                    const Text('Allow Decimals'),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children:
-                                  {
-                                    "justification": "Justification",
-                                    "coaching": "Coaching Tip",
-                                    "falsification": "Devil's Advocate",
-                                    "missing_context": "Missing Context",
-                                    "risk_flag": "Risk Flag",
-                                    "remediation_steps": "Remediation",
-                                    "emotional_sentiment": "Sentiment",
-                                    "theory_link": "Theory Link",
-                                    "confidence": "AI Confidence",
-                                    "citation": "Source Citation",
-                                  }.entries.map((entry) {
-                                    final extList =
-                                        SafeCast.safeList(
-                                          _editablePromptBlock['output_extensions'],
-                                        ).map((e) => e.toString()).toList();
-                                    final isSelected = extList.contains(
-                                      entry.key,
-                                    );
-                                    return FilterChip(
-                                      label: Text(entry.value),
-                                      selected: isSelected,
-                                      onSelected: (bool selected) {
-                                        setState(() {
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children:
+                                    {
+                                      "justification": l10n.xaiJustification,
+                                      "coaching": l10n.xaiCoachingTip,
+                                      "falsification": l10n.xaiDevilsAdvocate,
+                                      "missing_context": l10n.xaiMissingContext,
+                                      "risk_flag": l10n.xaiRiskFlag,
+                                      "remediation_steps": l10n.xaiRemediation,
+                                      "emotional_sentiment": l10n.xaiSentiment,
+                                      "theory_link": l10n.xaiTheoryLink,
+                                      "confidence": l10n.xaiConfidence,
+                                      "citation": l10n.xaiSourceCitation,
+                                    }.entries.map((entry) {
+                                      final extList =
+                                          SafeCast.safeList(
+                                            payload['output_extensions'],
+                                          ).map((e) => e.toString()).toList();
+                                      final isSelected = extList.contains(
+                                        entry.key,
+                                      );
+                                      return FilterChip(
+                                        label: Text(entry.value),
+                                        selected: isSelected,
+                                        onSelected: (bool selected) {
                                           if (selected) {
                                             extList.add(entry.key);
                                           } else {
                                             extList.remove(entry.key);
                                           }
-                                          _editablePromptBlock['output_extensions'] =
+                                          payload['output_extensions'] =
                                               extList;
-                                          // Cleanup deprecated field just in case
-                                          _editablePromptBlock.remove(
+                                          payload.remove(
                                             'require_justification',
                                           );
-                                        });
-                                      },
-                                      selectedColor:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.primaryContainer,
-                                      checkmarkColor:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimaryContainer,
-                                    );
-                                  }).toList(),
-                            ),
-                          ],
+                                          ref
+                                              .read(
+                                                promptBlockFormProvider(
+                                                  blockId,
+                                                ).notifier,
+                                              )
+                                              .forceRebuild();
+                                        },
+                                        selectedColor:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primaryContainer,
+                                        checkmarkColor:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimaryContainer,
+                                      );
+                                    }).toList(),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      const SizedBox(height: 16),
-                      // Theory Grounding Wrapper
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        color:
-                            Theme.of(context).colorScheme.surfaceContainerHigh,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Theory Grounding (RAG)',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                Switch(
-                                  value:
-                                      _editablePromptBlock['theory_grounding'] !=
-                                      null,
-                                  onChanged: (val) {
-                                    setState(() {
+                        const SizedBox(height: 16),
+                        // Theory Grounding Wrapper
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          color:
+                              Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHigh,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    l10n.theoryGroundingTitle,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Switch(
+                                    value: payload['theory_grounding'] != null,
+                                    onChanged: (val) {
                                       if (val) {
-                                        _editablePromptBlock['theory_grounding'] =
-                                            {
-                                              'source_url': '',
-                                              'citation_reference': '',
-                                            };
+                                        payload['theory_grounding'] = {
+                                          'source_url': '',
+                                          'citation_reference': '',
+                                        };
                                       } else {
-                                        _editablePromptBlock['theory_grounding'] =
-                                            null;
-                                        _editablePromptBlock.remove(
-                                          'theory_grounding',
-                                        );
+                                        payload['theory_grounding'] = null;
+                                        payload.remove('theory_grounding');
                                       }
-                                    });
+                                      ref
+                                          .read(
+                                            promptBlockFormProvider(
+                                              blockId,
+                                            ).notifier,
+                                          )
+                                          .forceRebuild();
+                                    },
+                                  ),
+                                ],
+                              ),
+                              if (payload['theory_grounding'] != null) ...[
+                                const SizedBox(height: 8),
+                                // Source URL
+                                TextFormField(
+                                  initialValue:
+                                      SafeCast.safeMap(
+                                        payload['theory_grounding'],
+                                      )['source_url']?.toString(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.sourceUrlLabel,
+                                    border: const UnderlineInputBorder(),
+                                  ),
+                                  onChanged: (val) {
+                                    final grounding = SafeCast.safeMap(
+                                      payload['theory_grounding'],
+                                    );
+                                    grounding['source_url'] = val;
+                                  },
+                                ),
+                                const SizedBox(height: 8),
+                                TextFormField(
+                                  initialValue:
+                                      SafeCast.safeMap(
+                                        payload['theory_grounding'],
+                                      )['citation_reference']?.toString(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.citationReferenceLabel,
+                                    border: const UnderlineInputBorder(),
+                                  ),
+                                  onChanged: (val) {
+                                    final grounding = SafeCast.safeMap(
+                                      payload['theory_grounding'],
+                                    );
+                                    grounding['citation_reference'] = val;
                                   },
                                 ),
                               ],
-                            ),
-                            if (_editablePromptBlock['theory_grounding'] !=
-                                null) ...[
-                              const SizedBox(height: 8),
-                              // Source URL
-                              TextFormField(
-                                initialValue:
-                                    SafeCast.safeMap(
-                                      _editablePromptBlock['theory_grounding'],
-                                    )['source_url']?.toString(),
-                                decoration: const InputDecoration(
-                                  labelText: 'Source URL (e.g. jstor.org/...)',
-                                  border: UnderlineInputBorder(),
-                                ),
-                                onChanged: (val) {
-                                  final grounding = SafeCast.safeMap(
-                                    _editablePromptBlock['theory_grounding'],
-                                  );
-                                  grounding['source_url'] = val;
-                                },
-                              ),
-                              const SizedBox(height: 8),
-                              TextFormField(
-                                initialValue:
-                                    SafeCast.safeMap(
-                                      _editablePromptBlock['theory_grounding'],
-                                    )['citation_reference']?.toString(),
-                                decoration: const InputDecoration(
-                                  labelText:
-                                      'Citation Reference (e.g. Kahnamen, 2011)',
-                                  border: UnderlineInputBorder(),
-                                ),
-                                onChanged: (val) {
-                                  final grounding = SafeCast.safeMap(
-                                    _editablePromptBlock['theory_grounding'],
-                                  );
-                                  grounding['citation_reference'] = val;
-                                },
-                              ),
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              if (_editablePromptBlock['type'] != 'instruction') ...[
-                const SizedBox(height: 16),
-                _buildI18nListCard('rows', 'Grid Rows (Optional)'),
-                const SizedBox(height: 16),
-                _buildI18nListCard('columns', 'Grid Columns (Optional)'),
-                const SizedBox(height: 16),
-                _buildScalesCard(),
+                if (payload['type'] != 'instruction') ...[
+                  const SizedBox(height: 16),
+                  _buildI18nListCard(
+                    context,
+                    ref,
+                    l10n,
+                    payload,
+                    blockId,
+                    'rows',
+                    l10n.gridRowsOptional,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildI18nListCard(
+                    context,
+                    ref,
+                    l10n,
+                    payload,
+                    blockId,
+                    'columns',
+                    l10n.gridColumnsOptional,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildScalesCard(context, ref, l10n, payload, blockId),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildI18nListCard(String key, String title) {
+  Widget _buildI18nListCard(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    Map<String, dynamic> payload,
+    String blockId,
+    String key,
+    String title,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -737,19 +770,20 @@ class _PromptBlockBuilderFormState
                 Row(
                   children: [
                     Switch(
-                      value: _editablePromptBlock[key] != null,
+                      value: payload[key] != null,
                       onChanged: (val) {
-                        setState(() {
-                          if (val) {
-                            _editablePromptBlock[key] = [];
-                          } else {
-                            _editablePromptBlock[key] = null;
-                            _editablePromptBlock.remove(key);
-                          }
-                        });
+                        if (val) {
+                          payload[key] = [];
+                        } else {
+                          payload[key] = null;
+                          payload.remove(key);
+                        }
+                        ref
+                            .read(promptBlockFormProvider(blockId).notifier)
+                            .forceRebuild();
                       },
                     ),
-                    if (_editablePromptBlock[key] != null) ...[
+                    if (payload[key] != null) ...[
                       const SizedBox(width: 8),
                       OutlinedButton.icon(
                         onPressed: () async {
@@ -775,12 +809,12 @@ class _PromptBlockBuilderFormState
                             builder:
                                 (ctx) => RowEditorModal(
                                   initialRow: initialMap,
-                                  title: 'Add $title Item',
+                                  title: 'Add $title',
                                   isMatrixRow: isRow,
                                 ),
                           );
                           if (result != null) {
-                            _addListItem(key, result);
+                            _addListItem(ref, payload, blockId, key, result);
                           }
                         },
                         icon: const Icon(Icons.add),
@@ -791,16 +825,12 @@ class _PromptBlockBuilderFormState
                 ),
               ],
             ),
-            if (_editablePromptBlock[key] != null) ...[
+            if (payload[key] != null) ...[
               const SizedBox(height: 16),
-              ...SafeCast.safeList(
-                _editablePromptBlock[key],
-              ).asMap().entries.map((entry) {
+              ...SafeCast.safeList(payload[key]).asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = SafeCast.safeMap(entry.value);
                 final bool isRow = key == 'rows';
-
-                // If it's a MatrixRow, the text to display in the ListTile is under item['label']
                 final displayItem =
                     isRow ? SafeCast.safeMap(item['label']) : item;
 
@@ -816,7 +846,14 @@ class _PromptBlockBuilderFormState
                     subtitle: Text('Item ${index + 1}'),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _removeListItem(key, index),
+                      onPressed:
+                          () => _removeListItem(
+                            ref,
+                            payload,
+                            blockId,
+                            key,
+                            index,
+                          ),
                     ),
                     onTap: () async {
                       final result = await showDialog<Map<String, dynamic>>(
@@ -829,13 +866,12 @@ class _PromptBlockBuilderFormState
                             ),
                       );
                       if (result != null) {
-                        setState(() {
-                          final list = SafeCast.safeList(
-                            _editablePromptBlock[key],
-                          );
-                          list[index] = result;
-                          _editablePromptBlock[key] = list;
-                        });
+                        final list = SafeCast.safeList(payload[key]);
+                        list[index] = result;
+                        payload[key] = list;
+                        ref
+                            .read(promptBlockFormProvider(blockId).notifier)
+                            .forceRebuild();
                       }
                     },
                   ),
@@ -848,7 +884,13 @@ class _PromptBlockBuilderFormState
     );
   }
 
-  Widget _buildScalesCard() {
+  Widget _buildScalesCard(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    Map<String, dynamic> payload,
+    String blockId,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -858,26 +900,30 @@ class _PromptBlockBuilderFormState
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'BARS Scales / Score Grades',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.barsScalesTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Row(
                   children: [
                     Switch(
-                      value: _editablePromptBlock['scales'] != null,
+                      value: payload['scales'] != null,
                       onChanged: (val) {
-                        setState(() {
-                          if (val) {
-                            _editablePromptBlock['scales'] = [];
-                          } else {
-                            _editablePromptBlock['scales'] = null;
-                            _editablePromptBlock.remove('scales');
-                          }
-                        });
+                        if (val) {
+                          payload['scales'] = [];
+                        } else {
+                          payload['scales'] = null;
+                          payload.remove('scales');
+                        }
+                        ref
+                            .read(promptBlockFormProvider(blockId).notifier)
+                            .forceRebuild();
                       },
                     ),
-                    if (_editablePromptBlock['scales'] != null) ...[
+                    if (payload['scales'] != null) ...[
                       const SizedBox(width: 8),
                       OutlinedButton.icon(
                         onPressed: () async {
@@ -905,39 +951,43 @@ class _PromptBlockBuilderFormState
                                 ),
                           );
                           if (result != null) {
-                            _addListItem('scales', result);
+                            _addListItem(
+                              ref,
+                              payload,
+                              blockId,
+                              'scales',
+                              result,
+                            );
                           }
                         },
                         icon: const Icon(Icons.add),
-                        label: const Text('Add Grade'),
+                        label: Text(l10n.addGradeBtn),
                       ),
                     ],
                   ],
                 ),
               ],
             ),
-            if (_editablePromptBlock['scales'] != null) ...[
+            if (payload['scales'] != null) ...[
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
-                      initialValue:
-                          _editablePromptBlock['scale_min']?.toString() ?? '4',
+                      initialValue: payload['scale_min']?.toString() ?? '4',
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                         signed: true,
                       ),
-                      decoration: const InputDecoration(
-                        labelText: 'Scale Min (e.g. 4)',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.scaleMinLabel,
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
                         final parsed = num.tryParse(val);
                         if (parsed != null) {
-                          setState(() {
-                            _editablePromptBlock['scale_min'] = parsed;
-                          });
+                          payload['scale_min'] = parsed;
+                          // Don't force build for pure typing to avoid blur
                         }
                       },
                     ),
@@ -945,22 +995,19 @@ class _PromptBlockBuilderFormState
                   const SizedBox(width: 16),
                   Expanded(
                     child: TextFormField(
-                      initialValue:
-                          _editablePromptBlock['scale_max']?.toString() ?? '10',
+                      initialValue: payload['scale_max']?.toString() ?? '10',
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                         signed: true,
                       ),
-                      decoration: const InputDecoration(
-                        labelText: 'Scale Max (e.g. 10)',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.scaleMaxLabel,
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
                         final parsed = num.tryParse(val);
                         if (parsed != null) {
-                          setState(() {
-                            _editablePromptBlock['scale_max'] = parsed;
-                          });
+                          payload['scale_max'] = parsed;
                         }
                       },
                     ),
@@ -968,9 +1015,9 @@ class _PromptBlockBuilderFormState
                 ],
               ),
               const SizedBox(height: 16),
-              ...SafeCast.safeList(
-                _editablePromptBlock['scales'],
-              ).asMap().entries.map((scaleEntry) {
+              ...SafeCast.safeList(payload['scales']).asMap().entries.map((
+                scaleEntry,
+              ) {
                 final sIndex = scaleEntry.key;
                 final scale = SafeCast.safeMap(scaleEntry.value);
                 final claimsLength = SafeCast.safeList(scale['claims']).length;
@@ -988,12 +1035,24 @@ class _PromptBlockBuilderFormState
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: ListTile(
                     title: Text(
-                      'Grade/Score: ${scale['score']} ${gradeName.isNotEmpty ? "- $gradeName" : ""}',
+                      l10n.gradeScoreLabel(
+                        scale['score'].toString(),
+                        gradeName.isNotEmpty ? "- $gradeName" : "",
+                      ),
                     ),
-                    subtitle: Text('$claimsLength Claims'),
+                    subtitle: Text(
+                      l10n.claimsCountLabel(claimsLength.toString()),
+                    ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _removeListItem('scales', sIndex),
+                      onPressed:
+                          () => _removeListItem(
+                            ref,
+                            payload,
+                            blockId,
+                            'scales',
+                            sIndex,
+                          ),
                     ),
                     onTap: () async {
                       final result = await showDialog<Map<String, dynamic>>(
@@ -1001,13 +1060,12 @@ class _PromptBlockBuilderFormState
                         builder: (ctx) => ScaleEditorModal(initialScale: scale),
                       );
                       if (result != null) {
-                        setState(() {
-                          final list = SafeCast.safeList(
-                            _editablePromptBlock['scales'],
-                          );
-                          list[sIndex] = result;
-                          _editablePromptBlock['scales'] = list;
-                        });
+                        final list = SafeCast.safeList(payload['scales']);
+                        list[sIndex] = result;
+                        payload['scales'] = list;
+                        ref
+                            .read(promptBlockFormProvider(blockId).notifier)
+                            .forceRebuild();
                       }
                     },
                   ),

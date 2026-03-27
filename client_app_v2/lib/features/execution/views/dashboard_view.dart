@@ -129,12 +129,15 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
 
               String metricsStr = '';
               if (totalTokens > 0 || costEstimate > 0) {
+                final l10n = AppLocalizations.of(context)!;
                 metricsStr =
-                    '\nCost: \$${costEstimate.toStringAsFixed(6)} | Tokens: $totalTokens';
+                    '\n${l10n.executionCostEstimate(costEstimate.toStringAsFixed(6))} | ${l10n.tokensUsed(totalTokens)}';
               }
 
               // Resolve Workflow Name
-              String workflowDisplay = 'Workflow: $workflowId';
+              String workflowDisplay = AppLocalizations.of(
+                context,
+              )!.workflowPrefixLabel(workflowId);
               if (asyncWorkflows is AsyncData && asyncWorkflows.value != null) {
                 final workflows = asyncWorkflows.value!;
                 final wf =
@@ -153,7 +156,9 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                           : (SafeCast.safeString(wf['name']).isNotEmpty
                               ? SafeCast.safeString(wf['name'])
                               : workflowId);
-                  workflowDisplay = 'Workflow: $titleStr';
+                  workflowDisplay = AppLocalizations.of(
+                    context,
+                  )!.workflowPrefixLabel(titleStr);
                 }
               }
 
@@ -164,7 +169,9 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                     workflowDisplay,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text('ID: $id\nCreated: $dateStr$metricsStr'),
+                  subtitle: Text(
+                    '${AppLocalizations.of(context)!.executionIdLabel(id)}\n${AppLocalizations.of(context)!.created}: $dateStr$metricsStr',
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -189,7 +196,10 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                       ],
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        tooltip: 'Delete Execution',
+                        tooltip:
+                            AppLocalizations.of(
+                              context,
+                            )!.deleteExecutionTooltip,
                         onPressed: () => _confirmDelete(context, ref, id),
                       ),
                     ],
@@ -344,7 +354,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             onTimeout:
                 () =>
                     throw Exception(
-                      'Tiedoston tallennusikkuna ei vastannut (Timeout).',
+                      AppLocalizations.of(context)!.errSaveTimeout,
                     ),
           );
 

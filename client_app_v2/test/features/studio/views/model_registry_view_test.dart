@@ -94,4 +94,9 @@ class MockModelRegistryController
 
   @override
   Future<void> deleteConfig(String id) async {}
+
+  @override
+  Future<Map<String, dynamic>> cloneConfig(String id) async {
+    return {};
+  }
 }

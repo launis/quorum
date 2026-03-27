@@ -1,30 +1,20 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-// --- Providers ---
-
-/// Manages the state of the Studio MCP Gateways.
-final mcpGatewaysControllerProvider =
-    AsyncNotifierProvider<McpGatewaysController, List<Map<String, dynamic>>>(
-      McpGatewaysController.new,
-    );
-
-/// Fetches a single MCP Gateway natively by ID
-final mcpGatewayByIdProvider = FutureProvider.autoDispose
-    .family<Map<String, dynamic>, String>((ref, id) async {
-      final client = ref.watch(studioClientProvider);
-      return client.getMcpGateway(id);
-    });
+part 'mcp_gateways_controller.g.dart';
 
 // --- Controllers ---
 
 /// Controller managing the MCP Gateways strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
-class McpGatewaysController extends AsyncNotifier<List<Map<String, dynamic>>> {
+@riverpod
+class McpGatewaysController extends _$McpGatewaysController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
     // SWR Strategy for List Views
@@ -137,5 +127,90 @@ class McpGatewaysController extends AsyncNotifier<List<Map<String, dynamic>>> {
       }
       throw Exception('Failed to clone MCP Gateway: $e');
     }
+  }
+}
+
+/// Fetches a single MCP Gateway natively by ID
+@riverpod
+Future<Map<String, dynamic>> mcpGatewayById(Ref ref, String id) async {
+  final client = ref.watch(studioClientProvider);
+  return client.getMcpGateway(id);
+}
+
+// --- Gold Standard Form State (Flat MVC) ---
+
+@riverpod
+class McpGatewayForm extends _$McpGatewayForm {
+  @override
+  FutureOr<Map<String, dynamic>> build(String gatewayId) async {
+    if (gatewayId == 'new') {
+      return Isolate.run(
+        () => {
+          'id': 'mcpcfg_new',
+          'slug': 'new-gateway',
+          'type': 'mcp_gateways',
+          'tools': <Map<String, dynamic>>[],
+        },
+      );
+    }
+
+    // 1. Fetch raw data
+    final rawData = await ref.watch(mcpGatewayByIdProvider(gatewayId).future);
+
+    // 2. ISOLATE MANDATE: Deep Copy / Parse in Isolate protecting Main Thread
+    final str = jsonEncode(rawData);
+    return Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
+  }
+
+  /// Synchronous local state mutations for the form
+  void addTool() {
+    final payload = state.value;
+    if (payload == null) return;
+
+    final tools = List<Map<String, dynamic>>.from(payload['tools'] ?? []);
+    tools.add({
+      'tool_id': 'new_tool',
+      'name': {
+        'default_locale': 'en',
+        'translations': {'en': 'New Tool', 'fi': 'Uusi työkalu'},
+      },
+      'description': '',
+      'input_schema': <String, dynamic>{},
+    });
+
+    payload['tools'] = tools;
+    state = AsyncData(Map<String, dynamic>.from(payload)); // Force rebuild
+  }
+
+  void removeTool(int index) {
+    final payload = state.value;
+    if (payload == null) return;
+
+    final tools = List<Map<String, dynamic>>.from(payload['tools'] ?? []);
+    if (index >= 0 && index < tools.length) {
+      tools.removeAt(index);
+      payload['tools'] = tools;
+      state = AsyncData(Map<String, dynamic>.from(payload));
+    }
+  }
+
+  void forceRebuild() {
+    final payload = state.value;
+    if (payload != null) {
+      state = AsyncData(Map<String, dynamic>.from(payload));
+    }
+  }
+
+  Future<void> submit(Map<String, dynamic> updatedData) async {
+    state = const AsyncLoading(); // Side effect isolation
+
+    state = await AsyncValue.guard(() async {
+      final idToSave =
+          gatewayId == 'new' ? (updatedData['id'] ?? 'mcpcfg_new') : gatewayId;
+      await ref
+          .read(mcpGatewaysControllerProvider.notifier)
+          .saveGateway(idToSave, updatedData);
+      return updatedData; // Optimistic form state return
+    });
   }
 }

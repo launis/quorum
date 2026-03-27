@@ -1,36 +1,124 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'studio_controller.g.dart';
 
 // --- Providers ---
 
-/// Manages the state of all Studio Workflows (DAGs).
-final workflowsControllerProvider =
-    AsyncNotifierProvider<WorkflowsController, List<Map<String, dynamic>>>(
-      WorkflowsController.new,
-    );
-
-/// Manages the state of all Studio Steps.
-final stepsControllerProvider =
-    AsyncNotifierProvider<StepsController, List<Map<String, dynamic>>>(
-      StepsController.new,
-    );
-
 /// Fetches a single Workflow natively by ID
-final workflowByIdProvider = FutureProvider.autoDispose
-    .family<Map<String, dynamic>, String>((ref, id) async {
-      final client = ref.watch(studioClientProvider);
-      return client.getWorkflow(id);
+@riverpod
+Future<Map<String, dynamic>> workflowById(Ref ref, String id) async {
+  final client = ref.watch(studioClientProvider);
+  return client.getWorkflow(id);
+}
+
+/// Fetches a single Step natively by ID
+@riverpod
+Future<Map<String, dynamic>> stepById(Ref ref, String id) async {
+  final client = ref.watch(studioClientProvider);
+  return client.getStep(id);
+}
+
+// --- Form State (Flat MVC) ---
+
+@riverpod
+class WorkflowForm extends _$WorkflowForm {
+  @override
+  FutureOr<Map<String, dynamic>> build(String configId) async {
+    if (configId == 'new') {
+      return Isolate.run(() => {
+        'id': '',
+        'slug': '',
+        'expected_inputs': [],
+        'steps': [],
+        'output_profiles': <String, dynamic>{},
+      });
+    }
+
+    final rawData = await ref.watch(workflowByIdProvider(configId).future);
+    final str = jsonEncode(rawData);
+    var copy = await Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
+    
+    if (!copy.containsKey('expected_inputs')) copy['expected_inputs'] = [];
+    if (!copy.containsKey('steps')) copy['steps'] = [];
+    copy.remove('render_blueprints');
+    copy.remove('render_blueprint');
+    copy.remove('output_mapping');
+    if (!copy.containsKey('output_profiles')) copy['output_profiles'] = <String, dynamic>{};
+    
+    return copy;
+  }
+
+  void forceRebuild() {
+    final payload = state.value;
+    if (payload != null) {
+      state = AsyncData(Map<String, dynamic>.from(payload));
+    }
+  }
+
+  Future<void> submit(Map<String, dynamic> updatedData) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final idToSave = updatedData['id'] as String? ?? configId;
+      if (idToSave.isEmpty || idToSave == 'new') throw Exception("Workflow ID is required");
+
+      await ref.read(workflowsControllerProvider.notifier).saveWorkflow(idToSave, updatedData);
+      return updatedData;
     });
+  }
+}
+
+@riverpod
+class StepForm extends _$StepForm {
+  @override
+  FutureOr<Map<String, dynamic>> build(String configId) async {
+    if (configId == 'new') {
+      return Isolate.run(() => {
+        'id': '',
+        'slug': '',
+        'label': {'fi': 'Uusi Steppi', 'en': 'New Step'},
+        'agent_type': 'general_executive',
+        'prompt_blocks': [],
+        'enabled': true,
+      });
+    }
+
+    final rawData = await ref.watch(stepByIdProvider(configId).future);
+    final str = jsonEncode(rawData);
+    return Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
+  }
+
+  void forceRebuild() {
+    final payload = state.value;
+    if (payload != null) {
+      state = AsyncData(Map<String, dynamic>.from(payload));
+    }
+  }
+
+  Future<void> submit(Map<String, dynamic> updatedData) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final idToSave = updatedData['id'] as String? ?? configId;
+      if (idToSave.isEmpty || idToSave == 'new') throw Exception("Step ID is required");
+
+      await ref.read(stepsControllerProvider.notifier).saveStep(idToSave, updatedData);
+      return updatedData;
+    });
+  }
+}
 
 // --- Controllers ---
 
 /// Controller managing Studio Workflows (DAGs) strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
-class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
+@riverpod
+class WorkflowsController extends _$WorkflowsController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
     ref.cacheFor(const Duration(minutes: 3));
@@ -172,7 +260,8 @@ class WorkflowsController extends AsyncNotifier<List<Map<String, dynamic>>> {
 
 /// Controller managing Studio Steps strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
-class StepsController extends AsyncNotifier<List<Map<String, dynamic>>> {
+@riverpod
+class StepsController extends _$StepsController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
     ref.cacheFor(const Duration(minutes: 3));

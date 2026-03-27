@@ -68,7 +68,11 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
   }
 
   void _notifyChange() {
-    widget.onChanged();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onChanged();
+      }
+    });
   }
 
   @override

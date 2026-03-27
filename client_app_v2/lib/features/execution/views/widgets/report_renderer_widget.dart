@@ -5,6 +5,7 @@ import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// Static MVC View Renderer mapping exactly to the workflow preset views.
 /// Adheres to the De-Generator Zero-Math rule natively traversing the array.
@@ -242,7 +243,7 @@ class ReportRendererWidget extends ConsumerWidget {
             e,
             st,
           );
-      return const SizedBox.shrink();
+      return ErrorView(error: e, stackTrace: st, compact: true);
     }
 
     if ((title != null && title.isNotEmpty) ||

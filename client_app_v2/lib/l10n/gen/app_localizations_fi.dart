@@ -245,7 +245,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get statusFailed => 'EPÄONNISTUI';
 
   @override
-  String get statusRejected => 'HYLÄTTY';
+  String get statusRejected => 'Hylätty';
 
   @override
   String get cancelling => 'Peruutetaan';
@@ -1046,11 +1046,11 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
-  String get workflowDeleteConfirmTitle => 'Vahvista poisto';
+  String get workflowDeleteConfirmTitle => 'Poista Työnkulku';
 
   @override
   String workflowDeleteConfirmDesc(String id) {
-    return 'Poistetaanko työnkulku \"$id\"?';
+    return 'Haluatko varmasti poistaa työnkulun \"$id\"?';
   }
 
   @override
@@ -1063,7 +1063,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get stepEdit => 'Muokkaa Vaihetta';
 
   @override
-  String get stepIdLabel => 'Vaiheen ID';
+  String get stepIdLabel => 'Askeleen ID (UUID tai uniikki merkkijono)';
 
   @override
   String get stepIdHelper => 'Yksilöllinen tunniste (esim. \'step_analyst\')';
@@ -1101,11 +1101,11 @@ class AppLocalizationsFi extends AppLocalizations {
   String get stepSaveSuccess => 'Vaihe tallennettu!';
 
   @override
-  String get stepDeleteConfirmTitle => 'Vahvista Poisto';
+  String get stepDeleteConfirmTitle => 'Poista askel';
 
   @override
   String stepDeleteConfirmMessage(String id) {
-    return 'Poista vaihe \'$id\'?';
+    return 'Haluatko varmasti poistaa askeleen \"$id\"?';
   }
 
   @override
@@ -1845,13 +1845,13 @@ class AppLocalizationsFi extends AppLocalizations {
   String get reportScore => 'Kokonaispisteet';
 
   @override
-  String get xAxisLabel => 'X-akseli';
+  String get xAxisLabel => 'X-Akseli (Matriisi ID)';
 
   @override
-  String get yAxisLabel => 'Y-akseli';
+  String get yAxisLabel => 'Y-Akseli (Matriisi ID)';
 
   @override
-  String get zAxisLabel => 'Z-akseli';
+  String get zAxisLabel => 'Z-Akseli (Matriisi ID)';
 
   @override
   String get selectWorkflowPrompt =>
@@ -2123,10 +2123,10 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
-  String get workflowCloneBtn => 'Kopioi Työnkulku';
+  String get workflowCloneBtn => 'Kloonaa Työnkulku';
 
   @override
-  String get workflowCloneSuccess => 'Työnkulku kopioitu onnistuneesti!';
+  String get workflowCloneSuccess => 'Työnkulku kloonattu onnistuneesti';
 
   @override
   String get workflowCloneErrorMissingDep =>
@@ -2134,7 +2134,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get workflowSharedBlueprintWarning =>
-      'Huomio: Muokkaat jaettua PromptBlockia. Muutokset vaikuttavat kaikkiin tätä lohkoa käyttäviin työnkulkuihin.';
+      'Huom! Työnkulun kloonaus luo syväkopion pääkonfiguraatiosta, mutta referenssit Steppeihin (DAG-solmuihin) PYSYVÄT SAMOINA. Steppien muutokset vaikuttavat molempiin työnkulkuihin. Haluatko kloonata?';
 
   @override
   String get overall_system_profile => 'Kokonaisvaltainen Profiili';
@@ -2317,7 +2317,8 @@ class AppLocalizationsFi extends AppLocalizations {
       'Hallinnoi ulkoisia työkaluja ja tekoälyn tiedonhakuintegraatioita.';
 
   @override
-  String get mcpGatewaysTitle => 'MCP-yhdyskäytävät';
+  String get mcpGatewaysTitle =>
+      'XAI Raportointi / Työkaluinjektio (MCP Gateways)';
 
   @override
   String get mcpGatewaysDesc =>
@@ -2357,4 +2358,554 @@ class AppLocalizationsFi extends AppLocalizations {
   String msgEntityCloneFailed(String error) {
     return 'Kopiointi epäonnistui: $error';
   }
+
+  @override
+  String get categoryMatrix => 'Arviointimatriisi';
+
+  @override
+  String get categoryAgentRole => 'Agentin Roolipersoona';
+
+  @override
+  String get categoryTaskDefinition => 'Tehtävän Määrittely';
+
+  @override
+  String get categorySystemRule => 'Järjestelmäsääntö / Heuristiikka';
+
+  @override
+  String get categoryProtocol => 'Suoritusprotokolla';
+
+  @override
+  String get technicalDetails => 'Tekniset tiedot';
+
+  @override
+  String get systemError => 'Järjestelmävirhe';
+
+  @override
+  String get signInSubtitle => 'Kirjaudu sisään jatkaaksesi';
+
+  @override
+  String get errorEmptyEmail => 'Syötä sähköpostiosoite';
+
+  @override
+  String get errorInvalidEmail => 'Virheellinen sähköpostiosoite';
+
+  @override
+  String get errorEmptyPassword => 'Syötä salasana';
+
+  @override
+  String get signInButton => 'Kirjaudu sisään';
+
+  @override
+  String executionTargetLabel(String id) {
+    return 'Kohde: $id';
+  }
+
+  @override
+  String get executionMetricsTitle => 'Suorituskykymittarit';
+
+  @override
+  String executionTokensBreakdown(int total, int prompt, int comp) {
+    return 'Tokenit yhteensä: $total (Syöte: $prompt, Vastaus: $comp)';
+  }
+
+  @override
+  String executionTokensCached(int cached) {
+    return 'Säästetyt välimuistitokenit: $cached';
+  }
+
+  @override
+  String executionTokensReasoning(int reasoning) {
+    return 'Päättelyyn käytetyt tokenit: $reasoning';
+  }
+
+  @override
+  String executionCostEstimate(String cost) {
+    return 'Arvioitu hinta: \$$cost';
+  }
+
+  @override
+  String workflowPrefixLabel(String name) {
+    return 'Työnkulku: $name';
+  }
+
+  @override
+  String get deleteExecutionTooltip => 'Poista suoritus';
+
+  @override
+  String get errSaveTimeout =>
+      'Tiedoston tallennusikkuna ei vastannut (Timeout).';
+
+  @override
+  String startWorkflowTitle(String id) {
+    return 'Käynnistä työnkulku: $id';
+  }
+
+  @override
+  String failedToLoadSchema(String error) {
+    return 'Skeeman lataaminen epäonnistui: $error';
+  }
+
+  @override
+  String get navSystemInspector => 'Järjestelmätarkastaja';
+
+  @override
+  String get gatewayMetadataTitle => 'Yhdyskäytävän metatiedot';
+
+  @override
+  String get slugLabel => 'Tunniste (esim. task_guard)';
+
+  @override
+  String get allowedMcpToolsTitle => 'Sallitut MCP-työkalut';
+
+  @override
+  String get addToolButton => 'Lisää työkalu';
+
+  @override
+  String get noToolsDefinedGateway =>
+      'Tälle yhdyskäytävälle ei ole määritetty työkaluja.';
+
+  @override
+  String get deleteGatewayTitle => 'Poistetaanko MCP-yhdyskäytävä?';
+
+  @override
+  String deleteGatewayConfirmation(String id) {
+    return 'Haluatko varmasti poistaa yhdyskäytävän $id?';
+  }
+
+  @override
+  String get cancelButton => 'Peruuta';
+
+  @override
+  String get deleteButton => 'Poista';
+
+  @override
+  String get gatewaySavedSuccess =>
+      'MCP-yhdyskäytävä tallennettu onnistuneesti.';
+
+  @override
+  String saveFailedError(String error) {
+    return 'Tallennus epäonnistui: $error';
+  }
+
+  @override
+  String deleteFailedError(String error) {
+    return 'Poistaminen epäonnistui: $error';
+  }
+
+  @override
+  String toolTitlePrefix(String name) {
+    return 'Työkalu: $name';
+  }
+
+  @override
+  String get toolIdLabel => 'Työkalun ID (Slug)';
+
+  @override
+  String get uiDisplayNameTitle => 'Käyttöliittymän näyttönimi (I18nText)';
+
+  @override
+  String get englishNameLabel => 'Englanninkielinen nimi';
+
+  @override
+  String get finnishNameLabel => 'Suomenkielinen nimi';
+
+  @override
+  String get toolDescriptionLabel =>
+      'Työkalun kuvaus (vain englanniksi kielimallille)';
+
+  @override
+  String get jsonInputSchemaLabel => 'JSON-syöteskeema';
+
+  @override
+  String get invalidJsonError => 'Virheellinen JSON';
+
+  @override
+  String get deleteConfigTitle => 'Poista konfiguraatio?';
+
+  @override
+  String deleteConfigConfirmation(String id) {
+    return 'Haluatko varmasti poistaa konfiguraation $id?';
+  }
+
+  @override
+  String get configSavedSuccess => 'Model Registry tallennettu onnistuneesti.';
+
+  @override
+  String get profileSavedSuccess => 'Profiili tallennettu onnistuneesti.';
+
+  @override
+  String get deleteProfileTitle => 'Poista profiili?';
+
+  @override
+  String deleteProfileConfirmation(String id) {
+    return 'Haluatko varmasti poistaa profiilin $id?';
+  }
+
+  @override
+  String get newOutputProfileTitle => 'Uusi tulostusprofiili';
+
+  @override
+  String get editOutputProfileTitle => 'Muokkaa tulostusprofiilia';
+
+  @override
+  String get profileIdLabel => 'Profiilin ID (esim. general_executive)';
+
+  @override
+  String get urlSlugLabel => 'URL-tunniste (esim. default)';
+
+  @override
+  String get workflowIdBindingLabel => 'Työnkulun SID-sidonta';
+
+  @override
+  String get selectWorkflowHint => 'Valitse työnkulku...';
+
+  @override
+  String get noneDefaultLabel => 'Ei mitään (Oletus)';
+
+  @override
+  String get profileDisplayNameLabel => 'Profiilin näyttönimi';
+
+  @override
+  String get profileDescriptionLabel => 'Profiilin kuvaus (valinnainen)';
+
+  @override
+  String get workflowSelectWarning =>
+      '⚠️ Valitse työnkulku yläpuolelta ennen raporttipohjien muokkausta.';
+
+  @override
+  String get layoutBlocksTitle => 'Raporttipohjat';
+
+  @override
+  String get addLayoutBlockBtn => 'Lisää raportin osio';
+
+  @override
+  String get noLayoutBlocksDefined =>
+      'Ei määriteltyjä osioita. Raportti on tyhjä.';
+
+  @override
+  String get presetViewLabel => 'Näkymämalli';
+
+  @override
+  String get preset1dTable => '1D Taulukko';
+
+  @override
+  String get preset2dGrid => '2D Matriisi';
+
+  @override
+  String get preset3dRadar => '3D Tutka/Kooste';
+
+  @override
+  String get presetTextOnly => 'Vain teksti/synteesi';
+
+  @override
+  String get presetAutomatic => 'Automaattinen validointi';
+
+  @override
+  String get showTextLabel => 'Näytä leipäteksti';
+
+  @override
+  String get layoutBlockTitleLabel => 'Raportin osion otsikko';
+
+  @override
+  String get targetComponentsTitle => 'Kohdekomponentit';
+
+  @override
+  String get componentXAxisLabel => 'Komponentti 1 (X-akseli/Ensisijainen)';
+
+  @override
+  String get componentYAxisLabel => 'Komponentti 2 (Y-akseli)';
+
+  @override
+  String get componentZAxisLabel => 'Komponentti 3 (Z-akseli)';
+
+  @override
+  String componentGenericLabel(String num) {
+    return 'Komponentti $num';
+  }
+
+  @override
+  String get selectAllComponentsLabel => 'Kaikki komponentit (*)';
+
+  @override
+  String get selectComponentHint => 'Valitse komponentti...';
+
+  @override
+  String editProfilesTitle(String slug) {
+    return 'Muokkaa profiileja: $slug';
+  }
+
+  @override
+  String get outputProfilesDictionary => 'Tulostusprofiilien sanakirja';
+
+  @override
+  String get addVariantBtn => 'Lisää variantti';
+
+  @override
+  String get newProfileIdTitle => 'Uusi profiili-ID';
+
+  @override
+  String get profileIdHint => 'Profiilin ID (esim. executive)';
+
+  @override
+  String variantIdLabel(String id) {
+    return 'Variantti-ID: $id';
+  }
+
+  @override
+  String get reportLayoutSequenceLabel => 'Raportin asettelujärjestys';
+
+  @override
+  String get preset2dCompare => '2D Vertailu';
+
+  @override
+  String get preset3dComplex => '3D Monimutkainen';
+
+  @override
+  String get presetDefaultView => 'Oletusnäkymä';
+
+  @override
+  String get sectionTitleLabel => 'Osion otsikko (Valinnainen)';
+
+  @override
+  String get sectionDescLabel => 'Osion kuvaus (Valinnainen)';
+
+  @override
+  String get promptBlockSavedSuccess =>
+      'Promptilohko tallennettu (Optimistinen).';
+
+  @override
+  String get simulatorCorruptionError =>
+      'Simulaattori ei palauttanut rendered_promptia. Datassa korruptiota.';
+
+  @override
+  String get simulatorOutputTitle => 'Simulaattorin tulostus';
+
+  @override
+  String simulatorFailedError(String error) {
+    return 'Simulaation virhe: $error';
+  }
+
+  @override
+  String get promptBlockEditTitle => 'Muokkaa promptilohkoa';
+
+  @override
+  String promptBlockBuilderTitleId(String id) {
+    return 'Rakentaja: $id';
+  }
+
+  @override
+  String get promptBlockMandatoryEnglishError =>
+      'Englanninkielinen otsikko on pakollinen (Englanti-Ensin Sääntö).';
+
+  @override
+  String get promptBlockConfigTitle => 'Promptilohkon konfiguraatio';
+
+  @override
+  String opaqueIdLabel(String id) {
+    return 'Opaakki ID: $id';
+  }
+
+  @override
+  String get promptBlockPropertiesTitle => 'Promptilohkon ominaisuudet';
+
+  @override
+  String get categoryLabel => 'Kategoria';
+
+  @override
+  String get blockLabelName => 'Lohkon otsikko (Nimi)';
+
+  @override
+  String get shortDescriptionHint => 'Lyhyt kuvaus (UI Vinkki)';
+
+  @override
+  String get systemPromptMandatory =>
+      'Järjestelmäkehote / Kognitiivinen suunnitelma (PAKOLLINEN ENGLANTI)';
+
+  @override
+  String get dataTypeExecutionConstraints =>
+      'Tietotyyppi ja suoritusrajoitukset';
+
+  @override
+  String get typeInstruction => 'Tekstiohje (Ei JSON Palautetta)';
+
+  @override
+  String get typeString => 'Merkkijono (String)';
+
+  @override
+  String get typeNumber => 'Numero (Numeerinen)';
+
+  @override
+  String get typeInteger => 'Kokonaisluku (Int)';
+
+  @override
+  String get typeFloat => 'Desimaaliluku (Float)';
+
+  @override
+  String get typeBoolean => 'Totuusarvo (Boolean)';
+
+  @override
+  String get allowDecimals => 'Salli desimaalit';
+
+  @override
+  String get xaiOutputExtensionsTitle =>
+      'XAI Ulostulolaajennukset (Proaktiivinen Valmentaja ja Raporttikentät)';
+
+  @override
+  String get xaiJustification => 'Perustelut';
+
+  @override
+  String get xaiCoachingTip => 'Valmennusvinkki';
+
+  @override
+  String get xaiDevilsAdvocate => 'Paholaisen asianajaja';
+
+  @override
+  String get xaiMissingContext => 'Puuttuva konteksti';
+
+  @override
+  String get xaiRiskFlag => 'Riskilippu';
+
+  @override
+  String get xaiRemediation => 'Korjaustoimenpiteet';
+
+  @override
+  String get xaiSentiment => 'Sävy';
+
+  @override
+  String get xaiTheoryLink => 'Teoriayhteys';
+
+  @override
+  String get xaiConfidence => 'AI:n Varmuus';
+
+  @override
+  String get xaiSourceCitation => 'Lähdeviite';
+
+  @override
+  String get theoryGroundingTitle => 'Teorian Maadoitus (RAG)';
+
+  @override
+  String get sourceUrlLabel => 'Lähde-URL (esim. jstor.org/...)';
+
+  @override
+  String get citationReferenceLabel => 'Viittaus (esim. Kahnamen, 2011)';
+
+  @override
+  String get gridRowsOptional => 'Ruudukon rivit (Valinnainen)';
+
+  @override
+  String get gridColumnsOptional => 'Ruudukon sarakkeet (Valinnainen)';
+
+  @override
+  String get addGridItemBtn => 'Lisää kohde';
+
+  @override
+  String get barsScalesTitle => 'BARS Skaalat / Arvosanat';
+
+  @override
+  String get addGradeBtn => 'Lisää arvosana';
+
+  @override
+  String get scaleMinLabel => 'Skaalan Min (esim. 4)';
+
+  @override
+  String get scaleMaxLabel => 'Skaalan Max (esim. 10)';
+
+  @override
+  String claimsCountLabel(String count) {
+    return '$count Väittämää';
+  }
+
+  @override
+  String gradeScoreLabel(String score, String name) {
+    return 'Arvosana/Pisteet: $score $name';
+  }
+
+  @override
+  String get closeModalBtn => 'Sulje';
+
+  @override
+  String get studioSaveSuccess => 'Tallennettu onnistuneesti';
+
+  @override
+  String get stepSavedSuccess => 'Askel tallennettu (Optimistinen).';
+
+  @override
+  String get stepEditTitle => 'Muokkaa askeletta';
+
+  @override
+  String get simulateStepTooltip => 'Simuloi askeletta';
+
+  @override
+  String get idRequiredError => 'ID on pakollinen.';
+
+  @override
+  String get configurationTitle => 'Konfiguraatio';
+
+  @override
+  String get nameLabel => 'Nimi';
+
+  @override
+  String get descriptionLabel => 'Kuvaus';
+
+  @override
+  String get preHooksTitle => 'Pre Hooks (Ennen suoritusta)';
+
+  @override
+  String get addHookBtn => 'Lisää Hook';
+
+  @override
+  String get preHookEngineLabel => 'Pre-Execution Hook Moottori';
+
+  @override
+  String get hookTavily => 'Tavily Web Haku (search_hook)';
+
+  @override
+  String get hookMemory => 'Kontekstuaalinen Muisti (memory_hook)';
+
+  @override
+  String get hookValidation => 'Tarkka Validointi (validation_hook)';
+
+  @override
+  String get hookScore => 'Arvostelumetriikka (score_hook)';
+
+  @override
+  String hookLegacy(String name) {
+    return 'Legacy: $name';
+  }
+
+  @override
+  String get promptBlocksTitle => 'Promptilohkot';
+
+  @override
+  String get addPromptBlockBtn => 'Lisää promptilohko';
+
+  @override
+  String get promptBlockLabel => 'Promptilohko';
+
+  @override
+  String get workflowSavedSuccess => 'Työnkulku tallennettu onnistuneesti.';
+
+  @override
+  String get simulatorValidDag => 'DAG on validi!';
+
+  @override
+  String simulatorDagErrors(String errors) {
+    return 'DAG Virheet: $errors';
+  }
+
+  @override
+  String get workflowNameMissingError =>
+      'Työnkulun nimi puuttuu olemassaolevalta työnkululta.';
+
+  @override
+  String get validateDagBtn => 'Validoi DAG';
+
+  @override
+  String get workflowTabGeneral => '1. Yleiset & Tulosteet';
+
+  @override
+  String get workflowTabInputs => '2. Syötteet';
+
+  @override
+  String get workflowTabSteps => '3. Stepit & Riippuvuudet';
 }

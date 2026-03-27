@@ -1,11 +1,14 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/core/network/api_client.dart';
 
+part 'studio_client.g.dart';
+
 /// Studio API Client Provider
-final studioClientProvider = Provider<StudioClient>((ref) {
+@riverpod
+StudioClient studioClient(Ref ref) {
   return StudioClient(ref.watch(apiClientProvider));
-});
+}
 
 /// Client for interacting with the V2 Studio API (Admin/Config features).
 ///
@@ -110,6 +113,12 @@ class StudioClient {
   Future<List<Map<String, dynamic>>> getSteps() async {
     final response = await _dio.get('studio/steps');
     return List<Map<String, dynamic>>.from(response.data as List);
+  }
+
+  /// Retrieves a specific step by id.
+  Future<Map<String, dynamic>> getStep(String id) async {
+    final response = await _dio.get('studio/steps/$id');
+    return response.data as Map<String, dynamic>;
   }
 
   /// Appends or updates a step.
@@ -217,6 +226,12 @@ class StudioClient {
   Future<List<Map<String, dynamic>>> getOutputProfiles() async {
     final response = await _dio.get('output-profiles/');
     return List<Map<String, dynamic>>.from(response.data as List);
+  }
+
+  /// Retrieves a specific output profile by ID.
+  Future<Map<String, dynamic>> getOutputProfile(String id) async {
+    final response = await _dio.get('output-profiles/$id');
+    return response.data as Map<String, dynamic>;
   }
 
   /// Appends or updates an output profile.

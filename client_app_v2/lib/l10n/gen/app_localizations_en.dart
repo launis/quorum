@@ -245,7 +245,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusFailed => 'FAILED';
 
   @override
-  String get statusRejected => 'REJECTED';
+  String get statusRejected => 'Rejected';
 
   @override
   String get cancelling => 'Cancelling';
@@ -1059,7 +1059,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stepEdit => 'Edit Step';
 
   @override
-  String get stepIdLabel => 'Step ID';
+  String get stepIdLabel => 'Step ID (UUID or Unique String)';
 
   @override
   String get stepIdHelper => 'Unique identifier (e.g. \'step_analyst\')';
@@ -1097,11 +1097,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stepSaveSuccess => 'Step saved!';
 
   @override
-  String get stepDeleteConfirmTitle => 'Confirm Delete';
+  String get stepDeleteConfirmTitle => 'Delete Step';
 
   @override
   String stepDeleteConfirmMessage(String id) {
-    return 'Delete step \'$id\'?';
+    return 'Are you sure you want to delete step \"$id\"?';
   }
 
   @override
@@ -1839,13 +1839,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportScore => 'Total Score';
 
   @override
-  String get xAxisLabel => 'X-Axis';
+  String get xAxisLabel => 'X-Axis (Matrix ID)';
 
   @override
-  String get yAxisLabel => 'Y-Axis';
+  String get yAxisLabel => 'Y-Axis (Matrix ID)';
 
   @override
-  String get zAxisLabel => 'Z-Axis';
+  String get zAxisLabel => 'Z-Axis (Matrix ID)';
 
   @override
   String get selectWorkflowPrompt =>
@@ -2119,7 +2119,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workflowCloneBtn => 'Clone Workflow';
 
   @override
-  String get workflowCloneSuccess => 'Workflow cloned successfully!';
+  String get workflowCloneSuccess => 'Workflow Cloned successfully';
 
   @override
   String get workflowCloneErrorMissingDep =>
@@ -2127,7 +2127,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workflowSharedBlueprintWarning =>
-      'Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block.';
+      'Cloning a workflow will create a deep copy of the workflow configuration, but it will STILL reference the same Steps (DAG Nodes) by ID. If you edit a Step, it will be edited for both workflows. Are you sure you want to clone?';
 
   @override
   String get overall_system_profile => 'Overall System Profile';
@@ -2308,7 +2308,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Manage external tools and AI fact-checking integrations.';
 
   @override
-  String get mcpGatewaysTitle => 'MCP Gateways';
+  String get mcpGatewaysTitle =>
+      'XAI Reporting / Toolkit Injection (MCP Gateways)';
 
   @override
   String get mcpGatewaysDesc =>
@@ -2348,4 +2349,550 @@ class AppLocalizationsEn extends AppLocalizations {
   String msgEntityCloneFailed(String error) {
     return 'Failed to clone: $error';
   }
+
+  @override
+  String get categoryMatrix => 'Evaluation Matrix';
+
+  @override
+  String get categoryAgentRole => 'Agent Role Persona';
+
+  @override
+  String get categoryTaskDefinition => 'Task Definition';
+
+  @override
+  String get categorySystemRule => 'System Rule / Heuristic';
+
+  @override
+  String get categoryProtocol => 'Execution Protocol';
+
+  @override
+  String get technicalDetails => 'Technical Details';
+
+  @override
+  String get systemError => 'System Error';
+
+  @override
+  String get signInSubtitle => 'Sign in to continue';
+
+  @override
+  String get errorEmptyEmail => 'Please enter your email';
+
+  @override
+  String get errorInvalidEmail => 'Invalid email address';
+
+  @override
+  String get errorEmptyPassword => 'Please enter your password';
+
+  @override
+  String get signInButton => 'Sign In';
+
+  @override
+  String executionTargetLabel(String id) {
+    return 'Target: $id';
+  }
+
+  @override
+  String get executionMetricsTitle => 'Performance Metrics';
+
+  @override
+  String executionTokensBreakdown(int total, int prompt, int comp) {
+    return 'Total Tokens: $total (Prompt: $prompt, Completion: $comp)';
+  }
+
+  @override
+  String executionTokensCached(int cached) {
+    return 'Cached Tokens saved: $cached';
+  }
+
+  @override
+  String executionTokensReasoning(int reasoning) {
+    return 'Reasoning Tokens spent: $reasoning';
+  }
+
+  @override
+  String executionCostEstimate(String cost) {
+    return 'Estimated Cost: \$$cost';
+  }
+
+  @override
+  String workflowPrefixLabel(String name) {
+    return 'Workflow: $name';
+  }
+
+  @override
+  String get deleteExecutionTooltip => 'Delete Execution';
+
+  @override
+  String get errSaveTimeout => 'File save dialog did not respond (Timeout).';
+
+  @override
+  String startWorkflowTitle(String id) {
+    return 'Start Workflow: $id';
+  }
+
+  @override
+  String failedToLoadSchema(String error) {
+    return 'Failed to load schema: $error';
+  }
+
+  @override
+  String get navSystemInspector => 'System Inspector';
+
+  @override
+  String get gatewayMetadataTitle => 'Gateway Metadata';
+
+  @override
+  String get slugLabel => 'Slug (e.g., task_guard)';
+
+  @override
+  String get allowedMcpToolsTitle => 'Allowed MCP Tools';
+
+  @override
+  String get addToolButton => 'Add Tool';
+
+  @override
+  String get noToolsDefinedGateway => 'No tools defined for this gateway.';
+
+  @override
+  String get deleteGatewayTitle => 'Delete MCP Gateway?';
+
+  @override
+  String deleteGatewayConfirmation(String id) {
+    return 'Are you sure you want to delete gateway $id?';
+  }
+
+  @override
+  String get cancelButton => 'Cancel';
+
+  @override
+  String get deleteButton => 'Delete';
+
+  @override
+  String get gatewaySavedSuccess => 'MCP Gateway saved successfully.';
+
+  @override
+  String saveFailedError(String error) {
+    return 'Save failed: $error';
+  }
+
+  @override
+  String deleteFailedError(String error) {
+    return 'Delete failed: $error';
+  }
+
+  @override
+  String toolTitlePrefix(String name) {
+    return 'Tool: $name';
+  }
+
+  @override
+  String get toolIdLabel => 'Tool ID (Slug)';
+
+  @override
+  String get uiDisplayNameTitle => 'UI Display Name (I18nText)';
+
+  @override
+  String get englishNameLabel => 'English Name';
+
+  @override
+  String get finnishNameLabel => 'Finnish Name';
+
+  @override
+  String get toolDescriptionLabel => 'Tool Description (English only for LLM)';
+
+  @override
+  String get jsonInputSchemaLabel => 'JSON Input Schema';
+
+  @override
+  String get invalidJsonError => 'Invalid JSON';
+
+  @override
+  String get deleteConfigTitle => 'Delete Configuration?';
+
+  @override
+  String deleteConfigConfirmation(String id) {
+    return 'Are you sure you want to delete config $id?';
+  }
+
+  @override
+  String get configSavedSuccess => 'Model Registry saved successfully.';
+
+  @override
+  String get profileSavedSuccess => 'Profile saved successfully.';
+
+  @override
+  String get deleteProfileTitle => 'Delete Profile?';
+
+  @override
+  String deleteProfileConfirmation(String id) {
+    return 'Are you sure you want to delete $id?';
+  }
+
+  @override
+  String get newOutputProfileTitle => 'New Output Profile';
+
+  @override
+  String get editOutputProfileTitle => 'Edit Output Profile';
+
+  @override
+  String get profileIdLabel => 'Profile ID (e.g. general_executive)';
+
+  @override
+  String get urlSlugLabel => 'URL Slug (e.g. default)';
+
+  @override
+  String get workflowIdBindingLabel => 'Workflow ID Binding';
+
+  @override
+  String get selectWorkflowHint => 'Select a Workflow...';
+
+  @override
+  String get noneDefaultLabel => 'None (Default)';
+
+  @override
+  String get profileDisplayNameLabel => 'Profile Display Name';
+
+  @override
+  String get profileDescriptionLabel => 'Profile Description (Optional)';
+
+  @override
+  String get workflowSelectWarning =>
+      '⚠️ Please select a Workflow ID Binding above to configure report layouts.';
+
+  @override
+  String get layoutBlocksTitle => 'Layout Blocks';
+
+  @override
+  String get addLayoutBlockBtn => 'Add Layout Block';
+
+  @override
+  String get noLayoutBlocksDefined =>
+      'No layout blocks defined. Report will be empty.';
+
+  @override
+  String get presetViewLabel => 'Preset View';
+
+  @override
+  String get preset1dTable => '1D Table';
+
+  @override
+  String get preset2dGrid => '2D Grid';
+
+  @override
+  String get preset3dRadar => '3D Radar/Composite';
+
+  @override
+  String get presetTextOnly => 'Text/Synthesis Only';
+
+  @override
+  String get presetAutomatic => 'Automatic Validation';
+
+  @override
+  String get showTextLabel => 'Show Text';
+
+  @override
+  String get layoutBlockTitleLabel => 'Layout Block Title';
+
+  @override
+  String get targetComponentsTitle => 'Target Components';
+
+  @override
+  String get componentXAxisLabel => 'Component 1 (X-Axis/Primary)';
+
+  @override
+  String get componentYAxisLabel => 'Component 2 (Y-Axis)';
+
+  @override
+  String get componentZAxisLabel => 'Component 3 (Z-Axis)';
+
+  @override
+  String componentGenericLabel(String num) {
+    return 'Component $num';
+  }
+
+  @override
+  String get selectAllComponentsLabel => 'All Components (*)';
+
+  @override
+  String get selectComponentHint => 'Select component...';
+
+  @override
+  String editProfilesTitle(String slug) {
+    return 'Edit Profiles: $slug';
+  }
+
+  @override
+  String get outputProfilesDictionary => 'Output Profiles Dictionary';
+
+  @override
+  String get addVariantBtn => 'Add Variant';
+
+  @override
+  String get newProfileIdTitle => 'New Profile ID';
+
+  @override
+  String get profileIdHint => 'Profile ID (e.g. executive)';
+
+  @override
+  String variantIdLabel(String id) {
+    return 'Variant ID: $id';
+  }
+
+  @override
+  String get reportLayoutSequenceLabel => 'Report Layout Sequence';
+
+  @override
+  String get preset2dCompare => '2D Compare';
+
+  @override
+  String get preset3dComplex => '3D Complex';
+
+  @override
+  String get presetDefaultView => 'Default View';
+
+  @override
+  String get sectionTitleLabel => 'Section Title (Optional)';
+
+  @override
+  String get sectionDescLabel => 'Section Description (Optional)';
+
+  @override
+  String get promptBlockSavedSuccess => 'Prompt Block saved (Optimistic).';
+
+  @override
+  String get simulatorCorruptionError =>
+      'Simulator did not return rendered_prompt. Data corruption detected.';
+
+  @override
+  String get simulatorOutputTitle => 'Simulator Output';
+
+  @override
+  String simulatorFailedError(String error) {
+    return 'Simulation Error: $error';
+  }
+
+  @override
+  String get promptBlockEditTitle => 'Edit Prompt Block';
+
+  @override
+  String promptBlockBuilderTitleId(String id) {
+    return 'Builder: $id';
+  }
+
+  @override
+  String get promptBlockMandatoryEnglishError =>
+      'English Label is required (English-Only Mandate).';
+
+  @override
+  String get promptBlockConfigTitle => 'Prompt Block Configuration';
+
+  @override
+  String opaqueIdLabel(String id) {
+    return 'Opaque ID: $id';
+  }
+
+  @override
+  String get promptBlockPropertiesTitle => 'Prompt Block Properties';
+
+  @override
+  String get categoryLabel => 'Category';
+
+  @override
+  String get blockLabelName => 'Block Label (Name)';
+
+  @override
+  String get shortDescriptionHint => 'Short Description (UI Hint)';
+
+  @override
+  String get systemPromptMandatory =>
+      'System Prompt / Cognitive Blueprint (MANDATORY ENGLISH)';
+
+  @override
+  String get dataTypeExecutionConstraints =>
+      'Data Type & Execution Constraints';
+
+  @override
+  String get typeInstruction => 'Text Instruction (No JSON Output)';
+
+  @override
+  String get typeString => 'String';
+
+  @override
+  String get typeNumber => 'Number (Numeric)';
+
+  @override
+  String get typeInteger => 'Integer';
+
+  @override
+  String get typeFloat => 'Float';
+
+  @override
+  String get typeBoolean => 'Boolean';
+
+  @override
+  String get allowDecimals => 'Allow Decimals';
+
+  @override
+  String get xaiOutputExtensionsTitle =>
+      'XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)';
+
+  @override
+  String get xaiJustification => 'Justification';
+
+  @override
+  String get xaiCoachingTip => 'Coaching Tip';
+
+  @override
+  String get xaiDevilsAdvocate => 'Devil\'s Advocate';
+
+  @override
+  String get xaiMissingContext => 'Missing Context';
+
+  @override
+  String get xaiRiskFlag => 'Risk Flag';
+
+  @override
+  String get xaiRemediation => 'Remediation';
+
+  @override
+  String get xaiSentiment => 'Sentiment';
+
+  @override
+  String get xaiTheoryLink => 'Theory Link';
+
+  @override
+  String get xaiConfidence => 'AI Confidence';
+
+  @override
+  String get xaiSourceCitation => 'Source Citation';
+
+  @override
+  String get theoryGroundingTitle => 'Theory Grounding (RAG)';
+
+  @override
+  String get sourceUrlLabel => 'Source URL (e.g. jstor.org/...)';
+
+  @override
+  String get citationReferenceLabel =>
+      'Citation Reference (e.g. Kahnamen, 2011)';
+
+  @override
+  String get gridRowsOptional => 'Grid Rows (Optional)';
+
+  @override
+  String get gridColumnsOptional => 'Grid Columns (Optional)';
+
+  @override
+  String get addGridItemBtn => 'Add item';
+
+  @override
+  String get barsScalesTitle => 'BARS Scales / Score Grades';
+
+  @override
+  String get addGradeBtn => 'Add Grade';
+
+  @override
+  String get scaleMinLabel => 'Scale Min (e.g. 4)';
+
+  @override
+  String get scaleMaxLabel => 'Scale Max (e.g. 10)';
+
+  @override
+  String claimsCountLabel(String count) {
+    return '$count Claims';
+  }
+
+  @override
+  String gradeScoreLabel(String score, String name) {
+    return 'Grade/Score: $score $name';
+  }
+
+  @override
+  String get closeModalBtn => 'Close';
+
+  @override
+  String get studioSaveSuccess => 'Saved successfully';
+
+  @override
+  String get stepSavedSuccess => 'Step saved (Optimistic).';
+
+  @override
+  String get stepEditTitle => 'Edit Step';
+
+  @override
+  String get simulateStepTooltip => 'Simulate Step';
+
+  @override
+  String get idRequiredError => 'ID is required.';
+
+  @override
+  String get configurationTitle => 'Configuration';
+
+  @override
+  String get nameLabel => 'Name';
+
+  @override
+  String get descriptionLabel => 'Description';
+
+  @override
+  String get preHooksTitle => 'Pre Hooks';
+
+  @override
+  String get addHookBtn => 'Add Hook';
+
+  @override
+  String get preHookEngineLabel => 'Pre-Execution Hook Engine';
+
+  @override
+  String get hookTavily => 'Tavily Web Search (search_hook)';
+
+  @override
+  String get hookMemory => 'Contextual Memory (memory_hook)';
+
+  @override
+  String get hookValidation => 'Strict Validation (validation_hook)';
+
+  @override
+  String get hookScore => 'Grading Matrix (score_hook)';
+
+  @override
+  String hookLegacy(String name) {
+    return 'Legacy: $name';
+  }
+
+  @override
+  String get promptBlocksTitle => 'Prompt Blocks';
+
+  @override
+  String get addPromptBlockBtn => 'Add Prompt Block';
+
+  @override
+  String get promptBlockLabel => 'Prompt Block';
+
+  @override
+  String get workflowSavedSuccess => 'Workflow saved successfully.';
+
+  @override
+  String get simulatorValidDag => 'DAG is Valid!';
+
+  @override
+  String simulatorDagErrors(String errors) {
+    return 'DAG Errors: $errors';
+  }
+
+  @override
+  String get workflowNameMissingError =>
+      'Workflow name is missing for existing workflow.';
+
+  @override
+  String get validateDagBtn => 'Validate DAG';
+
+  @override
+  String get workflowTabGeneral => '1. General & Outputs';
+
+  @override
+  String get workflowTabInputs => '2. Inputs';
+
+  @override
+  String get workflowTabSteps => '3. Steps & Dependencies';
 }

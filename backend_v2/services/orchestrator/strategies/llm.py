@@ -121,7 +121,20 @@ class LLMNodeStrategy(NodeStrategy):
         ]
 
         # 4. Invoke LLM Model (Tool Loop vs Direct Output)
-        strategy_name = context.model_strategy or "fast"
+        strategy_name = context.model_strategy
+        if not strategy_name:
+            logger.error(
+                "Fail-Fast: Step has no model_strategy defined. Zero fallbacks allowed.",
+                extra={
+                    "error_code": ErrorCodes.CONFIGURATION_ERROR.name,
+                    "step_id": step.id
+                }
+            )
+            raise AppException(
+                message=f"Step {step.id} has no model_strategy defined (Fail-Fast: No fallbacks allowed).",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            )
         bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
         effective_mcp_tools = step.allowed_mcp_tools or step_obj.allowed_mcp_tools
 
@@ -139,6 +152,7 @@ class LLMNodeStrategy(NodeStrategy):
                 allowed_tools=effective_mcp_tools,
                 step_name=step.id,
                 mock_identity=step.id,
+                target_language=target_locale,
             )
             final_dict = dict(loop_result.result_data)
             usage_dict = dict(loop_result.usage) if loop_result.usage else {}

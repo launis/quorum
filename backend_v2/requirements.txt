@@ -84,7 +84,7 @@ kiwisolver==1.4.9
 librt==0.7.8
 limits==5.6.0
 litellm==1.81.3
-logfire==4.20.0
+logfire[redis]==4.20.0
 lxml==6.0.2
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3

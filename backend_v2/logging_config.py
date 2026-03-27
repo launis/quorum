@@ -5,6 +5,14 @@ import os
 import sys
 from typing import Any
 
+# Force UTF-8 on Windows to prevent Logfire/Rich box-drawing crashes (cp1252 to undefined)
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 from backend_v2.context import get_execution_context
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -69,14 +77,16 @@ def configure_logfire() -> None:
         # but automatic detection occasionally fails.
         os.environ.setdefault("LOGFIRE_BASE_URL", "https://api-eu.pydantic.dev/")
         os.environ.setdefault("LOGFIRE_SEND_TO_LOGFIRE", "true")
+        
+        # Completely disable the Rich Console exporter to prevent cp1252 Unicode crashes on Windows.
+        # We already have a standard Python logging StreamHandler anyway.
+        os.environ["LOGFIRE_CONSOLE"] = "false"
 
         # send_to_logfire=True explicitly enables the cloud exporter.
-        # Removing `console=False` and `project_name` as they are deprecated/bugged in this Logfire version
-        # and cause silent setup crashes!
         logfire.configure(send_to_logfire=True)
         logfire.instrument_pydantic()
         logfire.instrument_httpx()
-        logfire.instrument_redis()
+        # logfire.instrument_redis() # Spams the console with Arq queue polling (ZRANGEBYSCORE/ZCARD) every 0.5s
 
         import litellm
         litellm.success_callback = ["logfire"]   # Instrument LLM Calls

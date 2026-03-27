@@ -205,7 +205,10 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                     ),
                     child: GlobalErrorView(
                       error: AppException(
-                        title: 'Execution Failed',
+                        title:
+                            AppLocalizations.of(
+                              context,
+                            )!.errWorkflowExecutionFailed,
                         detail: record['error'].toString(),
                         extensions: {'error_code': record['error'].toString()},
                       ),

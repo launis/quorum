@@ -24,6 +24,7 @@ from backend_v2.exceptions import (
 from backend_v2.models.llm import LLMProviderConfig, LLMResponse
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import get_settings
+from backend_v2.models.enums import SystemConcurrency
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -31,12 +32,14 @@ logger = logging.getLogger(__name__)
 # Define retry strategy
 _settings = get_settings()
 
+from tenacity import wait_random_exponential
+
 retry_strategy = retry(
-    stop=stop_after_attempt(_settings.llm_max_retries),
-    wait=wait_exponential(multiplier=_settings.llm_retry_delay, min=1, max=60),
+    stop=stop_after_attempt(SystemConcurrency.LLM_MAX_RETRIES.value),
+    wait=wait_random_exponential(multiplier=_settings.llm_retry_delay, max=120),  # Jitter to prevent thundering herd
     reraise=True,
     before_sleep=lambda retry_state: logger.warning(
-        f"Retrying LLM call... (Attempt {retry_state.attempt_number}/{_settings.llm_max_retries})"
+        f"Retrying LLM call... (Attempt {retry_state.attempt_number}/{SystemConcurrency.LLM_MAX_RETRIES.value})"
     ),
 )
 

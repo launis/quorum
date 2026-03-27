@@ -35,7 +35,7 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla tai vanhoi
 
 ### 1.3 Routine Quality Gates (Verifications)
 Älä koskaan merkitse työtä valmiiksi tarkistamatta sitä manuaalisesti laadunvarmistustyökaluilla:
-* **Backend**: `uv run ruff check . --fix` AND `uv run mypy .` (Strict typing).
+* **Backend**: `cd backend_v2 && uv run ruff format . && uv run ruff check . --fix && uv run mypy . --strict` (Ruff hoitaa muotoilun ja linttauksen, Mypy tarkistaa koko syvän juuressaan välttääkseen tuonti-sokeutumisen).
 * **Frontend**: `dart run custom_lint` AND `dart run build_runner build -d`.
 
 ### 1.4 Environment Constraints
@@ -58,18 +58,32 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla tai vanhoi
 
 ### 2.3 Strict Typing & Banned Fallbacks (No Defaults)
 * Domain-malleissa ja UI-tiloissa **EI SAA OLLA** implisiittisiä oletusarvoja pakollisille kentille. Alkuarvojen asettaminen (esim. `score: float = 0.0` tai `String text = ""`) puuttuvan serveridatan paikkaamiseksi on ankarasti KIELLETTY.
+* **DTO Schema Parity (Backend-Frontend Match):** Vaikka ylläoleva sääntö kieltää paikkailun, **TARKISTA AINA Backendin Pydantic-malli** ennen `fromJson` koodin kiristämistä. Jos backendin palauttama malli (esim. vakio `User`) oikeasti jättää tietyn tilastokentän (esim. `execution_count`) rakenteellisesti pois, vastaavan Flutter-kentän TYPPI PITÄÄ OLLA nullable (`int?`). Älä koskaan syötä sokeasti `as int` -castausta dataan, jota backend ei edes suunnitellut lähettävänsä. Jos payloadit eroavat merkittävästi eri rooleilla/näkymillä, luo Flutteriin erilliset mallit (esim. `User` vs `UserAdmin`).
 * **Kielletty:** Null-coalescing -operaattoreiden (`data ?? defaultData`) käyttö käyttöliittymäkomponenteissa tai backend-logiikassa datan selviytymiseksi on täysin BANNATTU.
 * Pydantic V2 on käytössä tilassa `ConfigDict(strict=True)`. Tyyppipakotuksia ei tehdä lennosta (esim. ei merkkijonoa `"1"` numerokenttään `1`).
+* **Strict Pydantic 2026 Mandate (Rust-Core & Anti-Hallucination):**
+  1. **Instantiation:** NEVER use dictionary unpacking (`MyModel(**data)`). ALWAYS use `MyModel.model_validate(data)` to force the Fail-Fast validation pipeline.
+  2. **Rust-Speed JSON Parsing:** When parsing raw JSON strings (e.g., from Arq/Redis or LLM output), NEVER use Python's `json.loads()`. You MUST use `MyModel.model_validate_json(json_str)` to bypass Python and parse directly in Rust.
+  3. **Serialization Ban:** Legacy V1 methods `.dict()`, `.json()`, and `parse_obj()` are BANNED. Use `.model_dump()` and `.model_dump_json()`. Nested `class Config:` is banned; use `model_config = ConfigDict(...)`.
+  4. **V1 Validator Ban:** Legacy `@validator` and `@root_validator` are BANNED. Use V2 `@field_validator` and `@model_validator(mode='after')`.
+  5. **Anti-Hallucination:** All models parsing external or LLM payloads MUST use `model_config = ConfigDict(extra='forbid', strict=True)`. If an LLM hallucinates undocumented keys, the model MUST crash immediately (Fail-Fast). Silently dropping extra data is banned.
+  6. **Immutability (Frozen State):** All Event Sourcing models (`TraceEvent`), DTOs, and DAG nodes MUST be immutable using `model_config = ConfigDict(frozen=True)`. In-place mutation (`event.status = 'done'`) is BANNED. Spawn new states using `event.model_copy(update={'status': 'done'})`.
+  7. **Polymorphism (O(1) Routing):** When defining complex DAG nodes or TraceEvents, implicit Unions are BANNED. You MUST use Discriminated Unions (`Field(discriminator='type')`) to ensure O(1) parsing speed and prevent unsafe duck-typing.
+  8. **Annotated Validators (PEP 593):** NEVER mix validation with default values (e.g., `age: int = Field(gt=0)`). ALWAYS use `Annotated` to keep type hints pure for `mypy` (e.g., `age: Annotated[int, Field(gt=0)]`).
 
 ### 2.4 Deterministic Execution Mandate (Python Authority)
 * LLM (Tekoäly) on probabilistinen; Python on deterministinen. 
 * Jos loogisen operaation (Matematiikka, lajittelu, deduplikointi, tunnisteiden luonti) voi tehdä deterministisesti Pythonissa (`BaseAgent.post_process()`), sitä **EI KOSKAAN** delegoida tekoälylle promptiin.
+
+### 2.5 Zero-Hardcoded Styling (Design Tokens)
+* **NO HARDCODED STYLING:** NEVER use magic numbers for padding/sizing (e.g., 16.0) or hardcoded raw colors (e.g., Colors.blue). ALWAYS use `Theme.of(context)` and the app's centralized design tokens. The UI must flawlessly support dynamic Dark Mode and density scaling.
 
 ---
 
 ## 💾 3. ARCHITECTURE & DATA LIFECYCLE
 
 ### 3.1 Single Source of Truth (SSOT) & Domain Service Layer (MANDATORY)
+* **Firebase CQRS (Read/Write Separation):** Frontend (Flutter) on Firebase-tietokannan suhteen **EHDOTTOMAN READ-ONLY**. Frontend käyttää Firebase SDK:ta AINOASTAAN reaaliaikaisten datastriimien (`snapshots()`) kuuntelemiseen nollaviiveen illuusion luomiseksi. Frontend EI SAA KOSKAAN kirjoittaa, päivittää tai poistaa dataa suoraan Firestoresta. Kaikki mutaatiot ON lähetettävä Python FastAPI -backendille, joka validoi payloadit Pydanticilla ja päivittää tietokannan turvallisesti Admin SDK:n kautta.
 * **API Routers MUST be "Anemic":** FastAPI reitittimet (esim. `users.py`, `studio.py`) saavat sisältää vain HTTP-pyynnön parsinnan (Pydantic). 
 * **NO RAW CRUD IN ROUTERS:** Reititin ei koskaan saa kutsua suoraan `repository.create()` tai `repository.get()`, eikä se saa sisältää käyttöoikeuslogiikkaa (esim. `if current_user.role == "ROOT"`). Kaikki tietokanta- ja liiketoimintalogiikka (etenkin Tenant Isolation, RBAC ja Last Admin Guard) **ON PAKKO** reitittää aina kerroksen 2 (Domain Service Layer, esim. `AuthServiceDep`, `StudioServiceDep`, `ExecutionServiceDep`) kautta.
 * **Miksi?** Järjestelmää ajetaan myös ohjelmallisesti tausta-ajoilla (esim. `worker.py`), jotka eivät reitity API:n kautta. Service Layer on backendin ainoa Single Source of Truth luvitukselle ja datan eheyksille.
@@ -85,6 +99,7 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla tai vanhoi
 ### 3.4 Reliability Strategy (Timeout)
 * Kaikilla ulospäin lähtevillä verkkopyynnöillä on pakotettu aikakatkaisu (Timeout). Järjestelmä ei saa hirttää kiinni (Zombie).
 * Uudelleenyritys (Retry) hallitaan infrastruktuurissa asynkronisilla kirjastoilla (kuten `Tenacity`), ei etupäässä käyttäjän toimesta.
+* **Background Workers (Arq 2026 Mandate):** Pitkäkestoiset tekoälygeneroinnit tai raskaat DAG-suoritukset EIVÄT SAA KOSKAAN blokata FastAPI:n HTTP-pyyntösykliä. Ne on siirrettävä asynkroniseen taustatyöjonoon (Arq / Redis). API-reitittimen on palautettava `202 Accepted` -status ja TaskID välittömästi. Frontend kuuntelee valmistumista Firebase-striimien (tai SSE) kautta.
 
 ### 3.5 Seed Data Protocol (Tietokannan hallinta)
 **ERITTÄIN TÄRKEÄ SÄÄNTÖ:** Tietokantaa (TinyDB) ei koskaan muokata lennosta tai ohittaen Seed-prosessia kehityksessä. 
@@ -102,7 +117,7 @@ Tämän ohjeen kiertäminen ja kannan (`db_v2.json`) sorkkiminen lennossa korrup
 ### 4.1 Framework Features & FastAPI Lifespan
 * **DI (Dependency Injection)**: Pakotettu `Annotated[Type, Depends()]` -syntaksi. Suojaa tyypit ja poistaa "Any" -vuodot reiteistä. Vanha `param: Type = Depends()` on legacyä.
 * **FastAPI Lifespan**: Vanhat `@app.on_event("startup")` dekoraattorit ovat poistuneet (deprecated). Kaikki tietokanta- ja worker-alustukset tehdään puhtaalla `@asynccontextmanager` (Lifespan) -rakenteella `main.py`:ssä.
-* **Asynk/Synk Rajoite**: Jos reitti lukee vain TinyDB:tä (joka on lukittu blocking-ajuri), reitin määritys tulee olla puhdas `def`. Jos tiedonlähde on Cloud (Firebase) tai suoritetaan LLM-kutsu, käytä asynkronista `async def`. FastAPI optimoi nämä omiin lankapoolihinsa.
+* **FastAPI Async/Sync Rule**: Jos reitti lukee vain TinyDB:tä (joka on lukittu blocking-ajuri), reitin määritys tulee olla puhdas `def`. Jos reitti kutsuu LLM:iä, Firebasea tai Arq-jonoa, sen ON OLTAVA `async def`. FastAPI optimoi nämä omiin lankapoolihinsa.
 
 ### 4.2 Modern Syntax & Typing Strictness (PEP 695, PEP 604, PEP 698)
 Python 3.14 -ympäristössä koodin on oltava sataprosenttisesti modernia syntaksia. "Legacy"-tyypityksen käyttö hylätään linterissä (Mypy Strict).
@@ -146,14 +161,18 @@ Quorum ei ole kuluttajille suunnattu mobiilisovellus, vaan **ammattilaisten IDE-
 * **Deep Linking ja Moniajo (PC):** PC-käyttäjät avaavat näkymiä säännöllisesti uusiin selaimen välilehtiin (Multi-Tab). Vahvasti tyypitetty reititys (jossa "Opaque Stripe ID" kulkee validina parametrina tyyliin `/workflows/wf_xyz`) on elinehto, jotta syvälinkit toimivat saumattomasti ja yksittäisiä työnkulkuja voidaan jakaa URL-osoitteena tiimin kesken ilman tilan korruptoitumista.
 * **Hybrid URL Pattern (Opaque ID + Slug):** Jos halutaan SEO:n tai ihmisluettavuuden takia näyttää entiteetin nimi URL:ssa (esim. `/workflows/wf_xyz/my-workflow`), reititin ja Backend poimivat hakuihin AINA vain muuttumattoman Opaque ID:n (`wf_xyz`). Slug on järjestelmälle pelkkää merkityksetöntä kosmetiikkaa. Näin taataan, että nimien muuttaminen ei koskaan riko vanhoja linkkejä (Link Rot) tai tietokantakytköksiä.
 * **Guard Clauses:** Reitinvalintalogiikka keskitetään yksinomaan reitittimen `redirect`-funktioon, ei manuaalisesti widgetien `build()`-luokkiin.
+* **GoRouter $extra Ban (Strict ID-Only Routing):** Älä koskaan yritä ruokkia State/Form -tiloja injektoimalla domain-dataa (`initialData: $extra`) reitittimen läpi. Se rikkoo Riverpod-eristyksen (ja mahdollisesti moniajonsyvälinkityksen PC-ympäristössä, kun sivu päivitetään). Reititin (GoRouter) saa välittää AINOASTAAN puhtaita tunnisteita (Opaque IDs tai Slugs) uusille näkymille. Näkymän oma `@riverpod` AsyncNotifier on yksin vastuussa datan hakemisesta ja formatoinnista täsmällisen ID:n perusteella.
+* **Stateful Nested Navigation (Desktop):** Koska Admin Studio on PC-työkalu, käyttäjien työnkulut (esim. puoliksi täytetyt lomakkeet) EIVÄT SAA tuhoutua sivupalkin välilehtiä vaihdettaessa. Päätason navigaatiossa ON KÄYTETTÄVÄ GoRouterin `StatefulShellRoute` (tai `StatefulShellBranch`) -rakennetta tavallisen `ShellRoute`:n sijaan.
 
 ### 5.3 Concurrency, Performance & Zero-Latency Illusion (Isolate Mandate)
 * Raskaat Backendistä tuodut ylisuuret JSON-rakenteet tai datan transformoinnit **SIIRRETÄÄN VÄKISTEN** erilliseen säikeeseen: `Isolate.run(...)`. Vanha Flutterin `compute` -funktio on poistettu näistä tehtävistä käytöstä.
+* **The "Dumb UI" & Isolate Leaking:** `Isolate.run()` kuuluu yksinomaan Riverpod-providerin (esim. `AsyncNotifier` `build`-metodin) sisälle. Älä koskaan kutsu `Isolate.run()` suoraan Widgetin `build`-syklissä tai `useEffect`-hookissa, sillä se vuotaa asynkronista liiketoimintalogiikkaa UI-kerrokseen.
 * **Main Thread Jank -suojaus (PC-näytöt):** Erityisesti PC-työpöytänäkymissä massiivisten DAG-puiden (satoja solmuja) ja Pydantic DTO -rakenteiden deserialisointi välimuistiin on pakko eristää päälangoista. Vain näin taataan "Zero-Latency Illusion", eli hiiren kursori ja raskaiden 2D-kankaiden zoomaus pysyvät täydellisen sulavina huippunäytöillä (120Hz/144Hz).
 
 ### 5.4 Riverpod 3.0 State, Optimistic Updates & Mutaatiot
 * Luovu "Odotan vastausta 2 sekuntia - spinneri pyörii" UX-suunnittelusta. **Koko ruudun latausanimaatiot (Loading Spinners) ovat IDE-työkalussa ankarasti kiellettyjä.** PC-käytön illuusio nollaviiveestä säilytetään **Optimistisilla päivityksillä** (Tila paikallisesti = Päivitetty jono $\rightarrow$ Lähetä serverille $\rightarrow$ Jos ei onnistunut, peruuta näyttö tilaan x).
 * Kaikki **sivuvaikutukset (Side Effects)** – tallennukset, poistot – on ohjelmistossa **PAKOTETUSTI** hallittava kokeellisen (mutta stabiilin) Riverpod 3.0 `Mutation<T>` objektin kautta. Älä tee enää manuaalisia state-lippuja kuten `bool _isLoading`.
+* **Lataustilojen (Loading Flags) kielto:** Manuaaliset latausliput hookeilla (esim. `final isSaving = useState(false);`) ovat UI:ssa ankarasti kiellettyjä. Kaikki sivuvaikutukset ja lataustilat hoidetaan Notifierissa (joka asettaa itsensä `AsyncLoading`-tilaan). UI lukee pelkästään providerin sisäänrakennettua `.isLoading` -tilaa eikä ylläpidä omaa lokaalia lippuaan.
 
 ### 5.5 Riverpod Hybrid Caching Strategy (SWR & TTL)
 * Järjestelmän listat ja lomakkeet EIVÄT käytä pelkkää aggressiivista `autoDispose`:a.
@@ -164,6 +183,21 @@ Quorum ei ole kuluttajille suunnattu mobiilisovellus, vaan **ammattilaisten IDE-
 * **Kielletyt rakenteet:** Älä koskaan lataa dynaamisia tietokantakokoelmia (kuten koko Model Registryä tai Prompteja) valtavaksi `AsyncNotifier<Map<String, dynamic>>` -monoliitiksi, mistä UI yrittää onkia yksittäisiä objekteja.
 * **The Flat MVC List:** Kaikki Master-näkymän listat mallinnetaan litteänä taulukkona: `AsyncNotifier<List<Map<String, dynamic>>>`. 
 * **Detail-haku:** Kun käyttäjä siirtyy Detail-muokkausnäkymään Reitittimen ("Hybrid URL") kautta, yksittäinen objekti noudetaan erillisellä "IdProviderilla" (esim. `modelRegistryByIdProvider(id)`), ei suodattamalla ylätason Master-listaa. Tämä takaa saumattoman Syvälinkityksen (Deep Linking) vaikka Master-listaa ei oltaisi edes vierailtu.
+
+### 5.7 2026 "Gold Standard" -malli lomakkeille
+Frontend on yksinomaan 'tyhmä' renderöintimoottori.
+1. **Lokaali Lomakkeen Tila (Notifier):** Puhtaaseen `@riverpod` Notifieriin / AsyncNotifieriin eriytetty logiikka hakee raw-datan, suorittaa `Isolate.run()`-purun ja hoitaa `submit()`-mutaatiot `AsyncLoading`-tilan kanssa. Tämä takaa 100% yksikkötestattavuuden ilman Flutter-riippuvuuksia.
+2. **Tyhmä Käyttöliittymä (HookConsumerWidget):** Hookeja (`flutter_hooks`) saa ja pitää käyttää UI-komponenttien rakentamiseen, mutta **AINOASTAAN** puhtaiden ohimenevien UI-kontrollerien (kuten `useTextEditingController` tai `useAnimationController`) hallintaan. Kaikki asymptoottinen data ja tila luetaan ohjelmallisesti Riverpodista (`ref.watch(provider).when()`). Näin UI-kerros pysyy täysin eristettynä liiketoimintalogiikasta.
+3. **Transient Form State:** Keystrokes and local UI inputs MUST remain locally inside Hooks (`useTextEditingController`). DO NOT dispatch every onChange event to a Riverpod Notifier, as this causes severe Main Thread Jank and unnecessary rebuilds. Only send the final assembled payload to the Riverpod Mutation upon `submit()`.
+
+### 5.8 Dart 3 Pattern Matching & BFF Data Destructuring
+* When destructing raw `Map<String, dynamic>` BFF payloads, you **MUST** use Dart 3 Pattern Matching (e.g., `final {'id': String id} = payload;`). 
+* This provides compiler-backed type safety and instantly enforces the Fail-Fast boundary by throwing a `StateError` if the JSON schema is malformed. 
+* **NEVER** use legacy, unsafe manual casting (e.g., `payload['id'] as String`).
+
+### 5.9 Keyboard Focus Management (Strict Focus)
+* Pro-tools require flawless Tab key navigation. 
+* **Keyboard Focus Management:** Complex layouts **MUST** use `FocusTraversalGroup` and `FocusNode` to isolate and define logical keyboard navigation flow within specific panes.
 
 ---
 
@@ -285,7 +319,24 @@ Poiskommentoidut zombie-koodiblokit ja orvot TODO:t on poistettava säälimätt�
 
 ---
 
-## 📱 10. ADAPTIVE UI & NAVIGATION ARCHITECTURE
+## 🔐 10. IAM & KÄYTTÄJÄN NÄKYMÄT (2026)
+
+### 10.1 Zero-Latency IAM UI (Käyttäjäasetukset)
+* **TwoPane IDE Layout:** Käyttäjän asetusnäkymä rakennetaan Desktop-First -periaatteella hyödyntäen TwoPane-näyttöä ja `FocusTraversalGroup` -rakennetta näppäimistönavigaatiolle. Käyttäjää ei koskaan viedä täysin "ulos" nykyisestä työtilasta.
+* **SWR (Stale-While-Revalidate):** UI-tila (teema, kieli) päivitetään Riverpodilla välittömästi (Optimistic Update) lukemalla lokaalia välimuistia (`userPreferencesProvider`). Koko ruudun Loading-spinnerit on asetusmuutoksissa ehdottomasti KIELLETTY. Riverpod `Mutation` lähettää pyynnön API:lle täysin taustalla.
+
+### 10.2 Passkey-First & Auth Interceptors (Riverpod)
+* **Re-Auth Guard (Zero-Trust):** Backend hylkää arkaluonteiset mutaatiot (esim. salasanan vaihto) yli 5 min vanhalla tokenilla (`REAUTH_REQUIRED`). Riverpod-interceptor **ei koskaan navigoi täysruudun login-sivulle**, vaan ampuu päälle lokaalin dialogin, pyytää välittömän tunnistautumisen (Sormenjälki/Passkey), ja toistaa pyynnön taustalla saumattomasti.
+* **Step-Up MFA:** Jos API palauttaa 403 `MFA_REQUIRED` (sillä JWT Custom Claims / AMR-leima puuttui tokenista), UI esittää Firebasen natiivin MFA-haasteikkunan paikallaan Actionable Hint -käyttökokemuksella varustettuna.
+
+### 10.3 Bulk Data (The Isolate Mandate)
+* Admin Studion listakutsut tai tuhansien rivien Excel/CSV massatuonnit (Massakutsulogiikka) **EIVÄT SAA KOSKAAN** blokata UI-säiettä edes sekunnin kymmenystä. Dataparsoinnit siirretään poikkeuksetta erilliseen säikeeseen: `final payload = await Isolate.run(() => parseAndValidateCsv(bytes));`. 
+
+### 10.4 Flat Claims & Graceful Degradation (O(1) Authorization)
+* Koko valtuutuslogiikka lepää Riverpodin muistissa dekoodatun JWT Tokenin Custom Claimseissa (`org_xyz: MEMBER`). Koska tieto on 0ms:n viiveellä Flutterin tiedossa, käyttöliittymä reagoi aktiivisesti piilottamalla elementtejä ohjelmallisesti (esim. "Tallenna" -nappi korvataan `SizedBox.shrink()` jos käyttäjä on Views-roolissa).
+* Riverpod ei kysele käyttäjäoikeuksia serveriltä jatkuvasti, vaan reititys turvataan lokaaleilla Guardeilla. API hylkää yritykset lopullisesti 403:lla backendissä, jos UI vahingossa vuoti läpi kielletyn toiminnon.
+
+## 📱 11. ADAPTIVE UI & NAVIGATION ARCHITECTURE
 Käyttöliittymän globaalia navigaatiota, rakenteen litteyttä (Flat Hierarchy) ja "Omni-Navigation" sääntöjä ohjaa nyt oma, erillinen arkkitehtuuridokumenttinsa.
 **Jokaisen Flutter-kehittäjän ja AI-agentin on ehdottomasti noudatettava sitä navigaatiota rakennettaessa.**
 

@@ -36,7 +36,7 @@ class NewExecutionController extends _$NewExecutionController {
     return null;
   }
 
-  Future<void> startExecution({
+  Future<String> startExecution({
     required String workflowId,
     required Map<String, dynamic> collectedInputs,
     required String targetLocale,
@@ -57,14 +57,11 @@ class NewExecutionController extends _$NewExecutionController {
       final executionId = SafeCast.safeString(response.data['id']);
       state = const AsyncValue.data(null);
 
-      // Navigate to details via the router using context? Cannot do context here cleanly
-      // We will throw the ID to UI instead of storing it
-      throw Exception('SUCCESS:$executionId');
+      // Return the ID properly instead of throwing an Error
+      return executionId;
     } catch (e) {
-      if (e.toString().startsWith('Exception: SUCCESS:')) {
-        rethrow;
-      }
       state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
     }
   }
 }
@@ -164,69 +161,66 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
     try {
       final localeCode = Localizations.localeOf(context).languageCode;
-      await ref
+      final execId = await ref
           .read(newExecutionControllerProvider.notifier)
           .startExecution(
             workflowId: workflowId,
             collectedInputs: _compiledInputs,
             targetLocale: localeCode,
           );
-    } catch (e) {
-      if (e.toString().startsWith('Exception: SUCCESS:')) {
-        final execId = e.toString().split('SUCCESS:')[1];
-        // Safe context routing using GoRouter Codegen
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context)!.executionStartedSuccessfully,
-              ),
+
+      // Safe context routing using GoRouter Codegen
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.executionStartedSuccessfully,
             ),
-          );
-          ExecutionRoute(executionId: execId).go(context);
-        }
-      } else {
-        if (mounted) {
-          String errorMessage = e.toString();
-          if (e is DioException && e.response?.data != null) {
-            final data = e.response!.data;
-            if (data is Map<String, dynamic>) {
-              if (data.containsKey('message')) {
-                errorMessage = data['message'].toString();
-              } else if (data.containsKey('detail')) {
-                final detail = data['detail'];
-                if (detail is List && detail.isNotEmpty) {
-                  final firstError = detail.first;
-                  if (firstError is Map && firstError.containsKey('msg')) {
-                    errorMessage =
-                        "${firstError['loc']?.last}: ${firstError['msg']}";
-                  } else {
-                    errorMessage = detail.toString();
-                  }
+          ),
+        );
+        ExecutionRoute(executionId: execId).go(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = e.toString();
+        if (e is DioException && e.response?.data != null) {
+          final data = e.response!.data;
+          if (data is Map<String, dynamic>) {
+            if (data.containsKey('message')) {
+              errorMessage = data['message'].toString();
+            } else if (data.containsKey('detail')) {
+              final detail = data['detail'];
+              if (detail is List && detail.isNotEmpty) {
+                final firstError = detail.first;
+                if (firstError is Map && firstError.containsKey('msg')) {
+                  errorMessage =
+                      "${firstError['loc']?.last}: ${firstError['msg']}";
                 } else {
                   errorMessage = detail.toString();
                 }
+              } else {
+                errorMessage = detail.toString();
               }
             }
           }
-
-          // Clean up standard prefixes
-          errorMessage = errorMessage
-              .replaceAll('Exception: ', '')
-              .replaceAll('DioException [bad response]: ', '');
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(
-                  context,
-                )!.failedToStartExecution(errorMessage),
-              ),
-              backgroundColor: Theme.of(context).colorScheme.error,
-              duration: const Duration(seconds: 7),
-            ),
-          );
         }
+
+        // Clean up standard prefixes
+        errorMessage = errorMessage
+            .replaceAll('Exception: ', '')
+            .replaceAll('DioException [bad response]: ', '');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.failedToStartExecution(errorMessage),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 7),
+          ),
+        );
       }
     }
   }
@@ -258,7 +252,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     return asyncWorkflows.when(
       data: (workflows) {
         if (workflows.isEmpty) {
-          return const Center(child: Text('No workflows available.'));
+          return Center(
+            child: Text(AppLocalizations.of(context)!.noWorkflowsAvailable),
+          );
         }
         return ListView.builder(
           itemCount: workflows.length,

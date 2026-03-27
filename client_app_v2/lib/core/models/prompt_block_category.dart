@@ -1,12 +1,13 @@
-enum PromptBlockCategory {
-  matrix('Evaluation Matrix'),
-  agentRole('Agent Role Persona'),
-  taskDefinition('Task Definition'),
-  systemRule('System Rule / Heuristic'),
-  protocol('Execution Protocol');
+import 'package:flutter/widgets.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
-  final String displayName;
-  const PromptBlockCategory(this.displayName);
+enum PromptBlockCategory {
+  matrix,
+  agentRole,
+  taskDefinition,
+  systemRule,
+  protocol;
 
   String get id {
     switch (this) {
@@ -26,7 +27,29 @@ enum PromptBlockCategory {
   static PromptBlockCategory fromId(String value) {
     return PromptBlockCategory.values.firstWhere(
       (e) => e.id == value,
-      orElse: () => PromptBlockCategory.systemRule,
+      orElse:
+          () =>
+              throw AppException.validation(
+                'Unknown PromptBlockCategory: $value',
+              ),
     );
+  }
+}
+
+extension PromptBlockCategoryL10n on PromptBlockCategory {
+  String displayName(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (this) {
+      case PromptBlockCategory.matrix:
+        return l10n.categoryMatrix;
+      case PromptBlockCategory.agentRole:
+        return l10n.categoryAgentRole;
+      case PromptBlockCategory.taskDefinition:
+        return l10n.categoryTaskDefinition;
+      case PromptBlockCategory.systemRule:
+        return l10n.categorySystemRule;
+      case PromptBlockCategory.protocol:
+        return l10n.categoryProtocol;
+    }
   }
 }

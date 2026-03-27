@@ -1,34 +1,95 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:isolate';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'prompt_blocks_controller.g.dart';
 
 // --- Providers ---
 
-/// Manages the state of the Studio Prompt Blocks.
-final promptBlocksControllerProvider =
-    AsyncNotifierProvider<PromptBlocksController, List<Map<String, dynamic>>>(
-      PromptBlocksController.new,
-    );
-
 /// Fetches a single Prompt Block natively by ID
-final promptBlockByIdProvider = FutureProvider.autoDispose
-    .family<Map<String, dynamic>, String>((ref, id) async {
-      final client = ref.watch(studioClientProvider);
-      return client.getPromptBlock(id);
+@riverpod
+Future<Map<String, dynamic>> promptBlockById(Ref ref, String id) async {
+  final client = ref.watch(studioClientProvider);
+  return client.getPromptBlock(id);
+}
+
+// --- Gold Standard Form State (Flat MVC) ---
+
+@riverpod
+class PromptBlockForm extends _$PromptBlockForm {
+  @override
+  FutureOr<Map<String, dynamic>> build(String configId) async {
+    if (configId == 'new') {
+      return Isolate.run(() => {
+        'id': '',
+        'slug': '',
+        'category_id': 'system', // Default fallback category
+        'label': {
+          'default_locale': 'en',
+          'translations': <String, dynamic>{'en': 'New Prompt Block', 'fi': 'Uusi Promptilohko'},
+        },
+        'description': {
+          'default_locale': 'en',
+          'translations': <String, dynamic>{'en': '', 'fi': ''},
+        },
+        'system_instructions': '',
+        'json_schema': null,
+      });
+    }
+
+    final rawData = await ref.watch(promptBlockByIdProvider(configId).future);
+    final str = jsonEncode(rawData);
+    var copy = await Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
+    
+    // "The English-Only Mandate": Ensure new blocks have required 'en' structure
+    if (!copy.containsKey('label')) {
+      copy['label'] = {
+        'default_locale': 'en',
+        'translations': <String, dynamic>{'en': ''},
+      };
+    }
+    if (!copy.containsKey('description')) {
+      copy['description'] = {
+        'default_locale': 'en',
+        'translations': <String, dynamic>{'en': ''},
+      };
+    }
+    
+    return copy;
+  }
+
+  void forceRebuild() {
+    final payload = state.value;
+    if (payload != null) {
+      state = AsyncData(Map<String, dynamic>.from(payload));
+    }
+  }
+
+  Future<void> submit(Map<String, dynamic> updatedData) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final idToSave = updatedData['id'] as String? ?? configId;
+      if (idToSave.isEmpty || idToSave == 'new') throw Exception("Block ID is required");
+
+      await ref.read(promptBlocksControllerProvider.notifier).savePromptBlock(idToSave, updatedData);
+      return updatedData;
     });
+  }
+}
 
 // --- Controllers ---
 
 /// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
-class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
+@riverpod
+class PromptBlocksController extends _$PromptBlocksController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
-    // SWR Strategy for List Views
     ref.cacheFor(const Duration(minutes: 3));
     return _fetchPromptBlocks();
   }
@@ -111,7 +172,7 @@ class PromptBlocksController extends AsyncNotifier<List<Map<String, dynamic>>> {
       // 2. Update State
       if (state.hasValue && state.value != null) {
         final currentList = List<Map<String, dynamic>>.from(state.value!);
-        currentList.add(clonedBlock);
+        currentList.insert(0, clonedBlock);
         state = AsyncValue.data(currentList);
       }
       return clonedBlock;

@@ -162,9 +162,9 @@ class MCPToolAuditDTO {
   /// SafeCast parsing — Graceful Degradation (§6.3).
   factory MCPToolAuditDTO.fromJson(Map<String, dynamic> json) {
     return MCPToolAuditDTO(
-      toolId: SafeCast.safeString(json['tool_id']),
-      stepName: SafeCast.safeString(json['step_name']),
-      query: SafeCast.safeString(json['query']),
+      toolId: json['tool_id'] as String,
+      stepName: json['step_name'] as String,
+      query: json['query'] as String,
       responseSummary: SafeCast.safeString(json['response_summary']),
       sourceUrls:
           SafeCast.safeList(
@@ -223,9 +223,9 @@ class ReportDataDTO {
     }
 
     return ReportDataDTO(
-      workflowId: SafeCast.safeString(json['workflow_id']),
-      profileId: SafeCast.safeString(json['profile_id']),
-      profileName: SafeCast.safeMap(json['profile_name']),
+      workflowId: json['workflow_id'] as String,
+      profileId: json['profile_id'] as String,
+      profileName: json['profile_name'] as Map<String, dynamic>,
       availableProfiles: Map<String, String>.from(
         SafeCast.safeMap(
           json['available_profiles'],

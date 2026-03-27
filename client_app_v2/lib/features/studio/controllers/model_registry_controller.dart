@@ -1,37 +1,20 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-// --- Providers ---
-
-/// Manages the state of the Studio Model Registry Configs.
-final modelRegistryControllerProvider =
-    AsyncNotifierProvider<ModelRegistryController, List<Map<String, dynamic>>>(
-      ModelRegistryController.new,
-    );
-
-/// Fetches a single System Config natively by ID
-final modelRegistryByIdProvider = FutureProvider.autoDispose
-    .family<Map<String, dynamic>, String>((ref, id) async {
-      final client = ref.watch(studioClientProvider);
-      return client.getSystemConfig(id);
-    });
-
-/// Fetches the list of available models from the backend.
-final availableModelsProvider = FutureProvider<List<String>>((ref) async {
-  final client = ref.read(studioClientProvider);
-  return client.getAvailableModels();
-});
+part 'model_registry_controller.g.dart';
 
 // --- Controllers ---
 
 /// Controller managing the Model Registry strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
-class ModelRegistryController
-    extends AsyncNotifier<List<Map<String, dynamic>>> {
+@riverpod
+class ModelRegistryController extends _$ModelRegistryController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
     // SWR Strategy for List Views
@@ -107,12 +90,7 @@ class ModelRegistryController
   Future<void> deleteConfig(String id) async {
     try {
       final client = ref.read(studioClientProvider);
-      // Backend actually uses /model-registry/{id} for delete too
-      // Let's assume we have it in client or we can just send it manually.
-      // Wait, let's verify if StudioClient has deleteSystemConfig
-      await client.deleteSystemConfig(
-        id,
-      ); // NOTE: added below in another commit if missing
+      await client.deleteSystemConfig(id);
 
       if (state.hasValue && state.value != null) {
         final currentList = List<Map<String, dynamic>>.from(state.value!);
@@ -149,5 +127,60 @@ class ModelRegistryController
       }
       throw Exception('Failed to clone system config: $e');
     }
+  }
+}
+
+/// Fetches a single System Config natively by ID
+@riverpod
+Future<Map<String, dynamic>> modelRegistryById(Ref ref, String id) async {
+  final client = ref.watch(studioClientProvider);
+  return client.getSystemConfig(id);
+}
+
+/// Fetches the list of available models from the backend.
+@riverpod
+Future<List<String>> availableModels(Ref ref) async {
+  final client = ref.watch(studioClientProvider);
+  return client.getAvailableModels();
+}
+
+// --- Gold Standard Form State (Flat MVC) ---
+
+@riverpod
+class ModelRegistryForm extends _$ModelRegistryForm {
+  @override
+  FutureOr<Map<String, dynamic>> build(String configId) async {
+    if (configId == 'new') {
+      return Isolate.run(() => {
+        'id': 'syscfg_new',
+        'type': 'model_registry',
+        'models': <String, dynamic>{}, // Map<String, Map<String, dynamic>>
+      });
+    }
+
+    // 1. Fetch raw data
+    final rawData = await ref.watch(modelRegistryByIdProvider(configId).future);
+
+    // 2. ISOLATE MANDATE: Deep Copy / Parse in Isolate protecting Main Thread
+    final str = jsonEncode(rawData);
+    return Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
+  }
+
+  /// Used by the form to trigger a rebuild on synchronous memory edits if required.
+  void forceRebuild() {
+    final payload = state.value;
+    if (payload != null) {
+      state = AsyncData(Map<String, dynamic>.from(payload));
+    }
+  }
+
+  Future<void> submit(Map<String, dynamic> updatedData) async {
+    state = const AsyncLoading(); // Side effect isolation
+    
+    state = await AsyncValue.guard(() async {
+      final idToSave = configId == 'new' ? (updatedData['id'] ?? 'syscfg_new') : configId;
+      await ref.read(modelRegistryControllerProvider.notifier).saveConfig(idToSave, updatedData);
+      return updatedData; // Optimistic form state return
+    });
   }
 }

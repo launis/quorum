@@ -2,14 +2,17 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:dio/dio.dart';
 import 'package:client_app/core/environment/env.dart';
 
+part 'logger_service.g.dart';
+
 /// Global Logger Provider (Singleton)
-final loggerServiceProvider = Provider<LoggerService>((ref) {
+@riverpod
+LoggerService loggerService(Ref ref) {
   return LoggerService();
-});
+}
 
 class LoggerService {
   late Logger _logger;
@@ -238,7 +241,8 @@ class FileOutput extends LogOutput {
         file.writeAsStringSync('$line\n', mode: FileMode.append);
       }
     } catch (e) {
-      // Fail silently
+      debugPrint('FileOutput failed: $e');
+      rethrow;
     }
   }
 }

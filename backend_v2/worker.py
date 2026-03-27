@@ -314,6 +314,8 @@ async def health_check(ctx: Any) -> str:
     return "OK"
 
 
+from backend_v2.models.enums import SystemConcurrency
+
 class WorkerSettings:
     """Configuration for the Arq worker."""
 
@@ -325,4 +327,5 @@ class WorkerSettings:
         host=settings.redis_host,
         port=settings.redis_port,
     )
-    job_timeout = 900  # 15 minutes
+    job_timeout = settings.worker_job_timeout
+    max_jobs = SystemConcurrency.MAX_CONCURRENT_WORKFLOWS.value

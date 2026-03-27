@@ -72,19 +72,22 @@ class _I18nTextFieldState extends State<I18nTextField> {
   }
 
   void _emitChangesSilent() {
-    if (_defaultController.text.isNotEmpty) {
-      _translations[_defaultLocale] = _defaultController.text;
-    } else {
-      _translations.remove(_defaultLocale);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_defaultController.text.isNotEmpty) {
+        _translations[_defaultLocale] = _defaultController.text;
+      } else {
+        _translations.remove(_defaultLocale);
+      }
 
-    // Clean up empty translations before sending
-    final safeTranslations = Map<String, String>.from(_translations);
-    safeTranslations.removeWhere((k, v) => v.isEmpty);
+      // Clean up empty translations before sending
+      final safeTranslations = Map<String, String>.from(_translations);
+      safeTranslations.removeWhere((k, v) => v.isEmpty);
 
-    widget.onChanged({
-      'default_locale': _defaultLocale,
-      'translations': safeTranslations,
+      widget.onChanged({
+        'default_locale': _defaultLocale,
+        'translations': safeTranslations,
+      });
     });
   }
 

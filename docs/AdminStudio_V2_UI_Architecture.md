@@ -69,6 +69,7 @@ Koska Admin Studio tukee power-user ominaisuuksia, työnkulkujen ylläpitäjät 
 2. **Optimistic Mutations:** Työnkulkujen rakenteen päivittäminen kankaalla (esim. poistot tai relaatiot) pakotetaan tyyppiturvallisen Riverpod `Mutation` -objektin läpi. Muutos toteutuu UI:n Canvasilla nanosekunnissa optimistisena päivityksenä, ja peruutetaan Rollbackillä vain silloin, jos BFF-palvelimen Pydantic Fail-Fast verifiointi palauttaa 4xx/5xx virheen.
 3. **Ohjelmallinen tiheys (Information Density):** V3 hylkää avarat listat teemoituksella `VisualDensity.compact` yli 600dp resoluutioilla.
 7. **Hiiri:** Ylläpitotasolla oletetaan järjestelmällisesti mahdollisuus Hover-työkaluvihjeisiin, Context-Menuihin (Oikea ja painallus hiirissä luo uuden askeleen graafiin) ja Pikanäppäimiin (Ctrl+S, Delete node). Kosketustuen ollessa rajoittuneempi alaspäin degradoidaan nämä napit kankaan kelluvaksi Toolbariksi mobiili/tablettilaitteilla.
+8. **The Gold Standard Form Model (Dumb UI):** Frontend on täysin 'tyhmä' renderöintimoottori. Hookeja (`flutter_hooks`) saa käyttää vain visuaalisiin ohjaimiin (`useTextEditingController`). Kaikki asynkroninen datan purku (`Isolate.run`), lomakkeiden tallennuslogiikka ja lataustilat **SIIRRETÄÄN EHDOTTOMASTI** puhtaisiin `@riverpod` Notifier-luokkiin. UI ei koskaan ylläpidä omia asynkronisen datan `useEffect`-kopioita tai `useState`-latauslippuja (Loading Flags).
 
 ---
 

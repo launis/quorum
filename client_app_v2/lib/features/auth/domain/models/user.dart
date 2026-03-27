@@ -94,9 +94,9 @@ class User {
   /// Factory constructor for creating a new [User] instance from a map.
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] as String? ?? '',
+      id: json['id'] as String,
       slug: json['slug'] as String?,
-      email: json['email'] as String? ?? '',
+      email: json['email'] as String,
       role: UserRole.fromString(json['role'] as String?),
       organizationId: json['organization_id'] as String?,
       displayName: json['display_name'] as String?,

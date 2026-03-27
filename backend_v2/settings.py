@@ -77,7 +77,6 @@ class Settings(BaseSettings):
         str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")
     ] = None
     llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 120.0
-    llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 5
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 10.0
 
     # --- Rate Limits (Strict Mode) ---
@@ -126,6 +125,7 @@ class Settings(BaseSettings):
     # --- Redis & Arq ---
     redis_host: Annotated[str, Field(description="Redis Host")] = "localhost"
     redis_port: Annotated[int, Field(description="Redis Port")] = 6379
+    worker_job_timeout: Annotated[int, Field(description="Max seconds Arq worker processes a job")] = 3600
 
     @computed_field
     def default_safety_settings(self) -> list[dict[str, str]]:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class AdminSidebar extends StatelessWidget {
   final int selectedIndex;
@@ -12,39 +13,38 @@ class AdminSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use AppLocalizations if available, or fallbacks if translations missing
-    // Generic sidebar items (English defaults per instruction "English Only" for code/comments)
+    final l10n = AppLocalizations.of(context)!;
 
     return NavigationRail(
       selectedIndex: selectedIndex,
       onDestinationSelected: onDestinationSelected,
       labelType: NavigationRailLabelType.all,
       groupAlignment: -1.0,
-      destinations: const [
+      destinations: [
         NavigationRailDestination(
-          icon: Icon(Icons.auto_graph_outlined),
-          selectedIcon: Icon(Icons.auto_graph),
-          label: Text('Studio'),
+          icon: const Icon(Icons.auto_graph_outlined),
+          selectedIcon: const Icon(Icons.auto_graph),
+          label: Text(l10n.navStudio),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.schema_outlined),
-          selectedIcon: Icon(Icons.schema),
-          label: Text('Registry'),
+          icon: const Icon(Icons.schema_outlined),
+          selectedIcon: const Icon(Icons.schema),
+          label: Text(l10n.navRegistry),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.analytics_outlined),
-          selectedIcon: Icon(Icons.analytics),
-          label: Text('Analytics'),
+          icon: const Icon(Icons.analytics_outlined),
+          selectedIcon: const Icon(Icons.analytics),
+          label: Text(l10n.navAnalytics),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.admin_panel_settings_outlined),
-          selectedIcon: Icon(Icons.admin_panel_settings),
-          label: Text('Admin'),
+          icon: const Icon(Icons.admin_panel_settings_outlined),
+          selectedIcon: const Icon(Icons.admin_panel_settings),
+          label: Text(l10n.navAdmin),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.api_outlined),
-          selectedIcon: Icon(Icons.api),
-          label: Text('System Inspector'),
+          icon: const Icon(Icons.api_outlined),
+          selectedIcon: const Icon(Icons.api),
+          label: Text(l10n.navSystemInspector),
         ),
       ],
     );

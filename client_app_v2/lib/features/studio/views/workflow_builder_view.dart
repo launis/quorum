@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/utils/safe_cast.dart';
@@ -10,18 +11,19 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
 
 import 'widgets/workflow/workflow_general_tab.dart';
 import 'widgets/workflow/workflow_inputs_tab.dart';
 import 'widgets/workflow/workflow_steps_tab.dart';
 
-/// **Workflow DAG Builder**
+/// **Workflow DAG Builder (Gold Standard Phase 9)**
 ///
 /// CRUD interface for managing Semantic Routing & DAG structures.
 /// Admin can define global inputs (`expected_inputs`) and sequence
 /// processing steps (`steps`) including `depends_on` and `input_mappings`.
 /// Componentized to enforce Flat MVC architecture using the Sub-Tabs pattern.
-class WorkflowBuilderView extends ConsumerWidget {
+class WorkflowBuilderView extends HookConsumerWidget {
   final String? id;
   final String? slug;
   final Map<String, dynamic>? initialData;
@@ -30,105 +32,89 @@ class WorkflowBuilderView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (initialData != null && initialData!.isNotEmpty) {
-      return _WorkflowBuilderForm(workflow: initialData!);
-    }
-    if (id == null || id!.isEmpty || id == 'new') {
-      return const _WorkflowBuilderForm(workflow: {});
-    }
+    final l10n = AppLocalizations.of(context)!;
+    final wfId = (id ?? '').isEmpty ? 'new' : id!;
 
-    final asyncData = ref.watch(workflowByIdProvider(id!));
-    return asyncData.when(
-      data: (wf) => _WorkflowBuilderForm(workflow: wf),
+    final formState = ref.watch(workflowFormProvider(wfId));
+    final stepsAsync = ref.watch(stepsControllerProvider);
+    final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
+
+    return formState.when(
       loading:
-          () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error:
-          (e, st) => ErrorView(
-            error: e,
-            stackTrace: st,
-            onRetry: () => ref.invalidate(workflowByIdProvider(id!)),
+          () => Scaffold(
+            appBar: AppBar(title: Text(l10n.workflowEditTitle)),
+            body: const Center(child: CircularProgressIndicator()),
           ),
+      error:
+          (e, st) => Scaffold(
+            appBar: AppBar(title: Text(l10n.workflowEditTitle)),
+            body: ErrorView(
+              error: e,
+              stackTrace: st,
+              compact: false,
+              onRetry: () => ref.invalidate(workflowFormProvider(wfId)),
+            ),
+          ),
+      data: (payload) {
+        // Absolute Fail-Fast
+        if (stepsAsync.hasError) throw stepsAsync.error!;
+        if (mcpGatewaysAsync.hasError) throw mcpGatewaysAsync.error!;
+        if (!stepsAsync.hasValue || !mcpGatewaysAsync.hasValue) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        return _BuilderScaffoldWrapper(
+          wfId: wfId,
+          payload: payload,
+          initialData: initialData,
+          blueprints: stepsAsync.value!,
+          mcpGateways: mcpGatewaysAsync.value ?? [],
+          l10n: l10n,
+        );
+      },
     );
   }
 }
 
-class _WorkflowBuilderForm extends StatefulHookConsumerWidget {
-  final Map<String, dynamic> workflow;
+class _BuilderScaffoldWrapper extends HookConsumerWidget {
+  final String wfId;
+  final Map<String, dynamic> payload;
+  final Map<String, dynamic>? initialData;
+  final List<Map<String, dynamic>> blueprints;
+  final List<Map<String, dynamic>> mcpGateways;
+  final AppLocalizations l10n;
 
-  const _WorkflowBuilderForm({required this.workflow});
+  const _BuilderScaffoldWrapper({
+    required this.wfId,
+    required this.payload,
+    this.initialData,
+    required this.blueprints,
+    required this.mcpGateways,
+    required this.l10n,
+  });
 
-  @override
-  ConsumerState<_WorkflowBuilderForm> createState() =>
-      _WorkflowBuilderFormState();
-}
-
-class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
-  late Map<String, dynamic> _editableWorkflow = {};
-  late TextEditingController _idController;
-  late TextEditingController _slugController;
-
-  @override
-  void initState() {
-    super.initState();
-    _editableWorkflow = Map<String, dynamic>.from(widget.workflow);
-    _idController = TextEditingController(
-      text: SafeCast.safeString(_editableWorkflow['id']),
-    );
-    _slugController = TextEditingController(
-      text: SafeCast.safeString(_editableWorkflow['slug']),
-    );
-
-    if (!_editableWorkflow.containsKey('expected_inputs')) {
-      _editableWorkflow['expected_inputs'] = [];
-    }
-    if (!_editableWorkflow.containsKey('steps')) {
-      _editableWorkflow['steps'] = [];
-    }
-
-    // Drop legacy SDUI structures to prevent Pydantic Fail-Fast rejections
-    _editableWorkflow.remove('render_blueprints');
-    _editableWorkflow.remove('render_blueprint');
-    _editableWorkflow.remove('output_mapping');
-
-    // Ensure V2 strict output profiles dict exists
-    if (!_editableWorkflow.containsKey('output_profiles')) {
-      _editableWorkflow['output_profiles'] = <String, dynamic>{};
-    }
-  }
-
-  @override
-  void dispose() {
-    _idController.dispose();
-    _slugController.dispose();
-    super.dispose();
-  }
-
-  void _triggerUpdate() {
-    if (mounted) setState(() {});
-  }
-
-  void _cloneWorkflow(BuildContext context) {
+  void _cloneWorkflow(
+    BuildContext context,
+    Map<String, dynamic> currentPayload,
+  ) {
     showDialog(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.workflowCloneBtn),
-            content: Text(
-              AppLocalizations.of(context)!.workflowSharedBlueprintWarning,
-            ),
+            title: Text(l10n.workflowCloneBtn),
+            content: Text(l10n.workflowSharedBlueprintWarning),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(AppLocalizations.of(context)!.cancel),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () {
                   Navigator.of(ctx).pop();
                   try {
-                    final original = Map<String, dynamic>.from(
-                      _editableWorkflow,
-                    );
+                    final original = Map<String, dynamic>.from(currentPayload);
                     final cloned = WorkflowCloner.cloneDeep(original);
 
                     final nameMap = SafeCast.safeMap(cloned['name']);
@@ -157,19 +143,12 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
                     );
 
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          AppLocalizations.of(context)!.workflowCloneSuccess,
-                        ),
-                      ),
+                      SnackBar(content: Text(l10n.workflowCloneSuccess)),
                     );
                   } catch (e) {
                     final errorMsg =
                         e is AppException
-                            ? AppExceptionX.extractLocalizedHint(
-                              e,
-                              AppLocalizations.of(context)!,
-                            )
+                            ? AppExceptionX.extractLocalizedHint(e, l10n)
                             : e.toString();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -179,7 +158,7 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
                     );
                   }
                 },
-                child: Text(AppLocalizations.of(context)!.workflowCloneBtn),
+                child: Text(l10n.workflowCloneBtn),
               ),
             ],
           ),
@@ -188,33 +167,31 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
 
   void _deleteWorkflow(
     BuildContext context,
+    WidgetRef ref,
     MutationState<void> deleteMutation,
   ) {
-    final id = _idController.text.trim();
-    if (id.isEmpty) return;
+    final idStr = payload['id']?.toString() ?? '';
+    if (idStr.isEmpty) return;
 
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: Text(
-              AppLocalizations.of(context)!.workflowDeleteConfirmTitle,
-            ),
-            content: Text(
-              AppLocalizations.of(context)!.workflowDeleteConfirmDesc(id),
-            ),
+          (ctx) => AlertDialog(
+            title: Text(l10n.workflowDeleteConfirmTitle),
+            content: Text(l10n.workflowDeleteConfirmDesc(idStr)),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(AppLocalizations.of(context)!.cancel),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l10n.cancel),
               ),
               MutationButton<void>(
                 mutation: deleteMutation,
-                label: AppLocalizations.of(context)!.delete,
+                label: l10n.delete,
                 action: () async {
                   await ref
                       .read(workflowsControllerProvider.notifier)
-                      .deleteWorkflow(id);
+                      .deleteWorkflow(idStr);
+                  if (ctx.mounted) Navigator.pop(ctx);
                 },
               ),
             ],
@@ -223,51 +200,41 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final stepsAsync = ref.watch(stepsControllerProvider);
-    final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
-    final mcpGateways = mcpGatewaysAsync.value ?? [];
-
-    // Absolute Fail-Fast: Do not use `?? []` to mask data loading or corruption.
-    if (stepsAsync.hasError) throw stepsAsync.error!;
-    if (!stepsAsync.hasValue) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    final blueprints = stepsAsync.value!;
-
-    final saveMutation = useMutation<Map<String, dynamic>>(
-      onSuccess: (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Workflow saved successfully.')),
-          );
-          Navigator.of(context).pop();
-        }
-      },
-      onError: (e) {
-        if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
-          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("${l10n.errorUnknown}: $errorMsg"),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      },
+  Widget build(BuildContext context, WidgetRef ref) {
+    final idController = useTextEditingController(
+      text: SafeCast.safeString(payload['id']),
     );
+    final slugController = useTextEditingController(
+      text: SafeCast.safeString(payload['slug']),
+    );
+
+    // Hydrate initialData exactly once if it's a clone/new process
+    useEffect(() {
+      if (initialData != null && initialData!.isNotEmpty && wfId == 'new') {
+        final currentId = SafeCast.safeString(payload['id']);
+        if (currentId.isEmpty && initialData!.containsKey('name')) {
+          Future.microtask(() {
+            payload.addAll(initialData!);
+            idController.text = SafeCast.safeString(payload['id']);
+            slugController.text = SafeCast.safeString(payload['slug']);
+            ref.read(workflowFormProvider(wfId).notifier).forceRebuild();
+          });
+        }
+      }
+      return null;
+    }, const []);
 
     final validateMutation = useMutation<Map<String, dynamic>>(
       onSuccess: (data) {
-        if (mounted) {
+        if (context.mounted) {
           final isValid = data['valid'] == true;
           final errors = SafeCast.safeList(data['errors']);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                isValid ? 'DAG is Valid!' : "DAG Errors: ${errors.join(', ')}",
+                isValid
+                    ? l10n.simulatorValidDag
+                    : l10n.simulatorDagErrors(errors.join(', ')),
               ),
               backgroundColor: isValid ? Colors.green : Colors.red,
               duration: const Duration(seconds: 4),
@@ -276,10 +243,10 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
         }
       },
       onError: (e) {
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Simulation Error: $e'),
+              content: Text(l10n.simulatorFailedError(e.toString())),
               backgroundColor: Colors.red,
             ),
           );
@@ -289,16 +256,15 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
 
     final deleteMutation = useMutation<void>(
       onSuccess: (_) {
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Deleted successfully')));
-          Navigator.of(context).pop();
+          context.pop();
         }
       },
       onError: (e) {
-        if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
+        if (context.mounted) {
           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
@@ -307,117 +273,157 @@ class _WorkflowBuilderFormState extends ConsumerState<_WorkflowBuilderForm> {
       },
     );
 
+    Future<void> saveWorkflow() async {
+      final id = idController.text.trim();
+      final slug = slugController.text.trim();
+      if (id.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.idRequiredError),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        return;
+      }
+
+      payload['id'] = id;
+      if (slug.isNotEmpty) {
+        payload['slug'] = slug;
+      } else {
+        payload.remove('slug');
+      }
+
+      try {
+        await ref.read(workflowFormProvider(wfId).notifier).submit(payload);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.workflowSavedSuccess),
+              backgroundColor: Colors.green,
+            ),
+          );
+          context.pop();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          final errorMsg =
+              e is AppException
+                  ? AppExceptionX.extractLocalizedHint(e, l10n)
+                  : e.toString();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
+
+    void triggerUpdate() {
+      ref.read(workflowFormProvider(wfId).notifier).forceRebuild();
+    }
+
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back to Studio',
-            onPressed: () => context.go('/admin'),
-          ),
-          title: Builder(
-            builder: (context) {
-              final nameObj = SafeCast.safeMap(widget.workflow['name']);
-              final translations = SafeCast.safeMap(nameObj['translations']);
-              final titleStr = translations['fi'] ?? translations['en'];
-
-              // New workflows might legitimately not have a name yet, but if it has an ID, the name MUST exist.
-              if (titleStr == null && widget.workflow['id'] != null) {
-                throw AppException.validation(
-                  'Workflow name is missing for existing workflow.',
-                );
-              }
-              return Text(titleStr?.toString() ?? l10n.workflowEditTitle);
-            },
-          ),
-          actions: [
-            if (widget.workflow['id']?.toString().isNotEmpty == true) ...[
-              IconButton(
-                onPressed: () => _cloneWorkflow(context),
-                icon: const Icon(Icons.content_copy),
-                tooltip: l10n.workflowCloneBtn,
-              ),
-              IconButton(
-                onPressed: () => _deleteWorkflow(context, deleteMutation),
-                icon: const Icon(Icons.delete, color: Colors.red),
-                tooltip: 'Delete',
-              ),
-            ],
-            IconButton(
-              onPressed:
-                  validateMutation.isLoading
-                      ? null
-                      : () {
-                        validateMutation.mutate(() async {
-                          return await ref
-                              .read(workflowsControllerProvider.notifier)
-                              .simulateWorkflow(_editableWorkflow);
-                        });
-                      },
-              icon:
-                  validateMutation.isLoading
-                      ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : const Icon(Icons.bug_report, color: Colors.green),
-              tooltip: 'Validate DAG',
+      child: AppExceptionBoundary(
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              tooltip: 'Back to Studio',
+              onPressed: () => context.go('/admin'),
             ),
-            MutationButton<Map<String, dynamic>>(
-              mutation: saveMutation,
-              label: 'Save',
-              icon: Icons.save,
-              action: () async {
-                final id = _idController.text.trim();
-                final slug = _slugController.text.trim();
-                if (id.isEmpty) {
-                  throw AppException.validation('ID is required');
+            title: Builder(
+              builder: (context) {
+                final nameObj = SafeCast.safeMap(payload['name']);
+                final translations = SafeCast.safeMap(nameObj['translations']);
+                final titleStr = translations['fi'] ?? translations['en'];
+
+                if (titleStr == null &&
+                    payload['id'] != null &&
+                    payload['id'].toString().isNotEmpty) {
+                  throw AppException.validation(l10n.workflowNameMissingError);
                 }
-                _editableWorkflow['id'] = id;
-                if (slug.isNotEmpty) {
-                  _editableWorkflow['slug'] = slug;
-                } else {
-                  _editableWorkflow.remove('slug');
-                }
-                return ref
-                    .read(workflowsControllerProvider.notifier)
-                    .saveWorkflow(id, _editableWorkflow);
+                return Text(titleStr?.toString() ?? l10n.workflowEditTitle);
               },
             ),
-            const SizedBox(width: 16),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.settings), text: '1. Yleiset & Tulosteet'),
-              Tab(icon: Icon(Icons.input), text: '2. Syötteet'),
-              Tab(
-                icon: Icon(Icons.account_tree),
-                text: '3. Stepit & Riippuvuudet',
+            actions: [
+              if (payload['id']?.toString().isNotEmpty == true) ...[
+                IconButton(
+                  onPressed: () => _cloneWorkflow(context, payload),
+                  icon: const Icon(Icons.content_copy),
+                  tooltip: l10n.workflowCloneBtn,
+                ),
+                IconButton(
+                  onPressed:
+                      () => _deleteWorkflow(context, ref, deleteMutation),
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  tooltip: l10n.delete,
+                ),
+              ],
+              IconButton(
+                onPressed:
+                    validateMutation.isLoading
+                        ? null
+                        : () {
+                          validateMutation.mutate(() async {
+                            return await ref
+                                .read(workflowsControllerProvider.notifier)
+                                .simulateWorkflow(payload);
+                          });
+                        },
+                icon:
+                    validateMutation.isLoading
+                        ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Icon(Icons.bug_report, color: Colors.green),
+                tooltip: l10n.validateDagBtn,
+              ),
+              TextButton.icon(
+                onPressed: saveWorkflow,
+                icon: const Icon(Icons.save),
+                label: Text(l10n.studioSaveButton),
+              ),
+              const SizedBox(width: 16),
+            ],
+            bottom: TabBar(
+              tabs: [
+                Tab(
+                  icon: const Icon(Icons.settings),
+                  text: l10n.workflowTabGeneral,
+                ),
+                Tab(
+                  icon: const Icon(Icons.input),
+                  text: l10n.workflowTabInputs,
+                ),
+                Tab(
+                  icon: const Icon(Icons.account_tree),
+                  text: l10n.workflowTabSteps,
+                ),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            children: [
+              WorkflowGeneralTab(
+                workflow: payload,
+                idController: idController,
+                slugController: slugController,
+                onChanged: triggerUpdate,
+              ),
+              WorkflowInputsTab(workflow: payload, onChanged: triggerUpdate),
+              WorkflowStepsTab(
+                workflow: payload,
+                blueprints: blueprints,
+                mcpGateways: mcpGateways,
+                onChanged: triggerUpdate,
               ),
             ],
           ),
-        ),
-        body: TabBarView(
-          children: [
-            WorkflowGeneralTab(
-              workflow: _editableWorkflow,
-              idController: _idController,
-              slugController: _slugController,
-              onChanged: _triggerUpdate,
-            ),
-            WorkflowInputsTab(
-              workflow: _editableWorkflow,
-              onChanged: _triggerUpdate,
-            ),
-            WorkflowStepsTab(
-              workflow: _editableWorkflow,
-              blueprints: blueprints,
-              mcpGateways: mcpGateways,
-              onChanged: _triggerUpdate,
-            ),
-          ],
         ),
       ),
     );

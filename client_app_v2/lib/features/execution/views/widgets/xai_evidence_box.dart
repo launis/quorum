@@ -4,6 +4,7 @@ import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// Renders the XAI Evidence Box — clickable source URLs from MCP Tool Loop searches.
 /// Follows Flat MVC (§5): Zero logic, pure data mapping from MCPToolAuditDTO.
@@ -72,7 +73,10 @@ class XAIEvidenceBox extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         margin: const EdgeInsets.only(bottom: 4),
                         decoration: BoxDecoration(
                           color: Colors.blue.shade50,
@@ -179,7 +183,7 @@ class XAIEvidenceBox extends ConsumerWidget {
         ),
       );
     } catch (e, st) {
-      // Graceful Degradation (§6.3): render failure does not crash the report
+      // Diagnostic Node (§6.3): Fail loudly instead of hiding corruption
       ref
           .read(loggerServiceProvider)
           .error(
@@ -188,7 +192,7 @@ class XAIEvidenceBox extends ConsumerWidget {
             e,
             st,
           );
-      return const SizedBox.shrink();
+      return ErrorView(error: e, stackTrace: st, compact: true);
     }
   }
 

@@ -6,7 +6,8 @@ echo ===================================================
 echo.
 
 echo [1/3] Killing Python processes (FastAPI Backend / Workers)...
-taskkill /F /IM python.exe /T 2>nul
+:: Kill only Quorum-related python processes to spare VS Code IDE extensions
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | ? { $_.Name -eq 'python.exe' -and $_.CommandLine -match 'backend_v2|uvicorn' } | Stop-Process -Force -ErrorAction SilentlyContinue"
 taskkill /F /IM uvicorn.exe /T 2>nul
 
 echo [2/3] Killing Dart/Flutter processes (Client App V2)...

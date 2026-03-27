@@ -35,6 +35,7 @@ class ErrorView extends StatelessWidget {
     // DEVELOPER VISIBILITY MANDATE: Ensure no UI degradation is completely silent
     debugPrint('🔴 UI GRACEFUL DEGRADATION [ErrorView rendered]: \$error');
 
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -95,7 +96,7 @@ class ErrorView extends StatelessWidget {
                 // Downgrade Retry to TextButton if Action is present? Or keep both?
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 16),
-                label: Text(retryLabel ?? 'Retry'),
+                label: Text(retryLabel ?? l10n.retry),
                 style: TextButton.styleFrom(
                   foregroundColor: iconColor,
                   visualDensity: VisualDensity.compact,
@@ -111,7 +112,7 @@ class ErrorView extends StatelessWidget {
               ).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 title: Text(
-                  'Technical Details',
+                  l10n.technicalDetails,
                   style: TextStyle(color: iconColor, fontSize: 12),
                 ),
                 tilePadding: EdgeInsets.zero,
@@ -154,7 +155,7 @@ class ErrorView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                title ?? 'Järjestelmävirhe', // Or localized "System Error"
+                title ?? l10n.systemError, // Or localized "System Error"
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: iconColor,

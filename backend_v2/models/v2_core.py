@@ -396,11 +396,19 @@ class Step(V2CoreBase):
         default_factory=list,
         description="List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
     )
+    model_strategy: str | None = Field(
+        default=None,
+        description="Step-level override for cognitive strategy profile (e.g., 'fast'). Takes precedence over workflow strategy."
+    )
 
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
         """Strict fail-fast validation to ensure Step is not purely empty."""
         from backend_v2.exceptions import AppException, ErrorCodes
+        if self.type == "llm" and not self.model_strategy:
+            msg = f"LLM Step '{self.slug}' must declare an explicit model_strategy (Zero-Fallback Rule)."
+            logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         if self.type == "llm" and not self.prompt_blocks:
             msg = f"LLM Step '{self.slug}' must define at least one prompt_block."
             logger.error(f"[V2Core] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
@@ -640,10 +648,6 @@ class Workflow(V2CoreBase):
         description="List of dynamic expected inputs required by the workflow",
     )
     steps: list[StepRule] = Field(default_factory=list)
-    model_strategy: str | None = Field(
-        default=None,
-        description="Global cognitive strategy profile for this entire workflow (e.g., 'fast', 'deep')"
-    )
 
     @model_validator(mode="before")
     @classmethod

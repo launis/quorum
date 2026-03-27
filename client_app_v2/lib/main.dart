@@ -19,7 +19,8 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
-    // Ignore early failures or we could use standard platform print before override
+    debugPrint('CRITICAL: Failed to load .env: $e');
+    rethrow;
   }
 
   // 3. Initialize Firebase
@@ -28,7 +29,8 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    // Ignore or log later
+    debugPrint('CRITICAL: Failed to load Firebase: $e');
+    rethrow;
   }
 
   // 4. Initialize Logger & Startup Audit
@@ -91,22 +93,12 @@ Future<void> main() async {
                 size: 48,
               ),
               const SizedBox(height: 16),
-              Text(
-                'UI RENDER ERROR',
-                style: TextStyle(
-                  color: Colors.red.shade900,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              if (isDebug)
+                Text(
+                  details.exceptionAsString(),
+                  style: TextStyle(color: Colors.red.shade700, fontSize: 14),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isDebug
-                    ? details.exceptionAsString()
-                    : 'An unexpected error occurred in the UI.',
-                style: TextStyle(color: Colors.red.shade700, fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
             ],
           ),
         ),

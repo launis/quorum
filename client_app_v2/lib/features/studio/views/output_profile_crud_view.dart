@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/utils/safe_cast.dart';
@@ -7,143 +8,179 @@ import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
-class OutputProfileCrudView extends ConsumerStatefulWidget {
+/// Admin Studio View for managing Output Profiles.
+/// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
+class OutputProfileCrudView extends HookConsumerWidget {
   final String id;
-  final Map<String, dynamic>? initialData;
-
-  const OutputProfileCrudView({super.key, required this.id, this.initialData});
+  const OutputProfileCrudView({super.key, required this.id});
 
   @override
-  ConsumerState<OutputProfileCrudView> createState() =>
-      _OutputProfileCrudViewState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final formKey = useMemoized(() => GlobalKey<FormState>());
 
-class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
-  late Map<String, dynamic> _editableProfile;
-  late List<dynamic> _layouts;
-  bool _isSaving = false;
-  final _idController = TextEditingController();
-  final _slugController = TextEditingController();
-  final _workflowIdController = TextEditingController();
+    // UI transient hook state
+    final idController = useTextEditingController();
+    final slugController = useTextEditingController();
+    final workflowIdController = useTextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _editableProfile = Map<String, dynamic>.from(
-      widget.initialData ??
-          {
-            'id': widget.id == 'new' ? '' : widget.id,
-            'name': {'fi': 'Uusi profiili', 'en': 'New Profile'},
-            'layouts': [],
-            'workflow_id': '',
-          },
+    // Data Dependencies
+    final promptBlocksState = ref.watch(promptBlocksControllerProvider);
+    final workflowsState = ref.watch(workflowsControllerProvider);
+    final stepsState = ref.watch(stepsControllerProvider);
+    final formState = ref.watch(outputProfileFormProvider(id));
+
+    return formState.when(
+      loading:
+          () => Scaffold(
+            appBar: AppBar(
+              title: Text(
+                id == 'new'
+                    ? l10n.newOutputProfileTitle
+                    : l10n.editOutputProfileTitle,
+              ),
+            ),
+            body: const Center(child: CircularProgressIndicator()),
+          ),
+      error:
+          (e, st) => Scaffold(
+            appBar: AppBar(
+              title: Text(
+                id == 'new'
+                    ? l10n.newOutputProfileTitle
+                    : l10n.editOutputProfileTitle,
+              ),
+            ),
+            body: ErrorView(
+              error: e,
+              stackTrace: st,
+              compact: false,
+              onRetry: () => ref.invalidate(outputProfileFormProvider(id)),
+            ),
+          ),
+      data: (payload) {
+        // Hydrate transient hooks on first build safely
+        useMemoized(() {
+          idController.text = payload['id']?.toString() ?? '';
+          slugController.text = payload['slug']?.toString() ?? '';
+          workflowIdController.text = payload['workflow_id']?.toString() ?? '';
+        });
+
+        return _buildScaffold(
+          context,
+          ref,
+          l10n,
+          formKey,
+          formState,
+          payload,
+          idController,
+          slugController,
+          workflowIdController,
+          promptBlocksState,
+          workflowsState,
+          stepsState,
+        );
+      },
     );
-
-    _layouts = SafeCast.safeList(_editableProfile['layouts']);
-    _idController.text = _editableProfile['id']?.toString() ?? '';
-    _slugController.text = _editableProfile['slug']?.toString() ?? '';
-    _workflowIdController.text =
-        _editableProfile['workflow_id']?.toString() ?? '';
   }
 
-  @override
-  void dispose() {
-    _idController.dispose();
-    _slugController.dispose();
-    _workflowIdController.dispose();
-    super.dispose();
-  }
+  Widget _buildScaffold(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    GlobalKey<FormState> formKey,
+    AsyncValue<Map<String, dynamic>> formState,
+    Map<String, dynamic> payload,
+    TextEditingController idController,
+    TextEditingController slugController,
+    TextEditingController workflowIdController,
+    AsyncValue<List<dynamic>> promptBlocksState,
+    AsyncValue<List<dynamic>> workflowsState,
+    AsyncValue<List<dynamic>> stepsState,
+  ) {
+    final layouts = SafeCast.safeList(payload['layouts']);
 
-  Future<void> _saveProfile() async {
-    setState(() => _isSaving = true);
-    try {
-      final String idToSave = _idController.text.trim();
-      if (idToSave.isEmpty) throw Exception("Profile ID is required");
+    Future<void> saveProfile() async {
+      if (!formKey.currentState!.validate()) return;
 
-      _editableProfile['id'] = idToSave;
-      _editableProfile['slug'] =
-          _slugController.text.trim().isNotEmpty
-              ? _slugController.text.trim()
-              : idToSave; // Fallback sync
-      _editableProfile['workflow_id'] = _workflowIdController.text.trim();
-      _editableProfile['layouts'] = _layouts;
+      try {
+        final String idToSave = idController.text.trim();
+        if (idToSave.isEmpty) throw Exception("Profile ID is required");
 
-      await ref
-          .read(outputProfilesControllerProvider.notifier)
-          .saveProfile(idToSave, _editableProfile);
+        payload['id'] = idToSave;
+        payload['slug'] =
+            slugController.text.trim().isNotEmpty
+                ? slugController.text.trim()
+                : idToSave;
+        payload['workflow_id'] = workflowIdController.text.trim();
+        payload['layouts'] = layouts;
 
-      if (mounted) {
+        final notifier = ref.read(outputProfileFormProvider(id).notifier);
+        await notifier.submit(payload);
+
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile saved successfully.'),
+          SnackBar(
+            content: Text(l10n.profileSavedSuccess),
             backgroundColor: Colors.green,
           ),
         );
-        context.pop();
-      }
-    } catch (e) {
-      if (mounted) {
+        context.pop(); // GoRouter
+      } catch (e) {
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Save failed: $e'),
-            backgroundColor: Colors.red,
+            content: Text(l10n.saveFailedError(e.toString())),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
-  }
 
-  Future<void> _deleteProfile() async {
-    final String idToDelete = _editableProfile['id']?.toString() ?? '';
-    if (idToDelete.isEmpty || widget.id == 'new') return;
+    Future<void> deleteProfile() async {
+      final String idToDelete = payload['id']?.toString() ?? '';
+      if (idToDelete.isEmpty || id == 'new') return;
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Delete Profile?'),
-            content: Text('Are you sure you want to delete $idToDelete?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
-    );
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: Text(l10n.deleteProfileTitle),
+              content: Text(l10n.deleteProfileConfirmation(idToDelete)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n.cancelButton),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.deleteButton),
+                ),
+              ],
+            ),
+      );
 
-    if (confirm == true) {
-      setState(() => _isSaving = true);
-      try {
-        await ref
-            .read(outputProfilesControllerProvider.notifier)
-            .deleteProfile(idToDelete);
-        if (mounted) {
-          context.pop();
+      if (confirm == true) {
+        try {
+          await ref
+              .read(outputProfilesControllerProvider.notifier)
+              .deleteProfile(idToDelete);
+          if (context.mounted) context.pop();
+        } catch (e) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.deleteFailedError(e.toString()))),
+          );
         }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
-        }
-      } finally {
-        if (mounted) setState(() => _isSaving = false);
       }
     }
-  }
 
-  void _addLayout() {
-    setState(() {
-      _layouts.add({
+    void addLayout() {
+      layouts.add({
         'layout_type': 'box_1d',
         'title': {
           'default_locale': 'en',
@@ -152,16 +189,10 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
         'show_text': true,
         'components': <String>[],
       });
-    });
-  }
+      ref.read(outputProfileFormProvider(id).notifier).forceRebuild();
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final promptBlocksState = ref.watch(promptBlocksControllerProvider);
-    final workflowsState = ref.watch(workflowsControllerProvider);
-    final stepsState = ref.watch(stepsControllerProvider);
-
-    final String selectedWorkflowId = _workflowIdController.text;
+    final String selectedWorkflowId = workflowIdController.text;
     Set<String> allowedBlockIds = {};
 
     if (selectedWorkflowId.isNotEmpty &&
@@ -189,10 +220,10 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
           final stepSlug = step['slug']?.toString() ?? stepId;
           if (taskBlueprintIds.contains(stepId) ||
               taskBlueprintIds.contains(stepSlug)) {
-            final promptBlocks = SafeCast.safeList(
+            final promptBlocksRaw = SafeCast.safeList(
               step['prompt_blocks'],
             ).map((b) => b.toString());
-            allowedBlockIds.addAll(promptBlocks);
+            allowedBlockIds.addAll(promptBlocksRaw);
           }
         }
       }
@@ -202,10 +233,12 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            widget.id == 'new' ? 'New Output Profile' : 'Edit Output Profile',
+            id == 'new'
+                ? l10n.newOutputProfileTitle
+                : l10n.editOutputProfileTitle,
           ),
           actions: [
-            if (_isSaving)
+            if (formState.isLoading)
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0),
                 child: Center(
@@ -217,194 +250,215 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                 ),
               )
             else ...[
-              if (widget.id != 'new')
+              if (id != 'new')
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.orange),
-                  onPressed: _deleteProfile,
+                  onPressed: deleteProfile,
+                  tooltip: l10n.deleteProfileTitle,
                 ),
               TextButton.icon(
-                onPressed: _saveProfile,
+                onPressed: saveProfile,
                 icon: const Icon(Icons.save),
-                label: const Text('Save'),
+                label: Text(l10n.studioSaveButton),
               ),
             ],
           ],
         ),
-        body: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _idController,
-                      decoration: const InputDecoration(
-                        labelText: 'Profile ID (e.g. general_executive)',
-                        border: OutlineInputBorder(),
+        body: Form(
+          key: formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: idController,
+                        decoration: InputDecoration(
+                          labelText: l10n.profileIdLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        enabled: id == 'new', // Cannot change ID after creation
                       ),
-                      enabled:
-                          widget.id == 'new', // Cannot change ID after creation
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _slugController,
-                      decoration: const InputDecoration(
-                        labelText: 'URL Slug (e.g. default)',
-                        border: OutlineInputBorder(),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: slugController,
+                        decoration: InputDecoration(
+                          labelText: l10n.urlSlugLabel,
+                          border: const OutlineInputBorder(),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    workflowsState.when(
-                      data: (workflows) {
-                        String? currentValue =
-                            _workflowIdController.text.isNotEmpty
-                                ? _workflowIdController.text
-                                : null;
-                        final bool hasValidValue =
-                            currentValue != null &&
-                            (workflows.any(
-                                  (w) => w['id']?.toString() == currentValue,
-                                ) ||
-                                currentValue == '');
+                      const SizedBox(height: 16),
+                      workflowsState.when(
+                        data: (workflows) {
+                          String? currentValue =
+                              workflowIdController.text.isNotEmpty
+                                  ? workflowIdController.text
+                                  : null;
 
-                        return DropdownButtonFormField<String>(
-                          initialValue: hasValidValue ? currentValue : null,
-                          decoration: const InputDecoration(
-                            labelText: 'Workflow ID Binding',
-                            border: OutlineInputBorder(),
-                          ),
-                          hint: const Text('Select a Workflow...'),
-                          items: [
-                            const DropdownMenuItem(
-                              value: '',
-                              child: Text('None (Default)'),
+                          final bool hasValidValue =
+                              currentValue != null &&
+                              (workflows.any(
+                                    (w) => w['id']?.toString() == currentValue,
+                                  ) ||
+                                  currentValue == '');
+
+                          return DropdownButtonFormField<String>(
+                            initialValue: hasValidValue ? currentValue : null,
+                            decoration: InputDecoration(
+                              labelText: l10n.workflowIdBindingLabel,
+                              border: const OutlineInputBorder(),
                             ),
-                            ...workflows.map((flow) {
-                              final flowId = flow['id']?.toString() ?? '';
-                              final labelDict = SafeCast.safeMap(flow['name']);
-                              final translations = SafeCast.safeMap(
-                                labelDict['translations'],
-                              );
-                              final localeCode =
-                                  Localizations.localeOf(context).languageCode;
-                              final displayName =
-                                  translations[localeCode] ??
-                                  translations['fi'] ??
-                                  translations['en'] ??
-                                  flowId;
+                            hint: Text(l10n.selectWorkflowHint),
+                            items: [
+                              DropdownMenuItem(
+                                value: '',
+                                child: Text(l10n.noneDefaultLabel),
+                              ),
+                              ...workflows.map((flow) {
+                                final flowId = flow['id']?.toString() ?? '';
+                                final labelDict = SafeCast.safeMap(
+                                  flow['name'],
+                                );
+                                final translations = SafeCast.safeMap(
+                                  labelDict['translations'],
+                                );
+                                final localeCode =
+                                    Localizations.localeOf(
+                                      context,
+                                    ).languageCode;
+                                final displayName =
+                                    translations[localeCode] ??
+                                    translations['fi'] ??
+                                    translations['en'] ??
+                                    flowId;
 
-                              return DropdownMenuItem(
-                                value: flowId,
-                                child: Text('$displayName ($flowId)'),
-                              );
-                            }),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() {
-                                _workflowIdController.text = val;
-                                _editableProfile['workflow_id'] = val;
-                              });
-                            }
-                          },
-                        );
-                      },
-                      loading:
-                          () =>
-                              const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Text('Error loading workflows: $e'),
-                    ),
-                    const SizedBox(height: 16),
-                    I18nTextField(
-                      label: 'Profile Display Name',
-                      initialData: SafeCast.safeMap(_editableProfile['name']),
-                      onChanged: (val) {
-                        setState(() {
-                          _editableProfile['name'] = val;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    I18nTextField(
-                      label: 'Profile Description (Optional)',
-                      initialData: SafeCast.safeMap(
-                        _editableProfile['description'],
+                                return DropdownMenuItem(
+                                  value: flowId,
+                                  child: Text('$displayName ($flowId)'),
+                                );
+                              }),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                workflowIdController.text = val;
+                                payload['workflow_id'] = val;
+                                ref
+                                    .read(
+                                      outputProfileFormProvider(id).notifier,
+                                    )
+                                    .forceRebuild();
+                              }
+                            },
+                          );
+                        },
+                        loading:
+                            () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                        error: (e, _) => Text('Error loading workflows: $e'),
                       ),
-                      onChanged: (val) {
-                        setState(() {
-                          _editableProfile['description'] = val;
-                        });
-                      },
+                      const SizedBox(height: 16),
+                      I18nTextField(
+                        label: l10n.profileDisplayNameLabel,
+                        initialData: SafeCast.safeMap(payload['name']),
+                        onChanged: (val) {
+                          payload['name'] = val;
+                          ref
+                              .read(outputProfileFormProvider(id).notifier)
+                              .forceRebuild();
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      I18nTextField(
+                        label: l10n.profileDescriptionLabel,
+                        initialData: SafeCast.safeMap(payload['description']),
+                        onChanged: (val) {
+                          payload['description'] = val;
+                          ref
+                              .read(outputProfileFormProvider(id).notifier)
+                              .forceRebuild();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (selectedWorkflowId.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      l10n.workflowSelectWarning,
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                )
+              else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.layoutBlocksTitle,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    FilledButton.icon(
+                      onPressed: addLayout,
+                      icon: const Icon(Icons.add_box),
+                      label: Text(l10n.addLayoutBlockBtn),
                     ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (selectedWorkflowId.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(
-                  child: Text(
-                    '⚠️ Please select a Workflow ID Binding above to configure report layouts.',
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.bold,
-                    ),
+                const Divider(),
+                if (layouts.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(l10n.noLayoutBlocksDefined),
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: layouts.length,
+                    itemBuilder: (context, index) {
+                      final layout = SafeCast.safeMap(layouts[index]);
+                      return _buildLayoutEditor(
+                        context,
+                        ref,
+                        l10n,
+                        index,
+                        layout,
+                        layouts,
+                        promptBlocksState,
+                        allowedBlockIds,
+                      );
+                    },
                   ),
-                ),
-              )
-            else ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Layout Blocks',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  FilledButton.icon(
-                    onPressed: _addLayout,
-                    icon: const Icon(Icons.add_box),
-                    label: const Text('Add Layout Block'),
-                  ),
-                ],
-              ),
-              const Divider(),
-              if (_layouts.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text(
-                    'No layout blocks defined. Report will be empty.',
-                  ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _layouts.length,
-                  itemBuilder: (context, index) {
-                    final layout = SafeCast.safeMap(_layouts[index]);
-                    return _buildLayoutEditor(
-                      index,
-                      layout,
-                      promptBlocksState,
-                      allowedBlockIds,
-                    );
-                  },
-                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildLayoutEditor(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
     int index,
     Map<String, dynamic> layout,
-    AsyncValue<List<Map<String, dynamic>>> promptBlocksState,
+    List<dynamic> parentLayoutsList,
+    AsyncValue<List<dynamic>> promptBlocksState,
     Set<String> allowedBlockIds,
   ) {
     final blocksList =
@@ -425,6 +479,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
     ].contains(currentPreset)) {
       currentPreset = 'box_1d';
     }
+
     final bool showText = layout['show_text'] as bool? ?? true;
 
     return Container(
@@ -442,7 +497,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
               CircleAvatar(
                 radius: 12,
                 child: Text(
-                  '\${index + 1}',
+                  '${index + 1}',
                   style: const TextStyle(fontSize: 12),
                 ),
               ),
@@ -450,48 +505,54 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: currentPreset,
-                  decoration: const InputDecoration(
-                    labelText: 'Preset View',
+                  decoration: InputDecoration(
+                    labelText: l10n.presetViewLabel,
                     isDense: true,
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'box_1d', child: Text('1D Table')),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'box_1d',
+                      child: Text(l10n.preset1dTable),
+                    ),
                     DropdownMenuItem(
                       value: 'matrix_2d',
-                      child: Text('2D Grid'),
+                      child: Text(l10n.preset2dGrid),
                     ),
                     DropdownMenuItem(
                       value: 'radar_3d',
-                      child: Text('3D Radar/Composite'),
+                      child: Text(l10n.preset3dRadar),
                     ),
                     DropdownMenuItem(
                       value: 'text_only',
-                      child: Text('Text/Synthesis Only'),
+                      child: Text(l10n.presetTextOnly),
                     ),
                     DropdownMenuItem(
                       value: 'automatic',
-                      child: Text('Automatic Validation'),
+                      child: Text(l10n.presetAutomatic),
                     ),
                   ],
                   onChanged: (val) {
-                    if (val != null)
-                      setState(() {
-                        layout['layout_type'] = val;
-                        layout.remove('preset_view'); // Cleanup legacy keys
-                      });
+                    if (val != null) {
+                      layout['layout_type'] = val;
+                      layout.remove('preset_view');
+                      ref
+                          .read(outputProfileFormProvider(id).notifier)
+                          .forceRebuild();
+                    }
                   },
                 ),
               ),
               const SizedBox(width: 12),
               Row(
                 children: [
-                  const Text('Show Text'),
+                  Text(l10n.showTextLabel),
                   Switch(
                     value: showText,
                     onChanged: (val) {
-                      setState(() {
-                        layout['show_text'] = val;
-                      });
+                      layout['show_text'] = val;
+                      ref
+                          .read(outputProfileFormProvider(id).notifier)
+                          .forceRebuild();
                     },
                   ),
                 ],
@@ -499,45 +560,43 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.orange),
                 onPressed: () {
-                  setState(() {
-                    _layouts.removeAt(index);
-                  });
+                  parentLayoutsList.removeAt(index);
+                  ref
+                      .read(outputProfileFormProvider(id).notifier)
+                      .forceRebuild();
                 },
               ),
             ],
           ),
-
           const SizedBox(height: 12),
           I18nTextField(
-            label: 'Layout Block Title',
+            label: l10n.layoutBlockTitleLabel,
             initialData: SafeCast.safeMap(layout['title']),
             onChanged: (val) {
-              setState(() {
-                layout['title'] = val;
-              });
+              layout['title'] = val;
+              ref.read(outputProfileFormProvider(id).notifier).forceRebuild();
             },
           ),
           const SizedBox(height: 12),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Target Components',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              l10n.targetComponentsTitle,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
           const SizedBox(height: 8),
           promptBlocksState.when(
             data: (blocks) {
               final targetBlocks =
-                  blocks.where((b) {
-                    final id = b['id']?.toString() ?? '';
-                    final slug = b['slug']?.toString() ?? id;
+                  blocks.cast<Map<String, dynamic>>().where((b) {
+                    final bId = b['id']?.toString() ?? '';
+                    final bSlug = b['slug']?.toString() ?? bId;
                     final isAllowed =
-                        allowedBlockIds.contains(id) ||
-                        allowedBlockIds.contains(slug);
+                        allowedBlockIds.contains(bId) ||
+                        allowedBlockIds.contains(bSlug);
                     if (!isAllowed) return false;
 
-                    // Exclude silent utility blocks (must have visual text extensions or be a scoring matrix)
                     final isMatrix = b['category_id']?.toString() == 'matrix';
                     final extensions = SafeCast.safeList(
                       b['output_extensions'],
@@ -564,10 +623,10 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                 }
 
                 final String axisLabel = switch (i) {
-                  0 => 'Component 1 (X-Axis/Primary)',
-                  1 => 'Component 2 (Y-Axis)',
-                  2 => 'Component 3 (Z-Axis)',
-                  _ => 'Component \${i + 1}',
+                  0 => l10n.componentXAxisLabel,
+                  1 => l10n.componentYAxisLabel,
+                  2 => l10n.componentZAxisLabel,
+                  _ => l10n.componentGenericLabel('${i + 1}'),
                 };
 
                 dropdowns.add(
@@ -580,11 +639,11 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                         isDense: true,
                         border: const OutlineInputBorder(),
                       ),
-                      hint: const Text('Select component...'),
+                      hint: Text(l10n.selectComponentHint),
                       items: [
-                        const DropdownMenuItem(
+                        DropdownMenuItem(
                           value: '*',
-                          child: Text('All Components (*)'),
+                          child: Text(l10n.selectAllComponentsLabel),
                         ),
                         ...targetBlocks.map((block) {
                           final blockId = block['id']?.toString() ?? '';
@@ -599,6 +658,7 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                               translations['fi'] ??
                               translations['en'] ??
                               blockId;
+
                           return DropdownMenuItem(
                             value: blockId,
                             child: Text(blockName),
@@ -607,14 +667,15 @@ class _OutputProfileCrudViewState extends ConsumerState<OutputProfileCrudView> {
                       ],
                       onChanged: (val) {
                         if (val != null) {
-                          setState(() {
-                            while (blocksList.length <= i) {
-                              blocksList.add('');
-                            }
-                            blocksList[i] = val;
-                            layout['components'] =
-                                blocksList.where((b) => b.isNotEmpty).toList();
-                          });
+                          while (blocksList.length <= i) {
+                            blocksList.add('');
+                          }
+                          blocksList[i] = val;
+                          layout['components'] =
+                              blocksList.where((b) => b.isNotEmpty).toList();
+                          ref
+                              .read(outputProfileFormProvider(id).notifier)
+                              .forceRebuild();
                         }
                       },
                     ),

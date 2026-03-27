@@ -80,24 +80,40 @@ def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
     return declarations
 
 
-async def _execute_tavily_search(query: str, step_name: str) -> MCPAuditTrace:
+async def _execute_tavily_search(query: str, step_name: str, target_language: str = "en", llm_client: Any = None) -> MCPAuditTrace:
     """Execute a Tavily search and return an audit trace.
 
     Graceful Degradation (§6.3): Tavily failures return an audit trace with empty results,
-    allowing the LLM to proceed without external evidence.
+    allowing the LLM to proceed without external evidence. Translates evidence on-the-fly.
     """
     from backend_v2.services.mcp.tavily_search_client import tavily_search
 
     start_ms = int(time.monotonic() * 1000)
     try:
         result = await tavily_search(query)
+        response_summary = result.answer
+
+        if target_language and target_language != "en" and llm_client:
+            logger.info(f"[MCPToolLoop] Translating search evidence to '{target_language}'...")
+            try:
+                trans_prompt = f"Translate the following search summary into {target_language} accurately. Return only the translated text.\n\nSummary:\n{response_summary}"
+                trans_resp = await llm_client.run_chat(messages=[{"role": "user", "content": trans_prompt}])
+                if trans_resp and isinstance(trans_resp, str):
+                    response_summary = trans_resp.strip()
+            except Exception as tr_err:
+                logger.error(
+                    f"[MCPToolLoop] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
+                    f"Evidence translation to '{target_language}' failed: {tr_err}",
+                    exc_info=True,
+                )
+
         elapsed_ms = int(time.monotonic() * 1000) - start_ms
 
         return MCPAuditTrace(
             tool_id=TAVILY_TOOL_ID,
             step_name=step_name,
             query=query,
-            response_summary=result.answer,
+            response_summary=response_summary,
             source_urls=result.source_urls,
             timestamp=datetime.now(timezone.utc),
             duration_ms=elapsed_ms,
@@ -158,6 +174,7 @@ async def execute_tool_loop(
     allowed_tools: list[str],
     step_name: str,
     mock_identity: str | None = None,
+    target_language: str = "en",
 ) -> MCPToolLoopResult:
     """Execute the MCP Tool Loop — 2-phase LLM execution with optional tool calling.
 
@@ -257,7 +274,7 @@ async def execute_tool_loop(
                 f"[MCPToolLoop] Step '{step_name}' — executing Tavily search: '{query}'"
             )
 
-            audit = await _execute_tavily_search(query, step_name)
+            audit = await _execute_tavily_search(query, step_name, target_language, llm_client)
             audit_traces.append(audit)
             tool_call_count += 1
 

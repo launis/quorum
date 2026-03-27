@@ -38,6 +38,9 @@ MutationState<T> useMutation<T>({
       if (onSuccess != null) onSuccess(result);
       return result;
     } catch (e, stack) {
+      // Mandate 6.3 Absolute Death: Do not swallow programmer errors into UI state
+      if (e is Error) rethrow;
+
       state.value = AsyncValue.error(e, stack);
       if (onError != null) onError(e);
       return null;

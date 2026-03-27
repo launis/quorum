@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// A card widget that displays the current status of a DAG workflow execution.
 /// It observes the [executionControllerProvider] to reactively update its UI
@@ -19,6 +20,7 @@ class ExecutionStatusCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final executionState = ref.watch(executionControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       elevation: 2,
@@ -29,19 +31,19 @@ class ExecutionStatusCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Workflow Execution',
+              l10n.defaultWorkflowTitle,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(
-              'Target: $workflowId',
+              l10n.executionTargetLabel(workflowId),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const Divider(),
             const SizedBox(height: 8),
-            _buildStateContent(context, ref, executionState),
+            _buildStateContent(context, ref, executionState, l10n),
             const SizedBox(height: 16),
-            _buildActionButtons(context, ref, executionState),
+            _buildActionButtons(context, ref, executionState, l10n),
           ],
         ),
       ),
@@ -52,11 +54,12 @@ class ExecutionStatusCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AsyncValue<Map<String, dynamic>?> state,
+    AppLocalizations l10n,
   ) {
     return state.when(
       data: (record) {
         if (record == null) {
-          return const Text('Idle. Ready to start.');
+          return Text(l10n.waitingToStart);
         }
 
         final status = record['status'] as String? ?? 'UNKNOWN';
@@ -91,34 +94,35 @@ class ExecutionStatusCard extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Execution ID: $executionId',
+              l10n.executionIdLabel(executionId),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
             if (totalT > 0 || cost > 0) ...[
-              Text('Metrics', style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 4),
               Text(
-                'Total Tokens: $totalT (Prompt: $promptT, Completion: $completionT)',
+                l10n.executionMetricsTitle,
+                style: Theme.of(context).textTheme.titleSmall,
               ),
+              const SizedBox(height: 4),
+              Text(l10n.executionTokensBreakdown(totalT, promptT, completionT)),
               if (cachedT > 0)
                 Text(
-                  'Cached Tokens saved: $cachedT',
+                  l10n.executionTokensCached(cachedT),
                   style: const TextStyle(color: Colors.green),
                 ),
               if (reasoningT > 0)
                 Text(
-                  'Reasoning Tokens spent: $reasoningT',
+                  l10n.executionTokensReasoning(reasoningT),
                   style: const TextStyle(color: Colors.deepPurple),
                 ),
-              Text('Estimated Cost: \$${cost.toStringAsFixed(6)}'),
+              Text(l10n.executionCostEstimate(cost.toStringAsFixed(6))),
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 8),
             if (status == 'completed' || status == 'failed') ...[
-              const Text(
-                'Results:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                l10n.resultsTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -154,6 +158,7 @@ class ExecutionStatusCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AsyncValue<Map<String, dynamic>?> state,
+    AppLocalizations l10n,
   ) {
     final isRunning =
         state.isLoading ||
@@ -175,7 +180,7 @@ class ExecutionStatusCard extends ConsumerWidget {
                             .read(executionControllerProvider.notifier)
                             .refreshStatus(),
             icon: const Icon(Icons.refresh),
-            label: const Text('Refresh'),
+            label: Text(l10n.refresh),
           ),
         const SizedBox(width: 8),
         FilledButton.icon(
@@ -186,7 +191,7 @@ class ExecutionStatusCard extends ConsumerWidget {
                       .read(executionControllerProvider.notifier)
                       .startExecution(workflowId, initialInputs),
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Start Execution'),
+          label: Text(l10n.startAiExecution),
         ),
       ],
     );

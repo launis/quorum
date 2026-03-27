@@ -533,7 +533,7 @@ abstract class AppLocalizations {
   /// No description provided for @statusRejected.
   ///
   /// In en, this message translates to:
-  /// **'REJECTED'**
+  /// **'Rejected'**
   String get statusRejected;
 
   /// No description provided for @cancelling.
@@ -2051,7 +2051,7 @@ abstract class AppLocalizations {
   /// No description provided for @stepIdLabel.
   ///
   /// In en, this message translates to:
-  /// **'Step ID'**
+  /// **'Step ID (UUID or Unique String)'**
   String get stepIdLabel;
 
   /// No description provided for @stepIdHelper.
@@ -2123,13 +2123,13 @@ abstract class AppLocalizations {
   /// No description provided for @stepDeleteConfirmTitle.
   ///
   /// In en, this message translates to:
-  /// **'Confirm Delete'**
+  /// **'Delete Step'**
   String get stepDeleteConfirmTitle;
 
   /// No description provided for @stepDeleteConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'Delete step \'{id}\'?'**
+  /// **'Are you sure you want to delete step \"{id}\"?'**
   String stepDeleteConfirmMessage(String id);
 
   /// No description provided for @stepAddPromptTitle.
@@ -3455,19 +3455,19 @@ abstract class AppLocalizations {
   /// No description provided for @xAxisLabel.
   ///
   /// In en, this message translates to:
-  /// **'X-Axis'**
+  /// **'X-Axis (Matrix ID)'**
   String get xAxisLabel;
 
   /// No description provided for @yAxisLabel.
   ///
   /// In en, this message translates to:
-  /// **'Y-Axis'**
+  /// **'Y-Axis (Matrix ID)'**
   String get yAxisLabel;
 
   /// No description provided for @zAxisLabel.
   ///
   /// In en, this message translates to:
-  /// **'Z-Axis'**
+  /// **'Z-Axis (Matrix ID)'**
   String get zAxisLabel;
 
   /// No description provided for @selectWorkflowPrompt.
@@ -3959,7 +3959,7 @@ abstract class AppLocalizations {
   /// No description provided for @workflowCloneSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Workflow cloned successfully!'**
+  /// **'Workflow Cloned successfully'**
   String get workflowCloneSuccess;
 
   /// No description provided for @workflowCloneErrorMissingDep.
@@ -3971,7 +3971,7 @@ abstract class AppLocalizations {
   /// No description provided for @workflowSharedBlueprintWarning.
   ///
   /// In en, this message translates to:
-  /// **'Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block.'**
+  /// **'Cloning a workflow will create a deep copy of the workflow configuration, but it will STILL reference the same Steps (DAG Nodes) by ID. If you edit a Step, it will be edited for both workflows. Are you sure you want to clone?'**
   String get workflowSharedBlueprintWarning;
 
   /// No description provided for @overall_system_profile.
@@ -4289,7 +4289,7 @@ abstract class AppLocalizations {
   /// No description provided for @mcpGatewaysTitle.
   ///
   /// In en, this message translates to:
-  /// **'MCP Gateways'**
+  /// **'XAI Reporting / Toolkit Injection (MCP Gateways)'**
   String get mcpGatewaysTitle;
 
   /// No description provided for @mcpGatewaysDesc.
@@ -4363,6 +4363,984 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to clone: {error}'**
   String msgEntityCloneFailed(String error);
+
+  /// No description provided for @categoryMatrix.
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluation Matrix'**
+  String get categoryMatrix;
+
+  /// No description provided for @categoryAgentRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent Role Persona'**
+  String get categoryAgentRole;
+
+  /// No description provided for @categoryTaskDefinition.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Definition'**
+  String get categoryTaskDefinition;
+
+  /// No description provided for @categorySystemRule.
+  ///
+  /// In en, this message translates to:
+  /// **'System Rule / Heuristic'**
+  String get categorySystemRule;
+
+  /// No description provided for @categoryProtocol.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution Protocol'**
+  String get categoryProtocol;
+
+  /// No description provided for @technicalDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical Details'**
+  String get technicalDetails;
+
+  /// No description provided for @systemError.
+  ///
+  /// In en, this message translates to:
+  /// **'System Error'**
+  String get systemError;
+
+  /// No description provided for @signInSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue'**
+  String get signInSubtitle;
+
+  /// No description provided for @errorEmptyEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email'**
+  String get errorEmptyEmail;
+
+  /// No description provided for @errorInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email address'**
+  String get errorInvalidEmail;
+
+  /// No description provided for @errorEmptyPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your password'**
+  String get errorEmptyPassword;
+
+  /// No description provided for @signInButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get signInButton;
+
+  /// No description provided for @executionTargetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Target: {id}'**
+  String executionTargetLabel(String id);
+
+  /// No description provided for @executionMetricsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance Metrics'**
+  String get executionMetricsTitle;
+
+  /// No description provided for @executionTokensBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Tokens: {total} (Prompt: {prompt}, Completion: {comp})'**
+  String executionTokensBreakdown(int total, int prompt, int comp);
+
+  /// No description provided for @executionTokensCached.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached Tokens saved: {cached}'**
+  String executionTokensCached(int cached);
+
+  /// No description provided for @executionTokensReasoning.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning Tokens spent: {reasoning}'**
+  String executionTokensReasoning(int reasoning);
+
+  /// No description provided for @executionCostEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated Cost: \${cost}'**
+  String executionCostEstimate(String cost);
+
+  /// No description provided for @workflowPrefixLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow: {name}'**
+  String workflowPrefixLabel(String name);
+
+  /// No description provided for @deleteExecutionTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Execution'**
+  String get deleteExecutionTooltip;
+
+  /// No description provided for @errSaveTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'File save dialog did not respond (Timeout).'**
+  String get errSaveTimeout;
+
+  /// No description provided for @startWorkflowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Workflow: {id}'**
+  String startWorkflowTitle(String id);
+
+  /// No description provided for @failedToLoadSchema.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load schema: {error}'**
+  String failedToLoadSchema(String error);
+
+  /// No description provided for @navSystemInspector.
+  ///
+  /// In en, this message translates to:
+  /// **'System Inspector'**
+  String get navSystemInspector;
+
+  /// No description provided for @gatewayMetadataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gateway Metadata'**
+  String get gatewayMetadataTitle;
+
+  /// No description provided for @slugLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Slug (e.g., task_guard)'**
+  String get slugLabel;
+
+  /// No description provided for @allowedMcpToolsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed MCP Tools'**
+  String get allowedMcpToolsTitle;
+
+  /// No description provided for @addToolButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Tool'**
+  String get addToolButton;
+
+  /// No description provided for @noToolsDefinedGateway.
+  ///
+  /// In en, this message translates to:
+  /// **'No tools defined for this gateway.'**
+  String get noToolsDefinedGateway;
+
+  /// No description provided for @deleteGatewayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete MCP Gateway?'**
+  String get deleteGatewayTitle;
+
+  /// No description provided for @deleteGatewayConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete gateway {id}?'**
+  String deleteGatewayConfirmation(String id);
+
+  /// No description provided for @cancelButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancelButton;
+
+  /// No description provided for @deleteButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteButton;
+
+  /// No description provided for @gatewaySavedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'MCP Gateway saved successfully.'**
+  String get gatewaySavedSuccess;
+
+  /// No description provided for @saveFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed: {error}'**
+  String saveFailedError(String error);
+
+  /// No description provided for @deleteFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete failed: {error}'**
+  String deleteFailedError(String error);
+
+  /// No description provided for @toolTitlePrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool: {name}'**
+  String toolTitlePrefix(String name);
+
+  /// No description provided for @toolIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool ID (Slug)'**
+  String get toolIdLabel;
+
+  /// No description provided for @uiDisplayNameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'UI Display Name (I18nText)'**
+  String get uiDisplayNameTitle;
+
+  /// No description provided for @englishNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'English Name'**
+  String get englishNameLabel;
+
+  /// No description provided for @finnishNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Finnish Name'**
+  String get finnishNameLabel;
+
+  /// No description provided for @toolDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool Description (English only for LLM)'**
+  String get toolDescriptionLabel;
+
+  /// No description provided for @jsonInputSchemaLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON Input Schema'**
+  String get jsonInputSchemaLabel;
+
+  /// No description provided for @invalidJsonError.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid JSON'**
+  String get invalidJsonError;
+
+  /// No description provided for @deleteConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Configuration?'**
+  String get deleteConfigTitle;
+
+  /// No description provided for @deleteConfigConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete config {id}?'**
+  String deleteConfigConfirmation(String id);
+
+  /// No description provided for @configSavedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Registry saved successfully.'**
+  String get configSavedSuccess;
+
+  /// No description provided for @profileSavedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile saved successfully.'**
+  String get profileSavedSuccess;
+
+  /// No description provided for @deleteProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Profile?'**
+  String get deleteProfileTitle;
+
+  /// No description provided for @deleteProfileConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete {id}?'**
+  String deleteProfileConfirmation(String id);
+
+  /// No description provided for @newOutputProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Output Profile'**
+  String get newOutputProfileTitle;
+
+  /// No description provided for @editOutputProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Output Profile'**
+  String get editOutputProfileTitle;
+
+  /// No description provided for @profileIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile ID (e.g. general_executive)'**
+  String get profileIdLabel;
+
+  /// No description provided for @urlSlugLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'URL Slug (e.g. default)'**
+  String get urlSlugLabel;
+
+  /// No description provided for @workflowIdBindingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow ID Binding'**
+  String get workflowIdBindingLabel;
+
+  /// No description provided for @selectWorkflowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a Workflow...'**
+  String get selectWorkflowHint;
+
+  /// No description provided for @noneDefaultLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'None (Default)'**
+  String get noneDefaultLabel;
+
+  /// No description provided for @profileDisplayNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Display Name'**
+  String get profileDisplayNameLabel;
+
+  /// No description provided for @profileDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Description (Optional)'**
+  String get profileDescriptionLabel;
+
+  /// No description provided for @workflowSelectWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ Please select a Workflow ID Binding above to configure report layouts.'**
+  String get workflowSelectWarning;
+
+  /// No description provided for @layoutBlocksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout Blocks'**
+  String get layoutBlocksTitle;
+
+  /// No description provided for @addLayoutBlockBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Layout Block'**
+  String get addLayoutBlockBtn;
+
+  /// No description provided for @noLayoutBlocksDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'No layout blocks defined. Report will be empty.'**
+  String get noLayoutBlocksDefined;
+
+  /// No description provided for @presetViewLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset View'**
+  String get presetViewLabel;
+
+  /// No description provided for @preset1dTable.
+  ///
+  /// In en, this message translates to:
+  /// **'1D Table'**
+  String get preset1dTable;
+
+  /// No description provided for @preset2dGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'2D Grid'**
+  String get preset2dGrid;
+
+  /// No description provided for @preset3dRadar.
+  ///
+  /// In en, this message translates to:
+  /// **'3D Radar/Composite'**
+  String get preset3dRadar;
+
+  /// No description provided for @presetTextOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Text/Synthesis Only'**
+  String get presetTextOnly;
+
+  /// No description provided for @presetAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic Validation'**
+  String get presetAutomatic;
+
+  /// No description provided for @showTextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Text'**
+  String get showTextLabel;
+
+  /// No description provided for @layoutBlockTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout Block Title'**
+  String get layoutBlockTitleLabel;
+
+  /// No description provided for @targetComponentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Components'**
+  String get targetComponentsTitle;
+
+  /// No description provided for @componentXAxisLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Component 1 (X-Axis/Primary)'**
+  String get componentXAxisLabel;
+
+  /// No description provided for @componentYAxisLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Component 2 (Y-Axis)'**
+  String get componentYAxisLabel;
+
+  /// No description provided for @componentZAxisLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Component 3 (Z-Axis)'**
+  String get componentZAxisLabel;
+
+  /// No description provided for @componentGenericLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Component {num}'**
+  String componentGenericLabel(String num);
+
+  /// No description provided for @selectAllComponentsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'All Components (*)'**
+  String get selectAllComponentsLabel;
+
+  /// No description provided for @selectComponentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select component...'**
+  String get selectComponentHint;
+
+  /// No description provided for @editProfilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profiles: {slug}'**
+  String editProfilesTitle(String slug);
+
+  /// No description provided for @outputProfilesDictionary.
+  ///
+  /// In en, this message translates to:
+  /// **'Output Profiles Dictionary'**
+  String get outputProfilesDictionary;
+
+  /// No description provided for @addVariantBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Variant'**
+  String get addVariantBtn;
+
+  /// No description provided for @newProfileIdTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Profile ID'**
+  String get newProfileIdTitle;
+
+  /// No description provided for @profileIdHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile ID (e.g. executive)'**
+  String get profileIdHint;
+
+  /// No description provided for @variantIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Variant ID: {id}'**
+  String variantIdLabel(String id);
+
+  /// No description provided for @reportLayoutSequenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Layout Sequence'**
+  String get reportLayoutSequenceLabel;
+
+  /// No description provided for @preset2dCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'2D Compare'**
+  String get preset2dCompare;
+
+  /// No description provided for @preset3dComplex.
+  ///
+  /// In en, this message translates to:
+  /// **'3D Complex'**
+  String get preset3dComplex;
+
+  /// No description provided for @presetDefaultView.
+  ///
+  /// In en, this message translates to:
+  /// **'Default View'**
+  String get presetDefaultView;
+
+  /// No description provided for @sectionTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Section Title (Optional)'**
+  String get sectionTitleLabel;
+
+  /// No description provided for @sectionDescLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Section Description (Optional)'**
+  String get sectionDescLabel;
+
+  /// No description provided for @promptBlockSavedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt Block saved (Optimistic).'**
+  String get promptBlockSavedSuccess;
+
+  /// No description provided for @simulatorCorruptionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulator did not return rendered_prompt. Data corruption detected.'**
+  String get simulatorCorruptionError;
+
+  /// No description provided for @simulatorOutputTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulator Output'**
+  String get simulatorOutputTitle;
+
+  /// No description provided for @simulatorFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulation Error: {error}'**
+  String simulatorFailedError(String error);
+
+  /// No description provided for @promptBlockEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Prompt Block'**
+  String get promptBlockEditTitle;
+
+  /// No description provided for @promptBlockBuilderTitleId.
+  ///
+  /// In en, this message translates to:
+  /// **'Builder: {id}'**
+  String promptBlockBuilderTitleId(String id);
+
+  /// No description provided for @promptBlockMandatoryEnglishError.
+  ///
+  /// In en, this message translates to:
+  /// **'English Label is required (English-Only Mandate).'**
+  String get promptBlockMandatoryEnglishError;
+
+  /// No description provided for @promptBlockConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt Block Configuration'**
+  String get promptBlockConfigTitle;
+
+  /// No description provided for @opaqueIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Opaque ID: {id}'**
+  String opaqueIdLabel(String id);
+
+  /// No description provided for @promptBlockPropertiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt Block Properties'**
+  String get promptBlockPropertiesTitle;
+
+  /// No description provided for @categoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get categoryLabel;
+
+  /// No description provided for @blockLabelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Block Label (Name)'**
+  String get blockLabelName;
+
+  /// No description provided for @shortDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Short Description (UI Hint)'**
+  String get shortDescriptionHint;
+
+  /// No description provided for @systemPromptMandatory.
+  ///
+  /// In en, this message translates to:
+  /// **'System Prompt / Cognitive Blueprint (MANDATORY ENGLISH)'**
+  String get systemPromptMandatory;
+
+  /// No description provided for @dataTypeExecutionConstraints.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Type & Execution Constraints'**
+  String get dataTypeExecutionConstraints;
+
+  /// No description provided for @typeInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Instruction (No JSON Output)'**
+  String get typeInstruction;
+
+  /// No description provided for @typeString.
+  ///
+  /// In en, this message translates to:
+  /// **'String'**
+  String get typeString;
+
+  /// No description provided for @typeNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Number (Numeric)'**
+  String get typeNumber;
+
+  /// No description provided for @typeInteger.
+  ///
+  /// In en, this message translates to:
+  /// **'Integer'**
+  String get typeInteger;
+
+  /// No description provided for @typeFloat.
+  ///
+  /// In en, this message translates to:
+  /// **'Float'**
+  String get typeFloat;
+
+  /// No description provided for @typeBoolean.
+  ///
+  /// In en, this message translates to:
+  /// **'Boolean'**
+  String get typeBoolean;
+
+  /// No description provided for @allowDecimals.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Decimals'**
+  String get allowDecimals;
+
+  /// No description provided for @xaiOutputExtensionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)'**
+  String get xaiOutputExtensionsTitle;
+
+  /// No description provided for @xaiJustification.
+  ///
+  /// In en, this message translates to:
+  /// **'Justification'**
+  String get xaiJustification;
+
+  /// No description provided for @xaiCoachingTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching Tip'**
+  String get xaiCoachingTip;
+
+  /// No description provided for @xaiDevilsAdvocate.
+  ///
+  /// In en, this message translates to:
+  /// **'Devil\'s Advocate'**
+  String get xaiDevilsAdvocate;
+
+  /// No description provided for @xaiMissingContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing Context'**
+  String get xaiMissingContext;
+
+  /// No description provided for @xaiRiskFlag.
+  ///
+  /// In en, this message translates to:
+  /// **'Risk Flag'**
+  String get xaiRiskFlag;
+
+  /// No description provided for @xaiRemediation.
+  ///
+  /// In en, this message translates to:
+  /// **'Remediation'**
+  String get xaiRemediation;
+
+  /// No description provided for @xaiSentiment.
+  ///
+  /// In en, this message translates to:
+  /// **'Sentiment'**
+  String get xaiSentiment;
+
+  /// No description provided for @xaiTheoryLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Theory Link'**
+  String get xaiTheoryLink;
+
+  /// No description provided for @xaiConfidence.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Confidence'**
+  String get xaiConfidence;
+
+  /// No description provided for @xaiSourceCitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Source Citation'**
+  String get xaiSourceCitation;
+
+  /// No description provided for @theoryGroundingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Theory Grounding (RAG)'**
+  String get theoryGroundingTitle;
+
+  /// No description provided for @sourceUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Source URL (e.g. jstor.org/...)'**
+  String get sourceUrlLabel;
+
+  /// No description provided for @citationReferenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Citation Reference (e.g. Kahnamen, 2011)'**
+  String get citationReferenceLabel;
+
+  /// No description provided for @gridRowsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid Rows (Optional)'**
+  String get gridRowsOptional;
+
+  /// No description provided for @gridColumnsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid Columns (Optional)'**
+  String get gridColumnsOptional;
+
+  /// No description provided for @addGridItemBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get addGridItemBtn;
+
+  /// No description provided for @barsScalesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BARS Scales / Score Grades'**
+  String get barsScalesTitle;
+
+  /// No description provided for @addGradeBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Grade'**
+  String get addGradeBtn;
+
+  /// No description provided for @scaleMinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale Min (e.g. 4)'**
+  String get scaleMinLabel;
+
+  /// No description provided for @scaleMaxLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale Max (e.g. 10)'**
+  String get scaleMaxLabel;
+
+  /// No description provided for @claimsCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Claims'**
+  String claimsCountLabel(String count);
+
+  /// No description provided for @gradeScoreLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Grade/Score: {score} {name}'**
+  String gradeScoreLabel(String score, String name);
+
+  /// No description provided for @closeModalBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get closeModalBtn;
+
+  /// No description provided for @studioSaveSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved successfully'**
+  String get studioSaveSuccess;
+
+  /// No description provided for @stepSavedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Step saved (Optimistic).'**
+  String get stepSavedSuccess;
+
+  /// No description provided for @stepEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Step'**
+  String get stepEditTitle;
+
+  /// No description provided for @simulateStepTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulate Step'**
+  String get simulateStepTooltip;
+
+  /// No description provided for @idRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'ID is required.'**
+  String get idRequiredError;
+
+  /// No description provided for @configurationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration'**
+  String get configurationTitle;
+
+  /// No description provided for @nameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get nameLabel;
+
+  /// No description provided for @descriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get descriptionLabel;
+
+  /// No description provided for @preHooksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre Hooks'**
+  String get preHooksTitle;
+
+  /// No description provided for @addHookBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Hook'**
+  String get addHookBtn;
+
+  /// No description provided for @preHookEngineLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-Execution Hook Engine'**
+  String get preHookEngineLabel;
+
+  /// No description provided for @hookTavily.
+  ///
+  /// In en, this message translates to:
+  /// **'Tavily Web Search (search_hook)'**
+  String get hookTavily;
+
+  /// No description provided for @hookMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Contextual Memory (memory_hook)'**
+  String get hookMemory;
+
+  /// No description provided for @hookValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Strict Validation (validation_hook)'**
+  String get hookValidation;
+
+  /// No description provided for @hookScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Grading Matrix (score_hook)'**
+  String get hookScore;
+
+  /// No description provided for @hookLegacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Legacy: {name}'**
+  String hookLegacy(String name);
+
+  /// No description provided for @promptBlocksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt Blocks'**
+  String get promptBlocksTitle;
+
+  /// No description provided for @addPromptBlockBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Prompt Block'**
+  String get addPromptBlockBtn;
+
+  /// No description provided for @promptBlockLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt Block'**
+  String get promptBlockLabel;
+
+  /// No description provided for @workflowSavedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow saved successfully.'**
+  String get workflowSavedSuccess;
+
+  /// No description provided for @simulatorValidDag.
+  ///
+  /// In en, this message translates to:
+  /// **'DAG is Valid!'**
+  String get simulatorValidDag;
+
+  /// No description provided for @simulatorDagErrors.
+  ///
+  /// In en, this message translates to:
+  /// **'DAG Errors: {errors}'**
+  String simulatorDagErrors(String errors);
+
+  /// No description provided for @workflowNameMissingError.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow name is missing for existing workflow.'**
+  String get workflowNameMissingError;
+
+  /// No description provided for @validateDagBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Validate DAG'**
+  String get validateDagBtn;
+
+  /// No description provided for @workflowTabGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'1. General & Outputs'**
+  String get workflowTabGeneral;
+
+  /// No description provided for @workflowTabInputs.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Inputs'**
+  String get workflowTabInputs;
+
+  /// No description provided for @workflowTabSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Steps & Dependencies'**
+  String get workflowTabSteps;
 }
 
 class _AppLocalizationsDelegate

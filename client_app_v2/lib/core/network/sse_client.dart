@@ -69,20 +69,15 @@ class SseClient {
           if (jsonString.isEmpty) continue;
 
           try {
-            // Mandate 5.3: Concurrency & Performance via Isolate.run
             final decoded = await Isolate.run(() => jsonDecode(jsonString));
             if (decoded is Map<String, dynamic>) {
               yield decoded;
             } else {
-              // Graceful degradation / defense: log and ignore non-map lines
-              // In V2, we enforce Map structures for UI hints.
+              throw AppException.validation('Invalid SSE payload format.');
             }
           } catch (e) {
-            // Log parsing error but don't crash stream unless it's fatal
-            // RFC 7807 Fail-Fast applies at the service boundary, but here
-            // we are receiving a corrupted chunk. Let's yield an error object
-            // or re-throw if needed.
-            throw AppException.unknown('Failed to parse SSE line: $jsonString');
+            if (e is AppException) rethrow;
+            throw AppException.unknown(e);
           }
         }
       }

@@ -21,7 +21,7 @@ extension AppExceptionX on AppException {
       if (this.errorCode == 'VALIDATION_FAILED' &&
           this.detail.isNotEmpty &&
           this.detail != 'Unknown error') {
-        return '$locCode\n\nBackend Diagnostics:\n${this.detail}';
+        return '$locCode\n\n${this.detail}';
       }
       return locCode;
     }

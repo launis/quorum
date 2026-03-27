@@ -35,6 +35,12 @@ class ExecutionStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
+class SystemConcurrency(int, Enum):
+    """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
+    MAX_CONCURRENT_WORKFLOWS = 1
+    MAX_CONCURRENT_LLM_STEPS = 2
+    LLM_MAX_RETRIES = 10
+
 # --- Restored V1 Enums ---
 
 

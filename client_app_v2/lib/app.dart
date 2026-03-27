@@ -38,9 +38,9 @@ class App extends ConsumerWidget {
       );
     }
 
-    final settings = settingsAsync.value;
-    final themeMode = settings?.themeMode ?? ThemeMode.system;
-    final locale = settings?.locale ?? const Locale('fi');
+    final settings = settingsAsync.requireValue;
+    final themeMode = settings.themeMode;
+    final locale = settings.locale;
 
     return MaterialApp.router(
       title: 'Cognitive Quorum',

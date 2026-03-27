@@ -30,9 +30,10 @@ class Env {
   static String get apiUrl {
     final url = dotenv.env['API_URL'];
     if (url == null || url.isEmpty) {
-      throw AppException.validation('API_URL environment variable is missing from .env.');
+      throw AppException.validation(
+        'API_URL environment variable is missing from .env.',
+      );
     }
     return url;
   }
 }
-

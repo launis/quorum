@@ -1,61 +1,66 @@
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/state/mutation.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
+class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final formKey = useMemoized(() => GlobalKey<FormState>());
+    final emailController = useTextEditingController();
+    final passwordController = useTextEditingController();
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
-  String? _errorMessage;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await ref
-          .read(authControllerProvider.notifier)
-          .signIn(_emailController.text.trim(), _passwordController.text);
+    // Mandate 5.4: Riverpod 3.0 Mutation Object handles side effects natively without manual bool flags
+    final loginMutation = useMutation<void>(
       // Success is handled by Router listening to Auth State
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+    );
+
+    // Mock login state since it's a dev tool explicitly ignored from refactoring rules
+    final isMockLoading = useState(false);
+
+    Future<void> submit() async {
+      if (!formKey.currentState!.validate()) return;
+      await loginMutation.mutate(() async {
+        await ref
+            .read(authControllerProvider.notifier)
+            .signIn(emailController.text.trim(), passwordController.text);
+      });
+    }
+
+    Future<void> mockLogin(String id) async {
+      isMockLoading.value = true;
+      try {
+        await ref.read(authControllerProvider.notifier).debugMockLogin(id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Mock Login Successful! Redirecting...'),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          String msg = e.toString().replaceAll('Exception: ', '');
+          if (e is AppException) {
+            msg = e.toLocalizedHint(l10n);
+          }
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.mockLoginFailed(msg))));
+        }
+      } finally {
+        if (context.mounted) isMockLoading.value = false;
       }
     }
-  }
 
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -63,94 +68,103 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             constraints: const BoxConstraints(maxWidth: 400),
             padding: const EdgeInsets.all(24),
             child: Form(
-              key: _formKey,
+              key: formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     'Cognitive Quorum',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: theme.colorScheme.primary,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in to continue',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    l10n.signInSubtitle,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
-                  if (_errorMessage != null)
+
+                  // Standard Fail-Fast inline rendering for non-fatal auth errors
+                  if (loginMutation.hasError)
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.errorContainer,
+                        color: theme.colorScheme.errorContainer,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        _errorMessage!,
+                        loginMutation.error is AppException
+                            ? (loginMutation.error as AppException)
+                                .toLocalizedHint(l10n)
+                            : loginMutation.error.toString().replaceAll(
+                              'Exception: ',
+                              '',
+                            ),
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onErrorContainer,
+                          color: theme.colorScheme.onErrorContainer,
                         ),
                       ),
                     ),
+
                   TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
+                    controller: emailController,
+                    decoration: InputDecoration(
+                      labelText: l10n.emailLabel,
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
+                        return l10n.errorEmptyEmail;
                       }
                       if (!value.contains('@')) {
-                        return 'Invalid email address';
+                        return l10n.errorInvalidEmail;
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock_outlined),
-                      border: OutlineInputBorder(),
+                    controller: passwordController,
+                    decoration: InputDecoration(
+                      labelText: l10n.passwordLabel,
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      border: const OutlineInputBorder(),
                     ),
                     obscureText: true,
                     textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
+                    onFieldSubmitted: (_) => submit(),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
+                        return l10n.errorEmptyPassword;
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _isLoading ? null : _submit,
-                    style: FilledButton.styleFrom(
+
+                  MutationButton<void>(
+                    mutation: loginMutation,
+                    action: () => submit(),
+                    label: l10n.signInButton,
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(l10n.signInButton),
                     ),
-                    child:
-                        _isLoading
-                            ? const CircularProgressIndicator()
-                            : const Text('Sign In'),
                   ),
-                  // Debug Feature: Mock Login
+
+                  // Debug Feature: Mock Login (Ignored per user constraint rule)
                   const SizedBox(height: 24),
-                  // Only show in debug mode (or always during Prototyping Phase)
                   Column(
                     children: [
                       const Divider(),
@@ -164,9 +178,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           foregroundColor: Colors.purple,
                         ),
                         onPressed:
-                            _isLoading
+                            isMockLoading.value
                                 ? null
-                                : () => _mockLogin(
+                                : () => mockLogin(
                                   'usr_43ec77a438104814bd937f28853d569c', // ROOT
                                 ),
                         child: const Text('Mock Login (Root Master)'),
@@ -176,9 +190,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           foregroundColor: Colors.orange,
                         ),
                         onPressed:
-                            _isLoading
+                            isMockLoading.value
                                 ? null
-                                : () => _mockLogin(
+                                : () => mockLogin(
                                   'usr_5f49041ba6e040eda49a89de35dceb80', // ADMIN
                                 ),
                         child: const Text('Mock Login (Admin)'),
@@ -188,9 +202,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           foregroundColor: Colors.green,
                         ),
                         onPressed:
-                            _isLoading
+                            isMockLoading.value
                                 ? null
-                                : () => _mockLogin(
+                                : () => mockLogin(
                                   'usr_10e1f779550b439e840fc5a08942c9ea', // MANAGER
                                 ),
                         child: const Text('Mock Login (Manager)'),
@@ -204,33 +218,5 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _mockLogin(String id) async {
-    setState(() => _isLoading = true);
-    try {
-      await ref.read(authControllerProvider.notifier).debugMockLogin(id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mock Login Successful! Redirecting...'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        String msg = e.toString().replaceAll('Exception: ', '');
-        if (e is AppException) {
-          msg = e.toLocalizedHint(AppLocalizations.of(context)!);
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.mockLoginFailed(msg)),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 }

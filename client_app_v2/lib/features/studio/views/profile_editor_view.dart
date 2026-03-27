@@ -1,152 +1,155 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// **Profile Editor View**
 ///
 /// Admin UI for defining strictly-typed Output Profiles for a specific Workflow.
 /// Follows De-Generator Protocol by operating strictly on Map<String, dynamic>.
-class ProfileEditorView extends ConsumerStatefulWidget {
+class ProfileEditorView extends HookConsumerWidget {
   final String workflowSlug;
-  final Map<String, dynamic>? initialData;
 
-  const ProfileEditorView({
-    super.key,
-    required this.workflowSlug,
-    this.initialData,
-  });
+  const ProfileEditorView({super.key, required this.workflowSlug});
 
   @override
-  ConsumerState<ProfileEditorView> createState() => _ProfileEditorViewState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final formState = ref.watch(workflowFormProvider(workflowSlug));
 
-class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
-  late Map<String, dynamic> _editableWorkflow;
-  late Map<String, dynamic> _profiles;
-  bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Default to a blank workflow blueprint if initialData is somehow missing
-    _editableWorkflow = Map<String, dynamic>.from(
-      widget.initialData ?? {'id': widget.workflowSlug},
-    );
-
-    // Safely cast output_profiles map
-    final dynamic rawProfiles = _editableWorkflow['output_profiles'];
-    _profiles = Map<String, dynamic>.from(SafeCast.safeMap(rawProfiles));
-
-    // If empty initially, seed a 'default' profile
-    if (_profiles.isEmpty) {
-      _profiles['default'] = {
-        'name': {'fi': 'Oletusraportti', 'en': 'Default Report'},
-        'layouts': [
-          {'preset_view': '1d_metrics', 'show_text': true, 'steps': <String>[]},
-        ],
-      };
-    }
-  }
-
-  Future<void> _saveWorkflow() async {
-    setState(() => _isSaving = true);
-    try {
-      // 1. Mutate local copy
-      final String idToSave = SafeCast.safeString(_editableWorkflow['id']);
-      if (idToSave.isEmpty) throw Exception("Workflow ID is missing");
-
-      _editableWorkflow['output_profiles'] = _profiles;
-
-      // 2. Dispatch via Optimistic SWR Controller
-      await ref
-          .read(workflowsControllerProvider.notifier)
-          .saveWorkflow(idToSave, _editableWorkflow);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profiles saved successfully.'),
-            backgroundColor: Colors.green,
+    return formState.when(
+      loading:
+          () => Scaffold(
+            appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowSlug))),
+            body: const Center(child: CircularProgressIndicator()),
           ),
-        );
-        context.pop();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Save failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  void _addProfileDialog() {
-    String newId = '';
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('New Profile ID'),
-            content: TextField(
-              decoration: const InputDecoration(
-                labelText: 'Profile ID (e.g. executive)',
-              ),
-              onChanged: (val) => newId = val.trim(),
+      error:
+          (e, st) => Scaffold(
+            appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowSlug))),
+            body: ErrorView(
+              error: e,
+              stackTrace: st,
+              compact: false,
+              onRetry: () => ref.invalidate(workflowFormProvider(workflowSlug)),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+          ),
+      data: (payload) {
+        return _buildScaffold(context, ref, l10n, formState, payload);
+      },
+    );
+  }
+
+  Widget _buildScaffold(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    AsyncValue<Map<String, dynamic>> formState,
+    Map<String, dynamic> payload,
+  ) {
+    // Profiles Dictionary
+    final rawProfiles = payload['output_profiles'];
+    final profiles = Map<String, dynamic>.from(SafeCast.safeMap(rawProfiles));
+
+    // Inject initial default if entirely missing
+    useMemoized(() {
+      if (profiles.isEmpty) {
+        profiles['default'] = {
+          'name': {'fi': 'Oletusraportti', 'en': 'Default Report'},
+          'layouts': [
+            {
+              'preset_view': '1d_metrics',
+              'show_text': true,
+              'target_blocks': <String>[],
+            },
+          ],
+        };
+        payload['output_profiles'] = profiles;
+        ref.read(workflowFormProvider(workflowSlug).notifier).forceRebuild();
+      }
+    });
+
+    Future<void> saveWorkflow() async {
+      try {
+        final String idToSave = SafeCast.safeString(payload['id']);
+        if (idToSave.isEmpty) throw Exception("Workflow ID is missing");
+
+        payload['output_profiles'] = profiles;
+
+        await ref
+            .read(workflowFormProvider(workflowSlug).notifier)
+            .submit(payload);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.studioSaveButton),
+              backgroundColor: Colors.green,
+            ),
+          );
+          context.pop();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.saveFailedError(e.toString())),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
+
+    void addProfileDialog() {
+      String newId = '';
+      showDialog(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: Text(l10n.newProfileIdTitle),
+              content: TextField(
+                decoration: InputDecoration(labelText: l10n.profileIdHint),
+                onChanged: (val) => newId = val.trim(),
               ),
-              FilledButton(
-                onPressed: () {
-                  if (newId.isEmpty || _profiles.containsKey(newId)) return;
-                  setState(() {
-                    _profiles[newId] = {
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(l10n.cancelButton),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (newId.isEmpty || profiles.containsKey(newId)) return;
+
+                    profiles[newId] = {
                       'name': {'fi': 'Uusi profiili', 'en': 'New Profile'},
                       'layouts': [],
                     };
-                  });
-                  Navigator.pop(ctx);
-                },
-                child: const Text('Add'),
-              ),
-            ],
-          ),
-    );
-  }
+                    payload['output_profiles'] = profiles;
+                    ref
+                        .read(workflowFormProvider(workflowSlug).notifier)
+                        .forceRebuild();
 
-  void _addLayout(String profileId) {
-    setState(() {
-      final profile = SafeCast.safeMap(_profiles[profileId]);
-      final layouts = SafeCast.safeList(profile['layouts']);
-      layouts.add({
-        'preset_view': '1d_metrics',
-        'show_text': true,
-        'steps': <String>[],
-      });
-      profile['layouts'] = layouts;
-      _profiles[profileId] = profile;
-    });
-  }
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Add'),
+                ),
+              ],
+            ),
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
     return AppExceptionBoundary(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Edit Profiles: ${widget.workflowSlug}'),
+          title: Text(l10n.editProfilesTitle(workflowSlug)),
           actions: [
-            if (_isSaving)
+            if (formState.isLoading)
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0),
                 child: Center(
@@ -159,9 +162,9 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
               )
             else
               TextButton.icon(
-                onPressed: _saveWorkflow,
+                onPressed: saveWorkflow,
                 icon: const Icon(Icons.save),
-                label: const Text('Save Form'),
+                label: Text(l10n.studioSaveButton),
               ),
           ],
         ),
@@ -172,20 +175,27 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Output Profiles Dictionary',
+                  l10n.outputProfilesDictionary,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 FilledButton.icon(
-                  onPressed: _addProfileDialog,
+                  onPressed: addProfileDialog,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Variant'),
+                  label: Text(l10n.addVariantBtn),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            ..._profiles.entries.map(
-              (entry) =>
-                  _buildProfileCard(entry.key, SafeCast.safeMap(entry.value)),
+            ...profiles.entries.map(
+              (entry) => _buildProfileCard(
+                context,
+                ref,
+                l10n,
+                payload,
+                profiles,
+                entry.key,
+                SafeCast.safeMap(entry.value),
+              ),
             ),
           ],
         ),
@@ -193,8 +203,28 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
     );
   }
 
-  Widget _buildProfileCard(String profileId, Map<String, dynamic> profileDef) {
+  Widget _buildProfileCard(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    Map<String, dynamic> payload,
+    Map<String, dynamic> profilesMap,
+    String profileId,
+    Map<String, dynamic> profileDef,
+  ) {
     final layouts = SafeCast.safeList(profileDef['layouts']);
+
+    void addLayout() {
+      layouts.add({
+        'preset_view': '1d_metrics',
+        'show_text': true,
+        'target_blocks': <String>[],
+      });
+      profileDef['layouts'] = layouts;
+      profilesMap[profileId] = profileDef;
+      payload['output_profiles'] = profilesMap;
+      ref.read(workflowFormProvider(workflowSlug).notifier).forceRebuild();
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 24.0),
@@ -211,7 +241,7 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Variant ID: $profileId",
+                  l10n.variantIdLabel(profileId),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -221,43 +251,48 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () {
-                    setState(() {
-                      _profiles.remove(profileId);
-                    });
+                    profilesMap.remove(profileId);
+                    payload['output_profiles'] = profilesMap;
+                    ref
+                        .read(workflowFormProvider(workflowSlug).notifier)
+                        .forceRebuild();
                   },
                 ),
               ],
             ),
             const SizedBox(height: 12),
             I18nTextField(
-              label: 'Display Name',
+              label: l10n.profileDisplayNameLabel,
               initialData: SafeCast.safeMap(profileDef['name']),
               onChanged: (val) {
-                setState(() {
-                  profileDef['name'] = val;
-                });
+                profileDef['name'] = val;
+                profilesMap[profileId] = profileDef;
+                payload['output_profiles'] = profilesMap;
+                ref
+                    .read(workflowFormProvider(workflowSlug).notifier)
+                    .forceRebuild();
               },
             ),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Report Layout Sequence',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  l10n.reportLayoutSequenceLabel,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 TextButton.icon(
-                  onPressed: () => _addLayout(profileId),
+                  onPressed: addLayout,
                   icon: const Icon(Icons.add_box),
-                  label: const Text('Add Layout Block'),
+                  label: Text(l10n.addLayoutBlockBtn),
                 ),
               ],
             ),
             const Divider(),
             if (layouts.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text('No layout blocks defined. Report will be empty.'),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(l10n.noLayoutBlocksDefined),
               )
             else
               ListView.builder(
@@ -266,7 +301,18 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
                 itemCount: layouts.length,
                 itemBuilder: (context, index) {
                   final layout = SafeCast.safeMap(layouts[index]);
-                  return _buildLayoutEditor(profileId, index, layout);
+                  return _buildLayoutEditor(
+                    context,
+                    ref,
+                    l10n,
+                    payload,
+                    profilesMap,
+                    profileId,
+                    profileDef,
+                    layouts,
+                    index,
+                    layout,
+                  );
                 },
               ),
           ],
@@ -276,7 +322,14 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
   }
 
   Widget _buildLayoutEditor(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    Map<String, dynamic> payload,
+    Map<String, dynamic> profilesMap,
     String profileId,
+    Map<String, dynamic> profileDef,
+    List<dynamic> parentLayoutsList,
     int index,
     Map<String, dynamic> layout,
   ) {
@@ -284,24 +337,6 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
         SafeCast.safeList(
           layout['target_blocks'],
         ).map((e) => e.toString()).toList();
-
-    final xCtrl = TextEditingController(
-      text: blocksList.isNotEmpty ? blocksList[0] : '',
-    );
-    final yCtrl = TextEditingController(
-      text: blocksList.length > 1 ? blocksList[1] : '',
-    );
-    final zCtrl = TextEditingController(
-      text: blocksList.length > 2 ? blocksList[2] : '',
-    );
-
-    void updateCoords() {
-      final List<String> b = [];
-      if (xCtrl.text.trim().isNotEmpty) b.add(xCtrl.text.trim());
-      if (yCtrl.text.trim().isNotEmpty) b.add(yCtrl.text.trim());
-      if (zCtrl.text.trim().isNotEmpty) b.add(zCtrl.text.trim());
-      layout['target_blocks'] = b;
-    }
 
     String currentPreset = SafeCast.safeString(
       layout['preset_view'],
@@ -317,6 +352,21 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
       currentPreset = '1d_metrics';
     }
     final bool showText = layout['show_text'] as bool? ?? true;
+
+    void rebuild() {
+      parentLayoutsList[index] = layout;
+      profileDef['layouts'] = parentLayoutsList;
+      profilesMap[profileId] = profileDef;
+      payload['output_profiles'] = profilesMap;
+      ref.read(workflowFormProvider(workflowSlug).notifier).forceRebuild();
+    }
+
+    void updateCoords(String val, int idx) {
+      while (blocksList.length <= idx) blocksList.add('');
+      blocksList[idx] = val;
+      layout['target_blocks'] = blocksList;
+      rebuild();
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -341,37 +391,36 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: currentPreset,
-                  decoration: const InputDecoration(
-                    labelText: 'Preset View',
+                  decoration: InputDecoration(
+                    labelText: l10n.presetViewLabel,
                     isDense: true,
                   ),
-                  items: const [
+                  items: [
                     DropdownMenuItem(
                       value: '1d_metrics',
-                      child: Text('1D Table'),
+                      child: Text(l10n.preset1dTable),
                     ),
                     DropdownMenuItem(
                       value: '2d_compare',
-                      child: Text('2D Grid'),
+                      child: Text(l10n.preset2dCompare),
                     ),
                     DropdownMenuItem(
                       value: '3d_complex',
-                      child: Text('3D Composite'),
+                      child: Text(l10n.preset3dComplex),
                     ),
                     DropdownMenuItem(
                       value: 'text_only',
-                      child: Text('Text/Synthesis Only'),
+                      child: Text(l10n.presetTextOnly),
                     ),
                     DropdownMenuItem(
                       value: 'default',
-                      child: Text('Default View'),
+                      child: Text(l10n.presetDefaultView),
                     ),
                   ],
                   onChanged: (val) {
                     if (val != null) {
-                      setState(() {
-                        layout['preset_view'] = val;
-                      });
+                      layout['preset_view'] = val;
+                      rebuild();
                     }
                   },
                 ),
@@ -379,13 +428,12 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
               const SizedBox(width: 12),
               Row(
                 children: [
-                  const Text('Show Text'),
+                  Text(l10n.showTextLabel),
                   Switch(
                     value: showText,
                     onChanged: (val) {
-                      setState(() {
-                        layout['show_text'] = val;
-                      });
+                      layout['show_text'] = val;
+                      rebuild();
                     },
                   ),
                 ],
@@ -393,33 +441,33 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.orange),
                 onPressed: () {
-                  setState(() {
-                    final profile = _profiles[profileId];
-                    final layouts = SafeCast.safeList(profile['layouts']);
-                    layouts.removeAt(index);
-                  });
+                  parentLayoutsList.removeAt(index);
+                  profileDef['layouts'] = parentLayoutsList;
+                  profilesMap[profileId] = profileDef;
+                  payload['output_profiles'] = profilesMap;
+                  ref
+                      .read(workflowFormProvider(workflowSlug).notifier)
+                      .forceRebuild();
                 },
               ),
             ],
           ),
           const SizedBox(height: 12),
           I18nTextField(
-            label: 'Osion Otsikko (Title - Optional)',
+            label: l10n.sectionTitleLabel,
             initialData: SafeCast.safeMap(layout['title']),
             onChanged: (val) {
-              setState(() {
-                layout['title'] = val;
-              });
+              layout['title'] = val;
+              rebuild();
             },
           ),
           const SizedBox(height: 12),
           I18nTextField(
-            label: 'Osion Kuvaus (Description - Optional)',
+            label: l10n.sectionDescLabel,
             initialData: SafeCast.safeMap(layout['description']),
             onChanged: (val) {
-              setState(() {
-                layout['description'] = val;
-              });
+              layout['description'] = val;
+              rebuild();
             },
           ),
           const SizedBox(height: 12),
@@ -427,34 +475,34 @@ class _ProfileEditorViewState extends ConsumerState<ProfileEditorView> {
             children: [
               Expanded(
                 child: TextFormField(
-                  controller: xCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'X-Akseli (Matriisi ID)',
+                  initialValue: blocksList.isNotEmpty ? blocksList[0] : '',
+                  decoration: InputDecoration(
+                    labelText: l10n.xAxisLabel,
                     isDense: true,
                   ),
-                  onChanged: (_) => updateCoords(),
+                  onChanged: (val) => updateCoords(val.trim(), 0),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: TextFormField(
-                  controller: yCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Y-Akseli (Matriisi ID)',
+                  initialValue: blocksList.length > 1 ? blocksList[1] : '',
+                  decoration: InputDecoration(
+                    labelText: l10n.yAxisLabel,
                     isDense: true,
                   ),
-                  onChanged: (_) => updateCoords(),
+                  onChanged: (val) => updateCoords(val.trim(), 1),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: TextFormField(
-                  controller: zCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Z-Akseli (Matriisi ID)',
+                  initialValue: blocksList.length > 2 ? blocksList[2] : '',
+                  decoration: InputDecoration(
+                    labelText: l10n.zAxisLabel,
                     isDense: true,
                   ),
-                  onChanged: (_) => updateCoords(),
+                  onChanged: (val) => updateCoords(val.trim(), 2),
                 ),
               ),
             ],

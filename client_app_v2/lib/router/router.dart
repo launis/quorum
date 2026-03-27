@@ -306,7 +306,7 @@ class ProfileEditorRoute extends GoRouteData with $ProfileEditorRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      ProfileEditorView(workflowSlug: workflowSlug, initialData: $extra);
+      ProfileEditorView(workflowSlug: workflowSlug);
 }
 
 class OutputProfileNewRoute extends GoRouteData with $OutputProfileNewRoute {
@@ -323,7 +323,7 @@ class OutputProfileEditRoute extends GoRouteData with $OutputProfileEditRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      OutputProfileCrudView(id: id, initialData: $extra);
+      OutputProfileCrudView(id: id);
 }
 
 class ModelRegistryNewRoute extends GoRouteData with $ModelRegistryNewRoute {
@@ -340,7 +340,7 @@ class ModelRegistryEditRoute extends GoRouteData with $ModelRegistryEditRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      ModelRegistryView(id: id, initialData: $extra);
+      ModelRegistryView(id: id);
 }
 
 class McpGatewayNewRoute extends GoRouteData with $McpGatewayNewRoute {
@@ -357,7 +357,7 @@ class McpGatewayEditRoute extends GoRouteData with $McpGatewayEditRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      McpGatewayView(id: id, initialData: $extra);
+      McpGatewayView(id: id);
 }
 
 class MatrixNewRoute extends GoRouteData with $MatrixNewRoute {

@@ -1,34 +1,37 @@
-# Cognitive Quorum V5.1 (2026)
+# Cognitive Quorum (2026 Enterprise Edition)
 
 **Structured, Auditable, and Deterministic AI Orchestration.**
 
-> **Status:** Phase 9 Hardening (V5.1)
-> **Architecture:** Zero-Deploy DAG Orchestrator & BFF (Backend-For-Frontend) Architecture
-> **Philosophy:** Zero-Magic, Fail-Fast, Strict DTOs.
+> **Status:** Phase 9 Hardening (2026 SOTA)
+> **Architecture:** Zero-Deploy DAG Orchestrator, Flat MVC (BFF), Firebase CQRS
+> **Philosophy:** Zero-Magic, Fail-Fast, Strict Rust-Core Pydantic DTOs.
 
 Cognitive Quorum is a specialized AI orchestration platform designed for high-stakes cognitive labor—scientific peer review, legal auditing, and strategic analysis. Unlike generic chatbot frameworks, Quorum enforces a **Strict Object Mode**, ensuring that every step of the AI's reasoning is validated, persisted, and auditable.
 
 ---
 
-## 🚀 Key Features (V5.1)
+## 🚀 Key Features (2026 SOTA)
 
-### 1. The "Zero-Magic" Manifesto
+### 1. The "Zero-Compromise" Manifesto
 We reject "black box" agent frameworks. Quorum uses explicit, deterministic Python code:
-*   **Strict Pydantic V2**: Every step's input/output is a typed **DTO**, not a dictionary.
-*   **Zero-Fallback**: Configuration (Prompts, Rules, Models) must be explicit in the Database. No hardcoded defaults.
-*   **Fail-Fast**: The system crashes immediately (`AppException`) on invalid configuration or schema violations.
+*   **Strict Pydantic V2 (Rust-Core)**: Every step's input/output is a strongly typed **DTO** using `model_validate_json` and `extra="forbid"`. No silent dict coercions.
+*   **Firebase CQRS**: The Flutter UI is strictly **Read-Only** regarding the database, subscribing only to real-time streams. All structural mutations route through the FastAPI Service layer.
+*   **Fail-Fast**: The system crashes immediately (`AppException` RFC 7807) on invalid configuration, missing fields, or unauthorized access attempts.
 
 ### 2. Zero-Deploy DAG Routing
 We replaced sequential hardcoded agent chains with a dynamic **Directed Acyclic Graph (DAG)** workflow:
 *   **Data-Driven Pipelines**: Workflows and Prompts are defined in `seed_data.json`, meaning new evaluation criteria can be added without modifying backend code.
-*   **PromptCompiler**: Compiles dynamic Pydantic DTOs prior to execution based on the visual blocks requested, ensuring absolute schema conformity from the chosen LLM.
-*   **Omni-Channel UI**: The backend no longer ships formatting. It ships pure Data Models (`ExecutionRecord`) and compiles them dynamically via a BFF Compiler into ViewModel Nodes. This allows Flutter (Mobile/Web), DataGrids (Excel), and PDF Generators to render 1:N outputs from a single execution with 100% parity.
+*   **The Anti-Mirror Protocol**: AI agents operate in parallel, insulated from each other's outputs during target human evaluations, preventing LLM mathematical groupthink.
+*   **Model Context Protocol (MCP)**: AI agents use The Tool Loop for real-time empirical validation, with absolute fact-checking traces frozen in `XAIEvidenceBox` audits.
 
-### 3. Modular Async Monolith
-The system decouples **User Interaction** from **Cognitive Reasoning**:
-*   **API (FastAPI)**: Handles HTTP requests, generic BFF ViewModel generation (`/report`), and enqueues jobs (< 50ms).
-*   **Worker (Arq/Redis)**: Executes deep reasoning DAGs (10m+) without timeouts.
-*   **Client (Flutter)**: A reactive client (Riverpod) that polls Server-Sent Events (SSE) for real-time DAG node progression updates. See the **[Client Application README](client_app_v2/README.md)** for details.
+### 3. B2B SaaS IAM & Security
+*   **Passkey-First Auth**: Passwords are legacy fallbacks. Security relies on cryptography, Riverpod Re-Auth Interceptors, and real-time Step-Up MFA (TOTP) natively evaluated from JWT `amr` claims at O(1) speed.
+*   **Opaque Stripe IDs**: All database keys are strictly obscure (e.g., `org_[a-zA-Z0-9]{8,}`). Human-readable keys are forbidden at the database layer.
+*   **Saga Pattern Deletions**: Deleting user accounts delegates anonymization and entity removal to Arq Redis Background Workers (`202 Accepted`), maintaining global audit traces.
+
+### 4. Adaptive Flutter Edge (Desktop-First)
+*   **Zero-Latency UI**: The frontend utilizes Stale-While-Revalidate (SWR) for instantaneous state changes without full-screen loading spinners.
+*   **The Isolate Mandate**: Parsing 100MB JSONs or 5000-row CSVs never touches the UI thread. It is completely offloaded to Dart `Isolate.run()`.
 
 ---
 
@@ -36,50 +39,39 @@ The system decouples **User Interaction** from **Cognitive Reasoning**:
 
 ```mermaid
 graph LR
-    User[Flutter Client] -->|SSE / REST| API[FastAPI Gateway]
-    API -->|Enqueue| Redis[(Redis Broker)]
-    Redis -->|Pull| Worker[Async Worker]
-    
-    subgraph "Execution Core"
-        Worker --> Engine[DAGExecutor]
-        Engine -->|Compile Schema| PC[PromptCompiler]
-        PC -->|Invoke Step| LLM[Gemini 1.5 Pro]
-        LLM -->|Validate DTO| Engine
-    end
-    
-    Engine -->|Optimistic Save| DB[(Firestore / TinyDB)]
-    DB -->|ExecutionRecord| API
-    API -->|format=json| User
-    API -->|format=pdf| PDF[PdfReportService]
+    User[Flutter Desktop Client] -->|SSE Read-Only Stream| DB[(Firestore / TinyDB)]
+    User -->|Mutations / REST| API[FastAPI Gateway]
+    API -->|Validation| PYD[Strict Pydantic V2]
+    PYD -->|Pass| SERV[Domain Service Layer]
+    PYD -->|Fail-Fast 422| User
+    SERV -->|Admin SDK Writes| DB
+    SERV -->|Enqueue Heavy DAGs| Worker[Arq Async Worker]
+    Worker -->|Execute Node| LLM[Google Vertex AI]
+    Worker -->|Model Context Protocol| MCP[Serverless Tools]
 ```
 
 ---
 
 ## 📚 Documentation Index
 
-The `docs/` directory serves as the central repository for the platform's detailed architectural, theoretical, and operational documentation.
-
 ### Core Architecture & Protocols
-*   **[Master Architecture AI Orchestrator V2](docs/Arkkitehtuurimäärittely_%20AI-orkestraattori%20V2.md)**: The authoritative system reference for the backend Python Engine.
-*   **[Output Profiles & BFF Architecture V2](docs/Arkkitehtuurimaarittely_Tulostus_ja_Raportointi_V2.md)**: The master standard for robust UI/PDF printing, Dynamic Excel Column generation, and the Dumb-Client philosophy.
-*   **[Universal Routing & Hooks V2](docs/Architecture_Universal_Routing_and_Hooks_V2.md)**: Deep dive into the Zero-Deploy workflow mappings, $inputs routing, and strictly typed interceptor hooks.
-*   **[Output Generation Pipeline](docs/output_generation_pipeline.md)**: The lifecycle of generating and compiling `ExecutionRecord` states.
-*   **[Holistinen Mestaruus](docs/Holistinen%20Mestaruus.md)**: The theoretical foundation of psychometric assessment, balancing system-1 and system-2 cognition.
+*   **[Arkkitehtuurimäärittely: AI-orkestraattori V2.5](docs/Arkkitehtuurimäärittely_%20AI-orkestraattori%20V2.md)**: The authoritative master reference for the 2026 Engine.
+*   **[EPIC: B2B Multi-Tenant IAM Säännökset](docs/epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026.md)**: Zero-Trust policies, User Settings, and Role Matrices (ROOT/ADMIN/MANAGER/MEMBER/VIEWER).
+*   **[Flutter Prompt Mandaatit](docs/flutterpromptohje.md)**: Rules for optimizing Desktop-First Flutter applications, Riverpod SWR, and GoRouter Stateful Navigation.
+*   **[Antigravity Prompting](docs/antigravity_prompting.md)**: Universal System Rules for Agentic AI Coding, enforcing the Zero-Compromise Pledges.
 
 ### Development Standards & Tooling
-*   **[Antigravity Prompting](docs/antigravity_prompting.md)**: Required protocols for AI-assisted development context.
-*   **[Flutter Prompt Instructions](docs/flutterpromptohje.md)**: Mandatory rules for Client-side Flutter/Dart generation.
-*   **[Product Roadmap](docs/product_roadmap.md)**: Phase 9 (Hardening) status.
-*   **[Test Strategy](docs/test_strategy.md)**: Strict DTO testing & System Config mocking patterns.
+*   **[Tier Verification Protocols](docs/hardeningback.md)**: Audit checklists for Python Backend (Strict Typed Dicts, Aneamic Routers).
+*   **[API Reference](docs/reference.md)**: Model definitions, routing logic, and database schemas.
 
 ---
 
 ## 🛠️ Technology Stack
 
-*   **Language**: Python 3.14+ (Async) & Dart 3.5+
+*   **Language**: Python 3.14+ (Async) & Dart 3.27+
 *   **Frameworks**: FastAPI, Arq, Riverpod 3.0+
 *   **Database**: TinyDB (Local) / Firestore (Cloud)
-*   **LLM**: Google Vertex AI (Gemini 2.0 Pro Exp)
+*   **LLM**: Google Vertex AI / OpenAI (With Strict JSON Schema via Pydantic)
 *   **Tools**: `uv` (Package Mgmt), `ruff` (Linting), `mypy` (Typing)
 
 ---
@@ -104,7 +96,6 @@ The `docs/` directory serves as the central repository for the platform's detail
     Create `.env` based on `.env.example`:
     ```env
     GOOGLE_API_KEY=your_key
-    ENABLE_VERTEX_SEARCH=true
     ```
 
 3.  **Run Infrastructure**:
@@ -112,9 +103,8 @@ The `docs/` directory serves as the central repository for the platform's detail
     docker-compose up -d redis
     ```
 
-4.  **Start Services**:
+4.  **Start Services**: (Runs Backend, Arq Worker, and Client)
     ```bash
-    # Backend + Worker + Client (Simulated)
     ./run_local.bat
     ```
 

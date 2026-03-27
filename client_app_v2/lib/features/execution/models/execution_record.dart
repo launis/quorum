@@ -27,9 +27,9 @@ class ExecutionRecord {
   /// Instantiates a strictly typed [ExecutionRecord] from raw JSON.
   factory ExecutionRecord.fromJson(Map<String, dynamic> json) {
     return ExecutionRecord(
-      id: SafeCast.safeString(json['id']),
-      workflowId: SafeCast.safeString(json['workflow_id']),
-      status: SafeCast.safeString(json['status']).toUpperCase(),
+      id: json['id'] as String,
+      workflowId: json['workflow_id'] as String,
+      status: (json['status'] as String).toUpperCase(),
       traceVersion: json['trace_version']?.toString(),
       reportData:
           json['report_data'] != null

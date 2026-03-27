@@ -6,6 +6,8 @@ God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
 
 import asyncio
 import logging
+from pydantic import ValidationError
+from backend_v2.models.enums import SystemConcurrency
 from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
@@ -80,8 +82,7 @@ class NodeExecutor:
         projector: StateProjector,
         expected_inputs: list[Any] | None = None,
         frozen_ctx: FrozenContext | None = None,
-        trace: list[TraceEvent] | None = None,
-        model_strategy: Any | None = None
+        trace: list[TraceEvent] | None = None
     ) -> list[TraceEvent]:
         try:
             blueprint_id = getattr(step, "task_blueprint", None)
@@ -109,7 +110,7 @@ class NodeExecutor:
                 workflow_id=workflow_id,
                 metadata=metadata,
                 expected_inputs=expected_inputs,
-                model_strategy=model_strategy
+                model_strategy=step_def.get("model_strategy")
             )
 
             strategy_impl: NodeStrategy
@@ -239,7 +240,7 @@ class DAGExecutor:
                 exec_record.step_states[step_id].status = "pending"
 
         # Concurrency Limiter
-        semaphore = asyncio.Semaphore(10)
+        semaphore = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
 
         async def run_step_wrapper(step_id: str) -> None:
             step_obj = steps_by_id[step_id]
@@ -271,8 +272,7 @@ class DAGExecutor:
                         projector=projector,
                         expected_inputs=workflow.expected_inputs,
                         frozen_ctx=exec_record.frozen_context,
-                        trace=exec_record.execution_trace,
-                        model_strategy=workflow.model_strategy
+                        trace=exec_record.execution_trace
                     )
 
                     for e in events:
@@ -328,6 +328,10 @@ class DAGExecutor:
             for t in tasks:
                 if not t.done():
                     t.cancel()
+            # Cleanup stuck 'running' states caused by CancelledError bypassing the standard exception handler
+            for step_id, state in exec_record.step_states.items():
+                if getattr(state, "status", None) == "running":
+                    state.status = "failed"
             exec_record.status = ExecutionStatus.FAILED
             exec_record.error = str(overall_err)
 

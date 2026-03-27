@@ -1,55 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
 
 /// Admin Studio View for managing the Model Registry (SystemConfig).
-/// Uses raw `Map<String, dynamic>` to adhere to V2 De-Generator principles.
-class ModelRegistryView extends ConsumerStatefulWidget {
+/// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
+class ModelRegistryView extends HookConsumerWidget {
   final String id;
-  final Map<String, dynamic>? initialData;
-
-  const ModelRegistryView({super.key, required this.id, this.initialData});
-
-  @override
-  ConsumerState<ModelRegistryView> createState() => _ModelRegistryViewState();
-}
-
-class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
-  final _formKey = GlobalKey<FormState>();
-
-  /// Working copy of the data. Initialized in build when state data arrives.
-  Map<String, dynamic>? _editableState;
+  // initialData drops to null here since Gold Standard requires native ID resolution
+  const ModelRegistryView({super.key, required this.id});
 
   @override
-  void initState() {
-    super.initState();
-    // Use extra payload directly if available, bypassing network logic instantly
-    if (widget.initialData != null) {
-      _editableState = _deepCopy(widget.initialData!);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final formKey = useMemoized(() => GlobalKey<FormState>());
     final availableModelsAsync = ref.watch(availableModelsProvider);
     final availableModels = availableModelsAsync.value ?? [];
 
-    // If we have an eagerly initialData from Riverpod Navigation, skip loading states
-    if (_editableState != null) {
-      return _buildScaffold(l10n, availableModels, false);
-    }
+    // 1. Data and loading states are read from Riverpod! No useEffect for fetching!
+    final formState = ref.watch(modelRegistryFormProvider(id));
 
-    // Otherwise, we are deep-linked natively. Fetch from backend:
-    final asyncData =
-        (widget.id == 'new')
-            ? AsyncValue.data({'id': 'syscfg_new', 'type': 'model_registry'})
-            : ref.watch(modelRegistryByIdProvider(widget.id));
-
-    return asyncData.when(
+    return formState.when(
       loading:
           () => Scaffold(
             appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
@@ -62,48 +36,138 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
               error: e,
               stackTrace: st,
               compact: false,
-              onRetry:
-                  () => ref.invalidate(modelRegistryByIdProvider(widget.id)),
+              onRetry: () => ref.invalidate(modelRegistryFormProvider(id)),
             ),
           ),
-      data: (data) {
-        _editableState ??= _deepCopy(data);
-        return _buildScaffold(l10n, availableModels, false);
+      data: (payload) {
+        // The UI is a pure renderer of the business payload
+        return _buildScaffold(
+          context,
+          ref,
+          l10n,
+          formKey,
+          formState,
+          payload,
+          availableModels,
+        );
       },
     );
   }
 
   Widget _buildScaffold(
+    BuildContext context,
+    WidgetRef ref,
     AppLocalizations l10n,
+    GlobalKey<FormState> formKey,
+    AsyncValue<Map<String, dynamic>> formState,
+    Map<String, dynamic> payload,
     List<String> availableModels,
-    bool isSaving,
   ) {
+    Future<void> deleteRegistry() async {
+      final String idToDelete = payload['id']?.toString() ?? '';
+      if (idToDelete.isEmpty || id == 'new') return;
+
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: Text(l10n.deleteConfigTitle),
+              content: Text(l10n.deleteConfigConfirmation(idToDelete)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n.cancelButton),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.deleteButton),
+                ),
+              ],
+            ),
+      );
+
+      if (confirm == true) {
+        try {
+          await ref
+              .read(modelRegistryControllerProvider.notifier)
+              .deleteConfig(idToDelete);
+          if (!context.mounted) return;
+          context.pop();
+        } catch (e) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.deleteFailedError(e.toString())),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
+
+    Future<void> saveRegistry() async {
+      if (formKey.currentState!.validate()) {
+        formKey.currentState!.save();
+        try {
+          final notifier = ref.read(modelRegistryFormProvider(id).notifier);
+          await notifier.submit(payload);
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.configSavedSuccess)));
+        } catch (e) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.saveFailedError(e.toString())),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.modelRegistryTitle),
         actions: [
-          if (widget.id != 'new')
+          if (formState.isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.only(right: 16.0),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+          if (id != 'new')
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.orange),
-              onPressed: _deleteRegistry,
-              tooltip: 'Delete Config',
+              onPressed: formState.isLoading ? null : deleteRegistry,
+              tooltip: l10n.deleteConfigTitle,
             ),
           FilledButton.icon(
             icon: const Icon(Icons.save),
             label: Text(l10n.studioSaveButton),
-            onPressed: isSaving ? null : _saveRegistry,
+            onPressed:
+                formState.isLoading
+                    ? null
+                    : saveRegistry, // Read isLoading directly from Riverpod!
           ),
           const SizedBox(width: 16),
         ],
       ),
       body: Form(
-        key: _formKey,
+        key: formKey,
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            _buildSystemAttributes(l10n, _editableState!),
+            _buildSystemAttributes(l10n, payload),
             const SizedBox(height: 24),
-            _buildModelsSection(l10n, _editableState!, availableModels),
+            _buildModelsSection(ref, l10n, payload, availableModels),
           ],
         ),
       ),
@@ -122,13 +186,13 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
           children: [
             Text(
               l10n.systemMetaTitle,
-              style: Theme.of(context).textTheme.titleLarge,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
             TextFormField(
               initialValue: data['id']?.toString(),
               decoration: InputDecoration(labelText: l10n.configIdLabel),
-              readOnly: true,
+              readOnly: true, // Opaque ID Mandate: NEVER editable manually
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -143,6 +207,7 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
   }
 
   Widget _buildModelsSection(
+    WidgetRef ref,
     AppLocalizations l10n,
     Map<String, dynamic> data,
     List<String> availableModels,
@@ -165,7 +230,7 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
       children: [
         Text(
           l10n.providerSettings,
-          style: Theme.of(context).textTheme.titleLarge,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
         if (models.isEmpty) Text(l10n.noModelsDefined),
@@ -190,15 +255,14 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
                         children: [
                           Text(
                             '${l10n.strategyLabel}: $modelId',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleMedium?.copyWith(
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: Colors.blue,
                             ),
                           ),
                           const SizedBox(height: 8),
                           _buildModelNameDropdown(
+                            ref,
                             fields,
                             'model_name',
                             l10n.modelNameLabel,
@@ -231,11 +295,13 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
                             l10n.rpmLimitLabel,
                           ),
                           _buildBoolField(
+                            ref,
                             fields,
                             'supports_grounding',
                             l10n.supportsGroundingLabel,
                           ),
                           _buildBoolField(
+                            ref,
                             fields,
                             'is_active',
                             l10n.isActiveLabel,
@@ -267,6 +333,7 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
   }
 
   Widget _buildModelNameDropdown(
+    WidgetRef ref,
     Map<String, dynamic> map,
     String key,
     String label,
@@ -295,7 +362,8 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
             }).toList(),
         onChanged: (val) {
           if (val != null) {
-            setState(() => map[key] = val);
+            map[key] = val; // Synchronous pure map edit
+            ref.read(modelRegistryFormProvider(id).notifier).forceRebuild();
           }
         },
       ),
@@ -350,7 +418,12 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
     );
   }
 
-  Widget _buildBoolField(Map<String, dynamic> map, String key, String label) {
+  Widget _buildBoolField(
+    WidgetRef ref,
+    Map<String, dynamic> map,
+    String key,
+    String label,
+  ) {
     // Value could be null initially.
     final currentValue = map[key] as bool? ?? false;
 
@@ -360,98 +433,10 @@ class _ModelRegistryViewState extends ConsumerState<ModelRegistryView> {
         title: Text(label),
         value: currentValue,
         onChanged: (val) {
-          setState(() {
-            map[key] = val;
-          });
+          map[key] = val; // Synchronous pure map edit
+          ref.read(modelRegistryFormProvider(id).notifier).forceRebuild();
         },
       ),
     );
-  }
-
-  Map<String, dynamic> _deepCopy(Map<String, dynamic> source) {
-    // Simple deep copy for JSON-like Maps used in V2 De-Generator
-    final copy = <String, dynamic>{};
-    for (final entry in source.entries) {
-      if (entry.value is Map<String, dynamic>) {
-        copy[entry.key] = _deepCopy(entry.value as Map<String, dynamic>);
-      } else {
-        copy[entry.key] = entry.value;
-      }
-    }
-    return copy;
-  }
-
-  Future<void> _saveRegistry() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-
-      try {
-        final idToSave =
-            widget.id == 'new'
-                ? (_editableState!['id'] ?? 'syscfg_new')
-                : widget.id;
-        await ref
-            .read(modelRegistryControllerProvider.notifier)
-            .saveConfig(idToSave, _editableState!);
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Model Registry saved successfully.')),
-        );
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Save failed: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _deleteRegistry() async {
-    final String idToDelete = _editableState?['id']?.toString() ?? '';
-    if (idToDelete.isEmpty || widget.id == 'new') return;
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Delete Configuration?'),
-            content: Text(
-              'Are you sure you want to delete config $idToDelete?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirm == true) {
-      try {
-        await ref
-            .read(modelRegistryControllerProvider.notifier)
-            .deleteConfig(idToDelete);
-        if (!mounted) return;
-        context.pop();
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Delete failed: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
   }
 }
