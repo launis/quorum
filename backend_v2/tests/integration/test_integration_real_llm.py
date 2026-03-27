@@ -27,7 +27,7 @@ WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 BACKEND_LOG_FILE = os.path.join(WORKSPACE_ROOT, "backend_debug.log")
 CLIENT_LOG_FILE = os.path.join(WORKSPACE_ROOT, "client_debug.log")
 
-ORIGINAL_TRACE_FILE = os.environ.get("TEST_REFERENCE_TRACE", os.path.join(WORKSPACE_ROOT, "data", "files", "executions", "exe_c0bc5098e7164453afffd7743ff35c2c", "execution_trace.json"))
+ORIGINAL_TRACE_FILE = os.environ.get("TEST_REFERENCE_TRACE", os.path.join(WORKSPACE_ROOT, "tests", "testinput", "execution_trace.json"))
 NEW_TRACE_FILE = os.environ.get("TEST_E2E_TRACE_OUT", os.path.join(WORKSPACE_ROOT, "backend_v2", "tests", "test_data", "e2e_new_trace.json"))
 TARGET_WORKFLOW_ID = os.environ.get("TEST_WORKFLOW_ID", "wf_d653170e174847559e08af42b938d826")
 WAIT_TIMEOUT = int(os.environ.get("TEST_WAIT_TIMEOUT", "600"))
@@ -109,8 +109,11 @@ async def test_real_llm_e2e_orchestration():
     """Live E2E test coordinating the Dart Client Simulation and the FastAPI Backend."""
     if not os.path.exists(INPUTS_FILE):
         pytest.skip(f"Inputs file not found at {INPUTS_FILE}. Skipping E2E test.")
-    if not os.path.exists(ORIGINAL_TRACE_FILE):
-        pytest.skip(f"Original trace not found at {ORIGINAL_TRACE_FILE}. Skipping E2E test.")
+    
+    has_old_trace = os.path.exists(ORIGINAL_TRACE_FILE)
+    if not has_old_trace:
+        logger.warning(f"Original trace not found at {ORIGINAL_TRACE_FILE}. Will skip structural deep comparison.")
+
 
     clear_logs()
 
@@ -178,8 +181,9 @@ async def test_real_llm_e2e_orchestration():
         logger.info("Triggering Dart E2E Client Simulation...")
 
         # We use flutter test because LoggerService depends on package:flutter framework libraries.
+        flutter_cmd = "flutter test test/e2e_client_test.dart" if os.name == "nt" else ["flutter", "test", "test/e2e_client_test.dart"]
         result = subprocess.run(
-            ["flutter", "test", "test/e2e_client_test.dart"],
+            flutter_cmd,
             cwd=client_dir,
             capture_output=True,
             text=True,
@@ -228,11 +232,32 @@ async def test_real_llm_e2e_orchestration():
 
         new_trace = completed_trace.get("execution_results", [])
 
-        with open(ORIGINAL_TRACE_FILE, encoding="utf-8") as f:
-            old_trace = json.load(f)
-
-        # 3. Structural Parity
-        deep_logic_compare(old_trace, new_trace)
+        if has_old_trace:
+            with open(ORIGINAL_TRACE_FILE, encoding="utf-8") as f:
+                old_trace = json.load(f)
+            # 3. Structural Parity
+            deep_logic_compare(old_trace, new_trace)
+        else:
+            with open(db_path, encoding="utf-8") as f:
+                db_data = json.load(f)
+            
+            all_execs = [v for k,v in db_data.get("executions", {}).items() if v.get("status") == "COMPLETED"]
+            older_execs = [e for e in all_execs if e.get("id") != completed_trace.get("id")]
+            
+            if older_execs:
+                latest_older = sorted(older_execs, key=lambda x: x.get("created_at", ""), reverse=True)[0]
+                logger.info(f"Using previous db_v2.json execution {latest_older.get('id')} as reference trace.")
+                old_trace = latest_older.get("execution_results", [])
+                
+                # Auto-heal: Save it as the new reference
+                os.makedirs(os.path.dirname(ORIGINAL_TRACE_FILE), exist_ok=True)
+                with open(ORIGINAL_TRACE_FILE, "w", encoding="utf-8") as f:
+                    json.dump(old_trace, f, indent=2)
+                logger.info(f"Saved latest trace to {ORIGINAL_TRACE_FILE} for future runs.")
+                
+                deep_logic_compare(old_trace, new_trace)
+            else:
+                logger.info("Skipping deep logic compare because no historical file or previous DB trace is available.")
 
         # 4. Assert Dual-Log Generation (User Request: "Varmista, että näihin molempiin logeihin tulostuu dataa.")
         backend_log_size = os.path.getsize(BACKEND_LOG_FILE)

@@ -1,5 +1,5 @@
 System Context: Quorum (Python Backend V2 + Flutter Client V2)
-STATUS: Phase 2 (Hardening & Standardization)
+STATUS: Phase 9 (Hardening & Standardization)
 
 # PRIMARY DIRECTIVES
 You are an expert functionality-first AI developer.

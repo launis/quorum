@@ -1,36 +1,31 @@
+# ANTIGRAVITY AGENT CONFIGURATION (1.21.6+)
 System Context: Quorum (Python Backend V2 + Flutter Client V2)
-STATUS: Phase 2 (Hardening & Standardization)
+Host Environment: **Windows 11 (PowerShell)**
+STATUS: Phase 9 (Hardening & Standardization)
 
-# PRIMARY DIRECTIVES
-You are an expert functionality-first AI developer.
-Your Single Sources of Truth for this project are:
+## 🖥️ 1. ENVIRONMENT & TOOLING CONSTRAINTS
+As an autonomous agent operating in Antigravity 1.21.6+, you must strictly adhere to the host restrictions:
+* **Windows 11 Host:** The system lacks native Linux sandboxing. **DO NOT** attempt to use internal sandboxed cascade terminal execution features.
+* **Linux Command Ban:** You are strictly forbidden from proposing Linux shell commands (`ls`, `cat`, `grep`, `rm -rf`, `export`). You must ONLY propose and execute native PowerShell commands (`Get-ChildItem`, `Get-Content`, `Remove-Item -Recurse -Force`, `$env:`).
+* **Command Execution:** Only propose standard `run_command` execution using PowerShell (`chcp 65001` or UTF-8 formatting where applicable). Never write cross-platform `.sh` scripts; use `.ps1` if scripting is required. Wait for user approval.
+* **Live Telemetry:** Before diagnosing system integration issues or API failures, ALWAYS read the active logs:
+  - `c:\src\quorum\backend_debug.log` (FastAPI routing, CPU hooks, Pydantic validation errors)
+  - `c:\src\quorum\client_debug.log` (Flutter Riverpod states, GoRouter navigation, and HTTP requests)
 
-1. FRONTEND / GENERAL: `c:\src\quorum\docs\flutterpromptohje.md`
-2. BACKEND / AI: `c:\src\quorum\docs\Arkkitehtuurimäärittely_ AI-orkestraattori V2.md`
-3. REFERENCE & STRUCTURE: `c:\src\quorum\docs\reference.md` (Detailed directory, CLI, DB, and Model specs)
+## 📋 2. TIERED EXECUTION PROTOCOL
+When planning or executing any changes, defer to `docs\antigravity_prompting.md` to assess the operation tier:
+* **TIER 1 (Epic Planner):** Deep research and milestone breakdown for major architectural alterations.
+* **TIER 2 (Execution Planner):** Strict, step-by-step implementation of an approved `implementation_plan.md`.
+* **TIER 3 (Single Operation):** Direct atomic executions for bug fixes, code audits, or localized file tweaks.
 
-**LIVE LOGGING (Single Source of Runtime Truth):**
-- **BACKEND LOGS:** `c:\src\quorum\backend_debug.log` (FastAPI routing, CPU hooks, Pydantic validation errors, and Worker background tasks. Check this first for backend failures.)
-- **CLIENT LOGS:** `c:\src\quorum\client_debug.log` (Flutter Riverpod states, GoRouter navigation, and HTTP requests. Check this for UI/Network failures.)
+## 🚨 3. DATABASE BACKUP & SEEDING PROTOCOL
+**ABSOLUTE MANDATE:** You are expressly forbidden from modifying the live `data\db_v2.json` database directly during development.
+If system configuration, steps, or workflow seed data must be altered:
+1. Target the original `backend_v2\seed\seed_data.json` file.
+2. Create a timestamped backup of its current state in `backend_v2\seed\backups\`.
+3. Notify the user exactly *why* and *what* changes you intend to incorporate.
+4. Verify structural integrity locally.
+5. **WAIT for explicit confirmation from the user.** Only after receiving permission, instruct the user to execute the command: `uv run python backend_v2\seed\run_seed.py local`.
 
-🛑 MANDATORY: Before proposing or writing ANY code, you MUST read the relevant document above using your file reading tools to understand:
-- The Strict V2/V3 Architecture (Event Sourcing, The Opaque Stripe ID Pattern, Fail-Fast Pydantic).
-- The New Serverless Tool Loop (Tavily AI Fact Check Injection).
-- The Flat MVC Mandate (NO SDUI, JSON Parsing exclusively via Dart `Isolate.run()`).
-- The Banned Patterns (No fallbacks, No hardcoding UUIDs, No UI string literals).
-- The Tech Stack (Python 3.14, Riverpod 3.0, Pydantic V2) or the corresponding frontend stack.
-
-If you act contrary to these documents, you are failing the task.
-
-## 📋 PRE-EXECUTION INSTRUCTIONS
-When executing changes, strictly follow the Tier instructions in `docs\antigravity_prompting.md` as needed:
-* **TIER 1 (Epic Planner):** Use when planning large architectural changes or breaking down complex features into milestones.
-* **TIER 2 (Execution Planner):** Use when executing an approved `implementation_plan.md` step-by-step securely.
-* **TIER 3 (Single Operation):** Use for single file edits, bug fixes, refactoring, code quality audits, or seed data changes.
-
-## 🚨 CONFIGURATION BACKUP PROTOCOL
-**MANDATORY:** Whenever you intend to make changes to the `data\db_v2.json` database, they MUST ALWAYS be done via the `backend_v2\seed\seed_data.json` database file first. Follow these steps strictly:
-1. Create a timestamped backup of the current state into the `backend_v2\seed\backups\` directory.
-2. Clearly notify the user about *why* you are making the change and *what* exact changes you intend to make.
-3. Verify the changes technically after modification (e.g., check that the array length or row count increased exactly as intended).
-4. **WAIT for explicit confirmation from the user BEFORE applying any changes.** Do not proceed to run `backend_v2\seed\run_seed.py local` to update the `data\db_v2.json` database without permission.
+## 📖 4. KNOWLEDGE RESOLUTION
+Always run a `grep_search` or cross-reference the `<knowledge_item>` artifacts dynamically before touching the backend orchestrator or client display logic. The system rules evolve drastically based on the current Epic Phase.
