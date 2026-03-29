@@ -10,6 +10,7 @@ class DummyModel(BaseModel):
     name: str
     age: int
 
+
 def test_format_validation_error_valid_pydantic() -> None:
     """Test that a valid Pydantic error is properly formatted."""
     try:
@@ -18,6 +19,7 @@ def test_format_validation_error_valid_pydantic() -> None:
     except ValidationError as e:
         result = format_validation_error(e)
         assert "DummyModel validation failed. Missing required fields: age" in result
+
 
 def test_format_validation_error_internal_error(monkeypatch: Any) -> None:
     """Test the fail-fast behavior when Pydantic internal structure crashes the formatter."""

@@ -91,8 +91,8 @@ class UsageService:
                         "total_tokens": total_t,
                         "cached_tokens": cached_tokens,
                         "reasoning_tokens": reasoning_tokens,
-                        "cost_usd": cost_usd
-                    }
+                        "cost_usd": cost_usd,
+                    },
                 }
 
                 # System Level (All traffic)
@@ -162,9 +162,7 @@ class UsageService:
                 message=f"Quota check failed: {e}", status_code=500, details={"error_code": error_code}
             ) from e
 
-    async def get_usage_report(
-        self, scope: str, entity_id: str | None = None, since: str | None = None
-    ) -> UsageReport:
+    async def get_usage_report(self, scope: str, entity_id: str | None = None, since: str | None = None) -> UsageReport:
         # Determine period
         period = "all-time"
         if since:
@@ -187,7 +185,7 @@ class UsageService:
                 total_tokens=usage_data.get("total_tokens", 0),
                 cached_tokens=usage_data.get("cached_tokens", 0),
                 reasoning_tokens=usage_data.get("reasoning_tokens", 0),
-                cost_usd=usage_data.get("cost_usd", 0.0)
+                cost_usd=usage_data.get("cost_usd", 0.0),
             )
         else:
             records_data = []
@@ -197,7 +195,9 @@ class UsageService:
 
             prompt_tokens = sum(r.get("input_tokens", 0) for r in records_data)
             completion_tokens = sum(r.get("output_tokens", 0) for r in records_data)
-            total_tokens = sum(r.get("total_tokens", r.get("input_tokens", 0) + r.get("output_tokens", 0)) for r in records_data)
+            total_tokens = sum(
+                r.get("total_tokens", r.get("input_tokens", 0) + r.get("output_tokens", 0)) for r in records_data
+            )
             cached_tokens = sum(r.get("cached_tokens", 0) for r in records_data)
             reasoning_tokens = sum(r.get("reasoning_tokens", 0) for r in records_data)
             cost_usd = sum(float(r.get("cost_usd", 0.0)) for r in records_data)
@@ -208,7 +208,7 @@ class UsageService:
                 total_tokens=total_tokens,
                 cached_tokens=cached_tokens,
                 reasoning_tokens=reasoning_tokens,
-                cost_usd=cost_usd
+                cost_usd=cost_usd,
             )
 
         quota_limit = None
@@ -227,5 +227,5 @@ class UsageService:
             period="Custom" if since else "All-time",
             usage=token_usage,
             quota_limit_usd=quota_limit,
-            percentage_used=percentage_used
+            percentage_used=percentage_used,
         )

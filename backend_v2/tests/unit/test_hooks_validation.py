@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 from backend_v2.core.hook_registry import HookDependencies, HookState
@@ -11,15 +12,10 @@ def test_verify_output_language_detects_english_leakage() -> None:
     inputs = {"evaluation_notes": "The user was very good and the system is fine."}
 
     deps = HookDependencies(repository=mock_repo)
-    state = HookState(
-        execution_id="exec-123",
-        workflow_id="wf-123",
-        metadata={"target_locale": "fi"},
-        inputs=inputs
-    )
+    state = HookState(execution_id="exec-123", workflow_id="wf-123", metadata={"target_locale": "fi"}, inputs=inputs)
 
     # Act
-    result = verify_output_language(state, deps)
+    result = verify_output_language(state, deps)  # type: ignore[misc]
 
     # Assert
     assert result.success is True
@@ -35,14 +31,9 @@ def test_verify_output_language_ignores_finnish_text() -> None:
     inputs = {"evaluation_notes": "Käyttäjä vaikutti erittäin fiksulta ja ymmärsi asian täydellisesti."}
 
     deps = HookDependencies(repository=mock_repo)
-    state = HookState(
-        execution_id="exec-123",
-        workflow_id="wf-123",
-        metadata={"target_locale": "fi"},
-        inputs=inputs
-    )
+    state = HookState(execution_id="exec-123", workflow_id="wf-123", metadata={"target_locale": "fi"}, inputs=inputs)
 
-    result = verify_output_language(state, deps)
+    result = verify_output_language(state, deps)  # type: ignore[misc]
 
     # Assert no warnings injected
     assert "_system_warnings" not in result.state_delta
@@ -54,14 +45,9 @@ def test_verify_output_language_allows_english_when_target_en() -> None:
     inputs = {"evaluation_notes": "The user was very good and the system is fine."}
 
     deps = HookDependencies(repository=mock_repo)
-    state = HookState(
-        execution_id="exec-123",
-        workflow_id="wf-123",
-        metadata={"target_locale": "en"},
-        inputs=inputs
-    )
+    state = HookState(execution_id="exec-123", workflow_id="wf-123", metadata={"target_locale": "en"}, inputs=inputs)
 
-    result = verify_output_language(state, deps)
+    result = verify_output_language(state, deps)  # type: ignore[misc]
 
     # Assert
     assert "_system_warnings" not in result.state_delta

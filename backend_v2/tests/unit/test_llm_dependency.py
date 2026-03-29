@@ -13,14 +13,16 @@ from fastapi import Depends
 
 
 @app.get("/test-llm-dep")
-async def test_llm_dep(llm_handler: Any = Depends(get_llm_handler)):
+async def test_llm_dep(llm_handler: Any = Depends(get_llm_handler)) -> Any:
     return {"has_repo": hasattr(llm_handler, "repo")}
 
+
 @pytest.mark.asyncio
-async def test_llm_handler_dependency_injection():
+async def test_llm_handler_dependency_injection() -> None:
     # Override the repo dependency specifically for this test
     # Use a pure MagicMock to bypass strict AbstractWorkflowRepository ABC requirements
     from unittest.mock import MagicMock
+
     mock_repo = MagicMock(spec=AbstractWorkflowRepository)
     mock_repo._db = "mock_db_instance"
 

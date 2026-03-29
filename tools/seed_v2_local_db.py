@@ -25,7 +25,7 @@ def seed_db():
         if isinstance(items, list):
             print(f"Inserting {len(items)} items into {collection_name}...")
             table = db_client.table(collection_name)
-            for index, item in enumerate(items, start=1):
+            for _index, item in enumerate(items, start=1):
                 # TinyDB requires doc_id to be an integer. It doesn't strictly matter if we just use insert.
                 # However, for consistency, we'll just insert raw dictionaries.
                 table.insert(item)

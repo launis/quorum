@@ -60,12 +60,12 @@ def analyze_text(text: str) -> Any:
     cap_ratio = caps / total_chars if total_chars > 0 else 0
 
     return {
-            "word_count": word_count,
-            "sentence_count": sentence_count,
-            "avg_sentence_length": round(avg_sent_len, 2),
-            "lexical_diversity": round(lex_diversity, 2),
-            "capitalization_ratio": round(cap_ratio, 2),
-            "control_ratio": 0.0,  # Default, calculated separately in hook or explicit call
+        "word_count": word_count,
+        "sentence_count": sentence_count,
+        "avg_sentence_length": round(avg_sent_len, 2),
+        "lexical_diversity": round(lex_diversity, 2),
+        "capitalization_ratio": round(cap_ratio, 2),
+        "control_ratio": 0.0,  # Default, calculated separately in hook or explicit call
     }
 
 
@@ -209,7 +209,6 @@ def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> Ho
     return HookResult(success=True, state_delta={"input_control_ratio": ratio})
 
 
-
 @hook_registry.register(name="calculate_text_metrics")
 def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     """Calculates text metrics and behavioral heuristics from input data.
@@ -262,7 +261,6 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
             "lexical_diversity": base_metrics["lexical_diversity"],
             "capitalization_ratio": base_metrics["capitalization_ratio"],
             "control_ratio": control_ratio,
-
             # Behavioral Metrics
             "say_do_gap": behavioral_metrics["say_do_gap"],
             "automation_bias": behavioral_metrics["automation_bias"],
@@ -273,9 +271,12 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         logger.info("[MetricsHook] Metrics calculated successfully.")
 
         # Return the strictly enforced dict -> dict output
-        return HookResult(success=True, state_delta={
-            "profiler_metrics": audit_metrics,
-        })
+        return HookResult(
+            success=True,
+            state_delta={
+                "profiler_metrics": audit_metrics,
+            },
+        )
 
     except Exception as e:
         error_code = ErrorCodes.INTERNAL_SERVER_ERROR

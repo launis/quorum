@@ -70,9 +70,7 @@ class GuardInput(BaseModel):
                         msg = f"SECURITY_BANNED_PHRASE_DETECTED: Found '{phrase}' in field '{key}'"
                         logger.error(f"[GuardModel] {ErrorCodes.PERMISSION_DENIED.name}: {msg}")
                         raise AppException(
-                            message=msg,
-                            status_code=403,
-                            details={"error_code": ErrorCodes.PERMISSION_DENIED}
+                            message=msg, status_code=403, details={"error_code": ErrorCodes.PERMISSION_DENIED}
                         )
         return self
 

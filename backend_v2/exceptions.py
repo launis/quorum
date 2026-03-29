@@ -464,6 +464,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def format_validation_error(exc: Exception) -> str:
     """Formats the exception into a human-readable string, specifically handling Pydantic ValidationErrors."""
     try:
@@ -499,14 +500,14 @@ def format_validation_error(exc: Exception) -> str:
         raise AppException(
             message="Required dependency Pydantic missing.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         ) from e
     except Exception as e:
         logger.error(f"Failed to format validation error for {type(exc).__name__}", exc_info=True)
         raise AppException(
             message="Internal error during error formatting.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         ) from e
 
     return str(exc)
@@ -626,6 +627,7 @@ class WorkflowExecutionError(AppException):
         )
         self.original_error = original_error
 
+
 class WorkflowCompilationError(AppException):
     """Raised when a workflow fails semantic Pre-Flight validation statically."""
 
@@ -636,13 +638,6 @@ class WorkflowCompilationError(AppException):
             step_id: The ID of the specific workflow step causing the failure, if applicable.
             message: Human-readable technical error explanation.
         """
-        details = {
-            "error_code": ErrorCodes.WORKFLOW_COMPILATION_ERROR,
-            "step_id": step_id
-        }
-        super().__init__(
-            message=message,
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            details=details
-        )
+        details = {"error_code": ErrorCodes.WORKFLOW_COMPILATION_ERROR, "step_id": step_id}
+        super().__init__(message=message, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, details=details)
         self.step_id = step_id

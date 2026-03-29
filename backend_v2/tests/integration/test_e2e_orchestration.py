@@ -1,3 +1,4 @@
+from typing import Any
 import os
 import subprocess
 import time
@@ -13,7 +14,8 @@ CLIENT_LOG = PROJECT_ROOT / "client_debug.log"
 DART_SCRIPT_DIR = PROJECT_ROOT / "client_app_v2"
 DART_SCRIPT_PATH = DART_SCRIPT_DIR / "bin" / "e2e_simulation.dart"
 
-def clear_logs():
+
+def clear_logs() -> Any:
     """Clear both backend and client logs."""
     for log_file in [BACKEND_LOG, CLIENT_LOG]:
         if log_file.exists():
@@ -25,6 +27,7 @@ def clear_logs():
             except Exception as e:
                 print(f"Failed to clear {log_file}: {e}")
 
+
 def check_backend_health() -> bool:
     """Check if the backend is already running."""
     try:
@@ -33,10 +36,11 @@ def check_backend_health() -> bool:
     except requests.exceptions.RequestException:
         return False
 
+
 @pytest.mark.order("last")
-def test_e2e_orchestration():
+def test_e2e_orchestration() -> None:
     """End-to-End Orchestration Test for V2 Architecture.
-    
+
     Validates the Fail-Fast doctrine and Single Source of Truth by running a simulated
     Flutter client request against a live FastAPI backend and asserting that both logs
     are correctly populated during the execution flow.
@@ -67,42 +71,36 @@ def test_e2e_orchestration():
 
             backend_cmd = (
                 "chcp 65001 > nul && uv run python -c "
-                "\"import sys; "
-                "sys.stdout.reconfigure(encoding='utf-8') if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
-                "sys.stderr.reconfigure(encoding='utf-8') if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
+                '"import sys; '
+                "sys.stdout.reconfigure(encoding='utf-8') "
+                "if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
+                "sys.stderr.reconfigure(encoding='utf-8') "
+                "if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
                 "import uvicorn; sys.argv=['uvicorn', 'backend_v2.main:app', '--host', '0.0.0.0', '--port', '8000']; "
-                "uvicorn.main()\""
+                'uvicorn.main()"'
             )
             backend_process = subprocess.Popen(
-                backend_cmd,
-                cwd=str(PROJECT_ROOT),
-                env=env,
-                stdout=backend_log_fp,
-                stderr=subprocess.STDOUT,
-                shell=True
+                backend_cmd, cwd=str(PROJECT_ROOT), env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
             )
 
             # Start worker
             worker_cmd = (
                 "chcp 65001 > nul && uv run python -c "
-                "\"import sys; "
-                "sys.stdout.reconfigure(encoding='utf-8') if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
-                "sys.stderr.reconfigure(encoding='utf-8') if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
+                '"import sys; '
+                "sys.stdout.reconfigure(encoding='utf-8') "
+                "if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
+                "sys.stderr.reconfigure(encoding='utf-8') "
+                "if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
                 "import runpy; sys.argv=['run_worker.py']; "
                 "runpy.run_module('backend_v2.run_worker', run_name='__main__', alter_sys=True)\""
             )
             worker_process = subprocess.Popen(
-                worker_cmd,
-                cwd=str(PROJECT_ROOT),
-                env=env,
-                stdout=backend_log_fp,
-                stderr=subprocess.STDOUT,
-                shell=True
+                worker_cmd, cwd=str(PROJECT_ROOT), env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
             )
 
             # Wait for backend to be healthy
             max_retries = 30
-            for i in range(max_retries):
+            for _i in range(max_retries):
                 if check_backend_health():
                     print("Backend and Worker started successfully.")
                     break
@@ -116,11 +114,7 @@ def test_e2e_orchestration():
         print("Running Dart E2E Simulation...")
         dart_cmd = ["dart", "run", "bin/e2e_simulation.dart"]
         result = subprocess.run(
-            dart_cmd,
-            cwd=str(DART_SCRIPT_DIR),
-            capture_output=True,
-            text=True,
-            shell=os.name == "nt"
+            dart_cmd, cwd=str(DART_SCRIPT_DIR), capture_output=True, text=True, shell=os.name == "nt"
         )
 
         # Print script output for debugging if it fails
@@ -131,7 +125,9 @@ def test_e2e_orchestration():
         # Epic 16 uses real LLM, but here we just need to ensure the logs are populated.
         # But wait, execution will fail if Redis isn't running, etc. If it returns non-zero,
         # we still check the logs because it might test failures too, but it should succeed.
-        assert result.returncode == 0, f"Dart simulation script failed.\\nSTDOUT:\\n{result.stdout}\\nSTDERR:\\n{result.stderr}"
+        assert result.returncode == 0, (
+            f"Dart simulation script failed.\\nSTDOUT:\\n{result.stdout}\\nSTDERR:\\n{result.stderr}"
+        )
 
         # 4. Validation (Check Logs)
         assert BACKEND_LOG.exists(), "Backend debug log was not created."
@@ -141,7 +137,11 @@ def test_e2e_orchestration():
             backend_content = f.read()
             assert len(backend_content) > 0, "Backend log is empty."
             # Verify it processed an execution (DAGExecutor or routing)
-            assert "api" in backend_content.lower() or "workflow" in backend_content.lower() or "execution" in backend_content.lower(), "Backend log does not contain expected execution traces."
+            assert (
+                "api" in backend_content.lower()
+                or "workflow" in backend_content.lower()
+                or "execution" in backend_content.lower()
+            ), "Backend log does not contain expected execution traces."
 
         with open(CLIENT_LOG, encoding="utf-8") as f:
             client_content = f.read()
@@ -154,10 +154,9 @@ def test_e2e_orchestration():
         if started_by_test:
             print("Terminating test-started Backend and Worker...")
             if backend_process:
-                backend_process.terminate()
-                backend_process.wait()
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(backend_process.pid)], capture_output=True)
             if worker_process:
-                worker_process.terminate()
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(worker_process.pid)], capture_output=True)
                 worker_process.wait()
             try:
                 backend_log_fp.close()

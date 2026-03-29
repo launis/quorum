@@ -1,3 +1,4 @@
+from typing import Any
 """Unit tests for Tavily MCP Client.
 
 All tests use mocked HTTP — no live API calls (EPIC §3 'Tavily No-Spam').
@@ -27,7 +28,7 @@ MOCK_TAVILY_RESPONSE = {
 
 
 @pytest.mark.asyncio
-async def test_tavily_search_happy_path():
+async def test_tavily_search_happy_path() -> None:
     """Mock httpx.post, verify TavilySearchResult shape and content."""
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -54,7 +55,7 @@ async def test_tavily_search_happy_path():
 
 
 @pytest.mark.asyncio
-async def test_tavily_search_missing_api_key():
+async def test_tavily_search_missing_api_key() -> None:
     """Ensure ConfigurationError when key is None."""
     with patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_settings:
         mock_settings.return_value.tavily_api_key = None
@@ -66,7 +67,7 @@ async def test_tavily_search_missing_api_key():
 
 
 @pytest.mark.asyncio
-async def test_tavily_search_network_failure():
+async def test_tavily_search_network_failure() -> None:
     """Ensure AppException(502) on httpx timeout."""
     mock_client = AsyncMock()
     mock_client.post.side_effect = httpx.TimeoutException("Connection timed out")

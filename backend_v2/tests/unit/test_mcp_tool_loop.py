@@ -3,6 +3,7 @@
 All tests use mocked LLM and Tavily — no live API calls.
 """
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -24,8 +25,8 @@ class MockResponseModel(BaseModel):
 
 
 def _make_mock_llm_client(
-    chat_returns: str | dict | None = None,
-    structured_returns: tuple | None = None,
+    chat_returns: str | dict[str, Any] | None = None,
+    structured_returns: tuple[Any, dict[str, Any]] | None = None,
 ) -> MagicMock:
     """Build a mock LLMClient with configurable returns."""
     client = MagicMock()
@@ -47,7 +48,7 @@ def _make_mock_llm_client(
 
 
 @pytest.mark.asyncio
-async def test_tool_loop_no_tools_passthrough():
+async def test_tool_loop_no_tools_passthrough() -> None:
     """Empty allowed_tools → direct structured output, zero overhead."""
     mock_result = MockResponseModel(score=3.0, reasoning="No tools needed.")
     client = _make_mock_llm_client(structured_returns=(mock_result, {"total_tokens": 50}))
@@ -69,7 +70,7 @@ async def test_tool_loop_no_tools_passthrough():
 
 
 @pytest.mark.asyncio
-async def test_tool_loop_single_search():
+async def test_tool_loop_single_search() -> None:
     """LLM requests one search → evidence injected → matrix completed."""
     # Phase 1: LLM returns a tool_call
     tool_call_response = {
@@ -86,10 +87,12 @@ async def test_tool_loop_single_search():
     # After evidence injection, LLM returns text (no more tool calls)
     # We set side_effect: first call returns tool_call, second returns text
     mock_client = _make_mock_llm_client()
-    mock_client.run_chat = AsyncMock(side_effect=[
-        tool_call_response,
-        "Direct response after evidence.",
-    ])
+    mock_client.run_chat = AsyncMock(
+        side_effect=[
+            tool_call_response,
+            "Direct response after evidence.",
+        ]
+    )
 
     mock_result = MockResponseModel(score=4.5, reasoning="Supported by search.")
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 200}))
@@ -125,7 +128,7 @@ async def test_tool_loop_single_search():
 
 
 @pytest.mark.asyncio
-async def test_tool_loop_max_calls_enforced():
+async def test_tool_loop_max_calls_enforced() -> None:
     """LLM keeps requesting searches → hard cap at MAX_TOOL_CALLS."""
     # LLM always returns a tool_call (infinite loop attempt)
     tool_call_response = {
@@ -175,7 +178,7 @@ async def test_tool_loop_max_calls_enforced():
 
 
 @pytest.mark.asyncio
-async def test_tool_loop_tavily_failure_graceful():
+async def test_tool_loop_tavily_failure_graceful() -> None:
     """Tavily throws → audit logged with empty response → matrix still produced."""
     tool_call_response = {
         "tool_calls": [
@@ -190,10 +193,12 @@ async def test_tool_loop_tavily_failure_graceful():
     }
     mock_client = _make_mock_llm_client()
     # First chat returns tool_call, second returns text (loop exits)
-    mock_client.run_chat = AsyncMock(side_effect=[
-        tool_call_response,
-        "No more searches.",
-    ])
+    mock_client.run_chat = AsyncMock(
+        side_effect=[
+            tool_call_response,
+            "No more searches.",
+        ]
+    )
 
     mock_result = MockResponseModel(score=3.5, reasoning="Proceeded without evidence.")
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 150}))
@@ -235,7 +240,7 @@ async def test_tool_loop_tavily_failure_graceful():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_id_preserved_from_llm():
+async def test_tool_call_id_preserved_from_llm() -> None:
     """Regression: tool_call_id in evidence message MUST match the LLM's original call ID.
 
     Bug: We generated our own ID (mcp_tavily_search_{step_name}) instead of using
@@ -258,10 +263,12 @@ async def test_tool_call_id_preserved_from_llm():
     }
 
     mock_client = _make_mock_llm_client()
-    mock_client.run_chat = AsyncMock(side_effect=[
-        tool_call_response,
-        "Done searching.",
-    ])
+    mock_client.run_chat = AsyncMock(
+        side_effect=[
+            tool_call_response,
+            "Done searching.",
+        ]
+    )
 
     mock_result = MockResponseModel(score=5.0, reasoning="Regression test.")
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 100}))
@@ -299,12 +306,11 @@ async def test_tool_call_id_preserved_from_llm():
     tool_msgs = [m for m in final_messages if m.get("role") == "tool"]
     assert len(tool_msgs) >= 1, "Expected at least one tool response message"
     assert tool_msgs[0]["tool_call_id"] == llm_call_id, (
-        f"tool_call_id mismatch: expected '{llm_call_id}', "
-        f"got '{tool_msgs[0]['tool_call_id']}'"
+        f"tool_call_id mismatch: expected '{llm_call_id}', got '{tool_msgs[0]['tool_call_id']}'"
     )
 
 
-def test_build_tool_evidence_message_uses_explicit_id():
+def test_build_tool_evidence_message_uses_explicit_id() -> None:
     """Regression: _build_tool_evidence_message must use the provided tool_call_id."""
     from datetime import datetime, timezone
 
@@ -329,7 +335,7 @@ def test_build_tool_evidence_message_uses_explicit_id():
     assert "test query" in msg["content"]
 
 
-def test_build_tool_evidence_message_empty_results():
+def test_build_tool_evidence_message_empty_results() -> None:
     """Empty search results still use the correct tool_call_id."""
     from datetime import datetime, timezone
 
@@ -354,7 +360,7 @@ def test_build_tool_evidence_message_empty_results():
 
 
 @pytest.mark.asyncio
-async def test_phase2_messages_contain_tool_roles():
+async def test_phase2_messages_contain_tool_roles() -> None:
     """Regression: Phase 2 messages must include assistant+tool roles (not flattened).
 
     Bug: run_chat was flattening all messages to system+user, silently dropping
@@ -375,10 +381,12 @@ async def test_phase2_messages_contain_tool_roles():
     }
 
     mock_client = _make_mock_llm_client()
-    mock_client.run_chat = AsyncMock(side_effect=[
-        tool_call_response,
-        "No more tools.",
-    ])
+    mock_client.run_chat = AsyncMock(
+        side_effect=[
+            tool_call_response,
+            "No more tools.",
+        ]
+    )
 
     mock_result = MockResponseModel(score=4.0, reasoning="Phase 2 test.")
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 150}))
@@ -421,7 +429,7 @@ async def test_phase2_messages_contain_tool_roles():
 # ============================================================================
 
 
-def test_static_tool_call_id_causes_mismatch():
+def test_static_tool_call_id_causes_mismatch() -> None:
     """FAULT INJECTION: Proves that generating a static ID instead of using LLM's ID
     would produce a mismatched tool_call_id — the exact bug that crashed LiteLLM/Gemini.
     """
@@ -455,7 +463,7 @@ def test_static_tool_call_id_causes_mismatch():
     assert msg["tool_call_id"] != static_id
 
 
-def test_llm_response_accepts_tool_call_messages():
+def test_llm_response_accepts_tool_call_messages() -> None:
     """FAULT INJECTION: Proves that LLMResponse.messages MUST accept dicts with
     content=None and tool_calls=[list] — the exact structure that crashed Pydantic.
 
@@ -467,7 +475,7 @@ def test_llm_response_accepts_tool_call_messages():
     tool_call_assistant_msg = {
         "role": "assistant",
         "content": None,  # ← OLD BUG: str type rejected None
-        "tool_calls": [    # ← OLD BUG: str type rejected list
+        "tool_calls": [  # ← OLD BUG: str type rejected list
             {
                 "id": "call_123",
                 "function": {"name": "mcp_tavily_search", "arguments": '{"query": "test"}'},
@@ -501,7 +509,7 @@ def test_llm_response_accepts_tool_call_messages():
     assert isinstance(response.messages[2]["tool_calls"], list)
 
 
-def test_llm_response_rejects_missing_content():
+def test_llm_response_rejects_missing_content() -> None:
     """LLMResponse.content (the top-level field) must still be a required string.
     Only messages[].content can be None (for assistant tool_call messages).
     """
@@ -511,8 +519,6 @@ def test_llm_response_rejects_missing_content():
 
     with pytest.raises(pydantic.ValidationError):
         LLMResponse(
-            content=None,  # ← Top-level content MUST be string
+            content=None,  # type: ignore
             token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
         )
-
-

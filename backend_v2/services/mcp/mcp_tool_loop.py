@@ -11,7 +11,7 @@ Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Any, TypeVar
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,7 +20,7 @@ from backend_v2.models.v2_core import MCPAuditTrace
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", bound=BaseModel)
+
 
 # NOTE (Architecture): Hard cap to prevent infinite LLM↔Tool loops.
 # EPIC §3 "The Infinite Loop Limit".
@@ -59,12 +59,8 @@ class MCPToolLoopResult(BaseModel):
     model_config = ConfigDict(strict=True)
 
     result_data: dict[str, Any] = Field(description="Final structured output dict.")
-    audit_traces: list[MCPAuditTrace] = Field(
-        default_factory=list, description="Audit log of all tool invocations."
-    )
-    usage: dict[str, Any] = Field(
-        default_factory=dict, description="Cumulative token usage."
-    )
+    audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Audit log of all tool invocations.")
+    usage: dict[str, Any] = Field(default_factory=dict, description="Cumulative token usage.")
 
 
 def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
@@ -74,14 +70,13 @@ def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
         if tool_id == TAVILY_TOOL_ID:
             declarations.append(TAVILY_TOOL_DECLARATION)
         else:
-            logger.warning(
-                "Unknown tool_id in allowed_tools — skipping.",
-                extra={"tool_id": tool_id}
-            )
+            logger.warning("Unknown tool_id in allowed_tools — skipping.", extra={"tool_id": tool_id})
     return declarations
 
 
-async def _execute_tavily_search(query: str, step_name: str, target_language: str = "en", llm_client: Any = None) -> MCPAuditTrace:
+async def _execute_tavily_search(
+    query: str, step_name: str, target_language: str = "en", llm_client: Any = None
+) -> MCPAuditTrace:
     """Execute a Tavily search and return an audit trace.
 
     Graceful Degradation (§6.3): Tavily failures return an audit trace with empty results,
@@ -97,7 +92,10 @@ async def _execute_tavily_search(query: str, step_name: str, target_language: st
         if target_language and target_language != "en" and llm_client:
             logger.info(f"[MCPToolLoop] Translating search evidence to '{target_language}'...")
             try:
-                trans_prompt = f"Translate the following search summary into {target_language} accurately. Return only the translated text.\n\nSummary:\n{response_summary}"
+                trans_prompt = (
+                    f"Translate the following search summary into {target_language} accurately. "
+                    f"Return only the translated text.\n\nSummary:\n{response_summary}"
+                )
                 trans_resp = await llm_client.run_chat(messages=[{"role": "user", "content": trans_prompt}])
                 if trans_resp and isinstance(trans_resp, str):
                     response_summary = trans_resp.strip()
@@ -158,8 +156,7 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
         return {
             "role": "tool",
             "tool_call_id": tool_call_id,
-            "content": "[Search returned no results. Proceed with your evaluation "
-                       "using available context only.]",
+            "content": "[Search returned no results. Proceed with your evaluation using available context only.]",
         }
 
     sources = "\n".join(f"- {url}" for url in audit.source_urls)
@@ -176,7 +173,7 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
     }
 
 
-async def execute_tool_loop(
+async def execute_tool_loop[T: BaseModel](
     llm_client: Any,
     messages: list[dict[str, Any]],
     response_model: type[T],
@@ -262,7 +259,7 @@ async def execute_tool_loop(
                     extra={
                         "max_calls": MAX_TOOL_CALLS_PER_STEP,
                         "step_name": step_name,
-                    }
+                    },
                 )
                 break
 
@@ -272,6 +269,7 @@ async def execute_tool_loop(
 
             if isinstance(tool_args, str):
                 import json
+
                 try:
                     tool_args = json.loads(tool_args)
                 except Exception:
@@ -283,7 +281,7 @@ async def execute_tool_loop(
                     extra={
                         "error_code": ErrorCodes.VALIDATION_FAILED.name,
                         "tool_name": tool_name,
-                    }
+                    },
                 )
                 invalid_tools_detected = True
                 continue
@@ -292,7 +290,7 @@ async def execute_tool_loop(
             if not query:
                 logger.warning(
                     "LLM returned empty query for Tavily, skipping.",
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name}
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
                 )
                 invalid_tools_detected = True
                 continue
@@ -302,7 +300,7 @@ async def execute_tool_loop(
                 extra={
                     "step_name": step_name,
                     "query": query,
-                }
+                },
             )
 
             audit = await _execute_tavily_search(query, step_name, target_language, llm_client)
@@ -314,18 +312,19 @@ async def execute_tool_loop(
             evidence_msg = _build_tool_evidence_message(audit, tool_call_id=original_call_id)
 
             # Add the assistant's tool_call message and the tool response
-            probe_messages.append({
-                "role": "assistant",
-                "content": None,
-                "tool_calls": [tc],
-            })
+            probe_messages.append(
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [tc],
+                }
+            )
             probe_messages.append(evidence_msg)
 
         # If LLM tried to hallucinate or bypass the tool and we skipped, break the loop to avoid infinite forcing
         if invalid_tools_detected and tool_call_count == 0:
             logger.warning(
-                "Forced tool call yielded invalid output. Breaking to Phase 2.",
-                extra={"step_name": step_name}
+                "Forced tool call yielded invalid output. Breaking to Phase 2.", extra={"step_name": step_name}
             )
             break
 
@@ -333,23 +332,24 @@ async def execute_tool_loop(
         if tool_call_count >= MAX_TOOL_CALLS_PER_STEP:
             break
 
-
     # --- PHASE 2: Completion with evidence injected ---
     # Build final messages: original system/user + any evidence injected
     final_messages = list(probe_messages)
 
     # If evidence was injected, add a forcing instruction
     if audit_traces:
-        final_messages.append({
-            "role": "user",
-            "content": (
-                "[SYSTEM: EVIDENCE INJECTION COMPLETE] "
-                "You now have external search evidence above. "
-                "Complete the evaluation matrix using both the original context "
-                "AND the search evidence. Output your response strictly in the "
-                "required JSON schema format."
-            ),
-        })
+        final_messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "[SYSTEM: EVIDENCE INJECTION COMPLETE] "
+                    "You now have external search evidence above. "
+                    "Complete the evaluation matrix using both the original context "
+                    "AND the search evidence. Output your response strictly in the "
+                    "required JSON schema format."
+                ),
+            }
+        )
 
     try:
         result, usage = await llm_client.run_structured_task(

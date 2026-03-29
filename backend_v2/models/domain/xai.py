@@ -25,7 +25,9 @@ class XAIReporterInput(BaseModel):
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
     """
 
-    chat_log: str = Field(..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
+    chat_log: str = Field(
+        ..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"}
+    )
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
     step_judge: JudgeOutput | None = Field(default=None, description="Standard evaluate output.")
     step_judge_cognitive: JudgeOutput | None = Field(default=None, description="Cognitive Judge output.")
@@ -35,7 +37,9 @@ class XAIReporterInput(BaseModel):
     step_profiler: Any | None = Field(default=None, description="Profiler cognitive bias data.")
     step_falsifier: Any | None = Field(default=None, description="Falsifier critical distance data.")
     step_logician: Any | None = Field(default=None, description="Logician Toulmin analysis data.")
-    step_causal_analyst: Any | None = Field(default=None, description="Causal Analyst post-hoc and counterfactual data.")
+    step_causal_analyst: Any | None = Field(
+        default=None, description="Causal Analyst post-hoc and counterfactual data."
+    )
 
     model_config = ConfigDict(frozen=True, extra="allow")
 
@@ -172,8 +176,6 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
     )
 
     model_config = ConfigDict(frozen=True, strict=True)
-
-
 
 
 class ReportResult(BaseModel):

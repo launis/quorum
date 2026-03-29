@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -8,9 +9,10 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 
 @pytest.fixture
-def mock_repo():
+def mock_repo() -> Any:
     repo = AsyncMock()
     from backend_v2.models.enums import BlockDataType
+
     repo.get_all_prompt_blocks.return_value = [
         {
             "id": "blk_blocktest1",
@@ -19,7 +21,7 @@ def mock_repo():
             "category_id": "test",
             "type": BlockDataType.STRING,
             "allow_decimals": False,
-            "output_extensions": []
+            "output_extensions": [],
         }
     ]
     repo.get_step_by_id.return_value = {
@@ -27,13 +29,14 @@ def mock_repo():
         "slug": "task_bp",
         "name": {"default_locale": "fi", "translations": {"fi": "Vaihe", "en": "Step"}},
         "prompt_blocks": ["blk_blocktest1"],
-        "pre_hooks": []
+        "model_strategy": "fast",
+        "pre_hooks": [],
     }
     return repo
 
 
 @pytest.fixture
-def mock_compiler():
+def mock_compiler() -> Any:
     compiler = MagicMock()
     compiler.build_xml_context.return_value = "<test>context</test>"
     # Mocking a dynamic schema
@@ -44,7 +47,7 @@ def mock_compiler():
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mock_compiler):
+async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: Any, mock_compiler: Any) -> None:
     # Setup Executor
     executor = DAGExecutor(repository=mock_repo, prompt_compiler=mock_compiler)
 
@@ -54,9 +57,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
         slug="wf_test_slug",
         name=I18nText(default_locale="en", translations={"en": "Test WF"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
-        steps=[
-            StepRule(id="step_11111111", task_blueprint="task_bp")
-        ]
+        steps=[StepRule(id="step_11111111", task_blueprint="task_bp")],
     )
 
     # Execute
@@ -65,7 +66,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
         mock_bound_client = AsyncMock()
         mock_bound_client.run_structured_task.return_value = (
             MagicMock(model_dump=lambda **kwargs: {"test_res": 1}),
-            {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30, "cost_usd": 0.05}
+            {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30, "cost_usd": 0.05},
         )
         mock_strategy.return_value = mock_bound_client
 
@@ -74,17 +75,17 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
             "workflow_id": "wf_testwf1234",
             "status": "running",
             "raw_inputs": {"chat_log": "dGVzdA=="},
-            "metadata": {"target_locale": "fi"}
+            "metadata": {"target_locale": "fi"},
         }
 
         # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {"chat_log": "dGVzdA=="}}))
+            mock_hooks.execute = AsyncMock(
+                return_value=HookResult(success=True, state_delta={"inputs": {"chat_log": "dGVzdA=="}})
+            )
 
             record = await executor.execute_workflow(
-                execution_id="exec_123123123",
-                workflow=workflow,
-                raw_inputs={"chat_log": "dGVzdA=="}
+                execution_id="exec_123123123", workflow=workflow, raw_inputs={"chat_log": "dGVzdA=="}
             )
 
     # Assert repo called new method instead of get_all_matrices
@@ -92,6 +93,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo, mo
     assert not hasattr(mock_repo, "get_all_matrices") or not mock_repo.get_all_matrices.called
     assert record.status == ExecutionStatus.COMPLETED
     from backend_v2.models.state import StateProjector
+
     projector = StateProjector()
     results = projector.fold_trace(record.execution_trace)
     assert results["step_11111111"]["test_res"] == 1

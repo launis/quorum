@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -15,11 +16,11 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
         "ai_description": "ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort...",
         "rows": [
             {
-                "label": {
-                    "default_locale": "en",
-                    "translations": {"en": "Critical Distance Score"}
-                },
-                "ai_description": "EVALUATE SPECIFICALLY: How well the user detached themselves from the AI to judge its logic objectively."
+                "label": {"default_locale": "en", "translations": {"en": "Critical Distance Score"}},
+                "ai_description": (
+                    "EVALUATE SPECIFICALLY: How well the user detached themselves from the AI "
+                    "to judge its logic objectively."
+                ),
             }
         ],
         "scales": [
@@ -30,18 +31,26 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                     {
                         "label": {
                             "default_locale": "en",
-                            "translations": {"en": "The user is a 'Yes-man'. Blindly accepted the AI's first response."}
+                            "translations": {
+                                "en": "The user is a 'Yes-man'. Blindly accepted the AI's first response."
+                            },
                         },
-                        "ai_description": "CRITICAL EVALUATION DIRECTIVE: Total failure of critical faculty. The user exhibits sycophantic behavior..."
+                        "ai_description": (
+                            "CRITICAL EVALUATION DIRECTIVE: Total failure of critical faculty. "
+                            "The user exhibits sycophantic behavior..."
+                        ),
                     },
                     {
                         "label": {
                             "default_locale": "en",
-                            "translations": {"en": "No corrective move or objection presented."}
+                            "translations": {"en": "No corrective move or objection presented."},
                         },
-                        "ai_description": "ENFORCEMENT RULE: Falsify immediately if any objection exists. Absolute zero tolerance."
-                    }
-                ]
+                        "ai_description": (
+                            "ENFORCEMENT RULE: Falsify immediately if any objection exists. "
+                            "Absolute zero tolerance."
+                        ),
+                    },
+                ],
             },
             {
                 "score": 2,
@@ -50,20 +59,17 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                     {
                         "label": {
                             "default_locale": "en",
-                            "translations": {"en": "The user requested changes, but they were only superficial."}
+                            "translations": {"en": "The user requested changes, but they were only superficial."},
                         },
-                        "ai_description": "CRITICAL EVALUATION DIRECTIVE: Engagement is purely cosmetic..."
+                        "ai_description": "CRITICAL EVALUATION DIRECTIVE: Engagement is purely cosmetic...",
                     }
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 
     # Act
-    DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="TestSchema",
-        criteria=[mock_matrix_block]
-    )
+    DynamicSchema = compiler.build_dynamic_schema(schema_name="TestSchema", criteria=[mock_matrix_block])
 
     # Assert
     assert issubclass(DynamicSchema, BaseModel)
@@ -76,18 +82,24 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     expected_snapshot = (
         "Critical Distance Score: ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort...\n\n"
         "TARGET ROW:\n"
-        "- EVALUATE SPECIFICALLY: How well the user detached themselves from the AI to judge its logic objectively.\n\n\n"
+        "- EVALUATE SPECIFICALLY: How well the user detached themselves from the AI to judge its logic "
+        "objectively.\n\n\n"
         "EVALUATION MATRIX (BARS):\n"
         "- Score 1: UNCRITICAL ACCEPTANCE\n"
-        "  * DIRECTIVE: CRITICAL EVALUATION DIRECTIVE: Total failure of critical faculty. The user exhibits sycophantic behavior...\n"
+        "  * DIRECTIVE: CRITICAL EVALUATION DIRECTIVE: Total failure of critical faculty. The user exhibits "
+        "sycophantic behavior...\n"
         "  * DIRECTIVE: ENFORCEMENT RULE: Falsify immediately if any objection exists. Absolute zero tolerance.\n"
         "- Score 2: SUPERFICIAL REFINEMENT\n"
         "  * DIRECTIVE: CRITICAL EVALUATION DIRECTIVE: Engagement is purely cosmetic...\n\n"
-        "INSTRUCTION: Evaluate the core issue using the matrix above. Always return the final numerical evaluation with ONE decimal place (e.g. 4.2), "
+        "INSTRUCTION: Evaluate the core issue using the matrix above. "
+        "Always return the final numerical evaluation with ONE decimal place (e.g. 4.2), "
         "so that the evaluation reflects exact nuance. You MUST return ONLY the exact numeric value."
     )
 
-    assert compiled_desc == expected_snapshot, f"Snapshot mismatch!\nEXPECTED:\n{expected_snapshot}\n\nACTUAL:\n{compiled_desc}"
+    assert compiled_desc == expected_snapshot, (
+        f"Snapshot mismatch!\nEXPECTED:\n{expected_snapshot}\n\nACTUAL:\n{compiled_desc}"
+    )
+
 
 def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     # Test that extracting justification still works
@@ -99,13 +111,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "label": {"default_locale": "en", "translations": {"en": "Test Score"}},
         "ai_description": "Base Desc",
         "output_extensions": ["justification", "citation", "remediation_steps", "confidence"],
-        "scales": [
-            {
-                "score": 1,
-                "ai_label": "ONE",
-                "claims": [{"label": "Claim 1", "ai_description": "Directive 1"}]
-            }
-        ]
+        "scales": [{"score": 1, "ai_label": "ONE", "claims": [{"label": "Claim 1", "ai_description": "Directive 1"}]}],
     }
 
     DynamicSchema = compiler.build_dynamic_schema("TestExtract", [mock_matrix])
@@ -119,13 +125,12 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "blk_extract_test_cited_text_quote": "Yes man",
         "blk_extract_test_remediation_steps": ["Step 1", "Step 2"],
         "blk_extract_test_confidence": 95.5,
-        "blk_extract_test": 1.0
+        "blk_extract_test": 1.0,
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_extract_test == 1.0
-    assert parsed.blk_extract_test_remediation_steps == ["Step 1", "Step 2"]
-    assert parsed.blk_extract_test_confidence == 95.5
-    assert parsed.reasoning_trace == "Let's think..."
-    assert parsed.blk_extract_test_justification == "I gave a 1 because..."
-
+    assert getattr(parsed, "blk_extract_test") == 1.0
+    assert getattr(parsed, "blk_extract_test_remediation_steps") == ["Step 1", "Step 2"]
+    assert getattr(parsed, "blk_extract_test_confidence") == 95.5
+    assert getattr(parsed, "reasoning_trace") == "Let's think..."
+    assert getattr(parsed, "blk_extract_test_justification") == "I gave a 1 because..."

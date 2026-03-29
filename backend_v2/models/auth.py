@@ -69,8 +69,8 @@ class Organization(BaseModel):
         Field(
             default_factory=lambda: f"org_{uuid.uuid4().hex}",
             pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
-            description="Unique Organization ID (e.g. 'org_1234abcd')"
-        )
+            description="Unique Organization ID (e.g. 'org_1234abcd')",
+        ),
     ]
     slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     name: Annotated[str, Field(description="Display Name")]
@@ -185,8 +185,8 @@ class User(UserBase):
         Field(
             default_factory=lambda: f"usr_{uuid.uuid4().hex}",
             pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
-            description="Unique ID (matches Firebase UID if used)"
-        )
+            description="Unique ID (matches Firebase UID if used)",
+        ),
     ]
     slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     created_at: Annotated[datetime, Field(description="ISO 8601 Timestamp")]
@@ -362,7 +362,9 @@ class TokenData(BaseModel):
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else v
 
+
 class UserDeleteResponse(BaseModel):
     """Payload response for deleting a user."""
+
     status: str
     id: str

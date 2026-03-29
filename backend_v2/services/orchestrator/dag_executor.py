@@ -6,13 +6,12 @@ God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
 
 import asyncio
 import logging
-from pydantic import ValidationError
-from backend_v2.models.enums import SystemConcurrency
 from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
+from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -33,20 +32,21 @@ class ExecutionCommitter:
     def __init__(self, repository: AbstractWorkflowRepository, execution_id: str):
         self.repository = repository
         self.execution_id = execution_id
+
     async def commit_trace(
         self,
         trace: list[TraceEvent],
         status: ExecutionStatus,
         step_states: dict[str, ExecutionStepState],
         error: str | None = None,
-        frozen_context: Any | None = None
+        frozen_context: Any | None = None,
     ) -> None:
         """Flushes the event array to persistent DB safely."""
         try:
             payload: dict[str, Any] = {
                 "status": status.value,
                 "execution_trace": [e.model_dump(mode="json") for e in trace],
-                "step_states": {k: v.model_dump(mode="json") for k, v in step_states.items()}
+                "step_states": {k: v.model_dump(mode="json") for k, v in step_states.items()},
             }
             if frozen_context:
                 payload["frozen_context"] = frozen_context.model_dump(mode="json")
@@ -60,9 +60,7 @@ class ExecutionCommitter:
             msg = f"Failed to commit execution trace for {self.execution_id}"
             logger.error(f"[ExecutionCommitter] {ErrorCodes.PROGRESS_UPDATE_FAILED.name}: {msg}", exc_info=True)
             raise AppException(
-                message=msg,
-                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
-                status_code=500
+                message=msg, details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED}, status_code=500
             ) from e
 
 
@@ -82,7 +80,7 @@ class NodeExecutor:
         projector: StateProjector,
         expected_inputs: list[Any] | None = None,
         frozen_ctx: FrozenContext | None = None,
-        trace: list[TraceEvent] | None = None
+        trace: list[TraceEvent] | None = None,
     ) -> list[TraceEvent]:
         try:
             blueprint_id = getattr(step, "task_blueprint", None)
@@ -90,7 +88,7 @@ class NodeExecutor:
                 raise AppException(
                     message=f"Step {step.id} has no task_blueprint configured.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
             step_def = await self.repository.get_step_by_id(blueprint_id)
@@ -98,7 +96,7 @@ class NodeExecutor:
                 raise AppException(
                     message=f"Configuration error: Step '{blueprint_id}' not found.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
             from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
@@ -110,7 +108,7 @@ class NodeExecutor:
                 workflow_id=workflow_id,
                 metadata=metadata,
                 expected_inputs=expected_inputs,
-                model_strategy=step_def.get("model_strategy")
+                model_strategy=step_def.get("model_strategy"),
             )
 
             strategy_impl: NodeStrategy
@@ -130,12 +128,11 @@ class NodeExecutor:
 
         except Exception as e:
             logger.error(f"[NodeExecutor] Dual-Reporting Exception for step {step.id}: {str(e)}", exc_info=True)
-            return [ErrorTraceEvent(
-                step_name=step.id,
-                error_code="STEP_FAILED",
-                error_message=str(e),
-                content={"traceback": str(e)}
-            )]
+            return [
+                ErrorTraceEvent(
+                    step_name=step.id, error_code="STEP_FAILED", error_message=str(e), content={"traceback": str(e)}
+                )
+            ]
 
 
 class DAGExecutor:
@@ -148,14 +145,12 @@ class DAGExecutor:
         self.node_executor = NodeExecutor(repository, prompt_compiler)
 
     async def execute_workflow(
-        self,
-        execution_id: str,
-        workflow: Workflow,
-        raw_inputs: dict[str, Any]
+        self, execution_id: str, workflow: Workflow, raw_inputs: dict[str, Any]
     ) -> ExecutionRecord:
         """Main entrypoint for Workflow Execution."""
         # Fast Fail validation
         from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+
         DAGCompilerService.validate_workflow(workflow)
 
         self.committer.execution_id = execution_id
@@ -164,8 +159,7 @@ class DAGExecutor:
         existing_record_dict = await self.repository.get_execution(execution_id)
 
         step_states = {
-            step.id: ExecutionStepState(id=step.id, label=step.id, status="pending")
-            for step in workflow.steps
+            step.id: ExecutionStepState(id=step.id, label=step.id, status="pending") for step in workflow.steps
         }
 
         if existing_record_dict:
@@ -193,11 +187,7 @@ class DAGExecutor:
         # Initial Hydration Phase (if new execution)
         if not exec_record.execution_trace:
             inputs_dict = exec_record.raw_inputs.model_dump(mode="json")
-            input_event = TraceEvent(
-                step_name="raw_inputs",
-                event_type="input",
-                content=inputs_dict
-            )
+            input_event = TraceEvent(step_name="raw_inputs", event_type="input", content=inputs_dict)
             exec_record.execution_trace.append(input_event)
             projector.apply_delta(input_event)
 
@@ -207,14 +197,12 @@ class DAGExecutor:
                     execution_id=execution_id,
                     workflow_id=workflow.id,
                     metadata=exec_record.metadata,
-                    inputs=inputs_dict
+                    inputs=inputs_dict,
                 )
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
                 if processed_result.success and isinstance(processed_result.state_delta, dict):
                     proc_event = TraceEvent(
-                        step_name="inputs",
-                        event_type="input",
-                        content=processed_result.state_delta
+                        step_name="inputs", event_type="input", content=processed_result.state_delta
                     )
                     exec_record.execution_trace.append(proc_event)
                     projector.apply_delta(proc_event)
@@ -222,9 +210,7 @@ class DAGExecutor:
                 msg = f"Pre-Hydration failed: {e}"
                 logger.error(msg, exc_info=True)
                 raise AppException(
-                    message=msg,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                    status_code=400
+                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400
                 ) from e
 
         # 3. Topology Setup
@@ -261,7 +247,7 @@ class DAGExecutor:
                         trace=exec_record.execution_trace,
                         status=exec_record.status,
                         step_states=exec_record.step_states,
-                        frozen_context=exec_record.frozen_context
+                        frozen_context=exec_record.frozen_context,
                     )
 
                     events = await self.node_executor.execute(
@@ -272,7 +258,7 @@ class DAGExecutor:
                         projector=projector,
                         expected_inputs=workflow.expected_inputs,
                         frozen_ctx=exec_record.frozen_context,
-                        trace=exec_record.execution_trace
+                        trace=exec_record.execution_trace,
                     )
 
                     for e in events:
@@ -287,7 +273,7 @@ class DAGExecutor:
                         raise AppException(
                             message=f"Step {step_id} emitted ErrorTraceEvent: {msg}",
                             status_code=500,
-                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED}
+                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                         )
 
                     exec_record.step_states[step_id].status = "completed"
@@ -295,7 +281,7 @@ class DAGExecutor:
                         trace=exec_record.execution_trace,
                         status=exec_record.status,
                         step_states=exec_record.step_states,
-                        frozen_context=exec_record.frozen_context
+                        frozen_context=exec_record.frozen_context,
                     )
                     step_events[step_id].set()
 
@@ -306,52 +292,82 @@ class DAGExecutor:
                         status=ExecutionStatus.FAILED,
                         step_states=exec_record.step_states,
                         error=str(e),
-                        frozen_context=exec_record.frozen_context
+                        frozen_context=exec_record.frozen_context,
                     )
                     raise WorkflowExecutionError(
-                        step_id=step_id,
-                        task_key=step_obj.task_blueprint,
-                        original_error=e
+                        step_id=step_id, task_key=step_obj.task_blueprint, original_error=e
                     ) from e
 
-        tasks = [asyncio.create_task(run_step_wrapper(step.id)) for step in workflow.steps]
         try:
-            await asyncio.gather(*tasks)
+            async with asyncio.TaskGroup() as tg:
+                for step in workflow.steps:
+                    tg.create_task(run_step_wrapper(step.id))
+
             exec_record.status = ExecutionStatus.COMPLETED
             await self.committer.commit_trace(
-                trace=exec_record.execution_trace,
-                status=exec_record.status,
-                step_states=exec_record.step_states
+                trace=exec_record.execution_trace, status=exec_record.status, step_states=exec_record.step_states
             )
             return exec_record
-        except Exception as overall_err:
-            for t in tasks:
-                if not t.done():
-                    t.cancel()
+
+        except ExceptionGroup as eg:
+            # TaskGroup automatically cancels all other running tasks when one task fails.
+            # We unwrap the primary exception to maintain the Fail-Fast (RFC 7807) boundary.
+            primary_err = eg.exceptions[0]
+
             # Cleanup stuck 'running' states caused by CancelledError bypassing the standard exception handler
-            for step_id, state in exec_record.step_states.items():
+            for _, state in exec_record.step_states.items():
                 if getattr(state, "status", None) == "running":
                     state.status = "failed"
+
             exec_record.status = ExecutionStatus.FAILED
-            exec_record.error = str(overall_err)
+            exec_record.error = str(primary_err)
 
             # Safe synchronous fire-and-forget save in loop death
             try:
                 loop = asyncio.get_running_loop()
-                loop.create_task(self.committer.commit_trace(
-                    trace=exec_record.execution_trace,
-                    status=exec_record.status,
-                    step_states=exec_record.step_states,
-                    error=exec_record.error
-                ))
+                loop.create_task(
+                    self.committer.commit_trace(
+                        trace=exec_record.execution_trace,
+                        status=exec_record.status,
+                        step_states=exec_record.step_states,
+                        error=exec_record.error,
+                    )
+                )
             except Exception:
                 pass
 
-            if isinstance(overall_err, AppException):
-                 raise overall_err
+            if isinstance(primary_err, AppException):
+                raise primary_err from eg
 
             raise AppException(
-                message=f"Workflow failed: {overall_err}",
+                message=f"Workflow failed: {primary_err}",
                 details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
-                status_code=500
-            ) from overall_err
+                status_code=500,
+            ) from primary_err
+
+        except Exception as unexpected_err:
+            # Fallback for errors outside the TaskGroup scope
+            exec_record.status = ExecutionStatus.FAILED
+            exec_record.error = str(unexpected_err)
+
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(
+                    self.committer.commit_trace(
+                        trace=exec_record.execution_trace,
+                        status=exec_record.status,
+                        step_states=exec_record.step_states,
+                        error=exec_record.error,
+                    )
+                )
+            except Exception:
+                pass
+
+            if isinstance(unexpected_err, AppException):
+                raise
+
+            raise AppException(
+                message=f"Workflow failed: {unexpected_err}",
+                details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
+                status_code=500,
+            ) from unexpected_err

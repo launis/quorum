@@ -19,7 +19,7 @@ if 'executions' in backup_data and len(backup_data['executions']) > 0:
 
     # We must also clear embedded render_blueprints from the restored execution
     # to force it to use the new seeded workflow blueprints
-    for k, e in live_data['executions'].items():
+    for _k, e in live_data['executions'].items():
         if 'render_blueprints' in e:
              del e['render_blueprints']
 

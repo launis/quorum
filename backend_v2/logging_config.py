@@ -8,8 +8,12 @@ from typing import Any
 # Force UTF-8 on Windows to prevent Logfire/Rich box-drawing crashes (cp1252 to undefined)
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys_stdout_reconfigure = getattr(sys.stdout, "reconfigure", None)
+        if sys_stdout_reconfigure:
+            sys_stdout_reconfigure(encoding="utf-8")
+        sys_stderr_reconfigure = getattr(sys.stderr, "reconfigure", None)
+        if sys_stderr_reconfigure:
+            sys_stderr_reconfigure(encoding="utf-8")
     except Exception:
         pass
 
@@ -24,8 +28,7 @@ except ImportError:
 except Exception as e:
     logging.getLogger(__name__).error("Unexpected error importing logfire.", exc_info=True)
     raise AppException(
-        message="Unexpected error importing logfire.",
-        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+        message="Unexpected error importing logfire.", details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
     ) from e
 
 _LOGFIRE_CONFIGURED = False
@@ -77,7 +80,7 @@ def configure_logfire() -> None:
         # but automatic detection occasionally fails.
         os.environ.setdefault("LOGFIRE_BASE_URL", "https://api-eu.pydantic.dev/")
         os.environ.setdefault("LOGFIRE_SEND_TO_LOGFIRE", "true")
-        
+
         # Completely disable the Rich Console exporter to prevent cp1252 Unicode crashes on Windows.
         # We already have a standard Python logging StreamHandler anyway.
         os.environ["LOGFIRE_CONSOLE"] = "false"
@@ -89,7 +92,8 @@ def configure_logfire() -> None:
         # logfire.instrument_redis() # Spams the console with Arq queue polling (ZRANGEBYSCORE/ZCARD) every 0.5s
 
         import litellm
-        litellm.success_callback = ["logfire"]   # Instrument LLM Calls
+
+        litellm.success_callback = ["logfire"]  # Instrument LLM Calls
         litellm.failure_callback = ["logfire"]
     except Exception as e:
         msg = f"[LoggingConfig] {ErrorCodes.CONFIGURATION_ERROR.name}: Logfire validation failed: {e}."
@@ -210,8 +214,7 @@ def setup_logging(log_level: int = logging.INFO) -> None:
     except Exception as e:
         logging.getLogger(__name__).error("Unexpected error configuring LiteLLM.", exc_info=True)
         raise AppException(
-            message="Failed to configure LiteLLM logging.",
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+            message="Failed to configure LiteLLM logging.", details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
         ) from e
 
     logging.info(f"Logging configured. Writing to: {log_file_path}")

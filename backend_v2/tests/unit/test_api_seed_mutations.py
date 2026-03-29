@@ -12,50 +12,56 @@ from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.services.studio import StudioService
 
 
-def mock_get_current_user_admin():
+def mock_get_current_user_admin() -> Any:
     return TokenData(email="admin@test.com", id="usr_admin123", role=UserRole.ADMIN, organization_id="org_testorg123")
 
+
 @pytest.fixture
-def mock_studio_service_admin():
+def mock_studio_service_admin() -> Any:
     service = AsyncMock(spec=StudioService)
     service.save_workflow.side_effect = lambda user, id, payload: payload
     service.save_prompt_block.side_effect = lambda user, id, payload: payload
     service.save_step.side_effect = lambda user, id, payload: payload
     return service
 
+
 @pytest.fixture
-def client_admin(mock_studio_service_admin):
+def client_admin(mock_studio_service_admin: Any) -> Any:
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user_admin
     app.dependency_overrides[get_studio_service] = lambda: mock_studio_service_admin
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
 
-def get_seed_data() -> dict[str, Any]:
-    with open("backend_v2/seed/seed_data.json", encoding="utf-8") as f:
-        return json.load(f)
 
-def get_audit_workflow() -> dict[str, Any]:
+def get_seed_data() -> Any:
+    with open("backend_v2/seed/seed_data.json", encoding="utf-8") as f:
+        return dict(json.load(f))
+
+
+def get_audit_workflow() -> Any:
     data = get_seed_data()
     for wf in data.get("workflows", []):
         if wf["id"] == "wf_d653170e174847559e08af42b938d826":
             return wf
     raise ValueError("Audit Workflow not found in seed_data.json")
 
-def get_seed_prompt_block() -> dict[str, Any]:
+
+def get_seed_prompt_block() -> Any:
     data = get_seed_data()
     if data.get("prompt_blocks"):
         return data["prompt_blocks"][0]
     raise ValueError("No prompt blocks found in seed_data.json")
 
-def get_seed_step() -> dict[str, Any]:
+
+def get_seed_step() -> Any:
     data = get_seed_data()
     if data.get("steps"):
         return data["steps"][0]
     raise ValueError("No steps found in seed_data.json")
 
 
-def test_seed_workflow_happy_path(client_admin, mock_studio_service_admin) -> None:
+def test_seed_workflow_happy_path(client_admin: Any, mock_studio_service_admin: Any) -> None:
     """Test that the unmodified massive audit workflow is entirely valid."""
     wf = get_audit_workflow()
 
@@ -66,7 +72,7 @@ def test_seed_workflow_happy_path(client_admin, mock_studio_service_admin) -> No
     assert response.status_code == 200, f"Unmodified seed workflow failed validation: {response.text}"
 
 
-def test_seed_workflow_legal_mutations(client_admin, mock_studio_service_admin) -> None:
+def test_seed_workflow_legal_mutations(client_admin: Any, mock_studio_service_admin: Any) -> None:
     """Test legally modifying inputs and safely removing steps."""
     wf = copy.deepcopy(get_audit_workflow())
 
@@ -88,15 +94,17 @@ def test_seed_workflow_legal_mutations(client_admin, mock_studio_service_admin) 
 
     # Mutation 2: Modify inputs safely
     # Add a new legal text input
-    wf["expected_inputs"].append({
-        "input_key": "custom_test_input",
-        "label": {"default_locale": "fi", "translations": {"fi": "Testi", "en": "Test"}},
-        "required": False,
-        "is_chat_history": False,
-        "input_modes": ["text", "paste"],
-        "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus", "en": "Desc"}},
-        "ai_description": "A very valid test input for AI"
-    })
+    wf["expected_inputs"].append(
+        {
+            "input_key": "custom_test_input",
+            "label": {"default_locale": "fi", "translations": {"fi": "Testi", "en": "Test"}},
+            "required": False,
+            "is_chat_history": False,
+            "input_modes": ["text", "paste"],
+            "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus", "en": "Desc"}},
+            "ai_description": "A very valid test input for AI",
+        }
+    )
 
     response = client_admin.put(f"/api/v2/studio/workflows/{wf['id']}", json=wf)
     if response.status_code == 404:
@@ -105,7 +113,7 @@ def test_seed_workflow_legal_mutations(client_admin, mock_studio_service_admin) 
     assert response.status_code == 200, f"Legally mutated workflow failed: {response.text}"
 
 
-def test_seed_workflow_illegal_orphan(client_admin, mock_studio_service_admin) -> None:
+def test_seed_workflow_illegal_orphan(client_admin: Any, mock_studio_service_admin: Any) -> None:
     """Test illegally deleting a ROOT node resulting in orphan references downstream."""
     wf = copy.deepcopy(get_audit_workflow())
 
@@ -125,19 +133,21 @@ def test_seed_workflow_illegal_orphan(client_admin, mock_studio_service_admin) -
     assert "does not exist in this workflow" in response.text
 
 
-def test_seed_workflow_illegal_input_contradiction(client_admin, mock_studio_service_admin) -> None:
+def test_seed_workflow_illegal_input_contradiction(client_admin: Any, mock_studio_service_admin: Any) -> None:
     """Test adding an input that violates the strict Pydantic rules (e.g. Chat History + Questionnaire)."""
     wf = copy.deepcopy(get_audit_workflow())
 
-    wf["expected_inputs"].append({
-        "input_key": "illegal_input",
-        "label": {"default_locale": "en", "translations": {"en": "Label"}},
-        "required": True,
-        "is_chat_history": True, # CONTRADICTION 1
-        "input_modes": ["questionnaire"], # CONTRADICTION 2
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
-        "ai_description": "Will fail validation"
-    })
+    wf["expected_inputs"].append(
+        {
+            "input_key": "illegal_input",
+            "label": {"default_locale": "en", "translations": {"en": "Label"}},
+            "required": True,
+            "is_chat_history": True,  # CONTRADICTION 1
+            "input_modes": ["questionnaire"],  # CONTRADICTION 2
+            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+            "ai_description": "Will fail validation",
+        }
+    )
 
     response = client_admin.put(f"/api/v2/studio/workflows/{wf['id']}", json=wf)
     if response.status_code == 404:
@@ -147,7 +157,7 @@ def test_seed_workflow_illegal_input_contradiction(client_admin, mock_studio_ser
     assert "cannot use 'questionnaire' mode when flagged as chat history" in response.text
 
 
-def test_seed_prompt_block_illegal_mutation(client_admin, mock_studio_service_admin) -> None:
+def test_seed_prompt_block_illegal_mutation(client_admin: Any, mock_studio_service_admin: Any) -> None:
     """Test mutating a real seed PromptBlock with an illegal Enum."""
     block = copy.deepcopy(get_seed_prompt_block())
 
@@ -162,12 +172,12 @@ def test_seed_prompt_block_illegal_mutation(client_admin, mock_studio_service_ad
     assert "Invalid BlockDataType" in response.text
 
 
-def test_seed_step_illegal_mutation(client_admin, mock_studio_service_admin) -> None:
+def test_seed_step_illegal_mutation(client_admin: Any, mock_studio_service_admin: Any) -> None:
     """Test mutating a real seed Step (Blueprint) with forbidden properties."""
     step = copy.deepcopy(get_seed_step())
 
-    # Try to sneak in Workflow-level strategy into a localized Step
-    step["model_strategy"] = "deep"
+    # Try to sneak in illegal fields into a localized Step
+    step["illegal_field"] = "deep"
 
     response = client_admin.put(f"/api/v2/studio/steps/{step['id']}", json=step)
     if response.status_code == 404:

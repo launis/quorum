@@ -11,7 +11,7 @@ from typing import Any
 import litellm
 from litellm import Router  # type: ignore
 from pydantic import BaseModel
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, stop_after_attempt
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -21,10 +21,10 @@ from backend_v2.exceptions import (
     SecurityViolationError,
     ServiceUnavailableError,
 )
+from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.llm import LLMProviderConfig, LLMResponse
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import get_settings
-from backend_v2.models.enums import SystemConcurrency
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -314,7 +314,6 @@ class LiteLLMProvider(LLMProvider):
             logger.info(f"[LiteLLMProvider] Using Vertex Location: {v_loc}")
             call_kwargs["vertex_location"] = v_loc
 
-
             # --- DIAGNOSTIC DUMP ---
             dump_file = os.getenv("DUMP_PROMPTS_FILE")
             if dump_file:
@@ -400,10 +399,7 @@ class LiteLLMProvider(LLMProvider):
                         safety_hint = " The response was likely blocked by Provider Safety Filters."
 
                     raise AppException(
-                        message=(
-                            f"LLM returned an invalid structured response. "
-                            f"{safety_hint}"
-                        ),
+                        message=(f"LLM returned an invalid structured response. {safety_hint}"),
                         status_code=500,
                         details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED, "raw_error": error_str},
                     ) from parse_err
@@ -517,8 +513,7 @@ class LiteLLMProvider(LLMProvider):
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
                 logger.error(
-                    f"[LiteLLM] {ErrorCodes.RATE_LIMIT_EXCEEDED.name}: "
-                    f"RESOURCE EXHAUSTED (Rate Limit): {error_msg}"
+                    f"[LiteLLM] {ErrorCodes.RATE_LIMIT_EXCEEDED.name}: RESOURCE EXHAUSTED (Rate Limit): {error_msg}"
                 )
                 raise ServiceUnavailableError(
                     message="Model provider rate limit exceeded.",
@@ -581,8 +576,7 @@ class LiteLLMProvider(LLMProvider):
                 or "Timeout" in error_type
             ):
                 logger.error(
-                    f"[LiteLLM] {ErrorCodes.UPSTREAM_TIMEOUT.name}: "
-                    f"SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}"
+                    f"[LiteLLM] {ErrorCodes.UPSTREAM_TIMEOUT.name}: SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}"
                 )
                 raise AppException(
                     message="Upstream LLM service timed out or is unavailable.",
@@ -603,9 +597,8 @@ class LiteLLMProvider(LLMProvider):
                 if len(error_msg) > 500:
                     error_msg = error_msg[:500] + "... [TRUNCATED]"
                 logger.error(
-                    f"[LiteLLM] {ErrorCodes.UNKNOWN_ERROR.name}: "
-                    f"Execution Failed ({error_type}): {error_msg}",
-                    exc_info=True
+                    f"[LiteLLM] {ErrorCodes.UNKNOWN_ERROR.name}: Execution Failed ({error_type}): {error_msg}",
+                    exc_info=True,
                 )
 
                 # Default to ServiceUnavailable for unknown upstream errors
@@ -651,18 +644,12 @@ class MockProvider(LLMProvider):
         if temperature is None:
             msg = "Strict Mode: 'temperature' must be explicitly provided from configuration. No default allowed."
             logger.error(f"[MockProvider] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
-            raise ConfigurationError(
-                message=msg,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
-            )
+            raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         if max_tokens is None:
             msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration. No default allowed."
             logger.error(f"[MockProvider] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
-            raise ConfigurationError(
-                message=msg,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
-            )
+            raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         # --- DIAGNOSTIC DUMP ---
         dump_file = os.getenv("DUMP_PROMPTS_FILE")
@@ -871,7 +858,7 @@ class LLMFactory:
             )
             raise ConfigurationError(
                 message="Model name is required for LLMProvider creation.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
         resolved_api_key = api_key

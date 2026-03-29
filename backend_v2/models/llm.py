@@ -181,9 +181,9 @@ class LLMProviderConfig(BaseModel):
             json_schema_extra={"x-ui-label": "Is Active"},
         ),
     ] = True
-    additional_params: Annotated[
-        dict[str, Any], Field(description="Additional provider-specific parameters.")
-    ] = Field(default_factory=dict)
+    additional_params: Annotated[dict[str, Any], Field(description="Additional provider-specific parameters.")] = Field(
+        default_factory=dict
+    )
 
     @field_validator("id", "provider", "model_name")
     @classmethod
@@ -242,6 +242,3 @@ class AdHocTestResponse(BaseModel):
             logger.error(f"[LLMModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
-
-
-

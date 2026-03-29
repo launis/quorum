@@ -31,7 +31,9 @@ class JudgeInput(BaseModel):
     """
 
     # Context / inputs
-    chat_log: str = Field(..., description="The mandatory conversation history to evaluate.", json_schema_extra={"x-ui-label": "Chatlog"})
+    chat_log: str = Field(
+        ..., description="The mandatory conversation history to evaluate.", json_schema_extra={"x-ui-label": "Chatlog"}
+    )
 
     # Preceding Agents (Critics) - Strictly Typed via Forward Refs
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")

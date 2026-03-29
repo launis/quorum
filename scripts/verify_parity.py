@@ -12,7 +12,8 @@ def verify():
         v2_data = json.load(f)
 
     v1_steps = v1_data.get("steps", [])
-    if isinstance(v1_steps, dict): v1_steps = list(v1_steps.values())
+    if isinstance(v1_steps, dict):
+        v1_steps = list(v1_steps.values())
 
     v2_steps = v2_data.get("steps", [])
 
@@ -20,7 +21,8 @@ def verify():
     # We can reconstruct how V2 steps are named from V1 name/slugs
     import re
     def slugify(text: str, fallback_index: int) -> str:
-        if not text: return f"item_{fallback_index}"
+        if not text:
+            return f"item_{fallback_index}"
         clean = re.sub(r'[^a-zA-Z0-9\s-]', '', text).strip().lower()
         clean = re.sub(r'[\s-]+', '_', clean)
         return clean[:30]
@@ -29,7 +31,8 @@ def verify():
     uuid_to_slug = {}
 
     matrices_db = v1_data.get("matrices", [])
-    if isinstance(matrices_db, dict): matrices_db = list(matrices_db.values())
+    if isinstance(matrices_db, dict):
+        matrices_db = list(matrices_db.values())
     for idx, m in enumerate(matrices_db):
         uid = m.get("id")
         raw_name = m.get("label") or m.get("slug", "") or f"Matrix {idx}"
@@ -38,13 +41,24 @@ def verify():
 
         name_lower = raw_name.lower()
         desc_lower = (m.get("description") or "").lower()
-        if "toulmin" in name_lower or "toulmin" in desc_lower or "argument" in desc_lower: uuid_to_slug[uid] = "matrix_toulmin"
-        elif "bloom" in name_lower or "bloom" in desc_lower or "cognitiv" in name_lower or "kognitiivi" in name_lower: uuid_to_slug[uid] = "matrix_bloom"
-        elif "kahneman" in name_lower or "kahneman" in desc_lower or "fast and slow" in desc_lower or "system 1" in desc_lower or "system 2" in desc_lower: uuid_to_slug[uid] = "matrix_kahneman"
-        elif "goodhart" in name_lower or "goodhart" in desc_lower or "performatiivisuus" in name_lower or "performativity" in name_lower: uuid_to_slug[uid] = "matrix_goodhart"
+        if "toulmin" in name_lower or "toulmin" in desc_lower or "argument" in desc_lower:
+            uuid_to_slug[uid] = "matrix_toulmin"
+        elif "bloom" in name_lower or "bloom" in desc_lower or "cognitiv" in name_lower or "kognitiivi" in name_lower:
+            uuid_to_slug[uid] = "matrix_bloom"
+        elif (
+            "kahneman" in name_lower or "kahneman" in desc_lower or
+            "fast and slow" in desc_lower or "system 1" in desc_lower or "system 2" in desc_lower
+        ):
+            uuid_to_slug[uid] = "matrix_kahneman"
+        elif (
+            "goodhart" in name_lower or "goodhart" in desc_lower or
+            "performatiivisuus" in name_lower or "performativity" in name_lower
+        ):
+            uuid_to_slug[uid] = "matrix_goodhart"
 
     components_db = v1_data.get("components", [])
-    if isinstance(components_db, dict): components_db = list(components_db.values())
+    if isinstance(components_db, dict):
+        components_db = list(components_db.values())
     for idx, c in enumerate(components_db):
         uid = c.get("id")
         raw_name = c.get("name") or c.get("slug", "") or f"Block {idx}"
@@ -53,10 +67,20 @@ def verify():
 
         name_lower = raw_name.lower()
         desc_lower = (c.get("description") or "").lower()
-        if "toulmin" in name_lower or "toulmin" in desc_lower or "argument" in desc_lower: uuid_to_slug[uid] = "matrix_toulmin"
-        elif "bloom" in name_lower or "bloom" in desc_lower or "cognitiv" in name_lower or "kognitiivi" in name_lower: uuid_to_slug[uid] = "matrix_bloom"
-        elif "kahneman" in name_lower or "kahneman" in desc_lower or "fast and slow" in desc_lower or "system 1" in desc_lower or "system 2" in desc_lower: uuid_to_slug[uid] = "matrix_kahneman"
-        elif "goodhart" in name_lower or "goodhart" in desc_lower or "performatiivisuus" in name_lower or "performativity" in name_lower: uuid_to_slug[uid] = "matrix_goodhart"
+        if "toulmin" in name_lower or "toulmin" in desc_lower or "argument" in desc_lower:
+            uuid_to_slug[uid] = "matrix_toulmin"
+        elif "bloom" in name_lower or "bloom" in desc_lower or "cognitiv" in name_lower or "kognitiivi" in name_lower:
+            uuid_to_slug[uid] = "matrix_bloom"
+        elif (
+            "kahneman" in name_lower or "kahneman" in desc_lower or
+            "fast and slow" in desc_lower or "system 1" in desc_lower or "system 2" in desc_lower
+        ):
+            uuid_to_slug[uid] = "matrix_kahneman"
+        elif (
+            "goodhart" in name_lower or "goodhart" in desc_lower or
+            "performatiivisuus" in name_lower or "performativity" in name_lower
+        ):
+            uuid_to_slug[uid] = "matrix_goodhart"
 
     for idx, st in enumerate(v1_steps):
         s_id = st.get("id")

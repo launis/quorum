@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -11,11 +12,12 @@ from backend_v2.services.studio import StudioService
 
 
 # Mock Dependencies
-async def override_get_current_user():
+async def override_get_current_user() -> Any:
     return TokenData(email="test@test.com", id="usr_12345678", role=UserRole.ROOT, organization_id="org_testorg123")
 
+
 @pytest.fixture
-def mock_studio_service():
+def mock_studio_service() -> Any:
     service = AsyncMock(spec=StudioService)
     # Configure mock responses
     pb = PromptBlock(
@@ -25,7 +27,7 @@ def mock_studio_service():
         description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
         category_id="test_cat",
         type=BlockDataType.STRING,
-        output_extensions=[]
+        output_extensions=[],
     )
     service.list_prompt_blocks.return_value = [pb]
     service.get_prompt_block.return_value = pb
@@ -33,26 +35,29 @@ def mock_studio_service():
     service.delete_prompt_block.return_value = None
     return service
 
+
 @pytest.fixture
-def client(mock_studio_service):
+def client(mock_studio_service: Any) -> Any:
     app.dependency_overrides[get_current_user_from_header] = override_get_current_user
     app.dependency_overrides[get_studio_service] = lambda: mock_studio_service
     yield TestClient(app)
     app.dependency_overrides.clear()
 
-def test_get_prompt_blocks(client, mock_studio_service):
-    response = client.get("/api/v2/studio/prompt-blocks") # Default API prefix pattern
+
+def test_get_prompt_blocks(client: Any, mock_studio_service: Any) -> None:
+    response = client.get("/api/v2/studio/prompt-blocks")  # Default API prefix pattern
     if response.status_code == 404:
-         response = client.get("/studio/prompt-blocks") # Fallback pattern
+        response = client.get("/studio/prompt-blocks")  # Fallback pattern
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["id"] == "blk_mockpb1234"
     mock_studio_service.list_prompt_blocks.assert_called_once()
 
-def test_delete_prompt_block(client, mock_studio_service):
+
+def test_delete_prompt_block(client: Any, mock_studio_service: Any) -> None:
     response = client.delete("/api/v2/studio/prompt-blocks/blk_mockpb1234")
     if response.status_code == 404:
-         response = client.delete("/studio/prompt-blocks/blk_mockpb1234")
+        response = client.delete("/studio/prompt-blocks/blk_mockpb1234")
     assert response.status_code == 200
     assert response.json()["deleted_id"] == "blk_mockpb1234"
     mock_studio_service.delete_prompt_block.assert_called_once()

@@ -25,7 +25,7 @@ class ProgressTracker(ABC):
     """
 
     @abstractmethod
-    async def start(self, details: dict[str, Any] | None = None):
+    async def start(self, details: dict[str, Any] | None = None) -> None:
         """Signals the process has started.
 
         Args:
@@ -35,7 +35,7 @@ class ProgressTracker(ABC):
         ...
 
     @abstractmethod
-    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None):
+    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None) -> None:
         """Updates progress with current stage and percentage.
 
         Args:
@@ -47,7 +47,7 @@ class ProgressTracker(ABC):
         ...
 
     @abstractmethod
-    async def complete(self, result: dict[str, Any] | None = None):
+    async def complete(self, result: dict[str, Any] | None = None) -> None:
         """Signals successful completion.
 
         Args:
@@ -57,7 +57,7 @@ class ProgressTracker(ABC):
         ...
 
     @abstractmethod
-    async def fail(self, error: str, details: dict[str, Any] | None = None):
+    async def fail(self, error: str, details: dict[str, Any] | None = None) -> None:
         """Signals failure/halt.
 
         Args:
@@ -85,7 +85,7 @@ class DatabaseProgressTracker(ProgressTracker):
         self.repository = repository
         self.execution_id = execution_id
 
-    async def start(self, details: dict[str, Any] | None = None):
+    async def start(self, details: dict[str, Any] | None = None) -> None:
         """Sets status to 'started'."""
         try:
             payload = {"status": STATUS_STARTED, "start_time": datetime.now(timezone.utc).isoformat()}
@@ -101,7 +101,7 @@ class DatabaseProgressTracker(ProgressTracker):
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
 
-    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None):
+    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None) -> None:
         """Updates 'current_step' and 'progress' fields in DB."""
         try:
             payload = {
@@ -124,7 +124,7 @@ class DatabaseProgressTracker(ProgressTracker):
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
 
-    async def complete(self, result: dict[str, Any] | None = None):
+    async def complete(self, result: dict[str, Any] | None = None) -> None:
         """Sets status to 'completed' and saves final result."""
         try:
             payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now(timezone.utc).isoformat()}
@@ -140,10 +140,14 @@ class DatabaseProgressTracker(ProgressTracker):
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
 
-    async def fail(self, error: str, details: dict[str, Any] | None = None):
+    async def fail(self, error: str, details: dict[str, Any] | None = None) -> None:
         """Sets status to 'failed' and saves error message."""
         try:
-            payload: dict[str, Any] = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now(timezone.utc).isoformat()}
+            payload: dict[str, Any] = {
+                "status": STATUS_FAILED,
+                "error": error,
+                "end_time": datetime.now(timezone.utc).isoformat(),
+            }
             if details:
                 payload["result"] = details
             await self.repository.update_execution(self.execution_id, payload)
@@ -174,7 +178,7 @@ class InMemoryProgressTracker(ProgressTracker):
         self.callback = callback
         self.current_state: dict[str, Any] = {}
 
-    def _emit(self, status: str, payload: dict[str, Any]):
+    def _emit(self, status: str, payload: dict[str, Any]) -> None:
         """Internal helper to emit status.
 
         Args:
@@ -187,25 +191,25 @@ class InMemoryProgressTracker(ProgressTracker):
         # Pass the simplified view expected by API consumers
         self.callback(base)
 
-    async def start(self, details: dict[str, Any] | None = None):
+    async def start(self, details: dict[str, Any] | None = None) -> None:
         """Signals start."""
         self._emit(STATUS_STARTED, details or {})
 
-    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None):
+    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None) -> None:
         """Signals update."""
         data = {"stage": stage, "percent": percent}
         if details:
             data.update(details)
         self._emit(STATUS_RUNNING, data)
 
-    async def complete(self, result: dict[str, Any] | None = None):
+    async def complete(self, result: dict[str, Any] | None = None) -> None:
         """Signals completion."""
         data: dict[str, Any] = {"percent": 100}
         if result:
             data["result"] = result
         self._emit(STATUS_COMPLETED, data)
 
-    async def fail(self, error: str, details: dict[str, Any] | None = None):
+    async def fail(self, error: str, details: dict[str, Any] | None = None) -> None:
         """Signals failure."""
         data = {"error": error}
         if details:

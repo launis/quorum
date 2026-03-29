@@ -18,10 +18,11 @@ from backend_v2.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
 
+
 @hook_registry.register(name="translation_hook")
 async def translation_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """HOOK: translation_hook.
-    
+
     Translates the values of the AI output dictionary to the requested target language.
     If translation fails, it adheres to the Graceful Degradation protocol by logging
     the failure and returning the original English output, preventing an application crash.
@@ -69,7 +70,9 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         # Initialize LLM Client via Strategy Pattern (use 'fast' for translation)
         llm_client = await LLMClient.from_strategy("fast", repository=repo)
     except ConfigurationError as e:
-        logger.error(f"[TranslationHook] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to init LLM for translation: {e}")
+        logger.error(
+            f"[TranslationHook] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to init LLM for translation: {e}"
+        )
         # Graceful Degradation: return original data
         return HookResult(success=False, state_delta={})
 
@@ -77,7 +80,7 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     prompt = f"""
     SÄÄNTÖ: Toimit automaattisena JSON-kääntäjänä.
     TEHTÄVÄ: Käännä alla olevan JSON-objektin **KAIKKI MERKKIJONOARVOT** kielelle: '{target_language}'.
-    
+
     KRIITTINEN RAJOITE: ÄLÄ KOSKAAN KÄÄNNÄ TAI MUUTA JSON-AVAIMIA (Keys).
     Ne sisältävät ohjelmoitavia muuttujia. Vain "Values" käännetään.
     Älä lisää mitään ylimääräistä tekstiä tai markdown-koodiblokkeja vasuksesesi alkuun tai loppuun.
@@ -96,14 +99,17 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         response_text = await llm_client.run_chat(messages=messages)
 
         # Clean potential markdown formatting if LLM didn't listen
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.startswith("```"):
-            response_text = response_text[3:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
+        if isinstance(response_text, dict):
+            translated_payload = response_text
+        else:
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
 
-        translated_payload = json.loads(response_text.strip())
+            translated_payload = json.loads(response_text.strip())
 
         # Merge back with preserved fields
         final_data = {**preserved_fields, **translated_payload}
@@ -112,9 +118,15 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
 
     except json.JSONDecodeError as e:
         # 1. Log with STRUCTURED FORMAT even for non-fatal errors
-        logger.error(f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM returned invalid JSON on translation: {e}", exc_info=True)
+        logger.error(
+            f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM returned invalid JSON on translation: {e}",
+            exc_info=True,
+        )
         # 2. Graceful Degradation: Return original untranslated data to prevent UI crash
         return HookResult(success=False, state_delta={})
     except Exception as e:
-        logger.error(f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM generation failed for translation: {e}", exc_info=True)
+        logger.error(
+            f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM generation failed for translation: {e}",
+            exc_info=True,
+        )
         return HookResult(success=False, state_delta={})

@@ -21,6 +21,7 @@ async def list_executions(
     """Retrieve all executions securely via SSOT."""
     return await execution_service.list_executions(initiator=current_user)
 
+
 @router.post("/", response_model=ExecutionRecord, status_code=status.HTTP_202_ACCEPTED)
 async def start_execution(
     payload: ExecutionCreate,
@@ -29,11 +30,7 @@ async def start_execution(
     execution_service: ExecutionServiceDep,
 ) -> ExecutionRecord:
     """Start an asynchronous workflow execution securely via SSOT."""
-    return await execution_service.start_execution(
-        initiator=current_user,
-        payload=payload,
-        arq_pool=arq_pool
-    )
+    return await execution_service.start_execution(initiator=current_user, payload=payload, arq_pool=arq_pool)
 
 
 @router.get("/{execution_id}", response_model=ExecutionRecord)
@@ -55,9 +52,7 @@ async def resume_execution(
 ) -> ExecutionRecord:
     """Resume a failed execution securely via SSOT."""
     return await execution_service.resume_execution(
-        initiator=current_user,
-        execution_id=execution_id,
-        arq_pool=arq_pool
+        initiator=current_user, execution_id=execution_id, arq_pool=arq_pool
     )
 
 
@@ -72,6 +67,7 @@ async def stream_execution_status(
     await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
 
     from collections.abc import AsyncGenerator
+
     async def event_generator() -> AsyncGenerator[str]:
         try:
             while True:
@@ -88,7 +84,7 @@ async def stream_execution_status(
                 await asyncio.sleep(2)
         except Exception as e:
             logger.error(f"SSE Error for execution {execution_id}: {e}")
-            yield f"data: {{\"error\": \"SSE Stream Interrupted: {str(e)}\"}}\n\n"
+            yield f'data: {{"error": "SSE Stream Interrupted: {str(e)}"}}\n\n'
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -122,22 +118,20 @@ async def download_frozen_context(
             raw_bytes = await storage.read(execution.frozen_context_storage_path)
 
             # Dynamically pretty-print the historic minified JSON blob
-            parsed_data = json.loads(raw_bytes.decode('utf-8'))
-            pretty_bytes = json.dumps(parsed_data, indent=2, ensure_ascii=False).encode('utf-8')
+            parsed_data = json.loads(raw_bytes.decode("utf-8"))
+            pretty_bytes = json.dumps(parsed_data, indent=2, ensure_ascii=False).encode("utf-8")
 
             return Response(
                 content=pretty_bytes,
                 media_type="application/json",
-                headers={
-                    "Content-Disposition": f'attachment; filename="frozen_context_{execution_id}.json"'
-                }
+                headers={"Content-Disposition": f'attachment; filename="frozen_context_{execution_id}.json"'},
             )
         except Exception as strg_err:
             logger.warning(f"Failed to fetch frozen context from storage: {strg_err}")
             raise AppException(
                 message="Forensic context file not found in storage",
                 status_code=404,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             ) from strg_err
 
     # Fallback to returning the embedded frozen context if not offloaded
@@ -145,9 +139,7 @@ async def download_frozen_context(
     return Response(
         content=frozen_json,
         media_type="application/json",
-        headers={
-            "Content-Disposition": f'attachment; filename="frozen_context_{execution_id}.json"'
-        }
+        headers={"Content-Disposition": f'attachment; filename="frozen_context_{execution_id}.json"'},
     )
 
 
@@ -179,13 +171,15 @@ async def render_execution(
 
     if fmt == "json":
         from backend_v2.services.blueprint import BlueprintTransformer
+
         accept_language = request.headers.get("accept-language", None)
         transformer = BlueprintTransformer(repository)
-        dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
+        dto = await transformer.build_report_dto(execution_id, profile_id or "default", accept_language)
         return JSONResponse(content=dto.model_dump(mode="json"))
 
     elif fmt == "flat":
         from backend_v2.services.flattener import FlatFileService
+
         flat_data = FlatFileService.flatten_results(execution)
         return JSONResponse(content=flat_data)
 
@@ -196,7 +190,7 @@ async def render_execution(
             raise AppException(
                 message="Workflow not found",
                 status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
         default_pid = workflow_data.get("default_profile_id", "default")
@@ -208,20 +202,18 @@ async def render_execution(
 
         if resolved_pid == default_pid and execution.pdf_report_path:
             from backend_v2.services.storage import get_storage_driver
+
             storage = get_storage_driver()
             try:
                 pdf_bytes = await storage.read(execution.pdf_report_path)
                 return Response(
                     content=pdf_bytes,
                     media_type="application/pdf",
-                    headers={
-                        "Content-Disposition": f'attachment; filename="execution_{execution_id}.pdf"'
-                    }
+                    headers={"Content-Disposition": f'attachment; filename="execution_{execution_id}.pdf"'},
                 )
             except Exception as strg_err:
                 logger.warning(
-                    f"Failed to fetch pre-generated PDF from storage, "
-                    f"falling back to sync generation: {strg_err}"
+                    f"Failed to fetch pre-generated PDF from storage, falling back to sync generation: {strg_err}"
                 )
 
         # 2. Fallback to Synchronous generation if not yet ready or non-default variant requested
@@ -233,7 +225,7 @@ async def render_execution(
             accept_language = execution.metadata.get("target_locale")
 
         transformer = BlueprintTransformer(repository)
-        dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
+        dto = await transformer.build_report_dto(execution_id, resolved_pid or "default", accept_language)
 
         # Passing repository inside PDF generator is safe as the execution was authorized
         pdf_service = PdfReportService(repository)
@@ -244,6 +236,7 @@ async def render_execution(
         if resolved_pid == default_pid:
             try:
                 from backend_v2.services.storage import get_storage_driver
+
                 storage = get_storage_driver()
                 output_path_rel = f"executions/{execution_id}/report.pdf"
                 saved_path = await storage.save(output_path_rel, pdf_bytes)
@@ -256,9 +249,7 @@ async def render_execution(
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="execution_{execution_id}.pdf"'
-            }
+            headers={"Content-Disposition": f'attachment; filename="execution_{execution_id}.pdf"'},
         )
 
     else:
@@ -269,6 +260,7 @@ async def render_execution(
             status_code=400,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
+
 
 @router.post("/{execution_id}/render_pdf", status_code=status.HTTP_202_ACCEPTED)
 async def generate_pdf_async(
@@ -288,10 +280,7 @@ async def generate_pdf_async(
 
     # 3. Queue the background task into Redis
     await arq_pool.enqueue_job(
-        "generate_pdf_job",
-        execution_id=execution_id,
-        accept_language=accept_language,
-        profile_id=profile_id
+        "generate_pdf_job", execution_id=execution_id, accept_language=accept_language, profile_id=profile_id
     )
 
     # 4. Return 202 Accepted Fast

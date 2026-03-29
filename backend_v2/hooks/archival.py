@@ -12,9 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="retrieve_precedent")
-async def retrieve_precedent_hook(
-    state: HookState, deps: HookDependencies
-) -> HookResult:
+async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for retrieve_precedent.
 
     Retrieve the last N completed executions with a valid Judge score (Case Law).
@@ -85,7 +83,7 @@ async def retrieve_precedent_hook(
                 step_name = event.get("step_name") if isinstance(event, dict) else getattr(event, "step_name", "")
                 content = event.get("content") if isinstance(event, dict) else getattr(event, "content", None)
 
-                if event_type == "output" and "judge" in step_name:  # type: ignore
+                if event_type == "output" and isinstance(step_name, str) and "judge" in step_name:
                     # Attempt strict inflation to see if it's a JudgeOutput
                     # We don't care about the step name, only the data schema.
                     try:
@@ -95,7 +93,7 @@ async def retrieve_precedent_hook(
                             # (e.g. "step_judge" -> "Standard", "step_judge_cognitive" -> "Cognitive")
                             # Clean up label for UI
                             label = (
-                                step_name.replace("step_judge_", "")  # type: ignore
+                                str(step_name).replace("step_judge_", "")
                                 .replace("step_judge", "Standard")
                                 .replace("_", " ")
                                 .title()
@@ -138,7 +136,7 @@ async def retrieve_precedent_hook(
                 precedents.append(
                     {
                         "id": res.id,
-                        "date": res.completed_at.isoformat() if res.completed_at else "",  # type: ignore
+                        "date": res.completed_at.isoformat() if res.completed_at else "",
                         "scores": score_summary,
                         "verdict": verdict_text[:150],  # Truncate
                     }

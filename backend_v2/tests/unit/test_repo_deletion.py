@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -7,13 +8,14 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 
 @pytest.fixture
-def mock_driver():
+def mock_driver() -> Any:
     driver = AsyncMock()
     return driver
 
+
 @pytest.mark.asyncio
 # Test for Fail-Fast deletion boundary
-async def test_delete_prompt_block_blocks_orphan_data(mock_driver):
+async def test_delete_prompt_block_blocks_orphan_data(mock_driver: Any) -> None:
     repo = UnifiedWorkflowRepository(driver=mock_driver)
 
     # Mock get_prompt_block_by_id to simulate the block exists

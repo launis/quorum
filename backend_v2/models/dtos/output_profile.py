@@ -3,7 +3,6 @@
 These models handle the ingestion and output formats for the Output Profile REST APIs.
 """
 
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.models.domain.output_profile import OutputProfileLayout

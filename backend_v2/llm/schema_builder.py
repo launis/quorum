@@ -30,9 +30,7 @@ class SchemaCompilerService:
             name: (type_hint, Field(..., description=desc)) for name, type_hint, desc in fields_tuple
         }
         return create_model(
-            f"DynamicSchema_{schema_hash[:8]}",
-            __config__=ConfigDict(extra="forbid", strict=False),
-            **fields
+            f"DynamicSchema_{schema_hash[:8]}", __config__=ConfigDict(extra="forbid", strict=False), **fields
         )
 
     @classmethod
@@ -41,11 +39,13 @@ class SchemaCompilerService:
         # 1. Create a hashable representation of the schema requirements
         blocks_config = []
         for block in prompt_blocks:
-            blocks_config.append({
-                "slug": block.slug,
-                "type": block.type.value if isinstance(block.type, Enum) else str(block.type),
-                "output_extensions": block.output_extensions,
-            })
+            blocks_config.append(
+                {
+                    "slug": block.slug,
+                    "type": block.type.value if isinstance(block.type, Enum) else str(block.type),
+                    "output_extensions": block.output_extensions,
+                }
+            )
 
         # Sort blocks_config by slug to ensure deterministic hashing regardless of input order
         blocks_config.sort(key=lambda x: x["slug"])
@@ -74,33 +74,73 @@ class SchemaCompilerService:
             # Dynamically inject requested XAI output extensions into Pydantic schema
             extensions = cfg.get("output_extensions", [])
             if "justification" in extensions:
-                fields_list.append((
-                    f"{slug}_justification",
-                    str,
-                    f"Extensive analytical reasoning and justification for the {slug} output."
-                ))
+                fields_list.append(
+                    (
+                        f"{slug}_justification",
+                        str,
+                        f"Extensive analytical reasoning and justification for the {slug} output.",
+                    )
+                )
             if "citation" in extensions:
-                fields_list.append((
-                    f"{slug}_citation",
-                    str,
-                    f"Direct exact quote from the source text strongly supporting the {slug} justification."
-                ))
+                fields_list.append(
+                    (
+                        f"{slug}_citation",
+                        str,
+                        f"Direct exact quote from the source text strongly supporting the {slug} justification.",
+                    )
+                )
             if "coaching" in extensions:
-                fields_list.append((f"{slug}_coaching", str, "Concrete coaching tip/remediation advice to the subject."))
+                fields_list.append(
+                    (f"{slug}_coaching", str, "Concrete coaching tip/remediation advice to the subject.")
+                )
             if "confidence" in extensions:
-                fields_list.append((f"{slug}_confidence", float, "Numerical confidence from 0.0 to 100.0 based strictly on source evidence."))
+                fields_list.append(
+                    (
+                        f"{slug}_confidence",
+                        float,
+                        "Numerical confidence from 0.0 to 100.0 based strictly on source evidence.",
+                    )
+                )
             if "falsification" in extensions:
-                fields_list.append((f"{slug}_falsification", str, "Devil's advocate argument rejecting the primary justification."))
+                fields_list.append(
+                    (f"{slug}_falsification", str, "Devil's advocate argument rejecting the primary justification.")
+                )
             if "missing_context" in extensions:
-                fields_list.append((f"{slug}_missing_context", str, "Missing data from the provided text that would have improved or changed the score."))
+                fields_list.append(
+                    (
+                        f"{slug}_missing_context",
+                        str,
+                        "Missing data from the provided text that would have improved or changed the score.",
+                    )
+                )
             if "risk_flag" in extensions:
-                fields_list.append((f"{slug}_risk_flag", bool, "True if there is a severe risk present; False otherwise."))
+                fields_list.append(
+                    (f"{slug}_risk_flag", bool, "True if there is a severe risk present; False otherwise.")
+                )
             if "remediation_steps" in extensions:
-                fields_list.append((f"{slug}_remediation_steps", list[str], "Numbered actionable list of distinct textual remediation steps."))
+                fields_list.append(
+                    (
+                        f"{slug}_remediation_steps",
+                        list[str],
+                        "Numbered actionable list of distinct textual remediation steps.",
+                    )
+                )
             if "emotional_sentiment" in extensions:
-                fields_list.append((f"{slug}_emotional_sentiment", str, "Analysis of the user's emotional state or tone regarding this metric."))
+                fields_list.append(
+                    (
+                        f"{slug}_emotional_sentiment",
+                        str,
+                        "Analysis of the user's emotional state or tone regarding this metric.",
+                    )
+                )
             if "theory_link" in extensions:
-                fields_list.append((f"{slug}_theory_link", str, "Direct logical connection of the observation back to the governing theory framework."))
+                fields_list.append(
+                    (
+                        f"{slug}_theory_link",
+                        str,
+                        "Direct logical connection of the observation back to the governing theory framework.",
+                    )
+                )
 
         # Convert to immutable tuple to safely cross the LRU cache boundary
         fields_tuple = tuple(fields_list)

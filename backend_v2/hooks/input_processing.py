@@ -18,6 +18,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
+
 def _extract_pdf(file_bytes: bytes) -> str:
     """CPU-bound hook helper to extract text strictly from PDF bytes via PyMuPDF."""
     doc = fitz.open(stream=file_bytes, filetype="pdf")
@@ -25,6 +26,7 @@ def _extract_pdf(file_bytes: bytes) -> str:
     for page in doc:
         text += page.get_text()
     return text.strip()
+
 
 async def resolve_input(val: Any) -> str:
     """Helper to detect Base64 V1-style payloads and route them strictly to extraction."""
@@ -44,7 +46,7 @@ async def resolve_input(val: Any) -> str:
                 raise AppException(
                     message=f"Failed to extract text from PDF {filename}",
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": "FILE_EXTRACTION_FAILED", "original_error": str(e)}
+                    details={"error_code": "FILE_EXTRACTION_FAILED", "original_error": str(e)},
                 ) from e
         else:
             return file_bytes.decode("utf-8", errors="ignore")
@@ -76,7 +78,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         raise AppException(
             message="Missing execution context for input processing.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": "MISSING_EXECUTION_CONTEXT"}
+            details={"error_code": "MISSING_EXECUTION_CONTEXT"},
         )
 
     workflow_dict = await repo.get_workflow_by_id(workflow_id)
@@ -84,12 +86,13 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         raise AppException(
             message=f"Workflow {workflow_id} not found.",
             status_code=status.HTTP_404_NOT_FOUND,
-            details={"error_code": "WORKFLOW_NOT_FOUND"}
+            details={"error_code": "WORKFLOW_NOT_FOUND"},
         )
 
     from pydantic import TypeAdapter
 
     from backend_v2.models.v2_core import Workflow
+
     workflow = TypeAdapter(Workflow).validate_python(workflow_dict)
 
     expected_inputs = workflow.expected_inputs
@@ -143,7 +146,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                     "but no content was provided or file extraction yielded empty text."
                 ),
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": "MISSING_REQUIRED_INPUT", "input_key": key}
+                details={"error_code": "MISSING_REQUIRED_INPUT", "input_key": key},
             )
 
         # 3. V2 ChatParser LLM Hook (if designated as chat history)
@@ -157,7 +160,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
                 chat_lines = []
                 for turn in chat_dto.conversation:
-                     chat_lines.append(f"**{turn.role}**: {turn.content}")
+                    chat_lines.append(f"**{turn.role}**: {turn.content}")
                 resolved_text = "\n\n".join(chat_lines)
 
                 logger.info(f"[InputProcessingHook] Successfully structured {key} via ChatParser (Markdown).")
@@ -168,7 +171,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 raise AppException(
                     message=f"Failed to parse unstructured chat for {key} using AI.",
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": "CHAT_PARSING_FAILED"}
+                    details={"error_code": "CHAT_PARSING_FAILED"},
                 ) from e
 
         # 4. Injektoidaan `ai_description` suoraan raakatekstin yläpuolelle (The English-Only Mandate)
@@ -179,8 +182,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
             # V2 STRICT FAIL-FAST: Missing English instruction is fatal
             if not desc_text:
                 logger.error(
-                    f"[InputProcessingHook] VALIDATION_FAILED: "
-                    f"Missing English translation for {key} ai_description."
+                    f"[InputProcessingHook] VALIDATION_FAILED: Missing English translation for {key} ai_description."
                 )
                 raise AppException(
                     message=(
@@ -188,7 +190,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                         f"English translation for '{key}' cognitive prompt block."
                     ),
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": "MISSING_ENGLISH_PROMPT", "input_key": key}
+                    details={"error_code": "MISSING_ENGLISH_PROMPT", "input_key": key},
                 )
 
             if desc_text and resolved_text.strip():
@@ -203,6 +205,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         # Save every processed input with injected prompts into the execution directory
         try:
             from backend_v2.services.storage import get_storage_driver
+
             storage = get_storage_driver()
             exe_id = state.execution_id or "unknown_exe"
             safe_key = "".join(c for c in key if c.isalnum() or c in ("_", "-"))
@@ -213,7 +216,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         except Exception as e:
             logger.error(
                 f"[InputProcessingHook] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to save forensic input: {e}",
-                exc_info=True
+                exc_info=True,
             )
 
     return HookResult(success=True, state_delta={"inputs": output_dict})

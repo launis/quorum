@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -20,7 +21,7 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
     repo_mock.get_execution.return_value = mock_record
 
     service = ExecutionService(repo=repo_mock, executor=executor_mock)
-    initiator = TokenData(id="u1", role=UserRole.ROOT) # Bypasses auth checks
+    initiator = TokenData(id="u1", role=UserRole.ROOT)  # Bypasses auth checks
 
     with pytest.raises(AppException) as exc_info:
         await service.resume_execution(initiator=initiator, execution_id="exe_123", arq_pool=arq_pool)

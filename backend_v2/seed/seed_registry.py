@@ -22,12 +22,13 @@ from backend_v2.models.v2_core import (
 def _system_config_discriminator(v: dict) -> str:  # type: ignore[type-arg]
     """Polymorphic Seeding: route by 'type' field."""
     if isinstance(v, dict):
-        return v.get("type", "model_registry")
+        return str(v.get("type", "model_registry"))
     return getattr(v, "type", "model_registry")
 
 
 SystemConfigUnion = Annotated[
-    Annotated[SystemConfigModelRegistry, Tag("model_registry")] | Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")],
+    Annotated[SystemConfigModelRegistry, Tag("model_registry")]
+    | Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")],
     Discriminator(_system_config_discriminator),
 ]
 
@@ -39,7 +40,6 @@ STANDARD_REGISTRY = {
     "steps": {"table": "steps", "model": TypeAdapter(Step), "id_field": "id"},
     "output_profiles": {"table": "output_profiles", "model": TypeAdapter(OutputProfile), "id_field": "id"},
     "executions": {"table": "executions", "model": TypeAdapter(ExecutionRecord), "id_field": "id"},
-
     # IAM remains shared for now until isolated
     "organizations": {"table": "organizations", "model": TypeAdapter(Organization), "id_field": "id"},
     "users": {"table": "users", "model": TypeAdapter(User), "id_field": "id"},

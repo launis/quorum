@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["Admin IAM V2 - Users"])
 
+
 @router.get("/", response_model=list[User])
 async def get_all_users(current_user: CurrentUserDep, auth_service: AuthServiceDep) -> list[User]:
     """Retrieve all users securely evaluated by SSOT Service Layer."""
@@ -21,10 +22,9 @@ async def get_all_users(current_user: CurrentUserDep, auth_service: AuthServiceD
         msg = f"Error retrieving users: {e}"
         logger.error(f"[UserRouter] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
         raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+            message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
         ) from e
+
 
 @router.get("/{id}", response_model=User)
 async def get_user(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> User:
@@ -32,10 +32,12 @@ async def get_user(id: str, current_user: CurrentUserDep, auth_service: AuthServ
     # Service layer ensures target user exists and current_user has right to view it
     return await auth_service.get_user(current_user, id)
 
+
 @router.put("/{id}", response_model=User)
 async def save_user(id: str, data: UserUpdate, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> User:
     """Update a user's role or organization securely via SSOT Service Layer."""
     return await auth_service.update_user(current_user.id, id, data)
+
 
 @router.delete("/{id}")
 async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> dict[str, Any]:

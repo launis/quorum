@@ -87,11 +87,12 @@ class TaskRegistry:
         try:
             cls.agents_map[agent_cls.__name__] = agent_cls()
         except Exception as e:
-            msg = f"Agent {agent_cls.__name__} instantiation failed: {e}"
-            logger.error(f"[TaskRegistry] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
             from fastapi import status
 
             from backend_v2.exceptions import AppException, ErrorCodes
+
+            msg = f"Agent {agent_cls.__name__} instantiation failed: {e}"
+            logger.error(f"[TaskRegistry] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
 
             raise AppException(
                 message=f"Agent {agent_cls.__name__} instantiation failed: {e}",
@@ -185,6 +186,7 @@ class TaskRegistry:
                     # Dynamic Input Handling for V2 (Courtroom SDUI)
                     if "inputs" in vars_to_inject and "expected_inputs" in execution_config:
                         import json
+
                         expected_inputs = execution_config["expected_inputs"]
                         dynamic_inputs = vars_to_inject["inputs"]
                         structured_inputs = []
@@ -198,10 +200,7 @@ class TaskRegistry:
                                     ai_desc = expected.get("ai_description", {})
                                     translations = ai_desc.get("translations", {})
                                     desc = translations.get("fi", f"Input data for {key}")
-                                    structured_inputs.append({
-                                        "role_description": desc,
-                                        "content": dynamic_inputs[key]
-                                    })
+                                    structured_inputs.append({"role_description": desc, "content": dynamic_inputs[key]})
                         # Set to vars_to_inject so it replaces {{INPUTS_JSON}}
                         if structured_inputs:
                             vars_to_inject["INPUTS_JSON"] = structured_inputs

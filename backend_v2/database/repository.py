@@ -140,8 +140,6 @@ class AbstractWorkflowRepository(ABC):
     async def delete(self, collection: str, doc_id: str) -> bool:
         pass
 
-
-
     @abstractmethod
     async def create_step(self, step_data: dict[str, Any]) -> str:
         pass
@@ -233,8 +231,6 @@ class AbstractWorkflowRepository(ABC):
     @abstractmethod
     async def delete_agent(self, agent_id: str) -> bool:
         pass
-
-
 
     @abstractmethod
     async def update_component(self, component_id: str, updates: dict[str, Any]) -> str:
@@ -434,7 +430,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def create_raw(self, collection: str, data: dict[str, Any]) -> str:
         doc_id = data.get("id")
         if not doc_id:
-             doc_id = str(uuid.uuid4())
+            doc_id = str(uuid.uuid4())
         return await self.driver.upsert(collection, data, doc_id)
 
     async def delete(self, collection: str, doc_id: str) -> bool:
@@ -447,6 +443,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         import logging
 
         from backend_v2.services.storage import get_storage_driver
+
         driver = get_storage_driver()
         logger = logging.getLogger(__name__)
 
@@ -470,6 +467,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         import logging
 
         from backend_v2.services.storage import get_storage_driver
+
         driver = get_storage_driver()
         logger = logging.getLogger(__name__)
 
@@ -482,16 +480,20 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                     if decoded:
                         data[field] = json.loads(decoded)
                     else:
-                        logger.warning(f"[Repository] Hydration payload is empty for {field} at {data[path_key]}. Defaulting to empty struct.")
+                        logger.warning(
+                            f"[Repository] Hydration payload is empty for {field} at {data[path_key]}. "
+                            "Defaulting to empty struct."
+                        )
                         data[field] = [] if field == "execution_trace" else {}
                 except Exception as e:
                     logger.warning(f"[Repository] Failed to hydrate {field} from {data[path_key]}. Error: {e}")
                     from backend_v2.exceptions import AppException, ErrorCodes
+
                     raise AppException(
                         message=f"Missing blob trace data for {field}.",
                         status_code=500,
-                        details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": data[path_key]}
-                    )
+                        details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": data[path_key]},
+                    ) from e
 
     # --- Executions ---
 
@@ -499,6 +501,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         data = await self.driver.get("executions", execution_id)
         if data:
             from backend_v2.exceptions import AppException
+
             try:
                 await self._hydrate_payloads(data)
                 return ExecutionRecord(**data)
@@ -507,15 +510,14 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 raise
             except Exception as e:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    f"[Repository] Data corruption - "
-                    f"Failed to parse execution {execution_id}: {e}",
+                    f"[Repository] Data corruption - Failed to parse execution {execution_id}: {e}",
                     exc_info=True,
                 )
                 return None
         return None
-
 
     async def get_execution_status(self, execution_id: str) -> str | None:
         data = await self.driver.get("executions", execution_id)
@@ -551,6 +553,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 parsed_results.append(ExecutionRecord(**r))
             except Exception as e:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.error(
                     f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution "
@@ -563,11 +566,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
         filters = [Filter("status", "==", "completed")]
         results = await self.driver.query(
-            "executions",
-            filters=filters,
-            limit=limit,
-            order_by="completed_at",
-            descending=True
+            "executions", filters=filters, limit=limit, order_by="completed_at", descending=True
         )
 
         parsed_results = []
@@ -576,6 +575,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 parsed_results.append(ExecutionRecord(**r))
             except Exception as e:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.error(
                     f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution "
@@ -698,7 +698,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         """Alias for get_step_by_id."""
         return await self.get_step_by_id(step_id)
 
-
     async def create_step(self, step_data: dict[str, Any]) -> str:
         doc_id = step_data["id"]
         return await self.driver.upsert("steps", step_data, doc_id)
@@ -719,19 +718,21 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 for s in wf_steps:
                     if isinstance(s, dict) and (s.get("id") == step_id or s.get("slug") == step_id):
                         from backend_v2.exceptions import AppException, ErrorCodes
-                        wf_id = wf.get('id', 'unknown')
+
+                        wf_id = wf.get("id", "unknown")
                         raise AppException(
                             message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf_id}'.",
                             details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
-                            status_code=400
+                            status_code=400,
                         )
                     elif isinstance(s, str) and s == step_id:
                         from backend_v2.exceptions import AppException, ErrorCodes
-                        wf_id = wf.get('id', 'unknown')
+
+                        wf_id = wf.get("id", "unknown")
                         raise AppException(
                             message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf_id}'.",
                             details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
-                            status_code=400
+                            status_code=400,
                         )
 
         return await self.driver.delete("steps", step_id)
@@ -798,12 +799,13 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             for s in steps:
                 if block_id in s.get("prompt_blocks", []):
                     from backend_v2.exceptions import AppException, ErrorCodes
-                    step_ref = str(s.get('id', 'unknown'))
+
+                    step_ref = str(s.get("id", "unknown"))
                     error_msg = f"Tuhoaminen estetty: PromptBlock '{block_id}' on sidottu Askeleeseen'{step_ref}'."
                     raise AppException(
                         message=str(error_msg),
                         details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
-                        status_code=400
+                        status_code=400,
                     )
 
         return await self.driver.delete("prompt_blocks", block_id)
@@ -852,8 +854,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             return False
         return await self.driver.delete("agents", agent_id)
 
-
-
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
         comp = await self.get_component_by_id(component_id)
         if not comp:
@@ -871,6 +871,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         comp = await self.get_component_by_id(component_id)
         if not comp:
             from backend_v2.exceptions import ResourceNotFoundError
+
             raise ResourceNotFoundError(resource_type="LegacyPromptBlock", resource_id=component_id)
         await self.driver.update("components", component_id, updates)
         return component_id
@@ -947,19 +948,21 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def get_model_registry(self) -> dict[str, Any]:
         from backend_v2.database.driver import Filter
+
         res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")], limit=1)
         res = res_list[0] if res_list else None
         if not res:
             logger.error(
-                "[MockRepository] SYSTEM_CONFIG_NOT_FOUND: "
-                "'model_registry' document is missing from database."
+                "[MockRepository] SYSTEM_CONFIG_NOT_FOUND: 'model_registry' document is missing from database."
             )
             from backend_v2.exceptions import ResourceNotFoundError
+
             raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
         return res
 
     async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
         from backend_v2.database.driver import Filter
+
         res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")], limit=1)
         doc_id = res_list[0]["id"] if res_list else registry_data.get("id", "model_registry")
         if doc_id != "model_registry" and "slug" not in registry_data:
@@ -969,19 +972,19 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def get_mcp_gateways(self) -> dict[str, Any]:
         from backend_v2.database.driver import Filter
+
         res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
         res = res_list[0] if res_list else None
         if not res:
-            logger.error(
-                "[MockRepository] SYSTEM_CONFIG_NOT_FOUND: "
-                "'mcp_gateways' document is missing from database."
-            )
+            logger.error("[MockRepository] SYSTEM_CONFIG_NOT_FOUND: 'mcp_gateways' document is missing from database.")
             from backend_v2.exceptions import ResourceNotFoundError
+
             raise ResourceNotFoundError(resource_type="system_config", resource_id="mcp_gateways")
         return res
 
     async def update_mcp_gateways(self, gateways_data: dict[str, Any]) -> bool:
         from backend_v2.database.driver import Filter
+
         res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
         doc_id = res_list[0]["id"] if res_list else gateways_data.get("id", "cfg_mcpGateways01")
         if doc_id != "cfg_mcpGateways01" and "slug" not in gateways_data:
@@ -991,19 +994,21 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def get_system_settings(self) -> dict[str, Any] | None:
         from backend_v2.database.driver import Filter
+
         res_list = await self.driver.query("system_config", [Filter("type", "==", "global_settings")], limit=1)
         res = res_list[0] if res_list else None
         if not res:
             logger.error(
-                "[MockRepository] SYSTEM_CONFIG_NOT_FOUND: "
-                "'global_settings' document is missing from database."
+                "[MockRepository] SYSTEM_CONFIG_NOT_FOUND: 'global_settings' document is missing from database."
             )
             from backend_v2.exceptions import ResourceNotFoundError
+
             raise ResourceNotFoundError(resource_type="system_config", resource_id="global_settings")
         return res
 
     async def update_system_settings(self, updates: dict[str, Any]) -> bool:
         from backend_v2.database.driver import Filter
+
         res_list = await self.driver.query("system_config", [Filter("type", "==", "global_settings")], limit=1)
         doc_id = res_list[0]["id"] if res_list else updates.get("id", "global_settings")
         if doc_id != "global_settings" and "slug" not in updates:
@@ -1063,6 +1068,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         existing = await self.get_usage_aggregate(scope, entity_id, period)
         if existing:
             import copy
+
             merged = copy.deepcopy(existing)
             merged["total_executions"] = existing.get("total_executions", 0) + update_data.get("total_executions", 0)
 
@@ -1074,7 +1080,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 "total_tokens": ex_usage.get("total_tokens", 0) + up_usage.get("total_tokens", 0),
                 "cached_tokens": ex_usage.get("cached_tokens", 0) + up_usage.get("cached_tokens", 0),
                 "reasoning_tokens": ex_usage.get("reasoning_tokens", 0) + up_usage.get("reasoning_tokens", 0),
-                "cost_usd": ex_usage.get("cost_usd", 0.0) + up_usage.get("cost_usd", 0.0)
+                "cost_usd": ex_usage.get("cost_usd", 0.0) + up_usage.get("cost_usd", 0.0),
             }
             await self.driver.upsert("usage_aggregates", merged, agg_id)
         else:
@@ -1238,6 +1244,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         if since:
             try:
                 from datetime import datetime
+
                 dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
                 period = dt.strftime("%Y-%m")
             except Exception as e:
@@ -1263,7 +1270,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             "completion_tokens": completion_tokens,
             "total_tokens": total_tokens,
             "cached_tokens": cached_tokens,
-            "reasoning_tokens": reasoning_tokens
+            "reasoning_tokens": reasoning_tokens,
         }
 
     # --- Output Profiles ---
@@ -1283,6 +1290,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def delete_output_profile(self, profile_id: str) -> bool:
         return await self.driver.delete("output_profiles", profile_id)
+
 
 class AppendOnlyRepository(UnifiedWorkflowRepository):
     """V2 Append-Only Repository.
@@ -1310,6 +1318,7 @@ class AppendOnlyRepository(UnifiedWorkflowRepository):
         old_doc = await self.get_workflow_by_id(workflow_id)
         if not old_doc:
             from backend_v2.exceptions import WorkflowNotFoundError
+
             raise WorkflowNotFoundError(workflow_id)
 
         # Set old document is_latest to False
@@ -1387,4 +1396,3 @@ class AppendOnlyRepository(UnifiedWorkflowRepository):
 
         await self.driver.upsert("task_blueprints", new_doc, new_id)
         return True
-

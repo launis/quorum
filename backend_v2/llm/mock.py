@@ -65,13 +65,19 @@ class MockLLMService:
 
         # A) Explicit Identity (Robust)
         if agent_identity:
-            key = self.agent_identity_map.get(agent_identity, agent_identity) # Fallback to identity itself if not in map
+            key = self.agent_identity_map.get(
+                agent_identity, agent_identity
+            )  # Fallback to identity itself if not in map
             logger.info(f"[MockLLM] Identified agent via explicit identity: '{agent_identity}' -> '{key}'")
         else:
-             from backend_v2.exceptions import AppException, ErrorCodes
-             msg = "STRICT FAIL-FAST: Mock service was called without an explicit 'agent_identity'. Keyword heuristics are DEPRECATED."
-             logger.error(f"[MockLLM] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            from backend_v2.exceptions import AppException, ErrorCodes
+
+            msg = (
+                "STRICT FAIL-FAST: Mock service was called without an explicit 'agent_identity'. "
+                "Keyword heuristics are DEPRECATED."
+            )
+            logger.error(f"[MockLLM] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         # Replaced manual file write with logger.debug to use standard logging infrastructure
         logger.debug(f"--- NEW CALL ---\nAgent Identity: {agent_identity}\nResolved Key: {key}")

@@ -8,6 +8,7 @@ from backend_v2.models.v2_core import ReportAxisDTO, ReportDataDTO, ReportLayout
 
 logger = logging.getLogger(__name__)
 
+
 class BlueprintTransformer:
     """The Universal Transformer Hub. Parses raw execution results into ReportDataDTO."""
 
@@ -31,12 +32,14 @@ class BlueprintTransformer:
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         from backend_v2.models.state import StateProjector
+
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
 
         locale = accept_language or execution.metadata.get("target_locale", "en")
 
         import typing
+
         def _extract_i18n(val: dict[str, typing.Any] | None) -> dict[str, str]:
             """Ensure payload serializes nested I18nText structures into flat dictionaries to pass Pydantic."""
             if val and isinstance(val, dict):
@@ -106,7 +109,6 @@ class BlueprintTransformer:
         profile_name_dict = _extract_i18n(profile.name.model_dump())
         layout_defs = profile.layouts
 
-
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
         all_blocks = await self.repo.get_all_prompt_blocks()
@@ -118,7 +120,8 @@ class BlueprintTransformer:
         global_score = None
 
         scoring_out = None
-        # Deep search for the unique 'scoring_result' object embedded by the ScoringHook post-hook into ANY dynamical step
+        # Deep search for the unique 'scoring_result' object embedded by the ScoringHook
+        # post-hook into ANY dynamical step
         for step_res in results.values():
             if isinstance(step_res, dict) and "scoring_result" in step_res:
                 scoring_out = step_res["scoring_result"]
@@ -153,12 +156,23 @@ class BlueprintTransformer:
                             if target_blocks and "*" not in target_blocks and k not in target_blocks:
                                 continue
 
-                            is_legacy_score = (k == "score")
+                            is_legacy_score = k == "score"
                             suffix_list = [
-                                "_justification", "_scaled", "_normalized", "_raw",
-                                "_cited_source_id", "_cited_text_quote", "_google_citation",
-                                "_coaching", "_confidence", "_falsification", "_missing_context",
-                                "_risk_flag", "_remediation_steps", "_emotional_sentiment", "_theory_link"
+                                "_justification",
+                                "_scaled",
+                                "_normalized",
+                                "_raw",
+                                "_cited_source_id",
+                                "_cited_text_quote",
+                                "_google_citation",
+                                "_coaching",
+                                "_confidence",
+                                "_falsification",
+                                "_missing_context",
+                                "_risk_flag",
+                                "_remediation_steps",
+                                "_emotional_sentiment",
+                                "_theory_link",
                             ]
                             is_suffix_key = any(k.endswith(sfx) for sfx in suffix_list)
                             if is_suffix_key:
@@ -166,15 +180,19 @@ class BlueprintTransformer:
 
                             block = blocks_by_id.get(k)
 
-                            # Adhere to Fail-Fast / Strict Domain Logic: Only print if key is a known Model Block (or legacy score)
+                            # Adhere to Fail-Fast / Strict Domain Logic: Only print if key is a known Model
+                            # Block (or legacy score)
                             if not block and not is_legacy_score:
                                 continue
 
                             is_matrix_category = block and block.get("category_id") == "matrix"
-                            is_numeric = (isinstance(v, (int, float)) and not isinstance(v, bool)) or str(v).replace('.', '', 1).isdigit()
+                            is_numeric = (isinstance(v, (int, float)) and not isinstance(v, bool)) or str(v).replace(
+                                ".", "", 1
+                            ).isdigit()
                             score_float = None
 
-                            # Strict Rendering: Only allow float scores to be parsed for Matrix categories (or the original global score)
+                            # Strict Rendering: Only allow float scores to be parsed for Matrix categories
+                            # (or the original global score)
                             if is_numeric and (is_matrix_category or is_legacy_score):
                                 try:
                                     score_float = float(v)
@@ -184,7 +202,7 @@ class BlueprintTransformer:
                             axis_name = step_id if is_legacy_score else k
                             axis_description = ""
                             scale_min = 0.0
-                            scale_max = 0.0 # 0.0 cleanly suppresses UI scaling badges if undefined
+                            scale_max = 0.0  # 0.0 cleanly suppresses UI scaling badges if undefined
                             scale_labels = {}
 
                             if block:
@@ -279,7 +297,7 @@ class BlueprintTransformer:
                                     theory_link=theory_link,
                                     scale_min=scale_min,
                                     scale_max=scale_max,
-                                    scale_labels=scale_labels
+                                    scale_labels=scale_labels,
                                 )
 
                 axes = list(unsorted_axes.values())
@@ -303,9 +321,9 @@ class BlueprintTransformer:
                 }
                 mapped_view = preset_map.get(preset_view, "default")
                 from typing import Literal, cast
+
                 preset_view_typed = cast(
-                    Literal["1d_metrics", "2d_compare", "3d_complex", "default", "text_only"],
-                    mapped_view
+                    Literal["1d_metrics", "2d_compare", "3d_complex", "default", "text_only"], mapped_view
                 )
 
                 if axes or preset_view_typed == "text_only":
@@ -350,7 +368,7 @@ class BlueprintTransformer:
             cost = 0.0
 
             if execution.execution_trace:
-                for step_key, step_data in results.items():
+                for _step_key, step_data in results.items():
                     if isinstance(step_data, dict) and "_step_metadata" in step_data:
                         usage = step_data["_step_metadata"].get("token_usage", {})
                         if isinstance(usage, dict):
@@ -370,19 +388,22 @@ class BlueprintTransformer:
 
             # --- V3 SANITY CHECK / HEALTH ALERTS ---
             if t_tokens == 0 and execution.execution_trace:
-                logger.warning(f"[BlueprintTransformer] ALARM: Reporting 0 tokens for execution {execution.id}. Telemetry or V3 metadata sync might be broken.")
-
+                logger.warning(
+                    f"[BlueprintTransformer] ALARM: Reporting 0 tokens for execution {execution.id}. "
+                    "Telemetry or V3 metadata sync might be broken."
+                )
 
             if not layouts_list:
-                logger.warning(f"[BlueprintTransformer] ALARM: 0 Layouts generated for execution {execution.id}. UI will render empty.")
+                logger.warning(
+                    f"[BlueprintTransformer] ALARM: 0 Layouts generated for execution {execution.id}. "
+                    "UI will render empty."
+                )
 
             # Extract MCP Tool Loop audit trail from FrozenContext (XAI Evidence for Frontend)
             mcp_audit_data: list[dict[str, typing.Any]] = []
             if hasattr(execution, "frozen_context") and execution.frozen_context:
                 if hasattr(execution.frozen_context, "mcp_tool_audit") and execution.frozen_context.mcp_tool_audit:
-                    mcp_audit_data = [
-                        t.model_dump(mode="json") for t in execution.frozen_context.mcp_tool_audit
-                    ]
+                    mcp_audit_data = [t.model_dump(mode="json") for t in execution.frozen_context.mcp_tool_audit]
 
             dto = ReportDataDTO(
                 workflow_id=execution.workflow_id,

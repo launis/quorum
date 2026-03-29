@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -17,13 +18,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
         id="exe_abcdefgh123",
         workflow_id="test_wf",
         status=ExecutionStatus.COMPLETED,
-        execution_trace=[
-            TraceEvent(
-                step_name="test_step",
-                event_type="output",
-                content={"ok": True}
-            )
-        ]
+        execution_trace=[TraceEvent(step_name="test_step", event_type="output", content={"ok": True})],
     )
     mock_repo.get_execution.return_value = mock_execution
     mock_repo.get_workflow_by_id.return_value = {"name": {"en": "Workflow Name"}}
@@ -32,16 +27,9 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
-        workflow_id="test_wf",
-        profile_id="prf_test",
-        layouts=[
-            ReportLayoutDTO(
-                preset_view="1d_metrics",
-                axes=[]
-            )
-        ]
+        workflow_id="test_wf", profile_id="prf_test", layouts=[ReportLayoutDTO(preset_view="1d_metrics", axes=[])]
     )
 
     pdf_bytes = await svc.generate_execution_pdf(execution_id="exe_abcdefgh123", report_dto=dto)
     assert pdf_bytes is not None
-    assert type(pdf_bytes) == bytes
+    assert isinstance(pdf_bytes, bytes)

@@ -26,7 +26,9 @@ class OverseerInput(BaseModel):
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
     """
 
-    chat_log: str = Field(..., description="The mandatory conversation history to analyze.", json_schema_extra={"x-ui-label": "Chatlog"})
+    chat_log: str = Field(
+        ..., description="The mandatory conversation history to analyze.", json_schema_extra={"x-ui-label": "Chatlog"}
+    )
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 

@@ -1,0 +1,89 @@
+import asyncio
+from typing import Any
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from backend_v2.core.hook_registry import HookResult
+from backend_v2.exceptions import AppException
+from backend_v2.models.state import ErrorTraceEvent
+from backend_v2.models.v2_core import I18nText, StepRule, Workflow
+from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+
+
+@pytest.fixture
+def mock_repo() -> AsyncMock:
+    repo = AsyncMock()
+    # Mock context rehydration
+    repo.get_execution.return_value = {
+        "id": "exec_tg_123",
+        "workflow_id": "wf_tg_test",
+        "status": "pending",
+        "raw_inputs": {"log": "test"},
+        "metadata": {},
+    }
+    return repo
+
+
+@pytest.fixture
+def mock_compiler() -> AsyncMock:
+    return AsyncMock()
+
+
+@pytest.mark.asyncio
+async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_compiler: AsyncMock) -> None:
+    """Test that asyncio.TaskGroup automatically cancels sibling tasks
+    when one task fails, eradicating zombie threads naturally.
+    """
+    executor = DAGExecutor(repository=mock_repo, prompt_compiler=mock_compiler)
+
+    workflow = Workflow(
+        id="wf_tgtest12345",
+        slug="wf_tg",
+        name=I18nText(default_locale="en", translations={"en": "TG Test"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        steps=[
+            # Two independent steps running in parallel without depends_on
+            StepRule(id="step_fail11111", task_blueprint="bp_fail"),
+            StepRule(id="step_sleep2222", task_blueprint="bp_sleep"),
+        ],
+    )
+
+    # State tracking
+    step_2_cancelled = False
+
+    async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
+        nonlocal step_2_cancelled
+        if step.id == "step_1_fail":
+            # Simulate a quick failure that raises AppException via ErrorTraceEvent
+            return [
+                ErrorTraceEvent(
+                    step_name=step.id, error_code="MOCK_FAIL", error_message="Intentional failure", content={}
+                )
+            ]
+        elif step.id == "step_2_sleep":
+            try:
+                # Sleep long enough for step_1 to fail and TaskGroup to trigger cancellation
+                await asyncio.sleep(5.0)
+                return []
+            except asyncio.CancelledError:
+                step_2_cancelled = True
+                raise
+        return []
+
+    # Bypass the hook registry safely
+    with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+
+        # Patch the actual task execution
+        with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
+            with pytest.raises(AppException) as exc_info:
+                await executor.execute_workflow(
+                    execution_id="exe_tgtg12345678", workflow=workflow, raw_inputs={"log": "test"}
+                )
+
+            # The failure from the first step should unwrap gracefully
+            assert "Intentional failure" in str(exc_info.value), "AppException should propagate properly"
+
+    # CRITICAL: Verify that step_2 was indeed cancelled by the asyncio.TaskGroup manager!
+    assert step_2_cancelled is True, "Sibling task was not cancelled by TaskGroup. Zombie thread isolated!"

@@ -24,6 +24,7 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 logger = logging.getLogger(__name__)
 
+
 class ExecutionService:
     """Domain Service for Orchestration Executions enforcing Tenant Isolation and Authorization."""
 
@@ -41,37 +42,29 @@ class ExecutionService:
                 org_id = getattr(initiator, "organization_id", None)
                 # Filtering logic to only show executions that belong to this organization or user
                 # Currently simple filtering, will evolve as data schema strictly bounds executions to orgs
-                executions = [
-                    e for e in executions
-                    if e.organization_id == org_id or e.created_by == initiator.id
-                ]
+                executions = [e for e in executions if e.organization_id == org_id or e.created_by == initiator.id]
 
             return executions
         except Exception as e:
             msg = f"Failed to list executions: {str(e)}"
             logger.error(f"[ExecutionService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
             raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
             ) from e
 
     async def get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
         """Fetch single execution securely."""
         data = await self.repo.get_execution(execution_id)
         if not data:
-             logger.error(
-                 f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
-                 f"Execution {execution_id} not found or corrupted."
-             )
-             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
-
+            logger.error(
+                f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
+                f"Execution {execution_id} not found or corrupted."
+            )
+            raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
         org_id = getattr(initiator, "organization_id", None)
-        if (initiator.role != "ROOT" and
-            data.organization_id != org_id and
-            data.created_by != initiator.id):
+        if initiator.role != "ROOT" and data.organization_id != org_id and data.created_by != initiator.id:
             msg = "You do not have permission to view this execution."
             logger.error(
                 f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.name}: "
@@ -85,19 +78,21 @@ class ExecutionService:
         """Securely delete an execution."""
         # 1. Raw fetch to bypass hydration (Fail-Fast ResourceNotFound / PermissionDenied).
         # This allows deleting corrupted executions where blob files are missing.
-        raw_data = await self.repo.driver.get("executions", execution_id)
+        repo_driver = getattr(self.repo, "driver", None)
+        raw_data = await repo_driver.get("executions", execution_id) if repo_driver else None
         if not raw_data:
-             logger.error(
-                 f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
-                 f"Execution {execution_id} not found."
-             )
-             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
+            logger.error(
+                f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Execution {execution_id} not found."
+            )
+            raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
         org_id = getattr(initiator, "organization_id", None)
-        if (initiator.role != "ROOT" and
-            raw_data.get("organization_id") != org_id and
-            raw_data.get("created_by") != initiator.id):
+        if (
+            initiator.role != "ROOT"
+            and raw_data.get("organization_id") != org_id
+            and raw_data.get("created_by") != initiator.id
+        ):
             msg = "You do not have permission to delete this execution."
             logger.error(
                 f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.name}: "
@@ -108,36 +103,31 @@ class ExecutionService:
         try:
             # Clean up offloaded blobs if they exist (silently ignore if missing)
             from backend_v2.services.storage import get_storage_driver
+
             storage = get_storage_driver()
             for key in ["execution_trace_storage_path", "frozen_context_storage_path", "pdf_report_path"]:
-                 if raw_data.get(key):
-                     try:
-                         await storage.delete(raw_data[key])
-                     except Exception:
-                         pass
+                if raw_data.get(key):
+                    try:
+                        await storage.delete(raw_data[key])
+                    except Exception:
+                        pass
 
             return await self.repo.delete_execution(execution_id)
         except Exception as e:
             msg = f"Failed to delete execution {execution_id}: {str(e)}"
             logger.error(f"[ExecutionService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
             raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
             ) from e
 
     async def start_execution(
-        self,
-        initiator: TokenData,
-        payload: ExecutionCreate,
-        arq_pool: ArqRedis
+        self, initiator: TokenData, payload: ExecutionCreate, arq_pool: ArqRedis
     ) -> ExecutionRecord:
         """Initialize and trigger workflow securely."""
         workflow_dict = await self.repo.get_workflow_by_id(payload.workflow_id)
         if not workflow_dict:
             logger.error(
-                f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
-                f"Workflow {payload.workflow_id} not found."
+                f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {payload.workflow_id} not found."
             )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=payload.workflow_id)
 
@@ -161,6 +151,7 @@ class ExecutionService:
             step_dict = await self.repo.get_step(step_rule.task_blueprint)
             if not step_dict:
                 from backend_v2.exceptions import ConfigurationError
+
                 msg = f"Missing task blueprint {step_rule.task_blueprint} for DAG."
                 logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
                 raise ConfigurationError(msg)
@@ -175,24 +166,21 @@ class ExecutionService:
             elif isinstance(step_name_raw, str):
                 step_label = step_name_raw
 
-            step_states[step_rule.id] = ExecutionStepState(
-                id=step_rule.id,
-                label=step_label,
-                status="pending"
-            )
+            step_states[step_rule.id] = ExecutionStepState(id=step_rule.id, label=step_label, status="pending")
 
             prompt_blocks_refs = step_dict.get("prompt_blocks", [])
             for pb_id in prompt_blocks_refs:
                 pb_dict = await self.repo.get_prompt_block(pb_id)
                 if not pb_dict:
-                     # V2 strictly says Fail Fast to guarantee auditability:
-                     from backend_v2.exceptions import ConfigurationError
-                     msg = (
-                         f"SDUI Engine Error: PromptBlock '{pb_id}' is missing "
-                         f"but referenced in step '{step_rule.task_blueprint}'."
-                     )
-                     logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
-                     raise ConfigurationError(msg)
+                    # V2 strictly says Fail Fast to guarantee auditability:
+                    from backend_v2.exceptions import ConfigurationError
+
+                    msg = (
+                        f"SDUI Engine Error: PromptBlock '{pb_id}' is missing "
+                        f"but referenced in step '{step_rule.task_blueprint}'."
+                    )
+                    logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    raise ConfigurationError(msg)
 
                 dt = pb_dict.get("type")
 
@@ -209,15 +197,15 @@ class ExecutionService:
                 max_val = 6.0
                 if "scales" in pb_dict and pb_dict["scales"]:
                     try:
-                         # Attempt to find actual scaling max dynamically
-                         max_val = float(max([s.get("score", 0) for s in pb_dict["scales"]]))
+                        # Attempt to find actual scaling max dynamically
+                        max_val = float(max([s.get("score", 0) for s in pb_dict["scales"]]))
                     except Exception:
-                         # Tier 3B Graceful Degradation: Log telemetry but do not crash the UI hint generator
-                         logger.warning(
-                             f"[ExecutionService] SDUI Hint Generator Failed: Could not calculate max_val "
-                             f"for PromptBlock '{pb_id}'. Safely falling back to default max_val={max_val}.",
-                             exc_info=True
-                         )
+                        # Tier 3B Graceful Degradation: Log telemetry but do not crash the UI hint generator
+                        logger.warning(
+                            f"[ExecutionService] SDUI Hint Generator Failed: Could not calculate max_val "
+                            f"for PromptBlock '{pb_id}'. Safely falling back to default max_val={max_val}.",
+                            exc_info=True,
+                        )
 
                 # Extract translation map for UI label
                 label_obj = pb_dict.get("label", {})
@@ -227,7 +215,7 @@ class ExecutionService:
                     field_id=pb_id,
                     component_type=comp_type,
                     options=[{"label": label_obj}] if label_obj else None,
-                    validation_rules={"max": max_val}
+                    validation_rules={"max": max_val},
                 )
 
         # Strict Target Locale from Payload (Fail-Fast)
@@ -243,7 +231,7 @@ class ExecutionService:
             step_states=step_states,
             metadata={"target_locale": target_locale},
             created_by=initiator.id,
-            organization_id=getattr(initiator, "organization_id", None)
+            organization_id=getattr(initiator, "organization_id", None),
         )
 
         await self.repo.create_execution(initial_record.model_dump(mode="json"))
@@ -255,17 +243,12 @@ class ExecutionService:
             inputs=payload.raw_inputs.model_dump(mode="json"),
             execution_id=execution_id,
             organization_id=getattr(initiator, "organization_id", None),
-            user_id=initiator.id
+            user_id=initiator.id,
         )
 
         return initial_record
 
-    async def resume_execution(
-        self,
-        initiator: TokenData,
-        execution_id: str,
-        arq_pool: ArqRedis
-    ) -> ExecutionRecord:
+    async def resume_execution(self, initiator: TokenData, execution_id: str, arq_pool: ArqRedis) -> ExecutionRecord:
         """Securely resume an existing FAILED execution."""
         # 1. Authorize via get (Fail-Fast ResourceNotFound / PermissionDenied)
         record = await self.get_execution(initiator, execution_id)
@@ -276,11 +259,7 @@ class ExecutionService:
                 "Only FAILED or PENDING executions can be resumed."
             )
             logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-            )
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         record.status = ExecutionStatus.RUNNING
         await self.repo.update_execution(execution_id, {"status": "running"})
@@ -292,7 +271,7 @@ class ExecutionService:
             inputs=record.raw_inputs.model_dump(mode="json"),
             execution_id=execution_id,
             organization_id=getattr(initiator, "organization_id", None),
-            user_id=initiator.id
+            user_id=initiator.id,
         )
 
         return record

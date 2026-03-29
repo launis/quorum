@@ -24,17 +24,23 @@ def get_patched_fakeredis_pool() -> ArqRedis:
         from fakeredis.aioredis import FakeRedis
     except ImportError as e:
         logger.warning(f"Failed to import 'fakeredis': {e}. Creating a pure Python Mock pool instead.")
+
         class MockArqPool:
             async def enqueue_job(self, function: str, *args: Any, **kwargs: Any) -> Any:
                 logger.debug(f"[MockArqPool] Enqueued virtual job {function}")
+
                 class MockJob:
                     job_id = "mock_job_123"
+
                 return MockJob()
+
             def close(self) -> None:
                 pass
+
             async def wait_closed(self) -> None:
                 pass
-        return MockArqPool() # type: ignore
+
+        return MockArqPool()  # type: ignore
 
     # Initialize FakeRedis
     # Arq expects a pool-like object, FakeRedis works as one, but needs 'connection_kwargs' for Arq logging

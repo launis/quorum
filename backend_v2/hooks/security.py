@@ -171,7 +171,9 @@ async def check_banned_phrases_hook(state: HookState, deps: HookDependencies) ->
 
     if not inputs:
         # V2 Global Fallback: Text inputs might be flat in the root context
-        inputs = {k: v for k, v in state.global_context_vars.items() if not k.startswith("_sys_") and isinstance(v, str)}
+        inputs = {
+            k: v for k, v in state.global_context_vars.items() if not k.startswith("_sys_") and isinstance(v, str)
+        }
 
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
@@ -185,7 +187,7 @@ async def check_banned_phrases_hook(state: HookState, deps: HookDependencies) ->
         )
 
     all_text = ""
-    for field, val in inputs.items():
+    for _field, val in inputs.items():
         if val:
             text = str(val)
             all_text += text + "\n"

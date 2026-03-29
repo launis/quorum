@@ -15,6 +15,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
+
 class ReasoningTrace(BaseModel):
     """Stores hidden Chain-of-Thought (preserves "Thinking Tokens")."""
 
@@ -69,6 +70,7 @@ class TraceEvent(BaseModel):
 
 class ErrorTraceEvent(TraceEvent):
     """Specific event representing a fail-fast error katkos."""
+
     event_type: Literal["error"] = "error"
     error_code: str = Field(description="The standard ErrorCode string.")
     error_message: str = Field(description="Detailed error message.")
@@ -76,11 +78,9 @@ class ErrorTraceEvent(TraceEvent):
 
 class TombstoneEvent(TraceEvent):
     """Specific event representing GDPR-redacted or deleted data."""
-    event_type: Literal["tombstone"] = "tombstone"
-    redacted_hash: str = Field(
-        description="Cryptographic hash or identifier of the original redacted data."
-    )
 
+    event_type: Literal["tombstone"] = "tombstone"
+    redacted_hash: str = Field(description="Cryptographic hash or identifier of the original redacted data.")
 
 
 class WorkflowState(BaseModel):
@@ -88,9 +88,7 @@ class WorkflowState(BaseModel):
 
     execution_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
     workflow_id: str = Field(..., description="The ID of the workflow definition.")
-    trace_version: int = Field(
-        default=0, description="Optimistic Concurrency Control version."
-    )
+    trace_version: int = Field(default=0, description="Optimistic Concurrency Control version.")
 
     status: Literal["pending", "running", "completed", "failed"] = Field(
         default="pending",
@@ -136,10 +134,7 @@ class WorkflowState(BaseModel):
     def add_event(self, event: TraceEvent) -> WorkflowState:
         """Returns a new WorkflowState with the added event (Functional style)."""
         new_trace = self.execution_trace + [event]
-        return self.model_copy(update={
-            "execution_trace": new_trace,
-            "trace_version": self.trace_version + 1
-        })
+        return self.model_copy(update={"execution_trace": new_trace, "trace_version": self.trace_version + 1})
 
     def get_context(self, key: str, model_class: type[BaseModel] | None = None) -> Any | None:
         """Best Practice: Typed Accessor for Context Variables.
@@ -272,6 +267,7 @@ class WorkflowState(BaseModel):
     @property
     def step_judge_cognitive(self) -> Any | None:
         from backend_v2.models.domain.judge import JudgeOutput
+
         return self.get_context("step_judge_cognitive", JudgeOutput)
 
 
@@ -300,7 +296,7 @@ class StateProjector:
 
     def fold_trace(self, trace: list[TraceEvent], max_tokens: int | None = None) -> dict[str, Any]:
         """Folds the entire trace into a flat read model dictionary.
-        
+
         If max_tokens is provided, reads the trace backwards (newest first),
         accumulating events until the estimated token limit is reached,
         dropping older events to prevent LLM Token Explosion.
@@ -318,6 +314,7 @@ class StateProjector:
         for event in sorted_trace:
             if max_tokens is not None:
                 import json
+
                 event_str = json.dumps(event.content) if isinstance(event.content, dict) else str(event.content)
                 est_tokens = len(event_str) // 4
                 if current_tokens + est_tokens > max_tokens:
@@ -346,4 +343,3 @@ class StateProjector:
             # For GDPR redactions, replace content with a tombstone marker
             redacted_hash = getattr(event, "redacted_hash", "unknown")
             self._snapshot[event.step_name] = {"_redacted": True, "hash": redacted_hash}
-

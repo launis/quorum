@@ -1,6 +1,104 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2669.967" timestamp="2026-03-28T00:33:00.863797+02:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.integration.test_integration_real_llm" name="test_real_llm_e2e_orchestration" time="2669.711"><failure message="Failed: Timeout waiting for background execution to complete.">@pytest.mark.asyncio
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="79" time="1303.920" timestamp="2026-03-29T14:53:58.099231+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.integration.test_e2e_orchestration" name="test_e2e_orchestration" time="36.256"><failure message="AssertionError: Dart simulation script failed.\nSTDOUT:\nRunning build hooks...Running build hooks...2026-03-29 14:54:40 | INFO | [SYSTEM] | client | E2E Simulation Started&#10;  2026-03-29 14:54:40 | INFO | [EXECUTION] | client | Triggering execution for workflow: $workflowId&#10;  2026-03-29 14:54:50 | ERROR | [NETWORK] | client | DioException during execution: ${e.message}&#10;  \nSTDERR:\n&#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['dart', 'run', 'bin/e2e_simulation.dart'], returncode=1, stdout='Running build hooks...Running build hooks...2026-03-29 14:54:40 | INFO | [SYSTEM] | client | E2E Simulation Started\n2026-03-29 14:54:40 | INFO | [EXECUTION] | client | Triggering execution for workflow: $workflowId\n2026-03-29 14:54:50 | ERROR | [NETWORK] | client | DioException during execution: ${e.message}\n', stderr='').returncode">@pytest.mark.order("last")
+    def test_e2e_orchestration() -&gt; None:
+        """End-to-End Orchestration Test for V2 Architecture.
+    
+        Validates the Fail-Fast doctrine and Single Source of Truth by running a simulated
+        Flutter client request against a live FastAPI backend and asserting that both logs
+        are correctly populated during the execution flow.
+        """
+        # 1. Clear previous logs
+        clear_logs()
+    
+        backend_process = None
+        worker_process = None
+        started_by_test = False
+    
+        try:
+            # 2. Liveness Check
+            if not check_backend_health():
+                print("Backend not running. Starting Backend and Worker...")
+                started_by_test = True
+    
+                # Start backend
+                env = os.environ.copy()
+                env["USE_FIREBASE_AUTH"] = "false"
+                env["PYTHONUTF8"] = "1"
+                env["PYTHONIOENCODING"] = "utf-8"
+                env["NO_COLOR"] = "1"
+                env["TERM"] = "dumb"
+                env["PYTHONPATH"] = str(PROJECT_ROOT)
+    
+                backend_log_fp = open(BACKEND_LOG, "a", encoding="utf-8")
+    
+                backend_cmd = (
+                    "chcp 65001 &gt; nul &amp;&amp; uv run python -c "
+                    '"import sys; '
+                    "sys.stdout.reconfigure(encoding='utf-8') "
+                    "if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
+                    "sys.stderr.reconfigure(encoding='utf-8') "
+                    "if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
+                    "import uvicorn; sys.argv=['uvicorn', 'backend_v2.main:app', '--host', '0.0.0.0', '--port', '8000']; "
+                    'uvicorn.main()"'
+                )
+                backend_process = subprocess.Popen(
+                    backend_cmd, cwd=str(PROJECT_ROOT), env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
+                )
+    
+                # Start worker
+                worker_cmd = (
+                    "chcp 65001 &gt; nul &amp;&amp; uv run python -c "
+                    '"import sys; '
+                    "sys.stdout.reconfigure(encoding='utf-8') "
+                    "if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
+                    "sys.stderr.reconfigure(encoding='utf-8') "
+                    "if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
+                    "import runpy; sys.argv=['run_worker.py']; "
+                    "runpy.run_module('backend_v2.run_worker', run_name='__main__', alter_sys=True)\""
+                )
+                worker_process = subprocess.Popen(
+                    worker_cmd, cwd=str(PROJECT_ROOT), env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
+                )
+    
+                # Wait for backend to be healthy
+                max_retries = 30
+                for _i in range(max_retries):
+                    if check_backend_health():
+                        print("Backend and Worker started successfully.")
+                        break
+                    time.sleep(1)
+                else:
+                    pytest.fail("Failed to start backend within 30 seconds.")
+            else:
+                print("Backend is already running. Reusing existing instance.")
+    
+            # 3. Execution (Run Dart script)
+            print("Running Dart E2E Simulation...")
+            dart_cmd = ["dart", "run", "bin/e2e_simulation.dart"]
+            result = subprocess.run(
+                dart_cmd, cwd=str(DART_SCRIPT_DIR), capture_output=True, text=True, shell=os.name == "nt"
+            )
+    
+            # Print script output for debugging if it fails
+            print("Dart Script STDOUT:", result.stdout)
+            print("Dart Script STDERR:", result.stderr)
+    
+            # We expect the dart script to either succeed or cleanly fail with known logs.
+            # Epic 16 uses real LLM, but here we just need to ensure the logs are populated.
+            # But wait, execution will fail if Redis isn't running, etc. If it returns non-zero,
+            # we still check the logs because it might test failures too, but it should succeed.
+&gt;           assert result.returncode == 0, (
+                f"Dart simulation script failed.\\nSTDOUT:\\n{result.stdout}\\nSTDERR:\\n{result.stderr}"
+            )
+E           AssertionError: Dart simulation script failed.\nSTDOUT:\nRunning build hooks...Running build hooks...2026-03-29 14:54:40 | INFO | [SYSTEM] | client | E2E Simulation Started
+E             2026-03-29 14:54:40 | INFO | [EXECUTION] | client | Triggering execution for workflow: $workflowId
+E             2026-03-29 14:54:50 | ERROR | [NETWORK] | client | DioException during execution: ${e.message}
+E             \nSTDERR:\n
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['dart', 'run', 'bin/e2e_simulation.dart'], returncode=1, stdout='Running build hooks...Running build hooks...2026-03-29 14:54:40 | INFO | [SYSTEM] | client | E2E Simulation Started\n2026-03-29 14:54:40 | INFO | [EXECUTION] | client | Triggering execution for workflow: $workflowId\n2026-03-29 14:54:50 | ERROR | [NETWORK] | client | DioException during execution: ${e.message}\n', stderr='').returncode
+
+backend_v2\tests\integration\test_e2e_orchestration.py:128: AssertionError</failure></testcase><testcase classname="backend_v2.tests.integration.test_integration_real_llm" name="test_real_llm_e2e_orchestration" time="1247.830"><failure message="Failed: Timeout waiting for background execution to complete.">@pytest.mark.asyncio
     @pytest.mark.order("last")
-    async def test_real_llm_e2e_orchestration():
+    async def test_real_llm_e2e_orchestration() -&gt; None:
         """Live E2E test coordinating the Dart Client Simulation and the FastAPI Backend."""
         if not os.path.exists(INPUTS_FILE):
             pytest.skip(f"Inputs file not found at {INPUTS_FILE}. Skipping E2E test.")
@@ -9,11 +107,10 @@
         if not has_old_trace:
             logger.warning(f"Original trace not found at {ORIGINAL_TRACE_FILE}. Will skip structural deep comparison.")
     
-    
         clear_logs()
     
         backend_process = None
-        worker_process = None # Initialize worker_process
+        worker_process = None  # Initialize worker_process
         if not is_backend_running():
             logger.info("Backend is not running. Starting local FastAPI instance on port 8000.")
             env = os.environ.copy()
@@ -26,36 +123,26 @@
             backend_log_fp = open(BACKEND_LOG_FILE, "a", encoding="utf-8")
             backend_cmd = (
                 "chcp 65001 &gt; nul &amp;&amp; uv run python -c "
-                "\"import sys; "
+                '"import sys; '
                 "sys.stdout.reconfigure(encoding='utf-8') if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
                 "sys.stderr.reconfigure(encoding='utf-8') if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
                 "import uvicorn; sys.argv=['uvicorn', 'backend_v2.main:app', '--host', '0.0.0.0', '--port', '8000']; "
-                "uvicorn.main()\""
+                'uvicorn.main()"'
             )
             backend_process = subprocess.Popen(
-                backend_cmd,
-                cwd=WORKSPACE_ROOT,
-                env=env,
-                stdout=backend_log_fp,
-                stderr=subprocess.STDOUT,
-                shell=True
+                backend_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
             )
     
             worker_cmd = (
                 "chcp 65001 &gt; nul &amp;&amp; uv run python -c "
-                "\"import sys; "
+                '"import sys; '
                 "sys.stdout.reconfigure(encoding='utf-8') if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
                 "sys.stderr.reconfigure(encoding='utf-8') if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
                 "import runpy; sys.argv=['run_worker.py']; "
                 "runpy.run_module('backend_v2.run_worker', run_name='__main__', alter_sys=True)\""
             )
             worker_process = subprocess.Popen(
-                worker_cmd,
-                cwd=WORKSPACE_ROOT,
-                env=env,
-                stdout=backend_log_fp,
-                stderr=subprocess.STDOUT,
-                shell=True
+                worker_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
             )
     
             # Wait for boot
@@ -76,13 +163,13 @@
             logger.info("Triggering Dart E2E Client Simulation...")
     
             # We use flutter test because LoggerService depends on package:flutter framework libraries.
-            flutter_cmd = "flutter test test/e2e_client_test.dart" if os.name == "nt" else ["flutter", "test", "test/e2e_client_test.dart"]
+            flutter_cmd = (
+                "flutter test test/e2e_client_test.dart"
+                if os.name == "nt"
+                else ["flutter", "test", "test/e2e_client_test.dart"]
+            )
             result = subprocess.run(
-                flutter_cmd,
-                cwd=client_dir,
-                capture_output=True,
-                text=True,
-                shell=os.name == "nt"
+                flutter_cmd, cwd=client_dir, capture_output=True, text=True, encoding="utf-8", shell=os.name == "nt"
             )
     
             if result.returncode != 0:
@@ -97,16 +184,18 @@
             # Ensure the test data directory exists
             os.makedirs(os.path.dirname(NEW_TRACE_FILE), exist_ok=True)
     
-            max_retries = int(WAIT_TIMEOUT / 2) # e.g. 600 seconds limit
+            max_retries = int(WAIT_TIMEOUT / 2)  # e.g. 600 seconds limit
             completed_trace = None
-            for i in range(max_retries):
+            for _i in range(max_retries):
                 time.sleep(2)
                 try:
                     with open(db_path, encoding="utf-8") as f:
                         db_data = json.load(f)
     
                     # Get the latest execution for this workflow
-                    executions = [v for k,v in db_data.get("executions", {}).items() if v.get("workflow_id") == TARGET_WORKFLOW_ID]
+                    executions = [
+                        v for k, v in db_data.get("executions", {}).items() if v.get("workflow_id") == TARGET_WORKFLOW_ID
+                    ]
                     if not executions:
                         continue
     
@@ -123,4 +212,93 @@
 &gt;               pytest.fail("Timeout waiting for background execution to complete.")
 E               Failed: Timeout waiting for background execution to complete.
 
-backend_v2\tests\integration\test_integration_real_llm.py:228: Failed</failure></testcase></testsuite></testsuites>
+backend_v2\tests\integration\test_integration_real_llm.py:228: Failed</failure></testcase><testcase classname="backend_v2.tests.test_pdf_generator" name="test_pdf_generator_chart_injection_failure_safe" time="0.215" /><testcase classname="backend_v2.tests.test_static_charts" name="test_generate_scatter_chart" time="0.113" /><testcase classname="backend_v2.tests.test_static_charts" name="test_generate_radar_chart" time="0.109" /><testcase classname="backend_v2.tests.test_static_charts" name="test_empty_scatter" time="0.001" /><testcase classname="backend_v2.tests.test_static_charts" name="test_empty_radar" time="0.001" /><testcase classname="backend_v2.tests.unit.test_api_prompt_blocks" name="test_get_prompt_blocks" time="0.022" /><testcase classname="backend_v2.tests.unit.test_api_prompt_blocks" name="test_delete_prompt_block" time="0.010" /><testcase classname="backend_v2.tests.unit.test_api_seed_mutations" name="test_seed_workflow_happy_path" time="0.533" /><testcase classname="backend_v2.tests.unit.test_api_seed_mutations" name="test_seed_workflow_legal_mutations" time="0.043" /><testcase classname="backend_v2.tests.unit.test_api_seed_mutations" name="test_seed_workflow_illegal_orphan" time="0.041" /><testcase classname="backend_v2.tests.unit.test_api_seed_mutations" name="test_seed_workflow_illegal_input_contradiction" time="0.038" /><testcase classname="backend_v2.tests.unit.test_api_seed_mutations" name="test_seed_prompt_block_illegal_mutation" time="0.038" /><testcase classname="backend_v2.tests.unit.test_api_seed_mutations" name="test_seed_step_illegal_mutation" time="0.034" /><testcase classname="backend_v2.tests.unit.test_api_workflow_fail_fast" name="test_workflow_api_fails_fast_on_invalid_model_strategy" time="0.030" /><testcase classname="backend_v2.tests.unit.test_api_workflow_fail_fast" name="test_workflow_api_fails_fast_on_invalid_step_id" time="0.030" /><testcase classname="backend_v2.tests.unit.test_api_workflow_fail_fast" name="test_workflow_api_strips_illegal_step_attributes" time="0.031" /><testcase classname="backend_v2.tests.unit.test_api_workflow_fail_fast" name="test_prompt_block_api_fails_fast_on_invalid_type" time="0.029" /><testcase classname="backend_v2.tests.unit.test_api_workflow_fail_fast" name="test_step_api_fails_fast_on_invalid_extra_attributes" time="0.029" /><testcase classname="backend_v2.tests.unit.test_api_workflow_fail_fast" name="test_workflow_api_fails_fast_on_orphan_dependency" time="0.030" /><testcase classname="backend_v2.tests.unit.test_api_workflow_fail_fast" name="test_workflow_api_fails_fast_on_cyclic_dependency" time="0.028" /><testcase classname="backend_v2.tests.unit.test_api_workflow_fail_fast" name="test_workflow_api_succeeds_with_valid_data" time="0.029" /><testcase classname="backend_v2.tests.unit.test_api_workflows" name="test_workflow_rbac_save_member_forbidden" time="0.033" /><testcase classname="backend_v2.tests.unit.test_api_workflows" name="test_workflow_rbac_delete_member_forbidden" time="0.030" /><testcase classname="backend_v2.tests.unit.test_auth_models" name="test_organization_fail_fast_on_corrupt_datetime" time="0.003" /><testcase classname="backend_v2.tests.unit.test_auth_models" name="test_organization_fail_fast_on_corrupt_subscription" time="0.003" /><testcase classname="backend_v2.tests.unit.test_auth_models" name="test_user_fail_fast_on_corrupt_datetime" time="0.002" /><testcase classname="backend_v2.tests.unit.test_auth_models" name="test_user_fail_fast_on_corrupt_role" time="0.004" /><testcase classname="backend_v2.tests.unit.test_blueprint_transformer" name="test_build_report_dto_maps_correctly" time="0.007" /><testcase classname="backend_v2.tests.unit.test_blueprint_transformer" name="test_graceful_degradation_missing_fields" time="0.005" /><testcase classname="backend_v2.tests.unit.test_dag_executor_prompt_blocks" name="test_dag_executor_uses_prompt_blocks_instead_of_matrices" time="0.033" /><testcase classname="backend_v2.tests.unit.test_dag_taskgroup" name="test_taskgroup_cancels_sibling_on_error" time="0.004"><failure message="pydantic_core._pydantic_core.ValidationError: 1 validation error for ExecutionRecord&#10;id&#10;  String should match pattern '^([a-z]+)_[a-zA-Z0-9]{8,}$' [type=string_pattern_mismatch, input_value='exec_tg_123', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.12/v/string_pattern_mismatch">mock_repo = &lt;AsyncMock id='2033536003648'&gt;
+mock_compiler = &lt;AsyncMock id='2033536419888'&gt;
+
+    @pytest.mark.asyncio
+    async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_compiler: AsyncMock) -&gt; None:
+        """Test that asyncio.TaskGroup automatically cancels sibling tasks
+        when one task fails, eradicating zombie threads naturally.
+        """
+        executor = DAGExecutor(repository=mock_repo, prompt_compiler=mock_compiler)
+    
+        workflow = Workflow(
+            id="wf_tgtest12345",
+            slug="wf_tg",
+            name=I18nText(default_locale="en", translations={"en": "TG Test"}),
+            description=I18nText(default_locale="en", translations={"en": "Desc"}),
+            steps=[
+                # Two independent steps running in parallel without depends_on
+                StepRule(id="step_fail11111", task_blueprint="bp_fail"),
+                StepRule(id="step_sleep2222", task_blueprint="bp_sleep"),
+            ],
+        )
+    
+        # State tracking
+        step_2_cancelled = False
+    
+        async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -&gt; list[Any]:
+            nonlocal step_2_cancelled
+            if step.id == "step_1_fail":
+                # Simulate a quick failure that raises AppException via ErrorTraceEvent
+                return [
+                    ErrorTraceEvent(
+                        step_name=step.id, error_code="MOCK_FAIL", error_message="Intentional failure", content={}
+                    )
+                ]
+            elif step.id == "step_2_sleep":
+                try:
+                    # Sleep long enough for step_1 to fail and TaskGroup to trigger cancellation
+                    await asyncio.sleep(5.0)
+                    return []
+                except asyncio.CancelledError:
+                    step_2_cancelled = True
+                    raise
+            return []
+    
+        # Bypass the hook registry safely
+        with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
+            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+    
+            # Patch the actual task execution
+            with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
+                with pytest.raises(AppException) as exc_info:
+&gt;                   await executor.execute_workflow(
+                        execution_id="exec_tg_123", workflow=workflow, raw_inputs={"log": "test"}
+                    )
+
+backend_v2\tests\unit\test_dag_taskgroup.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend_v2.services.orchestrator.dag_executor.DAGExecutor object at 0x000001D943B52850&gt;
+execution_id = 'exec_tg_123'
+workflow = Workflow(id='wf_tgtest12345', slug='wf_tg', name=I18nText(default_locale='en', translations={'en': 'TG Test'}), descri...2222', task_blueprint='bp_sleep', depends_on=[], input_mappings={}, allowed_mcp_tools=[], ui_pos_x=0.0, ui_pos_y=0.0)])
+raw_inputs = {'log': 'test'}
+
+    async def execute_workflow(
+        self, execution_id: str, workflow: Workflow, raw_inputs: dict[str, Any]
+    ) -&gt; ExecutionRecord:
+        """Main entrypoint for Workflow Execution."""
+        # Fast Fail validation
+        from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+    
+        DAGCompilerService.validate_workflow(workflow)
+    
+        self.committer.execution_id = execution_id
+    
+        # 1. State Rehydration / Initialization
+        existing_record_dict = await self.repository.get_execution(execution_id)
+    
+        step_states = {
+            step.id: ExecutionStepState(id=step.id, label=step.id, status="pending") for step in workflow.steps
+        }
+    
+        if existing_record_dict:
+&gt;           exec_record = ExecutionRecord.model_validate(existing_record_dict)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           pydantic_core._pydantic_core.ValidationError: 1 validation error for ExecutionRecord
+E           id
+E             String should match pattern '^([a-z]+)_[a-zA-Z0-9]{8,}$' [type=string_pattern_mismatch, input_value='exec_tg_123', input_type=str]
+E               For further information visit https://errors.pydantic.dev/2.12/v/string_pattern_mismatch
+
+backend_v2\services\orchestrator\dag_executor.py:166: ValidationError</failure></testcase><testcase classname="backend_v2.tests.unit.test_exceptions" name="test_format_validation_error_valid_pydantic" time="0.001" /><testcase classname="backend_v2.tests.unit.test_exceptions" name="test_format_validation_error_internal_error" time="0.004" /><testcase classname="backend_v2.tests.unit.test_execution_service" name="test_resume_execution_fails_fast_on_invalid_state" time="0.006" /><testcase classname="backend_v2.tests.unit.test_falsifier_models" name="test_falsifier_fail_fast_on_corrupt_fidelity_level" time="0.004" /><testcase classname="backend_v2.tests.unit.test_falsifier_models" name="test_falsifier_fails_fast_on_invalid_numeric_score" time="0.013" /><testcase classname="backend_v2.tests.unit.test_guard_models" name="test_guard_fails_fast_on_invalid_risk_level" time="0.008" /><testcase classname="backend_v2.tests.unit.test_guard_models" name="test_guard_fails_fast_on_invalid_simulation_type" time="0.004" /><testcase classname="backend_v2.tests.unit.test_hooks_validation" name="test_verify_output_language_detects_english_leakage" time="0.002" /><testcase classname="backend_v2.tests.unit.test_hooks_validation" name="test_verify_output_language_ignores_finnish_text" time="0.001" /><testcase classname="backend_v2.tests.unit.test_hooks_validation" name="test_verify_output_language_allows_english_when_target_en" time="0.001" /><testcase classname="backend_v2.tests.unit.test_llm_dependency" name="test_llm_dep" time="0.005" /><testcase classname="backend_v2.tests.unit.test_llm_dependency" name="test_llm_handler_dependency_injection" time="0.016" /><testcase classname="backend_v2.tests.unit.test_logging_config" name="test_setup_logging_litellm_internal_error" time="0.005" /><testcase classname="backend_v2.tests.unit.test_main_startup" name="test_main_startup_logfire_error_fail_fast" time="0.005" /><testcase classname="backend_v2.tests.unit.test_matrix_data_integrity" name="test_all_bars_matrices_allow_decimals" time="0.005" /><testcase classname="backend_v2.tests.unit.test_matrix_data_integrity" name="test_all_bars_matrices_use_discrete_integer_scores" time="0.001" /><testcase classname="backend_v2.tests.unit.test_matrix_data_integrity" name="test_blueprints_have_normalization_hook" time="0.001" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_tool_loop_no_tools_passthrough" time="0.004" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_tool_loop_single_search" time="0.006" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_tool_loop_max_calls_enforced" time="0.007" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_tool_loop_tavily_failure_graceful" time="0.007" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_tool_call_id_preserved_from_llm" time="0.005" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_build_tool_evidence_message_uses_explicit_id" time="0.001" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_build_tool_evidence_message_empty_results" time="0.001" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_phase2_messages_contain_tool_roles" time="0.005" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_static_tool_call_id_causes_mismatch" time="0.001" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_llm_response_accepts_tool_call_messages" time="0.001" /><testcase classname="backend_v2.tests.unit.test_mcp_tool_loop" name="test_llm_response_rejects_missing_content" time="0.001" /><testcase classname="backend_v2.tests.unit.test_output_profile_models" name="test_output_profile_layout_fails_fast_on_invalid_layout_type" time="0.005" /><testcase classname="backend_v2.tests.unit.test_output_profile_models" name="test_output_profile_layout_fails_fast_on_empty_components" time="0.002" /><testcase classname="backend_v2.tests.unit.test_performativity_models" name="test_performativity_fails_fast_on_invalid_authenticity" time="0.005" /><testcase classname="backend_v2.tests.unit.test_prompt_compiler" name="test_prompt_compiler_deep_matrix_schema" time="0.002" /><testcase classname="backend_v2.tests.unit.test_prompt_compiler" name="test_prompt_compiler_dynamic_extraction_resilience" time="0.005" /><testcase classname="backend_v2.tests.unit.test_repo_deletion" name="test_delete_prompt_block_blocks_orphan_data" time="0.004" /><testcase classname="backend_v2.tests.unit.test_run_worker" name="test_run_worker_main_keyboard_interrupt" time="0.092" /><testcase classname="backend_v2.tests.unit.test_scoring" name="test_normalize_matrix_scores_fails_on_corrupt_scale" time="0.006" /><testcase classname="backend_v2.tests.unit.test_tavily_client" name="test_tavily_search_happy_path" time="0.008" /><testcase classname="backend_v2.tests.unit.test_tavily_client" name="test_tavily_search_missing_api_key" time="0.005" /><testcase classname="backend_v2.tests.unit.test_tavily_client" name="test_tavily_search_network_failure" time="0.010" /><testcase classname="backend_v2.tests.unit.test_v2_core_models" name="test_prompt_block_fail_fast_on_corrupt_type" time="0.005" /><testcase classname="backend_v2.tests.unit.test_v2_core_models" name="test_mcp_audit_trace_fail_fast_on_corrupt_timestamp" time="0.004" /><testcase classname="backend_v2.tests.unit.test_v2_core_models" name="test_execution_record_fail_fast_on_corrupt_status" time="0.004" /><testcase classname="backend_v2.tests.unit.test_v2_core_strictness" name="test_prompt_block_allow_decimals_requires_numeric" time="0.002" /><testcase classname="backend_v2.tests.unit.test_v2_core_strictness" name="test_step_validation_fails_on_empty_execution_logic" time="0.002" /><testcase classname="backend_v2.tests.unit.test_xai_extensions" name="test_xai_extensions_schema_generation_happy_path" time="0.004" /><testcase classname="backend_v2.tests.unit.test_xai_extensions" name="test_xai_extensions_validation_failures" time="0.004" /></testsuite></testsuites>

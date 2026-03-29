@@ -9,6 +9,7 @@ class BlockDataType(str, Enum):
     """Data types allowed for PromptBlock extracted values.
     Accepts core extraction types, plus valid legacy structural types.
     """
+
     FLOAT = "float"
     INT = "int"
     STRING = "string"
@@ -18,8 +19,10 @@ class BlockDataType(str, Enum):
     QUESTION = "question"
     CRITERIA = "criteria"
 
+
 class ComponentType(str, Enum):
     """Component types allowed for SDUI Frontend Hint mapping."""
+
     SLIDER = "slider"
     TEXT_INPUT = "text_input"
     DROPDOWN = "dropdown"
@@ -27,22 +30,24 @@ class ComponentType(str, Enum):
     HIDDEN = "hidden"
 
 
-
 class ExecutionStatus(str, Enum):
     """Execution lifecycle status."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
 
+
 class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
+
     MAX_CONCURRENT_WORKFLOWS = 1
     MAX_CONCURRENT_LLM_STEPS = 2
     LLM_MAX_RETRIES = 10
 
-# --- Restored V1 Enums ---
 
+# --- Restored V1 Enums ---
 
 
 class RiskLevel(str, Enum):
@@ -105,8 +110,6 @@ class RoleClassification(str, Enum):
 
 
 class ScoringPenalty(str, Enum):
-
-
     SECURITY_THREAT = "PENALTY_SECURITY_THREAT"
     POST_HOC = "PENALTY_POST_HOC"
 

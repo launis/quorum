@@ -12,5 +12,6 @@ def test_run_worker_main_keyboard_interrupt(monkeypatch: Any) -> None:
         mock_create.side_effect = KeyboardInterrupt()
         with pytest.raises(SystemExit) as exc:
             import asyncio
+
             asyncio.run(backend_v2.run_worker.main())
         assert exc.value.code == 0

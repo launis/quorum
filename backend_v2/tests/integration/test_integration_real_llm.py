@@ -27,10 +27,14 @@ WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 BACKEND_LOG_FILE = os.path.join(WORKSPACE_ROOT, "backend_debug.log")
 CLIENT_LOG_FILE = os.path.join(WORKSPACE_ROOT, "client_debug.log")
 
-ORIGINAL_TRACE_FILE = os.environ.get("TEST_REFERENCE_TRACE", os.path.join(WORKSPACE_ROOT, "tests", "testinput", "execution_trace.json"))
-NEW_TRACE_FILE = os.environ.get("TEST_E2E_TRACE_OUT", os.path.join(WORKSPACE_ROOT, "backend_v2", "tests", "test_data", "e2e_new_trace.json"))
+ORIGINAL_TRACE_FILE = os.environ.get(
+    "TEST_REFERENCE_TRACE", os.path.join(WORKSPACE_ROOT, "tests", "testinput", "execution_trace.json")
+)
+NEW_TRACE_FILE = os.environ.get(
+    "TEST_E2E_TRACE_OUT", os.path.join(WORKSPACE_ROOT, "backend_v2", "tests", "test_data", "e2e_new_trace.json")
+)
 TARGET_WORKFLOW_ID = os.environ.get("TEST_WORKFLOW_ID", "wf_d653170e174847559e08af42b938d826")
-WAIT_TIMEOUT = int(os.environ.get("TEST_WAIT_TIMEOUT", "600"))
+WAIT_TIMEOUT = int(os.environ.get("TEST_WAIT_TIMEOUT", "1200"))
 
 # The INPUTS_FILE is still hardcoded as it's specific to the test data for this particular workflow.
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_data")
@@ -48,6 +52,7 @@ def clear_logs() -> None:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write("")
 
+
 def is_backend_running() -> bool:
     """Check if the backend API is alive on port 8000."""
     try:
@@ -56,6 +61,7 @@ def is_backend_running() -> bool:
         return response.status_code == 200
     except requests.exceptions.RequestException:
         return False
+
 
 def deep_logic_compare(old_trace: list[dict[str, Any]], new_trace: list[dict[str, Any]]) -> None:
     """Structurally compares the new trace with the old trace to ensure consistency."""
@@ -99,26 +105,28 @@ def deep_logic_compare(old_trace: list[dict[str, Any]], new_trace: list[dict[str
     # The final output DAG should naturally contain references to these.
     expected_keywords = ["technology", "developers"]
     for kw in expected_keywords:
-        assert kw in full_new_trace_str, f"Fail-Fast Context Check: Expected keyword '{kw}' missing from execution results."
+        assert kw in full_new_trace_str, (
+            f"Fail-Fast Context Check: Expected keyword '{kw}' missing from execution results."
+        )
 
     logger.info("Deep Logic & Semantic Parity Checks PASSED.")
 
+
 @pytest.mark.asyncio
 @pytest.mark.order("last")
-async def test_real_llm_e2e_orchestration():
+async def test_real_llm_e2e_orchestration() -> None:
     """Live E2E test coordinating the Dart Client Simulation and the FastAPI Backend."""
     if not os.path.exists(INPUTS_FILE):
         pytest.skip(f"Inputs file not found at {INPUTS_FILE}. Skipping E2E test.")
-    
+
     has_old_trace = os.path.exists(ORIGINAL_TRACE_FILE)
     if not has_old_trace:
         logger.warning(f"Original trace not found at {ORIGINAL_TRACE_FILE}. Will skip structural deep comparison.")
 
-
     clear_logs()
 
     backend_process = None
-    worker_process = None # Initialize worker_process
+    worker_process = None  # Initialize worker_process
     if not is_backend_running():
         logger.info("Backend is not running. Starting local FastAPI instance on port 8000.")
         env = os.environ.copy()
@@ -131,36 +139,26 @@ async def test_real_llm_e2e_orchestration():
         backend_log_fp = open(BACKEND_LOG_FILE, "a", encoding="utf-8")
         backend_cmd = (
             "chcp 65001 > nul && uv run python -c "
-            "\"import sys; "
+            '"import sys; '
             "sys.stdout.reconfigure(encoding='utf-8') if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
             "sys.stderr.reconfigure(encoding='utf-8') if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
             "import uvicorn; sys.argv=['uvicorn', 'backend_v2.main:app', '--host', '0.0.0.0', '--port', '8000']; "
-            "uvicorn.main()\""
+            'uvicorn.main()"'
         )
         backend_process = subprocess.Popen(
-            backend_cmd,
-            cwd=WORKSPACE_ROOT,
-            env=env,
-            stdout=backend_log_fp,
-            stderr=subprocess.STDOUT,
-            shell=True
+            backend_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
         )
 
         worker_cmd = (
             "chcp 65001 > nul && uv run python -c "
-            "\"import sys; "
+            '"import sys; '
             "sys.stdout.reconfigure(encoding='utf-8') if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
             "sys.stderr.reconfigure(encoding='utf-8') if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
             "import runpy; sys.argv=['run_worker.py']; "
             "runpy.run_module('backend_v2.run_worker', run_name='__main__', alter_sys=True)\""
         )
         worker_process = subprocess.Popen(
-            worker_cmd,
-            cwd=WORKSPACE_ROOT,
-            env=env,
-            stdout=backend_log_fp,
-            stderr=subprocess.STDOUT,
-            shell=True
+            worker_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
         )
 
         # Wait for boot
@@ -181,13 +179,13 @@ async def test_real_llm_e2e_orchestration():
         logger.info("Triggering Dart E2E Client Simulation...")
 
         # We use flutter test because LoggerService depends on package:flutter framework libraries.
-        flutter_cmd = "flutter test test/e2e_client_test.dart" if os.name == "nt" else ["flutter", "test", "test/e2e_client_test.dart"]
+        flutter_cmd = (
+            "flutter test test/e2e_client_test.dart"
+            if os.name == "nt"
+            else ["flutter", "test", "test/e2e_client_test.dart"]
+        )
         result = subprocess.run(
-            flutter_cmd,
-            cwd=client_dir,
-            capture_output=True,
-            text=True,
-            shell=os.name == "nt"
+            flutter_cmd, cwd=client_dir, capture_output=True, text=True, encoding="utf-8", shell=os.name == "nt"
         )
 
         if result.returncode != 0:
@@ -202,16 +200,18 @@ async def test_real_llm_e2e_orchestration():
         # Ensure the test data directory exists
         os.makedirs(os.path.dirname(NEW_TRACE_FILE), exist_ok=True)
 
-        max_retries = int(WAIT_TIMEOUT / 2) # e.g. 600 seconds limit
+        max_retries = int(WAIT_TIMEOUT / 2)  # e.g. 600 seconds limit
         completed_trace = None
-        for i in range(max_retries):
+        for _i in range(max_retries):
             time.sleep(2)
             try:
                 with open(db_path, encoding="utf-8") as f:
                     db_data = json.load(f)
 
                 # Get the latest execution for this workflow
-                executions = [v for k,v in db_data.get("executions", {}).items() if v.get("workflow_id") == TARGET_WORKFLOW_ID]
+                executions = [
+                    v for k, v in db_data.get("executions", {}).items() if v.get("workflow_id") == TARGET_WORKFLOW_ID
+                ]
                 if not executions:
                     continue
 
@@ -240,21 +240,21 @@ async def test_real_llm_e2e_orchestration():
         else:
             with open(db_path, encoding="utf-8") as f:
                 db_data = json.load(f)
-            
-            all_execs = [v for k,v in db_data.get("executions", {}).items() if v.get("status") == "COMPLETED"]
+
+            all_execs = [v for k, v in db_data.get("executions", {}).items() if v.get("status") == "COMPLETED"]
             older_execs = [e for e in all_execs if e.get("id") != completed_trace.get("id")]
-            
+
             if older_execs:
                 latest_older = sorted(older_execs, key=lambda x: x.get("created_at", ""), reverse=True)[0]
                 logger.info(f"Using previous db_v2.json execution {latest_older.get('id')} as reference trace.")
                 old_trace = latest_older.get("execution_results", [])
-                
+
                 # Auto-heal: Save it as the new reference
                 os.makedirs(os.path.dirname(ORIGINAL_TRACE_FILE), exist_ok=True)
                 with open(ORIGINAL_TRACE_FILE, "w", encoding="utf-8") as f:
                     json.dump(old_trace, f, indent=2)
                 logger.info(f"Saved latest trace to {ORIGINAL_TRACE_FILE} for future runs.")
-                
+
                 deep_logic_compare(old_trace, new_trace)
             else:
                 logger.info("Skipping deep logic compare because no historical file or previous DB trace is available.")

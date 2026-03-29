@@ -20,6 +20,7 @@ from backend_v2.models.v2_core import I18nText
 
 class LayoutType(str, Enum):
     """Supported render types for Output Profiles."""
+
     AUTOMATIC = "automatic"
     BOX_1D = "box_1d"
     MATRIX_2D = "matrix_2d"
@@ -83,6 +84,7 @@ class OutputProfile(BaseModel):
     @classmethod
     def validate_id_opaque(cls, v: str) -> str:
         import re
+
         if not re.match(r"^([a-z]+)_[a-zA-Z0-9]{8,}$", v):
             msg = f"Profile ID '{v}' does not match Opaque Stripe Pattern."
             logger.error(f"[OutputProfileDomain] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")

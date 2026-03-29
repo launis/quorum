@@ -13,7 +13,16 @@ async def test_studio_workflow_blueprint_saving_valid() -> None:
         "slug": "wf_test_1",
         "name": "Test Workflow",
         "description": "Test description",
-        "expected_inputs": [{"input_key": "doc", "label": {"translations": {"en": "Doc"}, "default_locale": "en"}, "required": True, "input_modes": ["file"], "description": {"translations": {"en": "desc"}, "default_locale": "en"}, "ai_description": "ai"}],
+        "expected_inputs": [
+            {
+                "input_key": "doc",
+                "label": {"translations": {"en": "Doc"}, "default_locale": "en"},
+                "required": True,
+                "input_modes": ["file"],
+                "description": {"translations": {"en": "desc"}, "default_locale": "en"},
+                "ai_description": "ai"
+            }
+        ],
     }
 
     # Should validate perfectly
@@ -33,7 +42,16 @@ async def test_studio_workflow_blueprint_saving_invalid() -> None:
         "slug": "wf_test_2",
         "name": "Test Workflow",
         "description": "Test description",
-        "expected_inputs": [{"input_key": "doc", "label": {"translations": {"en": "Doc"}, "default_locale": "en"}, "required": True, "input_modes": ["file"], "description": {"translations": {"en": "desc"}, "default_locale": "en"}, "ai_description": "ai"}],
+        "expected_inputs": [
+            {
+                "input_key": "doc",
+                "label": {"translations": {"en": "Doc"}, "default_locale": "en"},
+                "required": True,
+                "input_modes": ["file"],
+                "description": {"translations": {"en": "desc"}, "default_locale": "en"},
+                "ai_description": "ai"
+            }
+        ],
         "invalid_extra_field_which_fails": True
     }
 

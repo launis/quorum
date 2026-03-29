@@ -1,6 +1,6 @@
 """Static zero-math chart generation utility for PDF export.
 
-Injects structural Server-Driven chart parity by generating Base64 PNG 
+Injects structural Server-Driven chart parity by generating Base64 PNG
 strings mapped natively from the validated Pydantic DTOs.
 """
 
@@ -22,12 +22,12 @@ matplotlib.use("Agg")
 
 def generate_scatter_chart(axes: list[ReportAxisDTO]) -> str:
     """Generate a Cartesian 2D scatter matrix plot from the provided axes.
-    
+
     Strict parity with Flutter's LogicMatrixChart.
-    
+
     Args:
         axes: The validated list of axes. Minimal required length is 2.
-    
+
     Returns:
         A Base64 string literal of the generated PNG file.
     """
@@ -56,15 +56,7 @@ def generate_scatter_chart(axes: list[ReportAxisDTO]) -> str:
 
     fig, ax = plt.subplots(figsize=(6, 4))
 
-    ax.scatter(
-        [x_val],
-        [y_val],
-        s=radius,
-        c="#2196F3",
-        alpha=0.7,
-        edgecolors="#0D47A1",
-        linewidths=2
-    )
+    ax.scatter([x_val], [y_val], s=radius, c="#2196F3", alpha=0.7, edgecolors="#0D47A1", linewidths=2)
 
     ax.set_xlim(x_min, x_max + (x_max - x_min) * 0.05)
     ax.set_ylim(y_min, y_max + (y_max - y_min) * 0.05)
@@ -90,12 +82,12 @@ def generate_scatter_chart(axes: list[ReportAxisDTO]) -> str:
 
 def generate_radar_chart(axes: list[ReportAxisDTO]) -> str:
     """Generate a polar 3D Radar chart for N-dimensional datasets.
-    
+
     Strict parity with Flutter's RadarChart layout block.
-    
+
     Args:
         axes: The validated list of axes. Minimal required length is 3.
-        
+
     Returns:
         A Base64 string literal of the generated PNG radar polygon.
     """
@@ -121,8 +113,8 @@ def generate_radar_chart(axes: list[ReportAxisDTO]) -> str:
     max_scale = max((a.scale_max for a in axes), default=6.0)
     min_scale = min((a.scale_min for a in axes), default=0.0)
 
-    ax.set_theta_offset(pi / 2)
-    ax.set_theta_direction(-1)
+    ax.set_theta_offset(pi / 2)  # type: ignore[attr-defined]
+    ax.set_theta_direction(-1)  # type: ignore[attr-defined]
 
     ax.set_xticks(angles[:-1])
     wrapped_names = [n.replace(" ", "\n") for n in names]

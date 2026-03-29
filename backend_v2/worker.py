@@ -94,6 +94,7 @@ async def execute_workflow_job(
 
             if not workflow_dict:
                 from backend_v2.exceptions import WorkflowNotFoundError
+
                 raise WorkflowNotFoundError(workflow_id)
 
             import uuid
@@ -107,11 +108,7 @@ async def execute_workflow_job(
 
             # V2 Strict Context Execution Engine
             exec_id = execution_id or str(uuid.uuid4())
-            result = await engine.execute_workflow(
-                execution_id=exec_id,
-                workflow=workflow_def,
-                raw_inputs=inputs
-            )
+            await engine.execute_workflow(execution_id=exec_id, workflow=workflow_def, raw_inputs=inputs)
 
             # Final Status Update (Completed)
             if execution_id:
@@ -124,8 +121,8 @@ async def execute_workflow_job(
                         "status": "completed",
                         "completed_at": datetime.now(UTC).isoformat(),
                         "duration_ms": duration_ms,
-                        "models_used": models_used
-                    }
+                        "models_used": models_used,
+                    },
                 )
 
                 # TRIGGER ASYNC PDF GENERATION (Milestone 2)
@@ -141,36 +138,27 @@ async def execute_workflow_job(
                 "status": "COMPLETED",
                 "execution_id": execution_id,
                 "workflow_id": workflow_id,
-                 "duration_ms": duration_ms if execution_id else 0
+                "duration_ms": duration_ms if execution_id else 0,
             }
 
         except Exception as e:
             from backend_v2.exceptions import AppException
+
             if not isinstance(e, AppException):
                 msg = f"Workflow {workflow_id} failed: {e}"
-                logger.error(
-                    f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}",
-                    exc_info=True
-                )
-                e = AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
-                )
+                logger.error(f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+                e = AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR})
 
             # Final Status Update (Failed)
             if execution_id:
                 try:
                     await repository.update_execution(
                         execution_id,
-                        {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()}
+                        {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()},
                     )
                 except Exception as update_err:
                     update_msg = f"Failed to update execution failure status: {update_err}"
-                    logger.error(
-                        f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {update_msg}",
-                        exc_info=True
-                    )
+                    logger.error(f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {update_msg}", exc_info=True)
             raise e
         except asyncio.CancelledError:
             logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {execution_id}")
@@ -186,22 +174,17 @@ async def execute_workflow_job(
                     )
                 except Exception as update_err:
                     update_msg = f"Failed to update execution cancellation status: {update_err}"
-                    logger.error(
-                        f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {update_msg}",
-                        exc_info=True
-                    )
+                    logger.error(f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {update_msg}", exc_info=True)
             raise
 
 
 async def generate_pdf_job(
-    ctx: Any,
-    execution_id: str,
-    accept_language: str | None = None,
-    profile_id: str = "default"
+    ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str = "default"
 ) -> str:
     """Invoked by Arq Worker to ensure background PDF compilation resilience."""
     await generate_pdf_task(execution_id, accept_language, profile_id)
     return f"PDF Generated for {execution_id}"
+
 
 async def generate_pdf_task(execution_id: str, accept_language: str | None = None, profile_id: str = "default") -> None:
     """Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
@@ -223,7 +206,9 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
             return
 
         # 0b. Get explicit locale via Execution
-        metadata = getattr(execution_dict, "metadata", None) or (execution_dict.get("metadata", {}) if isinstance(execution_dict, dict) else None)
+        metadata = getattr(execution_dict, "metadata", None) or (
+            execution_dict.get("metadata", {}) if isinstance(execution_dict, dict) else None
+        )
         if metadata:
             loc = metadata.get("target_locale")
             if loc and not accept_language:
@@ -242,17 +227,11 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         saved_path = await storage.save(output_path_rel, pdf_bytes)
 
         # 4. Save path to DB so frontend can fetch it
-        await repo.update_execution(
-            execution_id,
-            {
-                "pdf_report_path": saved_path
-            }
-        )
+        await repo.update_execution(execution_id, {"pdf_report_path": saved_path})
         logger.info(f"[Task] PDF generated successfully and path saved: {saved_path}")
 
     except Exception as e:
         logger.error(f"[Task] PDF generation failed for {execution_id}. Cause: {e}", exc_info=True)
-
 
 
 # --- Lifecycle ---
@@ -315,6 +294,7 @@ async def health_check(ctx: Any) -> str:
 
 
 from backend_v2.models.enums import SystemConcurrency
+
 
 class WorkerSettings:
     """Configuration for the Arq worker."""

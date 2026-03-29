@@ -6,7 +6,7 @@ from typing import Any
 
 import openai
 
-from backend_v2.exceptions import ConfigurationError, ErrorCodes, ServiceUnavailableError
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes, ServiceUnavailableError
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.settings import get_settings
@@ -154,10 +154,10 @@ class LLMHandler:
 
                 # Setup Auth (once)
                 try:
-                    credentials, project = google.auth.default( # type: ignore
+                    credentials, project = google.auth.default(  # type: ignore
                         scopes=["https://www.googleapis.com/auth/cloud-platform"]
                     )
-                    credentials.refresh(GRequest()) # type: ignore
+                    credentials.refresh(GRequest())  # type: ignore
                     token = credentials.token
                 except Exception as auth_err:
                     from backend_v2.exceptions import ConfigurationError, ErrorCodes
@@ -189,13 +189,13 @@ class LLMHandler:
                         # that costs money and time. For now we just verify we can instantiate it
                         # using the Vertex AI SDK which does some basic validation.
                         try:
-                           _ = GenerativeModel(clean_id)
-                           # Also verify it via the publisher models API to be doubly safe
-                           url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/google/models/{clean_id}"
-                           resp = requests.get(url, headers=headers, timeout=5)
-                           if resp.status_code == 200:
-                               return f"vertex_ai/{clean_id}"
-                           return None
+                            _ = GenerativeModel(clean_id)
+                            # Also verify it via the publisher models API to be doubly safe
+                            url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/google/models/{clean_id}"
+                            resp = requests.get(url, headers=headers, timeout=5)
+                            if resp.status_code == 200:
+                                return f"vertex_ai/{clean_id}"
+                            return None
                         except Exception:
                             return None
                     except Exception:
@@ -236,7 +236,10 @@ class LLMHandler:
                     raise e
 
                 # Otherwise wrap in ServiceUnavailable (upstream failure)
-                logger.error(f"[LLMHandler] {ErrorCodes.MODEL_LIST_FAILED.name}: Error fetching/validating Google models: {e}", exc_info=True)
+                logger.error(
+                    f"[LLMHandler] {ErrorCodes.MODEL_LIST_FAILED.name}: Error fetching/validating Google models: {e}",
+                    exc_info=True,
+                )
 
                 # STRICT: Do not return error strings. Raise.
                 raise ServiceUnavailableError(
@@ -293,10 +296,13 @@ class LLMHandler:
             return models
         except Exception as e:
             from backend_v2.exceptions import ConfigurationError, ErrorCodes
-            logger.error(f"[LLMHandler] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to parse active model registry: {e}", exc_info=True)
+
+            logger.error(
+                f"[LLMHandler] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to parse active model registry: {e}",
+                exc_info=True,
+            )
             raise ConfigurationError(
-                message=f"Model Registry is corrupt: {e}",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                message=f"Model Registry is corrupt: {e}", details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
             ) from e
 
     async def get_model_config(self, provider: str, mode: str) -> dict[str, Any] | None:
@@ -394,10 +400,7 @@ class LLMHandler:
                         f"Available models: {valid_models[:5]}..."
                     )
                     logger.error(f"[LLMHandler] {ErrorCodes.CONFIGURATION_ERROR.name}: {error_msg}")
-                    raise ConfigurationError(
-                        message=error_msg,
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
-                    )
+                    raise ConfigurationError(message=error_msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         # Create Provider via Factory (Unified Logic)
         try:
@@ -413,7 +416,10 @@ class LLMHandler:
             rpm = cd.get("rpm_limit")
             if not tpm or not rpm:
                 raise ConfigurationError(
-                    message=f"Strict Mode: Strategy '{provider}/{mode}' is missing required 'tpm_limit' or 'rpm_limit'.",
+                    message=(
+                        f"Strict Mode: Strategy '{provider}/{mode}' is missing required "
+                        "'tpm_limit' or 'rpm_limit'."
+                    ),
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
             if "supports_grounding" not in cd:
@@ -476,6 +482,5 @@ class LLMHandler:
                 raise e
             logger.error(f"[LLMHandler] {ErrorCodes.UNKNOWN_ERROR.name}: Unified Call Failed: {e}", exc_info=True)
             raise ServiceUnavailableError(
-                message=f"LLM Handler Unified Call Failed: {e}",
-                details={"error_code": ErrorCodes.UNKNOWN_ERROR}
+                message=f"LLM Handler Unified Call Failed: {e}", details={"error_code": ErrorCodes.UNKNOWN_ERROR}
             ) from e

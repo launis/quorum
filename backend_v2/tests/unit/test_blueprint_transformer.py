@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -9,21 +10,25 @@ from backend_v2.services.blueprint import BlueprintTransformer
 
 
 @pytest.fixture
-def mock_repo():
+def mock_repo() -> Any:
     repo = AsyncMock()
     repo.get_workflow_by_id.return_value = {
-        "name": {
-            "default_locale": "en",
-            "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}
-        },
+        "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}},
         "default_profile_id": "prf_default1",
         "output_profiles": {
             "prf_default1": {
                 "name": {"default_locale": "en", "translations": {"en": "Default"}},
                 "workflow_id": "wf_1",
-                "layouts": [{"layout_type": "box_1d", "title": {"default_locale": "en", "translations": {"en": "Title"}}, "components": ["*"], "show_text": True}]
+                "layouts": [
+                    {
+                        "layout_type": "box_1d",
+                        "title": {"default_locale": "en", "translations": {"en": "Title"}},
+                        "components": ["*"],
+                        "show_text": True,
+                    }
+                ],
             }
-        }
+        },
     }
     repo.get_all_output_profiles.return_value = [
         {
@@ -31,7 +36,14 @@ def mock_repo():
             "slug": "prf_default1",
             "name": {"default_locale": "en", "translations": {"en": "Default"}},
             "workflow_id": "wf_1",
-            "layouts": [{"layout_type": "box_1d", "title": {"default_locale": "en", "translations": {"en": "Title"}}, "components": ["*"], "show_text": True}]
+            "layouts": [
+                {
+                    "layout_type": "box_1d",
+                    "title": {"default_locale": "en", "translations": {"en": "Title"}},
+                    "components": ["*"],
+                    "show_text": True,
+                }
+            ],
         }
     ]
     repo.get_all_prompt_blocks.return_value = [
@@ -42,14 +54,15 @@ def mock_repo():
             "label": {"translations": {"fi": "Logiikka", "en": "Logic"}},
             "scales": [
                 {"score": 0, "name": {"translations": {"fi": "Nolla", "en": "Zero"}}},
-                {"score": 100, "name": {"translations": {"fi": "Täysi", "en": "Full"}}}
-            ]
+                {"score": 100, "name": {"translations": {"fi": "Täysi", "en": "Full"}}},
+            ],
         }
     ]
     return repo
 
+
 @pytest.mark.asyncio
-async def test_build_report_dto_maps_correctly(mock_repo):
+async def test_build_report_dto_maps_correctly(mock_repo: Any) -> None:
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="testexec_0000test001",
         workflow_id="wf_1",
@@ -61,12 +74,12 @@ async def test_build_report_dto_maps_correctly(mock_repo):
                 content={
                     "matrix_logic1234": 75.0,
                     "matrix_logic1234_justification": "Very logical",
-                    "synthesis": "Great job"
-                }
+                    "synthesis": "Great job",
+                },
             )
         ],
         active_profile_id="prf_default1",
-        metadata={"target_locale": "en"}
+        metadata={"target_locale": "en"},
     )
     transformer = BlueprintTransformer(mock_repo)
     dto = await transformer.build_report_dto("testexec_0000test001", accept_language="en")
@@ -85,15 +98,16 @@ async def test_build_report_dto_maps_correctly(mock_repo):
     assert axis.score == 75.0
     assert axis.justification == "Very logical"
 
+
 @pytest.mark.asyncio
-async def test_graceful_degradation_missing_fields(mock_repo):
+async def test_graceful_degradation_missing_fields(mock_repo: Any) -> None:
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="testexec_0000test002",
         workflow_id="wf_1",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[],
         active_profile_id="prf_default1",
-        metadata={"target_locale": "fi"}
+        metadata={"target_locale": "fi"},
     )
     transformer = BlueprintTransformer(mock_repo)
     dto = await transformer.build_report_dto("testexec_0000test002")

@@ -7,11 +7,12 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 
 logger = logging.getLogger(__name__)
 
+
 @hook_registry.register(name="inject_step_metadata")
 def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult:
     """Computes execution metadata including timestamps and initiator information.
-    
-    This fulfills the V2 requirement for providing 'kello' (timestamp) and 'user' 
+
+    This fulfills the V2 requirement for providing 'kello' (timestamp) and 'user'
     information dynamically to the output dictionary without requiring LLM generation.
     """
     execution_id = state.execution_id or "unknown_execution"
@@ -30,13 +31,16 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
         "initiator_id": initiator_id,
         "timestamp_isot": datetime.now(timezone.utc).isoformat(),
         "unix_time": int(datetime.now(timezone.utc).timestamp()),
-        "v2_engine": True
+        "v2_engine": True,
     }
 
     logger.debug(f"[MetadataHook] Injected metadata for step {step_id}")
 
-    return HookResult(success=True, state_delta={
-        "step_metadata": metadata,
-        # Ensure we always provide a deterministic audit signature
-        "_audit_signature": f"{step_id}:{execution_id}:{metadata['unix_time']}"
-    })
+    return HookResult(
+        success=True,
+        state_delta={
+            "step_metadata": metadata,
+            # Ensure we always provide a deterministic audit signature
+            "_audit_signature": f"{step_id}:{execution_id}:{metadata['unix_time']}",
+        },
+    )

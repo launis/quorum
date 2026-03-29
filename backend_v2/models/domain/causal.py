@@ -73,7 +73,10 @@ class CounterfactualTest(BaseModel):
         ...,
         ge=1.0,
         le=3.0,
-        description="Numeric plausibility (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
+        description=(
+            "Numeric plausibility (1.0 to 3.0), required 1-decimal precision. "
+            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+        ),
         json_schema_extra={"x-ui-label": "Plausibility Numeric"},
     )
     actual_scenario: str = Field(
@@ -113,8 +116,8 @@ class CounterfactualTest(BaseModel):
                     raise AppException(
                         message=msg,
                         status_code=400,
-                        details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)}
-                    )
+                        details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)},
+                    ) from e
         return data
 
     model_config = ConfigDict(frozen=True)
@@ -132,7 +135,10 @@ class CausalAnalysis(BaseModel):
         ...,
         ge=1.0,
         le=3.0,
-        description="Numeric abductive score (1.0 to 3.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
+        description=(
+            "Numeric abductive score (1.0 to 3.0), required 1-decimal precision. "
+            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+        ),
         json_schema_extra={"x-ui-label": "Abductive Score"},
     )
     counterfactual_test: CounterfactualTest = Field(
@@ -177,8 +183,8 @@ class CausalAnalysis(BaseModel):
                     raise AppException(
                         message=msg,
                         status_code=400,
-                        details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)}
-                    )
+                        details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)},
+                    ) from e
         return data
 
     model_config = ConfigDict(frozen=True)

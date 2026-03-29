@@ -38,7 +38,9 @@ from backend_v2.exceptions import ErrorCodes
 
 
 def _fail_fast(msg: str, error: Exception) -> None:
-    logger.critical(f"[Seeder] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: [CRITICAL FAIL FAST] {msg} - {str(error)}", exc_info=True)
+    logger.critical(
+        f"[Seeder] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: [CRITICAL FAIL FAST] {msg} - {str(error)}", exc_info=True
+    )
     print(f"\033[91m[CRITICAL FAIL FAST] {msg}\n{str(error)}\033[0m")
     sys.exit(1)
 
@@ -51,6 +53,7 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
         if os.path.exists(db_path):
             import shutil
             from datetime import datetime
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_dir = os.path.join(os.path.dirname(db_path), "backups")
             os.makedirs(backup_dir, exist_ok=True)
@@ -60,7 +63,9 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
                 shutil.copy2(db_path, backup_path)
                 print(f"[SUCCESS] Backup created: {backup_path}")
             except Exception as e:
-                logger.error(f"[Seeder] {ErrorCodes.FILESYSTEM_VIOLATION.name}: Failed to create db backup: {e}", exc_info=True)
+                logger.error(
+                    f"[Seeder] {ErrorCodes.FILESYSTEM_VIOLATION.name}: Failed to create db backup: {e}", exc_info=True
+                )
                 print(f"[ERROR] Failed to create db backup: {e}")
                 sys.exit(1)
 
@@ -84,6 +89,7 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
 
                 if col_key == "workflows":
                     from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+
                     DAGCompilerService.validate_workflow(validated)
 
                 if hasattr(validated, "model_dump"):
@@ -160,6 +166,7 @@ def _seed_firestore(seed_data: dict[str, Any]) -> None:
                 validated = pyd_adapter.validate_python(item)
                 if col_key == "workflows":
                     from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+
                     DAGCompilerService.validate_workflow(validated)
                 valid_items.append(validated.model_dump(mode="json"))
             except ValidationError as ve:

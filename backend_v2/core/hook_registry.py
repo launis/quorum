@@ -24,18 +24,21 @@ from backend_v2.database.repository import AbstractWorkflowRepository
 
 class IExecutionRepository(Protocol):
     """Protocol for abstracting repository I/O from hook execution."""
+
     async def get_execution(self, execution_id: str) -> dict[str, Any] | None: ...
     async def update_execution(self, execution_id: str, updates: dict[str, Any]) -> None: ...
 
 
 class ISearchClient(Protocol):
     """Protocol for abstracting search client I/O from hook execution."""
+
     async def search(self, query: str) -> list[dict[str, Any]]: ...
 
 
 @dataclass(frozen=True)
 class HookDependencies:
     """Strictly typed DI container separating infrastructure from data."""
+
     repository: AbstractWorkflowRepository
     search_client: ISearchClient | None = None
 
@@ -44,7 +47,8 @@ class HookState(BaseModel):
     """Immutable cognitive data model for hook execution.
     Enforces rules: Fail-Fast, Zero Side-Effects (frozen=True).
     """
-    model_config = ConfigDict(frozen=True, extra='forbid', strict=True)
+
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
     execution_id: str
     workflow_id: str
     step_id: str | None = None
@@ -56,6 +60,7 @@ class HookState(BaseModel):
 
 class HookResult(BaseModel):
     """Explicit state delta returned by Hooks for deep merging."""
+
     success: bool
     state_delta: dict[str, Any] | None = None
 
@@ -188,6 +193,7 @@ class HookRegistry:
     def clear(self) -> None:
         """Clears all registered hooks. (Mainly for testing)."""
         self._hooks.clear()
+
 
 # Global singleton instance
 hook_registry = HookRegistry()

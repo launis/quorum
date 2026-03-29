@@ -35,6 +35,7 @@ class FlatFileService:
         }
 
         from backend_v2.models.state import StateProjector
+
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
 

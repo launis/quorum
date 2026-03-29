@@ -10,12 +10,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/model-registry", tags=["Admin Studio V2 - Model Registry"])
 
+
 @router.get("/available-models", response_model=list[str])
 def get_available_models(current_user: CurrentUserDep, llm_handler: LLMHandlerDep) -> list[str]:
     """Retrieve all available LLM models discovered by the LLM Handler."""
     if current_user.role != "ROOT" and current_user.role != "ADMIN":
         from backend_v2.exceptions import ErrorCodes, PermissionDeniedError
-        msg = f"User {current_user.id} (Role: {current_user.role}) attempted to fetch available models without ROOT or ADMIN."
+
+        msg = (
+            f"User {current_user.id} (Role: {current_user.role}) attempted to fetch "
+            "available models without ROOT or ADMIN."
+        )
         logger.error(f"[ModelRegistry] {ErrorCodes.PERMISSION_DENIED.name}: {msg}")
         raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
     result = llm_handler.fetch_all_available_models()
@@ -30,6 +35,7 @@ def get_available_models(current_user: CurrentUserDep, llm_handler: LLMHandlerDe
 
     return sorted(list(set(flat_list)))
 
+
 @router.get("/", response_model=list[SystemConfigModelRegistry])
 async def get_all_model_registries(
     current_user: CurrentUserDep, studio_service: StudioServiceDep
@@ -37,6 +43,7 @@ async def get_all_model_registries(
     """Retrieve all global model registry configurations securely via SSOT Service Layer."""
     # Temporarily, model registry relies on system_config collection
     return await studio_service.list_system_configs(current_user)
+
 
 @router.get("/{registry_id}", response_model=SystemConfigModelRegistry)
 async def get_model_registry(
@@ -58,6 +65,7 @@ async def save_model_registry(
     """Update a model registry configuration securely via SSOT Service Layer."""
     return await studio_service.save_system_config(current_user, registry_id, data)
 
+
 @router.delete("/{registry_id}")
 async def delete_model_registry(
     registry_id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
@@ -65,6 +73,7 @@ async def delete_model_registry(
     """Delete a model registry configuration securely via SSOT Service Layer."""
     await studio_service.delete_system_config(current_user, registry_id)
     return {"status": "success", "deleted_id": registry_id}
+
 
 @router.post("/{registry_id}/clone", response_model=SystemConfigModelRegistry)
 async def clone_model_registry(

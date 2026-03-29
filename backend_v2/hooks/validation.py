@@ -68,43 +68,49 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
         key_lower = key.lower()
         if (
             key_lower in ignored_keys
-            or key_lower.endswith('_id')
-            or key_lower.endswith('_mode')
-            or key_lower.startswith('_')
+            or key_lower.endswith("_id")
+            or key_lower.endswith("_mode")
+            or key_lower.startswith("_")
         ):
             continue
 
         if not val or not str(val).strip():
-            warnings.append({
-                "type": f"{AppException.PROBLEM_BASE_URI}/empty-input",
-                "title": "Empty Analysis Input",
-                "error_code": ErrorCodes.EMPTY_INPUT.name,
-                "detail": f"Field '{key}' requires content.",
-                "meta": {"key": key}
-            })
+            warnings.append(
+                {
+                    "type": f"{AppException.PROBLEM_BASE_URI}/empty-input",
+                    "title": "Empty Analysis Input",
+                    "error_code": ErrorCodes.EMPTY_INPUT.name,
+                    "detail": f"Field '{key}' requires content.",
+                    "meta": {"key": key},
+                }
+            )
             continue
 
         text = str(val).strip()
         if len(text) < MIN_CHARS:
-            warnings.append({
-                "type": f"{AppException.PROBLEM_BASE_URI}/input-too-short",
-                "title": "Analysis Input Too Short",
-                "error_code": ErrorCodes.VALIDATION_FAILED.name,
-                "detail": f"Field '{key}' has length {len(text)}, required {MIN_CHARS}.",
-                "meta": {"key": key, "length": len(text), "min_chars": MIN_CHARS}
-            })
+            warnings.append(
+                {
+                    "type": f"{AppException.PROBLEM_BASE_URI}/input-too-short",
+                    "title": "Analysis Input Too Short",
+                    "error_code": ErrorCodes.VALIDATION_FAILED.name,
+                    "detail": f"Field '{key}' has length {len(text)}, required {MIN_CHARS}.",
+                    "meta": {"key": key, "length": len(text), "min_chars": MIN_CHARS},
+                }
+            )
             continue
 
         valid_content_keys += 1
 
     if valid_content_keys == 0 and len(warnings) == 0:
-        warnings.append({
-            "type": f"{AppException.PROBLEM_BASE_URI}/no-content",
-            "title": "No Content Detected",
-            "error_code": ErrorCodes.EMPTY_INPUT.name,
-            "detail": "No valid analysis content was provided in the payload.",
-            "meta": {}
-        })
+        warnings.append(
+            {
+                "type": f"{AppException.PROBLEM_BASE_URI}/no-content",
+                "title": "No Content Detected",
+                "error_code": ErrorCodes.EMPTY_INPUT.name,
+                "detail": "No valid analysis content was provided in the payload.",
+                "meta": {},
+            }
+        )
 
     try:
         # Create pure dict result
@@ -162,7 +168,7 @@ def verify_output_language(state: HookState, deps: HookDependencies) -> HookResu
             continue
 
         if key in target_keys or key.endswith("_justification"):
-            words = set(re.findall(r'\b[a-z]{2,}\b', value.lower()))
+            words = set(re.findall(r"\b[a-z]{2,}\b", value.lower()))
             overlap = words.intersection(english_stops)
 
             # If 3 or more distinct core English stop words are found in the field,
@@ -178,11 +184,13 @@ def verify_output_language(state: HookState, deps: HookDependencies) -> HookResu
     delta = {}
     if leakage_detected:
         delta["_system_warnings"] = state.inputs.get("_system_warnings", [])
-        delta["_system_warnings"].append({
-            "type": f"{AppException.PROBLEM_BASE_URI}/language-mismatch",
-            "title": "Output Language Mismatch",
-            "detail": f"Model neglected the '{target_locale}' localization mandate and leaked English.",
-            "error_code": ErrorCodes.VALIDATION_FAILED.name
-        })
+        delta["_system_warnings"].append(
+            {
+                "type": f"{AppException.PROBLEM_BASE_URI}/language-mismatch",
+                "title": "Output Language Mismatch",
+                "detail": f"Model neglected the '{target_locale}' localization mandate and leaked English.",
+                "error_code": ErrorCodes.VALIDATION_FAILED.name,
+            }
+        )
 
     return HookResult(success=True, state_delta=delta)

@@ -9,6 +9,7 @@ from backend_v2.logging_config import setup_logging
 def test_setup_logging_litellm_internal_error(monkeypatch: Any) -> None:
     """Test standard fail-fast behavior when litellm fails during setup due to internal crash."""
     import builtins
+
     original_import = builtins.__import__
 
     def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:

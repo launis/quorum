@@ -42,21 +42,19 @@ def test_cyclic_dependency_rejected() -> None:
         StepRule(id="step_11111111", task_blueprint="a", depends_on=["step_22222222"]),
         StepRule(id="step_22222222", task_blueprint="b", depends_on=["step_11111111"]),
     ]
-    wf = _create_base_workflow(steps)
-    with pytest.raises(WorkflowCompilationError) as exc_info:
-        DAGCompilerService.validate_workflow(wf)
+    with pytest.raises(AppException) as exc_info:
+        _create_base_workflow(steps)
 
-    assert "Cyclic dependency" in str(exc_info.value.message)
+    assert "Circular dependency" in str(exc_info.value.message)
 
 def test_cyclic_dependency_self_rejected() -> None:
     steps = [
         StepRule(id="step_11111111", task_blueprint="a", depends_on=["step_11111111"]),
     ]
-    wf = _create_base_workflow(steps)
-    with pytest.raises(WorkflowCompilationError) as exc_info:
-        DAGCompilerService.validate_workflow(wf)
+    with pytest.raises(AppException) as exc_info:
+        _create_base_workflow(steps)
 
-    assert "Cyclic dependency" in str(exc_info.value.message)
+    assert "Circular dependency" in str(exc_info.value.message)
 
 def test_dangling_input_reference_rejected() -> None:
     # Expects "doc_id" but references "user_id"

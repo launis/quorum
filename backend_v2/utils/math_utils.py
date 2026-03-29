@@ -41,9 +41,10 @@ def normalize_score_to_100(score: float, number_of_options: int) -> float:
     # Ensure it's between 0 and 100
     return max(0.0, min(100.0, normalized))
 
+
 def calculate_scaled_score(score: float, number_of_options: int, scale_min: float, scale_max: float) -> float:
     """Calculate the absolute scaled position mathematically.
-    
+
     Formula based on user V2 spec:
     scaled = scale_min + ((score / options) * (scale_max - scale_min))
     """
@@ -72,6 +73,7 @@ def calculate_scaled_score(score: float, number_of_options: int, scale_min: floa
 
     scaled_val = scale_min + proportional_gap
     return max(scale_min, min(scale_max, scaled_val))
+
 
 def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_min: float, target_max: float) -> float:
     """Scale a score from a raw range to a custom target range linearly.

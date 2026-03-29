@@ -37,7 +37,7 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
     match backend:
         case StorageBackend.FIRESTORE:
             # Lazy import to avoid hard dependency on google-cloud-firestore if not used everywhere
-            from google.cloud import firestore
+            from google.cloud import firestore  # type: ignore[attr-defined]
 
             # Credentials are implicitly handled by GOOGLE_APPLICATION_CREDENTIALS env var
             # set by the .bat files.
@@ -69,4 +69,5 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
 
         case _:
             from backend_v2.exceptions import ConfigurationError
+
             raise ConfigurationError(f"Unknown storage backend: {backend}")

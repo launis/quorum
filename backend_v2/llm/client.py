@@ -88,7 +88,8 @@ class LLMClient:
         # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry
         if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:
             raise ConfigurationError(
-                f"Strict Mode: Strategy '{strategy_name}' is missing required 'tpm_limit' or 'rpm_limit' in Model Registry.",
+                f"Strict Mode: Strategy '{strategy_name}' is missing required 'tpm_limit' "
+                "or 'rpm_limit' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
         if target_strategy.temperature is None:
@@ -163,11 +164,7 @@ class LLMClient:
                     # Ensure content is a string before wrapping it
                     if isinstance(original_text, str):
                         msg["content"] = [
-                            {
-                                "type": "text",
-                                "text": original_text,
-                                "cache_control": {"type": "ephemeral"}
-                            }
+                            {"type": "text", "text": original_text, "cache_control": {"type": "ephemeral"}}
                         ]
                     break
 
@@ -201,9 +198,7 @@ class LLMClient:
                 )
             # Use Strategy Config
             target_model_name = (
-                self._config.model_name
-                if hasattr(self._config, "model_name")
-                else self._config.get("model_name")
+                self._config.model_name if hasattr(self._config, "model_name") else self._config.get("model_name")
             )
             target_provider_type = "litellm"  # Base Default
 
@@ -227,7 +222,9 @@ class LLMClient:
 
         # 3. Create Provider via Factory
         provider = LLMFactory.create_provider(
-            provider_type=target_provider_type, model_name=target_model_name, config=self._config  # type: ignore
+            provider_type=target_provider_type,
+            model_name=str(target_model_name),
+            config=self._config,  # type: ignore
         )
 
         try:
@@ -287,23 +284,21 @@ class LLMClient:
                 except (json.JSONDecodeError, pydantic.ValidationError) as schema_err:
                     if attempt == max_retries - 1:
                         logger.error(
-                            f"[LLMClient] Self-Healing failed after {max_retries} attempts. "
-                            f"Final Error: {schema_err}"
+                            f"[LLMClient] Self-Healing failed after {max_retries} attempts. Final Error: {schema_err}"
                         )
                         raise AgentExecutionError(
                             detail=f"Structured Task Failed (Self-Healing exhausted): {schema_err} "
-                                   f"[{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
+                            f"[{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
                         ) from schema_err
 
                     logger.warning(
-                        f"[LLMClient] Schema Error on attempt {attempt+1}/{max_retries}: {schema_err}. "
+                        f"[LLMClient] Schema Error on attempt {attempt + 1}/{max_retries}: {schema_err}. "
                         "Initiating Self-Healing."
                     )
 
                     # 5. Self-Healing: Feed error back to LLM for auto-correction
                     error_msg = (
-                        schema_err.json() if isinstance(schema_err, pydantic.ValidationError)
-                        else str(schema_err)
+                        schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else str(schema_err)
                     )
                     correction_prompt = (
                         f"\n\n[SYSTEM: SELF-HEALING CORRECTION]: Your previous response contained structural errors.\n"
@@ -333,9 +328,7 @@ class LLMClient:
                 detail=f"Structured Task Failed: {e} [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
             ) from e
 
-        raise AgentExecutionError(
-            detail=f"Unreachable flow in LLM loop. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
-        )
+        raise AgentExecutionError(detail=f"Unreachable flow in LLM loop. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]")
 
     async def run_chat(
         self,
@@ -371,9 +364,7 @@ class LLMClient:
                 )
             # Use Strategy Config
             target_model_name = (
-                self._config.model_name
-                if hasattr(self._config, "model_name")
-                else self._config.get("model_name")
+                self._config.model_name if hasattr(self._config, "model_name") else self._config.get("model_name")
             )
             target_provider_type = "litellm"
 
@@ -398,9 +389,7 @@ class LLMClient:
         # Parse Prompt — detect if this is a multi-turn tool conversation
         # If messages contain roles other than system/user (e.g. assistant, tool),
         # we MUST pass them as-is to generate(messages=...) for correct tool loop behavior.
-        has_tool_messages = any(
-            msg.get("role") in ("assistant", "tool") for msg in messages
-        )
+        has_tool_messages = any(msg.get("role") in ("assistant", "tool") for msg in messages)
 
         if has_tool_messages:
             # Multi-turn tool conversation: pass messages directly (no flattening)
@@ -424,7 +413,9 @@ class LLMClient:
 
         # Create Provider — pass self._config for TPM/RPM (Strict Mode compliance)
         provider = LLMFactory.create_provider(
-            provider_type=target_provider_type, model_name=str(target_model_name), config=self._config  # type: ignore
+            provider_type=target_provider_type,
+            model_name=str(target_model_name),
+            config=self._config,  # type: ignore
         )
 
         # Generate

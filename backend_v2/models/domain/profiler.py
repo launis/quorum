@@ -4,8 +4,6 @@ This module contains the schemas for the Profiler Agent,
 including intent analysis and text metrics.
 """
 
-
-
 import logging
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -23,7 +21,9 @@ class ProfilerInput(BaseModel):
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
     """
 
-    chat_log: str = Field(..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
+    chat_log: str = Field(
+        ..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"}
+    )
     profiler_metrics: ProfilerMetrics | None = Field(None, description="Injected text metrics.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -107,7 +107,9 @@ class BehavioralMetrics(BaseModel):
 
 class ProfilerMetrics(TextMetrics, BehavioralMetrics):
     """Combined quantitative and behavioral metrics for the Profiler."""
+
     model_config = ConfigDict(frozen=True, strict=False)
+
 
 class ProfilerDTO(ReasoningTraceDTO):
     """Profiler DTO (Content Only)."""

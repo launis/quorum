@@ -5,6 +5,7 @@ from backend_v2.models.v2_core import StepRule, Workflow
 
 logger = logging.getLogger(__name__)
 
+
 class DAGCompilerService:
     """Pre-Flight Validation Engine for Workflow Graphs (The Shift-Left Strategy).
 
@@ -31,11 +32,7 @@ class DAGCompilerService:
                     "at least one input must be 'required=True'."
                 )
                 logger.error(f"[DAGCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-                raise AppException(
-                    message=msg,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                    status_code=400
-                )
+                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
 
         # 1. Cycle Detection & Assurance
         DAGCompilerService._ensure_acyclic(workflow.steps)
@@ -62,7 +59,7 @@ class DAGCompilerService:
                         raise WorkflowCompilationError(
                             step_id=step.id,
                             message=f"Step '{step.id}' references unknown input '{root_namespace}'. "
-                                    f"Available inputs dynamically defined: {available_keys}"
+                            f"Available inputs dynamically defined: {available_keys}",
                         )
                 # Check $steps
                 elif root_namespace.startswith("$steps"):
@@ -70,7 +67,7 @@ class DAGCompilerService:
                         raise WorkflowCompilationError(
                             step_id=step.id,
                             message=f"Step '{step.id}' references unexecuted or missing step '{root_namespace}'. "
-                                    f"Ensure forward topological dependencies are enforced in depends_on."
+                            f"Ensure forward topological dependencies are enforced in depends_on.",
                         )
 
             # After step simulates successfully, it becomes available to downstream nodes
@@ -83,7 +80,7 @@ class DAGCompilerService:
         E.g. '$inputs.user_id' -> '$inputs.user_id'
         E.g. '$steps.my_step.output.result' -> '$steps.my_step'
         """
-        parts = ref_str.split('.')
+        parts = ref_str.split(".")
         if len(parts) >= 2 and parts[0] == "$steps":
             return f"$steps.{parts[1]}"
         if len(parts) >= 2 and parts[0] == "$inputs":
@@ -119,7 +116,7 @@ class DAGCompilerService:
                     # We found a loop!
                     raise WorkflowCompilationError(
                         step_id=step.id,
-                        message=f"Cyclic dependency (Infinite Loop) detected involving step: '{step.id}'"
+                        message=f"Cyclic dependency (Infinite Loop) detected involving step: '{step.id}'",
                     )
 
     @staticmethod
@@ -143,9 +140,8 @@ class DAGCompilerService:
                     raise WorkflowCompilationError(
                         step_id=step.id,
                         message=(
-                            f"Step '{step.id}' declares dependency on '{dep_id}' "
-                            "which does not exist in the workflow."
-                        )
+                            f"Step '{step.id}' declares dependency on '{dep_id}' which does not exist in the workflow."
+                        ),
                     )
 
         # Start queue with nodes having no dependencies

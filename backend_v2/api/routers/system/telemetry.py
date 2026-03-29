@@ -29,7 +29,7 @@ class ClientErrorPayload(BaseModel):
 @router.post("/telemetry/client-error", status_code=204)
 async def report_client_error(payload: ClientErrorPayload) -> None:
     """Ingest an error report from the client and log it into the backend's logging system.
-    
+
     This fulfills the Dual-Reporting Telemetry Mandate. Errors logged here will be
     forwarded to Logfire/Sentry automatically via the backend's logging configuration.
     """
@@ -45,4 +45,3 @@ async def report_client_error(payload: ClientErrorPayload) -> None:
         logger.critical(log_msg, extra={"client_payload": payload.model_dump(mode="json")})
     else:
         logger.error(log_msg, extra={"client_payload": payload.model_dump(mode="json")})
-

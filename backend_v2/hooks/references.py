@@ -31,7 +31,11 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any] | None)
             {
                 "source_id": "ref_mock_stub",
                 "title": "[MOCK REFERENCE] Lähdeluettelon generaattori (ReferenceManager) - Ei Kytketty",
-                "snippet": "Järjestelmän automaattinen lähdeluettelogeneraattori (Reference Hook) pyörii onnistuneesti, mutta itse tekstin Parsija-moottoria ei ole vielä asennettu V2-versioon. Tämä on Dummy-viite.",
+                "snippet": (
+                    "Järjestelmän automaattinen lähdeluettelogeneraattori (Reference Hook) "
+                    "pyörii onnistuneesti, mutta itse tekstin Parsija-moottoria ei ole vielä "
+                    "asennettu V2-versioon. Tämä on Dummy-viite."
+                ),
                 "url": "https://github.com/v2-migration-pending",
             }
         ]

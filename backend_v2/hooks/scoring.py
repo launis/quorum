@@ -95,20 +95,20 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     # We EXCLUDE orthogonal matrices (e.g. security, bias, certainty).
     EVALUATIVE_MATRICES = {
         # Opaque (V8)
-        "blk_371c7724eeba40218409b5a3697ac1d3", # Toulmin
-        "blk_a0405e121dbf44bfa8ee80566f8d0c2a", # Bloom
-        "blk_bf8a99a1b3514f6c93aff42a4cc52213", # Causal Analyst
-        "blk_a8e356b276f04ddeb7cc3a0eec58daf6", # Causal & Abductive
-        "blk_d0e240184e0a40759d37138a250bd0aa", # Archivist
-        "blk_d2013b25926f46d7b70903e69e53a61c", # Task Judge
-        "blk_0522f2416e304a54a67b99ed08398ac8", # Analyst
-        "blk_66d7a701ee29444b87cfc9e4471fdd20", # Logical Rigor
-        "blk_affd89e862e84797bd58e7323a793517", # Factuality
-        "blk_9bfcaa19335140faa3b610a1391ed950", # Evidentiary Rigor
-        "blk_49360a958cc7494ebf053294fb7e2faf", # Process Integrity
-        "blk_b17f535c936349e3bce6e7b19f505f2c", # Evidentiary Rigor v2
-        "blk_b5ec25bb352e4dc09de386f0da991a08", # Performatiivisuus ja Goodhartin Laki
-        "blk_1e33ce78623943af9d5ce39ce6620478", # Falsifioinnin Auditointi
+        "blk_371c7724eeba40218409b5a3697ac1d3",  # Toulmin
+        "blk_a0405e121dbf44bfa8ee80566f8d0c2a",  # Bloom
+        "blk_bf8a99a1b3514f6c93aff42a4cc52213",  # Causal Analyst
+        "blk_a8e356b276f04ddeb7cc3a0eec58daf6",  # Causal & Abductive
+        "blk_d0e240184e0a40759d37138a250bd0aa",  # Archivist
+        "blk_d2013b25926f46d7b70903e69e53a61c",  # Task Judge
+        "blk_0522f2416e304a54a67b99ed08398ac8",  # Analyst
+        "blk_66d7a701ee29444b87cfc9e4471fdd20",  # Logical Rigor
+        "blk_affd89e862e84797bd58e7323a793517",  # Factuality
+        "blk_9bfcaa19335140faa3b610a1391ed950",  # Evidentiary Rigor
+        "blk_49360a958cc7494ebf053294fb7e2faf",  # Process Integrity
+        "blk_b17f535c936349e3bce6e7b19f505f2c",  # Evidentiary Rigor v2
+        "blk_b5ec25bb352e4dc09de386f0da991a08",  # Performatiivisuus ja Goodhartin Laki
+        "blk_1e33ce78623943af9d5ce39ce6620478",  # Falsifioinnin Auditointi
     }
 
     total_score_accum = 0.0
@@ -158,6 +158,7 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
 
     # 4. Apply Penalties (Log traces and apply to average without corrupting base)
     from backend_v2.settings import get_settings
+
     settings = get_settings()
 
     final_score = average_score
@@ -207,7 +208,7 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         "total_score": final_score,
         "final_score": final_score,
         "penalties_applied": penalties,
-        "aggregation_status": f"V2 Commensurate Average of {count} matrices"
+        "aggregation_status": f"V2 Commensurate Average of {count} matrices",
     }
 
     logger.info(
@@ -248,13 +249,13 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
     # Expects pure dictionaries
     if _extract_guard_flag({"step_guard": step_guard}):
         # Load penalty from settings
-            p_val = settings.scoring_security_penalty
-            if p_val > 0:
-                # Standard: Append Enum Key + Percentage
-                penalties.append(f"{ScoringPenalty.SECURITY_THREAT.value} (-{p_val * 100:.0f}%)")
-                penalty_factor *= 1.0 - p_val
-            else:
-                logger.warning(f"[ScoringHook] {ScoringPenalty.SECURITY_THREAT.value} (Logged Only - Penalty Disabled)")
+        p_val = settings.scoring_security_penalty
+        if p_val > 0:
+            # Standard: Append Enum Key + Percentage
+            penalties.append(f"{ScoringPenalty.SECURITY_THREAT.value} (-{p_val * 100:.0f}%)")
+            penalty_factor *= 1.0 - p_val
+        else:
+            logger.warning(f"[ScoringHook] {ScoringPenalty.SECURITY_THREAT.value} (Logged Only - Penalty Disabled)")
 
     # 1.2 Falsifier Findings
     step_falsifier = _get_ctx("step_falsifier")
@@ -309,6 +310,7 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
     # FAIL FAST: If we still don't have a score
     if current_score is None:
         from backend_v2.exceptions import AppException, ErrorCodes
+
         msg = f"Strict Scoring: Could not extract 'total_score' from {type(result).__name__}."
         logger.error(f"[ScoringHook] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}")
         raise AppException(
@@ -401,9 +403,7 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
 
                 if dim_score <= scale_min:
                     penalty_triggered = True
-                    logger.warning(
-                        f"[ScoringHook] Passive/Low Quality detected in {judge_key} dimension '{dim_id}'"
-                    )
+                    logger.warning(f"[ScoringHook] Passive/Low Quality detected in {judge_key} dimension '{dim_id}'")
                     break
 
             if penalty_triggered:
@@ -435,7 +435,7 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
         # Strategy 2: V2 Matrix (Flat Schema)
         else:
             penalty_triggered = False
-            scale_min = 1.0 # Default BARS scale minimum
+            scale_min = 1.0  # Default BARS scale minimum
 
             for k, v in judge_model.items():
                 if (
@@ -447,41 +447,40 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
                 ):
                     if isinstance(v, (int, float)):
                         if v <= scale_min:
-                             penalty_triggered = True
-                             logger.warning(f"[ScoringHook] Passive/Low Quality detected in V2 Matrix '{k}'")
-                             break
+                            penalty_triggered = True
+                            logger.warning(f"[ScoringHook] Passive/Low Quality detected in V2 Matrix '{k}'")
+                            break
 
             if penalty_triggered:
-                 logger.info(f"[ScoringHook] Applying V2 Passivity Penalty to {judge_key} (Factor {multiplier}).")
-                 new_judge = judge_model.copy()
-                 for k, v in new_judge.items():
-                      if (
-                          k.startswith("matrix_")
-                          and not k.endswith("_justification")
-                          and not k.endswith("_id")
-                          and not k.endswith("_quote")
-                          and not k.endswith("_raw")
-                      ):
-                           if isinstance(v, (int, float)):
-                                new_score = v * multiplier
-                                if new_score < scale_min:
-                                     new_score = scale_min
-                                new_judge[k] = new_score
-                                # Add a penalty trace to validation string if available
-                                just_key = f"{k}_justification"
-                                if just_key in new_judge:
-                                     new_judge[just_key] = (
-                                         f"[PASSIVITY PENALTY x{multiplier:.2f}] "
-                                         + str(new_judge[just_key])
-                                     )
+                logger.info(f"[ScoringHook] Applying V2 Passivity Penalty to {judge_key} (Factor {multiplier}).")
+                new_judge = judge_model.copy()
+                for k, v in new_judge.items():
+                    if (
+                        k.startswith("matrix_")
+                        and not k.endswith("_justification")
+                        and not k.endswith("_id")
+                        and not k.endswith("_quote")
+                        and not k.endswith("_raw")
+                    ):
+                        if isinstance(v, (int, float)):
+                            new_score = v * multiplier
+                            if new_score < scale_min:
+                                new_score = scale_min
+                            new_judge[k] = new_score
+                            # Add a penalty trace to validation string if available
+                            just_key = f"{k}_justification"
+                            if just_key in new_judge:
+                                new_judge[just_key] = f"[PASSIVITY PENALTY x{multiplier:.2f}] " + str(
+                                    new_judge[just_key]
+                                )
 
-                 if is_post_hook:
-                     for k, v in new_judge.items():
-                         if k in judge_model and judge_model[k] != v:
-                             new_data[k] = v
-                 else:
-                     new_data[judge_key] = new_judge
-                 updates_needed = True
+                if is_post_hook:
+                    for k, v in new_judge.items():
+                        if k in judge_model and judge_model[k] != v:
+                            new_data[k] = v
+                else:
+                    new_data[judge_key] = new_judge
+                updates_needed = True
 
     if updates_needed:
         return HookResult(success=True, state_delta=new_data)
@@ -521,8 +520,8 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     content_payload = state.inputs
 
     if not blueprint_id:
-         logger.debug("[ScoringHook] No blueprint_id or step_id found in execution context. Skipping.")
-         return HookResult(success=True, state_delta={})
+        logger.debug("[ScoringHook] No blueprint_id or step_id found in execution context. Skipping.")
+        return HookResult(success=True, state_delta={})
 
     try:
         step_obj = await repository.get_step_by_id(blueprint_id)
@@ -531,9 +530,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             return HookResult(success=True, state_delta={})
 
         prompt_blocks_slugs = (
-            step_obj.get("prompt_blocks", [])
-            if isinstance(step_obj, dict)
-            else getattr(step_obj, "prompt_blocks", [])
+            step_obj.get("prompt_blocks", []) if isinstance(step_obj, dict) else getattr(step_obj, "prompt_blocks", [])
         )
 
         updates_made = False
@@ -573,8 +570,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
             pb_dict = pb if isinstance(pb, dict) else pb.model_dump()
             logger.debug(
-                f"[ScoringHook] Found PromptBlock '{slug}' "
-                f"with allowed decimals: {pb_dict.get('allow_decimals')}"
+                f"[ScoringHook] Found PromptBlock '{slug}' with allowed decimals: {pb_dict.get('allow_decimals')}"
             )
 
             scales = pb_dict.get("scales")
@@ -591,12 +587,13 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                             scores_in_scales.append(float(val))
                         except (TypeError, ValueError) as e:
                             from backend_v2.exceptions import AppException, ErrorCodes
+
                             msg = f"Corrupted scale value '{val}' in PromptBlock '{slug}'. Expected float."
                             logger.error(f"[ScoringHook] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}", exc_info=True)
                             raise AppException(
                                 message=msg,
                                 status_code=500,
-                                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                             ) from e
                 if scores_in_scales:
                     target_min = min(scores_in_scales)
@@ -611,10 +608,10 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
                 # 2. The Python-scaled calculated value based on relative proportion of options (V2 Logic)
                 scaled_val = calculate_scaled_score(
-                     score=raw_float,
-                     number_of_options=number_of_options,
-                     scale_min=float(target_min),
-                     scale_max=float(target_max),
+                    score=raw_float,
+                    number_of_options=number_of_options,
+                    scale_min=float(target_min),
+                    scale_max=float(target_max),
                 )
 
                 # 3. The 1-100 normalized value for commensurable aggregation (V2 Logic)
@@ -632,8 +629,9 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 just_key = f"{slug}_justification"
                 if just_key in new_payload and isinstance(new_payload[just_key], str):
                     import re
+
                     # Non-greedy strip of anything resembling ||DECIMAL: X.Y||
-                    cleaned = re.sub(r'\|\|DECIMAL:\s*[0-9.]+\|\|', '', new_payload[just_key])
+                    cleaned = re.sub(r"\|\|DECIMAL:\s*[0-9.]+\|\|", "", new_payload[just_key])
                     new_payload[just_key] = cleaned.strip()
 
                 updates_made = True
@@ -644,11 +642,12 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 )
 
         if updates_made:
-             # V2 Dict direct mutation avoided, send back state_delta
-             return HookResult(success=True, state_delta=new_payload)
+            # V2 Dict direct mutation avoided, send back state_delta
+            return HookResult(success=True, state_delta=new_payload)
 
     except Exception as e:
         from backend_v2.exceptions import AppException, ErrorCodes
+
         if isinstance(e, AppException):
             raise
 

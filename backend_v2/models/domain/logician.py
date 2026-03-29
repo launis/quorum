@@ -25,7 +25,9 @@ class LogicianInput(BaseModel):
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
     """
 
-    chat_log: str = Field(..., description="The mandatory conversation history to analyze.", json_schema_extra={"x-ui-label": "Chatlog"})
+    chat_log: str = Field(
+        ..., description="The mandatory conversation history to analyze.", json_schema_extra={"x-ui-label": "Chatlog"}
+    )
     step_analyst: AnalystOutput | None = Field(None, description="Analyst hypotheses/timeline.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -99,12 +101,18 @@ class CognitiveLevel(BaseModel):
     )
     bloom_score: float = Field(
         ...,
-        description="Numeric Bloom score (0.0 to 6.0), required 1-decimal precision. USE DECIMALS (e.g., 4.5) to reflect nuance.",
+        description=(
+            "Numeric Bloom score (0.0 to 6.0), required 1-decimal precision. "
+            "USE DECIMALS (e.g., 4.5) to reflect nuance."
+        ),
         json_schema_extra={"x-ui-label": "Bloom Score"},
     )
     strategic_score: float = Field(
         ...,
-        description="Numeric Strategic score (1.0 to 4.0), required 1-decimal precision. USE DECIMALS (e.g., 2.5) to reflect nuance.",
+        description=(
+            "Numeric Strategic score (1.0 to 4.0), required 1-decimal precision. "
+            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+        ),
         json_schema_extra={"x-ui-label": "Strategic Score"},
     )
     description_key: str = Field(
@@ -268,7 +276,10 @@ class LogicianData(BaseModel):
         ...,
         ge=0.0,
         le=6.0,
-        description="Calculated score based on components (0.0 to 6.0), required 1-decimal precision. USE DECIMALS (e.g., 5.5) to reflect nuance.",
+        description=(
+            "Calculated score based on components (0.0 to 6.0), required 1-decimal precision. "
+            "USE DECIMALS (e.g., 5.5) to reflect nuance."
+        ),
         json_schema_extra={"x-ui-label": "Toulmin Score"},
     )
     description_key: str = Field(

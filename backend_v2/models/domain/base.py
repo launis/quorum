@@ -53,23 +53,19 @@ class Metadata(BaseModel):
     organization_id: str | None = Field(
         default=None, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"}
     )
-    user_id: str | None = Field(
-        default=None, description="User ID.", json_schema_extra={"x-ui-label": "User ID"}
-    )
+    user_id: str | None = Field(default=None, description="User ID.", json_schema_extra={"x-ui-label": "User ID"})
     execution_id: str | None = Field(
         default=None, description="Execution ID.", json_schema_extra={"x-ui-label": "Execution ID"}
     )
-    step_id: str | None = Field(
-        default=None, description="Step ID.", json_schema_extra={"x-ui-label": "Step ID"}
-    )
-    model: str | None = Field(
-        default=None, description="Model used.", json_schema_extra={"x-ui-label": "Model"}
-    )
+    step_id: str | None = Field(default=None, description="Step ID.", json_schema_extra={"x-ui-label": "Step ID"})
+    model: str | None = Field(default=None, description="Model used.", json_schema_extra={"x-ui-label": "Model"})
     provider: str | None = Field(
         default=None, description="Model provider.", json_schema_extra={"x-ui-label": "Provider"}
     )
     duration_ms: int | None = Field(
-        default=None, description="Execution duration in milliseconds.", json_schema_extra={"x-ui-label": "Duration (ms)"}
+        default=None,
+        description="Execution duration in milliseconds.",
+        json_schema_extra={"x-ui-label": "Duration (ms)"},
     )
     workflow: str | None = Field(
         default=None, description="Workflow name.", json_schema_extra={"x-ui-label": "Workflow"}
@@ -79,11 +75,16 @@ class Metadata(BaseModel):
     )
     token_usage: TokenUsage | None = Field(default=None, description="Token usage statistics from language model.")
     system_fingerprint: str | None = Field(
-        default=None, description="System fingerprint identifying exact model weights used.", json_schema_extra={"x-ui-label": "System Fingerprint"}
+        default=None,
+        description="System fingerprint identifying exact model weights used.",
+        json_schema_extra={"x-ui-label": "System Fingerprint"},
     )
     provider_metadata: dict[str, Any] | None = Field(
-        default=None, description="Raw provider specific metadata (e.g. rate limits, safety ratings, citations).", json_schema_extra={"x-ui-label": "Provider Metadata"}
+        default=None,
+        description="Raw provider specific metadata (e.g. rate limits, safety ratings, citations).",
+        json_schema_extra={"x-ui-label": "Provider Metadata"},
     )
+
     @field_validator("agentti", "suoritus_ymparisto")
     @classmethod
     def validate_non_empty(cls, v: str | None) -> str | None:
@@ -180,7 +181,11 @@ class ReasoningTrace(ReasoningTraceDTO):
 class UsageRecord(BaseModel):
     """Immutable record of LLM token usage and cost."""
 
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID for the usage event.", json_schema_extra={"x-ui-label": "ID"})
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique ID for the usage event.",
+        json_schema_extra={"x-ui-label": "ID"},
+    )
     org_id: str = Field(..., description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"})
     user_id: str = Field(..., description="User ID.", json_schema_extra={"x-ui-label": "User ID"})
     model: str = Field(..., description="Model name.", json_schema_extra={"x-ui-label": "Model"})
@@ -188,11 +193,21 @@ class UsageRecord(BaseModel):
     output_tokens: int = Field(
         ..., description="Output token count.", json_schema_extra={"x-ui-label": "Output Tokens"}
     )
-    cached_tokens: int = Field(default=0, description="Cached tokens.", json_schema_extra={"x-ui-label": "Cached Tokens"})
-    reasoning_tokens: int = Field(default=0, description="Reasoning tokens.", json_schema_extra={"x-ui-label": "Reasoning Tokens"})
-    latency_ms: int | None = Field(default=None, description="Request latency in ms.", json_schema_extra={"x-ui-label": "Latency (ms)"})
-    finish_reason: str | None = Field(default=None, description="Finish reason.", json_schema_extra={"x-ui-label": "Finish Reason"})
-    system_fingerprint: str | None = Field(default=None, description="System fingerprint.", json_schema_extra={"x-ui-label": "System Fingerprint"})
+    cached_tokens: int = Field(
+        default=0, description="Cached tokens.", json_schema_extra={"x-ui-label": "Cached Tokens"}
+    )
+    reasoning_tokens: int = Field(
+        default=0, description="Reasoning tokens.", json_schema_extra={"x-ui-label": "Reasoning Tokens"}
+    )
+    latency_ms: int | None = Field(
+        default=None, description="Request latency in ms.", json_schema_extra={"x-ui-label": "Latency (ms)"}
+    )
+    finish_reason: str | None = Field(
+        default=None, description="Finish reason.", json_schema_extra={"x-ui-label": "Finish Reason"}
+    )
+    system_fingerprint: str | None = Field(
+        default=None, description="System fingerprint.", json_schema_extra={"x-ui-label": "System Fingerprint"}
+    )
     cost_usd: float = Field(..., description="Cost in USD.", json_schema_extra={"x-ui-label": "Cost (USD)"})
     timestamp: datetime = Field(..., description="Timestamp of usage.", json_schema_extra={"x-ui-label": "Timestamp"})
 

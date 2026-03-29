@@ -40,7 +40,9 @@ async def test_execution_e2e_with_blueprint():
             assert render_res.status_code in [200, 400] # 400 if not completed
 
             # 2.1 Check Variant Render Endpoint
-            variant_res = await client.get(f"/api/v2/executions/{exec_id}/render?format=json&variant=1d_metrics", headers=headers)
+            variant_res = await client.get(
+                f"/api/v2/executions/{exec_id}/render?format=json&variant=1d_metrics", headers=headers
+            )
             assert variant_res.status_code in [200, 400]
 
             # 3. Queue Async PDF Koonti

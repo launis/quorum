@@ -13,6 +13,7 @@ from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigMCPGateways
 
 logger = logging.getLogger(__name__)
 
+
 class StudioService:
     """Domain Service for Admin Studio resources enforcing Tenant Isolation and Authorization."""
 
@@ -43,8 +44,7 @@ class StudioService:
         """Helper to enforce modification boundaries (e.g. only ROOT can modify system)."""
         if initiator.role not in ["ROOT", "ADMIN", "MANAGER", UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
             logger.error(
-                f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: "
-                "Only ADMIN or MANAGER can modify resources."
+                f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ADMIN or MANAGER can modify resources."
             )
             raise PermissionDeniedError("Only ADMIN or MANAGER can modify resources.")
 
@@ -52,8 +52,7 @@ class StudioService:
         if initiator.role not in ["ROOT", UserRole.ROOT]:
             if data_org_id == "system" and not allow_system:
                 logger.error(
-                    f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: "
-                    "Only ROOT can modify system resources."
+                    f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify system resources."
                 )
                 raise PermissionDeniedError("Only ROOT can modify system resources.")
             if data_org_id not in [org_id, None]:
@@ -87,6 +86,7 @@ class StudioService:
         self._enforce_modification_rights(initiator, data.organization_id)
 
         from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+
         DAGCompilerService.validate_workflow(data)
 
         dump = data.model_dump(mode="json")
@@ -121,30 +121,30 @@ class StudioService:
         self._enforce_tenant_isolation(initiator, data, "workflow")
 
         import uuid
+
         new_id = f"wf_{uuid.uuid4().hex}"
 
         cloned_data = Workflow.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+            cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-             default_locale = cloned_data["name"].get("default_locale", "en")
-             translations = cloned_data["name"].get("translations", {})
-             if default_locale in translations:
-                 translations[default_locale] = translations[default_locale] + " (Copy)"
-                 cloned_data["name"]["translations"] = translations
+            default_locale = cloned_data["name"].get("default_locale", "en")
+            translations = cloned_data["name"].get("translations", {})
+            if default_locale in translations:
+                translations[default_locale] = translations[default_locale] + " (Copy)"
+                cloned_data["name"]["translations"] = translations
         elif "name" in cloned_data and isinstance(cloned_data["name"], str):
-             cloned_data["name"] = cloned_data["name"] + " (Copy)"
+            cloned_data["name"] = cloned_data["name"] + " (Copy)"
 
         await self.repo.create_raw("workflows", cloned_data)
 
         saved = await self.repo.get("workflows", new_id)
         if not saved:
             logger.error(
-                f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
-                f"Workflow {new_id} not found after clone."
+                f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {new_id} not found after clone."
             )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=new_id)
 
@@ -202,22 +202,23 @@ class StudioService:
         self._enforce_tenant_isolation(initiator, data, "step")
 
         import uuid
+
         new_id = f"step_{uuid.uuid4().hex}"
 
         cloned_data = Step.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+            cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-             default_locale = cloned_data["name"].get("default_locale", "en")
-             translations = cloned_data["name"].get("translations", {})
-             if default_locale in translations:
-                 translations[default_locale] = translations[default_locale] + " (Copy)"
-                 cloned_data["name"]["translations"] = translations
+            default_locale = cloned_data["name"].get("default_locale", "en")
+            translations = cloned_data["name"].get("translations", {})
+            if default_locale in translations:
+                translations[default_locale] = translations[default_locale] + " (Copy)"
+                cloned_data["name"]["translations"] = translations
         elif "name" in cloned_data and isinstance(cloned_data["name"], str):
-             cloned_data["name"] = cloned_data["name"] + " (Copy)"
+            cloned_data["name"] = cloned_data["name"] + " (Copy)"
 
         await self.repo.create_raw("steps", cloned_data)
 
@@ -282,28 +283,28 @@ class StudioService:
         self._enforce_tenant_isolation(initiator, data, "prompt_block")
 
         import uuid
+
         new_id = f"blk_{uuid.uuid4().hex}"
 
         cloned_data = PromptBlock.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+            cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "label" in cloned_data and isinstance(cloned_data["label"], dict):
-             default_locale = cloned_data["label"].get("default_locale", "en")
-             translations = cloned_data["label"].get("translations", {})
-             if default_locale in translations:
-                 translations[default_locale] = translations[default_locale] + " (Copy)"
-                 cloned_data["label"]["translations"] = translations
+            default_locale = cloned_data["label"].get("default_locale", "en")
+            translations = cloned_data["label"].get("translations", {})
+            if default_locale in translations:
+                translations[default_locale] = translations[default_locale] + " (Copy)"
+                cloned_data["label"]["translations"] = translations
 
         await self.repo.create_raw("prompt_blocks", cloned_data)
 
         saved = await self.repo.get("prompt_blocks", new_id)
         if not saved:
             logger.error(
-                f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
-                f"PromptBlock {new_id} not found after clone."
+                f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: PromptBlock {new_id} not found after clone."
             )
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=new_id)
 
@@ -315,12 +316,12 @@ class StudioService:
         all_data = await self.repo.get_all("system_config")
         if initiator.role == "ROOT":
             return [SystemConfigModelRegistry.model_validate(x) for x in all_data if x.get("type") == "model_registry"]
-        return [] # Non-root sees no configs
+        return []  # Non-root sees no configs
 
     async def get_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
         if initiator.role != "ROOT":
-             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can view system configs.")
-             raise PermissionDeniedError("Only ROOT can view system configs.")
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can view system configs.")
+            raise PermissionDeniedError("Only ROOT can view system configs.")
         data = await self.repo.get("system_config", id)
         if not data:
             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
@@ -331,11 +332,8 @@ class StudioService:
         self, initiator: TokenData, id: str, data: SystemConfigModelRegistry
     ) -> SystemConfigModelRegistry:
         if initiator.role != "ROOT":
-             logger.error(
-                 f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: "
-                 "Only ROOT can modify system configs."
-             )
-             raise PermissionDeniedError("Only ROOT can modify system configs.")
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify system configs.")
+            raise PermissionDeniedError("Only ROOT can modify system configs.")
 
         dump = data.model_dump(mode="json")
         if "id" not in dump:
@@ -344,14 +342,14 @@ class StudioService:
 
         saved = await self.repo.get("system_config", id)
         if not saved:
-             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
-             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
+            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         return SystemConfigModelRegistry.model_validate(saved)
 
     async def delete_system_config(self, initiator: TokenData, id: str) -> None:
         if initiator.role != "ROOT":
-             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can delete system configs.")
-             raise PermissionDeniedError("Only ROOT can delete system configs.")
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can delete system configs.")
+            raise PermissionDeniedError("Only ROOT can delete system configs.")
 
         data = await self.repo.get("system_config", id)
         if not data:
@@ -362,20 +360,21 @@ class StudioService:
     async def clone_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
         """Deep Clones a System Config for the ROOT tenant."""
         if initiator.role != "ROOT":
-             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can clone system configs.")
-             raise PermissionDeniedError("Only ROOT can clone system configs.")
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can clone system configs.")
+            raise PermissionDeniedError("Only ROOT can clone system configs.")
         data = await self.repo.get("system_config", id)
         if not data:
             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: SystemConfig {id} not found.")
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
 
         import uuid
+
         new_id = f"system_config_{uuid.uuid4().hex}"
 
         cloned_data = SystemConfigModelRegistry.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
         if "description" in cloned_data:
-             cloned_data["description"] = f"{cloned_data['description']} (Copy)"
+            cloned_data["description"] = f"{cloned_data['description']} (Copy)"
 
         await self.repo.create_raw("system_config", cloned_data)
 
@@ -390,8 +389,8 @@ class StudioService:
 
     async def get_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
         if initiator.role != "ROOT":
-             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can view system configs.")
-             raise PermissionDeniedError("Only ROOT can view system configs.")
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can view system configs.")
+            raise PermissionDeniedError("Only ROOT can view system configs.")
         data = await self.repo.get("system_config", id)
         if not data or data.get("type") != "mcp_gateways":
             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: MCP Gateways Config {id} not found.")
@@ -402,11 +401,8 @@ class StudioService:
         self, initiator: TokenData, id: str, data: SystemConfigMCPGateways
     ) -> SystemConfigMCPGateways:
         if initiator.role != "ROOT":
-             logger.error(
-                 f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: "
-                 "Only ROOT can modify system configs."
-             )
-             raise PermissionDeniedError("Only ROOT can modify system configs.")
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can modify system configs.")
+            raise PermissionDeniedError("Only ROOT can modify system configs.")
 
         dump = data.model_dump(mode="json")
         if "id" not in dump:
@@ -415,29 +411,30 @@ class StudioService:
 
         saved = await self.repo.get("system_config", id)
         if not saved:
-             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: MCP Gateways Config {id} not found.")
-             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: MCP Gateways Config {id} not found.")
+            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         return SystemConfigMCPGateways.model_validate(saved)
 
     async def clone_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
         """Deep Clones an MCP Gateway Config for the ROOT tenant."""
         if initiator.role != "ROOT":
-             logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can clone system configs.")
-             raise PermissionDeniedError("Only ROOT can clone system configs.")
+            logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.name}: Only ROOT can clone system configs.")
+            raise PermissionDeniedError("Only ROOT can clone system configs.")
         data = await self.repo.get("system_config", id)
         if not data or data.get("type") != "mcp_gateways":
             logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: MCP Gateway Config {id} not found.")
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
 
         import uuid
+
         new_id = f"mcp_{uuid.uuid4().hex}"
 
         cloned_data = SystemConfigMCPGateways.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
-        
+
         # Opaque pattern: copy the original slug so user realizes it needs modification
         if "description" in cloned_data and cloned_data["description"]:
-             pass 
+            pass
 
         await self.repo.create_raw("system_config", cloned_data)
 
@@ -493,9 +490,7 @@ class StudioService:
                     msg = f"Target Component '{comp}' does not exist in the context of Workflow '{workflow.slug}'."
                     logger.error(f"[StudioService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
                     raise AppException(
-                        message=msg,
-                        status_code=400,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                        message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED}
                     )
 
         dump = profile.model_dump(mode="json")
@@ -507,8 +502,9 @@ class StudioService:
 
         saved = await self.repo.get_output_profile_by_id(id)
         if not saved:
-            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
-                         f"Output Profile {id} not found after save.")
+            logger.error(
+                f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Output Profile {id} not found after save."
+            )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
         return OutputProfile.model_validate(saved)
 
@@ -531,28 +527,31 @@ class StudioService:
         self._enforce_tenant_isolation(initiator, data, "output_profile")
 
         import uuid
+
         new_id = f"profile_{uuid.uuid4().hex}"
 
         cloned_data = OutputProfile.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+            cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-             default_locale = cloned_data["name"].get("default_locale", "en")
-             translations = cloned_data["name"].get("translations", {})
-             if default_locale in translations:
-                 translations[default_locale] = translations[default_locale] + " (Copy)"
-                 cloned_data["name"]["translations"] = translations
+            default_locale = cloned_data["name"].get("default_locale", "en")
+            translations = cloned_data["name"].get("translations", {})
+            if default_locale in translations:
+                translations[default_locale] = translations[default_locale] + " (Copy)"
+                cloned_data["name"]["translations"] = translations
         elif "name" in cloned_data and isinstance(cloned_data["name"], str):
-             cloned_data["name"] = cloned_data["name"] + " (Copy)"
+            cloned_data["name"] = cloned_data["name"] + " (Copy)"
 
         await self.repo.create_output_profile(cloned_data)
 
         saved = await self.repo.get_output_profile_by_id(new_id)
         if not saved:
-            logger.error(f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: OutputProfile {new_id} not found after clone.")
+            logger.error(
+                f"[StudioService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: OutputProfile {new_id} not found after clone."
+            )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=new_id)
 
         return OutputProfile.model_validate(saved)
@@ -631,12 +630,7 @@ class StudioService:
                 step_status[step_id] = "ERROR"
                 errors.extend([f"Step {step_id}: {e}" for e in step_errors])
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "step_status": step_status,
-            "execution_order": dag_order
-        }
+        return {"valid": len(errors) == 0, "errors": errors, "step_status": step_status, "execution_order": dag_order}
 
     async def simulate_prompt_block(
         self, initiator: TokenData, data: PromptBlock, mock_inputs: dict[str, Any]
@@ -670,11 +664,7 @@ class StudioService:
                     if getattr(claim, "ai_description", None):
                         rendered += f"  Rule: {claim.ai_description.strip()}\n"
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "rendered_prompt": rendered.strip()
-        }
+        return {"valid": len(errors) == 0, "errors": errors, "rendered_prompt": rendered.strip()}
 
     async def simulate_step(self, initiator: TokenData, data: Step, mock_inputs: dict[str, Any]) -> dict[str, Any]:
         """Provides a static analysis of a Step's generated context by resolving all its Prompt Blocks."""
@@ -698,8 +688,4 @@ class StudioService:
         if data.hook:
             rendered_parts.append(f"\n[Execution Hook: {data.hook}]")
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "rendered_prompt": "\n\n".join(rendered_parts)
-        }
+        return {"valid": len(errors) == 0, "errors": errors, "rendered_prompt": "\n\n".join(rendered_parts)}

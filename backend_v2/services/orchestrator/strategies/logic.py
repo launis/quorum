@@ -76,8 +76,7 @@ class LogicNodeStrategy(NodeStrategy):
 
         # 4. Post-Hooks
         safe_context = {
-            k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v
-            for k, v in dict(projector.snapshot).items()
+            k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v for k, v in dict(projector.snapshot).items()
         }
 
         final_outputs = await self.run_post_hooks(

@@ -21,8 +21,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/output-profiles", tags=["Output Profiles"])
 
 
-
-
 @router.get("/", response_model=list[OutputProfileResponseDTO])
 async def list_output_profiles(
     initiator: CurrentUserDep,
@@ -31,8 +29,6 @@ async def list_output_profiles(
     """List all available Output Profiles. Tenant isolation handled safely by StudioService."""
     profiles = await service.list_output_profiles(initiator=initiator)
     return [p.model_dump() for p in profiles]
-
-
 
 
 @router.get("/{profile_id}", response_model=OutputProfileResponseDTO)
@@ -45,6 +41,7 @@ async def get_output_profile(
     profile = await service.get_output_profile(initiator=initiator, id=profile_id)
     return profile.model_dump()
 
+
 @router.put("/{profile_id}", response_model=OutputProfileResponseDTO)
 async def upsert_output_profile(
     profile_id: str,
@@ -56,6 +53,7 @@ async def upsert_output_profile(
     # Ensure ID match
     if dto.id != profile_id:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=400, detail="Path ID does not match Payload ID")
 
     # Domain conversion (hydrates DTO -> Domain)
@@ -74,6 +72,7 @@ async def delete_output_profile(
 ) -> None:
     """Delete an Output Profile."""
     await service.delete_output_profile(initiator=initiator, id=profile_id)
+
 
 @router.post("/{profile_id}/clone", response_model=OutputProfileResponseDTO)
 async def clone_output_profile(

@@ -118,7 +118,9 @@ class LocalizationService:
         if val is None and lang_simple != "en":
             val = cls._translations.get("en", {}).get(key)
             if val is not None:
-                logger.warning(f"BFF Translation Fallback: Key '{key}' missing in '{lang_simple}', falling back to English.")
+                logger.warning(
+                    f"BFF Translation Fallback: Key '{key}' missing in '{lang_simple}', falling back to English."
+                )
 
         # 3. Fallback to Key
         if val is None:

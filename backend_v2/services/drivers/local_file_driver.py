@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-import aiofiles  # type: ignore
+import aiofiles  # type: ignore[import-untyped]
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.file_driver import FileDriver
@@ -44,7 +44,7 @@ class LocalFileDriver(FileDriver):
             logger.error(
                 f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: "
                 f"Failed to create/access local storage directory '{base_path}': {e}",
-                exc_info=True
+                exc_info=True,
             )
             raise AppException(
                 message=f"Failed to create/access local storage directory '{base_path}': {e}",
@@ -72,9 +72,7 @@ class LocalFileDriver(FileDriver):
                 msg = "Empty path"
                 logger.error(f"[LocalFileDriver] {ErrorCodes.FILESYSTEM_VIOLATION.name}: {msg}")
                 raise AppException(
-                    message=msg,
-                    status_code=400,
-                    details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION}
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION}
                 )
 
             # Resolve against base
@@ -119,7 +117,7 @@ class LocalFileDriver(FileDriver):
         except Exception as e:
             logger.error(
                 f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to save file to {path}: {e}",
-                exc_info=True
+                exc_info=True,
             )
             raise AppException(
                 message=f"Local Save Failed: {str(e)}",
@@ -135,18 +133,16 @@ class LocalFileDriver(FileDriver):
         if not full_path.exists():
             msg = f"File not found: {path}"
             logger.error(f"[LocalFileDriver] {ErrorCodes.FILE_NOT_FOUND.name}: {msg}")
-            raise AppException(
-                message=msg, status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND}
-            )
+            raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND})
 
         try:
             async with aiofiles.open(full_path, "rb") as f:
                 data = await f.read()
-                return data if isinstance(data, bytes) else bytes(data, 'utf-8')
+                return data if isinstance(data, bytes) else bytes(data, "utf-8")
         except Exception as e:
             logger.error(
                 f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to read file from {path}: {e}",
-                exc_info=True
+                exc_info=True,
             )
             raise AppException(
                 message=f"Local Read Failed: {str(e)}",
@@ -165,7 +161,7 @@ class LocalFileDriver(FileDriver):
             except Exception as e:
                 logger.error(
                     f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to delete file {path}: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
                 raise AppException(
                     message=f"Local Delete Failed: {str(e)}",

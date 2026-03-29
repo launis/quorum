@@ -1,4 +1,4 @@
-
+from typing import Any
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
@@ -7,32 +7,34 @@ from backend_v2.models.v2_core import BlockDataType
 
 
 class MockBlock:
-    def __init__(self, slug, type_val, output_extensions):
+    def __init__(self, slug: Any, type_val: Any, output_extensions: Any) -> None:
         self.slug = slug
         self.type = type_val
         self.output_extensions = output_extensions
 
+
 @pytest.fixture
-def test_blocks():
+def test_blocks() -> list[Any]:
     return [
         MockBlock(
             slug="matrix_risk",
             type_val=BlockDataType.FLOAT,
-            output_extensions=["confidence", "risk_flag", "remediation_steps"]
+            output_extensions=["confidence", "risk_flag", "remediation_steps"],
         ),
         MockBlock(
             slug="block_coach",
             type_val=BlockDataType.STRING,
-            output_extensions=["coaching", "emotional_sentiment", "theory_link"]
+            output_extensions=["coaching", "emotional_sentiment", "theory_link"],
         ),
         MockBlock(
             slug="matrix_logic",
             type_val=BlockDataType.INT,
-            output_extensions=["justification", "citation", "falsification", "missing_context"]
-        )
+            output_extensions=["justification", "citation", "falsification", "missing_context"],
+        ),
     ]
 
-def test_xai_extensions_schema_generation_happy_path(test_blocks):
+
+def test_xai_extensions_schema_generation_happy_path(test_blocks: Any) -> None:
     """Test that schema builder dynamically generates all fields with correct types."""
     DynamicModel = SchemaCompilerService.compile(test_blocks)
     adapter = TypeAdapter(DynamicModel)
@@ -43,46 +45,43 @@ def test_xai_extensions_schema_generation_happy_path(test_blocks):
         "matrix_risk": 5.0,
         "block_coach": "Nice work",
         "matrix_logic": 1,
-
         # Extended outputs for matrix_risk
         "matrix_risk_confidence": 95.5,
         "matrix_risk_risk_flag": True,
         "matrix_risk_remediation_steps": ["Step 1", "Step 2"],
-
         # Extended outputs for block_coach
         "block_coach_coaching": "Try alternative phrasing.",
         "block_coach_emotional_sentiment": "Positive and encouraging",
         "block_coach_theory_link": "Constructivist learning theory",
-
         # Extended outputs for matrix_logic
         "matrix_logic_justification": "Valid logic structure.",
         "matrix_logic_citation": "'Always test edge cases.'",
         "matrix_logic_falsification": "Unless the edge case is impossible.",
-        "matrix_logic_missing_context": "Background dependencies not mentioned."
+        "matrix_logic_missing_context": "Background dependencies not mentioned.",
     }
 
     # Validation should succeed without raising exceptions
     instance = adapter.validate_python(payload)
 
     # Strict attribute checking
-    assert instance.matrix_risk == 5.0
-    assert instance.matrix_risk_confidence == 95.5
-    assert instance.matrix_risk_risk_flag is True
-    assert instance.matrix_risk_remediation_steps == ["Step 1", "Step 2"]
+    assert getattr(instance, "matrix_risk") == 5.0
+    assert getattr(instance, "matrix_risk_confidence") == 95.5
+    assert getattr(instance, "matrix_risk_risk_flag") is True
+    assert getattr(instance, "matrix_risk_remediation_steps") == ["Step 1", "Step 2"]
 
-    assert instance.block_coach == "Nice work"
-    assert instance.block_coach_coaching == "Try alternative phrasing."
-    assert instance.block_coach_emotional_sentiment == "Positive and encouraging"
-    assert instance.block_coach_theory_link == "Constructivist learning theory"
+    assert getattr(instance, "block_coach") == "Nice work"
+    assert getattr(instance, "block_coach_coaching") == "Try alternative phrasing."
+    assert getattr(instance, "block_coach_emotional_sentiment") == "Positive and encouraging"
+    assert getattr(instance, "block_coach_theory_link") == "Constructivist learning theory"
 
-    assert instance.matrix_logic == 1
-    assert instance.matrix_logic_justification == "Valid logic structure."
-    assert instance.matrix_logic_citation == "'Always test edge cases.'"
-    assert instance.matrix_logic_falsification == "Unless the edge case is impossible."
-    assert instance.matrix_logic_missing_context == "Background dependencies not mentioned."
+    assert getattr(instance, "matrix_logic") == 1
+    assert getattr(instance, "matrix_logic_justification") == "Valid logic structure."
+    assert getattr(instance, "matrix_logic_citation") == "'Always test edge cases.'"
+    assert getattr(instance, "matrix_logic_falsification") == "Unless the edge case is impossible."
+    assert getattr(instance, "matrix_logic_missing_context") == "Background dependencies not mentioned."
 
 
-def test_xai_extensions_validation_failures(test_blocks):
+def test_xai_extensions_validation_failures(test_blocks: Any) -> None:
     """Test that schema builder strictly enforces type hints on extensions, rejecting bad LLM output."""
     DynamicModel = SchemaCompilerService.compile(test_blocks)
     adapter = TypeAdapter(DynamicModel)
@@ -91,24 +90,21 @@ def test_xai_extensions_validation_failures(test_blocks):
         "matrix_risk": 5.0,
         "block_coach": "Nice work",
         "matrix_logic": 1,
-
         "matrix_risk_confidence": 95.5,
         "matrix_risk_risk_flag": True,
         "matrix_risk_remediation_steps": ["Step 1", "Step 2"],
-
         "block_coach_coaching": "Try alternative phrasing.",
         "block_coach_emotional_sentiment": "Positive and encouraging",
         "block_coach_theory_link": "Constructivist learning theory",
-
         "matrix_logic_justification": "Valid logic structure.",
         "matrix_logic_citation": "'Always test edge cases.'",
         "matrix_logic_falsification": "Unless the edge case is impossible.",
-        "matrix_logic_missing_context": "Background dependencies not mentioned."
+        "matrix_logic_missing_context": "Background dependencies not mentioned.",
     }
 
     # 1. Test incompatible confidence (float expected, string given)
     bad_confidence = base_payload.copy()
-    bad_confidence["matrix_risk_confidence"] = "HIGH" # MUST FAIL
+    bad_confidence["matrix_risk_confidence"] = "HIGH"  # MUST FAIL
 
     with pytest.raises(ValidationError) as exc:
         adapter.validate_python(bad_confidence)
@@ -116,7 +112,7 @@ def test_xai_extensions_validation_failures(test_blocks):
 
     # 2. Test incompatible risk_flag (bool expected, string given)
     bad_risk_flag = base_payload.copy()
-    bad_risk_flag["matrix_risk_risk_flag"] = "NotABoolean" # MUST FAIL
+    bad_risk_flag["matrix_risk_risk_flag"] = "NotABoolean"  # MUST FAIL
 
     with pytest.raises(ValidationError) as exc:
         adapter.validate_python(bad_risk_flag)
@@ -124,7 +120,7 @@ def test_xai_extensions_validation_failures(test_blocks):
 
     # 3. Test incompatible remediation_steps (list[str] expected, string given)
     bad_remediation = base_payload.copy()
-    bad_remediation["matrix_risk_remediation_steps"] = "Just fix it." # MUST FAIL
+    bad_remediation["matrix_risk_remediation_steps"] = "Just fix it."  # MUST FAIL
 
     with pytest.raises(ValidationError) as exc:
         adapter.validate_python(bad_remediation)
@@ -132,8 +128,8 @@ def test_xai_extensions_validation_failures(test_blocks):
 
     # 4. Test float coercion works for confidence (if int given)
     good_coercion = base_payload.copy()
-    good_coercion["matrix_risk_confidence"] = 90 # Int should correctly coerce to 90.0 FLOAT
+    good_coercion["matrix_risk_confidence"] = 90  # Int should correctly coerce to 90.0 FLOAT
 
     instance = adapter.validate_python(good_coercion)
-    assert instance.matrix_risk_confidence == 90.0
-    assert isinstance(instance.matrix_risk_confidence, float)
+    assert getattr(instance, "matrix_risk_confidence") == 90.0
+    assert isinstance(getattr(instance, "matrix_risk_confidence"), float)

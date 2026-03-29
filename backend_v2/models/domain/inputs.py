@@ -18,7 +18,9 @@ class WorkflowInputs(BaseModel):
     # Primary Content (Raw Material for LLM)
     # Optional inputs like 'product_text', 'reflection_text', and 'guided_reflection'
     # are dynamically accepted here based on Workflow.expected_inputs and extra="allow".
-    chat_log: str | dict[str, Any] | None = Field(default=None, description="Optional legacy chat log or Base64 payload.")
+    chat_log: str | dict[str, Any] | None = Field(
+        default=None, description="Optional legacy chat log or Base64 payload."
+    )
     organization_id: str | None = Field(default=None, description="Tenant ID for multi-tenancy.")
     user_id: str | None = Field(default=None, description="User ID for audit trails.")
     simulation_mode: bool = Field(default=False, description="If True, indicates a test/simulation run.")
@@ -27,5 +29,3 @@ class WorkflowInputs(BaseModel):
     # Config: Allow new fields so dynamic inputs are retained.
     # frozen=True ensures immutability once created.
     model_config = ConfigDict(extra="allow", frozen=True)
-
-

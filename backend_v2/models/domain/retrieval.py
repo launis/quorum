@@ -20,10 +20,13 @@ class RetrievalInput(BaseModel):
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
     """
 
-    chat_log: str = Field(..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
+    chat_log: str = Field(
+        ..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"}
+    )
     product_text: str | None = Field(None, description="Reference text/documents to retrieve from.")
 
     model_config = ConfigDict(frozen=True, extra="allow")
+
 
 class RetrievedFact(BaseModel):
     """A single fact extracted from the material."""
@@ -40,11 +43,7 @@ class RetrievedFact(BaseModel):
         json_schema_extra={"x-ui-label": "Source Quote"},
     )
     relevance_score: int = Field(
-        ...,
-        description="Relevance to the objective (1-5).",
-        json_schema_extra={"x-ui-label": "Relevance"},
-        ge=1,
-        le=5
+        ..., description="Relevance to the objective (1-5).", json_schema_extra={"x-ui-label": "Relevance"}, ge=1, le=5
     )
 
     model_config = ConfigDict(frozen=True, strict=False)
@@ -60,6 +59,7 @@ class RetrievedFact(BaseModel):
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
+
 class RetrievalDTO(ReasoningTraceDTO):
     """Retrieval DTO (Content Only)."""
 
@@ -71,7 +71,7 @@ class RetrievalDTO(ReasoningTraceDTO):
     key_takeaways: str = Field(
         ...,
         description="High-level summary of the retrieved information.",
-        json_schema_extra={"x-ui-label": "Key Takeaways"}
+        json_schema_extra={"x-ui-label": "Key Takeaways"},
     )
 
     model_config = ConfigDict(frozen=True, strict=False)
@@ -84,6 +84,7 @@ class RetrievalDTO(ReasoningTraceDTO):
             logger.error(f"[RetrievalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
+
 
 class RetrievalOutput(RetrievalDTO, ReasoningTrace):
     """Output schema for the Retrieval Agent."""

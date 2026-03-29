@@ -12,9 +12,8 @@ class MockRepository:
         return {"prompt_blocks": ["test_block"]}
 
     async def get_prompt_block_by_id(self, slug: str) -> dict[str, Any]:
-        return {
-            "scales": [{"score": "not_a_number"}]
-        }
+        return {"scales": [{"score": "not_a_number"}]}
+
 
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
@@ -25,9 +24,9 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         step_id="test_step",
         task_blueprint="test_blueprint",
         inputs={"test_block": 5.0},
-        global_context_vars={}
+        global_context_vars={},
     )
-    deps = HookDependencies(repository=MockRepository()) # type: ignore
+    deps = HookDependencies(repository=MockRepository())  # type: ignore
 
     with pytest.raises(AppException) as exc_info:
         await normalize_matrix_scores_hook(state, deps)  # type: ignore[misc]

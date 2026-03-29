@@ -32,7 +32,9 @@ class CoachInput(BaseModel):
         default=None, description="The Verdict from Judge Agent.", json_schema_extra={"x-ui-label": "Judge Verdict"}
     )
     step_judge_cognitive: JudgeOutput | None = Field(
-        default=None, description="The Verdict from Cognitive Judge Agent.", json_schema_extra={"x-ui-label": "Cognitive Verdict"}
+        default=None,
+        description="The Verdict from Cognitive Judge Agent.",
+        json_schema_extra={"x-ui-label": "Cognitive Verdict"},
     )
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
@@ -41,7 +43,9 @@ class CoachInput(BaseModel):
     step_profiler: Any | None = Field(default=None, description="Profiler cognitive bias data.")
     step_falsifier: Any | None = Field(default=None, description="Falsifier critical distance data.")
     step_logician: Any | None = Field(default=None, description="Logician Toulmin analysis data.")
-    step_causal_analyst: Any | None = Field(default=None, description="Causal Analyst post-hoc and counterfactual data.")
+    step_causal_analyst: Any | None = Field(
+        default=None, description="Causal Analyst post-hoc and counterfactual data."
+    )
 
     # Allow extra fields because Coach might receive step_judge, step_judge_cognitive etc.
     # Logic in agent iterates keys.

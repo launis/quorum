@@ -18,6 +18,7 @@ from backend_v2.models.v2_core import ReportDataDTO
 
 logger = logging.getLogger(__name__)
 
+
 class PdfReportService:
     """Service to generate PDF reports dynamically from V2 execution data."""
 
@@ -39,13 +40,14 @@ class PdfReportService:
 
         # Lightweight Custom Markdown Filter for Bold (**) and Italic (*)
         import re
+
         def md_filter(text: str) -> str:
             if not isinstance(text, str):
                 return text
             # Convert **bold** to <strong>bold</strong>
-            text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+            text = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", text)
             # Convert *italic* to <em>italic</em>
-            text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
+            text = re.sub(r"\*(.*?)\*", r"<em>\1</em>", text)
             return text
 
         self.env.filters["md"] = md_filter
@@ -91,6 +93,7 @@ class PdfReportService:
             # 2. Extract context and results
             frozen_context = execution.frozen_context.model_dump() if execution.frozen_context else {}
             from backend_v2.models.state import StateProjector
+
             projector = StateProjector()
             results = projector.fold_trace(execution.execution_trace)
 
@@ -98,6 +101,7 @@ class PdfReportService:
             charts = {}
             if report_dto and report_dto.layouts:
                 from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
+
                 for idx, layout in enumerate(report_dto.layouts):
                     try:
                         if layout.preset_view in ("radar_3d", "3d_complex"):
@@ -110,17 +114,18 @@ class PdfReportService:
                                 charts[idx] = b64_data
                     except Exception as e:
                         msg = f"Failed to render PDF charts for layout {idx}: {e}"
-                        logger.error(f"[PdfReportService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+                        logger.error(
+                            f"[PdfReportService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True
+                        )
                         raise AppException(
-                            message=msg,
-                            status_code=500,
-                            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                            message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
                         ) from e
 
             # 3. Render Template
             template = self.env.get_template("report_template.jinja2")
 
             from datetime import datetime
+
             printed_at = datetime.now().astimezone().strftime("%d.%m.%Y %H:%M")
 
             html_content = template.render(
@@ -130,11 +135,12 @@ class PdfReportService:
                 results=results,
                 report_data=report_dto,
                 printed_at=printed_at,
-                charts=charts
+                charts=charts,
             )
 
             # 4. Generate PDF
             import asyncio
+
             loop = asyncio.get_running_loop()
 
             def _render_pdf() -> bytes:
@@ -147,14 +153,14 @@ class PdfReportService:
             return pdf_bytes
 
         except AppException:
-             # Re-raise known AppExceptions (e.g. 404) as-is
-             raise
+            # Re-raise known AppExceptions (e.g. 404) as-is
+            raise
 
         except Exception as e:
-             msg = f"PDF generation failed: {e}"
-             logger.error(f"[PdfReportService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
-             raise AppException(
-                 message=msg,
-                 status_code=500,
-                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "original_error": str(e)},
-             ) from e
+            msg = f"PDF generation failed: {e}"
+            logger.error(f"[PdfReportService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "original_error": str(e)},
+            ) from e

@@ -85,8 +85,8 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     source_texts: list[str] = []
 
     if not inputs:
-         logger.warning("[IntegrityHook] Local citation verification requires some text inputs. Bypassing safely.")
-         return HookResult(success=True, state_delta={})
+        logger.warning("[IntegrityHook] Local citation verification requires some text inputs. Bypassing safely.")
+        return HookResult(success=True, state_delta={})
 
     # Gather all text inputs dynamically
     source_texts = []
@@ -133,7 +133,8 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
                         for pb in seed_json["prompt_blocks"]:
                             if "theory_grounding" in pb:
                                 _url = pb["theory_grounding"].get("source_url")
-                                # In production, this would fetch from the web. We rely on exact texts in the inputs mostly.
+                                # In production, this would fetch from the web.
+                        # We rely on exact texts in the inputs mostly.
                                 pass
 
             # We also read the documentation to verify any theories explicitly named in the documents
@@ -199,6 +200,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
 
     # We mutate a deep copy of global_context_vars and return it as delta
     import copy
+
     delta = copy.deepcopy(state.global_context_vars)
     scan_and_nullify(delta)
 

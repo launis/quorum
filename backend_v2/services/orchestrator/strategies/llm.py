@@ -125,10 +125,7 @@ class LLMNodeStrategy(NodeStrategy):
         if not strategy_name:
             logger.error(
                 "Fail-Fast: Step has no model_strategy defined. Zero fallbacks allowed.",
-                extra={
-                    "error_code": ErrorCodes.CONFIGURATION_ERROR.name,
-                    "step_id": step.id
-                }
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
             )
             raise AppException(
                 message=f"Step {step.id} has no model_strategy defined (Fail-Fast: No fallbacks allowed).",
@@ -170,8 +167,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         # 5. Post-Hooks
         safe_context = {
-            k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v
-            for k, v in dict(projector.snapshot).items()
+            k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v for k, v in dict(projector.snapshot).items()
         }
 
         final_dict = await self.run_post_hooks(

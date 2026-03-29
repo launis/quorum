@@ -65,11 +65,7 @@ class WorkflowStep(BaseModel):
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error(f"[WorkflowModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(
-                message=msg,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                status_code=400
-            )
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
 
@@ -100,11 +96,7 @@ class ComponentScoringRule(BaseModel):
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error(f"[WorkflowModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(
-                message=msg,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                status_code=400
-            )
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
 
@@ -130,11 +122,7 @@ class ScoringLogic(BaseModel):
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error(f"[WorkflowModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
-            raise AppException(
-                message=msg,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                status_code=400
-            )
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
 
@@ -145,7 +133,9 @@ class WorkflowDefinition(BaseModel):
     transformation through registered tasks.
     """
 
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique Workflow ID, e.g., 'comprehensive_audit_v1'")
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()), description="Unique Workflow ID, e.g., 'comprehensive_audit_v1'"
+    )
     slug: str | None = Field(
         default=None,
         description="Legacy human-readable identifier",
