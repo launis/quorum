@@ -132,7 +132,19 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                   final dt = DateTime.parse(createdAt).toLocal();
                   dateStr =
                       '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-                } catch (_) {}
+                } catch (e, st) {
+                  ref
+                      .read(loggerServiceProvider)
+                      .error(
+                        'DashboardView',
+                        'Failed to parse createdAt date: $createdAt',
+                        e,
+                        st,
+                      );
+                  throw AppException.validation(
+                    'Corrupted DateTime string in execution data: $createdAt',
+                  );
+                }
               }
 
               // Metrics

@@ -65,6 +65,8 @@ Future<void> main() async {
       details.exception,
       details.stack,
     );
+    // Ensure the Red Screen / Error boundary is rendered
+    FlutterError.presentError(details);
   };
 
   // Diagnostic Node: Replace Red Screen of Death with Local Error Box (No Graceful Degradation)

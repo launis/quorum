@@ -25,16 +25,6 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             home: const ModelRegistryView(
               id: 'syscfg_123',
-              initialData: {
-                'id': 'syscfg_123',
-                'models': {
-                  'fast': {
-                    'model_name': 'gpt-4o',
-                    'provider': 'OpenAI',
-                    'is_active': true,
-                  },
-                },
-              },
             ),
           ),
         ),

@@ -32,7 +32,20 @@ class ErrorInterceptor extends Interceptor {
       logger.error('HTTP', 'Response Body: ${err.response?.data}');
     }
 
-    // Check if response contains RFC 7807 Problem Details
+    // Handle Gateway/Auth errors (401, 403) eagerly, regardless of payload format
+    if (err.response?.statusCode == 401 || err.response?.statusCode == 403) {
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          response: err.response,
+          type: err.type,
+          error: AppException.unauthorized(),
+        ),
+      );
+      return;
+    }
+
+    // Check if response contains RFC 7807 Problem Details or FastAPI standard responses
     if (err.response?.data != null &&
         err.response!.data is Map<String, dynamic>) {
       final data = err.response!.data as Map<String, dynamic>;
@@ -54,6 +67,25 @@ class ErrorInterceptor extends Interceptor {
         } catch (e) {
           logger.warning('HTTP', 'Failed to parse AppException: $e');
         }
+      } else if (err.response?.statusCode == 422 && data.containsKey('detail')) {
+        // Fallback for FastAPI standard Validation Errors (HTTP 422)
+        final detail = data['detail'];
+        String parsedDetail = 'Validation failed';
+        if (detail is List) {
+          parsedDetail = detail.map((e) => e.toString()).join('\n');
+        } else if (detail is String) {
+          parsedDetail = detail;
+        }
+
+        handler.reject(
+          DioException(
+            requestOptions: err.requestOptions,
+            response: err.response,
+            type: err.type,
+            error: AppException.validation(parsedDetail),
+          ),
+        );
+        return;
       }
     }
 
