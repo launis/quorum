@@ -52,7 +52,7 @@ class WaltonStressTest(BaseModel):
         description="Observation notes.",
         json_schema_extra={"x-ui-label": "Observation"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
     @field_validator("question", "observation", mode="before")
     @classmethod
@@ -120,7 +120,7 @@ class ReasoningFidelity(BaseModel):
     def validate_falsifier_scores(cls, v: float) -> float:
         if not (1.0 <= v <= 3.0):
             msg = "Score must be between 1.0 and 3.0."
-            logger.error(f"[FalsifierModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
@@ -161,12 +161,12 @@ class ReasoningFidelity(BaseModel):
                         data["fidelity_numeric"] = mapping[enum_val]
                 except ValueError as e:
                     msg = f"Falsifier parsing failed: Invalid FidelityLevel '{val}'."
-                    logger.error(f"[FalsifierModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     raise AppException(message=msg, status_code=422, details=err_details) from e
         return data
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class FalsifierData(BaseModel):
@@ -182,7 +182,7 @@ class FalsifierData(BaseModel):
         description="Fidelity audit.",
         json_schema_extra={"x-ui-label": "Fidelity Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
     @field_validator("stress_test_findings", mode="before")
     @classmethod
@@ -198,10 +198,10 @@ class FalsifierDTO(ReasoningTraceDTO):
         description="Falsification audit result.",
         json_schema_extra={"x-ui-label": "Falsification Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class FalsifierOutput(FalsifierDTO, ReasoningTrace):
     """Output schema for the Falsifier Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")

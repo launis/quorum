@@ -50,7 +50,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     if not template_dir.exists():
         error_code = ErrorCodes.CONFIGURATION_ERROR
         msg = f"Template directory not found at {template_dir}."
-        logger.error(f"[ReportingHook] {error_code.name}: {msg}")
+        logger.error("[ReportingHook] %s: %s", error_code.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
     # 2. GATHER CONTEXT
@@ -63,7 +63,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
         msg = "Missing or invalid 'inputs' in data. Expected dict."
         status_code = status.HTTP_400_BAD_REQUEST if inputs is None else status.HTTP_500_INTERNAL_SERVER_ERROR
-        logger.error(f"[ReportingHook] {error_code.name}: {msg}")
+        logger.error("[ReportingHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status_code,

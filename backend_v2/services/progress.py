@@ -94,7 +94,7 @@ class DatabaseProgressTracker(ProgressTracker):
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to start progress tracking for {self.execution_id}"
-            logger.error(f"[ProgressTracker] {ErrorCodes.PROGRESS_UPDATE_FAILED.name}: {msg} - {e}")
+            logger.error("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -116,7 +116,7 @@ class DatabaseProgressTracker(ProgressTracker):
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to update progress for {self.execution_id}"
-            logger.error(f"[ProgressTracker] {ErrorCodes.PROGRESS_UPDATE_FAILED.name}: {msg} - {e}")
+            logger.error("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
             # We strictly Fail Fast here based on the mandate.
             raise AppException(
                 message=msg,
@@ -133,7 +133,7 @@ class DatabaseProgressTracker(ProgressTracker):
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to complete progress tracking for {self.execution_id}"
-            logger.error(f"[ProgressTracker] {ErrorCodes.PROGRESS_UPDATE_FAILED.name}: {msg} - {e}")
+            logger.error("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -154,7 +154,7 @@ class DatabaseProgressTracker(ProgressTracker):
         except Exception as e:
             msg = f"Failed to report failure for {self.execution_id}"
             # If we fail to report failure, log critically with standard format.
-            logger.critical(f"[ProgressTracker] {ErrorCodes.PROGRESS_UPDATE_FAILED.name}: {msg} - {e}")
+            logger.critical("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -255,7 +255,7 @@ class ProgressService:
             # await self.redis.publish(f"progress_updates:{execution_id}", json.dumps(payload))
         except Exception as e:
             msg = "Failed to emit progress update."
-            logger.error(f"[ProgressService] {ErrorCodes.PROGRESS_UPDATE_FAILED.name}: {msg} - {e}")
+            logger.error("[ProgressService] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
             raise AppException(
                 message=msg,
                 status_code=500,

@@ -22,13 +22,13 @@ class BlueprintTransformer:
         execution = await self.repo.get_execution(execution_id)
         if not execution:
             msg = f"Execution {execution_id} not found."
-            logger.error(f"[BlueprintTransformer] {ErrorCodes.RESOURCE_NOT_FOUND.name}: {msg}")
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
         workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
         if not workflow_data:
             msg = f"Executing workflow {execution.workflow_id} not found."
-            logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         from backend_v2.models.state import StateProjector
@@ -72,7 +72,7 @@ class BlueprintTransformer:
 
         # 3. Fallback to default routing slug if requested was missing completely
         if not profile_data and resolved_pid_request != default_profile_ref:
-            logger.warning(f"Profile {resolved_pid_request} not found, falling back to slug '{default_profile_ref}'")
+            logger.warning("Profile %s not found, falling back to slug '%s'", resolved_pid_request, default_profile_ref)
             for p_dict in all_profiles_data:
                 if p_dict.get("slug") == default_profile_ref:
                     profile_data = p_dict
@@ -80,7 +80,7 @@ class BlueprintTransformer:
 
         if not profile_data:
             msg = f"Output profile '{resolved_pid_request}' not found in the database. Failing fast."
-            logger.error(f"[BlueprintTransformer] {ErrorCodes.RESOURCE_NOT_FOUND.name}: {msg}")
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
         resolved_pid = str(profile_data.get("id"))
@@ -98,7 +98,8 @@ class BlueprintTransformer:
                 available_profiles_map[op.id] = name_dict.get(locale, name_dict.get("en", op.id))
             except Exception as e:
                 logger.warning(
-                    f"[BlueprintTransformer] VALIDATION_FAILED: Failed to parse profile for dropdown map: {e}",
+                    "[BlueprintTransformer] VALIDATION_FAILED: Failed to parse profile for dropdown map: %s",
+                    e,
                     exc_info=True,
                 )
 
@@ -338,7 +339,7 @@ class BlueprintTransformer:
                     )
         except Exception as e:
             msg = f"Failed to build layout DTO: {e}"
-            logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -354,7 +355,7 @@ class BlueprintTransformer:
                     org_name = str(org["name"])
             except Exception as org_err:
                 logger.warning(
-                    f"[BlueprintTransformer] RESOURCE_NOT_FOUND: Failed to resolve org name "
+                    "[BlueprintTransformer] RESOURCE_NOT_FOUND: Failed to resolve org name "
                     f"for id {execution.organization_id}: {org_err}",
                     exc_info=True,
                 )
@@ -389,14 +390,16 @@ class BlueprintTransformer:
             # --- V3 SANITY CHECK / HEALTH ALERTS ---
             if t_tokens == 0 and execution.execution_trace:
                 logger.warning(
-                    f"[BlueprintTransformer] ALARM: Reporting 0 tokens for execution {execution.id}. "
-                    "Telemetry or V3 metadata sync might be broken."
+                    "[BlueprintTransformer] ALARM: Reporting 0 tokens for execution %s. ",
+                    execution.id,
+                    "Telemetry or V3 metadata sync might be broken.",
                 )
 
             if not layouts_list:
                 logger.warning(
-                    f"[BlueprintTransformer] ALARM: 0 Layouts generated for execution {execution.id}. "
-                    "UI will render empty."
+                    "[BlueprintTransformer] ALARM: 0 Layouts generated for execution %s. ",
+                    execution.id,
+                    "UI will render empty.",
                 )
 
             # Extract MCP Tool Loop audit trail from FrozenContext (XAI Evidence for Frontend)
@@ -424,7 +427,7 @@ class BlueprintTransformer:
             return dto
         except Exception as e:
             msg = f"Failed to map execution {execution.id} results to ReportDataDTO: {e}"
-            logger.error(f"[BlueprintTransformer] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED}
             ) from e

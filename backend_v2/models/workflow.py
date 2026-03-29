@@ -64,7 +64,7 @@ class WorkflowStep(BaseModel):
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[WorkflowModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[WorkflowModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
@@ -88,14 +88,14 @@ class ComponentScoringRule(BaseModel):
         json_schema_extra={"x-ui-label": "Metric Key"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("component_id", "metric_key")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[WorkflowModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[WorkflowModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
@@ -114,14 +114,14 @@ class ScoringLogic(BaseModel):
         json_schema_extra={"x-ui-label": "Rules"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("label")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[WorkflowModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[WorkflowModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
@@ -197,7 +197,7 @@ class WorkflowDefinition(BaseModel):
         json_schema_extra={"x-ui-label": "UI Schema"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id", "name", "description")
     @classmethod

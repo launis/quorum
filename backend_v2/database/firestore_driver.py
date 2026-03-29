@@ -4,7 +4,7 @@ import logging
 import uuid
 from typing import Any
 
-from google.cloud import firestore
+from google.cloud import firestore  # type: ignore[attr-defined]
 
 from backend_v2.database.driver import Filter, StorageDriver
 
@@ -79,7 +79,7 @@ class FirestoreDriver(StorageDriver):
             await doc_ref.update(safe_updates)
             return True
         except Exception as e:
-            logger.error(f"Firestore update failed: {e}")
+            logger.error("Firestore update failed: %s", e)
             return False
 
     async def delete(self, collection: str, doc_id: str) -> bool:
@@ -87,7 +87,7 @@ class FirestoreDriver(StorageDriver):
             await self.db.collection(collection).document(doc_id).delete()
             return True
         except Exception as e:
-            logger.error(f"Firestore delete failed: {e}")
+            logger.error("Firestore delete failed: %s", e)
             return False
 
     async def query(

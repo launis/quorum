@@ -111,7 +111,7 @@ class UsageService:
 
         except Exception as e:
             error_code = ErrorCodes.USAGE_TRACKING_FAILED
-            logger.error(f"[Usage] {error_code.value} for {user_id} (Org: {org_id}): {e}", exc_info=True)
+            logger.error("[Usage] %s for %s (Org: %s): %s", error_code.value, user_id, org_id, e, exc_info=True)
             raise AppException(
                 message=f"Failed to track usage: {e}", status_code=500, details={"error_code": error_code}
             ) from e
@@ -135,7 +135,7 @@ class UsageService:
                 # If org doesn't exist, we probably shouldn't run executions, but maybe it's system?
                 # System org usually has no limit or high limit.
                 logger.warning(
-                    f"Quota Check: Organization '{org_id}' not found. Allowing execution (Fail Open for Pilot)."
+                    "Quota Check: Organization '%s' not found. Allowing execution (Fail Open for Pilot).", org_id
                 )
                 return True
 
@@ -149,14 +149,14 @@ class UsageService:
             used = await self.repo.get_org_usage_total(org_id, since=start_of_month)
 
             if used >= limit:
-                logger.warning(f"Quota Exceeded for {org_id}: Used ${used:.2f} >= Limit ${limit:.2f}")
+                logger.warning("Quota Exceeded for %s: Used $%s >= Limit $%s", org_id, used, limit)
                 return False
 
             return True
 
         except Exception as e:
             error_code = ErrorCodes.QUOTA_CHECK_FAILED
-            logger.error(f"[Usage] {error_code.value} check failed for {org_id}: {e}", exc_info=True)
+            logger.error("[Usage] %s check failed for %s: %s", error_code.value, org_id, e, exc_info=True)
             # Fail FAST. Do not swallow errors.
             raise AppException(
                 message=f"Quota check failed: {e}", status_code=500, details={"error_code": error_code}

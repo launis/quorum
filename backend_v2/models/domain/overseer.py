@@ -65,7 +65,7 @@ class FactCheckRFI(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[OverseerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -78,7 +78,7 @@ class FactCheckRFI(BaseModel):
             data["is_verified"] = val == "Verified"
         return data
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class EthicalObservation(BaseModel):
@@ -111,7 +111,7 @@ class EthicalObservation(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[OverseerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -124,7 +124,7 @@ class EthicalObservation(BaseModel):
             data["is_critical"] = val == "Critical"
         return data
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class OverseerData(BaseModel):
@@ -140,7 +140,7 @@ class OverseerData(BaseModel):
         description="Ethical audit report.",
         json_schema_extra={"x-ui-label": "Ethical Issues"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class OverseerDTO(ReasoningTraceDTO):
@@ -151,10 +151,10 @@ class OverseerDTO(ReasoningTraceDTO):
         description="Ethics audit result.",
         json_schema_extra={"x-ui-label": "Ethics Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class OverseerOutput(OverseerDTO, ReasoningTrace):
     """Output schema for the Overseer Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")

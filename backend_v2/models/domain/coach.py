@@ -58,7 +58,7 @@ class CoachInput(BaseModel):
             return v
         if not v or not v.strip():
             msg = "chat_log cannot be empty or whitespace only."
-            logger.error(f"[CoachModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -73,7 +73,7 @@ class BibliographyItem(BaseModel):
         default=None, description="Relevant snippet.", json_schema_extra={"x-ui-label": "Snippet"}
     )
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @field_validator("source_id", "title")
     @classmethod
@@ -82,7 +82,7 @@ class BibliographyItem(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[CoachModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -94,7 +94,7 @@ class BibliographyResult(BaseModel):
         default_factory=list, description="List of references.", json_schema_extra={"x-ui-label": "References"}
     )
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class CoachingPlanDTO(ReasoningTraceDTO):
@@ -115,20 +115,20 @@ class CoachingPlanDTO(ReasoningTraceDTO):
         description="Key areas to focus on.",
         json_schema_extra={"x-ui-label": "Focus Areas"},
     )
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @field_validator("actionable_steps", "focus_areas")
     @classmethod
     def validate_list_not_empty(cls, v: list[str]) -> list[str]:
         if not v:
             msg = "List cannot be empty."
-            logger.error(f"[CoachModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         # Validate individual items
         cleaned = [item.strip() for item in v if item and item.strip()]
         if not cleaned:
             msg = "List cannot contain only empty strings."
-            logger.error(f"[CoachModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return cleaned
 
@@ -136,4 +136,4 @@ class CoachingPlanDTO(ReasoningTraceDTO):
 class CoachingPlan(CoachingPlanDTO, ReasoningTrace):
     """Output schema for the Coach Agent (Domain Model)."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")

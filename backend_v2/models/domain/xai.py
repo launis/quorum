@@ -57,7 +57,7 @@ class XAIScoreItem(BaseModel):
     reasoning: str | None = Field(default=None, description="Reasoning for the score.")
     weight: float = Field(default=1.0, description="Weight of this item.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("label")
     @classmethod
@@ -156,7 +156,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
     def validate_score(cls, v: float) -> float:
         if not (0.0 <= v <= 1.0):
             msg = "Confidence score must be between 0.0 and 1.0."
-            logger.error(f"[XAIModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -175,7 +175,7 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
         json_schema_extra={"x-ui-label": "Flat Report"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class ReportResult(BaseModel):
@@ -189,7 +189,7 @@ class ReportResult(BaseModel):
         default=None, description="The structured data used to generate the report (SSOT)."
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("report_content")
     @classmethod
@@ -198,6 +198,6 @@ class ReportResult(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Report content cannot be empty."
-            logger.error(f"[XAIModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v

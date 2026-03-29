@@ -55,7 +55,7 @@ class PerformativityHeuristic(BaseModel):
         description="Description.",
         json_schema_extra={"x-ui-label": "Description"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("heuristic_name", "description")
     @classmethod
@@ -64,7 +64,7 @@ class PerformativityHeuristic(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v.strip()
 
@@ -82,7 +82,7 @@ class PreMortemAnalysis(BaseModel):
         description="Detected weak signals.",
         json_schema_extra={"x-ui-label": "Weak Signals"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("weak_signals")
     @classmethod
@@ -145,7 +145,7 @@ class PerformativityAnalysis(BaseModel):
                     data["authenticity_assessment"] = val
                 except ValueError as e:
                     msg = f"Performativity parsing failed: Invalid AuthenticityLevel '{val}'."
-                    logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     raise AppException(message=msg, status_code=422, details=err_details) from e
 
@@ -154,7 +154,7 @@ class PerformativityAnalysis(BaseModel):
                     data["authenticity_score"] = mapping[val]
         return data
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("description")
     @classmethod
@@ -168,7 +168,7 @@ class PerformativityAnalysis(BaseModel):
     def validate_score(cls, v: float) -> float:
         if not (1.0 <= v <= 3.0):
             msg = "Authenticity score must be between 1.0 and 3.0."
-            logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
@@ -181,13 +181,13 @@ class PerformativityDTO(ReasoningTraceDTO):
         description="Performativity audit result.",
         json_schema_extra={"x-ui-label": "Performativity Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class PerformativityOutput(PerformativityDTO, ReasoningTrace):
     """Output schema for the Performativity/Detector Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class PerformativePattern(BaseModel):
@@ -199,7 +199,7 @@ class PerformativePattern(BaseModel):
     )
     category: str = Field(..., description="Category of the pattern.", json_schema_extra={"x-ui-label": "Category"})
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("pattern_id", "detected_phrase", "category")
     @classmethod
@@ -208,7 +208,7 @@ class PerformativePattern(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[PerformativityModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v.strip()
 
@@ -222,4 +222,4 @@ class LinguisticsResult(BaseModel):
         json_schema_extra={"x-ui-label": "Performative Patterns"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

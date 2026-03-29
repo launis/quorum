@@ -19,8 +19,8 @@ try:
     # it gets caught and written to the newly configured file log!
     from backend_v2.worker import WorkerSettings
 except Exception as e:
-    msg = f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to import worker module (Crash on start): {e}"
-    logging.critical(msg, exc_info=True)
+    msg = f"[Worker] Failed to import worker module (Crash on start): {e}"
+    logging.critical(msg, exc_info=True, extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value})
     sys.exit(1)
 
 # Force loop policy for Windows if needed, though asyncio.run usually handles it.
@@ -43,7 +43,12 @@ async def main() -> None:
         sys.exit(0)
     except Exception as e:
         # 3. Fail Fast with structured error
-        logging.critical(f"[Worker] {ErrorCodes.SERVICE_UNAVAILABLE.name}: Worker startup failed: {e}", exc_info=True)
+        logging.critical(
+            "[Worker] Worker startup failed: %s",
+            str(e),
+            exc_info=True,
+            extra={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value},
+        )
         # Re-raise as SystemExit to ensure non-zero exit code
         sys.exit(1)
 
@@ -57,5 +62,10 @@ if __name__ == "__main__":
     except SystemExit as e:
         sys.exit(e.code)
     except Exception as e:
-        print(f"CRITICAL [Worker] {ErrorCodes.UNKNOWN_ERROR.name}: Worker crashed outside main loop: {e}")
+        logging.getLogger(__name__).critical(
+            "Worker crashed outside main loop: %s",
+            str(e),
+            exc_info=True,
+            extra={"error_code": ErrorCodes.UNKNOWN_ERROR.value},
+        )
         sys.exit(1)

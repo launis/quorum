@@ -2,7 +2,15 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
+
+
+class StepSimulationResponse(RootModel[dict[str, Any]]):
+    pass
+
+class StepDeleteResponse(BaseModel):
+    status: str
+    deleted_id: str
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
 from backend_v2.models.v2_core import Step
@@ -17,14 +25,15 @@ class StepSimulationRequest(BaseModel):
     mock_inputs: dict[str, Any] = {}
 
 
-@router.post("/simulate", response_model=dict[str, Any])
+@router.post("/simulate", response_model=StepSimulationResponse)
 async def simulate_step(
     data: StepSimulationRequest,
     current_user: CurrentUserDep,
     studio_service: StudioServiceDep,
-) -> dict[str, Any]:
+) -> StepSimulationResponse:
     """Dry-run and validate a Step (TaskBlueprint) by compiling its prompt blocks."""
-    return await studio_service.simulate_step(current_user, data.step, data.mock_inputs)
+    result = await studio_service.simulate_step(current_user, data.step, data.mock_inputs)
+    return StepSimulationResponse(result)
 
 
 @router.get("/", response_model=list[Step])
@@ -45,13 +54,30 @@ async def save_step(id: str, data: Step, current_user: CurrentUserDep, studio_se
     return await studio_service.save_step(current_user, id, data)
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", response_model=StepDeleteResponse)
 async def delete_step(
     id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep, force_delete: bool = False
-) -> dict[str, Any]:
+) -> StepDeleteResponse:
     """Delete a Step securely via SSOT Service Layer."""
-    await studio_service.delete_step(current_user, id, force_delete=force_delete)
-    return {"status": "success", "deleted_id": id}
+    try:
+        await studio_service.delete_step(current_user, id, force_delete=force_delete)
+        return StepDeleteResponse(status="success", deleted_id=id)
+    except Exception as e:
+        from backend_v2.exceptions import AppException, ErrorCodes
+        if isinstance(e, AppException):
+            raise
+        logger.error(
+            "[StepsRouter] %s: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            str(e),
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "target_id": id, "error": str(e)},
+        )
+        raise AppException(
+            message="Internal delete failure",
+            status_code=500,
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        ) from e
 
 
 @router.post("/{id}/clone", response_model=Step)

@@ -1,0 +1,28 @@
+# Backend V2 - Hardening Tarkistuslista
+
+- [x] `backend_v2`
+- [x] `backend_v2/api`
+- [x] `backend_v2/api/routers`
+- [x] `backend_v2/api/routers/execution`
+- [x] `backend_v2/api/routers/iam`
+- [x] `backend_v2/api/routers/studio`
+- [x] `backend_v2/api/routers/system`
+- [x] `backend_v2/core`
+- [x] `backend_v2/database`
+- [x] `backend_v2/hooks`
+- [x] `backend_v2/llm`
+- [x] `backend_v2/models`
+- [x] `backend_v2/models/domain`
+- [x] `backend_v2/models/dtos`
+- [x] `backend_v2/models/view`
+- [x] `backend_v2/scripts`
+- [x] `backend_v2/seed`
+- [x] `backend_v2/services`
+- [x] `backend_v2/services/drivers`
+- [x] `backend_v2/services/mcp`
+- [x] `backend_v2/services/orchestrator`
+- [x] `backend_v2/services/orchestrator/strategies`
+- [x] `backend_v2/tests`
+- [x] `backend_v2/tests/integration`
+- [x] `backend_v2/tests/unit`
+- [x] `backend_v2/utils`

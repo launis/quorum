@@ -41,7 +41,7 @@ class LocalizationService:
             if not cls.L10N_DIR.exists():
                 # Fail Fast: Missing localization directory is a critical deployment error.
                 msg = f"Localization directory not found: {cls.L10N_DIR}"
-                logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -52,7 +52,7 @@ class LocalizationService:
             if not json_files:
                 # Fail Fast: No translation files found.
                 msg = f"No translation files found in {cls.L10N_DIR}"
-                logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -68,7 +68,7 @@ class LocalizationService:
                 except Exception as e:
                     # Fail Fast: Corrupt translation file.
                     msg = f"Failed to load translation file {file_path}"
-                    logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg} - {e}")
+                    logger.error("[LocalizationService] %s: %s - %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
                     raise AppException(
                         message=msg,
                         status_code=500,
@@ -76,13 +76,13 @@ class LocalizationService:
                     ) from e
 
             cls._loaded = True
-            logger.info(f"Loaded translations for languages: {list(cls._translations.keys())}")
+            logger.info("Loaded translations for languages: %s", list(cls._translations.keys()))
         except AppException:
             raise
         except Exception as e:
             # Catch-all for unexpected filesystem errors
             msg = f"Critical error loading translations: {e}"
-            logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}", exc_info=True)
+            logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -119,12 +119,12 @@ class LocalizationService:
             val = cls._translations.get("en", {}).get(key)
             if val is not None:
                 logger.warning(
-                    f"BFF Translation Fallback: Key '{key}' missing in '{lang_simple}', falling back to English."
+                    "BFF Translation Fallback: Key '%s' missing in '%s', falling back to English.", key, lang_simple
                 )
 
         # 3. Fallback to Key
         if val is None:
-            logger.error(f"BFF Translation Error: Missing key '{key}' entirely. Initiating bypass.")
+            logger.error("BFF Translation Error: Missing key '%s' entirely. Initiating bypass.", key)
             val = key
 
         # 4. Interpolation
@@ -134,7 +134,7 @@ class LocalizationService:
             except KeyError as e:
                 # Fail Fast: Missing interpolation argument is a developer error.
                 msg = f"Localization missing argument '{e.args[0]}' for key '{key}' in lang '{lang}'"
-                logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -143,7 +143,7 @@ class LocalizationService:
             except Exception as e:
                 # Fail Fast: Invalid format string
                 msg = f"Localization format error for key '{key}': {e}"
-                logger.error(f"[LocalizationService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -157,7 +157,7 @@ class LocalizationService:
         """Class method alias for translate with custom default fallback."""
         val = cls.translate(key, lang, **kwargs)
         if val == key and default:
-            logger.warning(f"BFF Bypass: Using hardcoded default '{default}' for missing key '{key}'")
+            logger.warning("BFF Bypass: Using hardcoded default '%s' for missing key '%s'", default, key)
             return default
         return val
 

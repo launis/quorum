@@ -2,9 +2,18 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter
+from pydantic import BaseModel, RootModel
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
 from backend_v2.models.v2_core import Workflow
+
+
+class WorkflowSimulationResponse(RootModel[dict[str, Any]]):
+    pass
+
+class WorkflowDeleteResponse(BaseModel):
+    status: str
+    deleted_id: str
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +32,13 @@ async def get_workflow(id: str, current_user: CurrentUserDep, studio_service: St
     return await studio_service.get_workflow(current_user, id)
 
 
-@router.post("/simulate", response_model=dict[str, Any])
+@router.post("/simulate", response_model=WorkflowSimulationResponse)
 async def simulate_workflow(
     data: Workflow, current_user: CurrentUserDep, studio_service: StudioServiceDep
-) -> dict[str, Any]:
+) -> WorkflowSimulationResponse:
     """Dry-run and validate a workflow DAG topology before saving."""
-    return await studio_service.simulate_workflow(current_user, data)
+    result = await studio_service.simulate_workflow(current_user, data)
+    return WorkflowSimulationResponse(result)
 
 
 @router.post("/{id}/clone", response_model=Workflow)
@@ -45,8 +55,27 @@ async def save_workflow(
     return await studio_service.save_workflow(current_user, id, data)
 
 
-@router.delete("/{id}")
-async def delete_workflow(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> dict[str, Any]:
+@router.delete("/{id}", response_model=WorkflowDeleteResponse)
+async def delete_workflow(
+    id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
+) -> WorkflowDeleteResponse:
     """Delete a workflow definition block securely via SSOT Service Layer."""
-    await studio_service.delete_workflow(current_user, id)
-    return {"status": "success", "deleted_id": id}
+    try:
+        await studio_service.delete_workflow(current_user, id)
+        return WorkflowDeleteResponse(status="success", deleted_id=id)
+    except Exception as e:
+        from backend_v2.exceptions import AppException, ErrorCodes
+        if isinstance(e, AppException):
+            raise
+        logger.error(
+            "[WorkflowsRouter] %s: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            str(e),
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "target_id": id, "error": str(e)},
+        )
+        raise AppException(
+            message="Internal delete failure",
+            status_code=500,
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        ) from e

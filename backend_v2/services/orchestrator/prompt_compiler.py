@@ -59,7 +59,9 @@ class PromptCompiler:
 
         # V2 MANDATE: NO FALLBACKS. If a translation is requested, it MUST exist.
         msg = f"Translation missing for required locale '{target_locale}'. Fallbacks are strictly forbidden."
-        logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}\nPayload: {text_obj}", exc_info=True)
+        logger.error(
+            "[PromptCompiler] %s: %s\nPayload: %s", ErrorCodes.VALIDATION_FAILED.name, msg, text_obj, exc_info=True
+        )
         raise ConfigurationError(msg)
 
     def build_xml_context(
@@ -172,12 +174,12 @@ class PromptCompiler:
         from backend_v2.services.web_fetcher import WebFetcher
 
         try:
-            logger.info(f"[PromptCompiler] Fetching theory grounding from {url}")
+            logger.info("[PromptCompiler] Fetching theory grounding from %s", url)
             # WebFetcher raises AppException locally on failure, satisfying Fail-Fast rules
             theory_text = WebFetcher.fetch_text(url)
 
             if not theory_text:
-                logger.warning(f"[PromptCompiler] Fetched text from {url} was empty.")
+                logger.warning("[PromptCompiler] Fetched text from %s was empty.", url)
                 return base_prompt
 
             augmented = base_prompt + f"\n\n<theory_context>\n{theory_text}\n</theory_context>\n"
@@ -189,7 +191,7 @@ class PromptCompiler:
                 raise e
 
             msg = f"System failed to fetch required theoretical grounding from url: {url}"
-            logger.error(f"[PromptCompiler] {ErrorCodes.FETCH_FAILED.name}: {msg}", exc_info=True)
+            logger.error("[PromptCompiler] %s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=502,
@@ -306,7 +308,7 @@ class PromptCompiler:
 
             crit_id_raw = crit.get("id")
             if not crit_id_raw or not isinstance(crit_id_raw, str):
-                logger.warning(f"[PromptCompiler] Found criterion without a valid string 'id': {crit}. Skipping.")
+                logger.warning("[PromptCompiler] Found criterion without a valid string 'id': %s. Skipping.", crit)
                 continue
 
             # V2 Strict Fail-Fast: Rely on Pydantic to ensure valid identifiers.
@@ -322,7 +324,7 @@ class PromptCompiler:
                 from backend_v2.exceptions import ConfigurationError
 
                 msg = f"PromptBlock '{crit_id}' is missing mandatory 'ai_description'."
-                logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ConfigurationError(msg)
 
             # Determine type based on explicit block type, otherwise fallback to BARS scales
@@ -357,7 +359,7 @@ class PromptCompiler:
 
                     if not s_lbl:
                         msg = f"PromptBlock '{crit_id}' MatrixScale {s_val} missing mandatory 'ai_label'."
-                        logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                        logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                         raise ConfigurationError(msg)
 
                     bars_text += f"- Score {s_val}: {s_lbl}\n"
@@ -563,11 +565,15 @@ class PromptCompiler:
         try:
             from typing import cast
 
-            DynamicModel = create_model(schema_name, **fields)
+            from pydantic import ConfigDict
+
+            DynamicModel = create_model(
+                schema_name, __config__=ConfigDict(extra="forbid", strict=True, frozen=True), **fields
+            )
             return cast(type[BaseModel], DynamicModel)
         except Exception as e:
             msg = f"Critical failure while dynamically compiling LLM execution schema '{schema_name}'."
-            logger.error(f"[PromptCompiler] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+            logger.error("[PromptCompiler] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -595,7 +601,7 @@ class PromptCompiler:
                     from backend_v2.exceptions import ConfigurationError
 
                     msg = f"PromptBlock '{block.get('id')}' is missing mandatory 'ai_description'."
-                    logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise ConfigurationError(msg)
 
                 if label:
@@ -633,7 +639,7 @@ class PromptCompiler:
                     from backend_v2.exceptions import ConfigurationError
 
                     msg = f"PromptBlock '{block.get('id')}' is missing mandatory 'ai_description'."
-                    logger.error(f"[PromptCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise ConfigurationError(msg)
 
                 # Perform Runtime Variable Substitutions

@@ -108,7 +108,7 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
         msg = f"Missing or invalid 'inputs' in data: {type(inputs)}. Expected dict."
-        logger.error(f"[LinguisticsHook] {error_code.name}: {msg}")
+        logger.error("[LinguisticsHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -125,7 +125,7 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
 
     # Select patterns securely
     patterns_to_check = PERFORMATIVE_PATTERNS.get(lang_simple, PERFORMATIVE_PATTERNS["en"])
-    logger.debug(f"[LinguisticsHook] Using language '{lang_simple}' with {len(patterns_to_check)} patterns.")
+    logger.debug("[LinguisticsHook] Using language '%s' with %s patterns.", lang_simple, len(patterns_to_check))
 
     detected: list[str] = []
 
@@ -152,6 +152,6 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     result = {"performative_patterns": patterns_list}
 
     if detected:
-        logger.debug(f"   [LinguisticsHook] Detected patterns ({lang_simple}): {detected}")
+        logger.debug("   [LinguisticsHook] Detected patterns (%s): %s", lang_simple, detected)
 
     return HookResult(success=True, state_delta={"linguistics_result": result})

@@ -132,8 +132,10 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
 
         # 4. Inject
         logger.info(
-            f"[LLMHook] Injected strictly parsed LLM Config for {step_id} "
-            f"(Strategy: {model_strategy}, Model: {llm_config.model_name})"
+            "[LLMHook] Injected strictly parsed LLM Config for %s (Strategy: %s, Model: %s)",
+            step_id,
+            model_strategy,
+            llm_config.model_name,
         )
 
         return HookResult(success=True, state_delta={"llm_config": llm_config})
@@ -142,10 +144,10 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
         error_code = ErrorCodes.CONFIGURATION_ERROR
         # Distinguish strictly raised ConfigErrors vs generic exceptions
         if isinstance(e, AppException):
-            logger.error(f"[LLMHook] {e.error_code}: {e}")
+            logger.error("[LLMHook] %s: %s", e.error_code, e)
             raise
 
-        logger.error(f"[LLMHook] Failed to resolve LLM config: {e}", exc_info=True)
+        logger.error("[LLMHook] Failed to resolve LLM config: %s", e, exc_info=True)
         # Fail Fast
         raise AppException(
             message=f"LLM Hook failed: {e}", status_code=500, details={"error_code": error_code, "cause": str(e)}

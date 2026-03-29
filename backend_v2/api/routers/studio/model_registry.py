@@ -1,10 +1,15 @@
 import logging
-from typing import Any
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from backend_v2.api.dependencies import CurrentUserDep, LLMHandlerDep, StudioServiceDep
 from backend_v2.models.v2_core import SystemConfigModelRegistry
+
+
+class ModelRegistryDeleteResponse(BaseModel):
+    status: str
+    deleted_id: str
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +22,18 @@ def get_available_models(current_user: CurrentUserDep, llm_handler: LLMHandlerDe
     if current_user.role != "ROOT" and current_user.role != "ADMIN":
         from backend_v2.exceptions import ErrorCodes, PermissionDeniedError
 
-        msg = (
-            f"User {current_user.id} (Role: {current_user.role}) attempted to fetch "
-            "available models without ROOT or ADMIN."
+        msg = "User %s (Role: %s) attempted to fetch available models without ROOT or ADMIN."
+        logger.error(
+            "[ModelRegistry] %s: " + msg,
+            ErrorCodes.PERMISSION_DENIED.name,
+            current_user.id,
+            current_user.role,
+            extra={
+                "error_code": ErrorCodes.PERMISSION_DENIED.value,
+                "user_id": current_user.id,
+                "user_role": getattr(current_user.role, "value", current_user.role),
+            },
         )
-        logger.error(f"[ModelRegistry] {ErrorCodes.PERMISSION_DENIED.name}: {msg}")
         raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
     result = llm_handler.fetch_all_available_models()
 
@@ -66,13 +78,30 @@ async def save_model_registry(
     return await studio_service.save_system_config(current_user, registry_id, data)
 
 
-@router.delete("/{registry_id}")
+@router.delete("/{registry_id}", response_model=ModelRegistryDeleteResponse)
 async def delete_model_registry(
     registry_id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
-) -> dict[str, Any]:
+) -> ModelRegistryDeleteResponse:
     """Delete a model registry configuration securely via SSOT Service Layer."""
-    await studio_service.delete_system_config(current_user, registry_id)
-    return {"status": "success", "deleted_id": registry_id}
+    try:
+        await studio_service.delete_system_config(current_user, registry_id)
+        return ModelRegistryDeleteResponse(status="success", deleted_id=registry_id)
+    except Exception as e:
+        from backend_v2.exceptions import AppException, ErrorCodes
+        if isinstance(e, AppException):
+            raise
+        logger.error(
+            "[ModelRegistryRouter] %s: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            str(e),
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "target_id": registry_id, "error": str(e)},
+        )
+        raise AppException(
+            message="Internal delete failure",
+            status_code=500,
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        ) from e
 
 
 @router.post("/{registry_id}/clone", response_model=SystemConfigModelRegistry)

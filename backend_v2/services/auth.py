@@ -223,7 +223,7 @@ class AuthService:
             ) from None
 
         except jwt.PyJWTError as jwt_err:
-            logger.debug(f"PyJWT decoding failed, falling back: {jwt_err}")
+            logger.debug("PyJWT decoding failed, falling back: %s", jwt_err)
 
         # 2. Mock/Dev Mode check
 
@@ -266,7 +266,7 @@ class AuthService:
             if not user:
                 # Auto-registration for missing users found in Firebase
 
-                logger.info(f"User {id} not found in local DB. Auto-registering as MEMBER (No Org).")
+                logger.info("User %s not found in local DB. Auto-registering as MEMBER (No Org).", id)
 
                 new_user = User(
                     id=id,
@@ -286,7 +286,7 @@ class AuthService:
         except Exception as e:
             error_code = "AUTH_TOKEN_VERIFICATION_FAILED"
 
-            logger.error(f"{error_code}: {e}", exc_info=True)
+            logger.error("%s: %s", error_code, e, exc_info=True)
 
             raise AuthenticationError(message="Invalid credentials", details={"error_code": error_code}) from e
 
@@ -307,7 +307,14 @@ class AuthService:
 
         org_id = str(uuid.uuid4())
 
-        new_org = Organization(id=org_id, name=org_create.name, created_at=datetime.now(timezone.utc), is_active=True, tpm_limit=50000, rpm_limit=500)
+        new_org = Organization(
+            id=org_id,
+            name=org_create.name,
+            created_at=datetime.now(timezone.utc),
+            is_active=True,
+            tpm_limit=50000,
+            rpm_limit=500,
+        )
 
         await self.org_repo.create(new_org)
 
@@ -415,7 +422,7 @@ class AuthService:
 
                     new_id = existing.id
 
-                    logger.info(f"User {user_data.email} already in Firebase. Using existing UID.")
+                    logger.info("User %s already in Firebase. Using existing UID.", user_data.email)
 
                 except Exception:
                     raise AppException(
@@ -488,7 +495,7 @@ class AuthService:
 
     async def delete_user(self, initiator_id: str, target_id: str) -> bool:
         """Delete a user, with Last Admin Protection. (Non-blocking)."""
-        logger.info(f"[AuthService] delete_user called. Initiator: {initiator_id}, Target: {target_id}")
+        logger.info("[AuthService] delete_user called. Initiator: %s, Target: %s", initiator_id, target_id)
 
         # Run Read operations in thread
 
@@ -534,16 +541,16 @@ class AuthService:
 
         if self.use_firebase:
             try:
-                logger.info(f"[AuthService] Deleting Firebase user {target.id}...")
+                logger.info("[AuthService] Deleting Firebase user %s...", target.id)
 
                 await asyncio.to_thread(self.firebase_auth.delete_user, target.id)
 
             except Exception as e:
-                logger.warning(f"Firebase delete failed (might be local user): {e}")
+                logger.warning("Firebase delete failed (might be local user): %s", e)
 
         # 2. Local DB
 
-        logger.info(f"[AuthService] Deleting Local DB user {target_id}...")
+        logger.info("[AuthService] Deleting Local DB user %s...", target_id)
 
         await self.repo.delete(target_id)
 
@@ -575,8 +582,9 @@ class AuthService:
 
         """
         logger.info(
-            f"[AuthService] delete_organization called. Initiator: {initiator.id}, "
-            f"Target: {target_org_id}, Force: {force}"
+            "[AuthService] delete_organization called. Initiator: %s, ",
+            initiator.id,
+            f"Target: {target_org_id}, Force: {force}",
         )
 
         if initiator.role != UserRole.ROOT:
@@ -595,7 +603,7 @@ class AuthService:
 
         user_count = len(org_users)
 
-        logger.info(f"[AuthService] Organization {target_org_id} has {user_count} users.")
+        logger.info("[AuthService] Organization %s has %s users.", target_org_id, user_count)
 
         if user_count > 0 and not force:
             raise ConflictError(
@@ -606,7 +614,7 @@ class AuthService:
         # 3. Delete Logic (Cascading)
 
         if user_count > 0:
-            logger.info(f"[AuthService] FORCE DELETE enabled. Removing {user_count} users...")
+            logger.info("[AuthService] FORCE DELETE enabled. Removing %s users...", user_count)
 
             for user in org_users:
                 if self.use_firebase:
@@ -614,13 +622,13 @@ class AuthService:
                         await asyncio.to_thread(self.firebase_auth.delete_user, user.id)
 
                     except Exception as fb_err:
-                        logger.warning(f"Failed to cascade delete user {user.id} in Firebase: {fb_err}")
+                        logger.warning("Failed to cascade delete user %s in Firebase: %s", user.id, fb_err)
 
                 await self.repo.delete(user.id)
 
         # 4. Delete Org Entity
 
-        logger.info(f"[AuthService] Removing Organization {target_org_id} from DB...")
+        logger.info("[AuthService] Removing Organization %s from DB...", target_org_id)
 
         await self.org_repo.repo.delete_organization(target_org_id)
 
@@ -851,11 +859,25 @@ class AuthService:
         # Tenant Isolation
 
         if initiator.role != UserRole.ROOT and getattr(initiator, "organization_id", None) != org_id:
-            logger.warning(f"[AuthService] PERMISSION_DENIED: {initiator.id} tried to read foreign org {org_id}")
+            logger.warning("[AuthService] PERMISSION_DENIED: %s tried to read foreign org %s", initiator.id, org_id)
 
             raise PermissionDeniedError("You do not have permission to view this organization.")
 
         return org
+
+    async def update_organization(self, initiator: TokenData, org_id: str, data: OrganizationCreate) -> Organization:
+        """Update an organization securely."""
+        if initiator.role != UserRole.ROOT:
+            raise PermissionDeniedError("Only ROOT can update organizations.")
+
+        # Verify it exists
+        await self.get_organization(initiator, org_id)
+
+        update_dict = data.model_dump(exclude_unset=True)
+        if update_dict:
+            await self.org_repo.repo.update_organization(org_id, update_dict)
+
+        return await self.get_organization(initiator, org_id)
 
     async def ensure_root_user(self, email: str = "root@example.com") -> User:
         """Bootstraps a root user and Development Scenario (Demo Corp) if needed."""

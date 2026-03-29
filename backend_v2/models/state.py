@@ -25,14 +25,14 @@ class ReasoningTrace(BaseModel):
     model_name: str | None = Field(default=None, description="The model used for reasoning.")
     token_usage: dict[str, int] = Field(default_factory=dict, description="Token usage statistics.")
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @field_validator("thought_process", "conclusion")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[StateModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[StateModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
@@ -56,14 +56,14 @@ class TraceEvent(BaseModel):
     reasoning: ReasoningTrace | None = Field(default=None, description="Associated reasoning trace.")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata.")
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @field_validator("step_name")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[StateModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[StateModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
@@ -120,14 +120,14 @@ class WorkflowState(BaseModel):
         """Legacy accessor for reasoning context (now largely superseded by step_analyst)."""
         return self.context_variables.get("reasoning_context")
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @field_validator("workflow_id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[StateModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[StateModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 

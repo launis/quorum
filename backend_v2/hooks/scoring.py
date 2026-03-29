@@ -196,8 +196,10 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
             final_score = 0.0
             penalties.append("Algorithmic Tyranny Kill Switch Activated (Objective Criteria Failed)")
             logger.warning(
-                f"[ScoringHook] Algorithmic Tyranny Kill Switch Activated! "
-                f"Control Ratio: {control_ratio}, Lexical Diversity: {lexical_diversity}. Override to 0.0."
+                "[ScoringHook] Algorithmic Tyranny Kill Switch Activated! "
+                "Control Ratio: %s, Lexical Diversity: %s. Override to 0.0.",
+                control_ratio,
+                lexical_diversity,
             )
 
     # Safety Clamp (0.0 - 100.0)
@@ -212,9 +214,12 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     }
 
     logger.info(
-        f"[ScoringHook] Scoring validation complete. "
-        f"Commensurate Base Average: {average_score:.1f}, "
-        f"Final: {final_score:.1f}. Penalties: {len(penalties)}"
+        "[ScoringHook] Scoring validation complete. "
+        "Commensurate Base Average: %.1f, "
+        "Final: %.1f. Penalties: %d",
+        average_score,
+        final_score,
+        len(penalties),
     )
     return HookResult(success=True, state_delta={"scoring_result": result})
 
@@ -255,7 +260,7 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
             penalties.append(f"{ScoringPenalty.SECURITY_THREAT.value} (-{p_val * 100:.0f}%)")
             penalty_factor *= 1.0 - p_val
         else:
-            logger.warning(f"[ScoringHook] {ScoringPenalty.SECURITY_THREAT.value} (Logged Only - Penalty Disabled)")
+            logger.warning("[ScoringHook] %s (Logged Only - Penalty Disabled)", ScoringPenalty.SECURITY_THREAT.value)
 
     # 1.2 Falsifier Findings
     step_falsifier = _get_ctx("step_falsifier")
@@ -281,7 +286,7 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
             penalties.append(f"{ScoringPenalty.POST_HOC.value} (-{p_val * 100:.0f}%)")
             penalty_factor *= 1.0 - p_val
         else:
-            logger.warning(f"[ScoringHook] {ScoringPenalty.POST_HOC.value} (Logged Only - Penalty Disabled)")
+            logger.warning("[ScoringHook] %s (Logged Only - Penalty Disabled)", ScoringPenalty.POST_HOC.value)
 
     if not penalties:
         return result
@@ -312,7 +317,7 @@ def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
         from backend_v2.exceptions import AppException, ErrorCodes
 
         msg = f"Strict Scoring: Could not extract 'total_score' from {type(result).__name__}."
-        logger.error(f"[ScoringHook] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}")
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
@@ -358,7 +363,7 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
     # Logic: new_score = current_score * multiplier
     multiplier = settings.scoring_passivity_multiplier
 
-    logger.info(f"[ScoringHook] Enforcing passivity penalties (Multiplier: {multiplier})...")
+    logger.info("[ScoringHook] Enforcing passivity penalties (Multiplier: %s)...", multiplier)
 
     if not state:
         return HookResult(success=True, state_delta={})
@@ -403,19 +408,21 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
 
                 if dim_score <= scale_min:
                     penalty_triggered = True
-                    logger.warning(f"[ScoringHook] Passive/Low Quality detected in {judge_key} dimension '{dim_id}'")
+                    logger.warning("[ScoringHook] Passive/Low Quality detected in %s dimension '%s'", judge_key, dim_id)
                     break
 
             if penalty_triggered:
-                logger.info(f"[ScoringHook] Applying Passivity Penalty to {judge_key} (Factor {multiplier}).")
+                logger.info("[ScoringHook] Applying Passivity Penalty to %s (Factor %s).", judge_key, multiplier)
 
                 current_score = score_card.get("total_score", 0.0)
                 new_score = current_score * multiplier
 
                 if new_score < scale_min:
                     logger.warning(
-                        f"[ScoringHook] Passivity penalty reduced score ({new_score}) "
-                        f"below min ({scale_min}). Clamping."
+                        "[ScoringHook] Passivity penalty reduced score (%s) "
+                        "below min (%s). Clamping.",
+                        new_score,
+                        scale_min,
                     )
                     new_score = scale_min
 
@@ -448,11 +455,11 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
                     if isinstance(v, (int, float)):
                         if v <= scale_min:
                             penalty_triggered = True
-                            logger.warning(f"[ScoringHook] Passive/Low Quality detected in V2 Matrix '{k}'")
+                            logger.warning("[ScoringHook] Passive/Low Quality detected in V2 Matrix '%s'", k)
                             break
 
             if penalty_triggered:
-                logger.info(f"[ScoringHook] Applying V2 Passivity Penalty to {judge_key} (Factor {multiplier}).")
+                logger.info("[ScoringHook] Applying V2 Passivity Penalty to %s (Factor %s).", judge_key, multiplier)
                 new_judge = judge_model.copy()
                 for k, v in new_judge.items():
                     if (
@@ -526,7 +533,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     try:
         step_obj = await repository.get_step_by_id(blueprint_id)
         if not step_obj:
-            logger.warning(f"[ScoringHook] Step blueprint '{blueprint_id}' not found in registry.")
+            logger.warning("[ScoringHook] Step blueprint '%s' not found in registry.", blueprint_id)
             return HookResult(success=True, state_delta={})
 
         prompt_blocks_slugs = (
@@ -555,8 +562,10 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 # Non-numeric outputs (like JSON blobs or reasoning traces) are expected for text PromptBlocks.
                 # Downgraded from ERROR to DEBUG to avoid terrifying the user with stack traces.
                 logger.debug(
-                    f"[ScoringHook] Non-numeric data for '{slug}', "
-                    f"skipping score normalization. Value snippet: {str(new_payload[slug])[:100]}..."
+                    "[ScoringHook] Non-numeric data for '%s', "
+                    "skipping score normalization. Value snippet: %s...",
+                    slug,
+                    str(new_payload[slug])[:100],
                 )
                 continue
 
@@ -565,12 +574,14 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
             pb = await repository.get_prompt_block_by_id(slug)
             if not pb:
-                logger.warning(f"[ScoringHook] Missing PromptBlock '{slug}'.")
+                logger.warning("[ScoringHook] Missing PromptBlock '%s'.", slug)
                 continue
 
             pb_dict = pb if isinstance(pb, dict) else pb.model_dump()
             logger.debug(
-                f"[ScoringHook] Found PromptBlock '{slug}' with allowed decimals: {pb_dict.get('allow_decimals')}"
+                "[ScoringHook] Found PromptBlock '%s' with allowed decimals: %s",
+                slug,
+                pb_dict.get('allow_decimals'),
             )
 
             scales = pb_dict.get("scales")
@@ -589,7 +600,12 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                             from backend_v2.exceptions import AppException, ErrorCodes
 
                             msg = f"Corrupted scale value '{val}' in PromptBlock '{slug}'. Expected float."
-                            logger.error(f"[ScoringHook] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}", exc_info=True)
+                            logger.error(
+                                "[ScoringHook] %s: %s",
+                                ErrorCodes.CONFIGURATION_ERROR.name,
+                                msg,
+                                exc_info=True,
+                            )
                             raise AppException(
                                 message=msg,
                                 status_code=500,
@@ -636,9 +652,15 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
                 updates_made = True
                 logger.info(
-                    f"[ScoringHook] 3-Tier Score '{slug}': Raw={raw_val}, "
-                    f"Scaled={scaled_val}, Normalized={normalized_val} "
-                    f"(Scale: {target_min}-{target_max})"
+                    "[ScoringHook] 3-Tier Score '%s': Raw=%s, "
+                    "Scaled=%s, Normalized=%s "
+                    "(Scale: %s-%s)",
+                    slug,
+                    raw_val,
+                    scaled_val,
+                    normalized_val,
+                    target_min,
+                    target_max,
                 )
 
         if updates_made:
@@ -653,7 +675,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
         # Fail Fast Requirement
         msg = f"Normalization failed for step '{blueprint_id}': {e}"
-        logger.error(f"[ScoringHook] {ErrorCodes.HOOK_EXECUTION_FAILED.name}: {msg}", exc_info=True)
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.HOOK_EXECUTION_FAILED.name, msg, exc_info=True)
 
         raise AppException(
             message=msg,

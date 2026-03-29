@@ -58,7 +58,7 @@ class ExecutionCommitter:
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to commit execution trace for {self.execution_id}"
-            logger.error(f"[ExecutionCommitter] {ErrorCodes.PROGRESS_UPDATE_FAILED.name}: {msg}", exc_info=True)
+            logger.error("[ExecutionCommitter] %s: %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg, details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED}, status_code=500
             ) from e
@@ -117,6 +117,9 @@ class NodeExecutor:
             else:
                 strategy_impl = LLMNodeStrategy(self.repository, self.compiler)
 
+            # FinOps Circuit Breaker: Worker Cut-off Check (Graceful Exit Hatch)
+            await strategy_impl.assert_quota(org_id=metadata.get("organization_id"))
+
             emitted_events = await strategy_impl.execute(
                 step=step,
                 projector=projector,
@@ -127,7 +130,7 @@ class NodeExecutor:
             return emitted_events
 
         except Exception as e:
-            logger.error(f"[NodeExecutor] Dual-Reporting Exception for step {step.id}: {str(e)}", exc_info=True)
+            logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step.id, str(e), exc_info=True)
             return [
                 ErrorTraceEvent(
                     step_name=step.id, error_code="STEP_FAILED", error_message=str(e), content={"traceback": str(e)}
@@ -333,8 +336,8 @@ class DAGExecutor:
                         error=exec_record.error,
                     )
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.critical("[DAGExecutor] Failed to launch fallback save task: %s", str(e), exc_info=True)
 
             if isinstance(primary_err, AppException):
                 raise primary_err from eg
@@ -360,8 +363,8 @@ class DAGExecutor:
                         error=exec_record.error,
                     )
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.critical("[DAGExecutor] Failed to launch fallback save task: %s", str(e), exc_info=True)
 
             if isinstance(unexpected_err, AppException):
                 raise

@@ -458,7 +458,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                         data[f"{field}_storage_path"] = blob_path
                         del data[field]
                 except Exception as e:
-                    logger.error(f"[Repository] Failed to offload {field} for {doc_id}: {e}", exc_info=True)
+                    logger.error("[Repository] Failed to offload %s for %s: %s", field, doc_id, e, exc_info=True)
 
     async def _hydrate_payloads(self, data: dict[str, Any] | None) -> None:
         if not data:
@@ -481,12 +481,13 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                         data[field] = json.loads(decoded)
                     else:
                         logger.warning(
-                            f"[Repository] Hydration payload is empty for {field} at {data[path_key]}. "
-                            "Defaulting to empty struct."
+                            "[Repository] Hydration payload is empty for %s at %s. Defaulting to empty struct.",
+                            field,
+                            data[path_key],
                         )
                         data[field] = [] if field == "execution_trace" else {}
                 except Exception as e:
-                    logger.warning(f"[Repository] Failed to hydrate {field} from {data[path_key]}. Error: {e}")
+                    logger.warning("[Repository] Failed to hydrate %s from %s. Error: %s", field, data[path_key], e)
                     from backend_v2.exceptions import AppException, ErrorCodes
 
                     raise AppException(
@@ -504,7 +505,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
             try:
                 await self._hydrate_payloads(data)
-                return ExecutionRecord(**data)
+                return ExecutionRecord.model_validate(data)
             except AppException:
                 # Re-raise so UI gets the true reason (e.g. data missing from disk)
                 raise
@@ -513,7 +514,9 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    f"[Repository] Data corruption - Failed to parse execution {execution_id}: {e}",
+                    "[Repository] Data corruption - Failed to parse execution %s: %s",
+                    execution_id,
+                    e,
                     exc_info=True,
                 )
                 return None
@@ -550,14 +553,16 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         parsed_results = []
         for r in results:
             try:
-                parsed_results.append(ExecutionRecord(**r))
+                parsed_results.append(ExecutionRecord.model_validate(r))
             except Exception as e:
                 import logging
 
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution "
-                    f"{r.get('id')}: {e}",
+                    "[Repository] %s: Skipping corrupted execution %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    r.get("id"),
+                    e,
                     exc_info=True,
                 )
 
@@ -572,14 +577,16 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         parsed_results = []
         for r in results:
             try:
-                parsed_results.append(ExecutionRecord(**r))
+                parsed_results.append(ExecutionRecord.model_validate(r))
             except Exception as e:
                 import logging
 
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Skipping corrupted execution "
-                    f"{r.get('id')}: {e}",
+                    "[Repository] %s: Skipping corrupted execution %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    r.get("id"),
+                    e,
                     exc_info=True,
                 )
 
@@ -604,7 +611,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                         if "description" not in data:
                             data["description"] = "Loaded from file"
                 except Exception as e:
-                    logger.error(f"Failed to load workflow from disk: {e}")
+                    logger.error("Failed to load workflow from disk: %s", e)
                     return None
             else:
                 return None
@@ -721,8 +728,12 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
                         wf_id = wf.get("id", "unknown")
                         raise AppException(
-                            message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf_id}'.",
-                            details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
+                            message="Step delete blocked by workflow usage.",
+                            details={
+                                "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                                "step_id": step_id,
+                                "workflow_id": wf_id,
+                            },
                             status_code=400,
                         )
                     elif isinstance(s, str) and s == step_id:
@@ -730,8 +741,12 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
                         wf_id = wf.get("id", "unknown")
                         raise AppException(
-                            message=f"Tuhoaminen estetty: Step '{step_id}' on sidottu Workflowhun '{wf_id}'.",
-                            details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
+                            message="Step delete blocked by workflow usage.",
+                            details={
+                                "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                                "step_id": step_id,
+                                "workflow_id": wf_id,
+                            },
                             status_code=400,
                         )
 
@@ -801,10 +816,13 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                     from backend_v2.exceptions import AppException, ErrorCodes
 
                     step_ref = str(s.get("id", "unknown"))
-                    error_msg = f"Tuhoaminen estetty: PromptBlock '{block_id}' on sidottu Askeleeseen'{step_ref}'."
                     raise AppException(
-                        message=str(error_msg),
-                        details={"error_code": str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)},
+                        message="PromptBlock delete blocked by step usage.",
+                        details={
+                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                            "prompt_block_id": block_id,
+                            "step_id": step_ref,
+                        },
                         status_code=400,
                     )
 
@@ -1230,7 +1248,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                     named_workflows_used[name_str] = named_workflows_used.get(name_str, 0) + count
                 workflows_used = named_workflows_used
             except Exception as ex:
-                logger.warning(f"Could not map workflow names: {ex}")
+                logger.warning("Could not map workflow names: %s", ex)
 
         # Gather token analytics from UsageAggregates
         prompt_tokens = 0
@@ -1248,7 +1266,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
                 period = dt.strftime("%Y-%m")
             except Exception as e:
-                logger.warning(f"Virheellinen päivämäärämuoto '{since}', palataan all-time -näkymään: {e}")
+                logger.warning("Invalid date format '%s', returning to all-time view: %s", since, e)
 
         mapped_scope = "organization" if scope == "org" else scope
         agg = await self.get_usage_aggregate(mapped_scope, target_id, period)

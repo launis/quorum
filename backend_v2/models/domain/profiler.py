@@ -51,14 +51,14 @@ class TextMetrics(BaseModel):
         default=0.0, description="User/AI token ratio.", json_schema_extra={"x-ui-label": "Control Ratio"}
     )
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
     @field_validator("word_count", "sentence_count")
     @classmethod
     def validate_non_negative_int(cls, v: int) -> int:
         if v < 0:
             msg = "Count cannot be negative."
-            logger.error(f"[ProfilerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -67,7 +67,7 @@ class TextMetrics(BaseModel):
     def validate_non_negative_float(cls, v: float) -> float:
         if v < 0:
             msg = "Metric cannot be negative."
-            logger.error(f"[ProfilerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -98,17 +98,17 @@ class BehavioralMetrics(BaseModel):
     def validate_non_negative_int(cls, v: int) -> int:
         if v < 0:
             msg = "Count cannot be negative."
-            logger.error(f"[ProfilerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class ProfilerMetrics(TextMetrics, BehavioralMetrics):
     """Combined quantitative and behavioral metrics for the Profiler."""
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class ProfilerDTO(ReasoningTraceDTO):
@@ -134,7 +134,7 @@ class ProfilerDTO(ReasoningTraceDTO):
         description="Quantitative and behavioral text metrics.",
         json_schema_extra={"x-ui-label": "Metrics"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
     @field_validator("author_intent", "emotional_tone")
     @classmethod
@@ -143,7 +143,7 @@ class ProfilerDTO(ReasoningTraceDTO):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[ProfilerModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -156,4 +156,4 @@ class ProfilerDTO(ReasoningTraceDTO):
 class ProfilerOutput(ProfilerDTO, ReasoningTrace):
     """Output schema for the Profiler Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")

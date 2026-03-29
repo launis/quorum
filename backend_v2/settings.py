@@ -259,7 +259,7 @@ class Settings(BaseSettings):
             f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. "
             "Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True)."
         )
-        logger.error(f"[Settings] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+        logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         raise AppException(
             message=msg,
             status_code=500,
@@ -308,7 +308,7 @@ class Settings(BaseSettings):
                     "CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). "
                     "Cannot proceed in Production Mode. Ensure 'service-account.json' exists in root or set env vars."
                 )
-                logger.error(f"[Settings] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+                logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
                 raise AppException(
                     message=msg,
                     status_code=500,

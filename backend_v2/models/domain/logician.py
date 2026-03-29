@@ -72,7 +72,7 @@ class ToulminComponent(BaseModel):
         description="Degree of certainty.",
         json_schema_extra={"x-ui-label": "Qualifier"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id", "claim", "data", "warrant")
     @classmethod
@@ -81,7 +81,7 @@ class ToulminComponent(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -128,7 +128,7 @@ class CognitiveLevel(BaseModel):
     def validate_bloom_score(cls, v: float) -> float:
         if not (0.0 <= v <= 6.0):
             msg = "Bloom score must be between 0.0 and 6.0."
-            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -137,7 +137,7 @@ class CognitiveLevel(BaseModel):
     def validate_strategic_score(cls, v: float) -> float:
         if not (1.0 <= v <= 4.0):
             msg = "Strategic score must be between 1.0 and 4.0."
-            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -213,7 +213,7 @@ class CognitiveLevel(BaseModel):
 
         return data
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class WaltonScheme(BaseModel):
@@ -237,7 +237,7 @@ class WaltonScheme(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Identified scheme cannot be empty."
-            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -247,11 +247,11 @@ class WaltonScheme(BaseModel):
         for q in v:
             if not q or not q.strip():
                 msg = "Critical questions cannot be empty strings."
-                logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+                logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class LogicianData(BaseModel):
@@ -295,7 +295,7 @@ class LogicianData(BaseModel):
     def validate_analysis(cls, v: list[ToulminComponent]) -> list[ToulminComponent]:
         if not v:
             msg = "Toulmin analysis cannot be empty."
-            logger.error(f"[LogicianModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -308,7 +308,7 @@ class LogicianData(BaseModel):
                 data["description"] = LocalizationService.translate(key)
         return data
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class LogicianOutputDTO(ReasoningTraceDTO):
@@ -319,10 +319,10 @@ class LogicianOutputDTO(ReasoningTraceDTO):
         description="Logic analysis results.",
         json_schema_extra={"x-ui-label": "Logic Analysis"},
     )
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class LogicianOutput(LogicianOutputDTO, ReasoningTrace):
     """Output schema for the Logician Agent (Domain Authority)."""
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

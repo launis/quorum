@@ -2,13 +2,17 @@
 
 import asyncio
 import logging
+from typing import Any
 
 # Conditional import or type checking if direct dependency is optional,
 # but effectively expected here.
+import importlib
+
 try:
-    from google.cloud import storage  # type: ignore[attr-defined]
-except ImportError:
-    storage = None  # type: ignore[assignment, unused-ignore]
+    google_cloud = importlib.import_module("google.cloud")
+    storage = getattr(google_cloud, "storage")
+except (ImportError, AttributeError):
+    storage = None
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.file_driver import FileDriver
@@ -34,7 +38,7 @@ class GCSFileDriver(FileDriver):
         """
         if not bucket_name:
             msg = "GCS Bucket name cannot be empty"
-            logger.error(f"[GCSFileDriver] {ErrorCodes.STORAGE_BUCKET_NOT_FOUND.name}: {msg}")
+            logger.error("[GCSFileDriver] %s: %s", ErrorCodes.STORAGE_BUCKET_NOT_FOUND.name, msg)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -43,7 +47,7 @@ class GCSFileDriver(FileDriver):
 
         if storage is None:
             msg = "google-cloud-storage library not installed"
-            logger.error(f"[GCSFileDriver] {ErrorCodes.SERVICE_DEPENDENCY_MISSING.name}: {msg}")
+            logger.error("[GCSFileDriver] %s: %s", ErrorCodes.SERVICE_DEPENDENCY_MISSING.name, msg)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -51,10 +55,10 @@ class GCSFileDriver(FileDriver):
             )
 
         self.bucket_name = bucket_name
-        self._client: storage.Client | None = None
-        self._bucket: storage.Bucket | None = None
+        self._client: Any = None
+        self._bucket: Any = None
 
-    def _get_bucket(self) -> storage.Bucket:
+    def _get_bucket(self) -> Any:
         """Lazy initialization of GCS client/bucket with error handling."""
         try:
             if not self._client:

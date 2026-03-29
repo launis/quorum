@@ -51,11 +51,11 @@ class MockLLMService:
             str: JSON string representing the mocked agent output.
 
         """
-        logger.info(f"[MockLLM] Intercepted call. Prompt length: {len(prompt)}")
+        logger.info("[MockLLM] Intercepted call. Prompt length: %d", len(prompt))
 
         # 0. DIRECT REGISTRY LOOKUP (Robust)
         if response_schema and response_schema in MOCK_REGISTRY:
-            logger.info(f"[MockLLM] Registry Hit: Returning mock data for schema '{response_schema.__name__}'.")
+            logger.info("[MockLLM] Registry Hit: Returning mock data for schema '%s'.", response_schema.__name__)
             mock_obj = MOCK_REGISTRY[response_schema]
             # Use model_dump_json for Pydantic v2 consistency
             return mock_obj.model_dump_json()  # type: ignore
@@ -68,7 +68,7 @@ class MockLLMService:
             key = self.agent_identity_map.get(
                 agent_identity, agent_identity
             )  # Fallback to identity itself if not in map
-            logger.info(f"[MockLLM] Identified agent via explicit identity: '{agent_identity}' -> '{key}'")
+            logger.info("[MockLLM] Identified agent via explicit identity: '%s' -> '%s'", agent_identity, key)
         else:
             from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -76,13 +76,12 @@ class MockLLMService:
                 "STRICT FAIL-FAST: Mock service was called without an explicit 'agent_identity'. "
                 "Keyword heuristics are DEPRECATED."
             )
-            logger.error(f"[MockLLM] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[MockLLM] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         # Replaced manual file write with logger.debug to use standard logging infrastructure
-        logger.debug(f"--- NEW CALL ---\nAgent Identity: {agent_identity}\nResolved Key: {key}")
-
-        logger.info(f"[MOCK RESPONSE] Generating response for: {key}")
+        logger.debug("--- NEW CALL ---\nAgent Identity: %s\nResolved Key: %s", agent_identity, key)
+        logger.info("[MOCK RESPONSE] Generating response for: %s", key)
 
         return self._generate_fallback(key, prompt, system_instruction)
 
@@ -120,7 +119,7 @@ class MockLLMService:
                         keys_found = re.findall(r'"([a-z0-9_]+)"\s*:\s*\{', props_inner)
 
                 if keys_found:
-                    logger.info(f"[MockLLM] Dynamic Judge Keys Found: {keys_found}")
+                    logger.info("[MockLLM] Dynamic Judge Keys Found: %s", keys_found)
                     dynamic_scores = {}
                     for k in keys_found:
                         dynamic_scores[k] = {
@@ -129,7 +128,7 @@ class MockLLMService:
                         }
                     data["pisteet"] = dynamic_scores
             except Exception as e:
-                logger.warning(f"[MockLLM] Failed hydration: {e}")
+                logger.warning("[MockLLM] Failed hydration: %s", e)
 
         # Assuming get_fallback_data returns a dict; we need to stringify it for the 'LLM response'
         # Fix: Handle datetime objects (e.g. from MOCK_METADATA) using a custom default handler.

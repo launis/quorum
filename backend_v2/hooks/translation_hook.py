@@ -49,7 +49,7 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     repo = deps.repository
     if not repo:
         # Fallback if repository is missing - we cannot initialize LLMClient
-        logger.warning(f"[TranslationHook] Missing repository context. Cannot translate to {target_language}.")
+        logger.warning("[TranslationHook] Missing repository context. Cannot translate to %s.", target_language)
         return HookResult(success=False, state_delta={})
 
     # 1. Isolate the actual payload that needs translation.
@@ -71,7 +71,7 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         llm_client = await LLMClient.from_strategy("fast", repository=repo)
     except ConfigurationError as e:
         logger.error(
-            f"[TranslationHook] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to init LLM for translation: {e}"
+            "[TranslationHook] %s: Failed to init LLM for translation: %s", ErrorCodes.CONFIGURATION_ERROR.name, e
         )
         # Graceful Degradation: return original data
         return HookResult(success=False, state_delta={})
@@ -94,7 +94,7 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
 
     try:
         # Call LLM for translation. We expect raw JSON back.
-        logger.info(f"[TranslationHook] Translating {len(payload_to_translate)} fields to '{target_language}'...")
+        logger.info("[TranslationHook] Translating %s fields to '%s'...", len(payload_to_translate), target_language)
         # A generic dict string output, not a Pydantic strict model since input is dynamic
         response_text = await llm_client.run_chat(messages=messages)
 
@@ -119,14 +119,18 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     except json.JSONDecodeError as e:
         # 1. Log with STRUCTURED FORMAT even for non-fatal errors
         logger.error(
-            f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM returned invalid JSON on translation: {e}",
+            "[TranslationHook] %s: LLM returned invalid JSON on translation: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            e,
             exc_info=True,
         )
         # 2. Graceful Degradation: Return original untranslated data to prevent UI crash
         return HookResult(success=False, state_delta={})
     except Exception as e:
         logger.error(
-            f"[TranslationHook] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: LLM generation failed for translation: {e}",
+            "[TranslationHook] %s: LLM generation failed for translation: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            e,
             exc_info=True,
         )
         return HookResult(success=False, state_delta={})

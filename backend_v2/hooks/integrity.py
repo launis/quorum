@@ -17,7 +17,7 @@ class KnowledgeItem(BaseModel):
 
     term: str
     definition: str
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class StepContext(BaseModel):
@@ -25,7 +25,7 @@ class StepContext(BaseModel):
 
     precedents: str | None = None
     knowledge_items: list[KnowledgeItem] = Field(default_factory=list)
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class CitationAudit(BaseModel):
@@ -36,7 +36,7 @@ class CitationAudit(BaseModel):
         default_factory=list, description="List of hallucinations (citations not found in text)."
     )
     integrity_score: float = Field(default=1.0, description="Ratio of valid citations (0.0 - 1.0).")
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 @hook_registry.register(name="verify_citation_integrity")
@@ -99,7 +99,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     if not source_texts:
         error_code = ErrorCodes.EMPTY_INPUT
         msg = "Missing any input text for citation verification."
-        logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
+        logger.error("[IntegrityHook] %s: %s", error_code.name, msg)
         raise AppException(message=msg, status_code=400, details={"error_code": error_code})
 
     # 1b. Gather Context (RAG)
@@ -146,7 +146,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
 
         rag_text += await asyncio.to_thread(_read_seed_and_docs)
     except Exception as e:
-        logger.warning(f"[IntegrityHook] Failed to load documents for citation checking: {e}")
+        logger.warning("[IntegrityHook] Failed to load documents for citation checking: %s", e)
 
     source_corpus = ("\n".join(source_texts) + "\n" + rag_text).lower()
 
@@ -181,7 +181,8 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
                         total_count += 1
                         if is_hallucinated(str(quote_val)):
                             logger.warning(
-                                f"[IntegrityHook] Citation hallucination detected and stripped for {base_crit}.",
+                                "[IntegrityHook] Citation hallucination detected and stripped for %s.",
+                                base_crit,
                                 extra={"invalid_quote": str(quote_val)},
                             )
                             invalid_citations.append(str(quote_val))
@@ -212,7 +213,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     if not source_corpus.strip():
         error_code = ErrorCodes.STATE_INTEGRITY_ERROR
         msg = f"Data Integrity Violation: {total_count} citations found, but Source Corpus is empty."
-        logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
+        logger.error("[IntegrityHook] %s: %s", error_code.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
     integrity_score = valid_count / total_count
@@ -223,7 +224,11 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     )
 
     logger.info(
-        f"[IntegrityHook] Score: {integrity_score:.2f} ({valid_count}/{total_count}). Invalid: {len(invalid_citations)}"
+        "[IntegrityHook] Score: %.2f (%s/%s). Invalid: %s",
+        integrity_score,
+        valid_count,
+        total_count,
+        len(invalid_citations),
     )
 
     from backend_v2.settings import get_settings
@@ -273,14 +278,14 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
         if not h_id:
             error_code = ErrorCodes.VALIDATION_FAILED
             msg = f"Hypothesis missing ID: {hyp}"
-            logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
+            logger.error("[IntegrityHook] %s: %s", error_code.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
         # Format Check: HYP-X
         if not re.match(r"^HYP-\d+$", h_id):
             error_code = ErrorCodes.VALIDATION_FAILED
             msg = f"Invalid Hypothesis ID format: '{h_id}'. Expected 'HYP-N'."
-            logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
+            logger.error("[IntegrityHook] %s: %s", error_code.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
         # Sequence Check
@@ -289,7 +294,7 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
             # FAIL FAST on sequence gap
             error_code = ErrorCodes.STATE_INTEGRITY_ERROR
             msg = f"Hypothesis ID sequence error. Expected HYP-{expected_idx}, got {h_id}."
-            logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
+            logger.error("[IntegrityHook] %s: %s", error_code.name, msg)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -299,5 +304,5 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
         seen_ids.add(h_id)
         expected_idx += 1
 
-    logger.info(f"[IntegrityHook] Verified {len(hypotheses)} sequential hypotheses.")
+    logger.info("[IntegrityHook] Verified %s sequential hypotheses.", len(hypotheses))
     return HookResult(success=True, state_delta={})

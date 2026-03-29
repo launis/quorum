@@ -41,7 +41,7 @@ class OutputProfileLayout(BaseModel):
     )
     show_text: bool = Field(default=True, description="Whether to include text justifications in this block.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("layout_type", mode="before")
     @classmethod
@@ -51,7 +51,7 @@ class OutputProfileLayout(BaseModel):
                 return LayoutType(v)
             except ValueError as e:
                 msg = f"OutputProfileLayout parsing failed: Invalid LayoutType '{v}'."
-                logger.error(f"[OutputProfileDomain] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                logger.error("[OutputProfileDomain] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
                 raise AppException(message=msg, status_code=422, details=err_details) from e
         return v
@@ -61,7 +61,7 @@ class OutputProfileLayout(BaseModel):
     def validate_components(cls, v: list[str]) -> list[str]:
         if not v:
             msg = "An OutputProfileLayout must have at least one component mapped."
-            logger.error(f"[OutputProfileDomain] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[OutputProfileDomain] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
@@ -78,7 +78,7 @@ class OutputProfile(BaseModel):
         default_factory=list, description="The sequence of layouts composing the entire document."
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id")
     @classmethod
@@ -87,7 +87,7 @@ class OutputProfile(BaseModel):
 
         if not re.match(r"^([a-z]+)_[a-zA-Z0-9]{8,}$", v):
             msg = f"Profile ID '{v}' does not match Opaque Stripe Pattern."
-            logger.error(f"[OutputProfileDomain] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[OutputProfileDomain] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
@@ -96,6 +96,6 @@ class OutputProfile(BaseModel):
     def validate_slug(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Profile Slug cannot be empty."
-            logger.error(f"[OutputProfileDomain] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[OutputProfileDomain] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v.strip()

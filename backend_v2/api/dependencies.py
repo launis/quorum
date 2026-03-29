@@ -31,8 +31,8 @@ RepoDep = Annotated[AbstractWorkflowRepository, Depends(get_repo)]
 
 
 def get_auth_service(
-    repo: AbstractWorkflowRepository = Depends(get_repo),
-    settings: Settings = Depends(get_settings),
+    repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> AuthService:
     return AuthService(repo=repo, use_firebase=getattr(settings, "USE_FIREBASE_AUTH", False))
 
@@ -43,13 +43,13 @@ from backend_v2.exceptions import AuthenticationError
 
 
 async def get_current_user_from_header(
-    auth_service: AuthService = Depends(get_auth_service),
-    token: HTTPAuthorizationCredentials | None = Security(security),
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    token: Annotated[HTTPAuthorizationCredentials | None, Security(security)] = None,
 ) -> TokenData:
     if not token:
         msg = "Missing authentication token"
         error_code = "AUTH_TOKEN_MISSING"
-        logger.error(f"[Dependencies] {error_code}: {msg}")
+        logger.error("[Dependencies] %s", msg, extra={"error_code": error_code})
         raise AuthenticationError(message=msg, details={"error_code": error_code})
     return await auth_service.verify_token(token.credentials)
 
@@ -63,7 +63,7 @@ def get_current_admin_user() -> Any:
     return AuthService.require_role(UserRole.ADMIN)()
 
 
-async def get_dag_executor(repo: AbstractWorkflowRepository = Depends(get_repo)) -> DAGExecutor:
+async def get_dag_executor(repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)]) -> DAGExecutor:
     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
     compiler = PromptCompiler()
@@ -74,7 +74,8 @@ ExecutorDep = Annotated[DAGExecutor, Depends(get_dag_executor)]
 
 
 async def get_execution_service(
-    repo: AbstractWorkflowRepository = Depends(get_repo), executor: DAGExecutor = Depends(get_dag_executor)
+    repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)],
+    executor: Annotated[DAGExecutor, Depends(get_dag_executor)],
 ) -> ExecutionService:
     return ExecutionService(repo=repo, executor=executor)
 
@@ -82,14 +83,14 @@ async def get_execution_service(
 ExecutionServiceDep = Annotated[ExecutionService, Depends(get_execution_service)]
 
 
-async def get_studio_service(repo: AbstractWorkflowRepository = Depends(get_repo)) -> StudioService:
+async def get_studio_service(repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)]) -> StudioService:
     return StudioService(repo=repo)
 
 
 StudioServiceDep = Annotated[StudioService, Depends(get_studio_service)]
 
 
-def get_llm_handler(repo: AbstractWorkflowRepository = Depends(get_repo)) -> Any:
+def get_llm_handler(repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)]) -> Any:
     from backend_v2.llm.handler import LLMHandler
 
     return LLMHandler(repo=repo)

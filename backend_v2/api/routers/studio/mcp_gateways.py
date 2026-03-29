@@ -1,10 +1,15 @@
 import logging
-from typing import Any
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
 from backend_v2.models.v2_core import SystemConfigMCPGateways
+
+
+class MCPGatewayDeleteResponse(BaseModel):
+    status: str
+    deleted_id: str
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +45,30 @@ async def save_mcp_gateway(
     return await studio_service.save_mcp_gateways(current_user, gateway_id, data)
 
 
-@router.delete("/{gateway_id}")
+@router.delete("/{gateway_id}", response_model=MCPGatewayDeleteResponse)
 async def delete_mcp_gateway(
     gateway_id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
-) -> dict[str, Any]:
+) -> MCPGatewayDeleteResponse:
     """Delete an MCP Gateway configuration securely via SSOT Service Layer."""
-    await studio_service.delete_system_config(current_user, gateway_id)
-    return {"status": "success", "deleted_id": gateway_id}
+    try:
+        await studio_service.delete_system_config(current_user, gateway_id)
+        return MCPGatewayDeleteResponse(status="success", deleted_id=gateway_id)
+    except Exception as e:
+        from backend_v2.exceptions import AppException, ErrorCodes
+        if isinstance(e, AppException):
+            raise
+        logger.error(
+            "[MCPGatewaysRouter] %s: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            str(e),
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "target_id": gateway_id, "error": str(e)},
+        )
+        raise AppException(
+            message="Internal delete failure",
+            status_code=500,
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        ) from e
 
 
 @router.post("/{gateway_id}/clone", response_model=SystemConfigMCPGateways)

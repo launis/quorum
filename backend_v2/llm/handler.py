@@ -118,7 +118,7 @@ class LLMHandler:
                 # 1. Discovery (Source of Truth: LiteLLM / "West" equivalent)
                 # We log the source region for auditability.
                 source_region = settings.discovery_location or "us-west1"
-                logger.debug(f"[LLMHandler] Initiating Model Discovery (Source: {source_region})...")
+                logger.debug("[LLMHandler] Initiating Model Discovery (Source: %s)...", source_region)
 
                 try:
                     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -202,7 +202,7 @@ class LLMHandler:
                         return None
 
                 # Parallel Validation
-                logger.info(f"[LLMHandler] discovering {len(candidates)} models; validating in {target_location}...")
+                logger.info("[LLMHandler] discovering %d models; validating in %s...", len(candidates), target_location)
 
                 with ThreadPoolExecutor(max_workers=20) as executor:
                     future_to_model = {executor.submit(check_model, m): m for m in candidates}
@@ -218,14 +218,14 @@ class LLMHandler:
                     # STRICT: We do not fallback. We return empty.
                     # Caller (frontend) decides if empty is an error (it probably is).
                     # But if we genuinely found nothing, we shouldn't lie.
-                    logger.error(f"[LLMHandler] Regional validation in {target_location} returned 0 models.")
+                    logger.error("[LLMHandler] Regional validation in %s returned 0 models.", target_location)
                     final_list = []
 
                 models["google"] = final_list
                 self._cached_google_models = final_list
 
                 logger.info(
-                    f"[LLMHandler] Discovered & Validated {len(final_list)} Gemini models in {target_location}."
+                    "[LLMHandler] Discovered & Validated %d Gemini models in %s.", len(final_list), target_location
                 )
 
             except Exception as e:
@@ -237,7 +237,9 @@ class LLMHandler:
 
                 # Otherwise wrap in ServiceUnavailable (upstream failure)
                 logger.error(
-                    f"[LLMHandler] {ErrorCodes.MODEL_LIST_FAILED.name}: Error fetching/validating Google models: {e}",
+                    "[LLMHandler] %s: Error fetching/validating Google models: %s",
+                    ErrorCodes.MODEL_LIST_FAILED.name,
+                    e,
                     exc_info=True,
                 )
 
@@ -267,7 +269,7 @@ class LLMHandler:
                         )
             except Exception as e:
                 # STRICT TYPE SAFETY: Do not assign string error messages to a Dict[str, List[str]]
-                logger.error(f"Error fetching OpenAI models: {e}")
+                logger.error("Error fetching OpenAI models: %s", e)
                 # We return empty list for OpenAI if it fails, or we could raise.
                 # Given 'Fail Fast' for keys, if we are here it might be a network error or other.
                 # But we must satisfy the return type.
@@ -298,7 +300,9 @@ class LLMHandler:
             from backend_v2.exceptions import ConfigurationError, ErrorCodes
 
             logger.error(
-                f"[LLMHandler] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to parse active model registry: {e}",
+                "[LLMHandler] %s: Failed to parse active model registry: %s",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                e,
                 exc_info=True,
             )
             raise ConfigurationError(
@@ -399,14 +403,18 @@ class LLMHandler:
                         f"is NOT available in the current region ('{settings.vertex_location}'). "
                         f"Available models: {valid_models[:5]}..."
                     )
-                    logger.error(f"[LLMHandler] {ErrorCodes.CONFIGURATION_ERROR.name}: {error_msg}")
+                    logger.error("[LLMHandler] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, error_msg)
                     raise ConfigurationError(message=error_msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         # Create Provider via Factory (Unified Logic)
         try:
             logger.info(
-                f"[LLM Execution] Strategy: {provider}/{mode} -> Model: {model_name} "
-                f"(Temp: {temperature}, MaxTokens: {max_tokens})"
+                "[LLM Execution] Strategy: %s/%s -> Model: %s (Temp: %s, MaxTokens: %s)",
+                provider,
+                mode,
+                model_name,
+                temperature,
+                max_tokens,
             )
 
             # Construct strict config object
@@ -472,7 +480,7 @@ class LLMHandler:
 
             # Response is now LLMResponse object
             if response.reasoning_token:
-                logger.info(f"[LLMHandler] Captured Reasoning Token: {response.reasoning_token[:20]}...")
+                logger.info("[LLMHandler] Captured Reasoning Token: %s...", response.reasoning_token[:20])
 
             # Return content string to maintain backward compatibility for this ad-hoc method
             return response.content
@@ -480,7 +488,7 @@ class LLMHandler:
         except Exception as e:
             if isinstance(e, (AppException, ServiceUnavailableError, ConfigurationError)):
                 raise e
-            logger.error(f"[LLMHandler] {ErrorCodes.UNKNOWN_ERROR.name}: Unified Call Failed: {e}", exc_info=True)
+            logger.error("[LLMHandler] %s: Unified Call Failed: %s", ErrorCodes.UNKNOWN_ERROR.name, e, exc_info=True)
             raise ServiceUnavailableError(
                 message=f"LLM Handler Unified Call Failed: {e}", details={"error_code": ErrorCodes.UNKNOWN_ERROR}
             ) from e

@@ -22,7 +22,7 @@ def set_execution_context(execution_id: str) -> None:
     """
     if not execution_id or not execution_id.strip():
         msg = "Cannot set empty execution context."
-        logger.error(f"[Context] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}")
+        logger.error("[Context] %s", msg, extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value})
         raise AppException(
             message=msg,
             status_code=500,
@@ -49,7 +49,7 @@ def set_request_context(request_id: str) -> None:
     """
     if not request_id or not request_id.strip():
         msg = "Cannot set empty request context."
-        logger.error(f"[Context] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}")
+        logger.error("[Context] %s", msg, extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value})
         raise AppException(
             message=msg,
             status_code=500,

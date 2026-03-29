@@ -18,7 +18,7 @@ from backend_v2.services.mcp.mcp_tool_loop import (
 class MockResponseModel(BaseModel):
     """Minimal Pydantic schema for test verification."""
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     score: float = Field(description="Test score.")
     reasoning: str = Field(description="Test reasoning.")

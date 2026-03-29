@@ -61,7 +61,7 @@ class LLMClient:
             registry = inflate(raw_registry, SystemConfigModelRegistry)
         except Exception as e:
             msg = f"Failed to parse strict SystemConfigModelRegistry: {e}"
-            logger.error(f"[LLMClient] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}", exc_info=True)
+            logger.error("[LLMClient] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR}) from e
 
         if not registry or not registry.models:
@@ -83,7 +83,12 @@ class LLMClient:
         if not target_strategy:
             raise ConfigurationError(f"Strategy '{strategy_name}' not found in registry.")
 
-        target_provider = getattr(target_strategy, "provider", "google")
+        target_provider = getattr(target_strategy, "provider", None)
+        if not target_provider:
+            raise ConfigurationError(
+                f"Strict Mode: Strategy '{strategy_name}' is missing required 'provider' in Model Registry.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            )
 
         # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry
         if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:
@@ -255,11 +260,27 @@ class LLMClient:
                     )
 
                     # Extract usage securely into a simple dictionary from LLMResponse model
-                    usage_obj = getattr(response, "token_usage", {})
+                    usage_obj = getattr(response, "token_usage", None)
+                    if usage_obj is None:
+                        raise AgentExecutionError(
+                            detail=(
+                                "Strict FinOps Mode: LLM Provider failed to return token_usage "
+                                f"for FinOps accounting. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
+                            )
+                        )
 
-                    cumulative_usage["prompt_tokens"] += int(usage_obj.get("prompt_tokens", 0) or 0)
-                    cumulative_usage["completion_tokens"] += int(usage_obj.get("completion_tokens", 0) or 0)
-                    cumulative_usage["total_tokens"] += int(usage_obj.get("total_tokens", 0) or 0)
+                    try:
+                        cumulative_usage["prompt_tokens"] += int(usage_obj["prompt_tokens"])
+                        cumulative_usage["completion_tokens"] += int(usage_obj["completion_tokens"])
+                        cumulative_usage["total_tokens"] += int(usage_obj["total_tokens"])
+                    except KeyError as e:
+                        raise AgentExecutionError(
+                            detail=(
+                                f"Strict FinOps Mode: Missing required token usage tracking metric {e} "
+                                f"from provider. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
+                            )
+                        ) from e
+
                     cumulative_usage["cached_tokens"] += int(usage_obj.get("cached_tokens", 0) or 0)
                     cumulative_usage["reasoning_tokens"] += int(usage_obj.get("reasoning_tokens", 0) or 0)
                     cumulative_usage["cost_usd"] += float(usage_obj.get("cost_usd", 0.0) or 0.0)
@@ -284,7 +305,9 @@ class LLMClient:
                 except (json.JSONDecodeError, pydantic.ValidationError) as schema_err:
                     if attempt == max_retries - 1:
                         logger.error(
-                            f"[LLMClient] Self-Healing failed after {max_retries} attempts. Final Error: {schema_err}"
+                            "[LLMClient] Self-Healing failed after %d attempts. Final Error: %s",
+                            max_retries,
+                            schema_err,
                         )
                         raise AgentExecutionError(
                             detail=f"Structured Task Failed (Self-Healing exhausted): {schema_err} "
@@ -292,8 +315,10 @@ class LLMClient:
                         ) from schema_err
 
                     logger.warning(
-                        f"[LLMClient] Schema Error on attempt {attempt + 1}/{max_retries}: {schema_err}. "
-                        "Initiating Self-Healing."
+                        "[LLMClient] Schema Error on attempt %d/%d: %s. Initiating Self-Healing.",
+                        attempt + 1,
+                        max_retries,
+                        schema_err,
                     )
 
                     # 5. Self-Healing: Feed error back to LLM for auto-correction
@@ -318,11 +343,12 @@ class LLMClient:
             if isinstance(e, AgentExecutionError):
                 raise
             error_msg = f"Execution Failed for model {target_model_name}: {e}"
-            logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {error_msg}", exc_info=True)
+            logger.error("[LLMClient] %s: %s", ErrorCodes.AGENT_EXECUTION_CRITICAL.name, error_msg, exc_info=True)
             if "response" in locals() and getattr(locals().get("response"), "content", None):
                 logger.error(
-                    f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: "
-                    f"Raw content causing error: {locals()['response'].content}"
+                    "[LLMClient] %s: Raw content causing error: %s",
+                    ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                    locals()["response"].content,
                 )
             raise AgentExecutionError(
                 detail=f"Structured Task Failed: {e} [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
@@ -446,7 +472,7 @@ class LLMClient:
             return response.content
         except Exception as e:
             error_msg = f"Chat Execution Failed: {e}"
-            logger.error(f"[LLMClient] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {error_msg}", exc_info=True)
+            logger.error("[LLMClient] %s: %s", ErrorCodes.AGENT_EXECUTION_CRITICAL.name, error_msg, exc_info=True)
             raise AgentExecutionError(
                 detail=f"Chat Task Failed: {e} [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
             ) from e

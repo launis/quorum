@@ -46,7 +46,7 @@ class RetrievedFact(BaseModel):
         ..., description="Relevance to the objective (1-5).", json_schema_extra={"x-ui-label": "Relevance"}, ge=1, le=5
     )
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
     @field_validator("id", "fact_statement", "source_quote")
     @classmethod
@@ -55,7 +55,7 @@ class RetrievedFact(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[RetrievalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[RetrievalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -74,14 +74,14 @@ class RetrievalDTO(ReasoningTraceDTO):
         json_schema_extra={"x-ui-label": "Key Takeaways"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
     @field_validator("retrieved_facts")
     @classmethod
     def validate_facts_not_empty(cls, v: list[RetrievedFact]) -> list[RetrievedFact]:
         if not v:
             msg = "Retrieval output must contain at least one fact."
-            logger.error(f"[RetrievalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[RetrievalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -89,4 +89,4 @@ class RetrievalDTO(ReasoningTraceDTO):
 class RetrievalOutput(RetrievalDTO, ReasoningTrace):
     """Output schema for the Retrieval Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")

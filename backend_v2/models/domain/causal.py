@@ -47,7 +47,7 @@ class CausalAnalysisData(BaseModel):
         description="General observations.",
         json_schema_extra={"x-ui-label": "Observations"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("observation")
     @classmethod
@@ -56,7 +56,7 @@ class CausalAnalysisData(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[CausalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -93,7 +93,7 @@ class CounterfactualTest(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[CausalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -120,7 +120,7 @@ class CounterfactualTest(BaseModel):
                     ) from e
         return data
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class CausalAnalysis(BaseModel):
@@ -156,7 +156,7 @@ class CausalAnalysis(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[CausalModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -187,7 +187,7 @@ class CausalAnalysis(BaseModel):
                     ) from e
         return data
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class CausalDTO(ReasoningTraceDTO):
@@ -198,10 +198,10 @@ class CausalDTO(ReasoningTraceDTO):
         description="Causal audit result.",
         json_schema_extra={"x-ui-label": "Causal Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class CausalOutput(CausalDTO, ReasoningTrace):
     """Output schema for the Causal Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")

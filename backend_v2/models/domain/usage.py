@@ -17,7 +17,7 @@ class TokenUsage(BaseModel):
     )
     cost_usd: float = Field(default=0.0, description="Estimated cost in USD.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     def __add__(self, other: TokenUsage) -> TokenUsage:
         """Allows adding two TokenUsage objects together."""
@@ -41,7 +41,7 @@ class UsageAggregate(BaseModel):
     usage: TokenUsage = Field(default_factory=TokenUsage, description="Cumulative token and cost statistics.")
     total_executions: int = Field(default=0, description="Total number of recorded executions in this period.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class UsageReport(BaseModel):
@@ -56,4 +56,4 @@ class UsageReport(BaseModel):
     quota_limit_usd: float | None = Field(default=None, description="Quota limit in USD, if applicable.")
     percentage_used: float | None = Field(default=None, description="Percentage of quota used, if applicable.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

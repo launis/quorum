@@ -38,7 +38,7 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
         msg = f"Missing or invalid 'inputs' in data. Expected dict. Got type: {type(inputs)}, Value: {inputs}"
         status_code = status.HTTP_400_BAD_REQUEST if inputs is None else status.HTTP_500_INTERNAL_SERVER_ERROR
-        logger.error(f"[SecurityHook] {error_code.name}: {msg}")
+        logger.error("[SecurityHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status_code,
@@ -59,6 +59,12 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
             except Exception as e:
                 # Fail Fast: If sanitization logic breaks, we cannot proceed safely
                 error_code = ErrorCodes.SECURITY_SCAN_FAILED
+                logger.warning(
+                    "[SecurityHook] Sanitization failed for field '%s': %s",
+                    field,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Sanitization failed for field '{field}': {e}",
                     status_code=500,
@@ -78,7 +84,7 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     except Exception as e:
         # Configuration/System Error
         error_code = ErrorCodes.SECURITY_CONFIG_ERROR
-        logger.error(f"[SecurityHook] {error_code.name}: {e}")
+        logger.error("[SecurityHook] %s: %s", error_code.name, e)
         raise AppException(
             message=f"Failed to create SanitizationResult: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -86,7 +92,7 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         ) from e
 
     if threats_summary:
-        logger.warning(f"[SecurityHook] PII detected and redacted: {threats_summary}")
+        logger.warning("[SecurityHook] PII detected and redacted: %s", threats_summary)
     else:
         logger.debug("[SecurityHook] No PII detected.")
 
@@ -148,11 +154,11 @@ async def check_banned_phrases_hook(state: HookState, deps: HookDependencies) ->
         try:
             phrases_records = await repository.get_banned_phrases()
             banned_phrases = [p.get("phrase", "") for p in phrases_records if p.get("phrase")]
-            logger.debug(f"[SecurityHook] Loaded {len(banned_phrases)} banned phrases from DB.")
+            logger.debug("[SecurityHook] Loaded %s banned phrases from DB.", len(banned_phrases))
         except Exception as e:
             # FAIL FAST on DB Error
             error_code = ErrorCodes.SECURITY_DB_ERROR
-            logger.error(f"[SecurityHook] {error_code.name}: {e}", exc_info=True)
+            logger.error("[SecurityHook] %s: %s", error_code.name, e, exc_info=True)
             raise AppException(
                 message=f"Failed to fetch banned phrases: {e}", status_code=500, details={"error_code": error_code}
             ) from e
@@ -179,7 +185,7 @@ async def check_banned_phrases_hook(state: HookState, deps: HookDependencies) ->
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
         msg = "Missing or invalid 'inputs' in data. Expected dict."
         status_code = status.HTTP_400_BAD_REQUEST if inputs is None else status.HTTP_500_INTERNAL_SERVER_ERROR
-        logger.error(f"[SecurityHook] {error_code.name}: {msg}")
+        logger.error("[SecurityHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status_code,

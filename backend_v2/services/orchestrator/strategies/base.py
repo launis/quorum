@@ -26,7 +26,7 @@ class StrategyContext(BaseModel):
     expected_inputs: list[Any] | None = None
     model_strategy: str | None = None
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
 
 
 class NodeStrategy(ABC):
@@ -57,13 +57,35 @@ class NodeStrategy(ABC):
             step: The workflow StepRule containing execution instructions.
             projector: The V3 state projection representing the folded execution history.
             context: The immutable Pydantic wrapper for execution context limits.
-            frozen_ctx: A context that stores MCP audit signatures and deterministic outputs securely.
-            trace: Full historical log of TraceEvents (O(N) structure).
 
         Returns:
             An array of new TraceEvents representing the node's outputs or errors.
         """
         pass
+
+    async def assert_quota(self, org_id: str | None) -> None:
+        """Enforces a 'Denial of Wallet' FinOps circuit breaker during long DAG executions.
+
+        If the organization's token expenditure limit is exceeded mid-air, this throws
+        an AppException which bubble-cancels the TaskGroup gracefully.
+        """
+        if not org_id:
+            # Free tier or unbound system org
+            return
+
+        from backend_v2.exceptions import AppException, ErrorCodes
+        from backend_v2.services.usage_service import UsageService
+
+        usage_service = UsageService(self.repository)
+        is_quota_safe = await usage_service.check_quota(org_id)
+        if not is_quota_safe:
+            msg = f"Organization '{org_id}' ran out of quota mid-execution."
+            logger.warning("[Worker Cut-off] Circuit Breaker Tripped: %s", msg)
+            raise AppException(
+                message=msg,
+                status_code=402,
+                details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
+            )
 
     async def run_pre_hooks(
         self,

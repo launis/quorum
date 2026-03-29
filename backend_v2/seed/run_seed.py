@@ -39,7 +39,11 @@ from backend_v2.exceptions import ErrorCodes
 
 def _fail_fast(msg: str, error: Exception) -> None:
     logger.critical(
-        f"[Seeder] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: [CRITICAL FAIL FAST] {msg} - {str(error)}", exc_info=True
+        "[Seeder] %s: [CRITICAL FAIL FAST] %s - %s",
+        ErrorCodes.INTERNAL_SERVER_ERROR.name,
+        msg,
+        str(error),
+        exc_info=True,
     )
     print(f"\033[91m[CRITICAL FAIL FAST] {msg}\n{str(error)}\033[0m")
     sys.exit(1)
@@ -64,7 +68,10 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
                 print(f"[SUCCESS] Backup created: {backup_path}")
             except Exception as e:
                 logger.error(
-                    f"[Seeder] {ErrorCodes.FILESYSTEM_VIOLATION.name}: Failed to create db backup: {e}", exc_info=True
+                    "[Seeder] %s: Failed to create db backup: %s",
+                    ErrorCodes.FILESYSTEM_VIOLATION.name,
+                    e,
+                    exc_info=True,
                 )
                 print(f"[ERROR] Failed to create db backup: {e}")
                 sys.exit(1)
@@ -191,7 +198,9 @@ def seed_database(target: str) -> None:
     print(f"--- V2 SEEDING TARGET: {target.upper()} ---")
 
     if not os.path.exists(SEED_PATH):
-        logger.critical(f"[Seeder] {ErrorCodes.FILE_NOT_FOUND.name}: Seed file not found at {SEED_PATH}")
+        logger.critical(
+            "[Seeder] %s: Seed file not found at %s", ErrorCodes.FILE_NOT_FOUND.name, SEED_PATH
+        )
         print(f"\033[91mCRITICAL: Seed file not found at {SEED_PATH}\033[0m")
         sys.exit(1)
 
@@ -231,7 +240,13 @@ def main() -> None:
         try:
             seed_database(t)
         except Exception as e:
-            logger.critical(f"[Seeder] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Failed to seed {t}: {e}", exc_info=True)
+            logger.critical(
+                "[Seeder] %s: Failed to seed %s: %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                t,
+                e,
+                exc_info=True,
+            )
             print(f"\033[91m[ERROR] Failed to seed {t}: {e}\033[0m")
             sys.exit(1)
 

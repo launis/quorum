@@ -85,11 +85,11 @@ async def test_build_report_dto_maps_correctly(mock_repo: Any) -> None:
     dto = await transformer.build_report_dto("testexec_0000test001", accept_language="en")
 
     assert isinstance(dto, ReportDataDTO)
-    print(f"DEBUG: layout components from profile: {mock_repo.get_all_output_profiles.return_value}")
+    print("DEBUG: layout components from profile:", mock_repo.get_all_output_profiles.return_value)
     projector = __import__("backend_v2.models.state", fromlist=["StateProjector"]).StateProjector()
     res = projector.fold_trace(mock_repo.get_execution.return_value.execution_trace)
-    print(f"DEBUG: folded results: {res}")
-    print(f"DEBUG: layouts array lengths: {len(dto.layouts)}")
+    print("DEBUG: folded results:", res)
+    print("DEBUG: layouts array lengths:", len(dto.layouts))
     assert len(dto.layouts) == 1
     assert len(dto.layouts[0].axes) == 1
 

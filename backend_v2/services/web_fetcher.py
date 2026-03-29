@@ -56,18 +56,18 @@ class WebFetcher:
 
                 # Log success with snippet as requested by user
                 snippet = final_text[:100].replace("\n", " ") + "..." if len(final_text) > 100 else final_text
-                logger.info(f"[WebFetcher] Successfully fetched '{url}'. Snippet: '{snippet}'")
+                logger.info("[WebFetcher] Successfully fetched '%s'. Snippet: '%s'", url, snippet)
 
                 return final_text
 
         except ValueError as e:
             # Invalid URL format
-            logger.error(f"[WebFetcher] {ErrorCodes.URL_INVALID.name}: Invalid URL format: {e}", exc_info=True)
+            logger.error("[WebFetcher] %s: Invalid URL format: %s", ErrorCodes.URL_INVALID.name, e, exc_info=True)
             raise AppException(message=str(e), status_code=400, details={"error_code": ErrorCodes.URL_INVALID}) from e
 
         except (urllib.error.URLError, TimeoutError) as e:
             # Network or Protocol error
-            logger.error(f"[WebFetcher] {ErrorCodes.FETCH_FAILED.name}: Failed to fetch {url}: {e}", exc_info=True)
+            logger.error("[WebFetcher] %s: Failed to fetch %s: %s", ErrorCodes.FETCH_FAILED.name, url, e, exc_info=True)
             raise AppException(
                 message=f"Failed to fetch content from {url}",
                 status_code=502,  # Bad Gateway / Upstream Error
@@ -80,7 +80,11 @@ class WebFetcher:
                 raise e
 
             logger.error(
-                f"[WebFetcher] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Unexpected error for {url}: {e}", exc_info=True
+                "[WebFetcher] %s: Unexpected error for %s: %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                url,
+                e,
+                exc_info=True,
             )
             raise AppException(
                 message="Unexpected error during web fetch.",

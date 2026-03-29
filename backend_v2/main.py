@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI) -> Any:
         yield
 
     except Exception as e:
-        logger.critical(f"Startup failed: {e}", exc_info=True)
+        logger.critical("Startup failed: %s", str(e), exc_info=True, extra={"error_code": "CRITICAL_STARTUP_FAILURE"})
         raise
 
     finally:
@@ -88,7 +88,7 @@ async def lifespan(app: FastAPI) -> Any:
                 elif hasattr(app.state.arq_pool, "close"):
                     await app.state.arq_pool.close()
             except Exception as close_err:
-                logger.error(f"Error closing Arq pool: {close_err}")
+                logger.error("Error closing Arq pool: %s", str(close_err), extra={"error_code": "ARQ_CLOSE_ERROR"})
 
 
 # --- 2. Application Setup ---
@@ -108,7 +108,7 @@ try:
 
     logfire.instrument_fastapi(app)
 except ImportError:
-    pass
+    logging.getLogger("backend.main").info("Logfire not installed. Skipping FastAPI telemetry instrumentation.")
 except Exception:
     logging.getLogger("backend.main").error("Failed to instrument FastAPI with Logfire.", exc_info=True)
     raise
@@ -187,7 +187,7 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 
     # Extract the Enum Name if it's an ErrorCode, otherwise use the string.
     err_name = exc.error_code.name if hasattr(exc.error_code, "name") else str(exc.error_code)
-    logger.error(f"[FastAPI] {err_name}: {exc.message} (Status: {exc.status_code})")
+    logger.error("[FastAPI] %s (Status: %s)", exc.message, exc.status_code, extra={"error_code": err_name})
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -206,8 +206,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
     # 2. Log: Summary first (easy to read), then details
     error_code = ErrorCodes.VALIDATION_FAILED
-    logger.error(f"[FastAPI] {error_code.name}: VALIDATION ERROR: {readable_detail}")
-    logger.debug(f"[FastAPI] Raw Schema Errors: {exc.errors()}")
+    logger.error("[FastAPI] VALIDATION ERROR: %s", readable_detail, extra={"error_code": error_code.value})
+    logger.debug("[FastAPI] Raw Schema Errors: %s", exc.errors(), extra={"error_code": error_code.value})
 
     return JSONResponse(
         status_code=422,
@@ -257,8 +257,11 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
 
     logger = logging.getLogger("backend.main")
     logger.warning(
-        f"[FastAPI] {error_code_enum.name}: HTTP_ERROR: {exc.detail} (Status: {exc.status_code})",
+        "[FastAPI] HTTP_ERROR: %s (Status: %s)",
+        exc.detail,
+        exc.status_code,
         exc_info=True,
+        extra={"error_code": error_code_enum.value},
     )
 
     return JSONResponse(
@@ -281,7 +284,12 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catches all unhandled exceptions and returns RFC 7807 Problem Details."""
     logger = logging.getLogger("backend.main")
-    logger.error(f"[FastAPI] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Unhandled Exception: {exc}", exc_info=True)
+    logger.error(
+        "[FastAPI] Unhandled Exception: %s",
+        str(exc),
+        exc_info=True,
+        extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+    )
 
     # Create a generic AppException for RFC 7807 formatting
     error = AppException(

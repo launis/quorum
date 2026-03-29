@@ -68,12 +68,12 @@ def deep_logic_compare(old_trace: list[dict[str, Any]], new_trace: list[dict[str
     old_steps = {event.get("step_name"): event for event in old_trace if event.get("event_type") == "output"}
     new_steps = {event.get("step_name"): event for event in new_trace if event.get("event_type") == "output"}
 
-    logger.info(f"Old output steps: {list(old_steps.keys())}")
-    logger.info(f"New output steps: {list(new_steps.keys())}")
+    logger.info("Old output steps: %s", list(old_steps.keys()))
+    logger.info("New output steps: %s", list(new_steps.keys()))
 
     for step_name, old_event in old_steps.items():
         if step_name not in new_steps:
-            logger.warning(f"Step {step_name} missing from new trace.")
+            logger.warning("Step %s missing from new trace.", step_name)
             continue
 
         old_content = old_event.get("content", {})
@@ -85,7 +85,7 @@ def deep_logic_compare(old_trace: list[dict[str, Any]], new_trace: list[dict[str
 
         missing_keys = old_keys - new_keys
         if missing_keys:
-            logger.warning(f"Step {step_name} output missing keys compared to historical trace: {missing_keys}")
+            logger.warning("Step %s output missing keys compared to historical trace: %s", step_name, missing_keys)
 
         # 2. Heuristic & Semantic Sanity Checks
         content_str = json.dumps(new_content).lower()
@@ -121,7 +121,7 @@ async def test_real_llm_e2e_orchestration() -> None:
 
     has_old_trace = os.path.exists(ORIGINAL_TRACE_FILE)
     if not has_old_trace:
-        logger.warning(f"Original trace not found at {ORIGINAL_TRACE_FILE}. Will skip structural deep comparison.")
+        logger.warning("Original trace not found at %s. Will skip structural deep comparison.", ORIGINAL_TRACE_FILE)
 
     clear_logs()
 
@@ -189,11 +189,11 @@ async def test_real_llm_e2e_orchestration() -> None:
         )
 
         if result.returncode != 0:
-            logger.error(f"Dart execution failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
+            logger.error("Dart execution failed:\nSTDOUT:\n%s\nSTDERR:\n%s", result.stdout, result.stderr)
             pytest.fail("Dart E2E Client Simulation failed.")
 
         # 2. Wait for background worker to complete the execution
-        logger.info(f"Polling local database for execution completion (max {WAIT_TIMEOUT}s)...")
+        logger.info("Polling local database for execution completion (max %ss)...", WAIT_TIMEOUT)
         # Find the latest execution ID from Dart output or just poll db_v2.json
         db_path = os.path.join(WORKSPACE_ROOT, "data", "db_v2.json")
 
@@ -222,7 +222,7 @@ async def test_real_llm_e2e_orchestration() -> None:
                     completed_trace = latest_exe
                     break
             except Exception as e:
-                logger.warning(f"Error reading DB: {e}")
+                logger.warning("Error reading DB: %s", e, exc_info=True)
 
         if not completed_trace:
             pytest.fail("Timeout waiting for background execution to complete.")
@@ -246,14 +246,14 @@ async def test_real_llm_e2e_orchestration() -> None:
 
             if older_execs:
                 latest_older = sorted(older_execs, key=lambda x: x.get("created_at", ""), reverse=True)[0]
-                logger.info(f"Using previous db_v2.json execution {latest_older.get('id')} as reference trace.")
+                logger.info("Using previous db_v2.json execution %s as reference trace.", latest_older.get("id"))
                 old_trace = latest_older.get("execution_results", [])
 
                 # Auto-heal: Save it as the new reference
                 os.makedirs(os.path.dirname(ORIGINAL_TRACE_FILE), exist_ok=True)
                 with open(ORIGINAL_TRACE_FILE, "w", encoding="utf-8") as f:
                     json.dump(old_trace, f, indent=2)
-                logger.info(f"Saved latest trace to {ORIGINAL_TRACE_FILE} for future runs.")
+                logger.info("Saved latest trace to %s for future runs.", ORIGINAL_TRACE_FILE)
 
                 deep_logic_compare(old_trace, new_trace)
             else:
@@ -271,13 +271,13 @@ async def test_real_llm_e2e_orchestration() -> None:
     finally:
         # Cleanup
         if backend_process:
-            logger.info(f"Terminating local backend process tree (PID: {backend_process.pid})...")
+            logger.info("Terminating local backend process tree (PID: %s)...", backend_process.pid)
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(backend_process.pid)], capture_output=True)
         if worker_process:
-            logger.info(f"Terminating local worker process tree (PID: {worker_process.pid})...")
+            logger.info("Terminating local worker process tree (PID: %s)...", worker_process.pid)
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(worker_process.pid)], capture_output=True)
 
         try:
             backend_log_fp.close()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to close log file: %s", e, exc_info=True)

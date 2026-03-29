@@ -36,7 +36,7 @@ class InteractionInput(BaseModel):
             return v
         if not v or not v.strip():
             msg = "chat_log cannot be empty or whitespace only."
-            logger.error(f"[InteractionModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[InteractionModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -64,10 +64,10 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
         description="Identified prompting strategy.",
         json_schema_extra={"x-ui-label": "Strategy"},
     )
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class InteractionAnalysis(InteractionAnalysisDTO, ReasoningTrace):
     """Output schema for the Interaction Agent (Domain Model with Metadata)."""
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

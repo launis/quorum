@@ -6341,7 +6341,7 @@
   ],
   "organizations": [
     {
-      "id": "system",
+      "id": "org_06bd4256df5649199f7dea6ee7738393",
       "slug": "system",
       "name": "System Administration",
       "created_at": "2026-01-01T00:00:00",
@@ -6350,7 +6350,7 @@
       "contact_email": "root@example.com",
       "billing_id": null,
       "subscription_status": "active",
-      "quota_limit": 999999999.0,
+      "quota_limit": 999999.0,
       "tpm_limit": 10000000,
       "rpm_limit": 10000
     },

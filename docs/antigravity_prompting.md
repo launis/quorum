@@ -195,7 +195,8 @@ Bypassing these instructions and tinkering with the live DB (`db_v2.json`) corru
    - Internal Comments (The "Why" Mandate): Only comment WHY business logic exists. Never explain WHAT the code mechanically does. Use Imperative Mood for docstrings.
 
 7. QUALITY LOOP & TOOL USAGE (ZERO-DEPRECATION MANDATE):
-   - Python: `cd backend_v2 && uv run ruff format <files> && uv run ruff check <files> --fix && uv run mypy . --strict`
+   - Python: Commands MUST ALWAYS be given in this explicit format, listing the exact files (no wildcards) with `backend_v2/` path prefix from the project root, and using `;` instead of `&&`:
+     `uv run ruff check backend_v2/__init__.py backend_v2/worker.py backend_v2/settings.py backend_v2/main.py backend_v2/logging_config.py backend_v2/run_worker.py backend_v2/exceptions.py backend_v2/context.py --fix ; uv run mypy backend_v2/__init__.py backend_v2/worker.py backend_v2/settings.py backend_v2/main.py backend_v2/logging_config.py backend_v2/run_worker.py backend_v2/exceptions.py backend_v2/context.py --strict`
    - Flutter: Run `dart format` -> `dart analyze` -> `flutter test`.
    - THE ZERO-DEPRECATION MANDATE: You MUST resolve ALL syntax errors, typing errors, AND deprecation warnings (e.g., `deprecated_member_use`) before declaring the step complete. Code with deprecated APIs is considered broken. Proactively replace deprecated members with their modern equivalents.
 

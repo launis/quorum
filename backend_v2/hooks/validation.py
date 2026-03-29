@@ -42,7 +42,7 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
 
     if not state:
         msg = "State missing in validation hook."
-        logger.error(f"[ValidationHook] {ErrorCodes.EMPTY_INPUT.name}: {msg}")
+        logger.error("[ValidationHook] %s: %s", ErrorCodes.EMPTY_INPUT.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -55,7 +55,7 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
         error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
         msg = "Missing or invalid 'inputs' in state. Expected dict."
         status_code = status.HTTP_400_BAD_REQUEST if inputs is None else status.HTTP_500_INTERNAL_SERVER_ERROR
-        logger.error(f"[ValidationHook] {error_code.name}: {msg}")
+        logger.error("[ValidationHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status_code,
@@ -118,12 +118,12 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
     except Exception as e:
         # Pydantic validation failure -> System Error
         error_code = ErrorCodes.INTERNAL_SERVER_ERROR
-        logger.error(f"[ValidationHook] Failed to create ValidationResult: {e}")
+        logger.error("[ValidationHook] Failed to create ValidationResult: %s", e)
         raise AppException(message=f"System Error: {e}", status_code=500, details={"error_code": error_code}) from e
 
     if not result["is_valid"]:
         msg = f"Structural Validation Failed: {warnings}"
-        logger.error(f"[ValidationHook] {msg}")
+        logger.error("[ValidationHook] %s", msg)
 
         # FAIL FAST: Pre-validation failure is a client error (Bad Request)
         raise AppException(
@@ -176,9 +176,13 @@ def verify_output_language(state: HookState, deps: HookDependencies) -> HookResu
             if len(overlap) >= 3:
                 leakage_detected = True
                 logger.warning(
-                    f"[ValidationHook] Language mismatch detected in field '{key}'. "
-                    f"Target locale was '{target_locale}' but detected English stop words: {overlap}. "
-                    f"Text excerpt: {value[:100]}..."
+                    "[ValidationHook] Language mismatch detected in field '%s'. "
+                    "Target locale was '%s' but detected English stop words: %s. "
+                    "Text excerpt: %s...",
+                    key,
+                    target_locale,
+                    overlap,
+                    value[:100],
                 )
 
     delta = {}

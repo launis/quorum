@@ -14,8 +14,8 @@ if sys.platform == "win32":
         sys_stderr_reconfigure = getattr(sys.stderr, "reconfigure", None)
         if sys_stderr_reconfigure:
             sys_stderr_reconfigure(encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as e:
+        print("Warning: Failed to set UTF-8 console encoding on Windows:", e, file=sys.stderr)
 
 from backend_v2.context import get_execution_context
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -96,8 +96,10 @@ def configure_logfire() -> None:
         litellm.success_callback = ["logfire"]  # Instrument LLM Calls
         litellm.failure_callback = ["logfire"]
     except Exception as e:
-        msg = f"[LoggingConfig] {ErrorCodes.CONFIGURATION_ERROR.name}: Logfire validation failed: {e}."
-        logging.getLogger(__name__).warning(f"{msg} Observability disabled.", exc_info=True)
+        msg = f"[LoggingConfig] Logfire validation failed: {e}. Observability disabled."
+        logging.getLogger(__name__).warning(
+            msg, exc_info=True, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+        )
 
 
 def setup_logging(log_level: int = logging.INFO) -> None:
@@ -281,6 +283,5 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
     if details:
         extra["details"] = details
 
-    # Build the strict log prefix
-    code_str = error_code.name if hasattr(error_code, "name") else str(error_code)
-    logger.error(f"[App] {code_str}: {message}: {str(exc)}", exc_info=True, extra=extra)
+    # Pass details cleanly to the logger avoiding f-string template injection issues
+    logger.error("[App] %s: %s", message, str(exc), exc_info=True, extra=extra)

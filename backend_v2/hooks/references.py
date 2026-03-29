@@ -40,14 +40,14 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any] | None)
             }
         ]
 
-        logger.debug(f"[ReferenceHook] Scan complete. Found {len(refs)} unique references.")
+        logger.debug("[ReferenceHook] Scan complete. Found %s unique references.", len(refs))
         return refs
 
     except AppException:
         raise
     except Exception as e:
         error_code = ErrorCodes.CITATION_PARSING_FAILED
-        logger.error(f"[ReferenceHook] {error_code.name}: Bibliography generation failed: {e}", exc_info=True)
+        logger.error("[ReferenceHook] %s: Bibliography generation failed: %s", error_code.name, e, exc_info=True)
         raise AppException(
             message=f"Bibliography generation failed: {e}", status_code=500, details={"error_code": error_code}
         ) from e
@@ -91,7 +91,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
         # We can just use a raw dict output instead of wrapping in Any
         result = {"references": items}
 
-        logger.debug(f"[ReferenceHook] Generated {len(items)} references.")
+        logger.debug("[ReferenceHook] Generated %s references.", len(items))
         delta: dict[str, Any] = {"bibliography_result": result}
 
         if "knowledge_base" not in state.global_context_vars:
@@ -105,7 +105,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
     except Exception as e:
         # Catch unexpected errors in the hook wrapper
         error_code = ErrorCodes.HOOK_EXECUTION_FAILED
-        logger.error(f"[ReferenceHook] {error_code.name}: Hook execution failed: {e}", exc_info=True)
+        logger.error("[ReferenceHook] %s: Hook execution failed: %s", error_code.name, e, exc_info=True)
         raise AppException(
             message=f"Bibliography hook failed: {e}", status_code=500, details={"error_code": error_code}
         ) from e

@@ -21,7 +21,6 @@ from backend_v2.models.v2_core import MCPAuditTrace
 logger = logging.getLogger(__name__)
 
 
-
 # NOTE (Architecture): Hard cap to prevent infinite LLM↔Tool loops.
 # EPIC §3 "The Infinite Loop Limit".
 MAX_TOOL_CALLS_PER_STEP = 3
@@ -90,7 +89,7 @@ async def _execute_tavily_search(
         response_summary = result.answer
 
         if target_language and target_language != "en" and llm_client:
-            logger.info(f"[MCPToolLoop] Translating search evidence to '{target_language}'...")
+            logger.info("[MCPToolLoop] Translating search evidence to '%s'...", target_language)
             try:
                 trans_prompt = (
                     f"Translate the following search summary into {target_language} accurately. "

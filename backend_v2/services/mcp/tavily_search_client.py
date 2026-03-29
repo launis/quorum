@@ -62,7 +62,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
 
     if not api_key:
         msg = "Tavily API key is not configured. Set TAVILY_API_KEY in .env."
-        logger.error(f"[TavilyClient] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+        logger.error("[TavilyClient] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
         raise ConfigurationError(message=msg)
 
     payload: dict[str, Any] = {

@@ -5,11 +5,11 @@ It strictly translates API dicts into OutputProfile models prior to service/repo
 """
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, status
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.output_profile import (
     OutputProfileCreateDTO,
@@ -25,10 +25,10 @@ router = APIRouter(prefix="/output-profiles", tags=["Output Profiles"])
 async def list_output_profiles(
     initiator: CurrentUserDep,
     service: StudioServiceDep,
-) -> list[dict[str, Any]]:
+) -> list[OutputProfile]:
     """List all available Output Profiles. Tenant isolation handled safely by StudioService."""
     profiles = await service.list_output_profiles(initiator=initiator)
-    return [p.model_dump() for p in profiles]
+    return list(profiles)
 
 
 @router.get("/{profile_id}", response_model=OutputProfileResponseDTO)
@@ -36,10 +36,10 @@ async def get_output_profile(
     profile_id: str,
     initiator: CurrentUserDep,
     service: StudioServiceDep,
-) -> dict[str, Any]:
+) -> OutputProfile:
     """Get a specific Output Profile."""
     profile = await service.get_output_profile(initiator=initiator, id=profile_id)
-    return profile.model_dump()
+    return profile
 
 
 @router.put("/{profile_id}", response_model=OutputProfileResponseDTO)
@@ -48,20 +48,28 @@ async def upsert_output_profile(
     dto: OutputProfileCreateDTO,
     initiator: CurrentUserDep,
     service: StudioServiceDep,
-) -> dict[str, Any]:
+) -> OutputProfile:
     """Create or Update an Output Profile. Validation automatically enforced by Pydantic."""
     # Ensure ID match
     if dto.id != profile_id:
-        from fastapi import HTTPException
-
-        raise HTTPException(status_code=400, detail="Path ID does not match Payload ID")
+        msg = "Path ID does not match Payload ID"
+        logger.error(
+            "[OutputProfilesRouter] %s",
+            msg,
+            extra={
+                "error_code": "ID_MISMATCH",
+                "path_id": profile_id,
+                "payload_id": dto.id,
+            },
+        )
+        raise AppException(message=msg, status_code=400, details={"error_code": "ID_MISMATCH"})
 
     # Domain conversion (hydrates DTO -> Domain)
-    profile_data = OutputProfile(**dto.model_dump())
+    profile_data = OutputProfile.model_validate(dto.model_dump())
 
     # StudioService enforces Tenant boundaries and Repo interaction
     saved_profile = await service.save_output_profile(initiator=initiator, id=profile_id, data=profile_data)
-    return saved_profile.model_dump()
+    return saved_profile
 
 
 @router.delete("/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -79,7 +87,7 @@ async def clone_output_profile(
     profile_id: str,
     initiator: CurrentUserDep,
     service: StudioServiceDep,
-) -> dict[str, Any]:
+) -> OutputProfile:
     """Deep clone an Output Profile."""
     profile = await service.clone_output_profile(initiator=initiator, id=profile_id)
-    return profile.model_dump()
+    return profile

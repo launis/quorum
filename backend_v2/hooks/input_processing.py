@@ -33,13 +33,13 @@ async def resolve_input(val: Any) -> str:
     if isinstance(val, dict) and "content_base64" in val:
         file_bytes = base64.b64decode(val["content_base64"])
         filename = val.get("filename", "unknown.txt").lower()
-        logger.info(f"[InputProcessingHook] Detected binary input payload: {filename}")
+        logger.info("[InputProcessingHook] Detected binary input payload: %s", filename)
 
         if filename.endswith(".pdf"):
-            logger.info(f"[InputProcessingHook] Running PyMuPDF extraction for {filename}")
+            logger.info("[InputProcessingHook] Running PyMuPDF extraction for %s", filename)
             try:
                 extracted = await run_in_threadpool(_extract_pdf, file_bytes)
-                logger.debug(f"[InputProcessingHook] Extracted {len(extracted)} chars from {filename}")
+                logger.debug("[InputProcessingHook] Extracted %s chars from %s", len(extracted), filename)
                 return extracted
             except Exception as e:
                 # V2 STRICT FAIL-FAST
@@ -119,7 +119,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
         # 1. Handle Questionnaire mode specifically if it exists
         if isinstance(raw_val, dict) and any(str(k).startswith("q") for k in raw_val.keys()):
-            logger.info(f"[InputProcessingHook] Found questionnaire dict for {key}. Generating Markdown...")
+            logger.info("[InputProcessingHook] Found questionnaire dict for %s. Generating Markdown...", key)
             title_text = expected_input.label.translations.get("en", "Questionnaire")
             markdown_parts = [f"# {title_text}\n"]
             keys = sorted(raw_val.keys())
@@ -139,7 +139,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
         # V2 STRICT FAIL-FAST: Validate required inputs immediately
         if expected_input.required and not resolved_text.strip():
-            logger.error(f"[InputProcessingHook] VALIDATION_FAILED: Missing required input for {key}.")
+            logger.error("[InputProcessingHook] VALIDATION_FAILED: Missing required input for %s.", key)
             raise AppException(
                 message=(
                     f"Workflow Input Validation Error: The block '{key}' is required "
@@ -151,7 +151,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
         # 3. V2 ChatParser LLM Hook (if designated as chat history)
         if expected_input.is_chat_history and resolved_text and not resolved_text.strip().startswith("{"):
-            logger.info(f"[InputProcessingHook] Unstructured chat detected for {key}. Invoking ChatParserLLM...")
+            logger.info("[InputProcessingHook] Unstructured chat detected for %s. Invoking ChatParserLLM...", key)
             try:
                 from backend_v2.services.chat_parser import ChatParserService
 
@@ -163,9 +163,9 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                     chat_lines.append(f"**{turn.role}**: {turn.content}")
                 resolved_text = "\n\n".join(chat_lines)
 
-                logger.info(f"[InputProcessingHook] Successfully structured {key} via ChatParser (Markdown).")
+                logger.info("[InputProcessingHook] Successfully structured %s via ChatParser (Markdown).", key)
             except Exception as e:
-                logger.error(f"[InputProcessingHook] Chat parsing failed for {key}: {e}")
+                logger.error("[InputProcessingHook] Chat parsing failed for %s: %s", key, e)
                 if isinstance(e, AppException):
                     raise e
                 raise AppException(

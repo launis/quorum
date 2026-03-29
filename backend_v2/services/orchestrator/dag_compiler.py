@@ -31,7 +31,7 @@ class DAGCompilerService:
                     f"Workflow '{workflow.id}' is invalid: if 'expected_inputs' are defined, "
                     "at least one input must be 'required=True'."
                 )
-                logger.error(f"[DAGCompiler] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+                logger.error("[DAGCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
 
         # 1. Cycle Detection & Assurance

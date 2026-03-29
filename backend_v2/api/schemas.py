@@ -33,6 +33,7 @@ class ExecutionResponse(BaseModel):
 
     model_config = ConfigDict(
         populate_by_name=True,
-        extra="allow",  # Include any other fields from DB automatically
-        json_encoders={datetime: lambda v: v.isoformat()},
+        extra="forbid",
+        strict=True,
+        frozen=True,
     )

@@ -61,6 +61,8 @@ class HookState(BaseModel):
 class HookResult(BaseModel):
     """Explicit state delta returned by Hooks for deep merging."""
 
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
     success: bool
     state_delta: dict[str, Any] | None = None
 
@@ -99,14 +101,14 @@ class HookRegistry:
         def decorator(func: HookFunction) -> HookFunction:
             if name in self._hooks:
                 msg = f"Hook with name '{name}' is already registered."
-                logger.error(f"[HookRegistry] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+                logger.error("[HookRegistry] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
-            logger.info(f"Registering hook: {name} -> {func.__name__}")
+            logger.info("Registering hook: %s -> %s", name, func.__name__)
             self._hooks[name] = func
             return func
 
@@ -126,11 +128,11 @@ class HookRegistry:
         """
         if name not in self._hooks:
             msg = f"Hook '{name}' not found in registry."
-            logger.error(f"[HookRegistry] {ErrorCodes.RESOURCE_NOT_FOUND.name}: {msg}")
+            logger.error("[HookRegistry] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_404_NOT_FOUND,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND, "hook_name": name},
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "hook_name": name},
             )
         return self._hooks[name]
 
@@ -154,7 +156,7 @@ class HookRegistry:
         hook_func = self.get_hook(name)
 
         try:
-            logger.debug(f"Executing hook '{name}' for step '{state.step_id}'")
+            logger.debug("Executing hook '%s' for step '%s'", name, state.step_id)
 
             # Execute taking into account whether it is a coroutine
             if inspect.iscoroutinefunction(hook_func):
@@ -165,11 +167,11 @@ class HookRegistry:
             # Enforce strict return type according to architectural mandate
             if not isinstance(result, HookResult):
                 msg = f"Hook '{name}' returned invalid type '{type(result).__name__}'. Must return HookResult."
-                logger.error(f"[HookRegistry] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {msg}")
+                logger.error("[HookRegistry] %s: %s", ErrorCodes.AGENT_EXECUTION_CRITICAL.name, msg)
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+                    details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
                 )
 
             return result
@@ -179,11 +181,11 @@ class HookRegistry:
             raise
         except Exception as e:
             msg = f"Hook '{name}' execution failed: {e}"
-            logger.error(f"[HookRegistry] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: {msg}", exc_info=True)
+            logger.error("[HookRegistry] %s: %s", ErrorCodes.AGENT_EXECUTION_CRITICAL.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL, "hook": name},
+                details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value, "hook": name},
             ) from e
 
     def get_all_hooks(self) -> list[str]:

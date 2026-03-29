@@ -93,9 +93,9 @@ def validate_no_banned_phrases(text: str, phrases: list[str]) -> None:
         from backend_v2.exceptions import AppException, ErrorCodes
 
         msg = f"Security Violation: Input contains banned phrases: {detected}"
-        logger.error(f"[SecurityCore] {ErrorCodes.SECURITY_VIOLATION.name}: {msg}")
+        logger.error("[SecurityCore] %s: %s", ErrorCodes.SECURITY_VIOLATION.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": ErrorCodes.SECURITY_VIOLATION, "banned_phrases": detected},
+            details={"error_code": ErrorCodes.SECURITY_VIOLATION.value, "banned_phrases": detected},
         )

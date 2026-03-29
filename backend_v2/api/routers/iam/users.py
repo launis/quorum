@@ -1,11 +1,16 @@
 import logging
-from typing import Any
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User, UserUpdate
+
+
+class UserDeleteResponse(BaseModel):
+    status: str
+    deleted_id: str
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +25,13 @@ async def get_all_users(current_user: CurrentUserDep, auth_service: AuthServiceD
         return await auth_service.list_users(current_user)
     except Exception as e:
         msg = f"Error retrieving users: {e}"
-        logger.error(f"[UserRouter] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+        logger.error(
+            "[UserRouter] %s: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "error": str(e)},
+        )
         raise AppException(
             message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
         ) from e
@@ -39,8 +50,23 @@ async def save_user(id: str, data: UserUpdate, current_user: CurrentUserDep, aut
     return await auth_service.update_user(current_user.id, id, data)
 
 
-@router.delete("/{id}")
-async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> dict[str, Any]:
+@router.delete("/{id}", response_model=UserDeleteResponse)
+async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> UserDeleteResponse:
     """Delete a user from the system securely via SSOT Service Layer."""
-    await auth_service.delete_user(current_user.id, id)
-    return {"status": "success", "deleted_id": id}
+    try:
+        await auth_service.delete_user(current_user.id, id)
+        return UserDeleteResponse(status="success", deleted_id=id)
+    except AppException:
+        raise
+    except Exception as e:
+        msg = f"Error deleting user: {e}"
+        logger.error(
+            "[UserRouter] %s: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "error": str(e), "target_id": id},
+        )
+        raise AppException(
+            message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+        ) from e

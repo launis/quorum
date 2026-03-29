@@ -37,7 +37,7 @@ class GuardInput(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[GuardModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[GuardModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -46,7 +46,7 @@ class GuardInput(BaseModel):
     def validate_reflection(cls, v: str | None) -> str | None:
         if v is not None and not v.strip():
             msg = "Reflection text cannot be empty if provided."
-            logger.error(f"[GuardModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[GuardModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else None
 
@@ -68,7 +68,7 @@ class GuardInput(BaseModel):
                 for phrase in banned_phrases:
                     if phrase.lower() in value.lower():
                         msg = f"SECURITY_BANNED_PHRASE_DETECTED: Found '{phrase}' in field '{key}'"
-                        logger.error(f"[GuardModel] {ErrorCodes.PERMISSION_DENIED.name}: {msg}")
+                        logger.error("[GuardModel] %s: %s", ErrorCodes.PERMISSION_DENIED.name, msg)
                         raise AppException(
                             message=msg, status_code=403, details={"error_code": ErrorCodes.PERMISSION_DENIED}
                         )
@@ -146,7 +146,7 @@ class SecurityCheck(BaseModel):
                         data["risk_score"] = risk_map[risk_enum]
                     except ValueError as e:
                         msg = f"SecurityCheck parsing failed: Invalid RiskLevel '{risk_level}'."
-                        logger.error(f"[GuardModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                        logger.error("[GuardModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                         err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
                         raise AppException(message=msg, status_code=422, details=err_details) from e
 
@@ -163,7 +163,7 @@ class SecurityCheck(BaseModel):
                     data["simulation_score"] = sim_map[sim_enum]
                 except ValueError as e:
                     msg = f"SecurityCheck parsing failed: Invalid SimulationType '{sim_res}'."
-                    logger.error(f"[GuardModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[GuardModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     raise AppException(message=msg, status_code=422, details=err_details) from e
 
@@ -206,7 +206,7 @@ class GuardOutput(GuardDTO, ReasoningTrace):
         description="Raw input data (tainted).",
         json_schema_extra={"x-ui-label": "Input Data"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class SanitizationResult(BaseModel):

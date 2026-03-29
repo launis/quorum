@@ -37,7 +37,7 @@ class ArchiveCase(BaseModel):
     verdict: str = Field(..., description="Verdict of the past case.")
     summary: str = Field(..., description="Summary of the past case.")
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @field_validator("case_id", "verdict", "summary")
     @classmethod
@@ -46,7 +46,7 @@ class ArchiveCase(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[ArchivistModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -96,7 +96,7 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[ArchivistModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -118,7 +118,7 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
             if val and val not in mapping:
                 # STRICT VALIDATION: No fallback allowed.
                 msg = f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}"
-                logger.error(f"[ArchivistModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+                logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
             if val and "compliance_score" not in data:
@@ -126,10 +126,10 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
 
         return data
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class ArchivistOutput(ArchivistOutputDTO, ReasoningTrace):
     """Domain model for Archivist Agent (Content + Metadata)."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")

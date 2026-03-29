@@ -18,7 +18,7 @@ USAGE GUIDE (Mandatory Pattern)
         # ... business logic ...
     except Exception as e:
         error_code = "DOMAIN_REASON_DETAIL"  # e.g. "EXECUTION_FETCH_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
+        logger.error("An error occurred: %s", str(e), exc_info=True, extra={"error_code": error_code})
         raise AppException(
             message=str(e),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -272,7 +272,7 @@ class AppException(Exception):
 
     Example:
         error_code = "WORKFLOW_NOT_FOUND"
-        logger.error(f"{error_code}: {e}", exc_info=True)
+        logger.error("An error occurred: %s", str(e), exc_info=True, extra={"error_code": error_code})
         raise AppException(
             message=str(e),
             status_code=status.HTTP_404_NOT_FOUND,

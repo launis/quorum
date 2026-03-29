@@ -146,7 +146,9 @@ async def execute_workflow_job(
 
             if not isinstance(e, AppException):
                 msg = f"Workflow {workflow_id} failed: {e}"
-                logger.error(f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+                logger.error(
+                    "[Worker] %s", msg, exc_info=True, extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                )
                 e = AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR})
 
             # Final Status Update (Failed)
@@ -158,7 +160,12 @@ async def execute_workflow_job(
                     )
                 except Exception as update_err:
                     update_msg = f"Failed to update execution failure status: {update_err}"
-                    logger.error(f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {update_msg}", exc_info=True)
+                    logger.error(
+                        "[Worker] %s",
+                        update_msg,
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                    )
             raise e
         except asyncio.CancelledError:
             logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {execution_id}")
@@ -174,7 +181,12 @@ async def execute_workflow_job(
                     )
                 except Exception as update_err:
                     update_msg = f"Failed to update execution cancellation status: {update_err}"
-                    logger.error(f"[Worker] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {update_msg}", exc_info=True)
+                    logger.error(
+                        "[Worker] %s",
+                        update_msg,
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                    )
             raise
 
 
@@ -231,7 +243,13 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         logger.info(f"[Task] PDF generated successfully and path saved: {saved_path}")
 
     except Exception as e:
-        logger.error(f"[Task] PDF generation failed for {execution_id}. Cause: {e}", exc_info=True)
+        logger.error(
+            "[Task] PDF generation failed for %s. Cause: %s",
+            execution_id,
+            str(e),
+            exc_info=True,
+            extra={"error_code": ErrorCodes.PDF_GENERATION_FAILED.value},
+        )
 
 
 # --- Lifecycle ---

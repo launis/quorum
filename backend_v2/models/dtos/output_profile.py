@@ -19,7 +19,7 @@ class OutputProfileCreateDTO(BaseModel):
     description: I18nText | None = Field(default=None, description="Localized description.")
     layouts: list[OutputProfileLayout] = Field(default_factory=list, description="Sequence of layouts.")
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class OutputProfileUpdateDTO(BaseModel):
@@ -31,7 +31,7 @@ class OutputProfileUpdateDTO(BaseModel):
     description: I18nText | None = Field(default=None, description="Localized description.")
     layouts: list[OutputProfileLayout] | None = Field(default=None, description="Sequence of layouts.")
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class OutputProfileResponseDTO(BaseModel):
@@ -44,4 +44,4 @@ class OutputProfileResponseDTO(BaseModel):
     description: I18nText | None = None
     layouts: list[OutputProfileLayout]
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

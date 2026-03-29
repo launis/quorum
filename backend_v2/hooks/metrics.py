@@ -224,7 +224,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     if not inputs or not isinstance(inputs, dict):
         error_code = ErrorCodes.INVALID_JSON_PAYLOAD
         msg = f"Missing or invalid 'inputs' in data: {type(inputs)}. Expected dict."
-        logger.error(f"[MetricsHook] {error_code.name}: {msg}")
+        logger.error("[MetricsHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -239,7 +239,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         # If absolutely no inputs were provided but they reached here, fail fast.
         error_code = ErrorCodes.EMPTY_INPUT
         msg = "Missing text in inputs for metrics analysis."
-        logger.error(f"[MetricsHook] {error_code.name}: {msg}")
+        logger.error("[MetricsHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -280,7 +280,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
 
     except Exception as e:
         error_code = ErrorCodes.INTERNAL_SERVER_ERROR
-        logger.error(f"[MetricsHook] {error_code.name}: {e}", exc_info=True)
+        logger.error("[MetricsHook] %s: %s", error_code.name, e, exc_info=True)
         raise AppException(
             message=f"Failed to calculate metrics: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

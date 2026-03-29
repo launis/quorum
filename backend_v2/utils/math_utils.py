@@ -26,7 +26,7 @@ def normalize_score_to_100(score: float, number_of_options: int) -> float:
     # Suhteellinen osuus täydestä = score / maksimimäärä valintoja
     if number_of_options <= 0:
         msg = f"Invalid number_of_options ({number_of_options}). Must be > 0."
-        logger.error(f"[MathUtils] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}")
+        logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
             status_code=500,
@@ -50,7 +50,7 @@ def calculate_scaled_score(score: float, number_of_options: int, scale_min: floa
     """
     if scale_min >= scale_max:
         msg = f"Invalid scale definition: scale_min ({scale_min}) >= scale_max ({scale_max})."
-        logger.error(f"[MathUtils] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}")
+        logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
             status_code=500,
@@ -59,7 +59,7 @@ def calculate_scaled_score(score: float, number_of_options: int, scale_min: floa
 
     if number_of_options <= 0:
         msg = f"Invalid number_of_options ({number_of_options}). Must be > 0."
-        logger.error(f"[MathUtils] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}")
+        logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
             status_code=500,
@@ -90,7 +90,7 @@ def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_m
     """
     if raw_min >= raw_max:
         msg = f"Invalid raw scale definition: raw_min ({raw_min}) >= raw_max ({raw_max})."
-        logger.error(f"[MathUtils] {ErrorCodes.INVALID_OUTPUT_SCHEMA.name}: {msg}")
+        logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
             status_code=500,

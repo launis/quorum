@@ -34,7 +34,7 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
         "v2_engine": True,
     }
 
-    logger.debug(f"[MetadataHook] Injected metadata for step {step_id}")
+    logger.debug("[MetadataHook] Injected metadata for step %s", step_id)
 
     return HookResult(
         success=True,

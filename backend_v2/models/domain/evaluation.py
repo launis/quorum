@@ -27,7 +27,7 @@ class EvaluationCriterion(BaseModel):
     anchors: dict[str, str] | None = None
     weight: float = 1.0
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id", "label")
     @classmethod
@@ -36,7 +36,7 @@ class EvaluationCriterion(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -45,7 +45,7 @@ class EvaluationCriterion(BaseModel):
     def validate_positive(cls, v: float) -> float:
         if v < 0:
             msg = "Weight cannot be negative."
-            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -60,7 +60,7 @@ class EvaluationMatrixConfig(BaseModel):
         default_factory=list, json_schema_extra={"x-ui-group": "Evaluation Criteria"}
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id", "name")
     @classmethod
@@ -69,7 +69,7 @@ class EvaluationMatrixConfig(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -112,7 +112,7 @@ class EvaluationResult(ReasoningTrace):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
         return v
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("matrix_id", "final_verdict")
     @classmethod
@@ -121,7 +121,7 @@ class EvaluationResult(ReasoningTrace):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -129,12 +129,12 @@ class EvaluationResult(ReasoningTrace):
     def validate_scores_range(self) -> EvaluationResult:
         if self.scale_min >= self.scale_max:
             msg = "scale_min must be strictly less than scale_max."
-            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         if not (self.scale_min <= self.total_score <= self.scale_max):
             msg = f"Score {self.total_score} is out of valid range [{self.scale_min}, {self.scale_max}]."
-            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         return self
@@ -148,12 +148,12 @@ class ValidationResult(BaseModel):
         default_factory=list, description="Validation errors.", json_schema_extra={"x-ui-label": "Errors"}
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @model_validator(mode="after")
     def validate_logic(self) -> ValidationResult:
         if not self.is_valid and not self.errors:
             msg = "Invalid result must have errors."
-            logger.error(f"[EvaluationModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self

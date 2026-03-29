@@ -75,27 +75,25 @@ class Organization(BaseModel):
     slug: Annotated[str | None, Field(description="Legacy human-readable identifier")] = None
     name: Annotated[str, Field(description="Display Name")]
     created_at: Annotated[datetime | None, Field(description="ISO Timestamp")] = None
-    is_active: Annotated[bool, Field(description="Subscription status")] = True
-    tier: Annotated[str, Field(description="Service Tier")] = "standard"
+    is_active: Annotated[bool, Field(description="Subscription status")]
+    tier: Annotated[str, Field(description="Service Tier")]
     contact_email: Annotated[str | None, Field(description="Admin Contact")] = None
 
     # Billing & SaaS Fields (Phase 4)
     billing_id: Annotated[str | None, Field(description="External Billing ID (Stripe/etc)")] = None
-    subscription_status: Annotated[SubscriptionStatus, Field(description="Current billing status")] = (
-        SubscriptionStatus.TRIAL
-    )
-    quota_limit: Annotated[float, Field(ge=0.0, description="Monthly API call quota (USD)")] = 10.0
+    subscription_status: Annotated[SubscriptionStatus, Field(description="Current billing status")]
+    quota_limit: Annotated[float, Field(ge=0.0, description="Monthly API call quota (USD)")]
     tpm_limit: Annotated[int, Field(ge=1000, description="Tokens Per Minute Limit")]
     rpm_limit: Annotated[int, Field(ge=1, description="Requests Per Minute Limit")]
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id", "name")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -104,7 +102,7 @@ class Organization(BaseModel):
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else v
 
@@ -120,7 +118,7 @@ class Organization(BaseModel):
                     data["created_at"] = datetime.fromisoformat(data["created_at"])
                 except ValueError as e:
                     msg = f"Organization parsing failed: Invalid datetime '{data['created_at']}'."
-                    logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     raise AppException(message=msg, status_code=422, details=err_details) from e
 
@@ -130,7 +128,7 @@ class Organization(BaseModel):
                     data["subscription_status"] = SubscriptionStatus(data["subscription_status"])
                 except ValueError as e:
                     msg = f"Organization parsing failed: Invalid subscription status '{data['subscription_status']}'."
-                    logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     raise AppException(message=msg, status_code=422, details=err_details) from e
         return data
@@ -149,20 +147,20 @@ class UserBase(BaseModel):
 
     email: Annotated[EmailStr, Field(description="User email address")]
     display_name: Annotated[str | None, Field(description="User display name")] = None
-    role: Annotated[UserRole, Field(description="Assigned permission role")] = UserRole.MEMBER
+    role: Annotated[UserRole, Field(description="Assigned permission role")]
     organization_id: Annotated[str | None, Field(description="ID of the organization this user belongs to")] = None
-    is_active: Annotated[bool, Field(description="Is the account active?")] = True
-    language: Annotated[Literal["fi", "en", "sv"], Field(description="Preferred UI language")] = "fi"
-    theme_mode: Annotated[Literal["system", "light", "dark"], Field(description="Preferred Theme Mode")] = "system"
+    is_active: Annotated[bool, Field(description="Is the account active?")]
+    language: Annotated[Literal["fi", "en", "sv"], Field(description="Preferred UI language")]
+    theme_mode: Annotated[Literal["system", "light", "dark"], Field(description="Preferred Theme Mode")]
 
-    model_config = ConfigDict(extra="ignore", strict=True)
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     @field_validator("display_name", "organization_id")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else v
 
@@ -192,14 +190,14 @@ class User(UserBase):
     created_at: Annotated[datetime, Field(description="ISO 8601 Timestamp")]
     created_by: Annotated[str | None, Field(description="UID of the creator")] = None
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -208,7 +206,7 @@ class User(UserBase):
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else v
 
@@ -223,7 +221,7 @@ class User(UserBase):
                     data["created_at"] = datetime.fromisoformat(data["created_at"])
                 except ValueError as e:
                     msg = f"User parsing failed: Invalid datetime '{data['created_at']}'."
-                    logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     raise AppException(message=msg, status_code=422, details=err_details) from e
 
@@ -233,7 +231,7 @@ class User(UserBase):
                     data["role"] = UserRole(data["role"])
                 except ValueError as e:
                     msg = f"User parsing failed: Invalid role '{data['role']}'."
-                    logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     raise AppException(message=msg, status_code=422, details=err_details) from e
         return data
@@ -258,7 +256,7 @@ class UserAdminView(UserBase):
     last_login_at: datetime | None = None
     execution_count: int = 0
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
 # --- Creation Models ---
@@ -293,14 +291,14 @@ class OrganizationCreate(BaseModel):
     tpm_limit: int
     rpm_limit: int
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("name", "admin_password", "admin_name")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -342,14 +340,14 @@ class TokenData(BaseModel):
     organization_id: str | None = None
     email: str | None = None
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -358,7 +356,7 @@ class TokenData(BaseModel):
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AuthModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip() if v else v
 

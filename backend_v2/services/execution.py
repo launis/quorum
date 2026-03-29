@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 from uuid import uuid4
 
 from arq.connections import ArqRedis
@@ -47,7 +48,7 @@ class ExecutionService:
             return executions
         except Exception as e:
             msg = f"Failed to list executions: {str(e)}"
-            logger.error(f"[ExecutionService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
             ) from e
@@ -57,8 +58,9 @@ class ExecutionService:
         data = await self.repo.get_execution(execution_id)
         if not data:
             logger.error(
-                f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
-                f"Execution {execution_id} not found or corrupted."
+                "[ExecutionService] %s: ",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                f"Execution {execution_id} not found or corrupted.",
             )
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
@@ -67,8 +69,9 @@ class ExecutionService:
         if initiator.role != "ROOT" and data.organization_id != org_id and data.created_by != initiator.id:
             msg = "You do not have permission to view this execution."
             logger.error(
-                f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.name}: "
-                f"User {initiator.id} attempted to access foreign execution {execution_id}."
+                "[ExecutionService] %s: ",
+                ErrorCodes.PERMISSION_DENIED.name,
+                f"User {initiator.id} attempted to access foreign execution {execution_id}.",
             )
             raise PermissionDeniedError(msg)
 
@@ -82,7 +85,7 @@ class ExecutionService:
         raw_data = await repo_driver.get("executions", execution_id) if repo_driver else None
         if not raw_data:
             logger.error(
-                f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Execution {execution_id} not found."
+                "[ExecutionService] %s: Execution %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, execution_id
             )
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
@@ -95,8 +98,9 @@ class ExecutionService:
         ):
             msg = "You do not have permission to delete this execution."
             logger.error(
-                f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.name}: "
-                f"User {initiator.id} attempted to delete foreign execution {execution_id}."
+                "[ExecutionService] %s: ",
+                ErrorCodes.PERMISSION_DENIED.name,
+                f"User {initiator.id} attempted to delete foreign execution {execution_id}.",
             )
             raise PermissionDeniedError(msg)
 
@@ -110,12 +114,17 @@ class ExecutionService:
                     try:
                         await storage.delete(raw_data[key])
                     except Exception:
-                        pass
+                        logger.warning(
+                            "[ExecutionService] Failed to clean up blob %s during execution deletion.",
+                            raw_data[key],
+                            exc_info=True,
+                            extra={"execution_id": execution_id},
+                        )
 
             return await self.repo.delete_execution(execution_id)
         except Exception as e:
             msg = f"Failed to delete execution {execution_id}: {str(e)}"
-            logger.error(f"[ExecutionService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
             ) from e
@@ -127,7 +136,7 @@ class ExecutionService:
         workflow_dict = await self.repo.get_workflow_by_id(payload.workflow_id)
         if not workflow_dict:
             logger.error(
-                f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: Workflow {payload.workflow_id} not found."
+                "[ExecutionService] %s: Workflow %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, payload.workflow_id
             )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=payload.workflow_id)
 
@@ -138,10 +147,26 @@ class ExecutionService:
         if initiator.role != "ROOT" and workflow.organization_id not in [org_id, "system", None]:
             msg = "You do not have permission to execute this workflow."
             logger.error(
-                f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.name}: "
-                f"{initiator.id} tried to start foreign workflow '{workflow.id}'."
+                "[ExecutionService] %s: ",
+                ErrorCodes.PERMISSION_DENIED.name,
+                f"{initiator.id} tried to start foreign workflow '{workflow.id}'.",
             )
             raise PermissionDeniedError(msg)
+
+        # Circuit Breaker: Denial of Wallet Protection
+        if org_id:
+            from backend_v2.services.usage_service import UsageService
+
+            usage_service = UsageService(self.repo)
+            is_quota_safe = await usage_service.check_quota(org_id)
+            if not is_quota_safe:
+                msg = f"Organization '{org_id}' has exceeded its execution quota."
+                logger.warning("[ExecutionService] Circuit Breaker Tripped: %s", msg)
+                raise AppException(
+                    message=msg,
+                    status_code=402,
+                    details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
+                )
 
         # V2 MANDATE: Dynamically generate SDUI hints synchronously before execution
         ui_hints: dict[str, DataDictionaryField] = {}
@@ -153,7 +178,7 @@ class ExecutionService:
                 from backend_v2.exceptions import ConfigurationError
 
                 msg = f"Missing task blueprint {step_rule.task_blueprint} for DAG."
-                logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ConfigurationError(msg)
 
             # Populate initial pending step state for timeline
@@ -179,7 +204,7 @@ class ExecutionService:
                         f"SDUI Engine Error: PromptBlock '{pb_id}' is missing "
                         f"but referenced in step '{step_rule.task_blueprint}'."
                     )
-                    logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+                    logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise ConfigurationError(msg)
 
                 dt = pb_dict.get("type")
@@ -199,12 +224,13 @@ class ExecutionService:
                     try:
                         # Attempt to find actual scaling max dynamically
                         max_val = float(max([s.get("score", 0) for s in pb_dict["scales"]]))
-                    except Exception:
+                    except Exception as _err:
                         # Tier 3B Graceful Degradation: Log telemetry but do not crash the UI hint generator
                         logger.warning(
-                            f"[ExecutionService] SDUI Hint Generator Failed: Could not calculate max_val "
+                            "[ExecutionService] SDUI Hint Generator Failed: Could not calculate max_val "
                             f"for PromptBlock '{pb_id}'. Safely falling back to default max_val={max_val}.",
                             exc_info=True,
+                            extra={"prompt_block_id": pb_id},
                         )
 
                 # Extract translation map for UI label
@@ -258,8 +284,24 @@ class ExecutionService:
                 f"Cannot resume execution in state {record.status.value}. "
                 "Only FAILED or PENDING executions can be resumed."
             )
-            logger.error(f"[ExecutionService] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        # Circuit Breaker: Denial of Wallet Protection
+        org_id = getattr(initiator, "organization_id", None)
+        if org_id:
+            from backend_v2.services.usage_service import UsageService
+
+            usage_service = UsageService(self.repo)
+            is_quota_safe = await usage_service.check_quota(org_id)
+            if not is_quota_safe:
+                msg = f"Organization '{org_id}' has exceeded its execution quota. Resumption blocked."
+                logger.warning("[ExecutionService] Circuit Breaker Tripped: %s", msg)
+                raise AppException(
+                    message=msg,
+                    status_code=402,
+                    details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
+                )
 
         record.status = ExecutionStatus.RUNNING
         await self.repo.update_execution(execution_id, {"status": "running"})
@@ -275,3 +317,139 @@ class ExecutionService:
         )
 
         return record
+
+    async def get_frozen_context_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
+        execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
+        if execution.frozen_context_storage_path:
+
+            from backend_v2.services.storage import get_storage_driver
+
+            storage = get_storage_driver()
+            try:
+                raw_bytes = await storage.read(execution.frozen_context_storage_path)
+                from backend_v2.models.v2_core import FrozenContext
+
+                parsed_context = FrozenContext.model_validate_json(raw_bytes)
+                pretty_bytes = parsed_context.model_dump_json(indent=2).encode("utf-8")
+                return pretty_bytes, f"frozen_context_{execution_id}.json"
+            except Exception as strg_err:
+                logger.error(
+                    "[ExecutionService] Failed to fetch frozen context from storage",
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": execution_id},
+                )
+                raise AppException(
+                    message="Forensic context file not found in storage",
+                    status_code=404,
+                    details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                ) from strg_err
+        frozen_json = execution.frozen_context.model_dump_json(indent=2)
+        return frozen_json.encode("utf-8"), f"frozen_context_{execution_id}.json"
+
+    async def render_execution(
+        self,
+        initiator: TokenData,
+        execution_id: str,
+        format_type: str,
+        profile_id: str | None,
+        accept_language: str | None,
+    ) -> tuple[bytes | list[Any] | dict[str, Any], str, str | None]:
+        execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
+
+        if execution.status != ExecutionStatus.COMPLETED:
+            msg = f"Execution is not in COMPLETED state. Current status: {execution.status.value}"
+            logger.error(
+                "[ExecutionService] Execution not COMPLETED",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_status": execution.status.value},
+            )
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        fmt = format_type.lower()
+
+        if fmt == "json":
+            from backend_v2.services.blueprint import BlueprintTransformer
+
+            transformer = BlueprintTransformer(self.repo)
+            dto = await transformer.build_report_dto(execution_id, profile_id or "default", accept_language)
+            return dto.model_dump(mode="json"), "application/json", None
+
+        elif fmt == "flat":
+            from backend_v2.services.flattener import FlatFileService
+
+            flat_data = FlatFileService.flatten_results(execution)
+            return flat_data, "application/json", None
+
+        elif fmt == "pdf":
+            workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
+            if not workflow_data:
+                msg = "Workflow not found"
+                logger.error(
+                    "[ExecutionService] Workflow not found", extra={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
+
+            default_pid = workflow_data.get("default_profile_id", "default")
+            output_profiles = workflow_data.get("output_profiles", {})
+
+            resolved_pid = profile_id
+            if not resolved_pid or (resolved_pid == "default" and "default" not in output_profiles):
+                resolved_pid = default_pid
+
+            if resolved_pid == default_pid and execution.pdf_report_path:
+                from backend_v2.services.storage import get_storage_driver
+
+                storage = get_storage_driver()
+                try:
+                    pdf_bytes = await storage.read(execution.pdf_report_path)
+                    return pdf_bytes, "application/pdf", f"execution_{execution_id}.pdf"
+                except Exception as strg_err:
+                    logger.warning(
+                        "[ExecutionService] Failed to fetch pre-generated PDF from storage,"
+                        " falling back to sync generation",
+                        exc_info=True,
+                        extra={"error": str(strg_err), "execution_id": execution_id},
+                    )
+
+            from backend_v2.services.blueprint import BlueprintTransformer
+            from backend_v2.services.pdf_generator import PdfReportService
+
+            if not accept_language and execution.metadata:
+                accept_language = execution.metadata.get("target_locale")
+
+            transformer = BlueprintTransformer(self.repo)
+            dto = await transformer.build_report_dto(execution_id, resolved_pid or "default", accept_language)
+
+            pdf_service = PdfReportService(self.repo)
+            pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, report_dto=dto)
+
+            if resolved_pid == default_pid:
+                try:
+                    from backend_v2.services.storage import get_storage_driver
+
+                    storage = get_storage_driver()
+                    output_path_rel = f"executions/{execution_id}/report.pdf"
+                    saved_path = await storage.save(output_path_rel, pdf_bytes)
+                    if not execution.pdf_report_path or execution.pdf_report_path != saved_path:
+                        await self.repo.update_execution(execution_id, {"pdf_report_path": saved_path})
+                    logger.info(
+                        "[ExecutionService] Self-healed missing PDF",
+                        extra={"execution_id": execution_id, "saved_path": saved_path},
+                    )
+                except Exception as heal_err:
+                    logger.warning(
+                        "[ExecutionService] Failed to self-heal PDF storage",
+                        exc_info=True,
+                        extra={"execution_id": execution_id, "error": str(heal_err)},
+                    )
+
+            return pdf_bytes, "application/pdf", f"execution_{execution_id}.pdf"
+
+        else:
+            msg = f"Unsupported format: {format_type}"
+            logger.error(
+                "[ExecutionService] Unsupported format",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "format": format_type},
+            )
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})

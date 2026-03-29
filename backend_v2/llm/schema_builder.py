@@ -30,7 +30,9 @@ class SchemaCompilerService:
             name: (type_hint, Field(..., description=desc)) for name, type_hint, desc in fields_tuple
         }
         return create_model(
-            f"DynamicSchema_{schema_hash[:8]}", __config__=ConfigDict(extra="forbid", strict=False), **fields
+            f"DynamicSchema_{schema_hash[:8]}",
+            __config__=ConfigDict(extra="forbid", strict=False, frozen=True),
+            **fields,
         )
 
     @classmethod

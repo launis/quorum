@@ -38,18 +38,18 @@ def get_storage_driver() -> FileDriver:
         bucket_name = settings.storage_bucket_name
         if not bucket_name:
             msg = "CRITICAL: STORAGE_BACKEND=FIRESTORE requires STORAGE_BUCKET_NAME to be set."
-            logger.error(f"[StorageService] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+            logger.error("[StorageService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
             raise AppException(
                 message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
-        logger.info(f"Initializing GCSFileDriver with bucket: {bucket_name}")
+        logger.info("Initializing GCSFileDriver with bucket: %s", bucket_name)
         return GCSFileDriver(bucket_name=bucket_name)
 
     # Default to Local for LOCAL and MOCK backends
     base_path = settings.files_dir
     base_url = f"{settings.api_url}/files" if settings.api_url else None
 
-    logger.info(f"Initializing LocalFileDriver at: {base_path}")
+    logger.info("Initializing LocalFileDriver at: %s", base_path)
     return LocalFileDriver(base_path=base_path, base_url=base_url)

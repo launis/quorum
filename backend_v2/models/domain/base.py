@@ -26,7 +26,7 @@ class AuditLogEntry(BaseModel):
     message: str = Field(..., description="Log message.")
     context: dict[str, Any] | None = Field(default=None, description="Additional context.")
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @field_validator("level", "message")
     @classmethod
@@ -35,7 +35,7 @@ class AuditLogEntry(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -92,7 +92,7 @@ class Metadata(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -103,7 +103,7 @@ class Metadata(BaseModel):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
         return v
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class ReasoningTraceDTO(BaseModel):
@@ -134,7 +134,7 @@ class ReasoningTraceDTO(BaseModel):
         json_schema_extra={"x-ui-hidden": True},
     )
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @field_validator("thought_process", "conclusion")
     @classmethod
@@ -143,7 +143,7 @@ class ReasoningTraceDTO(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -152,7 +152,7 @@ class ReasoningTraceDTO(BaseModel):
     def validate_confidence(cls, v: float) -> float:
         if not (0.0 <= v <= 1.0):
             msg = "Confidence score must be between 0.0 and 1.0."
-            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -175,7 +175,7 @@ class ReasoningTrace(ReasoningTraceDTO):
         json_schema_extra={"x-ui-label": "Checksum"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class UsageRecord(BaseModel):
@@ -219,7 +219,7 @@ class UsageRecord(BaseModel):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
         return v
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id", "org_id", "user_id", "model")
     @classmethod
@@ -228,7 +228,7 @@ class UsageRecord(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -237,7 +237,7 @@ class UsageRecord(BaseModel):
     def validate_non_negative_int(cls, v: int) -> int:
         if v < 0:
             msg = "Token count cannot be negative."
-            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -246,6 +246,6 @@ class UsageRecord(BaseModel):
     def validate_non_negative_float(cls, v: float) -> float:
         if v < 0:
             msg = "Cost cannot be negative."
-            logger.error(f"[BaseDomainModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v

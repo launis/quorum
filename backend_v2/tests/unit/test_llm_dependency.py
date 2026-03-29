@@ -7,13 +7,13 @@ from backend_v2.database.repository import AbstractWorkflowRepository
 
 app = FastAPI()
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import Depends
 
 
 @app.get("/test-llm-dep")
-async def test_llm_dep(llm_handler: Any = Depends(get_llm_handler)) -> Any:
+async def test_llm_dep(llm_handler: Annotated[Any, Depends(get_llm_handler)]) -> Any:
     return {"has_repo": hasattr(llm_handler, "repo")}
 
 

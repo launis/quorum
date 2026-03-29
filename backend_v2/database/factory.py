@@ -32,7 +32,7 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
         ValueError: If an unknown storage backend is configured.
     """
     backend = settings.active_backend
-    logger.info(f"[Factory] Initializing Unified Repository for Backend: {backend.value}")
+    logger.info("[Factory] Initializing Unified Repository for Backend: %s", backend.value)
 
     match backend:
         case StorageBackend.FIRESTORE:
@@ -57,10 +57,10 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
                 # Determine path based on mode
                 if backend == StorageBackend.MOCK:
                     db_path = settings.mock_db_path
-                    logger.info(f"[Factory] Using MOCK configuration. Path: {db_path}")
+                    logger.info("[Factory] Using MOCK configuration. Path: %s", db_path)
                 else:
                     db_path = settings.prod_db_path
-                    logger.info(f"[Factory] Using LOCAL configuration. Path: {db_path}")
+                    logger.info("[Factory] Using LOCAL configuration. Path: %s", db_path)
 
                 db_client_local = TinyDBClient(db_path)
 

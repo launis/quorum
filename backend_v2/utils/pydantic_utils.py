@@ -31,7 +31,7 @@ def inflate[T: BaseModel](data: Any, model_class: type[T]) -> T | None:
         try:
             return model_class.model_validate(data)
         except ValidationError as e:
-            logger.error(f"Failed to inflate {model_class.__name__}: {e}")
+            logger.error("Failed to inflate %s: %s", model_class.__name__, e, exc_info=True)
             # Fail Fast: Re-raise or return None? Mandate says "Fail Fast"
             # typically implies raising exceptions for invalid states.
             # However, returning None is safer for optional steps.
@@ -47,6 +47,6 @@ def inflate[T: BaseModel](data: Any, model_class: type[T]) -> T | None:
         if hasattr(data, "__dict__"):
             return model_class.model_validate(data.__dict__)
     except Exception as e:
-        logger.warning(f"Failed to convert object to {model_class.__name__}: {e}")
+        logger.warning("Failed to convert object to %s: %s", model_class.__name__, e, exc_info=True)
 
     return None

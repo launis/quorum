@@ -85,7 +85,7 @@ class DimensionResultItem(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -94,7 +94,7 @@ class DimensionResultItem(BaseModel):
     def validate_score(cls, v: int | float) -> int | float:
         if v < 0:
             msg = "Score cannot be negative."
-            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -145,7 +145,7 @@ class JudgeScoreCard(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -153,17 +153,17 @@ class JudgeScoreCard(BaseModel):
     def validate_scores(self) -> JudgeScoreCard:
         if self.scale_min >= self.scale_max:
             msg = "scale_min must be less than scale_max."
-            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         if not (self.scale_min <= self.total_score <= self.scale_max):
             # Allow small floating point epsilon if needed, but strict is better for now.
             msg = f"total_score {self.total_score} is out of range [{self.scale_min}, {self.scale_max}]."
-            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class JudgeDTO(ReasoningTraceDTO):
@@ -194,13 +194,13 @@ class JudgeDTO(ReasoningTraceDTO):
         description="Critical issues identified.",
         json_schema_extra={"x-ui-label": "Critical Findings"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class JudgeOutput(JudgeDTO, ReasoningTrace):
     """Output schema for the Judge Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class ScoringResult(BaseModel):
@@ -217,7 +217,7 @@ class ScoringResult(BaseModel):
         default_factory=list, description="List of penalties applied.", json_schema_extra={"x-ui-label": "Penalties"}
     )
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @field_validator("score_summary")
     @classmethod
@@ -226,6 +226,6 @@ class ScoringResult(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Score summary cannot be empty."
-            logger.error(f"[JudgeModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()

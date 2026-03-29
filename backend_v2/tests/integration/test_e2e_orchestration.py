@@ -1,8 +1,8 @@
-from typing import Any
 import os
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 import requests
@@ -160,5 +160,5 @@ def test_e2e_orchestration() -> None:
                 worker_process.wait()
             try:
                 backend_log_fp.close()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Failed to close backend_log_fp: {e}")

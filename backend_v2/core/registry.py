@@ -3,7 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -92,27 +92,27 @@ class TaskRegistry:
             from backend_v2.exceptions import AppException, ErrorCodes
 
             msg = f"Agent {agent_cls.__name__} instantiation failed: {e}"
-            logger.error(f"[TaskRegistry] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+            logger.error("[TaskRegistry] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
 
             raise AppException(
-                message=f"Agent {agent_cls.__name__} instantiation failed: {e}",
+                message=msg,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "original_error": str(e)},
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "original_error": str(e)},
             ) from e
 
         # Resolve Input Schema from Agent Class (Refactored Feb 2026: Strict Type Propagation)
         input_model = getattr(agent_cls, "INPUT_SCHEMA", None)
         if not input_model:
             # Fallback to Generic if not defined (Legacy support only)
-            logger.warning(f"Agent {agent_cls.__name__} has no INPUT_SCHEMA. Using GenericInput (Dict fallback).")
+            logger.warning("Agent %s has no INPUT_SCHEMA. Using GenericInput (Dict fallback).", agent_cls.__name__)
 
             class GenericInput(BaseModel):
-                model_config = {"extra": "allow"}
+                model_config = ConfigDict(extra="allow")
 
             input_model = GenericInput
 
         async def agent_wrapper(input_data: BaseModel, execution_config: dict[str, Any] | None = None) -> BaseModel:
-            logger.debug(f"agent_wrapper CALLED. Config: {execution_config}")
+            logger.debug("agent_wrapper CALLED. Config: %s", execution_config)
             # 1. Instantiate
             agent = agent_cls()
 
@@ -137,7 +137,7 @@ class TaskRegistry:
                     )
             except Exception as e:
                 msg = f"Agent configuration failed: {e}"
-                logger.error(f"[TaskRegistry] {ErrorCodes.AGENT_NOT_CONFIGURED.name}: {msg}", exc_info=True)
+                logger.error("[TaskRegistry] %s: %s", ErrorCodes.AGENT_NOT_CONFIGURED.name, msg, exc_info=True)
                 from fastapi import status
 
                 from backend_v2.exceptions import AppException, ErrorCodes
@@ -145,10 +145,10 @@ class TaskRegistry:
                 if isinstance(e, AppException):
                     raise e
                 raise AppException(
-                    message=f"Agent configuration failed: {e}",
+                    message=msg,
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={
-                        "error_code": ErrorCodes.AGENT_NOT_CONFIGURED,
+                        "error_code": ErrorCodes.AGENT_NOT_CONFIGURED.value,
                         "agent": agent_cls.__name__,
                         "original_error": str(e),
                     },
@@ -213,12 +213,16 @@ class TaskRegistry:
                     vars_to_inject["DYNAMIC_LOCATION"] = "Sijainti: VIRTUAL_ENCLAVE"
 
                     if system_instruction:
-                        logger.info(f"[DEBUG-INJECTION] System instruction Base Length: {len(system_instruction)}")
+                        logger.info("[DEBUG-INJECTION] System instruction Base Length: %d", len(system_instruction))
                         for key, value in vars_to_inject.items():
                             if value is None:
                                 value = ""
                             if hasattr(value, "model_dump_json"):
                                 replacement = value.model_dump_json()
+                            elif hasattr(value, "model_dump"):
+                                import json
+
+                                replacement = json.dumps(value.model_dump(), default=str)
                             elif hasattr(value, "dict"):
                                 import json
 
@@ -241,7 +245,10 @@ class TaskRegistry:
 
                             if replaced:
                                 logger.info(
-                                    f"[DEBUG-INJECTION] Replaced {key}: {old_len} -> {len(system_instruction)} chars"
+                                    "[DEBUG-INJECTION] Replaced %s: %d -> %d chars",
+                                    key,
+                                    old_len,
+                                    len(system_instruction),
                                 )
 
             # 4. Execute using New Signature (Strict Model Pass-Through)
@@ -268,15 +275,15 @@ class TaskRegistry:
                         execution_config["model"] = resolved_override
                     except Exception as e:
                         msg = f"Invalid model override: {e}"
-                        logger.error(f"[TaskRegistry] {ErrorCodes.INVALID_JSON_PAYLOAD.name}: {msg}", exc_info=True)
+                        logger.error("[TaskRegistry] %s: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, msg, exc_info=True)
                         from fastapi import status
 
                         from backend_v2.exceptions import AppException, ErrorCodes
 
                         raise AppException(
-                            message=f"Invalid model override: {e}",
+                            message=msg,
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "original_error": str(e)},
+                            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value, "original_error": str(e)},
                         ) from e
                 exec_kwargs.update(execution_config)
 

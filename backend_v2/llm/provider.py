@@ -39,7 +39,7 @@ retry_strategy = retry(
     wait=wait_random_exponential(multiplier=_settings.llm_retry_delay, max=120),  # Jitter to prevent thundering herd
     reraise=True,
     before_sleep=lambda retry_state: logger.warning(
-        f"Retrying LLM call... (Attempt {retry_state.attempt_number}/{SystemConcurrency.LLM_MAX_RETRIES.value})"
+        "Retrying LLM call... (Attempt %d/%d)", retry_state.attempt_number, SystemConcurrency.LLM_MAX_RETRIES.value
     ),
 )
 
@@ -134,7 +134,7 @@ class LiteLLMProvider(LLMProvider):
                 "Strict Mode: LLM Rate Limits (TPM/RPM) must be explicitly passed "
                 "to Provider. No hardcoded defaults allowed."
             )
-            logger.error(f"[LiteLLMProvider] {msg}")
+            logger.error("[LiteLLMProvider] %s", msg)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         tpm = limits.get("tpm")
@@ -142,7 +142,7 @@ class LiteLLMProvider(LLMProvider):
 
         if tpm is None or rpm is None:
             msg = "Strict Mode: Both TPM and RPM must be defined in limits config."
-            logger.error(f"[LiteLLMProvider] {msg}")
+            logger.error("[LiteLLMProvider] %s", msg)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         # Use Class Cache for Router to avoid MAX_CALLBACKS leak
@@ -205,7 +205,7 @@ class LiteLLMProvider(LLMProvider):
                 "Strict Mode: 'temperature' must be explicitly provided "
                 "from configuration (Database/Registry). No default allowed."
             )
-            logger.error(f"[LiteLLMProvider] {msg}")
+            logger.error("[LiteLLMProvider] %s", msg)
             raise ConfigurationError(msg)
 
         if max_tokens is None:
@@ -213,7 +213,7 @@ class LiteLLMProvider(LLMProvider):
                 "Strict Mode: 'max_tokens' must be explicitly provided "
                 "from configuration (Database/Registry). No default allowed."
             )
-            logger.error(f"[LiteLLMProvider] {msg}")
+            logger.error("[LiteLLMProvider] %s", msg)
             raise ConfigurationError(msg)
 
         # Context Continuity (Stateless Reasoning Blob)
@@ -234,23 +234,29 @@ class LiteLLMProvider(LLMProvider):
                 if isinstance(response_schema, type):
                     schema_name = getattr(response_schema, "__name__", "dict")
 
-                logger.info(f"[LiteLLM] Enabling Structured Output for schema: {schema_name}")
+                logger.info("[LiteLLM] Enabling Structured Output for schema: %s", schema_name)
                 response_format = response_schema
             except Exception as schema_err:
-                logger.debug(f"[LiteLLM] Could not resolve schema name: {schema_err}")
+                logger.debug("[LiteLLM] Could not resolve schema name: %s", schema_err)
 
         try:
             # --- LOGGING ---
             def _truncate_for_debug(text: str, label: str) -> None:
                 if not text:
-                    logger.info(f"[LiteLLM] [{label}]: <empty>")
+                    logger.info("[LiteLLM] [%s]: <empty>", label)
                     return
 
                 # Format for log
                 # User Mandate (Jan 2026): Single-line compact debug log
                 content_preview = text[:50].replace("\n", "\\n")
                 suffix = text[-50:].replace("\n", "\\n") if len(text) > 50 else ""
-                logger.info(f"[LiteLLM] [{label}]: Length={len(text)} chars | Content='{content_preview}...{suffix}'")
+                logger.info(
+                    "[LiteLLM] [%s]: Length=%d chars | Content='%s...%s'",
+                    label,
+                    len(text),
+                    content_preview,
+                    suffix,
+                )
 
             if system_instruction:
                 _truncate_for_debug(system_instruction, "SYSTEM INSTRUCTION")
@@ -259,7 +265,7 @@ class LiteLLMProvider(LLMProvider):
             elif messages:
                 _truncate_for_debug(str(messages)[:100] + "...(truncated)", "MESSAGES ARRAY")
 
-            logger.info(f"[LiteLLM] Calling {self.model_name}...")
+            logger.info("[LiteLLM] Calling %s...", self.model_name)
 
             # Prepare arguments
             call_kwargs = {
@@ -305,13 +311,15 @@ class LiteLLMProvider(LLMProvider):
 
             # STRICT MODE: No defaults. Fail if missing.
             if not v_loc:
-                logger.error(f"[LiteLLMProvider] Env load failed. Tried path: {env_path}, Exists: {env_path.exists()}")
+                logger.error(
+                    "[LiteLLMProvider] Env load failed. Tried path: %s, Exists: %s", env_path, env_path.exists()
+                )
                 raise ValueError(
                     f"[LiteLLMProvider] Critical Error: VERTEX_LOCATION not found in settings or .env ({env_path}). "
                     "Cannot proceed."
                 )
 
-            logger.info(f"[LiteLLMProvider] Using Vertex Location: {v_loc}")
+            logger.info("[LiteLLMProvider] Using Vertex Location: %s", v_loc)
             call_kwargs["vertex_location"] = v_loc
 
             # --- DIAGNOSTIC DUMP ---
@@ -322,7 +330,7 @@ class LiteLLMProvider(LLMProvider):
                         f.write(f"\n\n--- [LiteLLM] {self.model_name} ---\n")
                         f.write(json.dumps(messages, indent=2, ensure_ascii=False))
                 except Exception as e:
-                    logger.warning(f"Failed to dump prompt: {e}")
+                    logger.warning("Failed to dump prompt: %s", e)
 
             start_time = time.perf_counter()
 
@@ -391,7 +399,9 @@ class LiteLLMProvider(LLMProvider):
                 except Exception as parse_err:
                     error_str = str(parse_err)
                     logger.error(
-                        f"[LiteLLMProvider] Native JSON Parsing Failure: {error_str}\nRaw Content: {raw_content[:200]}"
+                        "[LiteLLMProvider] Native JSON Parsing Failure: %s\nRaw Content: %s",
+                        error_str,
+                        raw_content[:200],
                     )
 
                     safety_hint = ""
@@ -419,7 +429,7 @@ class LiteLLMProvider(LLMProvider):
                     if rem_reqs:
                         provider_meta["rate_limit_remaining"] = rem_reqs
                         if str(rem_reqs).isdigit() and int(rem_reqs) < 10:
-                            logger.warning(f"[LiteLLMProvider] QUOTA WARNING: Only {rem_reqs} requests remaining.")
+                            logger.warning("[LiteLLMProvider] QUOTA WARNING: Only %s requests remaining.", rem_reqs)
 
             # Vertex AI Safety & Grounding Citations
             if hasattr(response, "model_extra") and isinstance(response.model_extra, dict):
@@ -445,7 +455,7 @@ class LiteLLMProvider(LLMProvider):
                 base_model_name = self.model_name.split("/")[-1] if "/" in self.model_name else self.model_name
                 cost = litellm.completion_cost(completion_response=response, model=base_model_name)
             except Exception as e:
-                logger.warning(f"[LiteLLMProvider] Cost Calculation Failed: {e}")
+                logger.warning("[LiteLLMProvider] Cost Calculation Failed: %s", e)
 
             if self.usage_service:
                 try:
@@ -468,7 +478,7 @@ class LiteLLMProvider(LLMProvider):
                         cost_usd=cost,
                     )
                 except Exception as e:
-                    logger.warning(f"[LiteLLMProvider] Usage Tracking Failed: {e}")
+                    logger.warning("[LiteLLMProvider] Usage Tracking Failed: %s", e)
 
             # Inject cost into usage dict so BaseAgent can pick it up
             usage["cost_usd"] = cost
@@ -513,7 +523,7 @@ class LiteLLMProvider(LLMProvider):
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
                 logger.error(
-                    f"[LiteLLM] {ErrorCodes.RATE_LIMIT_EXCEEDED.name}: RESOURCE EXHAUSTED (Rate Limit): {error_msg}"
+                    "[LiteLLM] %s: RESOURCE EXHAUSTED (Rate Limit): %s", ErrorCodes.RATE_LIMIT_EXCEEDED.name, error_msg
                 )
                 raise ServiceUnavailableError(
                     message="Model provider rate limit exceeded.",
@@ -523,8 +533,9 @@ class LiteLLMProvider(LLMProvider):
             # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens/Empty Response)
             elif "InstructorRetryException" in error_type or "ResponseParsingError" in error_type:
                 logger.error(
-                    f"[LiteLLM] {ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.name}: "
-                    f"INSTRUCTOR / MODEL FAILURE (Empty choices or schema mismatch): {error_msg}"
+                    "[LiteLLM] %s: INSTRUCTOR / MODEL FAILURE (Empty choices or schema mismatch): %s",
+                    ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.name,
+                    error_msg,
                 )
                 raise AppException(
                     message="Model failed to generate structured output (empty response or looping).",
@@ -535,7 +546,7 @@ class LiteLLMProvider(LLMProvider):
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif "AuthenticationError" in error_type or "401" in error_msg or "invalid_api_key" in error_msg:
                 logger.critical(
-                    f"[LiteLLM] {ErrorCodes.CONFIGURATION_ERROR.name}: AUTH FAILED (Check API Keys): {error_msg}"
+                    "[LiteLLM] %s: AUTH FAILED (Check API Keys): %s", ErrorCodes.CONFIGURATION_ERROR.name, error_msg
                 )
                 raise ConfigurationError(
                     message="LLM Provider authentication failed.",
@@ -554,15 +565,16 @@ class LiteLLMProvider(LLMProvider):
                 # Often 400 is generic, but combined with length/context keywords matches this.
                 if "context" in error_msg.lower() or "token" in error_msg.lower():
                     logger.error(
-                        f"[LiteLLM] {ErrorCodes.AGENT_EXECUTION_CRITICAL.name}: "
-                        f"CONTEXT EXCEEDED (Prompt too long): {error_msg}"
+                        "[LiteLLM] %s: CONTEXT EXCEEDED (Prompt too long): %s",
+                        ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                        error_msg,
                     )
                     raise AgentExecutionError(
                         detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
                     ) from e
                 else:
                     logger.error(
-                        f"[LiteLLM] {ErrorCodes.AGENT_RESPONSE_MALFORMED.name}: BAD REQUEST (400): {error_msg}"
+                        "[LiteLLM] %s: BAD REQUEST (400): %s", ErrorCodes.AGENT_RESPONSE_MALFORMED.name, error_msg
                     )
                     raise AgentExecutionError(
                         detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
@@ -576,7 +588,9 @@ class LiteLLMProvider(LLMProvider):
                 or "Timeout" in error_type
             ):
                 logger.error(
-                    f"[LiteLLM] {ErrorCodes.UPSTREAM_TIMEOUT.name}: SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}"
+                    "[LiteLLM] %s: SERVICE UNAVAILABLE (Upstream/Timeout): %s",
+                    ErrorCodes.UPSTREAM_TIMEOUT.name,
+                    error_msg,
                 )
                 raise AppException(
                     message="Upstream LLM service timed out or is unavailable.",
@@ -586,7 +600,9 @@ class LiteLLMProvider(LLMProvider):
 
             # 5. CONTENT POLICY (Safety)
             elif "ContentPolicyViolation" in error_type or "blocked" in error_msg.lower():
-                logger.warning(f"[LiteLLM] {ErrorCodes.SECURITY_VIOLATION.name}: SAFETY FILTER TRIGGERED: {error_msg}")
+                logger.warning(
+                    "[LiteLLM] %s: SAFETY FILTER TRIGGERED: %s", ErrorCodes.SECURITY_VIOLATION.name, error_msg
+                )
                 raise SecurityViolationError(
                     message="Content blocked by safety filters.",
                     details={"error_code": ErrorCodes.SECURITY_VIOLATION, "original_error": error_msg},
@@ -597,7 +613,10 @@ class LiteLLMProvider(LLMProvider):
                 if len(error_msg) > 500:
                     error_msg = error_msg[:500] + "... [TRUNCATED]"
                 logger.error(
-                    f"[LiteLLM] {ErrorCodes.UNKNOWN_ERROR.name}: Execution Failed ({error_type}): {error_msg}",
+                    "[LiteLLM] %s: Execution Failed (%s): %s",
+                    ErrorCodes.UNKNOWN_ERROR.name,
+                    error_type,
+                    error_msg,
                     exc_info=True,
                 )
 
@@ -638,17 +657,17 @@ class MockProvider(LLMProvider):
         """Simulates generation by invoking the MockLLMService."""
         from backend_v2.llm.mock import MockLLMService
 
-        logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)... {kwargs}")
+        logger.info("[MockProvider] Calling Mock Service (Simulating Async)... %s", kwargs)
 
         # STRICT CONFIGURATION (Jan 2026): Reject defaults in Mock too.
         if temperature is None:
             msg = "Strict Mode: 'temperature' must be explicitly provided from configuration. No default allowed."
-            logger.error(f"[MockProvider] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+            logger.error("[MockProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
             raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         if max_tokens is None:
             msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration. No default allowed."
-            logger.error(f"[MockProvider] {ErrorCodes.CONFIGURATION_ERROR.name}: {msg}")
+            logger.error("[MockProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
             raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         # --- DIAGNOSTIC DUMP ---
@@ -661,7 +680,7 @@ class MockProvider(LLMProvider):
                     if system_instruction:
                         f.write(f"SYSTEM:\n{system_instruction}\n")
             except Exception as e:
-                logger.warning(f"Failed to dump prompt: {e}")
+                logger.warning("Failed to dump prompt: %s", e)
 
         # Simulate network delay for verification of async behavior
         await asyncio.sleep(0.5)
@@ -722,7 +741,7 @@ class MockProvider(LLMProvider):
                     cost_usd=usage_data["total_cost"],
                 )
             except Exception as e:
-                logger.warning(f"[MockProvider] Usage Tracking Failed: {e}")
+                logger.warning("[MockProvider] Usage Tracking Failed: %s", e)
 
         return LLMResponse(
             content=content_str,
@@ -780,8 +799,9 @@ class LLMFactory:
             # but we can enforce it here too as a fail-safe.
             if not config.is_active:
                 logger.error(
-                    f"[LLMFactory] {ErrorCodes.SERVICE_DISABLED.name}: "
-                    f"Provider '{model_name}' is disabled in configuration."
+                    "[LLMFactory] %s: Provider '%s' is disabled in configuration.",
+                    ErrorCodes.SERVICE_DISABLED.name,
+                    model_name,
                 )
                 raise ServiceUnavailableError(
                     message=f"Provider '{model_name}' is disabled in configuration.",
@@ -815,7 +835,7 @@ class LLMFactory:
                         f"Grounding/Search requested for '{model_name}' "
                         "but provider config 'supports_grounding' is False."
                     )
-                    logger.error(f"[LLMFactory] {ErrorCodes.CAPABILITY_NOT_SUPPORTED.name}: {msg}")
+                    logger.error("[LLMFactory] %s: %s", ErrorCodes.CAPABILITY_NOT_SUPPORTED.name, msg)
                     raise ConfigurationError(
                         message=msg,
                         details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED},
@@ -834,7 +854,7 @@ class LLMFactory:
         # what provider specific agents request (e.g. 'vertex_ai').
         if settings.use_mock_llm:
             logger.warning(
-                f"[LLMFactory] Global USE_MOCK_LLM=True. Overriding request for '{provider_type}' -> MockProvider."
+                "[LLMFactory] Global USE_MOCK_LLM=True. Overriding request for '%s' -> MockProvider.", provider_type
             )
             return MockProvider(
                 model_name=model_name or "mock",
@@ -854,7 +874,7 @@ class LLMFactory:
 
         if not model_name:
             logger.error(
-                f"[LLMFactory] {ErrorCodes.CONFIGURATION_ERROR.name}: Model name is required for LLMProvider creation."
+                "[LLMFactory] %s: Model name is required for LLMProvider creation.", ErrorCodes.CONFIGURATION_ERROR.name
             )
             raise ConfigurationError(
                 message="Model name is required for LLMProvider creation.",

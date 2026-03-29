@@ -285,7 +285,7 @@ class FirestoreTable(AbstractTable):
                 ref.delete()
                 removed_count += 1
             except Exception as e:
-                logger.error(f"[FirestoreTable] Failed to delete doc {ref.id}: {e}")
+                logger.error("[FirestoreTable] Failed to delete doc %s: %s", ref.id, e)
 
         return [1] * removed_count
 
@@ -350,7 +350,7 @@ class FirestoreClient(AbstractDatabase):
 
             if not os.path.exists(sa_path):
                 # Fallback check or error
-                logger.error(f"Service Account not found at {sa_path}")
+                logger.error("Service Account not found at %s", sa_path)
 
             cred = credentials.Certificate(sa_path)
             firebase_admin.initialize_app(cred)
@@ -371,7 +371,7 @@ class FirestoreClient(AbstractDatabase):
             list(self.db.collection("connectivity_test").limit(1).stream())
             logger.info("[Firestore] Connection VERIFIED successfully.")
         except Exception as e:
-            logger.critical(f"[Firestore] Connection ping FAILED: {e}")
+            logger.critical("[Firestore] Connection ping FAILED: %s", e)
             raise RuntimeError(f"Firestore connectivity test failed. Error: {e}") from e
 
     def table(self, name: str) -> AbstractTable:

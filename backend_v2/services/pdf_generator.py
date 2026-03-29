@@ -67,7 +67,7 @@ class PdfReportService:
             execution = await self.repository.get_execution(execution_id)
             if not execution:
                 msg = f"Execution {execution_id} not found"
-                logger.error(f"[PdfReportService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: {msg}")
+                logger.error("[PdfReportService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
                 raise AppException(
                     message=msg,
                     status_code=404,
@@ -115,7 +115,7 @@ class PdfReportService:
                     except Exception as e:
                         msg = f"Failed to render PDF charts for layout {idx}: {e}"
                         logger.error(
-                            f"[PdfReportService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True
+                            "[PdfReportService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True
                         )
                         raise AppException(
                             message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
@@ -158,7 +158,7 @@ class PdfReportService:
 
         except Exception as e:
             msg = f"PDF generation failed: {e}"
-            logger.error(f"[PdfReportService] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: {msg}", exc_info=True)
+            logger.error("[PdfReportService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,

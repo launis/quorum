@@ -50,7 +50,7 @@ class Hypothesis(BaseModel):
         description="Direct quotes found.",
         json_schema_extra={"x-ui-label": "Quotes"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
     @field_validator("id", "claim_text", "search_query")
     @classmethod
@@ -59,7 +59,7 @@ class Hypothesis(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AnalystModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -69,7 +69,7 @@ class Hypothesis(BaseModel):
             # Strict: If evidence is found, quotes MUST be provided.
             # This prevents "hallucinated" evidence flags without backing data.
             msg = "Hypothesis claims evidence_found=True but provides no quotes."
-            logger.error(f"[AnalystModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self
 
@@ -92,14 +92,14 @@ class AnalystDTO(ReasoningTraceDTO):
         description="Critical violation of Knowledge Base?",
         json_schema_extra={"x-ui-label": "Critical Violation"},
     )
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
     @field_validator("hypotheses")
     @classmethod
     def validate_hypotheses_not_empty(cls, v: list[Hypothesis]) -> list[Hypothesis]:
         if not v:
             msg = "Analyst output must contain at least one hypothesis."
-            logger.error(f"[AnalystModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -107,7 +107,7 @@ class AnalystDTO(ReasoningTraceDTO):
 class AnalystOutput(AnalystDTO, ReasoningTrace):
     """Output schema for the Analyst Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class SearchResultItem(BaseModel):
@@ -117,7 +117,7 @@ class SearchResultItem(BaseModel):
     link: str = Field(..., description="Link to the result.", json_schema_extra={"x-ui-label": "Link"})
     snippet: str = Field(..., description="Snippet of the result.", json_schema_extra={"x-ui-label": "Snippet"})
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
     @field_validator("title", "link", "snippet")
     @classmethod
@@ -126,7 +126,7 @@ class SearchResultItem(BaseModel):
             return v
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error(f"[AnalystModel] {ErrorCodes.VALIDATION_FAILED.name}: {msg}")
+            logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
@@ -141,4 +141,4 @@ class SearchResult(BaseModel):
         default=None, description="Error message if search failed.", json_schema_extra={"x-ui-label": "Error"}
     )
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")

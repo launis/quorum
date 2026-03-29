@@ -124,8 +124,9 @@ class LLMNodeStrategy(NodeStrategy):
         strategy_name = context.model_strategy
         if not strategy_name:
             logger.error(
-                "Fail-Fast: Step has no model_strategy defined. Zero fallbacks allowed.",
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
+                "[LLMNodeStrategy] %s: Step %s has no model_strategy defined. Zero fallbacks allowed.",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                step.id,
             )
             raise AppException(
                 message=f"Step {step.id} has no model_strategy defined (Fail-Fast: No fallbacks allowed).",
