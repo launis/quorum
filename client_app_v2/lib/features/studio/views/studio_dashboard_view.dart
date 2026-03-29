@@ -30,6 +30,27 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  String _getLocalizedName(dynamic entity, String currentLocale) {
+    if (entity == null || entity is! Map) return 'Unknown';
+    final nameVal = entity['name'] ?? entity['label'];
+    if (nameVal is String) return nameVal;
+    if (nameVal is Map) {
+      final translations = nameVal['translations'];
+      if (translations is Map) {
+        if (translations[currentLocale] != null &&
+            translations[currentLocale].toString().isNotEmpty) {
+          return translations[currentLocale].toString();
+        }
+        final defaultLocale = nameVal['default_locale']?.toString() ?? 'en';
+        if (translations[defaultLocale] != null &&
+            translations[defaultLocale].toString().isNotEmpty) {
+          return translations[defaultLocale].toString();
+        }
+      }
+    }
+    return entity['id']?.toString() ?? 'Unknown';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -180,12 +201,21 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         (throw AppException.validation(
                           'PromptBlock slug is missing.',
                         ));
+                    final blockName = _getLocalizedName(
+                      block,
+                      Localizations.localeOf(context).languageCode,
+                    );
 
                     return Card(
                       child: ListTile(
                         leading: const Icon(Icons.text_snippet),
-                        title: Text(blockId),
-                        subtitle: Text(l10n.studioViewsSlugSubtitle(slugStr)),
+                        title: Text(
+                          blockName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          '$blockId\n${l10n.studioViewsSlugSubtitle(slugStr)}',
+                        ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -285,12 +315,21 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                     // NO HARDCODING MANDATE: Read 'scales', default to empty if null.
                     final scalesList = matrix['scales'] as List?;
                     final ruleCount = scalesList?.length ?? 0;
+                    final matrixName = _getLocalizedName(
+                      matrix,
+                      Localizations.localeOf(context).languageCode,
+                    );
 
                     return Card(
                       child: ListTile(
                         leading: const Icon(Icons.grid_on),
-                        title: Text(matrixId),
-                        subtitle: Text(l10n.matrixSubtitle(ruleCount)),
+                        title: Text(
+                          matrixName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          '$matrixId\n${l10n.matrixSubtitle(ruleCount)}',
+                        ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -394,12 +433,19 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                     }
                     final blockCount = blocks.length;
                     final hookCount = hooks.length;
+                    final stepName = _getLocalizedName(
+                      blueprint,
+                      Localizations.localeOf(context).languageCode,
+                    );
 
                     return Card(
                       child: ListTile(
-                        title: Text(blueprintId),
+                        title: Text(
+                          stepName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         subtitle: Text(
-                          l10n.studioViewsStepsSubtitle(blockCount, hookCount),
+                          '$blueprintId\n${l10n.studioViewsStepsSubtitle(blockCount, hookCount)}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
