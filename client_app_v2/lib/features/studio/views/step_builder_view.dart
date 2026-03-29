@@ -407,7 +407,7 @@ class StepBuilderView extends HookConsumerWidget {
                               );
                             }
                             if (configsAsync.hasError) {
-                              return Text('Error: ${configsAsync.error}');
+                              return ErrorView(error: configsAsync.error!, compact: true);
                             }
 
                             final configs = configsAsync.value ?? [];
@@ -729,7 +729,7 @@ class StepBuilderView extends HookConsumerWidget {
                 items:
                     promptBlocks.map((m) {
                       return DropdownMenuItem(
-                        value: m['id'] as String,
+                        value: SafeCast.safeString(m['id']),
                         child: Text(SafeCast.safeString(m['id'])),
                       );
                     }).toList(),

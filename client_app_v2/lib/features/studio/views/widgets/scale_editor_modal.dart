@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class ScaleEditorModal extends StatefulWidget {
   final Map<String, dynamic> initialScale;
@@ -53,13 +54,14 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final claims = SafeCast.safeList(_editableScale['claims']);
 
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Edit Scale Grade'),
+          title: Text(l10n.editDimension),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
@@ -68,7 +70,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
             FilledButton.icon(
               onPressed: _save,
               icon: const Icon(Icons.check),
-              label: const Text('Apply'),
+              label: Text(l10n.save),
             ),
             const SizedBox(width: 8),
           ],
@@ -215,7 +217,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                 child: OutlinedButton.icon(
                   onPressed: _addClaim,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Claim'),
+                  label: Text(l10n.matrixAddCriterion),
                 ),
               ),
             ],

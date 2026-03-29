@@ -63,18 +63,13 @@ class BlueprintTransformer:
                 profile_data = p_dict
                 break
 
-        # 2. Try to resolve by Routing Slug
-        if not profile_data:
+        # 2. Hardcoded fallback for missing 'default' specification in older executions
+        if not profile_data and resolved_pid_request == "default":
+            logger.warning("Profile ID 'default' requested but not an Opaque ID. Resolving fallback.")
             for p_dict in all_profiles_data:
-                if p_dict.get("slug") == resolved_pid_request:
-                    profile_data = p_dict
-                    break
-
-        # 3. Fallback to default routing slug if requested was missing completely
-        if not profile_data and resolved_pid_request != default_profile_ref:
-            logger.warning("Profile %s not found, falling back to slug '%s'", resolved_pid_request, default_profile_ref)
-            for p_dict in all_profiles_data:
-                if p_dict.get("slug") == default_profile_ref:
+                # Opaque fallback convention: If 'default' is requested, attempt to resolve the actual ID
+                # assigned to the system's "default" named or historically slugged profile.
+                if p_dict.get("slug") == "default":
                     profile_data = p_dict
                     break
 

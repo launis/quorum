@@ -51,7 +51,7 @@ class InspectorPane extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onAddStep,
                 icon: const Icon(Icons.add),
-                label: const Text('Add Node'),
+                label: Text(l10n.studioWorkflowAddStepNodeBtn),
               ),
             ),
           ],
@@ -144,26 +144,26 @@ class InspectorPane extends StatelessWidget {
           isExpanded: true,
           initialValue:
               availableBlueprints.any(
-                    (bp) => bp['slug'] == stepDef['task_blueprint'],
+                    (bp) => bp['id'] == stepDef['task_blueprint'],
                   )
-                  ? stepDef['task_blueprint'] as String?
+                  ? SafeCast.safeString(stepDef['task_blueprint'])
                   : null,
           items:
               availableBlueprints.map((bp) {
-                final slug = SafeCast.safeString(bp['slug']);
+                final id = SafeCast.safeString(bp['id']);
                 final nameMap = SafeCast.safeMap(bp['name']);
                 final transMap = SafeCast.safeMap(nameMap['translations']);
 
-                // Nomenclature Resolution: Fetch based on locale, fallback to 'en', then slug.
+                // Nomenclature Resolution: Fetch based on locale, fallback to 'en', then id.
                 final currentLocale =
                     Localizations.localeOf(context).languageCode;
                 final label = SafeCast.safeString(
                   transMap[currentLocale],
-                  SafeCast.safeString(transMap['en'], slug),
+                  SafeCast.safeString(transMap['en'], id),
                 );
 
                 return DropdownMenuItem(
-                  value: slug,
+                  value: id,
                   child: Text(label, overflow: TextOverflow.ellipsis),
                 );
               }).toList(),
@@ -277,7 +277,7 @@ class InspectorPane extends StatelessWidget {
               onStepUpdated(selectedStepId!, copy);
             },
             icon: const Icon(Icons.add, size: 16),
-            label: const Text('Add Mapping'),
+            label: Text(l10n.workflowAddMappingBtn),
           ),
         ),
       ],

@@ -140,7 +140,7 @@ class ProfileEditorView extends HookConsumerWidget {
 
                     Navigator.pop(ctx);
                   },
-                  child: const Text('Add'),
+                  child: Text(l10n.addVariantBtn),
                 ),
               ],
             ),

@@ -11,6 +11,7 @@ As an autonomous agent operating in Antigravity 1.21.6+, you must strictly adher
   - **PowerShell Syntax Warning:** Älä käytä `&&` -operaattoria komentojen ketjuttamiseen, sillä se ei ole tuettu käytössä olevassa PowerShell-versiossa. Käytä sen sijaan puolipistettä (`;`) tai suorita komennot erillisinä. Lisäksi, kun ajat linttaus- komentoja (kuten ruff tai mypy), **luettele kaikki käsiteltävät tiedostot aina eksplisiittisesti nimen perusteella** (esim. `uv run ruff check main.py utils.py --fix ; uv run mypy main.py utils.py --strict`). Älä käytä villejä kortteja kuten `*.py`.
   - For file operations and project traversal: Exclusively leverage native agent tools (`list_dir`, `grep_search`, `view_file`, `replace_file_content`) as they bypass terminal latency completely.
   - `c:\src\quorum\backend_debug.log` (FastAPI routing, CPU hooks, Pydantic validation errors)
+  - **Deprecated Commands:** `flutter pub run` on vanhentunut, eikä sitä tule käyttää. Käytä aina sen sijaan suoraa Dart-komentoa `dart run` (esim. `dart run build_runner build --delete-conflicting-outputs`).
   - `c:\src\quorum\client_debug.log` (Flutter Riverpod states, GoRouter navigation, and HTTP requests)
 
 ## 📋 2. TIERED EXECUTION PROTOCOL

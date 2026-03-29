@@ -6,6 +6,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/utils/safe_cast.dart';
 
 /// Admin Studio View for managing the Model Registry (SystemConfig).
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -232,7 +233,7 @@ class ModelRegistryView extends HookConsumerWidget {
       final modelId = entry.key;
       final attrs = entry.value;
       if (attrs is Map<String, dynamic>) {
-        final provider = attrs['provider'] as String? ?? 'unknown';
+        final provider = SafeCast.safeString(attrs['provider'], 'unknown');
         providerGroups.putIfAbsent(provider, () => {})[modelId] = attrs;
       }
     }

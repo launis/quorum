@@ -17,8 +17,9 @@ class WorkflowStep(BaseModel):
     """
 
     id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        description="Unique step identifier, e.g., 'safety_check'",
+        default_factory=lambda: f"step_{uuid.uuid4().hex}",
+        pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+        description="Unique step identifier, e.g., 'step_a1b2c3d4'",
         json_schema_extra={"x-ui-label": "ID"},
     )
     slug: str | None = Field(
@@ -134,7 +135,9 @@ class WorkflowDefinition(BaseModel):
     """
 
     id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()), description="Unique Workflow ID, e.g., 'comprehensive_audit_v1'"
+        default_factory=lambda: f"wf_{uuid.uuid4().hex}",
+        pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+        description="Unique Workflow ID, e.g., 'wf_123abc456'",
     )
     slug: str | None = Field(
         default=None,
@@ -203,7 +206,9 @@ class WorkflowDefinition(BaseModel):
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
+            msg = "Field cannot be empty or whitespace only."
+            logger.error("[WorkflowModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
 
 

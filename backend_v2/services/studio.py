@@ -489,7 +489,7 @@ class StudioService:
         allowed_blocks = set()
 
         for step in all_steps:
-            if step.slug in task_blueprints or step.id in task_blueprints:
+            if step.id in task_blueprints:
                 allowed_blocks.update(step.prompt_blocks)
 
         for layout in profile.layouts:
@@ -689,7 +689,7 @@ class StudioService:
                 if not sim["valid"]:
                     errors.extend(sim.get("errors", []))
 
-                rendered_parts.append(f"--- Prompt Block: {block.slug} ---")
+                rendered_parts.append(f"--- Prompt Block: {block.id} ---")
                 rendered_parts.append(sim.get("rendered_prompt", ""))
             except ResourceNotFoundError:
                 errors.append(f"Missing referenced Prompt Block: {block_ref}")

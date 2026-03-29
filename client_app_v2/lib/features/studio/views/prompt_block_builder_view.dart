@@ -23,13 +23,11 @@ import 'package:client_app/core/error/app_exception.dart';
 class PromptBlockBuilderView extends HookConsumerWidget {
   final String? id;
   final String? slug;
-  final Map<String, dynamic>? initialData;
 
   const PromptBlockBuilderView({
     super.key,
     this.id,
     this.slug,
-    this.initialData,
   });
 
   @override

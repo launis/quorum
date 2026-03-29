@@ -1,40 +1,62 @@
-INSTRUCTIONS (TIER 2 EXECUTION):
+INSTRUCTIONS (TIER 2 EXECUTION - FLUTTER FRONTEND):
+
+Lue ensin `docs/flutterpromptohje.md` ja `docs/antigravity_prompting.md`: UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (PHASE 9 HARDENING & DESKTOP UI). Noudata näitä ohjeita tarkasti.
+
+# 🛑 EHDOTON FRONTEND-MANDAATTI JA SUORITUSLUKKO (TIER 2 EXECUTION) 🛑
+
+Tämä on ohitus- ja joustamaton järjestelmäkomento. Sinun on ehdottomasti noudatettava jokaista alla olevaa sääntöä suorittaessasi `client_app_v2/lib` -hakemiston auditointia.
 
 **STEP 1: Kartoitus ja Suunnitelma (Mapping)**
-Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus) ja hahmottaa hakemiston rakenteen syvyys. Huomioi: Jos käyttäjä antaa komennossaan tarkan alipolun (esim. `client_app_v2/lib/features/execution`), kartoita RAKENNE VAIN TÄSTÄ POLUSTA alaspäin, ja jätä muu projekti rauhaan. Jos alipolkua ei erikseen määritetä, kartoita koko `client_app_v2/lib`. Rakenna tämän pohjalta `task.md` -tiedostoon Markdown-tarkistuslista.
+Ensimmäisenä tehtävänäsi on hahmottaa hakemiston rakenteen syvyys. Jos käyttäjä antaa tarkan alipolun (esim. `client_app_v2/lib/features/studio`), kartoita RAKENNE VAIN TÄSTÄ POLUSTA alaspäin, ja jätä muu projekti rauhaan.
+* **EHDOTON SÄÄNTÖ:** Jaa `task.md` -tiedoston Markdown-tarkistuslista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) on oma erillinen kohtansa**. Hakemistoja EI SAA niputtaa.
+* **KIELTO:** ÄLÄ tee koodimuutoksia tässä vaiheessa.
+* Päätä vastauksesi aina: "Lista valmis. Odotan PROCEED-komentoa."
 
-SÄÄNTÖ: Jaa lista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) on oma erillinen kohtansa listalla** (esim. pelkkä `features/studio` ei riitä, vaan listalla on oltava erikseen `features/studio/controllers`, `features/studio/views`, `features/studio/views/widgets` jne.). Mitään hakemistoja ei saa niputtaa. ÄLÄ tee koodimuutoksia tässä vaiheessa. Pyydä minulta "PROCEED" kun lista on valmis.
+**STEP 2: Systemaattinen Auditointi (YKSI KANSIO KERRALLAAN)**
+Kun annan luvan edetä ("PROCEED"), aloita listan purkaminen ensimmäisestä tekemättömästä alihakemistosta. Vastaa aina ensin tällä tarkistuslistalla ennen analyysin tulostamista:
 
-**STEP 2: Systemaattinen Auditointi (One Subdirectory At A Time)**
-Kun annan luvan edetä, aloitamme listan purkamisen:
-1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
-2. Lue KAIKKI kyseisen alihakemiston .dart-tiedostot.
-3. Peilaa koodia TARKASTI sääntöihin:
-   - Onko tyhjiä `catch (e) {}` lohkoja joissa ei ole logger-kutsua tai virheen heittoa? (Fail-Fast rikkomus)
-   - Onko käytössä Freezed API-vastauksissa? (De-Generator rikkomus)
-   - Heitetäänkö raakoja `Exception` -luokkia `AppException`in sijaan?
-   - Onko raskaita JSON-purkuja tehty ilman `Isolate.run` -kutsua? (Riverpod-puhtaus)
-   - Onko UI-tekstejä kovakoodattu ilman `.arb` l10n käännösavaimia? (No-strings)
-   - Onko Riverpodin vanhoja `final fooProvider = Provider(...)` rakenteita koodigeneroinnin (`@riverpod`) sijaan?
-   - Onko koodin seassa irtonaisia asetuslukemia (Magic Numbers, kuten timeout-arvoja)? Ne tulee refaktoroida Enum-tyyppisiksi asetusluokiksi (`class Settings { const Settings._(); static const val = ... }`).
-   - HUOM LISÄSÄÄNTÖ (POIKKEUS): "Mock Login" / "Development Tools" -osiot ja niiden sisältämät kovakoodatut merkkijonot (kuten admin-id:t ja tekstit) jätetään refaktorointisääntöjen ulkopuolelle sellaisenaan, koska ne poistetaan julkaisuversiossa.
-4. Raportoi löydökset kansion sisältä minulle viestillä. Jos alihakemisto on puhdas, kerro se. Pysähdy odottamaan komentoa "FIX" (jos virheitä löytyi) tai komentoa "NEXT..." (jos kansio oli puhdas).
+> **AUDITOINTIMANDAATIT VAHVISTETTU:**
+> [ ] Vain YKSI alin alihakemisto valittu analyysiin.
+> [ ] Fail-Fast tarkistettu (ei tyhjiä catch-lohkoja ilman lokitusta/heittoa).
+> [ ] De-Generator tarkistettu (onko Freezed API-vastauksissa, pakotettu SafeCast Map).
+> [ ] Exception-luokkien käyttö tarkistettu (pakotettu AppException).
+> [ ] Riverpod-puhtaus tarkistettu (raskaat JSON-purut `Isolate.run`-sisällä).
+> [ ] No-strings mandaatti tarkistettu (ei kovakoodattuja UI-tekstejä, käytössä `.arb`).
+> [ ] Vanhat Providerit tarkistettu (pakotettu `@riverpod` koodigenerointi).
+> [ ] Magic Numbers tarkistettu (pakotettu Enum-asetusluokkiin).
+> [ ] "Mock Login" / "Development Tools" poikkeukset huomioitu (kovakoodaukset sallittu täällä).
+
+Raportoi löydökset listan tulostamisen jälkeen havaitsemistasi tiedostoista yksityiskohtaisesti. Pysähdy odottamaan komentoa "FIX" tai "NEXT...".
 
 **STEP 3: Korjaus ja Quality Loop (Remediation)**
-Kun vastaan "FIX", korjaa äsken listaamasi kyseisen kansion virheet. 
-Jos muutat Riverpod-järjestelmää tai Freezed-malleja (`@riverpod`, `@freezed`), sisällytä ilmoitukseesi VÄLITTÖMÄSTI käyttäjälle kopioitava terminaalikoodi, jotta uudet koodit generoituvat ja formattuvat oikein. Ohjeista käyttäjää ajamaan luotu Python-automaatioskripti projektin juuresta (`c:\src\quorum`):
-```powershell
-uv run python docs\koodit\flutter_audit_loop.py lib/polku/kansioon --build
+Kun vastaan "FIX", korjaa listaamasi kansion virheet noudattaen 2026-mandaatin arkkitehtuurisääntöjä.
+* **EHDOTON KIELTO:** ÄLÄ KOSKAAN yritä ajaa komentoja itse `run_command` -työkalulla. OS-sandbox rajoitteiden vuoksi suoritus on kielletty.
+* Anna minulle kopioitavaksi TARKKA koodibloki ilman villejä kortteja:
+
+```bash
+uv run python docs\koodit\flutter_audit_loop.py lib/polku/kansioon/tarkka_tiedosto.dart --build
 ```
-(Jos generaattoria ei muutettu, komento on samanlainen mutta ilman `--build` lippua.)
-Merkitse sen jälkeen itemi `task.md` listasta tehdyksi [x].
-Ilmoita minulle: "Valmis. Odotan NEXT-komentoa."
+*(Käytä `--build` lippua vain jos `@riverpod` tai `@freezed` malleja muutettiin).*
+
+Aina kun vastaat komentoon "FIX", sinun on aloitettava vastauksesi tällä listalla:
+
+> **FIX-MANDAATIT VAHVISTETTU:**
+> [ ] Virheet korjattu sääntöjen mukaisesti.
+> [ ] Kopioitava skriptikomento luotu ekspliittisillä tiedostopoluilla (ei villejä kortteja kuten `*.dart`).
+> [ ] Komentoa EI ole yritetty ajaa työkalulla OS-sandbox rajoitteiden vuoksi.
+> [ ] Itemi merkitty `task.md` listaan tehdyksi [x].
+
+Päätä vastauksesi aina täsmälleen sanoihin: "Valmis. Odotan NEXT-komentoa."
 
 **STEP 4: Kontekstin nollaus ja siirtyminen (The NEXT command)**
-Kun kansion auditointi oli puhdas tai korjaukset on tehty, annan sinulle aina tällaisen komennon:
+Kun annan "NEXT..." komennon, jossa pyydän lukemaan `docs/flutterpromptohje.md` ja `docs/antigravity_prompting.md` uudelleen:
+* **EHDOTON SÄÄNTÖ:** Sinun on oikeasti luettava työkalullasi kyseiset dokumentit uudelleen aktiiviseen muistiin context driftin estämiseksi.
 
-> "NEXT. Muista yhä docs/flutterpromptohje.md säännöt ja docs/antigravity_prompting.md:#L133-206 UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (V5.2 - PHASE 9 HARDENING & DESKTOP UI) pakolliset mandaatit ja rajoitukset kuten esimerkiksi Fail-Fast sääntö ja no-strings mandaatti (ei kovakoodattuja UI tekstejä, vaan .arb) samoin kuin Riverpod-puhtaus (Isolate.run). Lue ohjetiedostot nyt uudestaan."
+Vastaa lukemisen jälkeen tällä listalla:
 
-Kun saat yllä olevan komennon, sinun on **EHDOTTOMASTI luettava työkalullasi (esim. bash `cat` / python) mainitut dokumentit ja niissä määritellyt rivit uudelleen** aktiiviseen muistiisi (context driftin estämiseksi). Vasta luettuasi ohjetiedostot uudelleen, siirry `task.md` listan seuraavaan tekemättömään alihakemistoon ja aloita STEP 2 alusta.
+> **KONTEKSTI PALAUTETTU:**
+> [ ] Määritellyt dokumentit luettu uudelleen aktiiviseen muistiin työkalun avulla.
+> [ ] Säännöt (Fail-Fast, no-strings, Isolate.run) sisäistetty ja varmennettu.
+> [ ] Siirrytään seuraavaan tekemättömään alihakemistoon (STEP 2 alkaa alusta).
 
-Huom: Työskentelemme EHDOTTOMASTI vain yksi alihakemisto kerrallaan. Älä koskaan yritä auditoida tai korjata useampaa kansiota tai koko projektia yhdellä työkalukutsulla.
+Huom: Työskentelemme EHDOTTOMASTI vain yksi alihakemisto kerrallaan. Älä koskaan yritä auditoida tai korjata useampaa kansiota tai koko projektia yhdellä työkalukutsulla. Tämän rikkominen johtaa prosessin välittömään epäonnistumiseen.

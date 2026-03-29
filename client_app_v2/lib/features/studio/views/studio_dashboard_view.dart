@@ -236,7 +236,6 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           PromptBlockEditRoute(
                             id: blockId,
                             slug: slugStr,
-                            $extra: block,
                           ).go(context);
                         },
                       ),
@@ -350,7 +349,6 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           PromptBlockEditRoute(
                             id: matrixId,
                             slug: slugStr,
-                            $extra: matrix,
                           ).go(context);
                         },
                       ),
@@ -445,7 +443,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          '$blueprintId\n${l10n.studioViewsStepsSubtitle(blockCount, hookCount)}',
+                          '$blueprintId\n${l10n.studioViewsSlugSubtitle(blueprint['slug']?.toString() ?? '')}\n${l10n.studioViewsStepsSubtitle(blockCount, hookCount)}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,

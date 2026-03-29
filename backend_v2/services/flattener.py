@@ -2,7 +2,7 @@
 
 Adheres to V2 Architecture:
 - Flattens nested 'results' dictionaries.
-- Uses `[step_id]_[slug]` naming convention to guarantee uniquely identifiable global columns.
+- Uses `[step_id]_[key]` naming convention to guarantee uniquely identifiable global columns.
 - Prevents deep nesting hiding crucial data for data analysts.
 """
 

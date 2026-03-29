@@ -24,12 +24,19 @@ import 'widgets/workflow/workflow_steps_tab.dart';
 /// Admin can define global inputs (`expected_inputs`) and sequence
 /// processing steps (`steps`) including `depends_on` and `input_mappings`.
 /// Componentized to enforce Flat MVC architecture using the Sub-Tabs pattern.
+final _workflowClonePayload = NotifierProvider<WorkflowClonePayloadNotifier, Map<String, dynamic>?>(WorkflowClonePayloadNotifier.new);
+
+class WorkflowClonePayloadNotifier extends Notifier<Map<String, dynamic>?> {
+  @override
+  Map<String, dynamic>? build() => null;
+  void setPayload(Map<String, dynamic>? payload) => state = payload;
+}
+
 class WorkflowBuilderView extends HookConsumerWidget {
   final String? id;
   final String? slug;
-  final Map<String, dynamic>? initialData;
 
-  const WorkflowBuilderView({super.key, this.id, this.slug, this.initialData});
+  const WorkflowBuilderView({super.key, this.id, this.slug});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -69,7 +76,6 @@ class WorkflowBuilderView extends HookConsumerWidget {
         return _BuilderScaffoldWrapper(
           wfId: wfId,
           payload: payload,
-          initialData: initialData,
           blueprints: stepsAsync.value!,
           mcpGateways: mcpGatewaysAsync.value ?? [],
           l10n: l10n,
@@ -82,7 +88,6 @@ class WorkflowBuilderView extends HookConsumerWidget {
 class _BuilderScaffoldWrapper extends HookConsumerWidget {
   final String wfId;
   final Map<String, dynamic> payload;
-  final Map<String, dynamic>? initialData;
   final List<Map<String, dynamic>> blueprints;
   final List<Map<String, dynamic>> mcpGateways;
   final AppLocalizations l10n;
@@ -90,7 +95,6 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
   const _BuilderScaffoldWrapper({
     required this.wfId,
     required this.payload,
-    this.initialData,
     required this.blueprints,
     required this.mcpGateways,
     required this.l10n,
@@ -134,11 +138,11 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                       cloned['name'] = nameMap;
                     }
 
+                    ref.read(_workflowClonePayload.notifier).setPayload(cloned);
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder:
-                            (context) => WorkflowBuilderView(
-                              initialData: cloned,
+                            (context) => const WorkflowBuilderView(
                               id: 'new',
                             ),
                       ),
@@ -215,15 +219,20 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
       text: SafeCast.safeString(payload['slug']),
     );
 
-    // Hydrate initialData exactly once if it's a clone/new process
+    // Hydrate clone payload exactly once if it's a clone process
     useEffect(() {
-      if (initialData != null && initialData!.isNotEmpty && wfId == 'new') {
+      final cloneData = ref.read(_workflowClonePayload);
+      if (cloneData != null && cloneData.isNotEmpty && wfId == 'new') {
         final currentId = SafeCast.safeString(payload['id']);
-        if (currentId.isEmpty && initialData!.containsKey('name')) {
+        if (currentId.isEmpty && cloneData.containsKey('name')) {
           Future.microtask(() {
-            payload.addAll(initialData!);
+            payload.addAll(cloneData);
             idController.text = SafeCast.safeString(payload['id']);
             slugController.text = SafeCast.safeString(payload['slug']);
+            
+            // Clear clone payload so it doesn't trigger again
+            ref.read(_workflowClonePayload.notifier).setPayload(null);
+            
             ref.read(workflowFormProvider(wfId).notifier).forceRebuild();
           });
         }

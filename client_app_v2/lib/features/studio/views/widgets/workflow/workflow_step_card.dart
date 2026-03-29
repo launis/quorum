@@ -71,15 +71,15 @@ class WorkflowStepCard extends StatelessWidget {
 
     String getBlueprintLabel(String stepId) {
       if (stepId.isEmpty) return '';
-      try {
-        final bp = blueprints.firstWhere(
-          (b) => SafeCast.safeString(b['id']) == stepId,
-        );
+      final bp = blueprints.firstWhere(
+        (b) => SafeCast.safeString(b['id']) == stepId,
+        orElse: () => <String, dynamic>{},
+      );
+      if (bp.isNotEmpty) {
         final nameStr = extractName(bp['name']);
         return nameStr.isNotEmpty ? nameStr : stepId;
-      } catch (_) {
-        return stepId;
       }
+      return stepId;
     }
 
     return Card(
@@ -145,7 +145,7 @@ class WorkflowStepCard extends StatelessWidget {
                         blueprints.any(
                               (bp) => bp['id'] == stepDef['task_blueprint'],
                             )
-                            ? stepDef['task_blueprint'] as String?
+                            ? SafeCast.safeString(stepDef['task_blueprint'])
                             : null,
                     items:
                         blueprints.map((bp) {
@@ -217,18 +217,17 @@ class WorkflowStepCard extends StatelessWidget {
                         
                         // Extract human-readable label for dependency chip
                         String displayLabel = prevId;
-                        try {
-                          final matchingNode = allSteps.firstWhere(
-                            (s) => SafeCast.safeString(s['id'] ?? s['step_id']) == prevId,
-                          );
+                        final matchingNode = allSteps.firstWhere(
+                          (s) => SafeCast.safeString(s['id'] ?? s['step_id']) == prevId,
+                          orElse: () => <String, dynamic>{},
+                        );
+                        if (matchingNode.isNotEmpty) {
                           final bpId = SafeCast.safeString(matchingNode['task_blueprint']);
                           final readableName = getBlueprintLabel(bpId);
-                          // Display format: 'Vaihe N (Nimi)' or just name if it fits nicely.
-                          // To keep it simple, show the step's blueprint name or ID if unknown.
                           displayLabel = readableName.isNotEmpty && readableName != bpId 
                               ? readableName 
                               : prevId.length > 15 ? '${prevId.substring(0, 15)}...' : prevId;
-                        } catch (_) {}
+                        }
 
                         return FilterChip(
                           label: Text(displayLabel),

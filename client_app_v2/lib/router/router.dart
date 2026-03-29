@@ -255,14 +255,13 @@ class WorkflowNewRoute extends GoRouteData with $WorkflowNewRoute {
 }
 
 class WorkflowEditRoute extends GoRouteData with $WorkflowEditRoute {
-  const WorkflowEditRoute({required this.id, required this.slug, this.$extra});
+  const WorkflowEditRoute({required this.id, required this.slug});
   final String id;
   final String slug;
-  final Map<String, dynamic>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      WorkflowBuilderView(id: id, slug: slug, initialData: $extra);
+      WorkflowBuilderView(id: id, slug: slug);
 }
 
 class PromptBlockNewRoute extends GoRouteData with $PromptBlockNewRoute {
@@ -276,15 +275,13 @@ class PromptBlockEditRoute extends GoRouteData with $PromptBlockEditRoute {
   const PromptBlockEditRoute({
     required this.id,
     required this.slug,
-    this.$extra,
   });
   final String id;
   final String slug;
-  final Map<String, dynamic>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      PromptBlockBuilderView(id: id, slug: slug, initialData: $extra);
+      PromptBlockBuilderView(id: id, slug: slug);
 }
 
 class StepNewRoute extends GoRouteData with $StepNewRoute {

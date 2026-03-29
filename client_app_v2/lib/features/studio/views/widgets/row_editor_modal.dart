@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class RowEditorModal extends StatefulWidget {
   final Map<String, dynamic> initialRow;
@@ -34,6 +35,7 @@ class _RowEditorModalState extends State<RowEditorModal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       child: Scaffold(
@@ -47,7 +49,7 @@ class _RowEditorModalState extends State<RowEditorModal> {
             FilledButton.icon(
               onPressed: _save,
               icon: const Icon(Icons.check),
-              label: const Text('Apply'),
+              label: Text(l10n.save),
             ),
             const SizedBox(width: 8),
           ],

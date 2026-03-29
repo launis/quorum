@@ -15,24 +15,11 @@ class MatrixEditorView extends StatelessWidget {
       return const PromptBlockBuilderView(
         id: 'new',
         slug: 'create-matrix',
-        initialData: {
-          'category_id': 'matrix',
-          'type': 'float',
-          'label': {
-            'default_locale': 'en',
-            'translations': <String, dynamic>{'en': ''},
-          },
-          'description': {
-            'default_locale': 'en',
-            'translations': <String, dynamic>{'en': ''},
-          },
-        },
       );
     }
     return PromptBlockBuilderView(
       id: id,
       slug: 'edit-matrix',
-      initialData: initialData,
     );
   }
 }

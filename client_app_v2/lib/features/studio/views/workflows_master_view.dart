@@ -7,6 +7,7 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 /// Flat MVC List view for Workflows (DAG definitions).
 /// Adheres strictly to De-Generator constraints using List<Map<String, dynamic>>.
@@ -114,11 +115,7 @@ class WorkflowsMasterView extends ConsumerWidget {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          l10n.studioViewsWorkflowSubtitle(
-                            workflow['id']?.toString() ?? '',
-                            steps,
-                            status,
-                          ),
+                          '${workflow['id']?.toString() ?? ''}\n${l10n.studioViewsSlugSubtitle(slug)}\n${l10n.studioViewsWorkflowSubtitle('', steps, status)}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -139,13 +136,13 @@ class WorkflowsMasterView extends ConsumerWidget {
                           WorkflowEditRoute(
                             id: workflowId,
                             slug: slug,
-                            $extra: workflow,
                           ).go(context);
                         },
                       ),
                     );
-                  } catch (e) {
-                    return ErrorView(error: e, compact: true);
+                  } catch (e, st) {
+                    ref.read(loggerServiceProvider).error('Studio', 'Error rendering workflow list item: $e', e, st);
+                    return ErrorView(error: e, stackTrace: st, compact: true);
                   }
                 },
               );

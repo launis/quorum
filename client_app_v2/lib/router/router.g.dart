@@ -324,7 +324,6 @@ mixin $WorkflowEditRoute on GoRouteData {
   static WorkflowEditRoute _fromState(GoRouterState state) => WorkflowEditRoute(
     id: state.pathParameters['id']!,
     slug: state.pathParameters['slug']!,
-    $extra: state.extra as Map<String, dynamic>?,
   );
 
   WorkflowEditRoute get _self => this as WorkflowEditRoute;
@@ -335,19 +334,17 @@ mixin $WorkflowEditRoute on GoRouteData {
   );
 
   @override
-  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+  void go(BuildContext context) => context.go(location);
 
   @override
-  Future<T?> push<T>(BuildContext context) =>
-      context.push<T>(location, extra: _self.$extra);
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
 
   @override
   void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location, extra: _self.$extra);
+      context.pushReplacement(location);
 
   @override
-  void replace(BuildContext context) =>
-      context.replace(location, extra: _self.$extra);
+  void replace(BuildContext context) => context.replace(location);
 }
 
 mixin $PromptBlockNewRoute on GoRouteData {
@@ -376,7 +373,6 @@ mixin $PromptBlockEditRoute on GoRouteData {
       PromptBlockEditRoute(
         id: state.pathParameters['id']!,
         slug: state.pathParameters['slug']!,
-        $extra: state.extra as Map<String, dynamic>?,
       );
 
   PromptBlockEditRoute get _self => this as PromptBlockEditRoute;
@@ -387,19 +383,17 @@ mixin $PromptBlockEditRoute on GoRouteData {
   );
 
   @override
-  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+  void go(BuildContext context) => context.go(location);
 
   @override
-  Future<T?> push<T>(BuildContext context) =>
-      context.push<T>(location, extra: _self.$extra);
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
 
   @override
   void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location, extra: _self.$extra);
+      context.pushReplacement(location);
 
   @override
-  void replace(BuildContext context) =>
-      context.replace(location, extra: _self.$extra);
+  void replace(BuildContext context) => context.replace(location);
 }
 
 mixin $StepNewRoute on GoRouteData {

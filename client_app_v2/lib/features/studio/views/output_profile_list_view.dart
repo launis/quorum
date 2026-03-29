@@ -67,12 +67,12 @@ class OutputProfileListView extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        l10n.studioViewsProfileListSubtitle(
+                        '${l10n.studioViewsSlugSubtitle(profile['slug']?.toString() ?? '')}\n${l10n.studioViewsProfileListSubtitle(
                           profile['id']?.toString() ?? '',
                           profile['workflow_id']?.toString() ??
                               l10n.studioViewsNone,
                           layouts.length,
-                        ),
+                        )}',
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
