@@ -653,7 +653,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             if organization_id:
                 # Logic: org_id IN [target, "system"]
                 # Driver support 'in'? Yes.
-                filters.append(Filter("organization_id", "in", [organization_id, "system"]))
+                filters.append(Filter("organization_id", "in", [organization_id, "org_system000000"]))
 
         return await self.driver.query("workflows", filters)
 

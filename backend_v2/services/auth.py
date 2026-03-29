@@ -374,22 +374,22 @@ class AuthService:
             target_org_id = creator.organization_id
 
         if user_data.role == UserRole.ROOT:
-            if target_org_id != "system":
+            if target_org_id != "org_system000000":
                 raise PermissionDeniedError("Root users can only be created within the System Organization.")
 
-            target_org_id = "system"  # Redundant safety, but ensures it matches
+            target_org_id = "org_system000000"  # Redundant safety, but ensures it matches
 
         # RULE: Organization MUST exist
 
         if target_org_id:
-            if target_org_id == "system":
+            if target_org_id == "org_system000000":
                 # System org acts as a special bootstrap case, but usually should exist.
 
                 pass
 
             org_exists = await self.org_repo.get_by_id(target_org_id)
 
-            if not org_exists and target_org_id != "system":
+            if not org_exists and target_org_id != "org_system000000":
                 raise AppException(
                     message=f"Target Organization '{target_org_id}' does not exist.",
                     status_code=404,
@@ -590,7 +590,7 @@ class AuthService:
         if initiator.role != UserRole.ROOT:
             raise PermissionDeniedError("Only ROOT can delete organizations.")
 
-        if target_org_id == "system":
+        if target_org_id == "org_system000000":
             raise PermissionDeniedError("CRITICAL: The 'system' organization is protected and CANNOT be deleted.")
 
         # 2. Check Users
@@ -922,7 +922,7 @@ class AuthService:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
-        if root.organization_id != "system" and root.organization_id != "436d84de-c526-43b7-93ef-634912be0d2f":
+        if root.organization_id != "org_system000000" and root.organization_id != "436d84de-c526-43b7-93ef-634912be0d2f":
             # Fix casing or drift if it was "SYSTEM" or None
 
             logger.info(

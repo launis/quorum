@@ -96,8 +96,8 @@ class UsageService:
                 }
 
                 # System Level (All traffic)
-                await self.repo.upsert_usage_aggregate("system", None, period, update_data)
-                await self.repo.upsert_usage_aggregate("system", None, "all-time", update_data)
+                await self.repo.upsert_usage_aggregate("org_system000000", None, period, update_data)
+                await self.repo.upsert_usage_aggregate("org_system000000", None, "all-time", update_data)
 
                 # Organization Level
                 if org_id:

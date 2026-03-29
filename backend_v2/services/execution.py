@@ -144,7 +144,7 @@ class ExecutionService:
 
         # Auth Check
         org_id = getattr(initiator, "organization_id", None)
-        if initiator.role != "ROOT" and workflow.organization_id not in [org_id, "system", None]:
+        if initiator.role != "ROOT" and workflow.organization_id not in [org_id, "org_system000000", None]:
             msg = "You do not have permission to execute this workflow."
             logger.error(
                 "[ExecutionService] %s: ",

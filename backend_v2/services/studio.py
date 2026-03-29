@@ -27,7 +27,7 @@ class StudioService:
         org_id = getattr(initiator, "organization_id", None)
         allowed_orgs = [org_id]
         if allow_system:
-            allowed_orgs.append("system")
+            allowed_orgs.append("org_system000000")
         # Legacy support
         allowed_orgs.append(None)
 
@@ -51,7 +51,7 @@ class StudioService:
 
         org_id = getattr(initiator, "organization_id", None)
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-            if data_org_id == "system" and not allow_system:
+            if data_org_id == "org_system000000" and not allow_system:
                 logger.error(
                     "[StudioService] %s: Only ROOT can modify system resources.", ErrorCodes.PERMISSION_DENIED.name
                 )
@@ -72,7 +72,7 @@ class StudioService:
             return [Workflow.model_validate(x) for x in all_data]
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, "system", None]]
+        data = [x for x in all_data if x.get("organization_id") in [org_id, "org_system000000", None]]
         return [Workflow.model_validate(x) for x in data]
 
     async def get_workflow(self, initiator: TokenData, id: str) -> Workflow:
@@ -158,7 +158,7 @@ class StudioService:
             return [Step.model_validate(x) for x in all_data]
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, "system", None]]
+        data = [x for x in all_data if x.get("organization_id") in [org_id, "org_system000000", None]]
         return [Step.model_validate(x) for x in data]
 
     async def get_step(self, initiator: TokenData, id: str) -> Step:
@@ -241,7 +241,7 @@ class StudioService:
             return [PromptBlock.model_validate(x) for x in all_data]
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, "system", None]]
+        data = [x for x in all_data if x.get("organization_id") in [org_id, "org_system000000", None]]
         return [PromptBlock.model_validate(x) for x in data]
 
     async def get_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
@@ -457,7 +457,7 @@ class StudioService:
             return [OutputProfile.model_validate(x) for x in all_data]
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, "system", None]]
+        data = [x for x in all_data if x.get("organization_id") in [org_id, "org_system000000", None]]
         return [OutputProfile.model_validate(x) for x in data]
 
     async def get_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:

@@ -164,9 +164,6 @@ class PromptBlock(V2CoreBase):
     def pre_validate_type_enum(cls, data: Any) -> Any:
         """Parse string to Enum before strict mode rejects it."""
         if isinstance(data, dict):
-            # Fallback for seed data missing the slug
-            if "slug" not in data and "id" in data:
-                data["slug"] = data["id"]
 
             t = data.get("type")
             if isinstance(t, str):
@@ -616,10 +613,6 @@ class Workflow(V2CoreBase):
     @model_validator(mode="before")
     @classmethod
     def set_slug_from_id(cls, data: Any) -> Any:
-        # Fallback for seed data missing the slug
-        if isinstance(data, dict):
-            if "slug" not in data and "id" in data:
-                data["slug"] = data["id"]
         return data
 
     @model_validator(mode="after")

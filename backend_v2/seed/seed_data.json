@@ -6341,7 +6341,7 @@
   ],
   "organizations": [
     {
-      "id": "system",
+      "id": "org_system000000",
       "slug": "system",
       "name": "System Administration",
       "created_at": "2026-01-01T00:00:00",
@@ -6657,7 +6657,6 @@
       },
       "layouts": [
         {
-          "steps": [],
           "show_text": true,
           "title": {
             "default_locale": "fi",
@@ -6681,7 +6680,6 @@
           ]
         },
         {
-          "steps": [],
           "show_text": true,
           "title": {
             "default_locale": "fi",
@@ -6704,7 +6702,6 @@
           ]
         },
         {
-          "steps": [],
           "show_text": true,
           "title": {
             "default_locale": "fi",
@@ -6748,7 +6745,6 @@
       },
       "layouts": [
         {
-          "steps": [],
           "show_text": true,
           "title": {
             "default_locale": "fi",
@@ -6793,7 +6789,6 @@
       },
       "layouts": [
         {
-          "steps": [],
           "show_text": true,
           "title": {
             "default_locale": "fi",
