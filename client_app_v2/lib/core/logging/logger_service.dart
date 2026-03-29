@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
@@ -184,7 +185,7 @@ class JsonPrinter extends LogPrinter {
       }
     }
 
-    final logRecord = {
+    final logRecord = <String, dynamic>{
       "timestamp": timestamp,
       "level": level,
       "logger": "client",
@@ -200,30 +201,8 @@ class JsonPrinter extends LogPrinter {
       logRecord["stack_trace"] = event.stackTrace.toString();
     }
 
-    // Manual JSON serialization to avoid importing dart:convert if not needed,
-    // but dart:convert is standard.
-    // Simple robust string construction for now to avoid dealing with imports/escaping if quick:
-    // Actually, let's use a simple safe string build or just use string interpolation carefully.
-    // Ideally we import 'dart:convert'; let's assume it's available or add it.
-    // But to be safe and "surgical", I'll use a simple clean block.
-    // Wait, I can just use string formatting if I escape quotes.
-    // Better: just import dart:convert at the top. I need to check if it's imported.
-    // It is NOT imported in the file currently (lines 1-7).
-    // I will add the import in the next step. For now, I'll rely on a basic sanitized string.
-
-    final jsonStr = _manualJsonStringify(logRecord);
+    final jsonStr = jsonEncode(logRecord);
     return [jsonStr];
-  }
-
-  String _manualJsonStringify(Map<String, String> map) {
-    final entries = map.entries
-        .map((e) {
-          final key = e.key;
-          final val = e.value.replaceAll('"', '\\"').replaceAll('\n', '\\n');
-          return '"$key": "$val"';
-        })
-        .join(', ');
-    return '{$entries}';
   }
 }
 

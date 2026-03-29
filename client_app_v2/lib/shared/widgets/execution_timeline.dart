@@ -55,6 +55,7 @@ class ExecutionTimeline extends StatelessWidget {
             dense: true,
             visualDensity: compact ? VisualDensity.compact : null,
             leading: _buildStepIcon(
+              context,
               isCompleted,
               isRunning,
               isFailed,
@@ -95,30 +96,43 @@ class ExecutionTimeline extends StatelessWidget {
   }
 
   Widget _buildStepIcon(
+    BuildContext context,
     bool isCompleted,
     bool isRunning,
     bool isFailed,
     bool hasWarnings,
   ) {
     if (isFailed) {
-      return const Icon(Icons.error, color: Colors.red, size: 20);
+      return Icon(
+        Icons.error,
+        color: Theme.of(context).colorScheme.error,
+        size: 20,
+      );
     }
     if (hasWarnings) {
-      return const Icon(
+      return Icon(
         Icons.warning_amber_rounded,
-        color: Colors.orange,
+        color: Theme.of(context).colorScheme.error,
         size: 20,
       );
     }
     if (isCompleted) {
-      return const Icon(Icons.check_circle, color: Colors.green, size: 20);
+      return const Icon(
+        Icons.check_circle,
+        color: const Color(0xFF2E7D32),
+        size: 20,
+      );
     }
     if (isRunning) {
-      return const Icon(Icons.play_circle_fill, color: Colors.blue, size: 20);
+      return Icon(
+        Icons.play_circle_fill,
+        color: Theme.of(context).colorScheme.primary,
+        size: 20,
+      );
     }
-    return const Icon(
+    return Icon(
       Icons.radio_button_unchecked,
-      color: Colors.grey,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
       size: 20,
     );
   }

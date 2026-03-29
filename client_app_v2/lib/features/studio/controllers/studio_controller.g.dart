@@ -221,7 +221,7 @@ final class WorkflowFormProvider
   }
 }
 
-String _$workflowFormHash() => r'd27ab5150bec47d3bba53b013551bfe4440ac5fa';
+String _$workflowFormHash() => r'a4426bbe0f9ff2163e0c2dde91824192d1c93213';
 
 final class WorkflowFormFamily extends $Family
     with
@@ -315,7 +315,7 @@ final class StepFormProvider
   }
 }
 
-String _$stepFormHash() => r'a29bc4aff6d97a0e3649e5c106c4082654f79471';
+String _$stepFormHash() => r'28edc5ea83b46705fbc285569c5ec485d655e7b6';
 
 final class StepFormFamily extends $Family
     with
@@ -404,7 +404,7 @@ final class WorkflowsControllerProvider
 }
 
 String _$workflowsControllerHash() =>
-    r'02331f770c2480276c64a20551c62bbd6d4002ac';
+    r'92004b1b2b4cff7a3e4a197e589a5b731ae19ee8';
 
 /// Controller managing Studio Workflows (DAGs) strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
@@ -468,7 +468,7 @@ final class StepsControllerProvider
   StepsController create() => StepsController();
 }
 
-String _$stepsControllerHash() => r'bc4dea24ddb5b5948fe0c4d9a8d1add61a86796f';
+String _$stepsControllerHash() => r'f540dd6895dc18c67b4bd75bbd12907523789126';
 
 /// Controller managing Studio Steps strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.

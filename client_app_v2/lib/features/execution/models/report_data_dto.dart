@@ -112,7 +112,7 @@ class ReportLayoutDTO {
   factory ReportLayoutDTO.fromJson(Map<String, dynamic> json) {
     final preset = SafeCast.safeString(json['preset_view'], '1d_metrics');
     if (json['axes'] == null || json['axes'] is! List) {
-      throw ArgumentError(
+      throw const FormatException(
         'CRITICAL: axes field is missing or invalid in ReportLayoutDTO payload. Fail-Fast enforced.',
       );
     }
@@ -217,7 +217,7 @@ class ReportDataDTO {
   /// Fail-Fast: Any missing or corrupted keys will yield to strict defaults.
   factory ReportDataDTO.fromJson(Map<String, dynamic> json) {
     if (json['layouts'] == null || json['layouts'] is! List) {
-      throw ArgumentError(
+      throw const FormatException(
         'CRITICAL: layouts field is missing or invalid in ReportDataDTO payload. Fail-Fast enforced.',
       );
     }

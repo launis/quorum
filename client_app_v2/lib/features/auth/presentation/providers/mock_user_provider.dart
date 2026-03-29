@@ -1,11 +1,10 @@
 import 'package:client_app/features/auth/domain/models/user.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-final mockUserProvider = NotifierProvider<MockUserNotifier, User?>(
-  MockUserNotifier.new,
-);
+part 'mock_user_provider.g.dart';
 
-class MockUserNotifier extends Notifier<User?> {
+@Riverpod(keepAlive: true)
+class MockUser extends _$MockUser {
   @override
   User? build() => null;
   void setUser(User? user) => state = user;

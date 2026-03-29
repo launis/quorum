@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class ComparisonMatrix extends StatelessWidget {
   final Map<String, dynamic> comparisonData;
@@ -16,10 +17,13 @@ class ComparisonMatrix extends StatelessWidget {
     final rows = rowsRaw?.cast<Map<String, dynamic>>() ?? [];
 
     if (rows.isEmpty) {
-      return const Card(
+      return Card(
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: Text('No comparison data available.'),
+          child: Text(
+            AppLocalizations.of(context)?.sharedNoComparisonData ??
+                'No comparison data available.',
+          ),
         ),
       );
     }
@@ -155,7 +159,7 @@ class ComparisonMatrix extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            Expanded(flex: 2, child: _renderDelta(delta)),
+            Expanded(flex: 2, child: _renderDelta(context, delta)),
           ],
         ),
         shape: const Border(),
@@ -169,10 +173,11 @@ class ComparisonMatrix extends StatelessWidget {
     );
   }
 
-  Widget _renderDelta(double delta) {
-    if (delta == 0) return const Center(child: Text('='));
+  Widget _renderDelta(BuildContext context, double delta) {
+    if (delta == 0) return Center(child: Text('='));
     final isPos = delta > 0;
-    final color = isPos ? Colors.green : Colors.red;
+    final color =
+        isPos ? Color(0xFF2E7D32) : Theme.of(context).colorScheme.error;
     final icon = isPos ? Icons.arrow_upward : Icons.arrow_downward;
 
     return Row(

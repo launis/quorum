@@ -13,7 +13,8 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:dio/dio.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 
 part 'new_execution_view.g.dart';
 
@@ -59,8 +60,11 @@ class NewExecutionController extends _$NewExecutionController {
 
       // Return the ID properly instead of throwing an Error
       return executionId;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, stack) {
+      ref
+          .read(loggerServiceProvider)
+          .error('NewExecutionController', 'START_EXECUTION_FAILED', e, stack);
+      state = AsyncValue.error(e, stack);
       rethrow;
     }
   }
@@ -182,41 +186,12 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = e.toString();
-        if (e is DioException && e.response?.data != null) {
-          final data = e.response!.data;
-          if (data is Map<String, dynamic>) {
-            if (data.containsKey('message')) {
-              errorMessage = data['message'].toString();
-            } else if (data.containsKey('detail')) {
-              final detail = data['detail'];
-              if (detail is List && detail.isNotEmpty) {
-                final firstError = detail.first;
-                if (firstError is Map && firstError.containsKey('msg')) {
-                  errorMessage =
-                      "${firstError['loc']?.last}: ${firstError['msg']}";
-                } else {
-                  errorMessage = detail.toString();
-                }
-              } else {
-                errorMessage = detail.toString();
-              }
-            }
-          }
-        }
-
-        // Clean up standard prefixes
-        errorMessage = errorMessage
-            .replaceAll('Exception: ', '')
-            .replaceAll('DioException [bad response]: ', '');
+        final l10n = AppLocalizations.of(context)!;
+        final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              AppLocalizations.of(
-                context,
-              )!.failedToStartExecution(errorMessage),
-            ),
+            content: Text(l10n.failedToStartExecution(errorMsg)),
             backgroundColor: Theme.of(context).colorScheme.error,
             duration: const Duration(seconds: 7),
           ),
@@ -348,7 +323,11 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.flash_on, size: 60, color: Colors.orange),
+            Icon(
+              Icons.flash_on,
+              size: 60,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(height: 16),
             Text(
               AppLocalizations.of(context)!.noInputsRequired(id),
@@ -429,17 +408,22 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       final fileName = _selectedFileNames[inputKey];
       final hasFile = fileName != null;
 
+      final theme = Theme.of(context);
+
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           children: [
             Icon(
               hasFile ? Icons.check_circle : Icons.upload_file,
-              color: hasFile ? Colors.green : Colors.grey,
+              color:
+                  hasFile
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 16),
             Expanded(

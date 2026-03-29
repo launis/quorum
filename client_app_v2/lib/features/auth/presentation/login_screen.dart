@@ -6,6 +6,7 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/state/mutation.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key});
@@ -92,27 +93,10 @@ class LoginScreen extends HookConsumerWidget {
                   const SizedBox(height: 32),
 
                   // Standard Fail-Fast inline rendering for non-fatal auth errors
-                  if (loginMutation.hasError)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        loginMutation.error is AppException
-                            ? (loginMutation.error as AppException)
-                                .toLocalizedHint(l10n)
-                            : loginMutation.error.toString().replaceAll(
-                              'Exception: ',
-                              '',
-                            ),
-                        style: TextStyle(
-                          color: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
+                  if (loginMutation.hasError) ...[
+                    ErrorView(error: loginMutation.error!, compact: true),
+                    const SizedBox(height: 16),
+                  ],
 
                   TextFormField(
                     controller: emailController,

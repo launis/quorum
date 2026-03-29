@@ -12,6 +12,7 @@ import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
 
 class StepBuilderView extends HookConsumerWidget {
@@ -169,7 +170,7 @@ class StepBuilderView extends HookConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.simulatorFailedError(e.toString())),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -188,8 +189,14 @@ class StepBuilderView extends HookConsumerWidget {
       onError: (e) {
         if (context.mounted) {
           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to delete step: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
         }
       },
@@ -212,7 +219,9 @@ class StepBuilderView extends HookConsumerWidget {
       if (stepType == 'llm' && strategy.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Model Strategy (Tekoälymalli) on pakollinen LLM-askelille.'),
+            content: const Text(
+              'Model Strategy (Tekoälymalli) on pakollinen LLM-askelille.',
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -225,7 +234,7 @@ class StepBuilderView extends HookConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.stepSavedSuccess),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D32),
             ),
           );
           context.pop();
@@ -236,6 +245,9 @@ class StepBuilderView extends HookConsumerWidget {
               e is AppException
                   ? AppExceptionX.extractLocalizedHint(e, l10n)
                   : e.toString();
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to save step: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMsg),
@@ -266,7 +278,10 @@ class StepBuilderView extends HookConsumerWidget {
                       payload['id'].toString(),
                       deleteMutation,
                     ),
-                icon: const Icon(Icons.delete, color: Colors.red),
+                icon: Icon(
+                  Icons.delete,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 tooltip: l10n.delete,
               ),
             IconButton(
@@ -291,7 +306,10 @@ class StepBuilderView extends HookConsumerWidget {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                      : const Icon(Icons.bug_report, color: Colors.green),
+                      : Icon(
+                        Icons.bug_report,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
               tooltip: l10n.simulateStepTooltip,
             ),
             if (formState.isLoading)
@@ -404,9 +422,11 @@ class StepBuilderView extends HookConsumerWidget {
                             final modelKeys = modelsObj.keys.toList();
 
                             if (modelKeys.isEmpty) {
-                              return const Text(
+                              return Text(
                                 'Warning: No models found.',
-                                style: TextStyle(color: Colors.red),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                               );
                             }
 
@@ -626,7 +646,7 @@ class StepBuilderView extends HookConsumerWidget {
           children: [
             const Padding(
               padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.drag_indicator, color: Colors.grey),
+              child: Icon(Icons.drag_indicator, color: const Color(0xFF9E9E9E)),
             ),
             Expanded(
               child: DropdownButtonFormField<String>(
@@ -666,7 +686,7 @@ class StepBuilderView extends HookConsumerWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: Icon(Icons.delete, color: const Color(0xFFD32F2F)),
               onPressed: () {
                 SafeCast.safeList(payload['pre_hooks']).removeAt(index);
                 ref.read(stepFormProvider(stepId).notifier).forceRebuild();
@@ -697,7 +717,7 @@ class StepBuilderView extends HookConsumerWidget {
           children: [
             const Padding(
               padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.drag_indicator, color: Colors.grey),
+              child: Icon(Icons.drag_indicator, color: const Color(0xFF9E9E9E)),
             ),
             Expanded(
               child: DropdownButtonFormField<String>(
@@ -722,7 +742,7 @@ class StepBuilderView extends HookConsumerWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: Icon(Icons.delete, color: const Color(0xFFD32F2F)),
               onPressed: () {
                 SafeCast.safeList(payload['prompt_blocks']).removeAt(index);
                 ref.read(stepFormProvider(stepId).notifier).forceRebuild();

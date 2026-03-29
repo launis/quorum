@@ -219,7 +219,10 @@ class _I18nTextFieldState extends State<I18nTextField> {
               const SizedBox(height: 16),
               Text(
                 AppLocalizations.of(context)!.i18nLanguageCodeHelp,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -337,10 +340,10 @@ class _I18nTextFieldState extends State<I18nTextField> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.delete_outline,
                                 size: 20,
-                                color: Colors.red,
+                                color: Theme.of(context).colorScheme.error,
                               ),
                               onPressed: () => _removeTranslation(entry.key),
                               tooltip:

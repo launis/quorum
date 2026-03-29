@@ -3,6 +3,7 @@ import 'package:client_app/features/auth/presentation/login_screen.dart';
 
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/scaffold_with_nav.dart';
 import 'package:client_app/features/studio/views/studio_dashboard_view.dart';
 import 'package:client_app/features/studio/views/workflow_builder_view.dart';
@@ -16,7 +17,7 @@ import 'package:client_app/features/studio/views/matrix_editor_view.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/execution/views/dashboard_view.dart';
@@ -51,7 +52,8 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 ///     - Unknown roles are sent to `/dashboard`.
 /// 4.  **Bootstrapping**:
 ///     - `/` redirects to `/dashboard` or `/admin` based on role.
-final routerProvider = Provider<GoRouter>((ref) {
+@Riverpod(keepAlive: true)
+GoRouter router(Ref ref) {
   // Listen to Auth State (User Profile)
   final authState = ref.watch(authControllerProvider);
 
@@ -103,7 +105,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: $appRoutes,
   );
-});
+}
 
 @TypedGoRoute<LoginRoute>(path: '/login')
 class LoginRoute extends GoRouteData with $LoginRoute {
@@ -212,8 +214,10 @@ class SettingsBranch extends StatefulShellBranchData {
 class SettingsRoute extends GoRouteData with $SettingsRoute {
   const SettingsRoute();
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      const Scaffold(body: Center(child: Text("Asetukset (V2 WIP)")));
+  Widget build(BuildContext context, GoRouterState state) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(body: Center(child: Text("${l10n.settings} (V2 WIP)")));
+  }
 }
 
 @TypedGoRoute<AdminShellRoute>(
@@ -414,7 +418,7 @@ class _SafeNavigationFallbackState extends State<SafeNavigationFallback> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Navigation Error: ${widget.state.uri} not found. Returning to workspace...',
+              '${AppLocalizations.of(context)!.errorNotFound}: ${widget.state.uri.toString()}',
             ),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,

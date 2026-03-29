@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 
 /// A standardized button for cloning Admin Studio entities securely.
 /// Enforces Riverpod 3.0 Mutation side-effects, I18n No-String Mandate,
@@ -36,8 +37,12 @@ class CloneEntityButton extends HookConsumerWidget {
         // Then show the actionable hint to the user
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.msgEntityCloneFailed(error.toString())),
-            backgroundColor: Colors.red,
+            content: Text(
+              l10n.msgEntityCloneFailed(
+                AppExceptionX.extractLocalizedHint(error, l10n),
+              ),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );

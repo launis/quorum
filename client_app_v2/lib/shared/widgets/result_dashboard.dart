@@ -10,6 +10,8 @@ import 'package:client_app/shared/widgets/validation_timeline_widget.dart';
 import 'package:client_app/shared/widgets/specialist_section.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 class ResultDashboard extends StatelessWidget {
   final Map<String, dynamic> rawResult;
@@ -23,9 +25,10 @@ class ResultDashboard extends StatelessWidget {
       length: 3,
       child: Column(
         children: [
-          const TabBar(
-            labelColor: Colors.blue,
-            unselectedLabelColor: Colors.grey,
+          TabBar(
+            labelColor: Theme.of(context).colorScheme.primary,
+            unselectedLabelColor:
+                Theme.of(context).colorScheme.onSurfaceVariant,
             tabs: [
               Tab(icon: Icon(Icons.dashboard_outlined), text: 'Raportti'),
               Tab(
@@ -45,7 +48,12 @@ class ResultDashboard extends StatelessWidget {
                 if (reportView != null)
                   _buildDynamicDashboard(context, reportView!)
                 else
-                  const Center(child: Text("Raporttidataa ei ole saatavilla.")),
+                  Center(
+                    child: Text(
+                      AppLocalizations.of(context)?.sharedNoReportData ??
+                          "Raporttidataa ei ole saatavilla.",
+                    ),
+                  ),
 
                 // Tab 2: Flat Report JSON
                 _buildFlatDataView(context, rawResult),
@@ -163,11 +171,15 @@ class ResultDashboard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
       child: Container(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,9 +228,9 @@ class ResultDashboard extends StatelessWidget {
                       const SizedBox(height: 6.0),
                       Text(
                         refSnippet,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13.0,
-                          color: Colors.black87,
+                          color: Theme.of(context).colorScheme.onSurface,
                           height: 1.5,
                         ),
                         softWrap: true,
@@ -233,8 +245,8 @@ class ResultDashboard extends StatelessWidget {
                         },
                         child: Text(
                           refUrl,
-                          style: const TextStyle(
-                            color: Colors.blue,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
                             decoration: TextDecoration.underline,
                             fontSize: 12.0,
                           ),
@@ -259,10 +271,20 @@ class ResultDashboard extends StatelessWidget {
   ) {
     final level = notification['level']?.toString() ?? 'info';
     final isDanger = level == 'danger';
-    final bgColor = isDanger ? Colors.red[50] : Colors.orange[50];
-    final borderColor = isDanger ? Colors.red : Colors.orange;
-    final iconColor = isDanger ? Colors.red[800] : Colors.orange[800];
-    final textColor = isDanger ? Colors.red[900] : Colors.deepOrange[900];
+    final bgColor =
+        isDanger
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.error;
+    final borderColor =
+        isDanger
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.error;
+    final iconColor =
+        isDanger
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.error;
+    final textColor =
+        isDanger ? Theme.of(context).colorScheme.error : Colors.deepOrange[900];
 
     return Container(
       decoration: BoxDecoration(
@@ -292,7 +314,7 @@ class ResultDashboard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             notification['message']?.toString() ?? '',
             style: Theme.of(
@@ -373,13 +395,13 @@ class ResultDashboard extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context, Map<String, dynamic> view) {
     final intent = view['intent']?.toString();
-    Color statusColor = Colors.grey;
+    Color statusColor = Theme.of(context).colorScheme.onSurfaceVariant;
     if (intent == 'success')
-      statusColor = Colors.green;
+      statusColor = Color(0xFF2E7D32);
     else if (intent == 'warning')
-      statusColor = Colors.orange;
+      statusColor = Theme.of(context).colorScheme.error;
     else if (intent == 'danger')
-      statusColor = Colors.red;
+      statusColor = Theme.of(context).colorScheme.error;
 
     return Card(
       elevation: 4,
@@ -400,11 +422,11 @@ class ResultDashboard extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Tulostettu: ${_formatDateTime(DateTime.now())}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -438,6 +460,9 @@ class ResultDashboard extends StatelessWidget {
             return ScoreCardRadar(cardData: blockValue as Map<String, dynamic>);
           }
         } catch (e) {
+          ProviderScope.containerOf(context)
+              .read(loggerServiceProvider)
+              .error('Report', 'Error rendering ScoreCard: $e', e);
           return ErrorView(
             error: "Error rendering ScoreCard: $e",
             compact: true,
@@ -457,8 +482,11 @@ class ResultDashboard extends StatelessWidget {
         );
 
       case 'dataGrid':
-        return const Center(
-          child: Text("DataGrid is currently unsupported in V2"),
+        return Center(
+          child: Text(
+            AppLocalizations.of(context)?.sharedDatagridUnsupported ??
+                "DataGrid is currently unsupported in V2",
+          ),
         );
 
       case 'paragraph':
@@ -477,12 +505,15 @@ class ResultDashboard extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.green[50]!, Colors.teal[50]!],
+                  colors: [
+                    Color(0xFF2E7D32),
+                    Theme.of(context).colorScheme.secondary,
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green[200]!, width: 2),
+                border: Border.all(color: const Color(0xFF2E7D32), width: 2),
               ),
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -493,12 +524,12 @@ class ResultDashboard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.green[600],
+                          color: const Color(0xFF2E7D32),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.psychology_alt,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.surface,
                           size: 24,
                         ),
                       ),
@@ -512,14 +543,14 @@ class ResultDashboard extends StatelessWidget {
                             context,
                           ).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.green[900],
+                            color: const Color(0xFF2E7D32),
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Divider(color: Colors.green),
+                  const Divider(color: const Color(0xFF2E7D32)),
                   const SizedBox(height: 16),
                   OutputRenderer(markdownContent: content),
                 ],
@@ -569,9 +600,9 @@ class ResultDashboard extends StatelessWidget {
                   items.map<Widget>((e) {
                     final itemObj = e is Map ? e : {};
                     return ListTile(
-                      leading: const Icon(
+                      leading: Icon(
                         Icons.source_outlined,
-                        color: Colors.blueGrey,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       title: Text(
                         itemObj['source']?.toString() ??
@@ -681,8 +712,12 @@ class ResultDashboard extends StatelessWidget {
         _flattenMap(data, dataToShow, '');
       }
     } catch (e) {
-      debugPrint('Koko datan parsiminen flat_reportia varten epäonnistui: $e');
-      dataToShow['_info'] = 'Flat Report dataa ei löytynyt tästä ajosta.';
+      ProviderScope.containerOf(context)
+          .read(loggerServiceProvider)
+          .error('Report', 'Flat Report parsing failed: $e', e);
+      dataToShow['_info'] =
+          AppLocalizations.of(context)?.sharedFlatReportNoData ??
+          'Flat Report dataa ei löytynyt tästä ajosta.';
     }
 
     const encoder = JsonEncoder.withIndent('  ');

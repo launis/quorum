@@ -75,7 +75,8 @@ def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
             declarations.append(TAVILY_TOOL_DECLARATION)
         else:
             logger.warning(
-                f"[MCPToolLoop] Unknown tool_id '{tool_id}' in allowed_tools — skipping."
+                "Unknown tool_id in allowed_tools — skipping.",
+                extra={"tool_id": tool_id}
             )
     return declarations
 
@@ -102,8 +103,12 @@ async def _execute_tavily_search(query: str, step_name: str, target_language: st
                     response_summary = trans_resp.strip()
             except Exception as tr_err:
                 logger.error(
-                    f"[MCPToolLoop] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: "
-                    f"Evidence translation to '{target_language}' failed: {tr_err}",
+                    "Evidence translation failed",
+                    extra={
+                        "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                        "target_language": target_language,
+                        "detail": str(tr_err),
+                    },
                     exc_info=True,
                 )
 
@@ -122,8 +127,12 @@ async def _execute_tavily_search(query: str, step_name: str, target_language: st
         # Graceful Degradation: log but don't crash the step
         elapsed_ms = int(time.monotonic() * 1000) - start_ms
         logger.error(
-            f"[MCPToolLoop] {ErrorCodes.FETCH_FAILED.name}: "
-            f"Tavily search failed for query '{query}': {e}",
+            "Tavily search failed",
+            extra={
+                "error_code": ErrorCodes.FETCH_FAILED.name,
+                "query": query,
+                "detail": str(e),
+            },
             exc_info=True,
         )
         return MCPAuditTrace(
@@ -213,8 +222,9 @@ async def execute_tool_loop(
     tool_call_count = 0
 
     while tool_call_count < MAX_TOOL_CALLS_PER_STEP:
-        # Hybrid strategy: Force first tool call, then let LLM decide
-        current_tool_choice = "required" if tool_call_count == 0 else "auto"
+        # The Root Cause Fix: Empower the LLM to decide autonomously (Zero-Forcing).
+        # Forcing 'required' when the LLM has nothing to search causes empty query hallucinations.
+        current_tool_choice = "auto"
         try:
             probe_response = await llm_client.run_chat(
                 messages=probe_messages,
@@ -224,8 +234,12 @@ async def execute_tool_loop(
         except Exception as e:
             # If Phase 1 probe fails, fall through to Phase 2 with no evidence
             logger.error(
-                f"[MCPToolLoop] {ErrorCodes.FETCH_FAILED.name}: "
-                f"Phase 1 probe failed for step '{step_name}': {e}",
+                "Phase 1 probe failed for step",
+                extra={
+                    "error_code": ErrorCodes.FETCH_FAILED.name,
+                    "step_name": step_name,
+                    "detail": str(e),
+                },
                 exc_info=True,
             )
             break
@@ -240,11 +254,15 @@ async def execute_tool_loop(
             break
 
         # Process each tool call
+        invalid_tools_detected = False
         for tc in response_tool_calls:
             if tool_call_count >= MAX_TOOL_CALLS_PER_STEP:
                 logger.warning(
-                    f"[MCPToolLoop] Max tool calls ({MAX_TOOL_CALLS_PER_STEP}) reached "
-                    f"for step '{step_name}'. Forcing completion."
+                    "Max tool calls reached for step. Forcing completion.",
+                    extra={
+                        "max_calls": MAX_TOOL_CALLS_PER_STEP,
+                        "step_name": step_name,
+                    }
                 )
                 break
 
@@ -261,17 +279,30 @@ async def execute_tool_loop(
 
             if tool_name != TAVILY_TOOL_ID:
                 logger.warning(
-                    f"[MCPToolLoop] {ErrorCodes.VALIDATION_FAILED.name}: "
-                    f"LLM hallucinated unknown tool '{tool_name}' — skipping."
+                    "LLM hallucinated unknown tool — skipping.",
+                    extra={
+                        "error_code": ErrorCodes.VALIDATION_FAILED.name,
+                        "tool_name": tool_name,
+                    }
                 )
+                invalid_tools_detected = True
                 continue
 
             query = tool_args.get("query", "")
             if not query:
+                logger.warning(
+                    "LLM returned empty query for Tavily, skipping.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name}
+                )
+                invalid_tools_detected = True
                 continue
 
             logger.info(
-                f"[MCPToolLoop] Step '{step_name}' — executing Tavily search: '{query}'"
+                "Executing Tavily search",
+                extra={
+                    "step_name": step_name,
+                    "query": query,
+                }
             )
 
             audit = await _execute_tavily_search(query, step_name, target_language, llm_client)
@@ -290,9 +321,18 @@ async def execute_tool_loop(
             })
             probe_messages.append(evidence_msg)
 
+        # If LLM tried to hallucinate or bypass the tool and we skipped, break the loop to avoid infinite forcing
+        if invalid_tools_detected and tool_call_count == 0:
+            logger.warning(
+                "Forced tool call yielded invalid output. Breaking to Phase 2.",
+                extra={"step_name": step_name}
+            )
+            break
+
         # If we processed tool calls, loop back to let LLM decide again
         if tool_call_count >= MAX_TOOL_CALLS_PER_STEP:
             break
+
 
     # --- PHASE 2: Completion with evidence injected ---
     # Build final messages: original system/user + any evidence injected
@@ -326,8 +366,12 @@ async def execute_tool_loop(
         raise
     except Exception as e:
         logger.error(
-            f"[MCPToolLoop] {ErrorCodes.WORKFLOW_EXECUTION_FAILED.name}: "
-            f"Phase 2 completion failed for step '{step_name}': {e}",
+            "Phase 2 completion failed for step",
+            extra={
+                "error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name,
+                "step_name": step_name,
+                "detail": str(e),
+            },
             exc_info=True,
         )
         raise AppException(

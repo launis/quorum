@@ -15,8 +15,13 @@ class GenericGrid extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       clipBehavior: Clip.antiAlias,
       child: Container(
-        decoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: Colors.blueGrey, width: 4)),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              width: 4,
+            ),
+          ),
         ),
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -26,7 +31,7 @@ class GenericGrid extends StatelessWidget {
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.blueGrey[800],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
@@ -53,13 +58,17 @@ class GenericGrid extends StatelessWidget {
                                       ? Colors.deepPurple.withValues(
                                         alpha: 0.05,
                                       )
-                                      : Colors.grey.shade50,
+                                      : Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerLowest,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
                                 color:
                                     highlight
                                         ? Colors.deepPurple.shade100
-                                        : Colors.grey.shade200,
+                                        : Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
                               ),
                             ),
                             child: Column(
@@ -71,13 +80,16 @@ class GenericGrid extends StatelessWidget {
                                   style: Theme.of(
                                     context,
                                   ).textTheme.labelSmall?.copyWith(
-                                    color: Colors.grey[600],
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 2),
+                                SizedBox(height: 2),
                                 Text(
                                   value,
                                   style: Theme.of(
@@ -91,7 +103,9 @@ class GenericGrid extends StatelessWidget {
                                     color:
                                         highlight
                                             ? Colors.deepPurple[700]
-                                            : Colors.grey[800],
+                                            : Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),

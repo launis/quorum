@@ -55,6 +55,33 @@ class WorkflowStepCard extends StatelessWidget {
           stepDef['allowed_mcp_tools'],
         ).map((e) => e.toString()).toList();
 
+    String extractName(dynamic nameObj) {
+      if (nameObj is String && nameObj.isNotEmpty) return nameObj;
+      final map = SafeCast.safeMap(nameObj);
+      if (map.containsKey('translations')) {
+        final translations = SafeCast.safeMap(map['translations']);
+        final fiStr = SafeCast.safeString(translations['fi']);
+        final enStr = SafeCast.safeString(translations['en']);
+        return fiStr.isNotEmpty ? fiStr : enStr;
+      }
+      final legacyFi = SafeCast.safeString(map['fi']);
+      final legacyEn = SafeCast.safeString(map['en']);
+      return legacyFi.isNotEmpty ? legacyFi : legacyEn;
+    }
+
+    String getBlueprintLabel(String stepId) {
+      if (stepId.isEmpty) return '';
+      try {
+        final bp = blueprints.firstWhere(
+          (b) => SafeCast.safeString(b['id']) == stepId,
+        );
+        final nameStr = extractName(bp['name']);
+        return nameStr.isNotEmpty ? nameStr : stepId;
+      } catch (_) {
+        return stepId;
+      }
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -67,14 +94,17 @@ class WorkflowStepCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Step ${index + 1}',
+                  l10n.studioWorkflowStepCount(index + 1),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: Icon(
+                    Icons.delete,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   onPressed: onDelete,
                 ),
               ],
@@ -87,9 +117,12 @@ class WorkflowStepCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Node ID (Opaque Stripe Pattern)',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      Text(
+                        l10n.studioWorkflowNodeIdOpaque,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       SelectableText(
@@ -105,23 +138,21 @@ class WorkflowStepCard extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Task Blueprint (Cognitive Engine)',
+                    decoration: InputDecoration(
+                      labelText: l10n.studioWorkflowTaskBlueprint,
                     ),
                     initialValue:
                         blueprints.any(
-                              (bp) => bp['slug'] == stepDef['task_blueprint'],
+                              (bp) => bp['id'] == stepDef['task_blueprint'],
                             )
                             ? stepDef['task_blueprint'] as String?
                             : null,
                     items:
                         blueprints.map((bp) {
-                          final slug = SafeCast.safeString(bp['slug']);
-                          final nameMap = SafeCast.safeMap(bp['name']);
-                          final enName = SafeCast.safeString(nameMap['en']);
-                          final label = enName.isNotEmpty ? enName : slug;
+                          final stepId = SafeCast.safeString(bp['id']);
+                          final label = getBlueprintLabel(stepId);
                           return DropdownMenuItem(
-                            value: slug,
+                            value: stepId,
                             child: Text(label),
                           );
                         }).toList(),
@@ -135,9 +166,9 @@ class WorkflowStepCard extends StatelessWidget {
             ),
 
             const SizedBox(height: 16),
-            const Text(
-              'XAI Reporting / Toolkit Injection (MCP Gateways):',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              l10n.studioWorkflowXaiReporting,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -165,44 +196,62 @@ class WorkflowStepCard extends StatelessWidget {
             ),
 
             const SizedBox(height: 16),
-            const Text(
-              'Depends On (Executes AFTER these steps finish):',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              l10n.studioWorkflowDependsOn,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             if (previousSteps.isEmpty)
-              const Text(
-                'No previous steps available to depend on.',
-                style: TextStyle(color: Colors.grey),
+              Text(
+                l10n.studioWorkflowNoDependencies,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               )
             else
-              Wrap(
-                spacing: 8,
-                children:
-                    previousSteps.map((prevId) {
-                      final isSelected = dependsOn.contains(prevId);
-                      return FilterChip(
-                        label: Text(prevId),
-                        selected: isSelected,
-                        onSelected: (bool selected) {
-                          if (selected) {
-                            if (!dependsOn.contains(prevId)) {
-                              dependsOn.add(prevId);
+                Wrap(
+                  spacing: 8,
+                  children:
+                      previousSteps.map((prevId) {
+                        final isSelected = dependsOn.contains(prevId);
+                        
+                        // Extract human-readable label for dependency chip
+                        String displayLabel = prevId;
+                        try {
+                          final matchingNode = allSteps.firstWhere(
+                            (s) => SafeCast.safeString(s['id'] ?? s['step_id']) == prevId,
+                          );
+                          final bpId = SafeCast.safeString(matchingNode['task_blueprint']);
+                          final readableName = getBlueprintLabel(bpId);
+                          // Display format: 'Vaihe N (Nimi)' or just name if it fits nicely.
+                          // To keep it simple, show the step's blueprint name or ID if unknown.
+                          displayLabel = readableName.isNotEmpty && readableName != bpId 
+                              ? readableName 
+                              : prevId.length > 15 ? '${prevId.substring(0, 15)}...' : prevId;
+                        } catch (_) {}
+
+                        return FilterChip(
+                          label: Text(displayLabel),
+                          selected: isSelected,
+                          onSelected: (bool selected) {
+                            if (selected) {
+                              if (!dependsOn.contains(prevId)) {
+                                dependsOn.add(prevId);
+                              }
+                            } else {
+                              dependsOn.remove(prevId);
                             }
-                          } else {
-                            dependsOn.remove(prevId);
-                          }
-                          stepDef['depends_on'] = dependsOn;
-                          onChanged();
-                        },
-                      );
-                    }).toList(),
-              ),
+                            stepDef['depends_on'] = dependsOn;
+                            onChanged();
+                          },
+                        );
+                      }).toList(),
+                ),
 
             const SizedBox(height: 16),
-            const Text(
-              'Input Mappings (State Data Injection):',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              l10n.studioWorkflowInputMappings,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             ...mappings.entries.map((m) {
               return Padding(
@@ -213,8 +262,8 @@ class WorkflowStepCard extends StatelessWidget {
                       flex: 2,
                       child: TextFormField(
                         initialValue: m.key,
-                        decoration: const InputDecoration(
-                          labelText: 'Target Arg Name',
+                        decoration: InputDecoration(
+                          labelText: l10n.studioWorkflowTargetArgName,
                           isDense: true,
                         ),
                         onChanged: (newKey) {
@@ -234,8 +283,8 @@ class WorkflowStepCard extends StatelessWidget {
                       flex: 3,
                       child: TextFormField(
                         initialValue: m.value,
-                        decoration: const InputDecoration(
-                          labelText: 'Source Token (e.g. \$inputs, step_1)',
+                        decoration: InputDecoration(
+                          labelText: l10n.studioWorkflowSourceToken,
                           isDense: true,
                         ),
                         onChanged: (newVal) {
@@ -246,7 +295,10 @@ class WorkflowStepCard extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.remove_circle, color: Colors.grey),
+                      icon: Icon(
+                        Icons.remove_circle,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       onPressed: () {
                         mappings.remove(m.key);
                         stepDef['input_mappings'] = mappings;
@@ -262,7 +314,7 @@ class WorkflowStepCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 icon: const Icon(Icons.add_link),
-                label: const Text('Add Mapping'),
+                label: Text(l10n.studioWorkflowAddMappingBtn),
                 onPressed: () {
                   mappings['new_arg_${mappings.length}'] = '';
                   stepDef['input_mappings'] = mappings;

@@ -117,7 +117,10 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: Icon(
+                    Icons.delete,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   tooltip: l10n.workflowDeleteInputTooltip,
                   onPressed: widget.onDelete,
                 ),
@@ -267,11 +270,11 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(top: 4.0),
+              padding: EdgeInsets.only(top: 4.0),
               child: Text(
                 l10n.adminPromptBestPracticesHint,
-                style: const TextStyle(
-                  color: Colors.blueGrey,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 12,
                   fontStyle: FontStyle.italic,
                 ),
@@ -350,7 +353,11 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.grey),
+                          icon: Icon(
+                            Icons.delete,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                           onPressed: () {
                             setState(() {
                               questions.removeAt(idx);

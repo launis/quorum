@@ -23,7 +23,7 @@ class WorkflowSelector extends StatelessWidget {
         workflows.map((wf) {
           return DropdownMenuItem<String>(
             value: wf['id']?.toString() ?? '',
-            child: Text(wf['name']?.toString() ?? 'Unknown'),
+            child: Text(wf['name']?.toString() ?? l10n.sharedUnknown),
           );
         }).toList();
 

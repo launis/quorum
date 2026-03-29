@@ -221,6 +221,7 @@ Kaikki koodatut "oikotiet" ovat EHDOTTOMASTI KIELLETTYJÄ koko järjestelmässä
 * **Ei ID-kenttien kysymistä käyttäjältä (Opaque ID Ban):** Luonti- ja muokkauslomakkeissa (Forms) ei saa IKINÄ olla näkyvissä "ID" tekstikenttää, jota käyttäjä tai pääkäyttäjä täyttäisi käsin. Kaikki Stripe Pattern ID:t (esim. `blk_abc123`) generoidaan järjestelmän toimesta aina taustalla The Cascading Clone tai luontiprosessien aikana. Käyttäjä syöttää ainoastaan `slug`, `label` yms.
 * **Kieliperusteinen Relaationpurku (Nomenclature Resolution):** Kun relaatioita tai JSON-puuta täytetään (esim. liitetään askeleita työnkulkuun pudotusvalikosta), käyttöliittymän on EHDOTTOMASTI esitettävä elementit inhimillisesti luettavilla Nimi-arvoilla (esim. `label.translations[locale]`). Nämä arvot on haettava dynaamisesti ID:n perusteella käyttäjän valitsemalla kielellä. Käyttäjä näkee nimen, järjestelmä tallentaa taustalla ID:n. Pelkkien ID-koodien näyttäminen valikoissa on kielletty.
 * **Virheiden piilotus Default-arvoilla:** (esim. `score=0.0` tai `name="Nimetön"`) on rinnastettavissa kovakoodaukseen ja tiedon väärentämiseen. Se on kielletty.
+* **Ei irtonaisia asetusarvoja (Enum-Style Settings Mandate):** Jos koodiin vaaditaan useampi samankaltainen asetusarvo, kuten verkkokatkot tai lukumäärät (esim. `Duration(seconds: 15)`), niitä **EI KOSKAAN** saa upottaa suoraan koodilohkojen sekaan "Magic Number" -tyyliin. Ne on yhdistettävä Enum-tyyppisiksi kokonaisuuksiksi, luomalla niille yksityisellä konstruktorilla suojattu asetusluokka (Esim: `class ApiTimeouts { const ApiTimeouts._(); static const Duration connect = Duration(seconds: 15); }`).
 
 ### 6.3 Dual-Reporting & Telemetry Mandate
 Ainoa sallittu tapa ottaa virhe kiinni ja heittää se ylemmäs on **Kaksinkertainen Raportointi** (Dual-Reporting).
@@ -251,13 +252,60 @@ except Exception as e:
     ) from e
 ```
 
-### 6.3 Absolute Death & Diagnostic Node (Ei "Graceful Degradationia")
+```dart
+// Frontend Esimerkki (Dart / Riverpod 3.0)
+try {
+  // 1. ISOLATE MANDATE: Raskas parsiminen omassa säikeessä (Main Thread Jank -suojaus)
+  final payload = await Isolate.run(() => jsonDecode(chunk));
+  return payload;
+} catch (e, st) {
+  // 2. DUAL-REPORTING (LOGGER & TELEMETRIA): Kirjaa lokaalisti, mikäli laukaisee
+  // automaattisen background API -kutsun backendin telemetria-päätepisteeseen (RFC 7807 parity).
+  ref.read(loggerServiceProvider).error(
+    'StreamingService',
+    'Malformed chunk received or processing failed',
+    e,
+    st,
+  );
+  
+  // 3. THE NO-PASS RULE: Heitä poikkeus armottomasti ylöspäin
+  // Jotta Riverpodin UI-tila räjähtää turvallisesti näkyväksi ErrorBoundaryksi.
+  rethrow; // Tai: throw AppException.network(e);
+}
+```
+
+### 6.4 Absolute Death & Diagnostic Node (Ei "Graceful Degradationia")
 Käyttöliittymäkomponentit EIVÄT SAA ikinä jatkaa toimintaansa ("Graceful Degradation", `SizedBox.shrink()`), jos ne vastaanottavat viallista dataa.
 * **Absolute Death:** Jos komponentti saa invalidia dataa, sen ON KUOLTAVA heti poikkeukseen (throw Exception tai palauta AsyncError).
 * **Diagnostic Node:** Ylemmän tason **`AppErrorBoundary`** (tai Riverpodin `.when(error: ...)`) nappaa kaatumisen ja tulostaa komponentin tilalle lokaalin ja selkeän "Error Boxin" (esim. punainen katkoviiva, virheikoni ja spesifi `ErrorCode`), jotta data-korruptio on pro-työkalussa välittömästi havaittavissa, eikä piiloudu näkymättömiin.
 
-### 6.4 Mapping Exceptions to the UI (Actionable Hints)
+### 6.5 Mapping Exceptions to the UI (Actionable Hints)
 Backend-virheet käännetään UI:ssa lokalisoiduiksi **Actionable Hinteiksi** (esim. "Ikuinen silmukka havaittu. [Poista kytkös]"). PC-näkymässä nämä esitetään tyylikkäinä leijuvina Toast- tai Snackbar-komponentteina työtilan alakulmassa, ei koko ruutua blokkaavina modaaleina.
+
+### 6.6 The "Exit Hatch" Mandate (Tekoälyn Ikuisten Silmukoiden Esto)
+Tekoälyagentit (kuten MCP Tool Loopit ja reagoivat graafit) ovat probabilistisia ja voivat hallusinaation tai "totuuden puutteen" vuoksi ajautua toistamaan samaa virheellistä sivuvaikutusta. Järjestelmän lompakkoa ja resursseja ei koskaan saa riskeerata jättämällä LLM-agenttia jumiin pyörimään ikuiseen silmukkaan.
+
+**SÄÄNTÖ:** Aina kun koodaat tekoälyn suorittaman `while`-silmukan, askeleen toiston tai Retry-rutiinin, sinun **ON PAKKO** sisällyttää turvakatkaisin (Exit Hatch). Jos agentti kieltäytyy tottelemasta tai hallusinoi toistuvasti kiellettyjä työkaluja, silmukka on murrettava `break` -komennolla ja siirryttävä varasuunnitelmaan (Graceful Degradation to Phase 2). Älä ytitä pakottaa sokeasti.
+
+```python
+# CORRECT ARCHITECTURE (The Exit Hatch):
+# Jos pakotettu työkalu epäonnistuu välittömästi, älä yritä uudelleen samalla tilalla, 
+# vaan kirjaa loki (Dual-Reporting) ja pelasta ajo suoritusvaiheeseen!
+
+invalid_tools_detected = False
+for tc in response.tool_calls:
+    if tool_name != TARGET_TOOL or not query:
+        logger.warning(
+            f"[{ErrorCodes.VALIDATION_FAILED.name}] LLM hallucinated tool or empty query. Skipping."
+        )
+        invalid_tools_detected = True
+        continue
+
+# 🚨 EXIT HATCH: Älä toista ikuisesti! Jos pakotus epäonnistuu, riko silmukka.
+if invalid_tools_detected and tool_call_count == 0:
+    logger.warning("Forced tool call yielded invalid output. Breaking to Phase 2 to prevent infinite loop.")
+    break 
+```
 
 ---
 

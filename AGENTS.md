@@ -7,8 +7,8 @@ STATUS: Phase 9 (Hardening & Standardization)
 As an autonomous agent operating in Antigravity 1.21.6+, you must strictly adhere to the host restrictions:
 * **Windows 11 Host:** The system lacks native Linux sandboxing. **DO NOT** attempt to use internal sandboxed cascade terminal execution features.
 * **Linux Command Ban:** You are strictly forbidden from proposing Linux shell commands (`ls`, `cat`, `grep`, `rm -rf`, `export`). You must ONLY propose and execute native PowerShell commands (`Get-ChildItem`, `Get-Content`, `Remove-Item -Recurse -Force`, `$env:`).
-* **Command Execution:** Only propose standard `run_command` execution using PowerShell (`chcp 65001` or UTF-8 formatting where applicable). Never write cross-platform `.sh` scripts; use `.ps1` if scripting is required. Wait for user approval.
-* **Live Telemetry:** Before diagnosing system integration issues or API failures, ALWAYS read the active logs:
+* **Command Execution Protocol (Windows 11):** The `run_command` tool functions as a native PowerShell interface. You **MAY AND SHOULD** use it to automatically execute routine system tasks (`dart run build_runner build -d`, `dart format`, `dart analyze`, `uv run`), but note that the Human User must approve them first.
+  - For file operations and project traversal: Exclusively leverage native agent tools (`list_dir`, `grep_search`, `view_file`, `replace_file_content`) as they bypass terminal latency completely.
   - `c:\src\quorum\backend_debug.log` (FastAPI routing, CPU hooks, Pydantic validation errors)
   - `c:\src\quorum\client_debug.log` (Flutter Riverpod states, GoRouter navigation, and HTTP requests)
 

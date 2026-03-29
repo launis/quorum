@@ -11,16 +11,21 @@ class LogViewer extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade800),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       child:
           logs.isEmpty
-              ? const Center(
+              ? Center(
                 child: Text(
                   'No logs available.',
-                  style: TextStyle(color: Colors.grey, fontFamily: 'monospace'),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontFamily: 'monospace',
+                  ),
                 ),
               )
               : ListView.builder(

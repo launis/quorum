@@ -12,6 +12,7 @@ import 'package:client_app/features/studio/controllers/mcp_gateways_controller.d
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 import 'widgets/workflow/workflow_general_tab.dart';
 import 'widgets/workflow/workflow_inputs_tab.dart';
@@ -97,6 +98,7 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
 
   void _cloneWorkflow(
     BuildContext context,
+    WidgetRef ref,
     Map<String, dynamic> currentPayload,
   ) {
     showDialog(
@@ -150,12 +152,17 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                         e is AppException
                             ? AppExceptionX.extractLocalizedHint(e, l10n)
                             : e.toString();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(errorMsg),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                    if (context.mounted) {
+                      ref
+                          .read(loggerServiceProvider)
+                          .error('Studio', 'Failed to clone workflow: $e', e);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(errorMsg),
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                        ),
+                      );
+                    }
                   }
                 },
                 child: Text(l10n.workflowCloneBtn),
@@ -236,18 +243,23 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                     ? l10n.simulatorValidDag
                     : l10n.simulatorDagErrors(errors.join(', ')),
               ),
-              backgroundColor: isValid ? Colors.green : Colors.red,
-              duration: const Duration(seconds: 4),
+              backgroundColor:
+                  isValid
+                      ? const Color(0xFF2E7D32)
+                      : Theme.of(context).colorScheme.error,
             ),
           );
         }
       },
       onError: (e) {
         if (context.mounted) {
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to validate workflow: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.simulatorFailedError(e.toString())),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -259,15 +271,21 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Deleted successfully')));
+          ).showSnackBar(SnackBar(content: Text(l10n.delete)));
           context.pop();
         }
       },
       onError: (e) {
         if (context.mounted) {
           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to delete workflow: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
         }
       },
@@ -299,7 +317,7 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.workflowSavedSuccess),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D32),
             ),
           );
           context.pop();
@@ -310,6 +328,9 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
               e is AppException
                   ? AppExceptionX.extractLocalizedHint(e, l10n)
                   : e.toString();
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to save workflow: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMsg),
@@ -351,14 +372,17 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
             actions: [
               if (payload['id']?.toString().isNotEmpty == true) ...[
                 IconButton(
-                  onPressed: () => _cloneWorkflow(context, payload),
+                  onPressed: () => _cloneWorkflow(context, ref, payload),
                   icon: const Icon(Icons.content_copy),
                   tooltip: l10n.workflowCloneBtn,
                 ),
                 IconButton(
                   onPressed:
                       () => _deleteWorkflow(context, ref, deleteMutation),
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: Icon(
+                    Icons.delete,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   tooltip: l10n.delete,
                 ),
               ],
@@ -380,7 +404,10 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                        : const Icon(Icons.bug_report, color: Colors.green),
+                        : Icon(
+                          Icons.bug_report,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                 tooltip: l10n.validateDagBtn,
               ),
               TextButton.icon(

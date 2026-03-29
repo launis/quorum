@@ -79,9 +79,16 @@ class MutationButton<T> extends StatelessWidget {
         ),
       );
     }
+    if (icon == null) {
+      return FilledButton(
+        onPressed: action == null ? null : () => mutation.mutate(action!),
+        child: child ?? Text(label),
+      );
+    }
+
     return FilledButton.icon(
       onPressed: action == null ? null : () => mutation.mutate(action!),
-      icon: icon != null ? Icon(icon) : const SizedBox.shrink(),
+      icon: Icon(icon),
       label: child ?? Text(label),
     );
   }

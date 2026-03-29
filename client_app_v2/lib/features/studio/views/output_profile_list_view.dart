@@ -5,12 +5,14 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class OutputProfileListView extends ConsumerWidget {
   const OutputProfileListView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final profilesState = ref.watch(outputProfilesControllerProvider);
 
     return SingleChildScrollView(
@@ -22,7 +24,7 @@ class OutputProfileListView extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Tulostusprofiilit (Output Profiles)',
+                l10n.studioViewsOutputProfilesMasterTitle,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               FilledButton.icon(
@@ -30,7 +32,7 @@ class OutputProfileListView extends ConsumerWidget {
                   const OutputProfileNewRoute().go(context);
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('New Profile'),
+                label: Text(l10n.studioViewsNewProfileBtn),
               ),
             ],
           ),
@@ -38,7 +40,7 @@ class OutputProfileListView extends ConsumerWidget {
           profilesState.when(
             data: (profiles) {
               if (profiles.isEmpty)
-                return const Text('No Output Profiles defined.');
+                return Text(l10n.studioViewsNoOutputProfiles);
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -52,17 +54,25 @@ class OutputProfileListView extends ConsumerWidget {
                       (nameObj['translations'] as Map?)?['fi'] ??
                       nameObj['fi'] ??
                       profile['id']?.toString() ??
-                      'Unnamed Profile';
+                      l10n.studioViewsUnnamedProfile;
 
                   return Card(
                     child: ListTile(
-                      leading: const Icon(Icons.print, color: Colors.blueGrey),
+                      leading: Icon(
+                        Icons.print,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       title: Text(
                         title,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        'ID: ${profile['id']} | Workflow: ${profile['workflow_id'] ?? 'None'} | ${layouts.length} Layout Blocks',
+                        l10n.studioViewsProfileListSubtitle(
+                          profile['id']?.toString() ?? '',
+                          profile['workflow_id']?.toString() ??
+                              l10n.studioViewsNone,
+                          layouts.length,
+                        ),
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,

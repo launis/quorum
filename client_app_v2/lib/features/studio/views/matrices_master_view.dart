@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/utils/safe_cast.dart';
 
 /// Flat MVC List view for BARS Matrices.
@@ -12,6 +14,7 @@ class MatricesMasterView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final blocksState = ref.watch(promptBlocksControllerProvider);
 
     return SingleChildScrollView(
@@ -23,21 +26,23 @@ class MatricesMasterView extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Assessment Matrices',
+                l10n.studioDashboardMatricesTitle,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               FilledButton.icon(
                 onPressed: () {
-                  const MatrixNewRoute().go(context);
+                  // Phase 9: For now, routes directly to empty new block editor.
+                  // Can manually set category_id to 'matrix' in UI.
+                  const PromptBlockNewRoute().go(context);
                 },
-                icon: const Icon(Icons.add),
-                label: const Text('New Matrix'),
+                icon: const Icon(Icons.grid_on),
+                label: Text(l10n.studioViewsNewMatrix),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            'Manage Behavioral Anchored Rating Scales (BARS) and standardized evaluation matrices.',
+            l10n.studioViewsMatricesDescription,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -48,7 +53,7 @@ class MatricesMasterView extends ConsumerWidget {
                   blocks.where((b) => b['category_id'] == 'matrix').toList();
 
               if (matrices.isEmpty) {
-                return const Text('No assessment matrices globally available.');
+                return Text(l10n.studioViewsNoMatricesAvailable);
               }
 
               return ListView.builder(
@@ -73,9 +78,9 @@ class MatricesMasterView extends ConsumerWidget {
 
                   return Card(
                     child: ListTile(
-                      leading: const Icon(
+                      leading: Icon(
                         Icons.table_chart,
-                        color: Colors.blueGrey,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       title: Text(
                         displayName,
@@ -102,16 +107,28 @@ class MatricesMasterView extends ConsumerWidget {
                                     .clonePromptBlock(id);
                                 if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Matrix cloned securely.'),
+                                  SnackBar(
+                                    content: Text(l10n.studioViewsMatrixCloned),
                                   ),
                                 );
                               } catch (e) {
                                 if (!context.mounted) return;
+                                ref
+                                    .read(loggerServiceProvider)
+                                    .error(
+                                      'Studio',
+                                      'Failed to clone matrix: $e',
+                                      e,
+                                    );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Failed to clone: $e'),
-                                    backgroundColor: Colors.red,
+                                    content: Text(
+                                      l10n.studioViewsFailedToClone(
+                                        e.toString(),
+                                      ),
+                                    ),
+                                    backgroundColor:
+                                        Theme.of(context).colorScheme.error,
                                   ),
                                 );
                               }

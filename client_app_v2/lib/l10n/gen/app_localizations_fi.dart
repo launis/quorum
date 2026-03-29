@@ -1414,6 +1414,14 @@ class AppLocalizationsFi extends AppLocalizations {
   String get errResourceNotFound => 'Resurssia ei löydy';
 
   @override
+  String get errDataCorruptionDesc =>
+      'Tietokannan eheysvirhe: Tähän ajoon liittyvää raskasta dataa (blobs) ei löydetty fyysiseltä levyltä. Raporttia ei voida rakentaa.';
+
+  @override
+  String get actionHintRunAgain =>
+      'Vihje: Sinun tulee ajaa työkalun suoritus uudelleen luodaksesi datan fyysiselle levylle.';
+
+  @override
   String get errAuthenticationFailed => 'Kirjautuminen epäonnistui';
 
   @override
@@ -2908,4 +2916,296 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get workflowTabSteps => '3. Stepit & Riippuvuudet';
+
+  @override
+  String errNavigationFallback(String uri) {
+    return 'Navigointivirhe: $uri ei löytynyt. Palataan työtilaan...';
+  }
+
+  @override
+  String get studioWorkflowIdOpaque =>
+      'Opaque Workflow ID (Järjestelmän luoma)';
+
+  @override
+  String get studioWorkflowSlugSemantic =>
+      'Semanttinen reititys (esim. audit-master)';
+
+  @override
+  String get studioWorkflowIdentity => 'Työnkulun identiteetti';
+
+  @override
+  String get studioWorkflowNameLabel => 'Työnkulun nimi';
+
+  @override
+  String get studioWorkflowDescEnLabel => 'Kuvaus (EN)';
+
+  @override
+  String get studioWorkflowDescFiLabel => 'Kuvaus (FI)';
+
+  @override
+  String get studioWorkflowGlobalSettings => 'Globaalit suoritusasetukset';
+
+  @override
+  String get studioWorkflowDefaultProfile => 'Oletusprofiili (Fallback)';
+
+  @override
+  String get studioWorkflowInputsEmpty =>
+      'Odotettuja syötteitä ei ole määritetty.';
+
+  @override
+  String studioWorkflowStepCount(int count) {
+    return 'Vaihe $count';
+  }
+
+  @override
+  String get studioWorkflowNodeIdOpaque => 'Solmun ID (Opaque Stripe Pattern)';
+
+  @override
+  String get studioWorkflowTaskBlueprint =>
+      'Tehtävän Blueprint (Cognitive Engine)';
+
+  @override
+  String get studioWorkflowXaiReporting =>
+      'XAI-raportointi / Työkalut (MCP Gateways):';
+
+  @override
+  String get studioWorkflowDependsOn =>
+      'Riippuvuudet (Suoritetaan NÄIDEN jälkeen):';
+
+  @override
+  String get studioWorkflowNoDependencies =>
+      'Ei aiempia vaiheita joista riippua.';
+
+  @override
+  String get studioWorkflowInputMappings =>
+      'Syötekartoitukset (Tilan injektointi):';
+
+  @override
+  String get studioWorkflowTargetArgName => 'Kohdeargumentti';
+
+  @override
+  String get studioWorkflowSourceToken =>
+      'Lähdetoken (esim. \\\$inputs, step_1)';
+
+  @override
+  String get studioWorkflowStepsNoInputsMappingWarning =>
+      'Virhe: Mappaamattomia syötteitä löytyi.';
+
+  @override
+  String get studioWorkflowStepsInputMappingTitle =>
+      'Syötemappaus (Ulkoinen -> Sisäinen)';
+
+  @override
+  String get studioWorkflowStepsAddMappingBtn => 'Lisää mappaus';
+
+  @override
+  String get studioWorkflowStepsDataMissingText =>
+      'Hetkinen, data-objekti puuttuu?';
+
+  @override
+  String get studioWorkflowStepsNoTargetComponents => 'Ei valittuja';
+
+  @override
+  String get studioViewsBlueprintRulesTitle =>
+      'Tulostusmäppäys (Esityssäännöt)';
+
+  @override
+  String get studioViewsPresetViewTheme => 'Esikatseluteema';
+
+  @override
+  String get studioViews1dMetricsList => '1D Mittaristo';
+
+  @override
+  String get studioViews2dCompare => '2D Vertailu';
+
+  @override
+  String get studioViews3dComplex => '3D Moniulotteinen';
+
+  @override
+  String studioViewsFailedToClone(String error) {
+    return 'Kloonaus epäonnistui: $error';
+  }
+
+  @override
+  String get studioViewsNewMatrix => 'Uusi matriisi';
+
+  @override
+  String studioViewsErrorLoadingWorkflows(String error) {
+    return 'Virhe työnkulkujen latauksessa: $error';
+  }
+
+  @override
+  String get studioViewsProfileIdRequired => 'Profiilin ID on pakollinen';
+
+  @override
+  String studioViewsErrorLoadingBlocks(String error) {
+    return 'Virhe lohkojen latauksessa: $error';
+  }
+
+  @override
+  String get studioViewsOutputProfilesMasterTitle =>
+      'Tulostusprofiilit (Output Profiles)';
+
+  @override
+  String get studioViewsNewProfileBtn => 'Uusi profiili';
+
+  @override
+  String get studioViewsNoOutputProfiles =>
+      'Tulostusprofiileja ei ole määritetty.';
+
+  @override
+  String get studioViewsUnnamedProfile => 'Nimetön profiili';
+
+  @override
+  String studioViewsProfileListSubtitle(
+    String id,
+    String workflow,
+    int layouts,
+  ) {
+    return 'ID: $id | Työnkulku: $workflow | $layouts Asettelulohkoa';
+  }
+
+  @override
+  String get studioViewsNone => 'Ei mikään';
+
+  @override
+  String get studioViewsAddBtn => 'Lisää';
+
+  @override
+  String get studioViewsWarningNoModels => 'Varoitus: Malleja ei löytynyt.';
+
+  @override
+  String get studioViewsModelStrategyLabel =>
+      'Tekoälymalli (Kustannus/Kognitio ohitus)';
+
+  @override
+  String get studioViewsAdminStudioV2 => 'Admin Studio V2';
+
+  @override
+  String get studioViewsPromptBlocksTab => 'Kehotteet (Blocks)';
+
+  @override
+  String get studioViewsStepsTab => 'Askeleet';
+
+  @override
+  String get studioViewsProfilesTab => 'Profiilit';
+
+  @override
+  String get studioViewsPromptBlocksStandard => 'Kehotteet (Standard)';
+
+  @override
+  String get studioViewsNoStandardPromptBlocks =>
+      'Ei peruskehotteita määritetty.';
+
+  @override
+  String studioViewsSlugSubtitle(String slug) {
+    return 'Tunnus: $slug';
+  }
+
+  @override
+  String get studioViewsNoMatricesDefined => 'Ei matriiseja määritetty.';
+
+  @override
+  String get studioViewsNoStepsDefined => 'Ei askelia määritetty.';
+
+  @override
+  String studioViewsStepsSubtitle(int blocks, int hooks) {
+    return 'Lohkot: $blocks | Koukut: $hooks';
+  }
+
+  @override
+  String get studioViewsNoSystemConfigs =>
+      'Järjestelmäasetuksia ei ole määritetty.';
+
+  @override
+  String studioViewsConfiguredModels(int count) {
+    return 'Konfiguroidut mallit: $count';
+  }
+
+  @override
+  String get studioViewsNewBtn => 'Uusi';
+
+  @override
+  String get studioViewsWorkflowBuilderTitle =>
+      'Työnkulkurakentaja (Workflow Builder)';
+
+  @override
+  String get studioViewsNewWorkflowBtn => 'Uusi työnkulku';
+
+  @override
+  String get studioViewsWorkflowBuilderDesc =>
+      'Hallitse työnkulkujen pääsuunnitelmia (DAG), jotka määrittelevät agenttien reitityksen, syötteet ja strategiat.';
+
+  @override
+  String get studioViewsNoWorkflowsConfigured =>
+      'Ei työnkulkuja konfiguroituna.';
+
+  @override
+  String studioViewsWorkflowSubtitle(String id, int nodes, String status) {
+    return 'ID: $id | Solmut: $nodes | Tila: $status';
+  }
+
+  @override
+  String get studioWorkflowAddMappingBtn => 'Lisää kartoitus';
+
+  @override
+  String get studioWorkflowStepsDependencies => 'Vaiheet & Riippuvuudet';
+
+  @override
+  String get studioWorkflowAddStepNodeBtn => 'Lisää askelsolmu';
+
+  @override
+  String get studioWorkflowStepsEmpty =>
+      'Ei askeleita määritettynä. Lisää solmu aloittaaksesi orkestraatiograafin rakentamisen.';
+
+  @override
+  String get studioViewsMatricesDescription =>
+      'Hallitse järjestelmän arviointimatriiseja.';
+
+  @override
+  String get studioViewsNoMatricesAvailable => 'Matriiseja ei ole saatavilla.';
+
+  @override
+  String get studioViewsMatrixCloned => 'Matriisi kloonattu onnistuneesti.';
+
+  @override
+  String get sharedNoTimelineData => 'Aikajanadataa ei ole saatavilla.';
+
+  @override
+  String get sharedNoReportData => 'Raporttidataa ei ole saatavilla.';
+
+  @override
+  String get sharedDatagridUnsupported =>
+      'DataGrid-näkymää ei tällä hetkellä tueta V2-versiossa';
+
+  @override
+  String get sharedFlatReportNoData =>
+      'Flat Report dataa ei löytynyt tästä ajosta.';
+
+  @override
+  String get sharedAnalysisPerformed => 'Analyysi suoritettu: ';
+
+  @override
+  String get sharedNoComparisonData => 'Vertailudataa ei ole saatavilla.';
+
+  @override
+  String get sharedMoreInfoTooltip => 'Lisätietoa';
+
+  @override
+  String get sharedOk => 'OK';
+
+  @override
+  String get sharedUploading => 'Ladataan...';
+
+  @override
+  String get sharedSelectFile => 'Valitse tiedosto...';
+
+  @override
+  String get sharedSystemError => 'Järjestelmävirhe';
+
+  @override
+  String get sharedUnknownAgent => 'Tuntematon Agentti';
+
+  @override
+  String get sharedUnknown => 'Tuntematon';
 }

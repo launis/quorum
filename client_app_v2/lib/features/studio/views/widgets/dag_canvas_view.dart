@@ -116,14 +116,14 @@ class _DagNodeWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 200,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Theme.of(context).colorScheme.outline),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: Theme.of(context).colorScheme.surfaceContainer,
             blurRadius: 10,
             offset: Offset(0, 4),
           ),
@@ -134,7 +134,11 @@ class _DagNodeWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.hub, size: 16, color: Colors.blueGrey),
+              Icon(
+                Icons.hub,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -148,7 +152,10 @@ class _DagNodeWidget extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Blueprint: ${blueprintId.isNotEmpty ? blueprintId : "Unassigned"}',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

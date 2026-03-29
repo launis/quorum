@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:client_app/theme/app_durations.dart';
 
 part 'studio_controller.g.dart';
 
@@ -32,26 +34,32 @@ class WorkflowForm extends _$WorkflowForm {
   @override
   FutureOr<Map<String, dynamic>> build(String configId) async {
     if (configId == 'new') {
-      return Isolate.run(() => {
-        'id': '',
-        'slug': '',
-        'expected_inputs': [],
-        'steps': [],
-        'output_profiles': <String, dynamic>{},
-      });
+      return Isolate.run(
+        () => {
+          'id': '',
+          'slug': '',
+          'expected_inputs': [],
+          'steps': [],
+          'output_profiles': <String, dynamic>{},
+        },
+      );
     }
 
     final rawData = await ref.watch(workflowByIdProvider(configId).future);
     final str = jsonEncode(rawData);
     var copy = await Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
-    
+
     if (!copy.containsKey('expected_inputs')) copy['expected_inputs'] = [];
     if (!copy.containsKey('steps')) copy['steps'] = [];
+    // Legacy keys cleaned if present
     copy.remove('render_blueprints');
     copy.remove('render_blueprint');
     copy.remove('output_mapping');
-    if (!copy.containsKey('output_profiles')) copy['output_profiles'] = <String, dynamic>{};
-    
+
+    if (!copy.containsKey('output_profiles')) {
+      copy['output_profiles'] = <String, dynamic>{};
+    }
+
     return copy;
   }
 
@@ -66,9 +74,12 @@ class WorkflowForm extends _$WorkflowForm {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final idToSave = updatedData['id'] as String? ?? configId;
-      if (idToSave.isEmpty || idToSave == 'new') throw Exception("Workflow ID is required");
+      if (idToSave.isEmpty || idToSave == 'new')
+        throw AppException.validation("Workflow ID is required");
 
-      await ref.read(workflowsControllerProvider.notifier).saveWorkflow(idToSave, updatedData);
+      await ref
+          .read(workflowsControllerProvider.notifier)
+          .saveWorkflow(idToSave, updatedData);
       return updatedData;
     });
   }
@@ -79,14 +90,16 @@ class StepForm extends _$StepForm {
   @override
   FutureOr<Map<String, dynamic>> build(String configId) async {
     if (configId == 'new') {
-      return Isolate.run(() => {
-        'id': '',
-        'slug': '',
-        'label': {'fi': 'Uusi Steppi', 'en': 'New Step'},
-        'agent_type': 'general_executive',
-        'prompt_blocks': [],
-        'enabled': true,
-      });
+      return Isolate.run(
+        () => {
+          'id': '',
+          'slug': '',
+          'label': {'fi': 'Uusi Steppi', 'en': 'New Step'},
+          'agent_type': 'general_executive',
+          'prompt_blocks': [],
+          'enabled': true,
+        },
+      );
     }
 
     final rawData = await ref.watch(stepByIdProvider(configId).future);
@@ -105,9 +118,12 @@ class StepForm extends _$StepForm {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final idToSave = updatedData['id'] as String? ?? configId;
-      if (idToSave.isEmpty || idToSave == 'new') throw Exception("Step ID is required");
+      if (idToSave.isEmpty || idToSave == 'new')
+        throw AppException.validation("Step ID is required");
 
-      await ref.read(stepsControllerProvider.notifier).saveStep(idToSave, updatedData);
+      await ref
+          .read(stepsControllerProvider.notifier)
+          .saveStep(idToSave, updatedData);
       return updatedData;
     });
   }
@@ -121,7 +137,7 @@ class StepForm extends _$StepForm {
 class WorkflowsController extends _$WorkflowsController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
-    ref.cacheFor(const Duration(minutes: 3));
+    ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchWorkflows();
   }
 
@@ -136,8 +152,11 @@ class WorkflowsController extends _$WorkflowsController {
     try {
       final newWorkflows = await _fetchWorkflows();
       state = AsyncValue.data(newWorkflows);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('WorkflowsController', 'Refresh failed', e, st);
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -192,13 +211,16 @@ class WorkflowsController extends _$WorkflowsController {
         returnData = verifiedWorkflow;
       }
       return returnData;
-    } catch (e) {
+    } catch (e, st) {
       // 4. Rollback on Failure
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('WorkflowsController', 'Save failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to save workflow: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -213,11 +235,14 @@ class WorkflowsController extends _$WorkflowsController {
         currentList.removeWhere((w) => w['id'] == id);
         state = AsyncValue.data(currentList);
       }
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('WorkflowsController', 'Delete failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to delete workflow: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -234,11 +259,14 @@ class WorkflowsController extends _$WorkflowsController {
         state = AsyncValue.data(currentList);
       }
       return clonedWorkflow;
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('WorkflowsController', 'Clone failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to clone workflow: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -249,11 +277,14 @@ class WorkflowsController extends _$WorkflowsController {
     try {
       final client = ref.read(studioClientProvider);
       return await client.simulateWorkflow(payload);
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('WorkflowsController', 'Simulate failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to simulate workflow: $e');
+      throw AppException.unknown(e);
     }
   }
 }
@@ -264,7 +295,7 @@ class WorkflowsController extends _$WorkflowsController {
 class StepsController extends _$StepsController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
-    ref.cacheFor(const Duration(minutes: 3));
+    ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchSteps();
   }
 
@@ -279,8 +310,11 @@ class StepsController extends _$StepsController {
     try {
       final newSteps = await _fetchSteps();
       state = AsyncValue.data(newSteps);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('StepsController', 'Refresh failed', e, st);
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -322,13 +356,16 @@ class StepsController extends _$StepsController {
         returnData = verifiedStep;
       }
       return returnData;
-    } catch (e) {
+    } catch (e, st) {
       // 4. Rollback on Failure
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('StepsController', 'Save failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to save step: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -343,11 +380,14 @@ class StepsController extends _$StepsController {
         currentList.removeWhere((m) => m['id'] == id);
         state = AsyncValue.data(currentList);
       }
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('StepsController', 'Delete failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to delete step: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -366,12 +406,15 @@ class StepsController extends _$StepsController {
         state = AsyncValue.data(currentList);
       }
       return clonedStep;
-    } catch (e) {
+    } catch (e, st) {
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('StepsController', 'Clone failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to clone step: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -382,11 +425,14 @@ class StepsController extends _$StepsController {
     try {
       final client = ref.read(studioClientProvider);
       return await client.simulateStep(payload);
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('StepsController', 'Simulate failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to simulate step: $e');
+      throw AppException.unknown(e);
     }
   }
 }

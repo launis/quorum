@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:client_app/features/settings/domain/models/app_settings_state.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 part 'settings_controller.g.dart';
 
@@ -40,6 +41,9 @@ class SettingsController extends _$SettingsController {
     try {
       await _prefs.setString(_themeModeKey, newMode.name);
     } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('SettingsController', 'Failed to update theme mode', e, st);
       // 3. Rollback on failure
       if (previousState != null) {
         state = AsyncData(previousState);
@@ -60,6 +64,9 @@ class SettingsController extends _$SettingsController {
     try {
       await _prefs.setString(_localeKey, newLocale.languageCode);
     } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('SettingsController', 'Failed to update locale', e, st);
       // 3. Rollback on failure
       if (previousState != null) {
         state = AsyncData(previousState);

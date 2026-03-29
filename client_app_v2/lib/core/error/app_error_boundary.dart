@@ -4,7 +4,8 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 /// V2 Forensic Boundary Protocol: AppExceptionBoundary
 ///
 /// Intercepts severe build or rendering exceptions. Instead of gray/red screen of death
-/// or crashing the client application, it displays a graceful fallback screen.
+/// or hiding the error (Graceful Degradation), it displays a localized Diagnostic Node
+/// (Error Box) to enforce the Fail-Fast and Absolute Death mandates.
 /// Extremely critical for the V1 to V2 transition where models (PromptBlocks/SystemConfigs)
 /// might momentarily mismatch in structure while updating.
 class AppExceptionBoundary extends StatefulWidget {
@@ -22,7 +23,7 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
   @override
   void initState() {
     super.initState();
-    // Catch framework-level errors gracefully
+    // Catch framework-level errors gracefully without causing the Red Screen of Death
     ErrorWidget.builder = (FlutterErrorDetails details) {
       if (!mounted) return const SizedBox.shrink();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -39,7 +40,8 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
           });
         }
       });
-      return const SizedBox.shrink(); // Prevent the red screen from flashing
+      // Diagnostic Node Mandate: Immediately show error box instead of hiding it (No SizedBox.shrink())
+      return _buildDiagnosticNode(context, details.exception);
     };
   }
 
@@ -50,11 +52,69 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
     });
   }
 
+  Widget _buildDiagnosticNode(BuildContext context, Object error) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    return Container(
+      margin: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer,
+        border: Border.all(color: theme.colorScheme.error, width: 2.0),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.report_problem,
+                color: theme.colorScheme.onErrorContainer,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n?.errorUnknown ?? 'Data Corruption / Render Error',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onErrorContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.refresh,
+                  color: theme.colorScheme.onErrorContainer,
+                  size: 20,
+                ),
+                onPressed: resetError,
+                tooltip: 'Reset',
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error.toString(),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onErrorContainer,
+              fontFamily: 'monospace',
+            ),
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
-      // Graceful degradation per Desktop Phase 9 Mandate
-      return const SizedBox.shrink();
+      // Phase 9 Mandate: Diagnostic Node (Absolute Death), NO Graceful Degradation
+      return _buildDiagnosticNode(context, _error!);
     }
     return widget.child;
   }

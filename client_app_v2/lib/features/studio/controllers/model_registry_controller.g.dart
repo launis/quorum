@@ -44,7 +44,7 @@ final class ModelRegistryControllerProvider
 }
 
 String _$modelRegistryControllerHash() =>
-    r'2c889c24b31f5ea677b02f7d8b84ee1ce4c482b6';
+    r'7c331a49b019070cb79d79c2863ca6de7f536e13';
 
 /// Controller managing the Model Registry strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.

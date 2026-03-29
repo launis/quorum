@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
+import 'package:client_app/theme/app_durations.dart';
 
 part 'blueprint_editor_controller.g.dart';
 
@@ -11,7 +12,7 @@ part 'blueprint_editor_controller.g.dart';
 class BlueprintEditorController extends _$BlueprintEditorController {
   @override
   Map<String, dynamic> build() {
-    ref.cacheFor(const Duration(minutes: 3));
+    ref.cacheFor(AppDurations.cacheTimeout);
     return {'preset_view': '1d_metrics'};
   }
 

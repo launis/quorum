@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:client_app/theme/app_durations.dart';
 
 part 'output_profile_controller.g.dart';
 
@@ -17,7 +19,7 @@ part 'output_profile_controller.g.dart';
 class OutputProfilesController extends _$OutputProfilesController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
-    ref.cacheFor(const Duration(minutes: 3));
+    ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchProfiles();
   }
 
@@ -32,8 +34,11 @@ class OutputProfilesController extends _$OutputProfilesController {
     try {
       final newProfiles = await _fetchProfiles();
       state = AsyncValue.data(newProfiles);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('OutputProfilesController', 'Refresh failed', e, st);
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -75,13 +80,16 @@ class OutputProfilesController extends _$OutputProfilesController {
         returnData = verifiedProfile;
       }
       return returnData;
-    } catch (e) {
+    } catch (e, st) {
       // 4. Rollback on Failure
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('OutputProfilesController', 'Save failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to save output profile: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -96,11 +104,14 @@ class OutputProfilesController extends _$OutputProfilesController {
         currentList.removeWhere((m) => m['id'] == id);
         state = AsyncValue.data(currentList);
       }
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('OutputProfilesController', 'Delete failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to delete output profile: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -119,12 +130,15 @@ class OutputProfilesController extends _$OutputProfilesController {
         state = AsyncValue.data(currentList);
       }
       return clonedProfile;
-    } catch (e) {
+    } catch (e, st) {
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('OutputProfilesController', 'Clone failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to clone output profile: $e');
+      throw AppException.unknown(e);
     }
   }
 }
@@ -143,12 +157,14 @@ class OutputProfileForm extends _$OutputProfileForm {
   @override
   FutureOr<Map<String, dynamic>> build(String configId) async {
     if (configId == 'new') {
-      return Isolate.run(() => {
-        'id': '',
-        'name': {'fi': 'Uusi profiili', 'en': 'New Profile'},
-        'layouts': <dynamic>[],
-        'workflow_id': '',
-      });
+      return Isolate.run(
+        () => {
+          'id': '',
+          'name': {'fi': 'Uusi profiili', 'en': 'New Profile'},
+          'layouts': <dynamic>[],
+          'workflow_id': '',
+        },
+      );
     }
 
     final rawData = await ref.watch(outputProfileByIdProvider(configId).future);
@@ -165,12 +181,15 @@ class OutputProfileForm extends _$OutputProfileForm {
 
   Future<void> submit(Map<String, dynamic> updatedData) async {
     state = const AsyncLoading();
-    
+
     state = await AsyncValue.guard(() async {
       final idToSave = updatedData['id'] as String? ?? configId;
-      if (idToSave.isEmpty || idToSave == 'new') throw Exception("Profile ID is required");
+      if (idToSave.isEmpty || idToSave == 'new')
+        throw AppException.validation("Profile ID is required");
 
-      await ref.read(outputProfilesControllerProvider.notifier).saveProfile(idToSave, updatedData);
+      await ref
+          .read(outputProfilesControllerProvider.notifier)
+          .saveProfile(idToSave, updatedData);
       return updatedData;
     });
   }

@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:client_app/theme/app_durations.dart';
 
 part 'mcp_gateways_controller.g.dart';
 
@@ -18,7 +20,7 @@ class McpGatewaysController extends _$McpGatewaysController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
     // SWR Strategy for List Views
-    ref.cacheFor(const Duration(minutes: 3));
+    ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchGateways();
   }
 
@@ -33,8 +35,11 @@ class McpGatewaysController extends _$McpGatewaysController {
     try {
       final newGateways = await _fetchGateways();
       state = AsyncValue.data(newGateways);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('McpGatewaysController', 'Refresh failed', e, st);
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -76,13 +81,16 @@ class McpGatewaysController extends _$McpGatewaysController {
         returnData = verifiedGateway;
       }
       return returnData;
-    } catch (e) {
+    } catch (e, st) {
       // 4. Rollback on Failure
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('McpGatewaysController', 'Save failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to save MCP Gateway: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -97,11 +105,14 @@ class McpGatewaysController extends _$McpGatewaysController {
         currentList.removeWhere((m) => m['id'] == id);
         state = AsyncValue.data(currentList);
       }
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('McpGatewaysController', 'Delete failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to delete MCP Gateway: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -120,12 +131,15 @@ class McpGatewaysController extends _$McpGatewaysController {
         state = AsyncValue.data(currentList);
       }
       return clonedGateway;
-    } catch (e) {
+    } catch (e, st) {
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('McpGatewaysController', 'Clone failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to clone MCP Gateway: $e');
+      throw AppException.unknown(e);
     }
   }
 }

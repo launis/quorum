@@ -1,10 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-final mockTokenProvider = NotifierProvider<MockTokenNotifier, String?>(
-  MockTokenNotifier.new,
-);
+part 'mock_auth_provider.g.dart';
 
-class MockTokenNotifier extends Notifier<String?> {
+@Riverpod(keepAlive: true)
+class MockToken extends _$MockToken {
   @override
   String? build() => null;
   void setToken(String? token) => state = token;

@@ -59,10 +59,10 @@ class LogicMatrixChart extends StatelessWidget {
                   y,
                   dotPainter: FlDotCirclePainter(
                     radius: radius,
-                    color: Colors.blueAccent.withValues(
+                    color: Theme.of(context).colorScheme.primary.withValues(
                       alpha: 0.7,
                     ), // Transparent for overlapping
-                    strokeColor: Colors.blue[900]!,
+                    strokeColor: Theme.of(context).colorScheme.primary,
                     strokeWidth: 2,
                   ),
                 ),
@@ -71,7 +71,7 @@ class LogicMatrixChart extends StatelessWidget {
               maxX: xMax + ((xMax - xMin) * 0.05), // Visual padding
               minY: yMin,
               maxY: yMax + ((yMax - yMin) * 0.05),
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.surface,
               gridData: FlGridData(
                 show: true,
                 drawHorizontalLine: true,
@@ -81,13 +81,17 @@ class LogicMatrixChart extends StatelessWidget {
                 checkToShowVerticalLine: (value) => value == xMid,
                 getDrawingHorizontalLine:
                     (value) => FlLine(
-                      color: Colors.grey.withValues(alpha: 0.5),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                       strokeWidth: 2,
                       dashArray: [5, 5],
                     ),
                 getDrawingVerticalLine:
                     (value) => FlLine(
-                      color: Colors.grey.withValues(alpha: 0.5),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                       strokeWidth: 2,
                       dashArray: [5, 5],
                     ),
@@ -195,7 +199,11 @@ class LogicMatrixChart extends StatelessWidget {
               ),
               borderData: FlBorderData(
                 show: true,
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+                ),
               ),
             ),
           ),
@@ -204,10 +212,10 @@ class LogicMatrixChart extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             "${zAxis!.name} (${zAxis!.score ?? 'N/A'} / ${zAxis!.scaleMax})",
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 10,
-              color: Colors.blueGrey,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],

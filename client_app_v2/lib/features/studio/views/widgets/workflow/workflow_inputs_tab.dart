@@ -70,14 +70,16 @@ class WorkflowInputsTab extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             if (inputsList.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
                   padding: EdgeInsets.all(32.0),
                   child: Text(
-                    'No expected inputs defined.',
-                    style: TextStyle(color: Colors.grey),
+                    l10n.studioWorkflowInputsEmpty,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),

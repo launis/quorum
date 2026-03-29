@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 /// **Authentication Interceptor**
 ///
@@ -29,8 +31,20 @@ class AuthInterceptor extends Interceptor {
       try {
         final token = await user.getIdToken();
         options.headers['Authorization'] = 'Bearer $token';
-      } catch (e) {
-        // Token refresh failed - continue without auth
+      } catch (e, stack) {
+        // Token refresh failed - Fail-Fast, NEVER swallow silently
+        final logger = _ref.read(loggerServiceProvider);
+        logger.error('AUTH', 'Firebase token refresh failed', e, stack);
+
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            type: DioExceptionType.cancel,
+            error: AppException.unknown('Local authentication failed: $e'),
+          ),
+          true,
+        );
+        return;
       }
     } else {
       // 2. Try Mock Token (Hybrid/Dev Mode)

@@ -112,13 +112,22 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: status == 'failed' ? Colors.white : null,
+                                color:
+                                    status == 'failed'
+                                        ? Theme.of(context).colorScheme.onError
+                                        : null,
                               ),
                             )
                           else if (status == 'completed')
-                            const Icon(Icons.check_circle, color: Colors.green)
+                            Icon(
+                              Icons.check_circle,
+                              color: Theme.of(context).colorScheme.primary,
+                            )
                           else if (status == 'failed')
-                            const Icon(Icons.error, color: Colors.white),
+                            Icon(
+                              Icons.error,
+                              color: Theme.of(context).colorScheme.onError,
+                            ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Text(
@@ -128,7 +137,10 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                               style: Theme.of(
                                 context,
                               ).textTheme.titleMedium?.copyWith(
-                                color: status == 'failed' ? Colors.white : null,
+                                color:
+                                    status == 'failed'
+                                        ? Theme.of(context).colorScheme.onError
+                                        : null,
                               ),
                             ),
                           ),
@@ -166,15 +178,21 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber.shade100,
-                        border: Border.all(color: Colors.amber.shade700),
+                        color:
+                            Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.warning_amber_rounded,
-                            color: Colors.amber.shade900,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -184,7 +202,12 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                                   frozenContext['version_id'],
                                 ),
                               ),
-                              style: TextStyle(color: Colors.amber.shade900),
+                              style: TextStyle(
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         ],

@@ -1,4 +1,6 @@
+import 'package:client_app/theme/app_durations.dart';
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class UnifiedMetricGauge extends StatelessWidget {
   final String label;
@@ -64,8 +66,8 @@ class UnifiedMetricGauge extends StatelessWidget {
             width: 140,
             child: Tooltip(
               message: description,
-              waitDuration: const Duration(milliseconds: 500),
-              showDuration: const Duration(seconds: 3),
+              waitDuration: AppDurations.medium,
+              showDuration: AppDurations.display,
               child: Text(
                 label,
                 style: const TextStyle(
@@ -91,7 +93,12 @@ class UnifiedMetricGauge extends StatelessWidget {
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 1.0),
                       decoration: BoxDecoration(
-                        color: isFilled ? effectiveColor : Colors.grey[200],
+                        color:
+                            isFilled
+                                ? effectiveColor
+                                : Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -137,7 +144,11 @@ class UnifiedMetricGauge extends StatelessWidget {
             Expanded(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: _buildAlignedLabels(axisLabels!, totalSegments),
+                children: _buildAlignedLabels(
+                  context,
+                  axisLabels!,
+                  totalSegments,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -155,7 +166,11 @@ class UnifiedMetricGauge extends StatelessWidget {
   Widget _buildHelpTrigger(BuildContext context) {
     return GestureDetector(
       onTap: () => _showHelpDialog(context),
-      child: Icon(Icons.help_outline, size: 16, color: Colors.grey[400]),
+      child: Icon(
+        Icons.help_outline,
+        size: 16,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     );
   }
 
@@ -166,7 +181,11 @@ class UnifiedMetricGauge extends StatelessWidget {
           (ctx) => AlertDialog(
             title: Row(
               children: [
-                const Icon(Icons.info_outline, size: 20, color: Colors.blue),
+                Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   label,
@@ -190,7 +209,7 @@ class UnifiedMetricGauge extends StatelessWidget {
                     descriptionSecondary!,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[700],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -200,14 +219,18 @@ class UnifiedMetricGauge extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text("OK"),
+                child: Text(AppLocalizations.of(context)?.sharedOk ?? "OK"),
               ),
             ],
           ),
     );
   }
 
-  List<Widget> _buildAlignedLabels(List<String> labels, int segmentCount) {
+  List<Widget> _buildAlignedLabels(
+    BuildContext context,
+    List<String> labels,
+    int segmentCount,
+  ) {
     if (labels.length == segmentCount) {
       return labels
           .map(
@@ -218,7 +241,7 @@ class UnifiedMetricGauge extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 8,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -229,8 +252,13 @@ class UnifiedMetricGauge extends StatelessWidget {
 
     return labels
         .map(
-          (l) =>
-              Text(l, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+          (l) => Text(
+            l,
+            style: TextStyle(
+              fontSize: 9,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         )
         .toList();
   }

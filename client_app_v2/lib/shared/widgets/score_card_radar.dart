@@ -39,7 +39,8 @@ class ScoreCardRadar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        cardData['agentName']?.toString() ?? 'Unknown Agent',
+                        cardData['agentName']?.toString() ??
+                            l10n.sharedUnknownAgent,
                         style: textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: colorScheme.secondary,

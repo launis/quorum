@@ -31,7 +31,7 @@ class McpGatewaysMasterView extends ConsumerWidget {
                   const McpGatewayNewRoute().go(context);
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('New Gateway'),
+                label: Text(l10n.studioViewsNewBtn),
               ),
             ],
           ),
@@ -57,7 +57,10 @@ class McpGatewaysMasterView extends ConsumerWidget {
 
                   return Card(
                     child: ListTile(
-                      leading: const Icon(Icons.hub, color: Colors.blueGrey),
+                      leading: Icon(
+                        Icons.hub,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       title: Text(
                         gateway['id']?.toString() ?? 'Unnamed Gateway',
                         style: const TextStyle(fontWeight: FontWeight.bold),

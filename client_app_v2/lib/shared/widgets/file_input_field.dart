@@ -1,6 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 class FileInputField extends StatefulWidget {
   final String label;
@@ -55,6 +57,9 @@ class _FileInputFieldState extends State<FileInputField> {
       }
     } catch (e) {
       if (mounted) {
+        ProviderScope.containerOf(
+          context,
+        ).read(loggerServiceProvider).error('Shared', 'File Error: $e', e);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.errorReadingFile('$e'))));
@@ -98,7 +103,7 @@ class _FileInputFieldState extends State<FileInputField> {
                             icon: const Icon(Icons.clear),
                             onPressed: widget.onClear,
                           )
-                          : const Icon(Icons.attach_file),
+                          : Icon(Icons.attach_file),
                 ),
                 child: Text(
                   fileName ?? AppLocalizations.of(context)!.selectFile,
@@ -115,7 +120,7 @@ class _FileInputFieldState extends State<FileInputField> {
             ),
             if (hasFile)
               Padding(
-                padding: const EdgeInsets.only(top: 4, left: 12),
+                padding: EdgeInsets.only(top: 4, left: 12),
                 child: Text(
                   AppLocalizations.of(
                     context,

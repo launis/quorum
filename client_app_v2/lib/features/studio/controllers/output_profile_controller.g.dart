@@ -44,7 +44,7 @@ final class OutputProfilesControllerProvider
 }
 
 String _$outputProfilesControllerHash() =>
-    r'6c456ffc4e204f6f947a86902c1ec996cd71a228';
+    r'514cf41d0e1806c7fc8ebfb2e85021804bb2e470';
 
 /// Controller managing Studio Output Profiles strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
@@ -203,7 +203,7 @@ final class OutputProfileFormProvider
   }
 }
 
-String _$outputProfileFormHash() => r'4d6c0dfff081030f360f936f507a556ee9371676';
+String _$outputProfileFormHash() => r'02d7117691a277fcdfc464ba35f88f5729f55a41';
 
 final class OutputProfileFormFamily extends $Family
     with

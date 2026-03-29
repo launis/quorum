@@ -12,6 +12,7 @@ import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/models/prompt_block_category.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
 
 /// **Universal Matrix Builder**
@@ -114,7 +115,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                 },
                 child: Text(
                   l10n.delete,
-                  style: const TextStyle(color: Colors.red),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
             ],
@@ -163,10 +164,13 @@ class PromptBlockBuilderView extends HookConsumerWidget {
       },
       onError: (e) {
         if (context.mounted) {
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to validate prompt block: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.simulatorFailedError(e.toString())),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -185,8 +189,14 @@ class PromptBlockBuilderView extends HookConsumerWidget {
       onError: (e) {
         if (context.mounted) {
           final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to delete prompt block: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
         }
       },
@@ -224,7 +234,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.promptBlockSavedSuccess),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D32),
             ),
           );
           context.pop();
@@ -261,7 +271,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                       payload['id'].toString(),
                       deleteMutation,
                     ),
-                icon: const Icon(Icons.delete, color: Colors.red),
+                icon: Icon(
+                  Icons.delete,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 tooltip: l10n.delete,
               ),
             IconButton(
@@ -290,7 +303,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                      : const Icon(Icons.bug_report, color: Colors.green),
+                      : Icon(
+                        Icons.bug_report,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
               tooltip: 'Simulate Prompt',
             ),
             if (formState.isLoading)
@@ -333,12 +349,15 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         if (payload['id']?.toString().isNotEmpty == true) ...[
                           Text(
                             l10n.opaqueIdLabel(payload['id'].toString()),
-                            style: const TextStyle(
-                              color: Colors.grey,
+                            style: TextStyle(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                               fontFamily: 'monospace',
                               fontWeight: FontWeight.bold,
                             ),
@@ -449,11 +468,14 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
+                          padding: EdgeInsets.only(top: 4.0),
                           child: Text(
                             l10n.adminPromptBestPracticesHint,
-                            style: const TextStyle(
-                              color: Colors.blueGrey,
+                            style: TextStyle(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                               fontSize: 13,
                               fontStyle: FontStyle.italic,
                             ),
@@ -845,7 +867,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     ),
                     subtitle: Text('Item ${index + 1}'),
                     trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: Icon(
+                        Icons.delete,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                       onPressed:
                           () => _removeListItem(
                             ref,
@@ -1044,7 +1069,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                       l10n.claimsCountLabel(claimsLength.toString()),
                     ),
                     trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: Icon(
+                        Icons.delete,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                       onPressed:
                           () => _removeListItem(
                             ref,

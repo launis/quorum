@@ -8,6 +8,7 @@ import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 /// **Profile Editor View**
 ///
@@ -89,20 +90,22 @@ class ProfileEditorView extends HookConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.studioSaveButton),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF2E7D32),
             ),
           );
           context.pop();
         }
       } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.saveFailedError(e.toString())),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
+        if (!context.mounted) return;
+        ref
+            .read(loggerServiceProvider)
+            .error('Studio', 'Failed to save user profile: $e', e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.saveFailedError(e.toString())),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     }
 
@@ -230,7 +233,7 @@ class ProfileEditorView extends HookConsumerWidget {
       margin: const EdgeInsets.only(bottom: 24.0),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
+        side: BorderSide(color: Theme.of(context).colorScheme.outline),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -242,14 +245,17 @@ class ProfileEditorView extends HookConsumerWidget {
               children: [
                 Text(
                   l10n.variantIdLabel(profileId),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
-                    color: Colors.blueGrey,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: Icon(
+                    Icons.delete,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   onPressed: () {
                     profilesMap.remove(profileId);
                     payload['output_profiles'] = profilesMap;
@@ -372,9 +378,9 @@ class ProfileEditorView extends HookConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -439,7 +445,10 @@ class ProfileEditorView extends HookConsumerWidget {
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.orange),
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 onPressed: () {
                   parentLayoutsList.removeAt(index);
                   profileDef['layouts'] = parentLayoutsList;

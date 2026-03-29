@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import '../../../../../utils/safe_cast.dart';
+import '../../../../../l10n/gen/app_localizations.dart';
 import '../i18n_text_field.dart';
 
 /// **WorkflowGeneralTab**
@@ -24,6 +24,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final descriptionMap = SafeCast.safeMap(workflow['description']);
     final descTranslations = SafeCast.safeMap(descriptionMap['translations']);
 
@@ -38,21 +39,23 @@ class WorkflowGeneralTab extends ConsumerWidget {
                 Expanded(
                   child: TextField(
                     controller: idController,
-                    decoration: const InputDecoration(
-                      labelText: 'Opaque Workflow ID (System Generated)',
-                      prefixIcon: Icon(Icons.fingerprint),
+                    decoration: InputDecoration(
+                      labelText: l10n.studioWorkflowIdOpaque,
+                      prefixIcon: const Icon(Icons.fingerprint),
                     ),
                     readOnly: true, // Opaque Stripe ID mandate
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: TextField(
                     controller: slugController,
-                    decoration: const InputDecoration(
-                      labelText: 'Semantic Routing Slug (e.g. audit-master)',
-                      prefixIcon: Icon(Icons.link),
+                    decoration: InputDecoration(
+                      labelText: l10n.studioWorkflowSlugSemantic,
+                      prefixIcon: const Icon(Icons.link),
                     ),
                     onChanged: (val) {
                       workflow['slug'] = val;
@@ -70,8 +73,8 @@ class WorkflowGeneralTab extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'Workflow Identity',
+                    Text(
+                      l10n.studioWorkflowIdentity,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -79,7 +82,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     I18nTextField(
-                      label: 'Workflow Name',
+                      label: l10n.studioWorkflowNameLabel,
                       initialData: SafeCast.safeMap(workflow['name']),
                       onChanged: (val) {
                         workflow['name'] = val;
@@ -92,9 +95,9 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         text: SafeCast.safeString(descTranslations['en']),
                       ),
                       maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Description (EN)',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.studioWorkflowDescEnLabel,
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
                         descTranslations['en'] = val;
@@ -109,9 +112,9 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         text: SafeCast.safeString(descTranslations['fi']),
                       ),
                       maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Kuvaus (FI)',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.studioWorkflowDescFiLabel,
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
                         descTranslations['fi'] = val;
@@ -132,8 +135,8 @@ class WorkflowGeneralTab extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Global Execution Settings',
+                    Text(
+                      l10n.studioWorkflowGlobalSettings,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -160,9 +163,9 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         return DropdownButtonFormField<String>(
                           key: ValueKey(profileKeys.join(':')),
                           initialValue: safeDefault,
-                          decoration: const InputDecoration(
-                            labelText: 'Default Fallback Profile',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l10n.studioWorkflowDefaultProfile,
+                            border: const OutlineInputBorder(),
                             isDense: true,
                           ),
                           items:

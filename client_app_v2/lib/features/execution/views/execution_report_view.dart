@@ -11,6 +11,16 @@ import 'package:file_saver/file_saver.dart';
 import 'dart:typed_data';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
+
+/// Centralized settings for the Execution Report View
+class ReportSettings {
+  const ReportSettings._();
+
+  /// Global timeout for the PDF and Context Download streams
+  static const Duration downloadTimeout = Duration(seconds: 15);
+}
 
 /// Render the execution report leveraging the Server-Driven UI (SDUI) framework.
 class ExecutionReportView extends ConsumerStatefulWidget {
@@ -54,11 +64,11 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
             mimeType: MimeType.pdf,
           )
           .timeout(
-            const Duration(seconds: 15),
+            ReportSettings.downloadTimeout,
             onTimeout:
                 () =>
-                    throw Exception(
-                      'Tiedoston tallennusikkuna ei vastannut (Timeout). Tarkista, jäikö ikkuna piiloon tai onko vanha PDF-tiedosto auki toisessa ohjelmassa.',
+                    throw AppException.timeout(
+                      AppLocalizations.of(context)!.errSaveTimeout,
                     ),
           );
 
@@ -74,19 +84,13 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           .read(loggerServiceProvider)
           .error('ReportView', 'Failed to download PDF', e, st);
       if (mounted) {
-        final errorMsg =
-            e.toString().contains('Timeout')
-                ? e.toString().replaceAll('Exception: ', '')
-                : '${AppLocalizations.of(context)!.errorUnknown}: ${e.toString()}';
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMsg),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppExceptionX.extractLocalizedHint(e, l10n)),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -118,11 +122,11 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
             mimeType: MimeType.json,
           )
           .timeout(
-            const Duration(seconds: 15),
+            ReportSettings.downloadTimeout,
             onTimeout:
                 () =>
-                    throw Exception(
-                      'Tiedoston tallennusikkuna ei vastannut (Timeout). Tarkista, jäikö ikkuna piiloon tai onko vanha JSON-tiedosto auki toisessa ohjelmassa.',
+                    throw AppException.timeout(
+                      AppLocalizations.of(context)!.errSaveTimeout,
                     ),
           );
 
@@ -138,19 +142,13 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           .read(loggerServiceProvider)
           .error('ReportView', 'Failed to download Frozen Context', e, st);
       if (mounted) {
-        final errorMsg =
-            e.toString().contains('Timeout')
-                ? e.toString().replaceAll('Exception: ', '')
-                : '${AppLocalizations.of(context)!.errorUnknown}: ${e.toString()}';
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMsg),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppExceptionX.extractLocalizedHint(e, l10n)),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -259,11 +257,14 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
         value: safeVariant,
-        icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
-        style: const TextStyle(
+        icon: Icon(
+          Icons.arrow_drop_down,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
         onChanged: (String? newValue) {
           if (newValue != null && newValue != widget.variant) {

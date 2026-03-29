@@ -51,25 +51,30 @@ class WorkflowStepsTab extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Steps & Dependencies',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.studioWorkflowStepsDependencies,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 OutlinedButton.icon(
                   onPressed: _addStep,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Step Node'),
+                  label: Text(l10n.studioWorkflowAddStepNodeBtn),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             if (allSteps.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
                   padding: EdgeInsets.all(32.0),
                   child: Text(
-                    'No steps defined. Add a node to start creating the orchestration graph.',
-                    style: TextStyle(color: Colors.grey),
+                    l10n.studioWorkflowStepsEmpty,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),

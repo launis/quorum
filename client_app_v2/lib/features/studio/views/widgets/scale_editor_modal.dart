@@ -160,7 +160,10 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
+                              icon: Icon(
+                                Icons.delete,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                               onPressed: () => _removeClaim(index),
                               tooltip: 'Remove Claim',
                             ),
@@ -171,12 +174,12 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                           initialValue: SafeCast.safeString(
                             claim['ai_description'],
                           ),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Claim AI Rule (MANDATORY ENGLISH)',
                             helperText:
                                 "MUST be in English. Use strict commanding language (e.g., 'CRITICAL EVALUATION DIRECTIVE:').",
                             helperStyle: TextStyle(
-                              color: Colors.red,
+                              color: Theme.of(context).colorScheme.error,
                               fontWeight: FontWeight.bold,
                             ),
                             border: OutlineInputBorder(),

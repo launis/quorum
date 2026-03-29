@@ -1411,6 +1411,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errResourceNotFound => 'Resource Not Found';
 
   @override
+  String get errDataCorruptionDesc =>
+      'Data integrity error: The heavy data file associated with this record could not be found on the physical disk. A report cannot be generated.';
+
+  @override
+  String get actionHintRunAgain =>
+      'Hint: You must execute this analysis again to generate new data.';
+
+  @override
   String get errAuthenticationFailed => 'Authentication Failed';
 
   @override
@@ -2895,4 +2903,287 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workflowTabSteps => '3. Steps & Dependencies';
+
+  @override
+  String errNavigationFallback(String uri) {
+    return 'Navigation Error: $uri not found. Returning to workspace...';
+  }
+
+  @override
+  String get studioWorkflowIdOpaque => 'Opaque Workflow ID (System Generated)';
+
+  @override
+  String get studioWorkflowSlugSemantic =>
+      'Semantic Routing Slug (e.g. audit-master)';
+
+  @override
+  String get studioWorkflowIdentity => 'Workflow Identity';
+
+  @override
+  String get studioWorkflowNameLabel => 'Workflow Name';
+
+  @override
+  String get studioWorkflowDescEnLabel => 'Description (EN)';
+
+  @override
+  String get studioWorkflowDescFiLabel => 'Kuvaus (FI)';
+
+  @override
+  String get studioWorkflowGlobalSettings => 'Global Execution Settings';
+
+  @override
+  String get studioWorkflowDefaultProfile => 'Default Fallback Profile';
+
+  @override
+  String get studioWorkflowInputsEmpty => 'No expected inputs defined.';
+
+  @override
+  String studioWorkflowStepCount(int count) {
+    return 'Step $count';
+  }
+
+  @override
+  String get studioWorkflowNodeIdOpaque => 'Node ID (Opaque Stripe Pattern)';
+
+  @override
+  String get studioWorkflowTaskBlueprint => 'Task Blueprint (Cognitive Engine)';
+
+  @override
+  String get studioWorkflowXaiReporting =>
+      'XAI Reporting / Toolkit Injection (MCP Gateways):';
+
+  @override
+  String get studioWorkflowDependsOn =>
+      'Depends On (Executes AFTER these steps finish):';
+
+  @override
+  String get studioWorkflowNoDependencies =>
+      'No previous steps available to depend on.';
+
+  @override
+  String get studioWorkflowInputMappings =>
+      'Input Mappings (State Data Injection):';
+
+  @override
+  String get studioWorkflowTargetArgName => 'Target Arg Name';
+
+  @override
+  String get studioWorkflowSourceToken =>
+      'Source Token (e.g. \\\$inputs, step_1)';
+
+  @override
+  String get studioWorkflowStepsNoInputsMappingWarning =>
+      'Error: Unmapped inputs found.';
+
+  @override
+  String get studioWorkflowStepsInputMappingTitle =>
+      'Input Mappings (External -> Internal)';
+
+  @override
+  String get studioWorkflowStepsAddMappingBtn => 'Add Mapping';
+
+  @override
+  String get studioWorkflowStepsDataMissingText => 'Wait, missing data object?';
+
+  @override
+  String get studioWorkflowStepsNoTargetComponents => 'None selected';
+
+  @override
+  String get studioViewsBlueprintRulesTitle =>
+      'Output Mapping (Presentation Rules)';
+
+  @override
+  String get studioViewsPresetViewTheme => 'Preset View Theme';
+
+  @override
+  String get studioViews1dMetricsList => '1D Metrics List';
+
+  @override
+  String get studioViews2dCompare => '2D Compare View';
+
+  @override
+  String get studioViews3dComplex => '3D Complex Matrix';
+
+  @override
+  String studioViewsFailedToClone(String error) {
+    return 'Failed to clone: $error';
+  }
+
+  @override
+  String get studioViewsNewMatrix => 'New Matrix';
+
+  @override
+  String studioViewsErrorLoadingWorkflows(String error) {
+    return 'Error loading workflows: $error';
+  }
+
+  @override
+  String get studioViewsProfileIdRequired => 'Profile ID is required';
+
+  @override
+  String studioViewsErrorLoadingBlocks(String error) {
+    return 'Error loading blocks: $error';
+  }
+
+  @override
+  String get studioViewsOutputProfilesMasterTitle => 'Output Profiles';
+
+  @override
+  String get studioViewsNewProfileBtn => 'New Profile';
+
+  @override
+  String get studioViewsNoOutputProfiles => 'No Output Profiles defined.';
+
+  @override
+  String get studioViewsUnnamedProfile => 'Unnamed Profile';
+
+  @override
+  String studioViewsProfileListSubtitle(
+    String id,
+    String workflow,
+    int layouts,
+  ) {
+    return 'ID: $id | Workflow: $workflow | $layouts Layout Blocks';
+  }
+
+  @override
+  String get studioViewsNone => 'None';
+
+  @override
+  String get studioViewsAddBtn => 'Add';
+
+  @override
+  String get studioViewsWarningNoModels => 'Warning: No models found.';
+
+  @override
+  String get studioViewsModelStrategyLabel =>
+      'Model Strategy (Cost/Cognition Override)';
+
+  @override
+  String get studioViewsAdminStudioV2 => 'Admin Studio V2';
+
+  @override
+  String get studioViewsPromptBlocksTab => 'Prompt Blocks';
+
+  @override
+  String get studioViewsStepsTab => 'Steps';
+
+  @override
+  String get studioViewsProfilesTab => 'Profiles';
+
+  @override
+  String get studioViewsPromptBlocksStandard => 'Prompt Blocks (Standard)';
+
+  @override
+  String get studioViewsNoStandardPromptBlocks =>
+      'No standard prompt blocks defined.';
+
+  @override
+  String studioViewsSlugSubtitle(String slug) {
+    return 'Slug: $slug';
+  }
+
+  @override
+  String get studioViewsNoMatricesDefined => 'No matrices defined.';
+
+  @override
+  String get studioViewsNoStepsDefined => 'No Steps defined.';
+
+  @override
+  String studioViewsStepsSubtitle(int blocks, int hooks) {
+    return 'Blocks: $blocks | Hooks: $hooks';
+  }
+
+  @override
+  String get studioViewsNoSystemConfigs => 'No System Configs defined.';
+
+  @override
+  String studioViewsConfiguredModels(int count) {
+    return 'Configured Models: $count';
+  }
+
+  @override
+  String get studioViewsNewBtn => 'New';
+
+  @override
+  String get studioViewsWorkflowBuilderTitle => 'Workflow Builder';
+
+  @override
+  String get studioViewsNewWorkflowBtn => 'New Workflow';
+
+  @override
+  String get studioViewsWorkflowBuilderDesc =>
+      'Manage master execution blueprints (DAGs) defining agentic workflows, inputs, and strategies.';
+
+  @override
+  String get studioViewsNoWorkflowsConfigured => 'No workflows configured.';
+
+  @override
+  String studioViewsWorkflowSubtitle(String id, int nodes, String status) {
+    return 'ID: $id | Nodes: $nodes | Status: $status';
+  }
+
+  @override
+  String get studioWorkflowAddMappingBtn => 'Add Mapping';
+
+  @override
+  String get studioWorkflowStepsDependencies => 'Steps & Dependencies';
+
+  @override
+  String get studioWorkflowAddStepNodeBtn => 'Add Step Node';
+
+  @override
+  String get studioWorkflowStepsEmpty =>
+      'No steps defined. Add a node to start creating the orchestration graph.';
+
+  @override
+  String get studioViewsMatricesDescription =>
+      'Manage system evaluation matrices.';
+
+  @override
+  String get studioViewsNoMatricesAvailable => 'No Matrices Available.';
+
+  @override
+  String get studioViewsMatrixCloned => 'Matrix cloned successfully.';
+
+  @override
+  String get sharedNoTimelineData => 'No timeline data available.';
+
+  @override
+  String get sharedNoReportData => 'No report data available.';
+
+  @override
+  String get sharedDatagridUnsupported =>
+      'DataGrid is currently unsupported in V2';
+
+  @override
+  String get sharedFlatReportNoData =>
+      'No Flat Report data found for this execution.';
+
+  @override
+  String get sharedAnalysisPerformed => 'Analysis Performed: ';
+
+  @override
+  String get sharedNoComparisonData => 'No comparison data available.';
+
+  @override
+  String get sharedMoreInfoTooltip => 'More information';
+
+  @override
+  String get sharedOk => 'OK';
+
+  @override
+  String get sharedUploading => 'Uploading...';
+
+  @override
+  String get sharedSelectFile => 'Select file...';
+
+  @override
+  String get sharedSystemError => 'System Error';
+
+  @override
+  String get sharedUnknownAgent => 'Unknown Agent';
+
+  @override
+  String get sharedUnknown => 'Unknown';
 }

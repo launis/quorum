@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 /// Admin Studio View for managing the Model Registry (SystemConfig).
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -79,7 +80,9 @@ class ModelRegistryView extends HookConsumerWidget {
                   child: Text(l10n.cancelButton),
                 ),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
                   onPressed: () => Navigator.pop(ctx, true),
                   child: Text(l10n.deleteButton),
                 ),
@@ -96,6 +99,9 @@ class ModelRegistryView extends HookConsumerWidget {
           context.pop();
         } catch (e) {
           if (!context.mounted) return;
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to delete registry config: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.deleteFailedError(e.toString())),
@@ -118,6 +124,9 @@ class ModelRegistryView extends HookConsumerWidget {
           ).showSnackBar(SnackBar(content: Text(l10n.configSavedSuccess)));
         } catch (e) {
           if (!context.mounted) return;
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to save registry config: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.saveFailedError(e.toString())),
@@ -145,7 +154,10 @@ class ModelRegistryView extends HookConsumerWidget {
             ),
           if (id != 'new')
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.orange),
+              icon: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
               onPressed: formState.isLoading ? null : deleteRegistry,
               tooltip: l10n.deleteConfigTitle,
             ),

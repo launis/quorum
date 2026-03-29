@@ -39,7 +39,7 @@ class GlobalErrorView extends StatelessWidget {
 
     if (error is AppException) {
       final appEx = error as AppException;
-      titleText = 'System Error: ${appEx.errorCode}';
+      titleText = '${l10n.sharedSystemError}: ${appEx.errorCode}';
       if (appEx.errorCode == 'TOOL_EXECUTION_FAILED') {
         titleText = l10n.toolExecutionFailed;
       }

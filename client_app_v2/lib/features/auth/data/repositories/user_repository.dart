@@ -4,11 +4,14 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/validation_error_reason.dart';
 import 'package:dio/dio.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-final userRepositoryProvider = Provider<UserRepository>((ref) {
+part 'user_repository.g.dart';
+
+@Riverpod(keepAlive: true)
+UserRepository userRepository(Ref ref) {
   return UserRepository(ref.watch(apiClientProvider));
-});
+}
 
 class UserRepository {
   final Dio _client;
@@ -20,12 +23,18 @@ class UserRepository {
       if (response.data == null) return Left(const AppException(detail: ''));
       return Right(User.fromJson(response.data!));
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return Left(AppException.notFound(''));
+      if (e.response?.statusCode == 404)
+        return Left(AppException.notFound('User not found'));
       if (e.response?.statusCode == 401)
         return Left(AppException.unauthorized());
-      return Left(AppException(detail: ''));
+
+      // Preserve RFC 7807 ErrorInterceptor payload
+      if (e.error is AppException) return Left(e.error as AppException);
+
+      return Left(AppException.unknown(e));
     } catch (e) {
-      return Left(AppException.unknown());
+      if (e is AppException) return Left(e);
+      return Left(AppException.unknown(e));
     }
   }
 
@@ -40,13 +49,19 @@ class UserRepository {
       if (response.data == null) return Left(const AppException(detail: ''));
       return Right(User.fromJson(response.data!));
     } on DioException catch (e) {
-      if (e.response?.statusCode == 400)
+      if (e.response?.statusCode == 400) {
         return Left(
           AppException.validation(ValidationErrorReason.unknown.toString()),
         );
-      return Left(AppException(detail: ''));
+      }
+
+      // Preserve RFC 7807 ErrorInterceptor payload
+      if (e.error is AppException) return Left(e.error as AppException);
+
+      return Left(AppException.unknown(e));
     } catch (e) {
-      return Left(AppException.unknown());
+      if (e is AppException) return Left(e);
+      return Left(AppException.unknown(e));
     }
   }
 }

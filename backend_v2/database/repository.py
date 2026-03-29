@@ -485,21 +485,31 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                         logger.warning(f"[Repository] Hydration payload is empty for {field} at {data[path_key]}. Defaulting to empty struct.")
                         data[field] = [] if field == "execution_trace" else {}
                 except Exception as e:
-                    logger.error(f"[Repository] Failed to hydrate {field} from {data[path_key]}: {e}", exc_info=True)
+                    logger.warning(f"[Repository] Failed to hydrate {field} from {data[path_key]}. Error: {e}")
+                    from backend_v2.exceptions import AppException, ErrorCodes
+                    raise AppException(
+                        message=f"Missing blob trace data for {field}.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": data[path_key]}
+                    )
 
     # --- Executions ---
 
     async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
         data = await self.driver.get("executions", execution_id)
         if data:
+            from backend_v2.exceptions import AppException
             try:
                 await self._hydrate_payloads(data)
                 return ExecutionRecord(**data)
+            except AppException:
+                # Re-raise so UI gets the true reason (e.g. data missing from disk)
+                raise
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    f"[Repository] {ErrorCodes.VALIDATION_FAILED.name}: Data corruption - "
+                    f"[Repository] Data corruption - "
                     f"Failed to parse execution {execution_id}: {e}",
                     exc_info=True,
                 )

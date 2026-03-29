@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
-import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/utils/safe_cast.dart';
 
 /// Flat MVC List view for Workflows (DAG definitions).
 /// Adheres strictly to De-Generator constraints using List<Map<String, dynamic>>.
@@ -14,6 +15,7 @@ class WorkflowsMasterView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final workflowsState = ref.watch(workflowsControllerProvider);
 
     return SingleChildScrollView(
@@ -25,7 +27,7 @@ class WorkflowsMasterView extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Workflow Builder',
+                l10n.studioViewsWorkflowBuilderTitle,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               FilledButton.icon(
@@ -33,20 +35,20 @@ class WorkflowsMasterView extends ConsumerWidget {
                   const WorkflowNewRoute().go(context);
                 },
                 icon: const Icon(Icons.account_tree),
-                label: const Text('New Workflow'),
+                label: Text(l10n.studioViewsNewWorkflowBtn),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            'Manage master execution blueprints (DAGs) defining agentic workflows, inputs, and strategies.',
+            l10n.studioViewsWorkflowBuilderDesc,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
           workflowsState.when(
             data: (workflows) {
               if (workflows.isEmpty) {
-                return const Text('No workflows configured.');
+                return Text(l10n.studioViewsNoWorkflowsConfigured);
               }
               return ListView.builder(
                 shrinkWrap: true,
@@ -103,16 +105,20 @@ class WorkflowsMasterView extends ConsumerWidget {
 
                     return Card(
                       child: ListTile(
-                        leading: const Icon(
+                        leading: Icon(
                           Icons.account_tree,
-                          color: Colors.blueGrey,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         title: Text(
                           displayName,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          'ID: ${workflow['id']} | Nodes: $steps | Status: $status',
+                          l10n.studioViewsWorkflowSubtitle(
+                            workflow['id']?.toString() ?? '',
+                            steps,
+                            status,
+                          ),
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,

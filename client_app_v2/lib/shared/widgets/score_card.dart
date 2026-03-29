@@ -61,7 +61,7 @@ class ScoreCard extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
               ],
               Text(
                 AppLocalizations.of(context)!.dataUnavailable,
@@ -81,7 +81,12 @@ class ScoreCard extends StatelessWidget {
     // Calculate color based on value/max ratio
     final ratio = value! / (maxValue ?? 5.0);
     final scoreColor =
-        Color.lerp(Colors.red, Colors.green, ratio) ?? Colors.grey;
+        Color.lerp(
+          Theme.of(context).colorScheme.error,
+          Color(0xFF2E7D32),
+          ratio,
+        ) ??
+        Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Card(
       elevation: 0,

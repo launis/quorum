@@ -67,7 +67,7 @@ Future<void> main() async {
     );
   };
 
-  // Prevent Red Screen of Death (Graceful UI Degradation)
+  // Diagnostic Node: Replace Red Screen of Death with Local Error Box (No Graceful Degradation)
   ErrorWidget.builder = (FlutterErrorDetails details) {
     bool isDebug = false;
     assert(() {
@@ -75,28 +75,27 @@ Future<void> main() async {
       return true;
     }());
 
-    if (!isDebug) {
-      return const SizedBox.shrink();
-    }
-
     return Material(
-      color: Colors.red.shade50,
+      color: const Color(0xFFFFEBEE), // red.shade50
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              const Icon(
                 Icons.warning_amber_rounded,
-                color: Colors.red.shade900,
+                color: Color(0xFFB71C1C), // red.shade900
                 size: 48,
               ),
               const SizedBox(height: 16),
               if (isDebug)
                 Text(
                   details.exceptionAsString(),
-                  style: TextStyle(color: Colors.red.shade700, fontSize: 14),
+                  style: const TextStyle(
+                    color: Color(0xFFD32F2F),
+                    fontSize: 14,
+                  ), // red.shade700
                   textAlign: TextAlign.center,
                 ),
             ],

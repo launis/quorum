@@ -80,6 +80,14 @@ abstract class AppException with _$AppException implements Exception {
     extensions: const {'error_code': 'CANCELLED'},
   );
 
+  factory AppException.timeout([String? message]) => AppException(
+    type: 'https://api.quorum.fi/errors/timeout',
+    title: 'Timeout',
+    status: 408,
+    detail: message ?? 'The request timed out.',
+    extensions: const {'error_code': 'TIMEOUT'},
+  );
+
   factory AppException.validation(String message) => AppException(
     type: 'https://api.quorum.fi/errors/validation-failed',
     title: 'Validation Error',

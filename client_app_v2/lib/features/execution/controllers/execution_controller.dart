@@ -10,6 +10,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'execution_controller.g.dart';
 
+/// Centralized execution logic settings
+class ExecutionSettings {
+  const ExecutionSettings._();
+
+  /// The duration to yield before reconnecting to a rehydrated SSE stream.
+  static const Duration rehydrationDelay = Duration(milliseconds: 500);
+}
+
 /// Controller managing the lifecycle of a V2 DAG Execution.
 ///
 /// Implements Riverpod 3.x optimal practices:
@@ -82,7 +90,7 @@ class ExecutionController extends _$ExecutionController {
       final client = ref.read(executionClientProvider);
       await client.resumeExecution(executionId);
       // Wait a tiny bit for the backend to transition state before we hook SSE again
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(ExecutionSettings.rehydrationDelay);
       _connectToStream(executionId);
     } catch (e, stack) {
       ref
@@ -205,6 +213,14 @@ class ExecutionController extends _$ExecutionController {
             }
           },
           onError: (e, stack) {
+            ref
+                .read(loggerServiceProvider)
+                .error(
+                  'ExecutionController',
+                  'SSE_STREAM_ERROR: Connection failed abruptly',
+                  e,
+                  stack,
+                );
             state = AsyncValue.error(e, stack);
           },
           onDone: () {

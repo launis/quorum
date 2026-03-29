@@ -135,7 +135,7 @@ final class PromptBlockFormProvider
   }
 }
 
-String _$promptBlockFormHash() => r'7aa4e76ff83c23c35ebbf8a918d081179a6ca2f1';
+String _$promptBlockFormHash() => r'1f62b3d71d6a3d44b00e056cc398402918775318';
 
 final class PromptBlockFormFamily extends $Family
     with
@@ -224,7 +224,7 @@ final class PromptBlocksControllerProvider
 }
 
 String _$promptBlocksControllerHash() =>
-    r'04a6142248993bbeae6659e6e2d7cf3cb0a22528';
+    r'b0969a210e4435543bedf784e83cf7c4d5851841';
 
 /// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.

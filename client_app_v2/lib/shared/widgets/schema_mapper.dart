@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// **Schema Mapper**
 ///
@@ -10,6 +11,7 @@ class SchemaMapper {
 
   /// Maps a schema field definition to a specific Input Widget.
   static Widget mapFieldToWidget({
+    required BuildContext context,
     required String key,
     required Map<String, dynamic> schema,
     required dynamic value,
@@ -46,7 +48,10 @@ class SchemaMapper {
           validator:
               isRequired
                   ? (val) =>
-                      val == null || val.isEmpty ? 'Field required' : null
+                      val == null || val.isEmpty
+                          ? AppLocalizations.of(context)?.fieldRequired ??
+                              'Field required'
+                          : null
                   : null,
         ),
       );
@@ -101,7 +106,10 @@ class SchemaMapper {
           validator:
               isRequired
                   ? (val) =>
-                      val == null || val.isEmpty ? 'Field required' : null
+                      val == null || val.isEmpty
+                          ? AppLocalizations.of(context)?.fieldRequired ??
+                              'Field required'
+                          : null
                   : null,
         ),
       );
@@ -120,7 +128,11 @@ class SchemaMapper {
         onChanged: onChanged,
         validator:
             isRequired
-                ? (val) => val == null || val.isEmpty ? 'Field required' : null
+                ? (val) =>
+                    val == null || val.isEmpty
+                        ? AppLocalizations.of(context)?.fieldRequired ??
+                            'Field required'
+                        : null
                 : null,
       ),
     );

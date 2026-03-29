@@ -14,7 +14,7 @@ class WorkflowCloner {
 
   /// Creates a completely standalone copy of the workflow.
   /// Generates new Opaque IDs for steps and structurally updates all internal
-  /// semantic routing references (`depends_on`, `input_mappings`, `render_blueprints`).
+  /// semantic routing references (`depends_on`, `input_mappings`, `output_profiles`).
   ///
   /// Throws `AppException` if the original workflow contains broken references.
   static Map<String, dynamic> cloneDeep(Map<String, dynamic> original) {
@@ -100,9 +100,9 @@ class WorkflowCloner {
       steps[i] = step;
     }
 
-    // 3. Re-route bindings in `render_blueprints`
-    if (cloned.containsKey('render_blueprints')) {
-      final blueprints = SafeCast.safeMap(cloned['render_blueprints']);
+    // 3. Re-route bindings in `output_profiles`
+    if (cloned.containsKey('output_profiles')) {
+      final blueprints = SafeCast.safeMap(cloned['output_profiles']);
       final updatedBlueprints = <String, dynamic>{};
 
       for (final entry in blueprints.entries) {
@@ -111,7 +111,7 @@ class WorkflowCloner {
           idMap,
         );
       }
-      cloned['render_blueprints'] = updatedBlueprints;
+      cloned['output_profiles'] = updatedBlueprints;
     }
 
     // --- Phase C: Riski 3 - Fail Fast Validation ---
@@ -125,7 +125,13 @@ class WorkflowCloner {
       for (final dep in dependsOn) {
         if (!validNewIds.contains(dep)) {
           // Validation failed: Dependency points to a missing/invalid step.
-          throw AppException.validation('workflowCloneErrorMissingDep');
+          throw const AppException(
+            type: 'https://api.quorum.fi/errors/workflow-clone-failed',
+            title: 'Clone Failed',
+            status: 400,
+            detail: 'Dependency points to a missing/invalid step.',
+            extensions: {'error_code': 'WORKFLOW_CLONE_FAILED'},
+          );
         }
       }
     }

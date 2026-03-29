@@ -66,7 +66,7 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Output Mapping (Presentation Rules)',
+              l10n.studioViewsBlueprintRulesTitle,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -75,22 +75,22 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
                 padding: const EdgeInsets.all(16.0),
                 child: DropdownButtonFormField<String>(
                   initialValue: presetView.isEmpty ? '1d_metrics' : presetView,
-                  decoration: const InputDecoration(
-                    labelText: 'Preset View Theme',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.studioViewsPresetViewTheme,
+                    border: const OutlineInputBorder(),
                   ),
-                  items: const [
+                  items: [
                     DropdownMenuItem(
                       value: '1d_metrics',
-                      child: Text('1D Metrics List'),
+                      child: Text(l10n.studioViews1dMetricsList),
                     ),
                     DropdownMenuItem(
                       value: '2d_compare',
-                      child: Text('2D Compare View'),
+                      child: Text(l10n.studioViews2dCompare),
                     ),
                     DropdownMenuItem(
                       value: '3d_complex',
-                      child: Text('3D Complex Matrix'),
+                      child: Text(l10n.studioViews3dComplex),
                     ),
                   ],
                   onChanged: (val) {

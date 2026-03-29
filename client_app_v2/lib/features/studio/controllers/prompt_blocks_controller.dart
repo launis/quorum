@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:client_app/theme/app_durations.dart';
 
 part 'prompt_blocks_controller.g.dart';
 
@@ -25,27 +27,32 @@ class PromptBlockForm extends _$PromptBlockForm {
   @override
   FutureOr<Map<String, dynamic>> build(String configId) async {
     if (configId == 'new') {
-      return Isolate.run(() => {
-        'id': '',
-        'slug': '',
-        'category_id': 'system', // Default fallback category
-        'label': {
-          'default_locale': 'en',
-          'translations': <String, dynamic>{'en': 'New Prompt Block', 'fi': 'Uusi Promptilohko'},
+      return Isolate.run(
+        () => {
+          'id': '',
+          'slug': '',
+          'category_id': 'system', // Default fallback category
+          'label': {
+            'default_locale': 'en',
+            'translations': <String, dynamic>{
+              'en': 'New Prompt Block',
+              'fi': 'Uusi Promptilohko',
+            },
+          },
+          'description': {
+            'default_locale': 'en',
+            'translations': <String, dynamic>{'en': '', 'fi': ''},
+          },
+          'system_instructions': '',
+          'json_schema': null,
         },
-        'description': {
-          'default_locale': 'en',
-          'translations': <String, dynamic>{'en': '', 'fi': ''},
-        },
-        'system_instructions': '',
-        'json_schema': null,
-      });
+      );
     }
 
     final rawData = await ref.watch(promptBlockByIdProvider(configId).future);
     final str = jsonEncode(rawData);
     var copy = await Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
-    
+
     // "The English-Only Mandate": Ensure new blocks have required 'en' structure
     if (!copy.containsKey('label')) {
       copy['label'] = {
@@ -59,7 +66,7 @@ class PromptBlockForm extends _$PromptBlockForm {
         'translations': <String, dynamic>{'en': ''},
       };
     }
-    
+
     return copy;
   }
 
@@ -74,9 +81,12 @@ class PromptBlockForm extends _$PromptBlockForm {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final idToSave = updatedData['id'] as String? ?? configId;
-      if (idToSave.isEmpty || idToSave == 'new') throw Exception("Block ID is required");
+      if (idToSave.isEmpty || idToSave == 'new')
+        throw AppException.validation("Block ID is required");
 
-      await ref.read(promptBlocksControllerProvider.notifier).savePromptBlock(idToSave, updatedData);
+      await ref
+          .read(promptBlocksControllerProvider.notifier)
+          .savePromptBlock(idToSave, updatedData);
       return updatedData;
     });
   }
@@ -90,7 +100,7 @@ class PromptBlockForm extends _$PromptBlockForm {
 class PromptBlocksController extends _$PromptBlocksController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
-    ref.cacheFor(const Duration(minutes: 3));
+    ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchPromptBlocks();
   }
 
@@ -107,8 +117,11 @@ class PromptBlocksController extends _$PromptBlocksController {
     try {
       final newBlocks = await _fetchPromptBlocks();
       state = AsyncValue.data(newBlocks);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('PromptBlocksController', 'Refresh failed', e, st);
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -150,13 +163,16 @@ class PromptBlocksController extends _$PromptBlocksController {
         returnData = verifiedBlock;
       }
       return returnData;
-    } catch (e) {
+    } catch (e, st) {
       // 4. Rollback on Failure
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('PromptBlocksController', 'Save failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to save Prompt Block: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -176,12 +192,15 @@ class PromptBlocksController extends _$PromptBlocksController {
         state = AsyncValue.data(currentList);
       }
       return clonedBlock;
-    } catch (e) {
+    } catch (e, st) {
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('PromptBlocksController', 'Clone failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to clone Prompt Block: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -196,11 +215,14 @@ class PromptBlocksController extends _$PromptBlocksController {
         currentList.removeWhere((m) => m['id'] == id);
         state = AsyncValue.data(currentList);
       }
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('PromptBlocksController', 'Delete failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to delete Prompt Block: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -211,11 +233,14 @@ class PromptBlocksController extends _$PromptBlocksController {
     try {
       final client = ref.read(studioClientProvider);
       return await client.simulatePromptBlock(payload);
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('PromptBlocksController', 'Simulate failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to simulate Prompt Block: $e');
+      throw AppException.unknown(e);
     }
   }
 }

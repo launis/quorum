@@ -38,10 +38,12 @@ class InspectorPane extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
-            const Spacer(),
-            const Text(
+            Spacer(),
+            Text(
               'Select a node to inspect',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const Spacer(),
             Padding(
@@ -84,7 +86,10 @@ class InspectorPane extends StatelessWidget {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: Icon(
+                    Icons.delete,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   onPressed: () => onDeleteStep(selectedStepId!),
                 ),
               ],
@@ -117,12 +122,12 @@ class InspectorPane extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (rawId != null) ...[
-          const Text(
+          Text(
             'Node ID',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
-              color: Colors.grey,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           SelectableText(
@@ -243,9 +248,9 @@ class InspectorPane extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.remove_circle,
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.error,
                     size: 20,
                   ),
                   onPressed: () {

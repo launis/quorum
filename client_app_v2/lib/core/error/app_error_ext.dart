@@ -13,6 +13,8 @@ extension AppExceptionX on AppException {
       return l10n.errorUnauthorized;
     }
     if (this.errorCode == 'CANCELLED') return l10n.cancel;
+    if (this.errorCode == 'TIMEOUT' && this.detail.isNotEmpty)
+      return this.detail;
 
     // Map specific structured payloads or error codes
     final locCode = _localizeErrorCode(this.errorCode, l10n);
@@ -49,12 +51,18 @@ extension AppExceptionX on AppException {
       if (error.error is AppException) {
         return (error.error as AppException).toLocalizedHint(l10n);
       }
-      // Fallbacks if not wrapped correctly
-      if (error.type == DioExceptionType.connectionTimeout ||
-          error.type == DioExceptionType.connectionError) {
-        return l10n.errorNetwork;
-      }
-      return l10n.errorUnknown;
+      // Exhaustive mapping for remaining DioExceptionTypes if not wrapped by interceptor
+      return switch (error.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.receiveTimeout ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.connectionError ||
+        DioExceptionType.badCertificate =>
+          l10n.errorNetwork,
+        DioExceptionType.cancel => l10n.cancel,
+        DioExceptionType.badResponse => l10n.errorServer,
+        DioExceptionType.unknown => l10n.errorUnknown,
+      };
     }
 
     return l10n.errorUnknown;
@@ -74,6 +82,7 @@ extension AppExceptionX on AppException {
       'WORKFLOW_NOT_FOUND' => l10n.errorNotFound,
       'WORKFLOW_EXECUTION_FAILED' => l10n.errorServer,
       'MISSING_WORKFLOW_ID' => l10n.fieldRequired,
+      'WORKFLOW_CLONE_FAILED' => l10n.workflowCloneErrorMissingDep,
 
       // Auth errors
       'AUTH_TOKEN_EXPIRED' => l10n.errorUnauthorized,
@@ -107,6 +116,8 @@ extension AppExceptionX on AppException {
       'URL_INVALID' => '${l10n.errorValidation}\n\n${l10n.actionHintCheckUrl}',
       'FETCH_FAILED' =>
         '${l10n.errorNetwork}\n\n${l10n.actionHintCheckConnection}',
+      'DATA_CORRUPTION' =>
+        '${l10n.errDataCorruptionDesc}\n\n${l10n.actionHintRunAgain}',
 
       _ => l10n.errorUnknown,
     };

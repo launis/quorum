@@ -2696,6 +2696,18 @@ abstract class AppLocalizations {
   /// **'Resource Not Found'**
   String get errResourceNotFound;
 
+  /// No description provided for @errDataCorruptionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Data integrity error: The heavy data file associated with this record could not be found on the physical disk. A report cannot be generated.'**
+  String get errDataCorruptionDesc;
+
+  /// No description provided for @actionHintRunAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint: You must execute this analysis again to generate new data.'**
+  String get actionHintRunAgain;
+
   /// No description provided for @errAuthenticationFailed.
   ///
   /// In en, this message translates to:
@@ -5341,6 +5353,496 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'3. Steps & Dependencies'**
   String get workflowTabSteps;
+
+  /// No description provided for @errNavigationFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation Error: {uri} not found. Returning to workspace...'**
+  String errNavigationFallback(String uri);
+
+  /// No description provided for @studioWorkflowIdOpaque.
+  ///
+  /// In en, this message translates to:
+  /// **'Opaque Workflow ID (System Generated)'**
+  String get studioWorkflowIdOpaque;
+
+  /// No description provided for @studioWorkflowSlugSemantic.
+  ///
+  /// In en, this message translates to:
+  /// **'Semantic Routing Slug (e.g. audit-master)'**
+  String get studioWorkflowSlugSemantic;
+
+  /// No description provided for @studioWorkflowIdentity.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow Identity'**
+  String get studioWorkflowIdentity;
+
+  /// No description provided for @studioWorkflowNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow Name'**
+  String get studioWorkflowNameLabel;
+
+  /// No description provided for @studioWorkflowDescEnLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (EN)'**
+  String get studioWorkflowDescEnLabel;
+
+  /// No description provided for @studioWorkflowDescFiLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Kuvaus (FI)'**
+  String get studioWorkflowDescFiLabel;
+
+  /// No description provided for @studioWorkflowGlobalSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Global Execution Settings'**
+  String get studioWorkflowGlobalSettings;
+
+  /// No description provided for @studioWorkflowDefaultProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Default Fallback Profile'**
+  String get studioWorkflowDefaultProfile;
+
+  /// No description provided for @studioWorkflowInputsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No expected inputs defined.'**
+  String get studioWorkflowInputsEmpty;
+
+  /// No description provided for @studioWorkflowStepCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {count}'**
+  String studioWorkflowStepCount(int count);
+
+  /// No description provided for @studioWorkflowNodeIdOpaque.
+  ///
+  /// In en, this message translates to:
+  /// **'Node ID (Opaque Stripe Pattern)'**
+  String get studioWorkflowNodeIdOpaque;
+
+  /// No description provided for @studioWorkflowTaskBlueprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Blueprint (Cognitive Engine)'**
+  String get studioWorkflowTaskBlueprint;
+
+  /// No description provided for @studioWorkflowXaiReporting.
+  ///
+  /// In en, this message translates to:
+  /// **'XAI Reporting / Toolkit Injection (MCP Gateways):'**
+  String get studioWorkflowXaiReporting;
+
+  /// No description provided for @studioWorkflowDependsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Depends On (Executes AFTER these steps finish):'**
+  String get studioWorkflowDependsOn;
+
+  /// No description provided for @studioWorkflowNoDependencies.
+  ///
+  /// In en, this message translates to:
+  /// **'No previous steps available to depend on.'**
+  String get studioWorkflowNoDependencies;
+
+  /// No description provided for @studioWorkflowInputMappings.
+  ///
+  /// In en, this message translates to:
+  /// **'Input Mappings (State Data Injection):'**
+  String get studioWorkflowInputMappings;
+
+  /// No description provided for @studioWorkflowTargetArgName.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Arg Name'**
+  String get studioWorkflowTargetArgName;
+
+  /// No description provided for @studioWorkflowSourceToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Source Token (e.g. \\\$inputs, step_1)'**
+  String get studioWorkflowSourceToken;
+
+  /// No description provided for @studioWorkflowStepsNoInputsMappingWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: Unmapped inputs found.'**
+  String get studioWorkflowStepsNoInputsMappingWarning;
+
+  /// No description provided for @studioWorkflowStepsInputMappingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Input Mappings (External -> Internal)'**
+  String get studioWorkflowStepsInputMappingTitle;
+
+  /// No description provided for @studioWorkflowStepsAddMappingBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Mapping'**
+  String get studioWorkflowStepsAddMappingBtn;
+
+  /// No description provided for @studioWorkflowStepsDataMissingText.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait, missing data object?'**
+  String get studioWorkflowStepsDataMissingText;
+
+  /// No description provided for @studioWorkflowStepsNoTargetComponents.
+  ///
+  /// In en, this message translates to:
+  /// **'None selected'**
+  String get studioWorkflowStepsNoTargetComponents;
+
+  /// No description provided for @studioViewsBlueprintRulesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Output Mapping (Presentation Rules)'**
+  String get studioViewsBlueprintRulesTitle;
+
+  /// No description provided for @studioViewsPresetViewTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset View Theme'**
+  String get studioViewsPresetViewTheme;
+
+  /// No description provided for @studioViews1dMetricsList.
+  ///
+  /// In en, this message translates to:
+  /// **'1D Metrics List'**
+  String get studioViews1dMetricsList;
+
+  /// No description provided for @studioViews2dCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'2D Compare View'**
+  String get studioViews2dCompare;
+
+  /// No description provided for @studioViews3dComplex.
+  ///
+  /// In en, this message translates to:
+  /// **'3D Complex Matrix'**
+  String get studioViews3dComplex;
+
+  /// No description provided for @studioViewsFailedToClone.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clone: {error}'**
+  String studioViewsFailedToClone(String error);
+
+  /// No description provided for @studioViewsNewMatrix.
+  ///
+  /// In en, this message translates to:
+  /// **'New Matrix'**
+  String get studioViewsNewMatrix;
+
+  /// No description provided for @studioViewsErrorLoadingWorkflows.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading workflows: {error}'**
+  String studioViewsErrorLoadingWorkflows(String error);
+
+  /// No description provided for @studioViewsProfileIdRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile ID is required'**
+  String get studioViewsProfileIdRequired;
+
+  /// No description provided for @studioViewsErrorLoadingBlocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading blocks: {error}'**
+  String studioViewsErrorLoadingBlocks(String error);
+
+  /// No description provided for @studioViewsOutputProfilesMasterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Output Profiles'**
+  String get studioViewsOutputProfilesMasterTitle;
+
+  /// No description provided for @studioViewsNewProfileBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'New Profile'**
+  String get studioViewsNewProfileBtn;
+
+  /// No description provided for @studioViewsNoOutputProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'No Output Profiles defined.'**
+  String get studioViewsNoOutputProfiles;
+
+  /// No description provided for @studioViewsUnnamedProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed Profile'**
+  String get studioViewsUnnamedProfile;
+
+  /// No description provided for @studioViewsProfileListSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ID: {id} | Workflow: {workflow} | {layouts} Layout Blocks'**
+  String studioViewsProfileListSubtitle(
+    String id,
+    String workflow,
+    int layouts,
+  );
+
+  /// No description provided for @studioViewsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get studioViewsNone;
+
+  /// No description provided for @studioViewsAddBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get studioViewsAddBtn;
+
+  /// No description provided for @studioViewsWarningNoModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: No models found.'**
+  String get studioViewsWarningNoModels;
+
+  /// No description provided for @studioViewsModelStrategyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Strategy (Cost/Cognition Override)'**
+  String get studioViewsModelStrategyLabel;
+
+  /// No description provided for @studioViewsAdminStudioV2.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Studio V2'**
+  String get studioViewsAdminStudioV2;
+
+  /// No description provided for @studioViewsPromptBlocksTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt Blocks'**
+  String get studioViewsPromptBlocksTab;
+
+  /// No description provided for @studioViewsStepsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get studioViewsStepsTab;
+
+  /// No description provided for @studioViewsProfilesTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles'**
+  String get studioViewsProfilesTab;
+
+  /// No description provided for @studioViewsPromptBlocksStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt Blocks (Standard)'**
+  String get studioViewsPromptBlocksStandard;
+
+  /// No description provided for @studioViewsNoStandardPromptBlocks.
+  ///
+  /// In en, this message translates to:
+  /// **'No standard prompt blocks defined.'**
+  String get studioViewsNoStandardPromptBlocks;
+
+  /// No description provided for @studioViewsSlugSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Slug: {slug}'**
+  String studioViewsSlugSubtitle(String slug);
+
+  /// No description provided for @studioViewsNoMatricesDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'No matrices defined.'**
+  String get studioViewsNoMatricesDefined;
+
+  /// No description provided for @studioViewsNoStepsDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'No Steps defined.'**
+  String get studioViewsNoStepsDefined;
+
+  /// No description provided for @studioViewsStepsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocks: {blocks} | Hooks: {hooks}'**
+  String studioViewsStepsSubtitle(int blocks, int hooks);
+
+  /// No description provided for @studioViewsNoSystemConfigs.
+  ///
+  /// In en, this message translates to:
+  /// **'No System Configs defined.'**
+  String get studioViewsNoSystemConfigs;
+
+  /// No description provided for @studioViewsConfiguredModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Configured Models: {count}'**
+  String studioViewsConfiguredModels(int count);
+
+  /// No description provided for @studioViewsNewBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get studioViewsNewBtn;
+
+  /// No description provided for @studioViewsWorkflowBuilderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow Builder'**
+  String get studioViewsWorkflowBuilderTitle;
+
+  /// No description provided for @studioViewsNewWorkflowBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'New Workflow'**
+  String get studioViewsNewWorkflowBtn;
+
+  /// No description provided for @studioViewsWorkflowBuilderDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage master execution blueprints (DAGs) defining agentic workflows, inputs, and strategies.'**
+  String get studioViewsWorkflowBuilderDesc;
+
+  /// No description provided for @studioViewsNoWorkflowsConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No workflows configured.'**
+  String get studioViewsNoWorkflowsConfigured;
+
+  /// No description provided for @studioViewsWorkflowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ID: {id} | Nodes: {nodes} | Status: {status}'**
+  String studioViewsWorkflowSubtitle(String id, int nodes, String status);
+
+  /// No description provided for @studioWorkflowAddMappingBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Mapping'**
+  String get studioWorkflowAddMappingBtn;
+
+  /// No description provided for @studioWorkflowStepsDependencies.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps & Dependencies'**
+  String get studioWorkflowStepsDependencies;
+
+  /// No description provided for @studioWorkflowAddStepNodeBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Step Node'**
+  String get studioWorkflowAddStepNodeBtn;
+
+  /// No description provided for @studioWorkflowStepsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No steps defined. Add a node to start creating the orchestration graph.'**
+  String get studioWorkflowStepsEmpty;
+
+  /// No description provided for @studioViewsMatricesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage system evaluation matrices.'**
+  String get studioViewsMatricesDescription;
+
+  /// No description provided for @studioViewsNoMatricesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No Matrices Available.'**
+  String get studioViewsNoMatricesAvailable;
+
+  /// No description provided for @studioViewsMatrixCloned.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix cloned successfully.'**
+  String get studioViewsMatrixCloned;
+
+  /// No description provided for @sharedNoTimelineData.
+  ///
+  /// In en, this message translates to:
+  /// **'No timeline data available.'**
+  String get sharedNoTimelineData;
+
+  /// No description provided for @sharedNoReportData.
+  ///
+  /// In en, this message translates to:
+  /// **'No report data available.'**
+  String get sharedNoReportData;
+
+  /// No description provided for @sharedDatagridUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'DataGrid is currently unsupported in V2'**
+  String get sharedDatagridUnsupported;
+
+  /// No description provided for @sharedFlatReportNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No Flat Report data found for this execution.'**
+  String get sharedFlatReportNoData;
+
+  /// No description provided for @sharedAnalysisPerformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis Performed: '**
+  String get sharedAnalysisPerformed;
+
+  /// No description provided for @sharedNoComparisonData.
+  ///
+  /// In en, this message translates to:
+  /// **'No comparison data available.'**
+  String get sharedNoComparisonData;
+
+  /// No description provided for @sharedMoreInfoTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'More information'**
+  String get sharedMoreInfoTooltip;
+
+  /// No description provided for @sharedOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get sharedOk;
+
+  /// No description provided for @sharedUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading...'**
+  String get sharedUploading;
+
+  /// No description provided for @sharedSelectFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select file...'**
+  String get sharedSelectFile;
+
+  /// No description provided for @sharedSystemError.
+  ///
+  /// In en, this message translates to:
+  /// **'System Error'**
+  String get sharedSystemError;
+
+  /// No description provided for @sharedUnknownAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown Agent'**
+  String get sharedUnknownAgent;
+
+  /// No description provided for @sharedUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get sharedUnknown;
 }
 
 class _AppLocalizationsDelegate

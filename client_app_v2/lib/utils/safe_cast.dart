@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// **SafeCast Utility**
 ///
 /// Defensive parsing utility ensuring the Flutter frontend does not crash
@@ -61,7 +63,8 @@ class SafeCast {
     if (value is Map) {
       try {
         return Map<String, dynamic>.from(value);
-      } catch (_) {
+      } catch (e, stack) {
+        debugPrint('[SafeCast] Error extracting Map: $value -> $e\n$stack');
         return fallback;
       }
     }
@@ -76,7 +79,8 @@ class SafeCast {
     if (value is List) {
       try {
         return List<T>.from(value);
-      } catch (_) {
+      } catch (e, stack) {
+        debugPrint('[SafeCast] Error extracting List: $value -> $e\n$stack');
         return fallback;
       }
     }
@@ -95,7 +99,10 @@ class SafeCast {
       // Assuming it could be milliseconds since epoch from JSON
       try {
         return DateTime.fromMillisecondsSinceEpoch(value);
-      } catch (_) {
+      } catch (e, stack) {
+        debugPrint(
+          '[SafeCast] Error extracting DateTime from int: $value -> $e\n$stack',
+        );
         return null;
       }
     }
@@ -118,7 +125,8 @@ class SafeCast {
         (e) => e.name.toLowerCase() == strValue,
         orElse: () => defaultValue,
       );
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('[SafeCast] Error extracting Enum: $value -> $e\n$stack');
       return defaultValue;
     }
   }
@@ -139,7 +147,10 @@ class SafeCast {
           copy[entry.key] = safeDeepCopyMap(
             Map<String, dynamic>.from(entry.value as Map),
           );
-        } catch (_) {
+        } catch (e, stack) {
+          debugPrint(
+            '[SafeCast] Deep copy Map extraction error for key ${entry.key}: $e\n$stack',
+          );
           copy[entry.key] = entry.value;
         }
       } else if (entry.value is List) {

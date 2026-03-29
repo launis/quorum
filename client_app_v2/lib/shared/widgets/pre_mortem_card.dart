@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/widgets/deep_dive_expander.dart';
 
 class PreMortemCard extends StatelessWidget {
@@ -23,11 +24,17 @@ class PreMortemCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('Analysis Performed: '),
+              Text(
+                AppLocalizations.of(context)?.sharedAnalysisPerformed ??
+                    'Analysis Performed: ',
+              ),
               Icon(
                 executed ? Icons.check : Icons.close,
                 size: 16,
-                color: executed ? Colors.green : Colors.grey,
+                color:
+                    executed
+                        ? Color(0xFF2E7D32)
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ],
           ),

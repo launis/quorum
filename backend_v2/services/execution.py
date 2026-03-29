@@ -83,10 +83,39 @@ class ExecutionService:
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
         """Securely delete an execution."""
-        # 1. Authorize via get (Fail-Fast ResourceNotFound / PermissionDenied)
-        await self.get_execution(initiator, execution_id)
+        # 1. Raw fetch to bypass hydration (Fail-Fast ResourceNotFound / PermissionDenied).
+        # This allows deleting corrupted executions where blob files are missing.
+        raw_data = await self.repo.driver.get("executions", execution_id)
+        if not raw_data:
+             logger.error(
+                 f"[ExecutionService] {ErrorCodes.RESOURCE_NOT_FOUND.name}: "
+                 f"Execution {execution_id} not found."
+             )
+             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
+
+        # SSOT MANDATE: Tenant Isolation Check
+        org_id = getattr(initiator, "organization_id", None)
+        if (initiator.role != "ROOT" and
+            raw_data.get("organization_id") != org_id and
+            raw_data.get("created_by") != initiator.id):
+            msg = "You do not have permission to delete this execution."
+            logger.error(
+                f"[ExecutionService] {ErrorCodes.PERMISSION_DENIED.name}: "
+                f"User {initiator.id} attempted to delete foreign execution {execution_id}."
+            )
+            raise PermissionDeniedError(msg)
 
         try:
+            # Clean up offloaded blobs if they exist (silently ignore if missing)
+            from backend_v2.services.storage import get_storage_driver
+            storage = get_storage_driver()
+            for key in ["execution_trace_storage_path", "frozen_context_storage_path", "pdf_report_path"]:
+                 if raw_data.get(key):
+                     try:
+                         await storage.delete(raw_data[key])
+                     except Exception:
+                         pass
+
             return await self.repo.delete_execution(execution_id)
         except Exception as e:
             msg = f"Failed to delete execution {execution_id}: {str(e)}"

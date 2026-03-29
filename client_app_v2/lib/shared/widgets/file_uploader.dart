@@ -1,5 +1,8 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class FileUploader extends StatefulWidget {
   final String label;
@@ -31,14 +34,30 @@ class _FileUploaderState extends State<FileUploader> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles();
+    try {
+      final result = await FilePicker.platform.pickFiles();
 
-    if (result != null) {
-      final file = result.files.single;
-      setState(() {
-        _fileName = file.name;
-      });
-      widget.onFileSelected?.call(file);
+      if (result != null) {
+        final file = result.files.single;
+        setState(() {
+          _fileName = file.name;
+        });
+        widget.onFileSelected?.call(file);
+      }
+    } catch (e) {
+      if (mounted) {
+        ProviderScope.containerOf(context)
+            .read(loggerServiceProvider)
+            .error('Shared', 'File Uploader Error: $e', e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.errorReadingFile('$e') ??
+                  'Error reading file ($e)',
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -80,8 +99,11 @@ class _FileUploaderState extends State<FileUploader> {
                 Expanded(
                   child: Text(
                     widget.isLoading
-                        ? 'Uploading...'
-                        : (_fileName ?? 'Select file...'),
+                        ? (AppLocalizations.of(context)?.sharedUploading ??
+                            'Uploading...')
+                        : (_fileName ??
+                            AppLocalizations.of(context)?.sharedSelectFile ??
+                            'Select file...'),
                     style: TextStyle(
                       color:
                           (widget.isLoading || _fileName != null)

@@ -44,7 +44,7 @@ final class McpGatewaysControllerProvider
 }
 
 String _$mcpGatewaysControllerHash() =>
-    r'7cb0b596c0a75e1976e1b98e5468d59927f39a3a';
+    r'1a87f290824f67370010b7c479e3097d5f60da5f';
 
 /// Controller managing the MCP Gateways strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.

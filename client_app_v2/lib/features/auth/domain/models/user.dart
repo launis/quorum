@@ -6,8 +6,7 @@ enum UserRole {
   viewer,
   unknown;
 
-  static UserRole fromString(String? value) {
-    if (value == null) return UserRole.viewer;
+  static UserRole fromString(String value) {
     switch (value.toUpperCase()) {
       case 'ROOT':
         return UserRole.root;
@@ -20,7 +19,7 @@ enum UserRole {
       case 'VIEWER':
         return UserRole.viewer;
       default:
-        return UserRole.viewer;
+        throw FormatException('Unknown UserRole: $value');
     }
   }
 
@@ -51,7 +50,6 @@ class User {
   final String email;
 
   /// The assigned system role.
-  /// Defaults to [UserRole.viewer] to fail secure if data is missing.
   final UserRole role;
 
   /// The ID of the organization this user belongs to.
@@ -74,8 +72,8 @@ class User {
   final DateTime? lastLoginAt;
 
   /// Total number of logic executions performed by the user.
-  /// Defaults to 0 if missing.
-  final int executionCount;
+  /// Nullable because the standard `/api/v1/users/me` endpoint might omit it compared to Admin SDK views.
+  final int? executionCount;
 
   const User({
     required this.id,
@@ -88,7 +86,7 @@ class User {
     this.language,
     this.themeMode,
     this.lastLoginAt,
-    this.executionCount = 0,
+    this.executionCount,
   });
 
   /// Factory constructor for creating a new [User] instance from a map.
@@ -97,7 +95,7 @@ class User {
       id: json['id'] as String,
       slug: json['slug'] as String?,
       email: json['email'] as String,
-      role: UserRole.fromString(json['role'] as String?),
+      role: UserRole.fromString(json['role'] as String),
       organizationId: json['organization_id'] as String?,
       displayName: json['display_name'] as String?,
       createdAt: json['created_at'] as String?,
@@ -107,7 +105,7 @@ class User {
           json['last_login_at'] != null
               ? DateTime.tryParse(json['last_login_at'] as String)
               : null,
-      executionCount: json['execution_count'] as int? ?? 0,
+      executionCount: json['execution_count'] as int?,
     );
   }
 

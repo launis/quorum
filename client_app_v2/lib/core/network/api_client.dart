@@ -1,12 +1,14 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/network/interceptors/auth_interceptor.dart';
 import 'package:client_app/core/network/interceptors/error_interceptor.dart';
 import 'package:client_app/core/network/interceptors/dio_logger_interceptor.dart';
 import 'package:client_app/core/network/interceptors/locale_interceptor.dart';
 import 'package:client_app/core/environment/env.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'dart:isolate';
 import 'dart:convert';
+
+part 'api_client.g.dart';
 
 /// **API Client Provider**
 ///
@@ -39,15 +41,27 @@ class BackgroundTransformer extends SyncTransformer {
   BackgroundTransformer() : super(jsonDecodeCallback: _parseJson);
 }
 
-final apiClientProvider = Provider<Dio>((ref) {
+/// Centralized Network Timeouts
+class ApiTimeouts {
+  const ApiTimeouts._();
+
+  /// Max time to establish a TCP connection with the server
+  static const Duration connect = Duration(seconds: 15);
+
+  /// Max time to wait for a response after connection (High for AI execution)
+  static const Duration receive = Duration(seconds: 300);
+}
+
+@Riverpod(keepAlive: true)
+Dio apiClient(Ref ref) {
   // Watch envProvider to rebuild client if config changes
   ref.watch(envProvider);
 
   final dio = Dio(
     BaseOptions(
       baseUrl: '${Env.apiUrl}/api/v2/',
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 300),
+      connectTimeout: ApiTimeouts.connect,
+      receiveTimeout: ApiTimeouts.receive,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json, application/problem+json',
@@ -71,4 +85,4 @@ final apiClientProvider = Provider<Dio>((ref) {
   dio.interceptors.add(ErrorInterceptor(ref));
 
   return dio;
-});
+}

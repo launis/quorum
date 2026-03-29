@@ -9,9 +9,10 @@ import 'package:client_app/features/studio/views/mcp_gateways_master_view.dart';
 import 'package:client_app/features/studio/views/workflows_master_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
-import 'package:client_app/router/router.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/router/router.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 /// **Studio Dashboard View**
 ///
@@ -55,7 +56,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           tooltip: 'Back to Application',
           onPressed: () => context.go('/dashboard'),
         ),
-        title: const Text('Admin Studio V2'),
+        title: Text(l10n.studioViewsAdminStudioV2),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -73,13 +74,22 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               icon: const Icon(Icons.schema),
               text: l10n.studioDashboardWorkflowsTitle,
             ),
-            const Tab(icon: Icon(Icons.chat), text: 'Prompt Blocks'),
+            Tab(
+              icon: const Icon(Icons.chat),
+              text: l10n.studioViewsPromptBlocksTab,
+            ),
             Tab(
               icon: const Icon(Icons.dataset),
               text: l10n.studioDashboardMatricesTitle,
             ),
-            const Tab(icon: Icon(Icons.extension), text: 'Steps'),
-            const Tab(icon: Icon(Icons.print), text: 'Profiles'),
+            Tab(
+              icon: const Icon(Icons.extension),
+              text: l10n.studioViewsStepsTab,
+            ),
+            Tab(
+              icon: const Icon(Icons.print),
+              text: l10n.studioViewsProfilesTab,
+            ),
             Tab(
               icon: const Icon(Icons.settings),
               text: l10n.modelRegistryTitle,
@@ -139,16 +149,20 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(context, 'Prompt Blocks (Standard)', () {
-            const PromptBlockNewRoute().go(context);
-          }),
+          _buildSectionHeader(
+            context,
+            l10n.studioViewsPromptBlocksStandard,
+            () {
+              const PromptBlockNewRoute().go(context);
+            },
+          ),
           const SizedBox(height: 16),
           promptBlocksState.when(
             data: (allBlocks) {
               final regularBlocks =
                   allBlocks.where((b) => b['category_id'] != 'matrix').toList();
               if (regularBlocks.isEmpty)
-                return const Text('No standard prompt blocks defined.');
+                return Text(l10n.studioViewsNoStandardPromptBlocks);
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -171,7 +185,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       child: ListTile(
                         leading: const Icon(Icons.text_snippet),
                         title: Text(blockId),
-                        subtitle: Text('Slug: $slugStr'),
+                        subtitle: Text(l10n.studioViewsSlugSubtitle(slugStr)),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -198,6 +212,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       ),
                     );
                   } catch (e) {
+                    ref
+                        .read(loggerServiceProvider)
+                        .error(
+                          'Studio',
+                          'Error rendering block list tile: $e',
+                          e,
+                        );
                     return ErrorView(error: e, compact: true);
                   }
                 },
@@ -241,7 +262,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
             data: (allBlocks) {
               final matrices =
                   allBlocks.where((b) => b['category_id'] == 'matrix').toList();
-              if (matrices.isEmpty) return const Text('No matrices defined.');
+              if (matrices.isEmpty)
+                return Text(l10n.studioViewsNoMatricesDefined);
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -295,6 +317,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       ),
                     );
                   } catch (e) {
+                    ref
+                        .read(loggerServiceProvider)
+                        .error(
+                          'Studio',
+                          'Error rendering matrix list tile: $e',
+                          e,
+                        );
                     return ErrorView(error: e, compact: true);
                   }
                 },
@@ -330,13 +359,14 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(context, 'Steps', () {
+          _buildSectionHeader(context, l10n.studioViewsStepsTab, () {
             const StepNewRoute().go(context);
           }),
           const SizedBox(height: 16),
           blueprintsState.when(
             data: (blueprints) {
-              if (blueprints.isEmpty) return const Text('No Steps defined.');
+              if (blueprints.isEmpty)
+                return Text(l10n.studioViewsNoStepsDefined);
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -369,7 +399,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       child: ListTile(
                         title: Text(blueprintId),
                         subtitle: Text(
-                          'Blocks: $blockCount | Hooks: $hookCount',
+                          l10n.studioViewsStepsSubtitle(blockCount, hookCount),
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -391,6 +421,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       ),
                     );
                   } catch (e) {
+                    ref
+                        .read(loggerServiceProvider)
+                        .error(
+                          'Studio',
+                          'Error rendering step list tile: $e',
+                          e,
+                        );
                     return ErrorView(error: e, compact: true);
                   }
                 },
@@ -429,8 +466,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           const SizedBox(height: 16),
           registryState.when(
             data: (configs) {
-              if (configs.isEmpty)
-                return const Text('No System Configs defined.');
+              if (configs.isEmpty) return Text(l10n.studioViewsNoSystemConfigs);
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -455,7 +491,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                     return Card(
                       child: ListTile(
                         title: Text(configId),
-                        subtitle: Text('Configured Models: $modelCount'),
+                        subtitle: Text(
+                          l10n.studioViewsConfiguredModels(modelCount),
+                        ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -481,6 +519,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       ),
                     );
                   } catch (e) {
+                    ref
+                        .read(loggerServiceProvider)
+                        .error(
+                          'Studio',
+                          'Error rendering config list tile: $e',
+                          e,
+                        );
                     return ErrorView(error: e, compact: true);
                   }
                 },
@@ -509,6 +554,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     String title,
     VoidCallback onAdd,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -516,7 +562,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         FilledButton.icon(
           onPressed: onAdd,
           icon: const Icon(Icons.add),
-          label: const Text('New'),
+          label: Text(l10n.studioViewsNewBtn),
         ),
       ],
     );

@@ -1,7 +1,7 @@
 INSTRUCTIONS (TIER 2 EXECUTION - PYTHON BACKEND):
 
 **STEP 1: Kartoitus ja Suunnitelma (Mapping)**
-Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. bash `find backend_v2 -type d -not -path "*/__pycache__*" -not -path "*/\.*"`) ja hahmottaa `backend_v2` rakenteen syvyys. Rakenna tämän pohjalta `task_backend.md` -tiedostoon Markdown-tarkistuslista. 
+Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus) ja hahmottaa hakemiston rakenteen syvyys. Huomioi: Jos käyttäjä antaa komennossaan tarkan alipolun (esim. `backend_v2/api/routers/studio`), kartoita RAKENNE VAIN TÄSTÄ POLUSTA alaspäin, ja jätä muu projekti rauhaan. Jos alipolkua ei erikseen määritetä, kartoita koko `backend_v2`. Rakenna tämän pohjalta `task_backend.md` -tiedostoon Markdown-tarkistuslista.
 
 SÄÄNTÖ: Jaa lista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) on oma erillinen kohtansa listalla** (esim. pelkkä `backend_v2/api/routers` ei riitä, vaan listalla on oltava erikseen `backend_v2/api/routers/studio`, `backend_v2/api/routers/execution` jne.). Mitään hakemistoja ei saa niputtaa. ÄLÄ tee koodimuutoksia tässä vaiheessa. Pyydä minulta "PROCEED" kun lista on valmis.
 
@@ -29,7 +29,7 @@ Ilmoita minulle: "Valmis. Odotan NEXT-komentoa."
 **STEP 4: Kontekstin nollaus ja siirtyminen (The NEXT command)**
 Kun kansion auditointi oli puhdas tai korjaukset on tehty, annan sinulle aina tällaisen komennon:
 
-> "NEXT. Muista yhä docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md säännöt ja docs/antigravity_prompting.md:#L133-189 UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (V5.2 - PHASE 9 HARDENING). Pakolliset mandaatit backendille: Strict Pydantic V2 (Rust-parsing, frozen, forbid extra, Annotated), Fail-Fast sääntö (ei try-except pass), AppException (RFC 7807) & Dual-Reporting (rakenteellinen lokitus, ei f-stringejä), Aneemiset Reitittimet (SSOT Serviceihin), asyncio.TaskGroup (ei orpoja säikeitä), Annotated Dependency Injection ja PEP 695/698 tyypitykset. Lue ohjetiedostot nyt uudestaan."
+> "NEXT. Muista yhä docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md säännöt ja docs/antigravity_prompting.md:#L133-206 UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (V5.2 - PHASE 9 HARDENING). Pakolliset mandaatit backendille: Strict Pydantic V2 (Rust-parsing, frozen, forbid extra, Annotated), Fail-Fast sääntö (ei try-except pass), AppException (RFC 7807) & Dual-Reporting (rakenteellinen lokitus, ei f-stringejä), Aneemiset Reitittimet (SSOT Serviceihin), asyncio.TaskGroup (ei orpoja säikeitä), Annotated Dependency Injection ja PEP 695/698 tyypitykset. Lue ohjetiedostot nyt uudestaan."
 
 Kun saat yllä olevan komennon, sinun on **EHDOTTOMASTI luettava työkalullasi (esim. bash `cat` / python) mainitut dokumentit ja niissä määritellyt rivit uudelleen** aktiiviseen muistiisi (context driftin estämiseksi). Vasta luettuasi ohjetiedostot uudelleen, siirry `task_backend.md` listan seuraavaan tekemättömään alihakemistoon ja aloita STEP 2 alusta.
 

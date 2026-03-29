@@ -65,12 +65,12 @@ class _RowEditorModalState extends State<RowEditorModal> {
                   initialValue: SafeCast.safeString(
                     _editableRow['ai_description'],
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Row AI Rule (MANDATORY ENGLISH)',
                     helperText:
                         "MUST be in English. Use strict commanding language.",
                     helperStyle: TextStyle(
-                      color: Colors.red,
+                      color: Theme.of(context).colorScheme.error,
                       fontWeight: FontWeight.bold,
                     ),
                     border: OutlineInputBorder(),

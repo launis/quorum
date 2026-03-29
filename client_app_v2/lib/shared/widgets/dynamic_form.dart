@@ -72,6 +72,7 @@ class _DynamicFormWidgetState extends State<DynamicFormWidget> {
 
               // Render via SchemaMapper
               return SchemaMapper.mapFieldToWidget(
+                context: context,
                 key: key,
                 schema: fieldSchema,
                 value: _formData[key],

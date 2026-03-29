@@ -16,7 +16,7 @@ class FeedbackSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const SizedBox.shrink();
+    if (items.isEmpty) return SizedBox.shrink();
 
     final theme = Theme.of(context);
     final baseColor = color ?? theme.colorScheme.primary;

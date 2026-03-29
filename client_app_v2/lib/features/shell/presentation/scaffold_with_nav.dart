@@ -15,8 +15,8 @@ class ScaffoldWithNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Breakpoint: 800dp (More space for Admin dashboard)
-    final isWideScreen = MediaQuery.sizeOf(context).width >= 800;
+    // Breakpoint: 600dp (Tablet/Desktop Transition per V2 Mandate)
+    final isWideScreen = MediaQuery.sizeOf(context).width >= 600;
     final l10n = AppLocalizations.of(context)!;
 
     if (isWideScreen) {
@@ -60,6 +60,11 @@ class ScaffoldWithNav extends StatelessWidget {
             icon: const Icon(Icons.admin_panel_settings_outlined),
             selectedIcon: const Icon(Icons.admin_panel_settings),
             label: l10n.navAdmin,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.api_outlined),
+            selectedIcon: const Icon(Icons.api),
+            label: l10n.navSystemInspector,
           ),
         ],
       ),

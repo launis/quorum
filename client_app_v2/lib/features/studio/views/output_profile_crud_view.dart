@@ -10,6 +10,7 @@ import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 /// Admin Studio View for managing Output Profiles.
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -108,7 +109,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
       try {
         final String idToSave = idController.text.trim();
-        if (idToSave.isEmpty) throw Exception("Profile ID is required");
+        if (idToSave.isEmpty)
+          throw Exception(l10n.studioViewsProfileIdRequired);
 
         payload['id'] = idToSave;
         payload['slug'] =
@@ -125,12 +127,15 @@ class OutputProfileCrudView extends HookConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.profileSavedSuccess),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF2E7D32),
           ),
         );
         context.pop(); // GoRouter
       } catch (e) {
         if (!context.mounted) return;
+        ref
+            .read(loggerServiceProvider)
+            .error('Studio', 'Failed to save profile: $e', e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.saveFailedError(e.toString())),
@@ -156,7 +161,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   child: Text(l10n.cancelButton),
                 ),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
                   onPressed: () => Navigator.pop(ctx, true),
                   child: Text(l10n.deleteButton),
                 ),
@@ -172,6 +179,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
           if (context.mounted) context.pop();
         } catch (e) {
           if (!context.mounted) return;
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to delete profile: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.deleteFailedError(e.toString()))),
           );
@@ -252,7 +262,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
             else ...[
               if (id != 'new')
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.orange),
+                  icon: Icon(
+                    Icons.delete,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   onPressed: deleteProfile,
                   tooltip: l10n.deleteProfileTitle,
                 ),
@@ -358,7 +371,12 @@ class OutputProfileCrudView extends HookConsumerWidget {
                             () => const Center(
                               child: CircularProgressIndicator(),
                             ),
-                        error: (e, _) => Text('Error loading workflows: $e'),
+                        error:
+                            (e, _) => Text(
+                              l10n.studioViewsErrorLoadingWorkflows(
+                                e.toString(),
+                              ),
+                            ),
                       ),
                       const SizedBox(height: 16),
                       I18nTextField(
@@ -389,12 +407,12 @@ class OutputProfileCrudView extends HookConsumerWidget {
               const SizedBox(height: 24),
               if (selectedWorkflowId.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(16.0),
                   child: Center(
                     child: Text(
                       l10n.workflowSelectWarning,
-                      style: const TextStyle(
-                        color: Colors.orange,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -486,9 +504,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -558,7 +576,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.orange),
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 onPressed: () {
                   parentLayoutsList.removeAt(index);
                   ref
@@ -693,7 +714,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   alignment: Alignment.centerLeft,
                   child: CircularProgressIndicator(),
                 ),
-            error: (e, _) => Text('Error loading blocks: $e'),
+            error:
+                (e, _) =>
+                    Text(l10n.studioViewsErrorLoadingBlocks(e.toString())),
           ),
         ],
       ),

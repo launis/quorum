@@ -33,18 +33,15 @@ class ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // DEVELOPER VISIBILITY MANDATE: Ensure no UI degradation is completely silent
-    debugPrint('🔴 UI GRACEFUL DEGRADATION [ErrorView rendered]: \$error');
+    debugPrint('🔴 UI DIAGNOSTIC NODE [ErrorView rendered]: $error');
 
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
-    // "Red Banner" Style
-    final backgroundColor =
-        isDark ? theme.colorScheme.errorContainer : Colors.red.shade50;
-    final textColor =
-        isDark ? theme.colorScheme.onErrorContainer : Colors.red.shade900;
-    final iconColor = isDark ? theme.colorScheme.error : Colors.red.shade700;
+    // "Red Banner" Style (Now fully dynamic via FlexColorScheme)
+    final backgroundColor = theme.colorScheme.errorContainer;
+    final textColor = theme.colorScheme.onErrorContainer;
+    final iconColor = theme.colorScheme.error;
 
     final content = Container(
       padding: const EdgeInsets.all(16),
@@ -171,15 +168,10 @@ class ErrorView extends StatelessWidget {
   }
 
   String _formatError(Object error, AppLocalizations l10n) {
-    if (error is DioException && error.error is AppException) {
-      return _formatError(error.error!, l10n);
-    }
-
-    if (error is AppException) {
-      return error.toLocalizedHint(l10n);
-    }
-    // Keep it clean but detailed enough for debugging if needed
-    return error.toString().replaceAll('Exception: ', '');
+    // FAIL-FAST MANDATE / NO-STRING MANDATE:
+    // Raw exceptions (DioException, FormatException) must never leak their toString to the UI.
+    // Always map through the centralized localized extractor.
+    return AppExceptionX.extractLocalizedHint(error, l10n);
   }
 
   String? _getTechnicalDetails(Object error) {

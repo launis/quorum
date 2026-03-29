@@ -9,11 +9,23 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:file_saver/file_saver.dart';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import 'dart:async'; // Add dart:async for Timer
+
+/// Centralized settings for the Execution Dashboard
+class DashboardSettings {
+  const DashboardSettings._();
+
+  /// Auto-refresh interval for the continuous background polling
+  static const Duration refreshRate = Duration(seconds: 10);
+
+  /// Global timeout for the PDF streams
+  static const Duration downloadTimeout = Duration(seconds: 15);
+}
 
 // Provider to fetch executions using SafeCast (No Freezed API DTOs)
 final executionListProvider = FutureProvider.autoDispose<
@@ -22,7 +34,7 @@ final executionListProvider = FutureProvider.autoDispose<
   // 1. Riverpod Polling (Auto-Refresh)
   // Poll backend every 10 seconds to keep the Execution Dashboard alive and fresh,
   // bypassing the StatefulShellRoute cache stagnation issue.
-  final timer = Timer(const Duration(seconds: 10), () {
+  final timer = Timer(DashboardSettings.refreshRate, () {
     ref.invalidateSelf();
   });
   ref.onDispose(timer.cancel);
@@ -179,7 +191,10 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                       const SizedBox(width: 8),
                       if (status.toLowerCase() == 'completed') ...[
                         IconButton(
-                          icon: const Icon(Icons.print, color: Colors.blue),
+                          icon: Icon(
+                            Icons.print,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                           tooltip:
                               AppLocalizations.of(
                                 context,
@@ -195,7 +210,10 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                         const SizedBox(width: 8),
                       ],
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
+                        icon: Icon(
+                          Icons.delete,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                         tooltip:
                             AppLocalizations.of(
                               context,
@@ -350,10 +368,10 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             mimeType: MimeType.pdf,
           )
           .timeout(
-            const Duration(seconds: 15),
+            DashboardSettings.downloadTimeout,
             onTimeout:
                 () =>
-                    throw Exception(
+                    throw AppException.timeout(
                       AppLocalizations.of(context)!.errSaveTimeout,
                     ),
           );
@@ -370,13 +388,11 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
         ref
             .read(loggerServiceProvider)
             .error('DashboardView', 'Failed to download PDF', e, st);
-        final errorMsg =
-            e.toString().contains('Timeout')
-                ? e.toString().replaceAll('Exception: ', '')
-                : AppLocalizations.of(context)!.errorUnknown;
+
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMsg),
+            content: Text(AppExceptionX.extractLocalizedHint(e, l10n)),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -402,8 +418,8 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
                 ),
                 onPressed: () => Navigator.of(ctx).pop(true),
                 child: Text(AppLocalizations.of(context)!.delete),
@@ -441,7 +457,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.failedToDeleteExecution(errorMsg)),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -450,17 +466,26 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
   }
 
   Widget _buildStatusChip(String status) {
-    Color bgColor = Colors.grey;
+    Color bgColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+    Color textColor = Theme.of(context).colorScheme.onSurfaceVariant;
     final s = status.toLowerCase();
-    if (s == 'completed') bgColor = Colors.green;
-    if (s == 'failed') bgColor = Colors.red;
-    if (s == 'running' || s == 'pending') bgColor = Colors.blue;
+
+    if (s == 'completed') {
+      bgColor = Theme.of(context).colorScheme.primaryContainer;
+      textColor = Theme.of(context).colorScheme.onPrimaryContainer;
+    } else if (s == 'failed') {
+      bgColor = Theme.of(context).colorScheme.error;
+      textColor = Theme.of(context).colorScheme.onError;
+    } else if (s == 'running' || s == 'pending') {
+      bgColor = Theme.of(context).colorScheme.primary;
+      textColor = Theme.of(context).colorScheme.onPrimary;
+    }
 
     return Chip(
       label: Text(
         status.toUpperCase(),
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: textColor,
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),

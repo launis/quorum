@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'dart:convert';
 
 /// Admin Studio View for managing the MCP Gateways.
@@ -69,7 +70,9 @@ class McpGatewayView extends HookConsumerWidget {
                   child: Text(l10n.cancelButton),
                 ),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
                   onPressed: () => Navigator.pop(ctx, true),
                   child: Text(l10n.deleteButton),
                 ),
@@ -86,6 +89,9 @@ class McpGatewayView extends HookConsumerWidget {
           context.pop();
         } catch (e) {
           if (!context.mounted) return;
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to delete gateway: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.deleteFailedError(e.toString())),
@@ -108,6 +114,9 @@ class McpGatewayView extends HookConsumerWidget {
           ).showSnackBar(SnackBar(content: Text(l10n.gatewaySavedSuccess)));
         } catch (e) {
           if (!context.mounted) return;
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to save gateway: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.saveFailedError(e.toString())),
@@ -135,7 +144,10 @@ class McpGatewayView extends HookConsumerWidget {
             ),
           if (id != 'new')
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.orange),
+              icon: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
               onPressed: formState.isLoading ? null : deleteGateway,
               tooltip: l10n.deleteGatewayTitle,
             ),
@@ -241,7 +253,10 @@ class McpGatewayView extends HookConsumerWidget {
               initiallyExpanded: true,
               title: Text(l10n.toolTitlePrefix(tool['tool_id'].toString())),
               trailing: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
+                icon: Icon(
+                  Icons.delete,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 onPressed: () {
                   ref
                       .read(mcpGatewayFormProvider(id).notifier)

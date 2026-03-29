@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:client_app/theme/app_durations.dart';
 
 part 'model_registry_controller.g.dart';
 
@@ -18,7 +20,7 @@ class ModelRegistryController extends _$ModelRegistryController {
   @override
   FutureOr<List<Map<String, dynamic>>> build() async {
     // SWR Strategy for List Views
-    ref.cacheFor(const Duration(minutes: 3));
+    ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchConfigs();
   }
 
@@ -33,8 +35,11 @@ class ModelRegistryController extends _$ModelRegistryController {
     try {
       final newConfigs = await _fetchConfigs();
       state = AsyncValue.data(newConfigs);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('ModelRegistryController', 'Refresh failed', e, st);
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -76,13 +81,16 @@ class ModelRegistryController extends _$ModelRegistryController {
         returnData = verifiedConfig;
       }
       return returnData;
-    } catch (e) {
+    } catch (e, st) {
       // 4. Rollback on Failure
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('ModelRegistryController', 'Save failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to save model registry config: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -97,11 +105,14 @@ class ModelRegistryController extends _$ModelRegistryController {
         currentList.removeWhere((m) => m['id'] == id);
         state = AsyncValue.data(currentList);
       }
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('ModelRegistryController', 'Delete failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to delete model registry config: $e');
+      throw AppException.unknown(e);
     }
   }
 
@@ -120,12 +131,15 @@ class ModelRegistryController extends _$ModelRegistryController {
         state = AsyncValue.data(currentList);
       }
       return clonedConfig;
-    } catch (e) {
+    } catch (e, st) {
       state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('ModelRegistryController', 'Clone failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
-      throw Exception('Failed to clone system config: $e');
+      throw AppException.unknown(e);
     }
   }
 }
@@ -151,11 +165,13 @@ class ModelRegistryForm extends _$ModelRegistryForm {
   @override
   FutureOr<Map<String, dynamic>> build(String configId) async {
     if (configId == 'new') {
-      return Isolate.run(() => {
-        'id': 'syscfg_new',
-        'type': 'model_registry',
-        'models': <String, dynamic>{}, // Map<String, Map<String, dynamic>>
-      });
+      return Isolate.run(
+        () => {
+          'id': 'syscfg_new',
+          'type': 'model_registry',
+          'models': <String, dynamic>{}, // Map<String, Map<String, dynamic>>
+        },
+      );
     }
 
     // 1. Fetch raw data
@@ -176,10 +192,13 @@ class ModelRegistryForm extends _$ModelRegistryForm {
 
   Future<void> submit(Map<String, dynamic> updatedData) async {
     state = const AsyncLoading(); // Side effect isolation
-    
+
     state = await AsyncValue.guard(() async {
-      final idToSave = configId == 'new' ? (updatedData['id'] ?? 'syscfg_new') : configId;
-      await ref.read(modelRegistryControllerProvider.notifier).saveConfig(idToSave, updatedData);
+      final idToSave =
+          configId == 'new' ? (updatedData['id'] ?? 'syscfg_new') : configId;
+      await ref
+          .read(modelRegistryControllerProvider.notifier)
+          .saveConfig(idToSave, updatedData);
       return updatedData; // Optimistic form state return
     });
   }
