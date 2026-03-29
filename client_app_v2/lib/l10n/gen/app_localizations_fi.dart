@@ -248,6 +248,24 @@ class AppLocalizationsFi extends AppLocalizations {
   String get statusRejected => 'Hylätty';
 
   @override
+  String get statusDraft => 'LUONNOS';
+
+  @override
+  String get typeString => 'Merkkijono (String)';
+
+  @override
+  String get typeFloat => 'Desimaaliluku (Float)';
+
+  @override
+  String get typeInt => 'Kokonaisluku';
+
+  @override
+  String get typeJson => 'JSON-Rakenne';
+
+  @override
+  String get typeBoolean => 'Totuusarvo (Boolean)';
+
+  @override
   String get cancelling => 'Peruutetaan';
 
   @override
@@ -2737,19 +2755,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get typeInstruction => 'Tekstiohje (Ei JSON Palautetta)';
 
   @override
-  String get typeString => 'Merkkijono (String)';
-
-  @override
   String get typeNumber => 'Numero (Numeerinen)';
 
   @override
   String get typeInteger => 'Kokonaisluku (Int)';
-
-  @override
-  String get typeFloat => 'Desimaaliluku (Float)';
-
-  @override
-  String get typeBoolean => 'Totuusarvo (Boolean)';
 
   @override
   String get allowDecimals => 'Salli desimaalit';

@@ -33,7 +33,7 @@ def mock_repo() -> Any:
     repo.get_all_output_profiles.return_value = [
         {
             "id": "prf_default1",
-            "slug": "prf_default1",
+            "slug": "default",
             "name": {"default_locale": "en", "translations": {"en": "Default"}},
             "workflow_id": "wf_1",
             "layouts": [

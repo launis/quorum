@@ -30,7 +30,7 @@ async def test_delete_prompt_block_blocks_orphan_data(mock_driver: Any) -> None:
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == str(ErrorCodes.DELETE_BLOCKED_BY_USAGE.value)
-    assert "Tuhoaminen estetty: PromptBlock 'm1' on sidottu Askeleeseen'step_1'." in exc_info.value.message
+    assert "PromptBlock delete blocked by step usage" in exc_info.value.message
 
     # Force delete should work by bypassing validation
     await repo.delete_prompt_block("m1", force_delete=True)

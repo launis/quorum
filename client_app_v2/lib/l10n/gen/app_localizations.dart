@@ -536,6 +536,42 @@ abstract class AppLocalizations {
   /// **'Rejected'**
   String get statusRejected;
 
+  /// No description provided for @statusDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'DRAFT'**
+  String get statusDraft;
+
+  /// No description provided for @typeString.
+  ///
+  /// In en, this message translates to:
+  /// **'String'**
+  String get typeString;
+
+  /// No description provided for @typeFloat.
+  ///
+  /// In en, this message translates to:
+  /// **'Float'**
+  String get typeFloat;
+
+  /// No description provided for @typeInt.
+  ///
+  /// In en, this message translates to:
+  /// **'Integer (Whole Number)'**
+  String get typeInt;
+
+  /// No description provided for @typeJson.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON'**
+  String get typeJson;
+
+  /// No description provided for @typeBoolean.
+  ///
+  /// In en, this message translates to:
+  /// **'Boolean'**
+  String get typeBoolean;
+
   /// No description provided for @cancelling.
   ///
   /// In en, this message translates to:
@@ -5012,12 +5048,6 @@ abstract class AppLocalizations {
   /// **'Text Instruction (No JSON Output)'**
   String get typeInstruction;
 
-  /// No description provided for @typeString.
-  ///
-  /// In en, this message translates to:
-  /// **'String'**
-  String get typeString;
-
   /// No description provided for @typeNumber.
   ///
   /// In en, this message translates to:
@@ -5029,18 +5059,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Integer'**
   String get typeInteger;
-
-  /// No description provided for @typeFloat.
-  ///
-  /// In en, this message translates to:
-  /// **'Float'**
-  String get typeFloat;
-
-  /// No description provided for @typeBoolean.
-  ///
-  /// In en, this message translates to:
-  /// **'Boolean'**
-  String get typeBoolean;
 
   /// No description provided for @allowDecimals.
   ///

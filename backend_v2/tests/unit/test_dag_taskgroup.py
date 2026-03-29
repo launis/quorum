@@ -14,11 +14,12 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 @pytest.fixture
 def mock_repo() -> AsyncMock:
     repo = AsyncMock()
+    from backend_v2.models.enums import ExecutionStatus
     # Mock context rehydration
     repo.get_execution.return_value = {
-        "id": "exec_tg_123",
+        "id": "exe_tgtg12345678",
         "workflow_id": "wf_tg_test",
-        "status": "pending",
+        "status": ExecutionStatus.PENDING,
         "raw_inputs": {"log": "test"},
         "metadata": {},
     }
@@ -54,14 +55,14 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
 
     async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
         nonlocal step_2_cancelled
-        if step.id == "step_1_fail":
+        if step.id == "step_fail11111":
             # Simulate a quick failure that raises AppException via ErrorTraceEvent
             return [
                 ErrorTraceEvent(
                     step_name=step.id, error_code="MOCK_FAIL", error_message="Intentional failure", content={}
                 )
             ]
-        elif step.id == "step_2_sleep":
+        elif step.id == "step_sleep2222":
             try:
                 # Sleep long enough for step_1 to fail and TaskGroup to trigger cancellation
                 await asyncio.sleep(5.0)

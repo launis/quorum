@@ -169,7 +169,7 @@ def test_seed_prompt_block_illegal_mutation(client_admin: Any, mock_studio_servi
         response = client_admin.put(f"/studio/prompt-blocks/{block['id']}", json=block)
 
     assert response.status_code == 422
-    assert "Invalid BlockDataType" in response.text
+    assert "BlockDataType" in response.text
 
 
 def test_seed_step_illegal_mutation(client_admin: Any, mock_studio_service_admin: Any) -> None:

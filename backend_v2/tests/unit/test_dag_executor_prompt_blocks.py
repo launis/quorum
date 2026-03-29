@@ -73,7 +73,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         mock_repo.get_execution.return_value = {
             "id": "exec_123123123",
             "workflow_id": "wf_testwf1234",
-            "status": "running",
+            "status": ExecutionStatus.RUNNING,
             "raw_inputs": {"chat_log": "dGVzdA=="},
             "metadata": {"target_locale": "fi"},
         }

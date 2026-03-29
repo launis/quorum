@@ -385,16 +385,14 @@ class BlueprintTransformer:
             # --- V3 SANITY CHECK / HEALTH ALERTS ---
             if t_tokens == 0 and execution.execution_trace:
                 logger.warning(
-                    "[BlueprintTransformer] ALARM: Reporting 0 tokens for execution %s. ",
+                    "[BlueprintTransformer] ALARM: Reporting 0 tokens for execution %s. Telemetry or V3 metadata sync might be broken.",
                     execution.id,
-                    "Telemetry or V3 metadata sync might be broken.",
                 )
 
             if not layouts_list:
                 logger.warning(
-                    "[BlueprintTransformer] ALARM: 0 Layouts generated for execution %s. ",
+                    "[BlueprintTransformer] ALARM: 0 Layouts generated for execution %s. UI will render empty.",
                     execution.id,
-                    "UI will render empty.",
                 )
 
             # Extract MCP Tool Loop audit trail from FrozenContext (XAI Evidence for Frontend)

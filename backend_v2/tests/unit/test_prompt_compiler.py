@@ -7,10 +7,11 @@ from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 def test_prompt_compiler_deep_matrix_schema() -> None:
     compiler = PromptCompiler()
 
+    from backend_v2.models.enums import BlockDataType
     # Mocking the JSON structure we confirmed in Phase 1
     mock_matrix_block = {
         "id": "blk_test_matrix",
-        "type": "float",
+        "type": BlockDataType.FLOAT,
         "allow_decimals": True,
         "label": {"default_locale": "en", "translations": {"en": "Critical Distance Score"}},
         "ai_description": "ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort...",
@@ -102,12 +103,14 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
 
 
 def test_prompt_compiler_dynamic_extraction_resilience() -> None:
+    from backend_v2.models.enums import BlockDataType
     # Test that extracting justification still works
     compiler = PromptCompiler()
 
     mock_matrix = {
         "id": "blk_extract_test",
-        "type": "float",
+        "type": BlockDataType.FLOAT,
+        "allow_decimals": True,
         "label": {"default_locale": "en", "translations": {"en": "Test Score"}},
         "ai_description": "Base Desc",
         "output_extensions": ["justification", "citation", "remediation_steps", "confidence"],

@@ -248,6 +248,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusRejected => 'Rejected';
 
   @override
+  String get statusDraft => 'DRAFT';
+
+  @override
+  String get typeString => 'String';
+
+  @override
+  String get typeFloat => 'Float';
+
+  @override
+  String get typeInt => 'Integer (Whole Number)';
+
+  @override
+  String get typeJson => 'JSON';
+
+  @override
+  String get typeBoolean => 'Boolean';
+
+  @override
   String get cancelling => 'Cancelling';
 
   @override
@@ -2723,19 +2741,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typeInstruction => 'Text Instruction (No JSON Output)';
 
   @override
-  String get typeString => 'String';
-
-  @override
   String get typeNumber => 'Number (Numeric)';
 
   @override
   String get typeInteger => 'Integer';
-
-  @override
-  String get typeFloat => 'Float';
-
-  @override
-  String get typeBoolean => 'Boolean';
 
   @override
   String get allowDecimals => 'Allow Decimals';

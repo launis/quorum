@@ -13,7 +13,7 @@ from fastapi import Depends
 
 
 @app.get("/test-llm-dep")
-async def test_llm_dep(llm_handler: Annotated[Any, Depends(get_llm_handler)]) -> Any:
+async def route_test_llm_dep(llm_handler: Annotated[Any, Depends(get_llm_handler)]) -> Any:
     return {"has_repo": hasattr(llm_handler, "repo")}
 
 

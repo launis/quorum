@@ -159,24 +159,6 @@ class PromptBlock(V2CoreBase):
     rows: list[MatrixRow] | None = Field(default=None, description="Optional rows for grid matrices.")
     columns: list[I18nText] | None = Field(default=None, description="Optional columns for grid matrices.")
 
-    @model_validator(mode="before")
-    @classmethod
-    def pre_validate_type_enum(cls, data: Any) -> Any:
-        """Parse string to Enum before strict mode rejects it."""
-        if isinstance(data, dict):
-
-            t = data.get("type")
-            if isinstance(t, str):
-                try:
-                    data["type"] = BlockDataType(t)
-                except ValueError as e:
-                    from backend_v2.exceptions import AppException, ErrorCodes
-
-                    msg = f"PromptBlock parsing failed: Invalid BlockDataType '{t}'."
-                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    raise AppException(message=msg, status_code=422, details=err_details) from e
-        return data
 
     @model_validator(mode="after")
     def validate_block_consistency(self) -> PromptBlock:
@@ -248,18 +230,6 @@ class DataDictionaryField(V2CoreBase):
     options: list[dict[str, Any]] | None = None
     validation_rules: dict[str, Any] | None = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def pre_validate_type_enum(cls, data: Any) -> Any:
-        """Parse string to Enum before strict mode rejects it."""
-        if isinstance(data, dict):
-            t = data.get("component_type")
-            if isinstance(t, str):
-                try:
-                    data["component_type"] = ComponentType(t)
-                except ValueError:
-                    pass
-        return data
 
 
 class ModelProfile(V2CoreBase):
@@ -317,22 +287,6 @@ class MCPAuditTrace(V2CoreBase):
     )
     duration_ms: int = Field(default=0, description="Round-trip latency in milliseconds.")
 
-    @model_validator(mode="before")
-    @classmethod
-    def parse_timestamp(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            ts = data.get("timestamp")
-            if isinstance(ts, str):
-                try:
-                    data["timestamp"] = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-                except ValueError as e:
-                    from backend_v2.exceptions import AppException, ErrorCodes
-
-                    msg = f"MCPAuditTrace parsing failed: Invalid timestamp '{ts}'."
-                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    raise AppException(message=msg, status_code=422, details=err_details) from e
-        return data
 
 
 class SystemConfigMCPGateways(V2CoreBase):
@@ -610,10 +564,7 @@ class Workflow(V2CoreBase):
     )
     steps: list[StepRule] = Field(default_factory=list)
 
-    @model_validator(mode="before")
-    @classmethod
-    def set_slug_from_id(cls, data: Any) -> Any:
-        return data
+
 
     @model_validator(mode="after")
     def validate_dag_integrity(self) -> Workflow:
@@ -691,11 +642,7 @@ class ExecutionCreate(V2CoreBase):
     )
     raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")
 
-    @model_validator(mode="before")
-    @classmethod
-    def pre_validate_type_enums(cls, data: Any) -> Any:
-        # Fallback to allow parsing
-        return data
+
 
 
 class ExecutionStepState(V2CoreBase):
@@ -746,48 +693,3 @@ class ExecutionRecord(V2CoreBase):
     created_by: str | None = Field(default=None, description="ID of the user who started the execution")
     organization_id: str | None = Field(default=None, description="ID of the organization for this execution")
 
-    @model_validator(mode="before")
-    @classmethod
-    def pre_validate_type_enums(cls, data: Any) -> Any:
-        """Parse string to Enum & Datetime before strict mode rejects it."""
-        if isinstance(data, dict):
-            # Status
-            st = data.get("status")
-            if isinstance(st, str):
-                try:
-                    data["status"] = ExecutionStatus(st)
-                except ValueError as e:
-                    from backend_v2.exceptions import AppException, ErrorCodes
-
-                    msg = f"ExecutionRecord parsing failed: Invalid status '{st}'."
-                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    raise AppException(message=msg, status_code=422, details=err_details) from e
-            # Datetimes
-            for df in ["created_at", "updated_at", "completed_at"]:
-                dt = data.get(df)
-                if isinstance(dt, str):
-                    try:
-                        data[df] = datetime.fromisoformat(dt.replace("Z", "+00:00"))
-                    except ValueError as e:
-                        from backend_v2.exceptions import AppException, ErrorCodes
-
-                        msg = f"ExecutionRecord parsing failed: Invalid {df} '{dt}'."
-                        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                        err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                        raise AppException(message=msg, status_code=422, details=err_details) from e
-
-            # Dictionary fallback for results if stringified
-            if "results" in data and isinstance(data["results"], str):
-                try:
-                    import ast
-
-                    data["results"] = ast.literal_eval(data["results"])
-                except (ValueError, SyntaxError) as e:
-                    from backend_v2.exceptions import AppException, ErrorCodes
-
-                    msg = "ExecutionRecord parsing failed: Invalid results AST literal."
-                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    raise AppException(message=msg, status_code=422, details=err_details) from e
-        return data
