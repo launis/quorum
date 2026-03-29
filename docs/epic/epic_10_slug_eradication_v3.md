@@ -1,61 +1,92 @@
-# Epic 10: Demoting "Slug" – Enforcing Opaque IDs (Stripe Pattern)
+# Epic 10: The Definitive V3 Slug Eradication & Opaque ID Hardening
 
-**Status:** Proposed (Tier 1 & Tier 2 Execution)
-**Context:** Quorum V2/V3 Backend & Frontend
-**Author:** AI Orchestrator / Principal Solutions Architect
-**Reference:** `docs/reference.md`
-**Date:** March 25, 2026
+> [!IMPORTANT]
+> **AI AGENT DIRECTIVE (ANTIGRAVITY V1.21.6+ PROTOCOL)**
+> This is a Tier 2 Execution Epic. You must execute this document directory by directory according to the `docs/reference.md` structure. Do not proceed to the next phase without confirming the current one via the "PERMISSION GRANTED" loop from the user.
+> 
+> **MANDATORY HARDENING SYNERGY (Double-Purge):** Every directory and file touched during this Epic *MUST* mathematically comply with the strict architectural constraints defined in `docs/hardeningback.md` (e.g., No Naked Dicts, Strict Pydantic, No Raw Exceptions, TaskGroups, @override) and `docs/hardeningfront.md` (e.g., Isolate.run, No Empty Catches, UI .arb Strings). Do not consider a file refactored for "Slug Eradication" until it also passes its respective Hardening Audit.
 
-## 1. Problem Statement
-Sanaa "slug" on käytetty ristiin ja väärin koko koodikannassa. Sitä on alkanut siirtyä vahingossa API-rajapintojen avaimeksi (API Key), tietokantahakujen pääparametriksi, reitityksen polkumuuttujaksi ja jopa orkestraattorin relaatiolinkiksi (`get_step_by_id(blueprint_slug)`).
+**Context:** Quorum V2/V3 Backend (FastAPI, Python, Arq/Redis) & Frontend (Flutter Riverpod, GoRouter)
+**Core Mandate:** The "Zero-Compromise Fail-Fast Pledge" (RFC 7807), The Opaque Stripe ID Pattern & Distributed Observability Hardening.
 
-**TÄRKEÄÄ:** `slug` (esim. `holistic_audit`) ei ole poistumassa järjestelmästä. Sillä on oma funktionsa (hybridi-URL / hakusana), ja se pysyy Pydantic-malleissa ominaisuutena. Ohjelmiston siemen (Seed Data) **ON JO** oikeassa muodossa ja kantaa täydellisiä Stripe Pattern ID -koodeja (`blk_...`, `syscfg_...`). Ongelma piilee laiskassa Python-koodissa ja Flutterissa, jotka yhä käyttävät `slug`-kenttiä tietokantahakuihin ohi varsinaisen ID-kentän!
+## 1. Tactical Objective
+The database is already seeded correctly with Opaque Stripe IDs (`blk_...`, `syscfg_...`). The "slug" property must remain in models for URLs and SEO, but it is **strictly forbidden** to use `slug` as a database lookup key, API identifier, internal relational link, telemetry index, or external Webhook payload key.
+Your objective is to globally decouple the system from `slug`-based logic and enforce ID-based lookup and data transmission across the database, routing, background workers, enterprise observability layer, and Flutter client storage.
 
-Tämän Epicin tehtävä on **riisua slugilta API-avaimen, ensisijaisen tunnisteen (Primary Key) ja ulkoisen avaimen (Foreign Key) vastuut**, ja pakottaa Python- ja Flutter-ohjelmakoodi käyttämään taustalle jo valmiiksi generoituja **Opaque Stripe ID** -koodeja tiedon noutamiseen.
+## 2. Directory-by-Directory Execution Phases
 
-## 2. Execution Strategy (Directory by Directory)
-Korjaus etenee kerroksittain `reference.md` -hakemistorakenteen mukaan. Teemme "massiivisia tuplatarkistuksia" (Grep Searches) jokaisen vaiheen jälkeen varmistaaksemme, ettei slugia käytetä kytköksenä tai API-avaimena.
+> [!WARNING]
+> DO NOT BATCH THESE PHASES. Request explicit permission to proceed after completing each phase.
+
+### Phase 1: The Seed Data Relational Audit
+**Target Directory:** `backend_v2/seed/`
+**Directive:** The IDs in `seed_data.json` are already Opaque Stripe IDs. Your task is to audit internal cross-references.
+*   **Action:** If task blueprints or related links (e.g., `task_blueprint: "matrix_risk"`) still point to slugs, replace them with the corresponding Stripe ID (`task_blueprint: "blk_371c..."`).
+
+### Phase 2: Domain Modeling & Pydantic Hardening
+**Target Directory:** `backend_v2/models/`
+**Directive:** Make the Pydantic schemas enforce the Opaque ID format intrinsically.
+*   **Action:** Ensure relations (`task_blueprint`, `profile_id`) operate solely on IDs.
+*   **Fail-Fast Mandate:** Impose strict Regex matching on the main `id` field within Pydantic V2 models. Submissions with a simple slug in the `id` field must immediately trigger an HTTP 422 Fail-Fast response. Allowed format examples: `org_[...], blk_[...], syscfg_[...]`.
+
+### Phase 3: The Unified Repository & Environment Data Strategy
+**Target Directory:** `backend_v2/database/`
+**Directive:** Realign CRUD operations away from slug lookups and define environment-specific DB handling.
+*   **Action:** Ensure DB repositories offer `get_by_id` logic. If `by_slug` exists, verify it is *exclusively* for resolving human-readable aliasing, never for internal Orchestrator mapping.
+*   **Local State Reset:** Instruct the user to Wipe the local databases (`data/db_v2.json`, Firestore Dev) and run the Reseed command. This guarantees corrupted local cache states do not interfere with tests.
+*   **Staging & Production Strategy:** Document whether Staging/Production databases will be fully wiped (permitted at this lifecycle stage) OR if a one-off Migration Script must be written to convert live slug relations into Stripe IDs. Do not proceed to higher environments without resolving this decision.
+
+### Phase 4: Business Logic, Orchestrator & Background Workers
+**Target Directory:** `backend_v2/services/` & `backend_v2/workers/`
+**Directive:** Decouple Orchestrator graph generation, resolution, and Arq/Redis asynchronous background job payloads from slugs.
+*   **Action (Synchronous):** Ensure logic in `orchestrator/strategies/` does not fetch nodes via variables like `blueprint_slug`. Refactor internal calls to extract the ID (`getattr(step, "task_blueprint_id")`).
+*   **Action (Asynchronous Workers):** Audit the AI-DAG payloads sent to Arq/Redis background workers. Worker serialization schemas (Pydantic/dicts) must explicitly drop slug references and ONLY transmit Opaque IDs. Background workers must fetch DB context solely by Stripe ID.
+
+### Phase 5: FastAPI Control Plane & Path Validators
+**Target Directory:** `backend_v2/api/routers/`
+**Directive:** Shield the endpoints from incorrect URL parameter formats.
+*   **Action:** Ensure `/{slug}` is completely eradicated from state-mutating or core GET paths; upgrade them to `/{id}`.
+*   **Fail-Fast Mandate:** Attach Path validators to FastAPI `/{id}` variables. If the shape does not match an Opaque Stripe ID, DO NOT pass the error down into a `try-except` block. Raise an `AppException` (RFC 7807) immediately.
+
+### Phase 6: Core Engine Defensiveness & Negative Testing
+**Target Directory:** `backend_v2/tests/`
+**Directive:** Validate the Epic so far using rigorous regression testing.
+*   **Action 1:** Refactor existing tests simulating API payloads to pass Stripe IDs (`id="pb_test_123"`) instead of slugs (`slug="test"`).
+*   **Action 2:** Create purposeful negative tests. Write asserts that intentionally attempt to alter state or fetch entities using `id="holistic_audit"`. Ensure these crash explicitly with 422 or RFC 7807 (Fail-Fast validated).
+
+### Phase 7: Flutter Client - Core API
+**Target Directory:** `client_app_v2/lib/core/`
+**Directive:** Re-align client REST connections.
+*   **Action:** Update `studio_client.dart` endpoint definitions to correctly utilize the new `by-id` parameter paradigm targeting the refactored FastAPI backend routes.
+
+### Phase 8: Flutter GoRouter & Hybrid URLs
+**Target Directory:** `client_app_v2/lib/router/`
+**Directive:** Keep the URLs SEO-friendly while relying on IDs under the hood.
+*   **Action:** Implement the Hybrid URL Pattern (`path: 'workflow/edit/:id/:slug'`). 
+*   **Durability Check:** Program the Router/Controller to extract ONLY the `:id` parameter for API requests. Treat `:slug` strictly as unbreakable cosmetics. Verify that mutating `:slug` via the browser's address bar does not trigger re-renders, 404s, or state losses.
+
+### Phase 9: Riverpod State, Caching & Local Storage Invalidation
+**Target Directory:** `client_app_v2/lib/features/` & `l10n`
+**Directive:** Enforce ID-driven UI cache and Red-Screen mitigation across both in-memory and persistent storage.
+*   **Caching Hardening:** Audit all Riverpod Providers (`family` modifiers). Crucially ensure `family` cache keys inject the Opaque Stripe ID. Disobeying this breaks the Optimistic UI Stale-While-Revalidate (SWR) architectural mandate.
+*   **Persistent Storage Invalidation:** SharedPreferences, Hive, or SecureStorage keys relying on legacy slugs (e.g., `last_workspace_slug`) must be programmatically invalidated/migrated on startup to prevent Red Screens upon app launch.
+
+### Phase 10: Telemetry, Observability & B2B Webhooks (System Edge)
+**Target Directory:** `backend_v2/telemetry/` & `backend_v2/webhooks/`
+**Directive:** Ensure data leaving the primary execution loop (logs, traces, external payloads) respects strict ID rules.
+*   **Distributed Tracing:** Ensure that centralized telemetry engines (Pydantic Logfire, OpenTelemetry) utilize ONLY Opaque Stripe IDs (e.g., `execution_id`) as `ContextVars` and distributed tracing identifiers. Slugs must never be indexed in analytics, as they fragment error tracking.
+*   **B2B Webhooks:** Outbound API calls to Client CRM/ERP systems (e.g., lifecycle events like `COMPLETED` or `FAILED`) must transmit Opaque IDs exclusively as reference keys, training client integrations to adapt instantly to the new primary key architecture.
 
 ---
 
-### Phase 1: The Seed (Kytkösten / Foreign Keys Tarkistus)
-**Target:** `backend_v2/seed/`
-* **Task:** HYVÄ UUTINEN: `seed_data.json` sisältää JO TÄYDELLISET Opaque Stripe ID:t (`"id": "blk_...", "id": "syscfg_..."`). ID-tunnisteita EI TARVITSE generoida! Ainoa tehtäväsi on etsiä ja korjata **relaatiot** (esim. Workflown työvaiheiden `task_blueprint` -viittaukset The Prompt Blockeihin). Jos ne osoittavat vielä laiskasti slugeihin (`"task_blueprint": "matrix_risk"`), muuta viittaukset osoittamaan The Stripe ID -koodeja (`"task_blueprint": "blk_371c..."`). Muutoin tiedosto on jo täydellinen.
+## 3. The Definition of Done (Final Audit)
 
-### Phase 2: Domain Models (Single Source of Truth)
-**Target:** `backend_v2/models/`
-* **Task:** Käy läpi kaikki Pydantic-mallit. Varmista, että mikään malli ei aseta `slug`:ia ensikertaisesti (Primary Key) tunnistavaksi kentäksi ID:n ohi. Relaatiot (`task_blueprint`, `profile_id`) voivat kantaa vain `id`-tyyppisiä arvoja.
+> [!TIP]
+> **Agent Execution Checklist**
+> Before marking this Epic complete and requesting the final sign-off, run the following verification checks using the workspace terminal or your `grep_search` capabilities.
 
-### Phase 3: The Unified Repository & Storage
-**Target:** `backend_v2/database/`
-* **Task:** Tarkista tietokanta-CRUD -metodit. API-reitittimille ja ajoympäristölle on pääasiassa tarjottava `get_by_id` -tyyppiset haut. Jos `by_slug` jää koodiin, varmista, että sitä käytetään VARTEN VASTEN slugin omaan tarkoitukseen (esim. UI:n asettaman ihmisluettavan aliaksen haku) eikä sisäisen Moottorin datanlinkitykseen.
-
-### Phase 4: Business Logic & The Orchestrator
-**Target:** `backend_v2/services/`
-* **Task:** Analysoi ja korjaa orkestraattorin ja DAG:in ydinlogiikka. Esim. `orchestrator/strategies/` ei saa KOSKAAN hakea askeleita muuttujanimellä kuten `blueprint_slug`. Ne on muutettava: `blueprint_id = getattr(step, "task_blueprint_id") -> get_step_by_id(blueprint_id)`. Pysäytä massiivisella tarkistuksella, ettei slug-muuttujia käytetä id-hakuun.
-
-### Phase 5: FastAPI Control Plane & Core
-**Target:** `backend_v2/api/routers/`
-* **Task:** Siivoa API-rajapinnat. Sisäiset "muokkaa / hae / aja" API-kutsut eivät saa käyttää muotoa `/{slug}` API-avaimena, vaan niiden TÄYTYY käyttää `/{id}` -reititystä. 
-
-### Phase 6: Core Engine Tests
-**Target:** `backend_v2/tests/`
-* **Task:** Korjaa kaikki rikkoutuneet yksikkö- ja integraatiotestit, joissa API:lle huijattiin syötteeksi slug (`slug="test"`). Vaihda testien syötteiksi Stripe ID:t (`id="pb_test_123"`). Testit **on mentävä läpi** ennen siirtymistä Flutterin pariin.
-
----
-
-### Phase 7: Flutter Client - Core API 
-**Target:** `client_app_v2/lib/core/` 
-* **Task:** Päivitä `studio_client.dart` endpoint-kutsut vastaamaan Backendin uutta API-rajapintaa (`by-id`).
-
-### Phase 8: Flutter GoRouter
-**Target:** `client_app_v2/lib/router/`
-* **Task:** Vaihda työtilojen ja editoreiden Deep Linking -reitit uuteen hybridi-malliin (Hybrid URL Pattern) SEO:n ja selkokielisyyden vuoksi. Reitti on muotoa `path: 'workflow/edit/:id/:slug'`. Reitittimen tai Controllerin logiikka POIMII talteen AINOASTAAN `:id` parametrin tietokannan avaimeksi ja ohittaa `:slug` osuuden kokonaan pelkkänä rikkoutumattomana kosmetiikkana. 
-
-### Phase 9: Flutter Features & Dashboard
-**Target:** `client_app_v2/lib/features/` & `l10n`
-* **Task:** Päivitä Riverpod-tilojen sisäinen logiikka (kuten tallennusmutaatiot) välittämään taaksepäin `id` eikä arvailemaan sitä `slug`in perusteella. Varmista `dart run custom_lint` -validointi koko hakemistolle.
-
-## 3. The Definition of Done
-Kun kaikki 9 vaihetta on tehty hakemisto kerrallaan "PERMISSION GRANTED"-silmukalla (katso `reference.md`).
-Epic on valmis, kun mikään backendin tai frontendin ydinkomponentti ei ota sisään eikä lähetä ulos slugia `id`-avaimen korvikkeena (Primary Identifer).
+1.  **Global Regex Audit:** Execute `grep -rn "by_slug"` across `backend_v2/database/`, `backend_v2/services/`, and `backend_v2/workers/`. Confirm output is strictly empty or highly scrutinized.
+2.  **Eq-Check Audit:** Verify that no queries containing `== slug` or `== blueprint_slug` exist in database repositories. These must use the `_id` suffix.
+3.  **Observability Audit:** Verify that log formatting injects Stripe IDs and actively redacts indexable slugs from core metadata.
+4.  **Hardening Synergy Audit:** The Agent must explicitly state that the affected subdirectories successfully passed the strict checks dictated in `hardeningback.md` and `hardeningfront.md` by replicating the required validation checkboxes from those documents.
+5.  **UI State Stability:** Once all 10 Phases pass with the "PERMISSION GRANTED" loop, the application is effectively immune to slug-pollution internally and across B2B integrations.
