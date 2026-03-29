@@ -17,7 +17,7 @@ Kun annan luvan edetä, aloitamme listan purkamisen:
    - **Strict Pydantic V2 & No Naked Dicts (2026 SOTA):** 
      - **DTO Mandate:** Etsi ja poista `dict`- ja `**kwargs`-rakenteet tiedonsiirrosta kerrosten välillä. Kaikki säännönmukainen data on korvattava tyypitetyillä Pydantic V2 -malleilla. `dict` on sallittu vain apufunktioiden tuntemattomissa metadatakentissä.
      - **V1 -> V2 Migraatio:** Varmista, ettei koodissa ole V1-jäänteitä. Korvaa `.dict()` -> `.model_dump()`, `.parse_obj()` -> `.model_validate()`, `class Config:` -> `model_config = ConfigDict(...)` ja `@validator` -> `@field_validator`.
-     - **Strict Pydantic:** Kaikkiin paluuarvo- ja siirtomalleihin on lisättävä `model_config = ConfigDict(strict=True, frozen=True, extra='forbid')`. Mutaatiot kielletty: jos tilaa pitää vaihtaa, käytä `.model_copy(update={...})`.
+     - **Strict Pydantic & Zero Backward Compatibility:** Kaikkiin paluuarvo- ja siirtomalleihin on lisättävä `model_config = ConfigDict(strict=True, frozen=True, extra='forbid')`. Ei fallbackeja, ei taaksepäinyhteensopivuuden siltoja. Järjestelmän ainoa totuus on `seed_data.json`. Jos data muuttuu, kaadutaan Fail-Fast, jotta virhe paljastuu. Mutaatiot kielletty: jos tilaa pitää vaihtaa, käytä `.model_copy(update={...})`.
      - **Rust-Parsing:** Älä käytä hidasta `json.loads(data)` -purkua. Käytä aina suoraan `Model.model_validate_json(data)` -metodia.
      - **O(1) Polymorfismi:** Union-tyyppisissä rakenteissa (`A | B`) vaadi aina Discriminated Unions -määritys (`Field(discriminator='type')`), jottei Pydantic fallbackkaa hitaaseen iterointiin.
      - **Annotated (PEP 593):** Älä sekoita oletusarvoja ja rajoitteita (esim. `id: int = Field(...)`). Erota tyyppirajoitteet puhtaasti MyPy-yhteensopivalla syntaksilla: `id: Annotated[int, Field(...)]`.
@@ -94,9 +94,9 @@ Tulosta tämä vastaustesi alkuun:
 > **VAHVISTETUT MANDAATIT:**
 > [ ] Asiakirjat (Arkkitehtuuri V2, antigravity L133-208, hardeningback.md) luettu ja sisäistetty.
 > [ ] Strict Pydantic V2 (Rust, frozen, forbid extra, Annotated, No Naked Dicts) toteutettu.
-> [ ] Fail-Fast -sääntö aktiivinen (ei try-except pass).
-> [ ] AppException (RFC 78"
-
+> [ ] Järjestelmän SSoT pariteetti `seed_data.json` huomioitu (Zero Backward Compatibility).
+> [ ] Fail-Fast -sääntö aktiivinen (ei try-except pass, ei default-fallbackeja).
+> [ ] AppException (RFC 7807) heitetään ja lokitetaan ennen `raise` kutsua.
 Kun saat yllä olevan komennon, sinun on **EHDOTTOMASTI luettava työkalullasi (esim. bash `cat` / python) mainitut dokumentit ja niissä määritellyt rivit uudelleen** aktiiviseen muistiisi (context driftin estämiseksi). Vasta luettuasi ohjetiedostot uudelleen, siirry `task_backend.md` listan seuraavaan tekemättömään alihakemistoon ja aloita STEP 2 alusta.
 
 Huom: Työskentelemme EHDOTTOMASTI vain yksi alihakemisto kerrallaan. Älä koskaan yritä auditoida tai korjata useampaa kansiota tai koko projektia yhdellä työkalukutsulla.

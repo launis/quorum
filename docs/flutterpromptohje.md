@@ -58,8 +58,8 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla tai vanhoi
 
 ### 2.3 Strict Typing & Banned Fallbacks (No Defaults)
 * Domain-malleissa ja UI-tiloissa **EI SAA OLLA** implisiittisiä oletusarvoja pakollisille kentille. Alkuarvojen asettaminen (esim. `score: float = 0.0` tai `String text = ""`) puuttuvan serveridatan paikkaamiseksi on ankarasti KIELLETTY.
-* **DTO Schema Parity (Backend-Frontend Match):** Vaikka ylläoleva sääntö kieltää paikkailun, **TARKISTA AINA Backendin Pydantic-malli** ennen `fromJson` koodin kiristämistä. Jos backendin palauttama malli (esim. vakio `User`) oikeasti jättää tietyn tilastokentän (esim. `execution_count`) rakenteellisesti pois, vastaavan Flutter-kentän TYPPI PITÄÄ OLLA nullable (`int?`). Älä koskaan syötä sokeasti `as int` -castausta dataan, jota backend ei edes suunnitellut lähettävänsä. Jos payloadit eroavat merkittävästi eri rooleilla/näkymillä, luo Flutteriin erilliset mallit (esim. `User` vs `UserAdmin`).
-* **Kielletty:** Null-coalescing -operaattoreiden (`data ?? defaultData`) käyttö käyttöliittymäkomponenteissa tai backend-logiikassa datan selviytymiseksi on täysin BANNATTU.
+* **The Single Source of Truth (`seed_data.json`):** Järjestelmän ainoa totuus on lokaali `seed_data.json`. Jos data puuttuu, koodi (Freezed / Pydantic) kaatuu. Taaksepäinyhteensopivuutta (Graceful Degradation) tai JSON-kenttien nielaisua (`disallow_unrecognized_keys: true`) EI harrasteta.
+* **DTO Schema Parity (Backend-Frontend Match):** Pariteetti ylläpidetään Pydanticin ja Dartin Freezed-mallien välillä 100% tiukkuudella. Kustomoitujen konverttereiden (esim. `StrictEnumConverter`) on heitettävä `AppException.validation`, ja Error Boundaryn on purettava `CheckedFromJsonException.innerError` esiin. Logfire-telemetriaan ei saa vuotaa geneerisiä virheitä.
 * Pydantic V2 on käytössä tilassa `ConfigDict(strict=True)`. Tyyppipakotuksia ei tehdä lennosta (esim. ei merkkijonoa `"1"` numerokenttään `1`).
 * **Strict Pydantic 2026 Mandate (Rust-Core & Anti-Hallucination):**
   1. **Instantiation:** NEVER use dictionary unpacking (`MyModel(**data)`). ALWAYS use `MyModel.model_validate(data)` to force the Fail-Fast validation pipeline.
@@ -190,10 +190,11 @@ Frontend on yksinomaan 'tyhmä' renderöintimoottori.
 2. **Tyhmä Käyttöliittymä (HookConsumerWidget):** Hookeja (`flutter_hooks`) saa ja pitää käyttää UI-komponenttien rakentamiseen, mutta **AINOASTAAN** puhtaiden ohimenevien UI-kontrollerien (kuten `useTextEditingController` tai `useAnimationController`) hallintaan. Kaikki asymptoottinen data ja tila luetaan ohjelmallisesti Riverpodista (`ref.watch(provider).when()`). Näin UI-kerros pysyy täysin eristettynä liiketoimintalogiikasta.
 3. **Transient Form State:** Keystrokes and local UI inputs MUST remain locally inside Hooks (`useTextEditingController`). DO NOT dispatch every onChange event to a Riverpod Notifier, as this causes severe Main Thread Jank and unnecessary rebuilds. Only send the final assembled payload to the Riverpod Mutation upon `submit()`.
 
-### 5.8 Dart 3 Pattern Matching & BFF Data Destructuring
-* When destructing raw `Map<String, dynamic>` BFF payloads, you **MUST** use Dart 3 Pattern Matching (e.g., `final {'id': String id} = payload;`). 
-* This provides compiler-backed type safety and instantly enforces the Fail-Fast boundary by throwing a `StateError` if the JSON schema is malformed. 
-* **NEVER** use legacy, unsafe manual casting (e.g., `payload['id'] as String`).
+### 5.8 Dart 3 Sealed Classes & Natiivi Pattern Matching
+* **Ei `.when()` tai `.map()` -metodeja:** Käyttöliittymässä on ehdottomasti kiellettyä käyttää Freezedin automaattigeneroimia funktioita union-tilojen purkuun.
+* **Exhaustive Switch:** Kaikki polymorfiset rakenteet on luotava `@Freezed(unionKey: 'type') sealed class` -muotoon. Purkamiseen käytetään AINA natiivia Dart 3 `switch (state)` -lauseketta.
+* **No Fallbacks:** Catch-all asetus (kuten `UnknownStrategy` tai oletustyypit) on ankarasti kielletty. Jos uusi backend-tyyppi ilmestyy, UI ei saa niellä sitä oletusarvolla, vaan purkamisen on suoranaisesti kaaduttava Fail-Fast.
+* **Isolate Mandate:** Vaikka Freezed generoi `fromJson`-rutiinit, kaikki raskaat API-vastaukset on ehdottomasti purettava `Isolate.run()` -säikeen sisällä Main Thread Jankin estämiseksi.
 
 ### 5.9 Keyboard Focus Management (Strict Focus)
 * Pro-tools require flawless Tab key navigation. 

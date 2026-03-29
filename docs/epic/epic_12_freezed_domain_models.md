@@ -10,6 +10,13 @@ Siirrytään käyttämään Flutterin teollisuusstandardia, **Freezed** ja **JSO
 
 **Kriittinen edellytys:** Muutos **EI SAA** heikentää "Strict Nirvana" tai "Fail-Fast" -periaatteita. Emme luota `json_serializable`:n oletusarvoiseen parsintaan sokeasti. Sen sijaan koodiin integroidaan kustomoidut `@JsonConverter`-luokat, jotkat käärivät nykyisen `SafeCast`-logiikkamme sisäänsä. Näin saamme koodingeneroinnin tuoman valtavan boilerplaten poiston (hyöty), mutta säilytämme täydellisen poikkeustenhallinnan tietoturvan ja tyyppien eheyden (Fail-Fast).
 
+### Tulevaisuusvisio (Future Outlook 2026+)
+Dart-tiimin virallisen päätöksen myötä natiivit makrot (Dart Macros, ml. `@JsonCodable`) on hyllytetty suorituskykyongelmien (Hot Reload / Analyzer latency) vuoksi. Tämä tekee tästä Epic-suunnitelmasta absoluuttisen ja pitkäaikaisen teollisuusstandardin:
+
+*   **1. `build_runner` on pysyvä standardi:** Koska makroja ei tule, `freezed` ja `json_serializable` tulevat olemaan Dart-ekosysteemin serialisoinnin selkäranka pitkälle tulevaisuuteen. Tästä syystä Milestone 1:ssä määritelty tiukka `build.yaml` -optimointi (`generate_for` skooppaus rajoittamaan kääntöaikaa) on pitkäikäisen arkkitehtuurin elinehto.
+*   **2. Augmentation-Ready Arkkitehtuuri:** Vaikka makrot peruttiin, Dart-tiimi tuo kieleen koodingenerointia suoraviivaistavat *Augmentations*-ominaisuudet. Pakottamalla koodimme nyt tiukkaan Freezed-muottiin, varmistamme, että tulevaisuudessa `.g.dart` ja `.freezed.dart` -tiedostot sulautuvat saumattomammin osaksi alkuperäistä tiedostoa pelkällä `pubspec.yaml`-päivityksellä ilman massiivista arkkitehtuuriremonttia.
+*   **3. Natiivit Data Classet:** Pitkän aikavälin tavoitteena Dart-tiimi tutkii metaprogrammoinnin sijaan natiiveja `data class` -rakenteita. Koska koodaamme mallit tiukasti Freezedillä simuloiden data-luokkia jo nyt, koodikanta on valmiiksi täydellisessä paradigmaattisessa muodossa mahdollista kielen tason tuettua siirtymää varten.
+
 ---
 
 ## Toteutussuunnitelma (Tier-1 Milestones)
@@ -18,38 +25,70 @@ Siirrytään käyttämään Flutterin teollisuusstandardia, **Freezed** ja **JSO
 Ennen varsinaista koodimuutosta päivitetään projektin ydindokumentaatio vastaamaan uutta teollisuusstandardia (Freezed + Custom Converters Riverpod-sovelluksissa). Tämä kumoaa aiemman laajan "De-generator" (manuaalinen `Map<String, dynamic>`) mandaatin.
 
 **Tärkeimmät uudet arkkitehtuurisäännöt, jotka on päivitettävä ohjeisiin:**
-1. **CQRS-Polymorfia:** Ohjeistetaan, että `StrictDateTimeConverter` (ja vastaavat) on osattava purkaa Data dynaamisesti (API:n `String` vs. Firestoren `Timestamp`), jotta luetut mallit toimivat molemmissa tietolähteissä.
-2. **Deep Equalityn rajoittaminen (RAG):** Kielletään raskaiden historiataulukoiden (esim. `TraceEvent`) syvävertailu (`@Freezed(equal: false)`) ja siirretään ne `fast_immutable_collections` (`IList`) -muotoon Riverpod-säikeiden jäätymisen estämiseksi.
-3. **DAG-reitityksen Discriminator-pariteetti:** Pakotetaan `@Freezed(unionKey: 'type')` polymorfisiin malleihin (esim. Node-strategiat) Exhaustive Pattern Matchingin (`.when()`) varmistamiseksi UI-kerroksessa.
-4. **Telemetria ja Dual-Reporting:** Määritellään, että kun `CheckedFromJsonException` napataan, järjestelmä poimii alkuperäisen viitteen (Opaque ID) ja lähettää asynkronisen telemetrian Backendin Logfire-järjestelmään pelkän nätin UI-virheen lisäksi.
-5. **Nimistön Opaque ID Mandaatti:** Hylätään sana "Safe" nimistössä (implying defensiivinen nielaisu) -> Käytetään muotoa "Strict". Luodaan `StrictOpaqueIdConverter`, joka kaataa purun heti RegEx-tasolla vääränlaisesta ID:stä.
-6. **DX-Optimointi:** Määritellään, että LLM-agenttien nopeuttamiseksi Windows-ympäristössä `build.yaml` pakotetaan rajoittamaan generointi vain malleihin (`generate_for`).
 
-*   Päivitettävät tiedostot: `docs/flutterpromptohje.md`, `docs/hardeningfront.md`, `docs/hardeningback.md`, `docs/antigravity_prompting.md`, `docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md`. Näihin sisällytetään yllä mainitut 6 uutta arkkitehtuuriperiaatetta.
+1.  **Dart 3 Sealed Classes & Natiivi Pattern Matching (DAG & Polymorfia):**
+    *   Käyttöliittymäkerroksessa (UI) ja Riverpod-logiikassa on ehdottomasti kiellettyä käyttää Freezedin generoimia `.when()`, `.maybeWhen()` tai `.map()` -metodeja. Ne ovat hitaampia legacy-jäänteitä.
+    *   Kaikki polymorfiset mallit (esim. Node-strategiat, DAG-askeleet) on määriteltävä Dart 3:n `sealed class` -avainsanalla yhdistettynä `@Freezed(unionKey: 'type')` -annotaatioon.
+    *   Tämä siirtää Exhaustive Pattern Matchingin Dartin kääntäjän vastuulle. Tilojen purkuun on käytettävä natiivia `switch (state)` -lauseketta. **Ei varatyylejä (Fallbacks):** UnknownStrategy-tyyppisiä "catch-all" -pakoreittejä ei sallita. Tuntematon JSON-avain kaataa puun heti (Fail-Fast).
+2.  **The Isolate Mandate -suojaus (Säikeistyksen säilyttäminen):**
+    *   Vaikka Freezed generoi `fromJson` -tehtaat automaattisesti, alkuperäiset `parseInBackground` ja `parseListInBackground` -staattiset metodit ON SÄILYTETTÄVÄ malleissa.
+    *   Koodigeneraattori ei poista velvollisuuttamme suojella PC-näkymien "Zero-Latency Illusionia". Freezedin generoima purkulogiikka on edelleen käärittävä `Isolate.run()` -lohkon sisään raskaissa DTO-malleissa (kuten `ExecutionRecord` tai massiiviset RAG-lokit) Main Thread Jankin estämiseksi.
+    *   *Isolate Exception Safety:* Kaikkien `AppException.validation` -luokkien tulee olla rakenteeltaan täysin Isolate-siirrettäviä (Sendable), jotta tarkka virhekoodi saadaan kiinni Main Threadin telemetriassa ilman Isolate-kaatumisia.
+3.  **Kustomoitujen Konverttereiden Strict-Pariteetti & Exception Unwrapping (RFC 7807):**
+    *   Emme luota `json_serializable`:n oletusparsintaan sokeasti. Kaikki kriittiset datatyypit kääritään Strict-konverttereihin (esim. `StrictEnumConverter`, `StrictIListConverter`).
+    *   **The No Pass Rule:** Kaikkien kustomoitujen `@JsonConverter`-luokkien heittämien poikkeuksien on oltava täsmälleen muotoa `AppException.validation`.
+    *   **Poikkeuksen purku (Unwrap):** Globaalin Error Boundaryn on kaivettava automaattisesti generoidun `CheckedFromJsonException` -virheen sisältä sen `.innerError` esiin, jotta Logfire-telemetria saa oikean RFC 7807 -koodin generoidun virheen sijaan.
+4.  **Zero Backward Compatibility & Arkkitehtuurinen Totuus (`seed_data.json`):**
+    *   Frontend ei harrasta taaksepäinyhteensopivuutta ("Graceful Degradation"). Tuntemattomien kenttien nielaisu on kielletty (`disallow_unrecognized_keys: true`).
+    *   Järjestelmän The Single Source of Truth on lokaali `backend_v2/seed/seed_data.json`. Jos Flutter-malli joutuu ristiriitaan, siemendata tai malli päivitetään vastaamaan toisiaan 100%. Emme piilota virheitä oletusarvoilla.
+5.  **Zero-Touch Riippuvuudet (Infrastruktuurin lukitus):**
+    *   Projektin `pubspec.yaml` on jäädytetty. Oletamme teollisuusstandardin mukaisten pakettien (`freezed`, `json_serializable`) olevan jo oikeissa versioissaan. Agentit eivät saa koskea asennuksiin versioristiriitojen välttämiseksi.
+6.  **Deep Equality -rajoitteet (O(1) RAG-suorituskyky):**
+    *   Raskaiden historiataulukoiden (esim. `TraceEvent`) syvävertailu listojen tasolla ohitetaan (`@Freezed(equal: false)`). Riverpodin suorituskyvyn takaamiseksi valtavissa lokeissa, listat pakotetaan käyttämään `fast_immutable_collections` (`IList`) -rakennetta natiivien Dart-listojen sijaan.
 
-### Milestone 1: Infrastruktuuri & Kustomoidut Konvertterit (Pydantic Parity)
-*   Asennetaan `freezed`, `freezed_annotation`, `json_annotation` dev-riippuvuuksina yhdessä `build_runner`:in kanssa.
-*   **build.yaml -tiukkuus & DX-Optimointi:** Luodaan projektin juureen `build.yaml`, joka pakottaa koodigeneroinnin globaalisti "Strict"-tilaan vastaten Pydantic V2:n sääntöjä, ja nopeuttaa analysointia Windows-agenttia varten:
-    ```yaml
-    targets:
-      $default:
-        builders:
-          source_gen|combining_builder:
-            generate_for:
-              - lib/**/models/**.dart # Pakottaa kääntäjän ohittamaan raskaat UI-tiedostot, säästäen LLM:n timeoutteja
-          json_serializable:
-            options:
-              disallow_unrecognized_keys: true # Pydantic extra="forbid"
-              any_map: false # Estää JSON-sanakirjojen villin muuntumisen
-              checked: true # Pakottaa heittämään CheckedFromJsonException puuttuvista
-              explicit_to_json: true
-    ```
-*   **Standardoitujen Konverttereiden Luominen (`lib/utils/json_converters.dart`):**
-    *   `StrictDateTimeConverter`: CQRS Polymorfinen muunnos, joka osaa dynaamisesti käsitellä API:n `Stringit` ja Firestoren `Timestampit` turvallisesti lokalisoituun UTC ISO-8601 DateTime -olioon.
-    *   `StrictEnumConverter`: Heittää välittömästi AppExceptionin (eikä hiljaista TypeErroria), jos API palauttaa odottamattoman Enum-arvon.
-    *   `StrictOpaqueIdConverter`: Varmistaa heti RegEx-tasolla JSON-purussa, että tietokannan viite-ID (esim. `blk_`, `org_`) on aito ja turvallinen Fail-Fast periaatteen mukaisesti.
-    *   Universaalit Strict-kääreet: `StrictStringConverter`, `StrictIntConverter`, `StrictListConverter` (jotka pakottavat epäselvätkin tyypit vanhan rakenteellisen Fail-Fast-logiikkamme läpi turvautumatta "Safe" nielaisuun).
-*   **RFC 7807 Verkkovirheiden Käsittely (`api_client.dart`):** Lisätään verkko- ja JSON-purkukerrokseen globaali kaappari `CheckedFromJsonException`-virheille. Järjestelmä paketoi virheen nättiin `AppException.validation` viestiin UI:n puolelle, **MUTTA poimii virheestä viallisen avaimen ja Opaque ID:n lähetettäväksi taustalla Backendin Logfire-telemetriaan (Dual-Reporting)**.
+**Päivitettävät tiedostot:** Nämä 6 peruspilaria on ensin päivitettävä tiedostoihin `docs/flutterpromptohje.md` (eritoten lukuihin 2.3 Strict Typing ja 5.8 Dart 3 Pattern Matching), `docs/hardeningfront.md` ja `docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md` ennen kooditason refaktoroinnin aloittamista.
+
+### Milestone 1: Infrastruktuuri & Kustomoidut Konvertterit (Zero-Touch & Pydantic Parity)
+**Zero-Touch Riippuvuudet:** Projektin `pubspec.yaml` on lukittu. Oletamme teollisuusstandardin mukaisten pakettien (`freezed: ^3.2.3`, `json_serializable: ^6.11.2`) olevan asennettuna. Agentit EIVÄT SAA ajaa asennuskomentoja versioristiriitojen välttämiseksi.
+
+**build.yaml -tiukkuus & DX-Optimointi:** Luodaan/päivitetään projektin juureen `build.yaml`, joka pakottaa koodigeneroinnin globaalisti "Strict"-tilaan vastaten Pydantic V2:n sääntöjä, ja nopeuttaa analysointia Windows-agenttia varten:
+
+```yaml
+targets:
+  $default:
+    builders:
+      freezed:
+        generate_for:
+          - lib/**/models/**.dart
+      json_serializable:
+        generate_for:
+          - lib/**/models/**.dart
+        options:
+          field_rename: snake # Pydantic pariteetti (esim. org_id -> orgId) ilman boilerplatea
+          disallow_unrecognized_keys: true # Pydantic extra="forbid". Backward compatibility on kielletty. Ainoa totuus on seed_data.json.
+          any_map: false # Estää JSON-sanakirjojen villin muuntumisen
+          checked: true # Fail-fast puuttuville TAI väärän tyyppisille kentille!
+          explicit_to_json: true
+```
+
+**Standardoitujen Konverttereiden Luominen (`lib/utils/json_converters.dart`):**
+
+*Huom (The No Pass Rule):* Kaikkien näiden luokkien on kaatuessaan heitettävä ehdottomasti `AppException.validation(message: '...', errorCode: 'VALIDATION_FAILED')`. Muut virhetyypit ovat kiellettyjä.
+
+*   `StrictIListConverter<T>`: Globaali konvertteri, joka varmistaa, että `List<dynamic>` kääntyy suoraan `fast_immutable_collections` (`IList<T>`) -muotoon saumattomasti Freezedin ja `json_serializable`:n kanssa.
+*   `StrictDateTimeConverter`: Osattava käsitellä API:n `Stringit` ja Firestoren `Timestampit` turvallisesti lokalisoituun UTC ISO-8601 DateTime -olioon.
+*   `StrictEnumConverter`: Heittää välittömästi `AppExceptionin` (eikä hiljaista TypeErroria tai kartoitusta `Enum.unknown` tilaan), jos API/seed data palauttaa odottamattoman Enum-arvon. Zero Backward Compatibility. Oikea korjaustapa on päivittää sovelluksen koodi tai `seed_data.json` vastaamaan toisiaan.
+*   `StrictOpaqueIdConverter`: Varmistaa heti RegEx-tasolla JSON-purussa, että viite-ID (esim. `blk_`, `org_`) on aito ja Fail-Fast periaatteen mukainen.
+
+**Poikkeuksien purkaminen (Exception Unwrapping & RFC 7807):**
+*   API-kerroksen Error Boundaryn (esim. `lib/core/error/app_error_ext.dart`) pitää napata json_serializablen heittämä `CheckedFromJsonException` ja kaivaa sen `.innerError` -kentästä alkuperäinen `AppException` esiin, jotta Logfire-telemetriaan lähtee oikea RFC 7807 -standardin mukainen virhekoodi pelkän generoidun poikkeuksen sijaan.
+
+### Milestone 1.B: Backendin Siemendatan (Seeder) Tiukennukset
+Koska koko arkkitehtuurin **ainoa hyväksytty totuus** on jatkossa `backend_v2/seed/seed_data.json` sekä sen ajuriskripti `run_seed.py`, myös backend-pään validoinnin on vastattava Frontendin "Strict Nirvana" -linjausta.
+
+1.  **Pydantic Pariteetti (Zero-Tolerance):** Backendin malleissa (esim. `PromptBlock`, `Workflow`, jotka luetaan `seed_registry.py` kautta) on pakotettava asetukset `model_config = ConfigDict(extra='forbid', strict=True)`. Tämä vastaa täydellisesti Flutterin `disallow_unrecognized_keys: true` -sääntöä. Jos `seed_data.json` sisältää historiallisia haamukenttiä, Pydantic kaataa ajon välittömästi. Vain näin voimme varmistaa lokaalin siemendatan täydellisen puhtauden.
+2.  **`run_seed.py` Optimointi (validate_python):** Nykyisessä skriptissä purku tehdään raskaasti JSON-käännöksen kautta: `validated = pyd_adapter.validate_json(json.dumps(item))`. Se tulee muuttaa muotoon `validated = pyd_adapter.validate_python(item, strict=True)`. Tämä ei ainoastaan estä turhaa sarjallistamista, vaan `strict=True` pakottaa Pydanticin hylkäämään epäsuorat tyyppimuunnokset (esim. numero `1` ohitetaan jos kenttä vaatii `"1"`), peilaten Dartin tiukkuutta.
+3.  **V2 `seed_data.json` Puhdistus:** Kaikki vanhat jäänteet, oletusarvot ja varatyypit (esim. legacy `input_variables`) poistetaan lokaalista `seed_data.json`:sta. Olemassaolevien tyyppien on täsmättävä 100% uusiin dart-konverttereihin, muuten `run_seed.py` kaatuu `_fail_fast()` -rutiiniin estäen viallisen datan päätymisen kantaan (`db_v2.json`).
 
 ### Hallittu Siirtymästrategia (Migration Strategy)
 Älä yritä migroida kaikkea kerralla (esim. korvaamalla kaikki projektin mallit yhdellä isolla komennolla). Tämä rikkoisi sovelluksen Riverpod-kerrokset ristiin tuottaen satoja ratkeamattomia Type-virheitä "Generation Hell" -tyylillä.
@@ -60,25 +99,33 @@ Migraatio suoritetaan tiukasti Domain-alue (skooppi) kerrallaan. Jokaisen askele
 *   Refaktoroidaan triviaalit ja riippumattomat objektit (esim. `I18nText`, Auth-mallit, `BlockDataType` ja `PromptBlockCategory`).
 *   Varmistetaan Enumien `@JsonValue` -pariteetti backendin kanssa.
 
-#### Vaihe 2.B: Workflow & PromptBlock -mallit (Polymorphic Pattern Matching)
-*   Uudelleenkirjoitetaan nykyinen käsin koodattu `PromptBlock` tiiviiksi Freezed-malliksi.
-*   Korvataan Pydantic-tason DAG Discriminatorit hyödyntämällä Freezedin Sealed Classes / Union Typeseja (`@Freezed(unionKey: 'type')`), jolla kääntäjä pakotetaan vaatimaan `.when()`-tarkistukset koko UI-kerrokseen.
-*   Sovelletaan standardoituja Konverttereita (`StrictEnumConverter`, `StrictDateTimeConverter`) turvaamaan Matrix-säännöstöjen eheys.
+#### Vaihe 2.B: Workflow & PromptBlock -mallit (Dart 3 Native Pattern Matching)
+Uudelleenkirjoitetaan nykyinen käsin koodattu PromptBlock tiiviiksi Freezed-malliksi.
+
+**Sealed Classes Mandate:** Korvataan Pydantic-tason DAG Discriminatorit hyödyntämällä Freezedin ja Dart 3:n hybridimallia (`@Freezed(unionKey: 'type') sealed class NodeStrategy`). Polymorfisille luokille **ei sallita** `Unknown/Fallback` -tyyppejä. Tuntematon JSON-avain kaataa purkamisen välittömästi (Fail-Fast), ja korjaus tehdään aina päivittämällä asiat synkroniin (`seed_data.json` vs. Dart-mallit). Oikopolkuja tai oletusarvoja tuntemattomille tyypeille ei tueta.
+
+Varmistetaan, että UI-kerroksessa **ei käytetä** Freezedin generoimaa `.when()`-metodia, vaan pakotetaan kaikki koodi käyttämään natiivia Dart 3 `switch (state)` -lauseketta Exhaustive Pattern Matchingin varmistamiseksi.
+
+Sovelletaan standardoituja Konverttereita (`StrictEnumConverter`, `StrictDateTimeConverter`) turvaamaan Matrix-säännöstöjen eheys.
 
 #### Vaihe 2.C: UI-kerroksen ja Formien Siivous
 *   Poistetaan väliaikaiset "De-Generator / Map" -hakkerit käyttöliittymästä (`PromptBlockBuilderView`, jne.)
+*   **Teknisen velan tuhoaminen:** Vanha `client_app_v2/lib/utils/safe_cast.dart` merkitään `@deprecated`-annotaatiolla. Kun kaikki parse-kutsut on asennettu käyttämään uusia Strict-konverttereita, asiantila varmistetaan poistamalla legacy-käsittelijä lopulta koodikannasta kokonaan ohitusten estämiseksi.
 *   Varmistetaan Riverpod 3.0:n Optimistic UI toimii luontevasti Freezedin syväkopioinnin (`deepCopy`) ja tuodun `Equatable`-luokan tuottaman Deep Equality (`==`) kera.
 
-#### Vaihe 2.D: ExecutionEngine & Raskaat RAG-mallit (O(1) Rajoitteet)
-*   Skaalataan arkkitehtuuri ajonaikaisiin entiteetteihin (`ExecutionRecord`, `TraceEvent`). Varmistetaan The Isolate Mandate -purkunopeudet.
-*   **Deep Equalityn Ohitus:** Otetaan tässä mittakaavassa `.==` automaatiot pois päältä raskaista listoista (`@Freezed(equal: false)`). Riverpodin suorituskyvyn takaamiseksi valtavissa RAG-lokeissa pakotetaan Listat käyttämään `fast_immutable_collections` (`IList`) -rakennetta, turvaten käyttöliittymän 144Hz renderoinnin.
+#### Vaihe 2.D: ExecutionEngine & Raskaat RAG-mallit (Isolate Mandate & O(1) Rajoitteet)
+Skaalataan arkkitehtuuri ajonaikaisiin entiteetteihin (`ExecutionRecord`, `TraceEvent`).
+
+**The Isolate Mandate -suojaus:** Vaikka mallit muutetaan Freezed-pohjaisiksi, niiden vanhat staattiset `parseInBackground` ja `parseListInBackground` -metodit on pakko säilyttää. Nämä käärivät Freezedin purkuoperaation `Isolate.run()` -säikeeseen taaten nollaviiveen illuusion (Zero-Latency Illusion) raskaissa lokeissa.
+
+**Deep Equalityn Ohitus:** Otetaan tässä mittakaavassa `.==` automaatiot pois päältä raskaista listoista (`@Freezed(equal: false)`). Riverpodin suorituskyvyn takaamiseksi valtavissa RAG-lokeissa pakotetaan listat käyttämään `fast_immutable_collections` (`IList`) -rakennetta natiivien listojen sijaan.
 
 ---
 
 ## Määritelmä Valmiille (Definition of Done)
 1. **Zero-Map Tavoite:** `lib/models/` hakemiston alla olevista domain-malleista on kokonaan hävitetty manuaaliset `Map<String, dynamic>` iteraatiot ja manuaalilogiikat.
 2. **Kääntäjäystävällisyys:** `dart run build_runner build --delete-conflicting-outputs` menee läpi puhtaasti ilman Type Cast -varoituksia.
-3. **Fail-Fast Pariteetti:** Viallinen database-siemen synnyttää täsmälleen saman virheviestin ("Missing Field X in JSON") kuin ennenkin, kiitos kustomoitujen kääntäjien (`@JsonConverter`).
+3. **Fail-Fast Pariteetti (`seed_data.json`):** Emme tue taaksepäinyhteensopivuutta (ei `Enum.unknown` -fallbackeja tai tuntemattomien kenttien nielaisuja). Ainoa hyväksyttävä totuus on `backend_v2/seed/seed_data.json` ja lokaalin tietokannan initialisointi (`run_seed.py local`). Viallinen tietu synnyttää täsmälleen saman virheviestin ("Missing Field X in JSON") kuin ennenkin, kiitos kustomoitujen kääntäjien (`@JsonConverter`). Tarvittaessa `seed_data.json` päivitetään vastaamaan uusia tiukkoja malleja.
 4. **Dev-kokemus (DX):** Koodin laatu ja ylläpidettävyys ovat harpanneet eteenpäin poistaen 'Generation Hell' -riskit jättäen sen pelkäksi tehokkaaksi työkaluksi täyden kontrollin alla.
 5. **Arkkitehtuuriset Rajat (Boundaries) vahvistettu:** Freezed on otettu 100% käyttöön DTO-malleissa ja monimutkaisissa Riverpod-tiloissa (State Unions), mutta sen käyttö on **ehdottomasti kielletty** logiikkaa sisältävissä luokissa (kuten `*Service`, `*Repository`, `*Client` tai Riverpod `@riverpod class` Notifierit itse).
     *   **Perustelu (Miksi?):** Freezed on suunniteltu *immutaabelin muodon* (Data Classes) turvaamiseen, syvävertailuun (Deep Equality) ja vaivattomaan kopiointiin `.copyWith`. Riverpod Notifierit ja Servicet sen sijaan ohjaavat *käyttäytymistä* asynkronisten metodien kautta ja pitävät sisällään elinkaaren (`build()`, `dispose()`). Freezedin pakottaminen logiikkaluokkiin rikkoisi "Data vs. Behavior" -periaatteen synnyttäen jättiluokkia (God-Classes) ja valtavasti tarpeetonta boilerplatea kahden singletonin täysin tarpeettomia vertailuja varten.

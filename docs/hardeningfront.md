@@ -17,14 +17,14 @@ Kun annan luvan edetä ("PROCEED"), aloita listan purkaminen ensimmäisestä tek
 
 > **AUDITOINTIMANDAATIT VAHVISTETTU:**
 > [ ] Vain YKSI alin alihakemisto valittu analyysiin.
-> [ ] Fail-Fast tarkistettu (ei tyhjiä catch-lohkoja ilman lokitusta/heittoa).
-> [ ] De-Generator tarkistettu (onko Freezed API-vastauksissa, pakotettu SafeCast Map).
-> [ ] Exception-luokkien käyttö tarkistettu (pakotettu AppException).
-> [ ] Riverpod-puhtaus tarkistettu (raskaat JSON-purut `Isolate.run`-sisällä).
+> [ ] Fail-Fast tarkistettu (ei oletusarvoja, ei fallbackeja, tuntematon JSON kaataa heti).
+> [ ] Strict Nirvana (Freezed-mallien tiukkuus, ei `.when()`/`.map()`, vaan natiivi Dart 3 `switch`).
+> [ ] Exception Unwrapping (nappaa `CheckedFromJsonException` ja kaiva `.innerError` esiin).
+> [ ] Isolate Mandate (kaikki raskaat JSON-purut pidetään `Isolate.run`-sisällä Freezedistä huolimatta).
+> [ ] The Single Source of Truth tsekattu (mallit noudattavat `seed_data.json` rakennetta).
 > [ ] No-strings mandaatti tarkistettu (ei kovakoodattuja UI-tekstejä, käytössä `.arb`).
 > [ ] Vanhat Providerit tarkistettu (pakotettu `@riverpod` koodigenerointi).
-> [ ] Magic Numbers tarkistettu (pakotettu Enum-asetusluokkiin).
-> [ ] "Mock Login" / "Development Tools" poikkeukset huomioitu (kovakoodaukset sallittu täällä).
+> [ ] "Mock Login" poikkeukset huomioitu (kovakoodaukset sallittu täällä).
 
 Raportoi löydökset listan tulostamisen jälkeen havaitsemistasi tiedostoista yksityiskohtaisesti. Pysähdy odottamaan komentoa "FIX" tai "NEXT...".
 
