@@ -200,6 +200,8 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'post_hooks',
         'safety',
         'allowed_mcp_tools',
+        'expected_inputs',
+        'output_schema',
         'model_strategy',
         'type',
       ],
@@ -241,6 +243,15 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      expectedInputs: $checkedConvert(
+        'expected_inputs',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      outputSchema: $checkedConvert(
+        'output_schema',
+        (v) => v as Map<String, dynamic>?,
+      ),
       modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
       $type: $checkedConvert('type', (v) => v as String?),
     );
@@ -252,6 +263,8 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
+    'expectedInputs': 'expected_inputs',
+    'outputSchema': 'output_schema',
     'modelStrategy': 'model_strategy',
     r'$type': 'type',
   },
@@ -270,6 +283,8 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'post_hooks': instance.postHooks,
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
+      'expected_inputs': instance.expectedInputs,
+      'output_schema': instance.outputSchema,
       'model_strategy': instance.modelStrategy,
       'type': instance.$type,
     };
@@ -294,6 +309,8 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'post_hooks',
         'safety',
         'allowed_mcp_tools',
+        'expected_inputs',
+        'output_schema',
         'model_strategy',
         'type',
       ],
@@ -335,6 +352,15 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      expectedInputs: $checkedConvert(
+        'expected_inputs',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      outputSchema: $checkedConvert(
+        'output_schema',
+        (v) => v as Map<String, dynamic>?,
+      ),
       modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
       $type: $checkedConvert('type', (v) => v as String?),
     );
@@ -346,6 +372,8 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
+    'expectedInputs': 'expected_inputs',
+    'outputSchema': 'output_schema',
     'modelStrategy': 'model_strategy',
     r'$type': 'type',
   },
@@ -364,6 +392,8 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'post_hooks': instance.postHooks,
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
+      'expected_inputs': instance.expectedInputs,
+      'output_schema': instance.outputSchema,
       'model_strategy': instance.modelStrategy,
       'type': instance.$type,
     };

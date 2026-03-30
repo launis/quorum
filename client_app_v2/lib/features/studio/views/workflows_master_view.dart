@@ -38,8 +38,10 @@ class WorkflowsMasterView extends ConsumerWidget {
                         .read(workflowsControllerProvider.notifier)
                         .createWorkflowDraft();
                     if (context.mounted) {
-                      WorkflowEditRoute(id: draft.id, slug: draft.slug)
-                          .go(context);
+                      WorkflowEditRoute(
+                        id: draft.id,
+                        slug: draft.slug,
+                      ).go(context);
                     }
                   } catch (e) {
                     if (context.mounted) {

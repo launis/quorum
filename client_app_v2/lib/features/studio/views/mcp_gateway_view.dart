@@ -144,14 +144,14 @@ class McpGatewayView extends HookConsumerWidget {
                 ),
               ),
             ),
-            IconButton(
-              icon: Icon(
-                Icons.delete,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              onPressed: formState.isLoading ? null : deleteGateway,
-              tooltip: l10n.deleteGatewayTitle,
+          IconButton(
+            icon: Icon(
+              Icons.delete,
+              color: Theme.of(context).colorScheme.error,
             ),
+            onPressed: formState.isLoading ? null : deleteGateway,
+            tooltip: l10n.deleteGatewayTitle,
+          ),
           FilledButton.icon(
             icon: const Icon(Icons.save),
             label: Text(l10n.studioSaveButton),

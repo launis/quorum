@@ -344,6 +344,14 @@ class Step(V2CoreBase):
             "Takes precedence over workflow strategy."
         ),
     )
+    expected_inputs: list[str] = Field(
+        default_factory=list,
+        description="List of expected input keys required for this step. Replaces free-text generic routing.",
+    )
+    output_schema: dict[str, Any] | None = Field(
+        default=None,
+        description="Optional JSON schema defining the structured output of this step.",
+    )
 
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
@@ -545,7 +553,11 @@ class OutputLayoutBlock(V2CoreBase):
 class OutputProfile(V2CoreBase):
     """A distinct report variant containing a sequence of layout blocks."""
 
+    id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="Unique Profile ID")
+    slug: str = Field(description="Fallback slug identifier")
+    workflow_id: str = Field(description="ID of the associated Workflow")
     name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
+    description: I18nText | None = Field(default=None, description="Detailed profile context")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
 class EmbeddedOutputProfile(V2CoreBase):

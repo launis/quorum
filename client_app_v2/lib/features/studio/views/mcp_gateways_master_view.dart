@@ -33,8 +33,10 @@ class McpGatewaysMasterView extends ConsumerWidget {
                         .read(mcpGatewaysControllerProvider.notifier)
                         .createMcpGatewayDraft();
                     if (context.mounted) {
-                      McpGatewayEditRoute(id: draft['id'] ?? '', $extra: draft)
-                          .go(context);
+                      McpGatewayEditRoute(
+                        id: draft['id'] ?? '',
+                        $extra: draft,
+                      ).go(context);
                     }
                   } catch (e) {
                     if (context.mounted) {

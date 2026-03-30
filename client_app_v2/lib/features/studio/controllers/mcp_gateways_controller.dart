@@ -142,6 +142,7 @@ class McpGatewaysController extends _$McpGatewaysController {
       throw AppException.unknown(e);
     }
   }
+
   /// Creates a draft MCP Gateway via the SSoT backend.
   Future<Map<String, dynamic>> createMcpGatewayDraft() async {
     final previousState = state;

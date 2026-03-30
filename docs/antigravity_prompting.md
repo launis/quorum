@@ -20,7 +20,7 @@ Select the appropriate instruction block from the text and copy it as a whole to
 Goal: [WRITE GOAL. Ex: "Design and implement a new reporting module and UI"]
 
 ROLE: Principal Solutions Architect (2026 Context - Phase 9 Hardening & Desktop-Class IDE).
-REFERENCE: `GEMINI.md` or `AGENTS.md` (Read first. Absolute law).
+REFERENCE: `GEMINI.md`, `AGENTS.md`, `docs\flutterpromptohje.md` (Read first. Absolute law).
 
 INSTRUCTIONS (LEVEL 1):
 1. READ: Do NOT write code yet. Familiarize yourself with the architectural laws.

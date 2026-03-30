@@ -186,14 +186,16 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                     .read(promptBlocksControllerProvider.notifier)
                     .createPromptBlockDraft();
                 if (context.mounted) {
-                  PromptBlockEditRoute(id: draft.id, slug: draft.slug)
-                      .go(context);
+                  PromptBlockEditRoute(
+                    id: draft.id,
+                    slug: draft.slug,
+                  ).go(context);
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to mint: $e')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Failed to mint: $e')));
                 }
               }
             },
@@ -299,23 +301,29 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(context, l10n.studioDashboardMatricesTitle, () async {
+          _buildSectionHeader(
+            context,
+            l10n.studioDashboardMatricesTitle,
+            () async {
               try {
                 final draft = await ref
                     .read(promptBlocksControllerProvider.notifier)
                     .createPromptBlockDraft();
                 if (context.mounted) {
-                  PromptBlockEditRoute(id: draft.id, slug: draft.slug)
-                      .go(context);
+                  PromptBlockEditRoute(
+                    id: draft.id,
+                    slug: draft.slug,
+                  ).go(context);
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to mint: $e')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Failed to mint: $e')));
                 }
               }
-          }),
+            },
+          ),
           const SizedBox(height: 16),
           promptBlocksState.when(
             data: (allBlocks) {
@@ -423,21 +431,21 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildSectionHeader(context, l10n.studioViewsStepsTab, () async {
-              try {
-                final draft = await ref
-                    .read(stepsControllerProvider.notifier)
-                    .createStepDraft();
-                if (context.mounted) {
-                  // Pass the draft as Extra
-                  StepEditRoute($extra: draft.toJson()).go(context);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to mint: $e')),
-                  );
-                }
+            try {
+              final draft = await ref
+                  .read(stepsControllerProvider.notifier)
+                  .createStepDraft();
+              if (context.mounted) {
+                // Pass the draft as Extra
+                StepEditRoute($extra: draft.toJson()).go(context);
               }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Failed to mint: $e')));
+              }
+            }
           }),
           const SizedBox(height: 16),
           blueprintsState.when(
@@ -540,20 +548,20 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildSectionHeader(context, l10n.modelRegistryTitle, () async {
-              try {
-                final draft = await ref
-                    .read(modelRegistryControllerProvider.notifier)
-                    .createSystemConfigDraft();
-                if (context.mounted) {
-                  ModelRegistryEditRoute(id: draft.id).go(context);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to mint: $e')),
-                  );
-                }
+            try {
+              final draft = await ref
+                  .read(modelRegistryControllerProvider.notifier)
+                  .createSystemConfigDraft();
+              if (context.mounted) {
+                ModelRegistryEditRoute(id: draft.id).go(context);
               }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Failed to mint: $e')));
+              }
+            }
           }),
           const SizedBox(height: 16),
           registryState.when(

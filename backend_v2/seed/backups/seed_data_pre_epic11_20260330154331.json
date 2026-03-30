@@ -5728,9 +5728,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "precise"
     },
     {
       "id": "sp_b5c751d1cbe24735",
@@ -5779,9 +5777,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "precise"
     },
     {
       "id": "sp_f22db9f1dde048b7",
@@ -5822,9 +5818,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "precise"
     },
     {
       "id": "sp_bd0b3054fe664960",
@@ -5868,9 +5862,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "precise"
     },
     {
       "id": "sp_25664f44773a4354",
@@ -5925,9 +5917,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "deep",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "deep"
     },
     {
       "id": "sp_7f9649114d2344dc",
@@ -5968,9 +5958,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "strict",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "strict"
     },
     {
       "id": "sp_6f40b964895c426b",
@@ -6014,9 +6002,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "deep",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "deep"
     },
     {
       "id": "sp_ddb7cf7c8a0245d4",
@@ -6062,9 +6048,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "strict",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "strict"
     },
     {
       "id": "sp_48974af1fc584407",
@@ -6110,9 +6094,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "precise"
     },
     {
       "id": "sp_8daee218c6b14f02",
@@ -6156,9 +6138,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "strict",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "strict"
     },
     {
       "id": "sp_dfc365994fa944b2",
@@ -6214,9 +6194,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "precise"
     },
     {
       "id": "sp_6a45d484ad5b497c",
@@ -6262,9 +6240,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "precise"
     },
     {
       "id": "sp_192910b5f5a34c79",
@@ -6304,9 +6280,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "deep",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "deep"
     },
     {
       "id": "sp_76eedbc020274f66",
@@ -6337,9 +6311,7 @@
       ],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "search",
-      "expected_inputs": [],
-      "output_schema": null
+      "model_strategy": "search"
     },
     {
       "id": "sp_d245365e4a274b9e",
@@ -6364,9 +6336,7 @@
       "safety": "safe",
       "prompt_blocks": [],
       "pre_hooks": [],
-      "post_hooks": [],
-      "expected_inputs": [],
-      "output_schema": null
+      "post_hooks": []
     }
   ],
   "organizations": [

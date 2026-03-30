@@ -439,7 +439,7 @@ class StepsController extends _$StepsController {
     try {
       final client = ref.read(studioClientProvider);
       final rawResponse = await client.createStepDraft();
-      
+
       // Isolate Mandate: Zero-Latency
       final draftStep = await Isolate.run(() {
         return NodeStrategy.fromJson(rawResponse);

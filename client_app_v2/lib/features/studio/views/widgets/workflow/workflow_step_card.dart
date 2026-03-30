@@ -231,78 +231,147 @@ class WorkflowStepCard extends StatelessWidget {
               l10n.studioWorkflowInputMappings,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            ...mappings.entries.map((m) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        initialValue: m.key,
-                        decoration: InputDecoration(
-                          labelText: l10n.studioWorkflowTargetArgName,
-                          isDense: true,
-                        ),
-                        onChanged: (newKey) {
-                          final newMappings = Map<String, String>.from(
-                            mappings,
-                          );
-                          final val = newMappings.remove(m.key);
-                          newMappings[newKey] = val ?? '';
-                          update(stepDef.copyWith(inputMappings: newMappings));
-                        },
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.arrow_forward),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: TextFormField(
-                        initialValue: m.value,
-                        decoration: InputDecoration(
-                          labelText: l10n.studioWorkflowSourceToken,
-                          isDense: true,
-                        ),
-                        onChanged: (newVal) {
-                          final newMappings = Map<String, String>.from(
-                            mappings,
-                          );
-                          newMappings[m.key] = newVal;
-                          update(stepDef.copyWith(inputMappings: newMappings));
-                        },
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.remove_circle,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      onPressed: () {
-                        final newMappings = Map<String, String>.from(mappings);
-                        newMappings.remove(m.key);
-                        update(stepDef.copyWith(inputMappings: newMappings));
-                      },
-                    ),
-                  ],
+            ...(() {
+              final activeBlueprint = blueprints.firstWhere(
+                (b) => b.id == stepDef.taskBlueprint,
+                orElse: () => const NodeStrategy.logic(
+                  id: '',
+                  slug: '',
+                  hook: '',
+                  name: I18nText(defaultLocale: 'en'),
                 ),
               );
-            }),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                icon: const Icon(Icons.add_link),
-                label: Text(l10n.studioWorkflowAddMappingBtn),
-                onPressed: () {
-                  final newMappings = Map<String, String>.from(mappings);
-                  newMappings['new_arg_${newMappings.length}'] = '';
-                  update(stepDef.copyWith(inputMappings: newMappings));
-                },
-              ),
-            ),
+              final expectedInputs = activeBlueprint.expectedInputs;
+
+              final availableSources = <DropdownMenuItem<String>>[
+                const DropdownMenuItem(
+                  value: r'$inputs.document',
+                  child: Text('Global Workflow Input'),
+                ),
+              ];
+
+              for (final prevId in dependsOn) {
+                final matchingNode = allSteps
+                    .where((s) => s.id == prevId)
+                    .firstOrNull;
+                String label = prevId;
+                if (matchingNode != null &&
+                    matchingNode.taskBlueprint.isNotEmpty) {
+                  label = getBlueprintLabel(matchingNode.taskBlueprint);
+                }
+                if (label.isEmpty) {
+                  label = prevId.length > 15
+                      ? '${prevId.substring(0, 15)}...'
+                      : prevId;
+                }
+                availableSources.add(
+                  DropdownMenuItem(
+                    value: '\$steps.$prevId.output',
+                    child: Text(label),
+                  ),
+                );
+              }
+
+              return [
+                ...mappings.entries.map((m) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              labelText: l10n.studioWorkflowTargetArgName,
+                              isDense: true,
+                            ),
+                            initialValue: expectedInputs.contains(m.key)
+                                ? m.key
+                                : null,
+                            items: expectedInputs.map((e) {
+                              return DropdownMenuItem(value: e, child: Text(e));
+                            }).toList(),
+                            onChanged: (newKey) {
+                              if (newKey != null) {
+                                final newMappings = Map<String, String>.from(
+                                  mappings,
+                                );
+                                final val = newMappings.remove(m.key);
+                                newMappings[newKey] = val ?? '';
+                                update(
+                                  stepDef.copyWith(inputMappings: newMappings),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Icon(Icons.arrow_forward),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              labelText: l10n.studioWorkflowSourceToken,
+                              isDense: true,
+                            ),
+                            initialValue:
+                                availableSources.any(
+                                  (item) => item.value == m.value,
+                                )
+                                ? m.value
+                                : null,
+                            items: availableSources,
+                            onChanged: (newVal) {
+                              if (newVal != null) {
+                                final newMappings = Map<String, String>.from(
+                                  mappings,
+                                );
+                                newMappings[m.key] = newVal;
+                                update(
+                                  stepDef.copyWith(inputMappings: newMappings),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.remove_circle,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                          onPressed: () {
+                            final newMappings = Map<String, String>.from(
+                              mappings,
+                            );
+                            newMappings.remove(m.key);
+                            update(
+                              stepDef.copyWith(inputMappings: newMappings),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.add_link),
+                    label: Text(l10n.studioWorkflowAddMappingBtn),
+                    onPressed: () {
+                      final newMappings = Map<String, String>.from(mappings);
+                      newMappings['new_mapping_${newMappings.length}'] = '';
+                      update(stepDef.copyWith(inputMappings: newMappings));
+                    },
+                  ),
+                ),
+              ];
+            })(),
           ],
         ),
       ),

@@ -195,9 +195,7 @@ class ModelRegistryView extends HookConsumerWidget {
             const SizedBox(height: 16),
             TextFormField(
               initialValue: data.id,
-              decoration: InputDecoration(
-                labelText: l10n.configIdLabel,
-              ),
+              decoration: InputDecoration(labelText: l10n.configIdLabel),
               readOnly: true, // Server-side Minting: ID is immutable
             ),
             const SizedBox(height: 8),

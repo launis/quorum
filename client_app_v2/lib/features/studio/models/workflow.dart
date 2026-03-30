@@ -78,6 +78,8 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> postHooks,
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
+    @Default([]) List<String> expectedInputs,
+    Map<String, dynamic>? outputSchema,
     String? modelStrategy,
   }) = NodeStrategyLlm;
 
@@ -94,6 +96,8 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> postHooks,
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
+    @Default([]) List<String> expectedInputs,
+    Map<String, dynamic>? outputSchema,
     String? modelStrategy,
   }) = NodeStrategyLogic;
 

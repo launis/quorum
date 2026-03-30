@@ -40,19 +40,11 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
     return formState.when(
       loading: () => Scaffold(
-        appBar: AppBar(
-          title: Text(
-            l10n.editOutputProfileTitle,
-          ),
-        ),
+        appBar: AppBar(title: Text(l10n.editOutputProfileTitle)),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (e, st) => Scaffold(
-        appBar: AppBar(
-          title: Text(
-            l10n.editOutputProfileTitle,
-          ),
-        ),
+        appBar: AppBar(title: Text(l10n.editOutputProfileTitle)),
         body: ErrorView(
           error: e,
           stackTrace: st,
@@ -221,7 +213,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
       final workflows = workflowsState.value!.cast<Workflow>();
       final steps = stepsState.value!.cast<NodeStrategy>();
 
-      final Workflow? workflow = workflows.where((w) => w.id == selectedWorkflowId).firstOrNull;
+      final Workflow? workflow = workflows
+          .where((w) => w.id == selectedWorkflowId)
+          .firstOrNull;
 
       if (workflow != null) {
         final taskBlueprintIds = workflow.steps
@@ -242,9 +236,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
     return AppExceptionBoundary(
       child: Scaffold(
         appBar: AppBar(
-          title: Text(
-            l10n.editOutputProfileTitle,
-          ),
+          title: Text(l10n.editOutputProfileTitle),
           actions: [
             if (formState.isLoading)
               const Padding(
@@ -258,14 +250,14 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 ),
               )
             else ...[
-                IconButton(
-                  icon: Icon(
-                    Icons.delete,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  onPressed: deleteProfile,
-                  tooltip: l10n.deleteProfileTitle,
+              IconButton(
+                icon: Icon(
+                  Icons.delete,
+                  color: Theme.of(context).colorScheme.error,
                 ),
+                onPressed: deleteProfile,
+                tooltip: l10n.deleteProfileTitle,
+              ),
               TextButton.icon(
                 onPressed: saveProfile,
                 icon: const Icon(Icons.save),
@@ -311,7 +303,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
                           final bool hasValidValue =
                               currentValue != null &&
-                              (workflows.any((w) => w.id == currentValue) || currentValue == '');
+                              (workflows.any((w) => w.id == currentValue) ||
+                                  currentValue == '');
 
                           return DropdownButtonFormField<String>(
                             initialValue: hasValidValue ? currentValue : null,
@@ -327,7 +320,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                               ),
                               ...workflows.map((flow) {
                                 final flowId = flow.id;
-                                final localeCode = Localizations.localeOf(context).languageCode;
+                                final localeCode = Localizations.localeOf(
+                                  context,
+                                ).languageCode;
                                 final displayName = flow.name.get(localeCode);
 
                                 return DropdownMenuItem(
@@ -600,8 +595,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 String? selectedValue;
                 if (i < blocksList.length) {
                   final val = blocksList[i];
-                  if (val == '*' ||
-                      targetBlocks.any((b) => b.id == val)) {
+                  if (val == '*' || targetBlocks.any((b) => b.id == val)) {
                     selectedValue = val;
                   }
                 }
@@ -631,9 +625,13 @@ class OutputProfileCrudView extends HookConsumerWidget {
                         ),
                         ...targetBlocks.map((block) {
                           final blockId = block.id;
-                          final localeCode = Localizations.localeOf(context).languageCode;
+                          final localeCode = Localizations.localeOf(
+                            context,
+                          ).languageCode;
                           final i18nVal = block.label.get(localeCode);
-                          final blockName = i18nVal.isNotEmpty ? i18nVal : blockId;
+                          final blockName = i18nVal.isNotEmpty
+                              ? i18nVal
+                              : blockId;
 
                           return DropdownMenuItem(
                             value: blockId,

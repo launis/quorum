@@ -20,10 +20,12 @@ class AppExceptionBoundary extends StatefulWidget {
 
 class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
   Object? _error;
+  late final ErrorWidgetBuilder _originalErrorBuilder;
 
   @override
   void initState() {
     super.initState();
+    _originalErrorBuilder = ErrorWidget.builder;
     // Catch framework-level errors gracefully without causing the Red Screen of Death
     ErrorWidget.builder = (FlutterErrorDetails details) {
       if (!mounted) return const SizedBox.shrink();
@@ -46,6 +48,12 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
     };
   }
 
+  @override
+  void dispose() {
+    ErrorWidget.builder = _originalErrorBuilder;
+    super.dispose();
+  }
+
   /// Manually recover the Boundary state
   void resetError() {
     setState(() {
@@ -61,10 +69,12 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
     if (error is CheckedFromJsonException) {
       final key = error.key ?? 'unknown';
       if (error.innerError != null) {
-        displayError = l10n?.errorDataType(key, error.innerError.toString()) ??
+        displayError =
+            l10n?.errorDataType(key, error.innerError.toString()) ??
             '[Type Error in field "$key"]\n${error.innerError}';
       } else {
-        displayError = l10n?.errorDataMapping(key, error.message ?? 'null') ??
+        displayError =
+            l10n?.errorDataMapping(key, error.message ?? 'null') ??
             '[Mapping Error in field "$key"]\n${error.message}';
       }
     }

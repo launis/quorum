@@ -134,7 +134,8 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
 
                 navigator.pushReplacement(
                   MaterialPageRoute(
-                    builder: (context) => WorkflowBuilderView(id: clonedWorkflow.id),
+                    builder: (context) =>
+                        WorkflowBuilderView(id: clonedWorkflow.id),
                   ),
                 );
 

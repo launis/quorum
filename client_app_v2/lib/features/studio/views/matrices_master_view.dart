@@ -35,8 +35,10 @@ class MatricesMasterView extends ConsumerWidget {
                         .read(promptBlocksControllerProvider.notifier)
                         .createPromptBlockDraft();
                     if (context.mounted) {
-                      PromptBlockEditRoute(id: draft.id, slug: draft.slug)
-                          .go(context);
+                      PromptBlockEditRoute(
+                        id: draft.id,
+                        slug: draft.slug,
+                      ).go(context);
                     }
                   } catch (e) {
                     if (context.mounted) {
