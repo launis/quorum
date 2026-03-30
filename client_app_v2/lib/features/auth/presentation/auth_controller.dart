@@ -23,8 +23,10 @@ class AuthController extends _$AuthController {
 
     // 1. Await Firebase Auth state explicitly since Riverpod v2 stream watching is better
     // Wait, let's just use regular Future mapping for MVP
-    final firebaseUser =
-        await ref.watch(authRepositoryProvider).authStateChanges().first;
+    final firebaseUser = await ref
+        .watch(authRepositoryProvider)
+        .authStateChanges()
+        .first;
     if (firebaseUser == null) return null;
 
     final result = await ref.read(userRepositoryProvider).fetchCurrentUser();

@@ -12,14 +12,8 @@ class MatrixEditorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (id == 'new' || id == null || id!.isEmpty) {
-      return const PromptBlockBuilderView(
-        id: 'new',
-        slug: 'create-matrix',
-      );
+      return const PromptBlockBuilderView(id: 'new', slug: 'create-matrix');
     }
-    return PromptBlockBuilderView(
-      id: id,
-      slug: 'edit-matrix',
-    );
+    return PromptBlockBuilderView(id: id, slug: 'edit-matrix');
   }
 }

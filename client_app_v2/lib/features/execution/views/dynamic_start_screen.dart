@@ -37,8 +37,9 @@ class DynamicStartScreen extends HookConsumerWidget {
     return schemaAsync.when(
       data: (schema) {
         final expectedRaw = SafeCast.safeList(schema['expected_inputs']);
-        final expectedInputs =
-            expectedRaw.map((e) => SafeCast.safeMap(e)).toList();
+        final expectedInputs = expectedRaw
+            .map((e) => SafeCast.safeMap(e))
+            .toList();
 
         return _buildContent(
           context,
@@ -139,43 +140,42 @@ class DynamicStartScreen extends HookConsumerWidget {
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
-                    child:
-                        isQuestionnaire
-                            ? _buildQuestionnaire(
-                              context,
-                              semanticRole,
-                              label,
-                              SafeCast.safeList(
-                                details['questionnaire_definition'],
-                              ),
-                              collectedInputs,
-                            )
-                            : HookBuilder(
-                              builder: (ctx) {
-                                // We use a local state to trigger rebuilds of this OmniInputBox
-                                // when the value changes, instead of rebuilding the entire form.
-                                final localValue = useState<dynamic>(
-                                  collectedInputs[semanticRole],
-                                );
-
-                                return OmniInputBox(
-                                  label: label + (requiredParam ? ' *' : ''),
-                                  keyName: semanticRole,
-                                  currentValue: localValue.value,
-                                  onChanged: (val) {
-                                    localValue.value = val;
-                                    collectedInputs[semanticRole] = val;
-                                  },
-                                );
-                              },
+                    child: isQuestionnaire
+                        ? _buildQuestionnaire(
+                            context,
+                            semanticRole,
+                            label,
+                            SafeCast.safeList(
+                              details['questionnaire_definition'],
                             ),
+                            collectedInputs,
+                          )
+                        : HookBuilder(
+                            builder: (ctx) {
+                              // We use a local state to trigger rebuilds of this OmniInputBox
+                              // when the value changes, instead of rebuilding the entire form.
+                              final localValue = useState<dynamic>(
+                                collectedInputs[semanticRole],
+                              );
+
+                              return OmniInputBox(
+                                label: label + (requiredParam ? ' *' : ''),
+                                keyName: semanticRole,
+                                currentValue: localValue.value,
+                                onChanged: (val) {
+                                  localValue.value = val;
+                                  collectedInputs[semanticRole] = val;
+                                },
+                              );
+                            },
+                          ),
                   );
                 }),
 
                 const SizedBox(height: 32),
                 FilledButton.icon(
-                  onPressed:
-                      () => _onStart(context, ref, collectedInputs, formKey),
+                  onPressed: () =>
+                      _onStart(context, ref, collectedInputs, formKey),
                   icon: const Icon(Icons.play_arrow),
                   label: Text(AppLocalizations.of(context)!.startAiExecution),
                   style: FilledButton.styleFrom(

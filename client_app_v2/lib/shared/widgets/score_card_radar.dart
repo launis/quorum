@@ -15,8 +15,9 @@ class ScoreCardRadar extends StatelessWidget {
 
     // Use dimensions or fallback if empty
     final rawDimensions = cardData['dimensions'] as List<dynamic>? ?? [];
-    final dimensions =
-        rawDimensions.map((e) => e as Map<String, dynamic>).toList();
+    final dimensions = rawDimensions
+        .map((e) => e as Map<String, dynamic>)
+        .toList();
 
     final dimensionsNotEmpty = dimensions.isNotEmpty;
 
@@ -71,12 +72,13 @@ class ScoreCardRadar extends StatelessWidget {
                       Text(
                         cardData['totalScore'] != null
                             ? (cardData['totalScore'] is num
-                                    ? (cardData['totalScore'] as num).toDouble()
-                                    : double.tryParse(
-                                          cardData['totalScore'].toString(),
-                                        ) ??
-                                        0.0)
-                                .toStringAsFixed(1)
+                                      ? (cardData['totalScore'] as num)
+                                            .toDouble()
+                                      : double.tryParse(
+                                              cardData['totalScore'].toString(),
+                                            ) ??
+                                            0.0)
+                                  .toStringAsFixed(1)
                             : "N/A",
                         style: textTheme.titleLarge?.copyWith(
                           color: colorScheme.onPrimaryContainer,
@@ -115,15 +117,13 @@ class ScoreCardRadar extends StatelessWidget {
                         fillColor: colorScheme.primary.withAlpha(50),
                         borderColor: colorScheme.primary,
                         entryRadius: 2,
-                        dataEntries:
-                            dimensions
-                                .map(
-                                  (d) => RadarEntry(
-                                    value:
-                                        (d['score'] as num?)?.toDouble() ?? 0.0,
-                                  ),
-                                )
-                                .toList(),
+                        dataEntries: dimensions
+                            .map(
+                              (d) => RadarEntry(
+                                value: (d['score'] as num?)?.toDouble() ?? 0.0,
+                              ),
+                            )
+                            .toList(),
                         borderWidth: 2,
                       ),
                     ],

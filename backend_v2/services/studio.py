@@ -302,6 +302,8 @@ class StudioService:
             if default_locale in translations:
                 translations[default_locale] = translations[default_locale] + " (Copy)"
                 cloned_data["label"]["translations"] = translations
+        elif "label" in cloned_data and isinstance(cloned_data["label"], str):
+            cloned_data["label"] = cloned_data["label"] + " (Copy)"
 
         await self.repo.create_raw("prompt_blocks", cloned_data)
 
@@ -377,7 +379,7 @@ class StudioService:
 
         cloned_data = SystemConfigModelRegistry.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
-        if "description" in cloned_data:
+        if "description" in cloned_data and getattr(cloned_data["description"], "strip", None) is not None:
             cloned_data["description"] = f"{cloned_data['description']} (Copy)"
 
         await self.repo.create_raw("system_config", cloned_data)

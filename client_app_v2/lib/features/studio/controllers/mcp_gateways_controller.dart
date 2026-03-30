@@ -219,8 +219,9 @@ class McpGatewayForm extends _$McpGatewayForm {
     state = const AsyncLoading(); // Side effect isolation
 
     state = await AsyncValue.guard(() async {
-      final idToSave =
-          gatewayId == 'new' ? (updatedData['id'] ?? 'mcpcfg_new') : gatewayId;
+      final idToSave = gatewayId == 'new'
+          ? (updatedData['id'] ?? 'mcpcfg_new')
+          : gatewayId;
       await ref
           .read(mcpGatewaysControllerProvider.notifier)
           .saveGateway(idToSave, updatedData);

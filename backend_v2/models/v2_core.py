@@ -136,7 +136,7 @@ class PromptBlock(V2CoreBase):
         ),
     )
     category_id: str = Field(description="Categorization identifier (e.g. 'scientific_theory', 'system_rule').")
-    type: BlockDataType = Field(description="Data type of the expected extracted value.")
+    type: BlockDataType = Field(description="Data type of the expected extracted value.", strict=False)
     allow_decimals: bool = Field(default=False, description="Whether float types allow decimals in validation.")
     output_extensions: list[str] = Field(
         default_factory=list,
@@ -158,7 +158,6 @@ class PromptBlock(V2CoreBase):
     )
     rows: list[MatrixRow] | None = Field(default=None, description="Optional rows for grid matrices.")
     columns: list[I18nText] | None = Field(default=None, description="Optional columns for grid matrices.")
-
 
     @model_validator(mode="after")
     def validate_block_consistency(self) -> PromptBlock:
@@ -226,10 +225,9 @@ class DataDictionaryField(V2CoreBase):
     """UI Hints mapping for dynamic form generation (SDUI)."""
 
     field_id: str
-    component_type: ComponentType = Field(description="E.g., 'slider', 'text_input', 'dropdown'")
+    component_type: ComponentType = Field(description="E.g., 'slider', 'text_input', 'dropdown'", strict=False)
     options: list[dict[str, Any]] | None = None
     validation_rules: dict[str, Any] | None = None
-
 
 
 class ModelProfile(V2CoreBase):
@@ -286,7 +284,6 @@ class MCPAuditTrace(V2CoreBase):
         default_factory=lambda: datetime.now(timezone.utc), description="UTC timestamp of the tool call."
     )
     duration_ms: int = Field(default=0, description="Round-trip latency in milliseconds.")
-
 
 
 class SystemConfigMCPGateways(V2CoreBase):
@@ -373,8 +370,7 @@ class StepRule(V2CoreBase):
     allowed_mcp_tools: list[str] = Field(
         default_factory=list,
         description=(
-            "Workflow-level MCP tools override (e.g. ['mcp_tavily_search']). "
-            "Takes priority over Step template."
+            "Workflow-level MCP tools override (e.g. ['mcp_tavily_search']). Takes priority over Step template."
         ),
     )
     ui_pos_x: float = Field(default=0.0, description="X coordinate on the 2D DAG canvas.")
@@ -564,8 +560,6 @@ class Workflow(V2CoreBase):
     )
     steps: list[StepRule] = Field(default_factory=list)
 
-
-
     @model_validator(mode="after")
     def validate_dag_integrity(self) -> Workflow:
         """Enforces Directed Acyclic Graph (DAG) structural integrity."""
@@ -643,8 +637,6 @@ class ExecutionCreate(V2CoreBase):
     raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")
 
 
-
-
 class ExecutionStepState(V2CoreBase):
     """Real-time status tracking for a single DAG node."""
 
@@ -659,7 +651,7 @@ class ExecutionRecord(V2CoreBase):
 
     id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
-    status: ExecutionStatus = Field(description="Current status of execution")
+    status: ExecutionStatus = Field(description="Current status of execution", strict=False)
     active_profile_id: str | None = Field(
         default="default", description="The ID of the output profile selected for formatting and printing."
     )
@@ -693,3 +685,16 @@ class ExecutionRecord(V2CoreBase):
     created_by: str | None = Field(default=None, description="ID of the user who started the execution")
     organization_id: str | None = Field(default=None, description="ID of the organization for this execution")
 
+    @model_validator(mode="before")
+    @classmethod
+    def parse_db_fields(cls, data: Any) -> Any:
+        """Parses string fields from DB into proper types for Strict Mode."""
+        if isinstance(data, dict):
+            for field in ["created_at", "updated_at", "completed_at"]:
+                val = data.get(field)
+                if isinstance(val, str):
+                    try:
+                        data[field] = datetime.fromisoformat(val)
+                    except ValueError:
+                        pass
+        return data

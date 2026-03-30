@@ -20,6 +20,7 @@ Kun annan luvan edetä ("PROCEED"), aloita listan purkaminen ensimmäisestä tek
 > [ ] Fail-Fast tarkistettu (ei oletusarvoja, ei fallbackeja, tuntematon JSON kaataa heti).
 > [ ] Strict Nirvana (Freezed-mallien tiukkuus, ei `.when()`/`.map()`, vaan natiivi Dart 3 `switch`).
 > [ ] Exception Unwrapping (nappaa `CheckedFromJsonException` ja kaiva `.innerError` esiin).
+> [ ] Zero-Touch Lists (Raskaat RAG-listat ovat natiiveja `List<T>` muodossa `@Freezed(equal: false)` kera, fast_immutable_collections-pakettia ei käytetä).
 > [ ] Isolate Mandate (kaikki raskaat JSON-purut pidetään `Isolate.run`-sisällä Freezedistä huolimatta).
 > [ ] The Single Source of Truth tsekattu (mallit noudattavat `seed_data.json` rakennetta).
 > [ ] No-strings mandaatti tarkistettu (ei kovakoodattuja UI-tekstejä, käytössä `.arb`).

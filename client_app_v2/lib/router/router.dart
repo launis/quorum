@@ -272,10 +272,7 @@ class PromptBlockNewRoute extends GoRouteData with $PromptBlockNewRoute {
 }
 
 class PromptBlockEditRoute extends GoRouteData with $PromptBlockEditRoute {
-  const PromptBlockEditRoute({
-    required this.id,
-    required this.slug,
-  });
+  const PromptBlockEditRoute({required this.id, required this.slug});
   final String id;
   final String slug;
 

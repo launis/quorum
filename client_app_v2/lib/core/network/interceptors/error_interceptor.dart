@@ -67,7 +67,8 @@ class ErrorInterceptor extends Interceptor {
         } catch (e) {
           logger.warning('HTTP', 'Failed to parse AppException: $e');
         }
-      } else if (err.response?.statusCode == 422 && data.containsKey('detail')) {
+      } else if (err.response?.statusCode == 422 &&
+          data.containsKey('detail')) {
         // Fallback for FastAPI standard Validation Errors (HTTP 422)
         final detail = data['detail'];
         String parsedDetail = 'Validation failed';

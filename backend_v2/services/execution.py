@@ -58,7 +58,7 @@ class ExecutionService:
         data = await self.repo.get_execution(execution_id)
         if not data:
             logger.error(
-                "[ExecutionService] %s: ",
+                "[ExecutionService] %s: %s",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 f"Execution {execution_id} not found or corrupted.",
             )
@@ -69,7 +69,7 @@ class ExecutionService:
         if initiator.role != "ROOT" and data.organization_id != org_id and data.created_by != initiator.id:
             msg = "You do not have permission to view this execution."
             logger.error(
-                "[ExecutionService] %s: ",
+                "[ExecutionService] %s: %s",
                 ErrorCodes.PERMISSION_DENIED.name,
                 f"User {initiator.id} attempted to access foreign execution {execution_id}.",
             )
@@ -98,7 +98,7 @@ class ExecutionService:
         ):
             msg = "You do not have permission to delete this execution."
             logger.error(
-                "[ExecutionService] %s: ",
+                "[ExecutionService] %s: %s",
                 ErrorCodes.PERMISSION_DENIED.name,
                 f"User {initiator.id} attempted to delete foreign execution {execution_id}.",
             )
@@ -147,7 +147,7 @@ class ExecutionService:
         if initiator.role != "ROOT" and workflow.organization_id not in [org_id, "org_system000000", None]:
             msg = "You do not have permission to execute this workflow."
             logger.error(
-                "[ExecutionService] %s: ",
+                "[ExecutionService] %s: %s",
                 ErrorCodes.PERMISSION_DENIED.name,
                 f"{initiator.id} tried to start foreign workflow '{workflow.id}'.",
             )
@@ -321,7 +321,6 @@ class ExecutionService:
     async def get_frozen_context_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
         if execution.frozen_context_storage_path:
-
             from backend_v2.services.storage import get_storage_driver
 
             storage = get_storage_driver()

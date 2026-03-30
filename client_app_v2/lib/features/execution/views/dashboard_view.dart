@@ -28,23 +28,22 @@ class DashboardSettings {
 }
 
 // Provider to fetch executions using SafeCast (No Freezed API DTOs)
-final executionListProvider = FutureProvider.autoDispose<
-  List<Map<String, dynamic>>
->((ref) async {
-  // 1. Riverpod Polling (Auto-Refresh)
-  // Poll backend every 10 seconds to keep the Execution Dashboard alive and fresh,
-  // bypassing the StatefulShellRoute cache stagnation issue.
-  final timer = Timer(DashboardSettings.refreshRate, () {
-    ref.invalidateSelf();
-  });
-  ref.onDispose(timer.cancel);
+final executionListProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+      // 1. Riverpod Polling (Auto-Refresh)
+      // Poll backend every 10 seconds to keep the Execution Dashboard alive and fresh,
+      // bypassing the StatefulShellRoute cache stagnation issue.
+      final timer = Timer(DashboardSettings.refreshRate, () {
+        ref.invalidateSelf();
+      });
+      ref.onDispose(timer.cancel);
 
-  final dio = ref.watch(apiClientProvider);
-  final response = await dio.get('/execution/executions');
+      final dio = ref.watch(apiClientProvider);
+      final response = await dio.get('/execution/executions');
 
-  final List<dynamic> data = SafeCast.safeList(response.data);
-  return data.map((e) => SafeCast.safeMap(e)).toList();
-});
+      final List<dynamic> data = SafeCast.safeList(response.data);
+      return data.map((e) => SafeCast.safeMap(e)).toList();
+    });
 
 class DashboardView extends ConsumerStatefulWidget {
   const DashboardView({super.key});
@@ -164,22 +163,18 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
               )!.workflowPrefixLabel(workflowId);
               if (asyncWorkflows is AsyncData && asyncWorkflows.value != null) {
                 final workflows = asyncWorkflows.value!;
-                final wf =
-                    workflows
-                        .where(
-                          (w) => SafeCast.safeString(w['id']) == workflowId,
-                        )
-                        .firstOrNull;
+                final wf = workflows
+                    .where((w) => SafeCast.safeString(w['id']) == workflowId)
+                    .firstOrNull;
                 if (wf != null) {
                   final nameMap = SafeCast.safeMap(wf['name']);
-                  final titleStr =
-                      nameMap.isNotEmpty
-                          ? (nameMap['translations']?[nameMap['default_locale']] ??
-                              nameMap['default_locale'] ??
-                              workflowId)
-                          : (SafeCast.safeString(wf['name']).isNotEmpty
-                              ? SafeCast.safeString(wf['name'])
-                              : workflowId);
+                  final titleStr = nameMap.isNotEmpty
+                      ? (nameMap['translations']?[nameMap['default_locale']] ??
+                            nameMap['default_locale'] ??
+                            workflowId)
+                      : (SafeCast.safeString(wf['name']).isNotEmpty
+                            ? SafeCast.safeString(wf['name'])
+                            : workflowId);
                   workflowDisplay = AppLocalizations.of(
                     context,
                   )!.workflowPrefixLabel(titleStr);
@@ -207,17 +202,15 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                             Icons.print,
                             color: Theme.of(context).colorScheme.primary,
                           ),
-                          tooltip:
-                              AppLocalizations.of(
-                                context,
-                              )!.printVariantSelectorTitle,
-                          onPressed:
-                              () => _showVariantSelector(
-                                context,
-                                id,
-                                workflowId,
-                                asyncWorkflows,
-                              ),
+                          tooltip: AppLocalizations.of(
+                            context,
+                          )!.printVariantSelectorTitle,
+                          onPressed: () => _showVariantSelector(
+                            context,
+                            id,
+                            workflowId,
+                            asyncWorkflows,
+                          ),
                         ),
                         const SizedBox(width: 8),
                       ],
@@ -226,10 +219,9 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                           Icons.delete,
                           color: Theme.of(context).colorScheme.error,
                         ),
-                        tooltip:
-                            AppLocalizations.of(
-                              context,
-                            )!.deleteExecutionTooltip,
+                        tooltip: AppLocalizations.of(
+                          context,
+                        )!.deleteExecutionTooltip,
                         onPressed: () => _confirmDelete(context, ref, id),
                       ),
                     ],
@@ -248,12 +240,11 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             },
           );
         },
-        error:
-            (err, stack) => ErrorView(
-              error: err,
-              stackTrace: stack,
-              onRetry: () => ref.invalidate(executionListProvider),
-            ),
+        error: (err, stack) => ErrorView(
+          error: err,
+          stackTrace: stack,
+          onRetry: () => ref.invalidate(executionListProvider),
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
     );
@@ -326,27 +317,24 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children:
-                        variants
-                            .map(
-                              (v) => ListTile(
-                                leading: Icon(
-                                  v == 'default'
-                                      ? Icons.star
-                                      : Icons.description,
-                                  color: Colors.blue,
-                                ),
-                                title: Text(v),
-                                onTap: () {
-                                  Navigator.of(ctx).pop();
-                                  ExecutionReportRoute(
-                                    executionId: executionId,
-                                    variant: v,
-                                  ).go(context);
-                                },
-                              ),
-                            )
-                            .toList(),
+                    children: variants
+                        .map(
+                          (v) => ListTile(
+                            leading: Icon(
+                              v == 'default' ? Icons.star : Icons.description,
+                              color: Colors.blue,
+                            ),
+                            title: Text(v),
+                            onTap: () {
+                              Navigator.of(ctx).pop();
+                              ExecutionReportRoute(
+                                executionId: executionId,
+                                variant: v,
+                              ).go(context);
+                            },
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
               ),
@@ -381,11 +369,9 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
           )
           .timeout(
             DashboardSettings.downloadTimeout,
-            onTimeout:
-                () =>
-                    throw AppException.timeout(
-                      AppLocalizations.of(context)!.errSaveTimeout,
-                    ),
+            onTimeout: () => throw AppException.timeout(
+              AppLocalizations.of(context)!.errSaveTimeout,
+            ),
           );
 
       if (mounted) {
@@ -419,25 +405,24 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.confirmDeletionTitle),
-            content: Text(AppLocalizations.of(context)!.confirmDeletionMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(AppLocalizations.of(context)!.cancel),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  foregroundColor: Theme.of(context).colorScheme.onError,
-                ),
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(AppLocalizations.of(context)!.delete),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.confirmDeletionTitle),
+        content: Text(AppLocalizations.of(context)!.confirmDeletionMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(AppLocalizations.of(context)!.delete),
+          ),
+        ],
+      ),
     );
 
     if (confirmed == true && context.mounted) {

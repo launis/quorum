@@ -75,10 +75,9 @@ class _FileUploaderState extends State<FileUploader> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               border: Border.all(
-                color:
-                    widget.errorText != null
-                        ? Theme.of(context).colorScheme.error
-                        : Theme.of(context).colorScheme.outline,
+                color: widget.errorText != null
+                    ? Theme.of(context).colorScheme.error
+                    : Theme.of(context).colorScheme.outline,
               ),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -100,15 +99,14 @@ class _FileUploaderState extends State<FileUploader> {
                   child: Text(
                     widget.isLoading
                         ? (AppLocalizations.of(context)?.sharedUploading ??
-                            'Uploading...')
+                              'Uploading...')
                         : (_fileName ??
-                            AppLocalizations.of(context)?.sharedSelectFile ??
-                            'Select file...'),
+                              AppLocalizations.of(context)?.sharedSelectFile ??
+                              'Select file...'),
                     style: TextStyle(
-                      color:
-                          (widget.isLoading || _fileName != null)
-                              ? Theme.of(context).colorScheme.onSurface
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: (widget.isLoading || _fileName != null)
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

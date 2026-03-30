@@ -186,8 +186,8 @@ class ExecutionController extends _$ExecutionController {
               }
 
               // Detect completion
-              final oldStatus =
-                  (currentState['status'] as String?)?.toLowerCase();
+              final oldStatus = (currentState['status'] as String?)
+                  ?.toLowerCase();
               final newStatus = (update['status'] as String?)?.toLowerCase();
               if (newStatus == 'completed' && oldStatus != 'completed') {
                 needsHeavyFetch = true;

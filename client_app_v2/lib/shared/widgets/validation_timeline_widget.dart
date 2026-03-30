@@ -69,21 +69,19 @@ class ValidationTimelineWidget extends StatelessWidget {
                           Container(
                             width: 2,
                             height: 16,
-                            color:
-                                index == 0
-                                    ? Colors.transparent
-                                    : Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                            color: index == 0
+                                ? Colors.transparent
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                           ),
                           Container(
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              color:
-                                  isAlert
-                                      ? Theme.of(context).colorScheme.error
-                                      : Theme.of(context).colorScheme.primary,
+                              color: isAlert
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(context).colorScheme.primary,
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: Theme.of(context).colorScheme.surface,
@@ -94,12 +92,11 @@ class ValidationTimelineWidget extends StatelessWidget {
                           Expanded(
                             child: Container(
                               width: 2,
-                              color:
-                                  isLast
-                                      ? Colors.transparent
-                                      : Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
+                              color: isLast
+                                  ? Colors.transparent
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -116,12 +113,11 @@ class ValidationTimelineWidget extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color:
-                                isAlert
-                                    ? Theme.of(context).colorScheme.error
-                                    : Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                            color: isAlert
+                                ? Theme.of(context).colorScheme.error
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -138,12 +134,9 @@ class ValidationTimelineWidget extends StatelessWidget {
                               label,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color:
-                                    isAlert
-                                        ? Theme.of(context).colorScheme.error
-                                        : Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface,
+                                color: isAlert
+                                    ? Theme.of(context).colorScheme.error
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             if (e['content'] != null &&
@@ -152,10 +145,9 @@ class ValidationTimelineWidget extends StatelessWidget {
                               Text(
                                 e['content'].toString(),
                                 style: TextStyle(
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],

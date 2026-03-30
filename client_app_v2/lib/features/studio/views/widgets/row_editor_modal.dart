@@ -1,36 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-import 'package:client_app/utils/safe_cast.dart';
-import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class RowEditorModal extends StatefulWidget {
-  final Map<String, dynamic> initialRow;
+  final MatrixRow? initialMatrixRow;
+  final I18nText? initialI18nText;
   final String title;
   final bool isMatrixRow;
 
   const RowEditorModal({
     super.key,
-    required this.initialRow,
+    this.initialMatrixRow,
+    this.initialI18nText,
     this.title = 'Edit Row/Column',
     this.isMatrixRow = false,
-  });
+  }) : assert(initialMatrixRow != null || initialI18nText != null);
 
   @override
   State<RowEditorModal> createState() => _RowEditorModalState();
 }
 
 class _RowEditorModalState extends State<RowEditorModal> {
-  late Map<String, dynamic> _editableRow;
+  MatrixRow? _editableMatrixRow;
+  I18nText? _editableI18nText;
 
   @override
   void initState() {
     super.initState();
-    _editableRow = Map<String, dynamic>.from(widget.initialRow);
+    _editableMatrixRow = widget.initialMatrixRow?.copyWith();
+    _editableI18nText = widget.initialI18nText?.copyWith();
   }
 
   void _save() {
-    Navigator.of(context).pop(_editableRow);
+    if (widget.isMatrixRow) {
+      Navigator.of(context).pop(_editableMatrixRow);
+    } else {
+      Navigator.of(context).pop(_editableI18nText);
+    }
   }
 
   @override
@@ -62,11 +70,9 @@ class _RowEditorModalState extends State<RowEditorModal> {
             children: [
               // If isMatrixRow is true, 'initialRow' is actually a full MatrixRow object containing 'label' and 'ai_description'.
               // Otherwise, it's just the translation map directly.
-              if (widget.isMatrixRow) ...[
+              if (widget.isMatrixRow && _editableMatrixRow != null) ...[
                 TextFormField(
-                  initialValue: SafeCast.safeString(
-                    _editableRow['ai_description'],
-                  ),
+                  initialValue: _editableMatrixRow!.aiDescription,
                   decoration: InputDecoration(
                     labelText: 'Row AI Rule (MANDATORY ENGLISH)',
                     helperText:
@@ -75,33 +81,38 @@ class _RowEditorModalState extends State<RowEditorModal> {
                       color: Theme.of(context).colorScheme.error,
                       fontWeight: FontWeight.bold,
                     ),
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
                   maxLines: 3,
                   onChanged: (val) {
-                    _editableRow['ai_description'] = val;
+                    setState(() {
+                      _editableMatrixRow = _editableMatrixRow!.copyWith(
+                        aiDescription: val,
+                      );
+                    });
                   },
                 ),
                 const SizedBox(height: 16),
                 I18nTextField(
                   label: 'Item Content (UI/PDF)',
-                  initialData: SafeCast.safeMap(
-                    _editableRow['label'] ??
-                        (throw AppException.validation(
-                          'Matrix row data corrupted: missing localized label.',
-                        )),
-                  ),
+                  initialData: _editableMatrixRow!.label,
                   onChanged: (val) {
-                    _editableRow['label'] = val;
+                    setState(() {
+                      _editableMatrixRow = _editableMatrixRow!.copyWith(
+                        label: val,
+                      );
+                    });
                   },
                 ),
-              ] else ...[
+              ] else if (_editableI18nText != null) ...[
                 I18nTextField(
                   label: 'Item Content',
-                  initialData: SafeCast.safeMap(_editableRow),
+                  initialData: _editableI18nText!,
                   onChanged: (val) {
-                    _editableRow = val;
+                    setState(() {
+                      _editableI18nText = val;
+                    });
                   },
                 ),
               ],

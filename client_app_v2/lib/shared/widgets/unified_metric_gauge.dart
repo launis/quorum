@@ -85,20 +85,18 @@ class UnifiedMetricGauge extends StatelessWidget {
               height: 12, // Compact height
               child: Row(
                 children: List.generate(totalSegments, (index) {
-                  final isFilled =
-                      isOrdinal
-                          ? (index == filledSegments - 1)
-                          : (index < filledSegments);
+                  final isFilled = isOrdinal
+                      ? (index == filledSegments - 1)
+                      : (index < filledSegments);
                   return Expanded(
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 1.0),
                       decoration: BoxDecoration(
-                        color:
-                            isFilled
-                                ? effectiveColor
-                                : Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
+                        color: isFilled
+                            ? effectiveColor
+                            : Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -177,52 +175,48 @@ class UnifiedMetricGauge extends StatelessWidget {
   void _showHelpDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary,
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(description, style: const TextStyle(fontSize: 14)),
-                if (descriptionSecondary != null) ...[
-                  const SizedBox(height: 12),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  Text(
-                    descriptionSecondary!,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ],
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(AppLocalizations.of(context)?.sharedOk ?? "OK"),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(description, style: const TextStyle(fontSize: 14)),
+            if (descriptionSecondary != null) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                descriptionSecondary!,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)?.sharedOk ?? "OK"),
           ),
+        ],
+      ),
     );
   }
 

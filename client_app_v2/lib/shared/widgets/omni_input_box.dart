@@ -97,10 +97,9 @@ class _OmniInputBoxState extends State<OmniInputBox> {
               FileInputField(
                 label: widget.label,
                 icon: widget.icon,
-                value:
-                    widget.currentValue is PlatformFile
-                        ? widget.currentValue
-                        : null,
+                value: widget.currentValue is PlatformFile
+                    ? widget.currentValue
+                    : null,
                 validator: (value) {
                   if (value == null) {
                     return l10n.fileRequired;
@@ -113,8 +112,9 @@ class _OmniInputBoxState extends State<OmniInputBox> {
             else
               TextFormField(
                 key: ValueKey('${widget.keyName}_text'),
-                initialValue:
-                    widget.currentValue is String ? widget.currentValue : '',
+                initialValue: widget.currentValue is String
+                    ? widget.currentValue
+                    : '',
                 decoration: InputDecoration(
                   labelText: l10n.pasteTextLabel,
                   border: const OutlineInputBorder(),

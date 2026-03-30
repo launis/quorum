@@ -180,8 +180,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           const SizedBox(height: 16),
           promptBlocksState.when(
             data: (allBlocks) {
-              final regularBlocks =
-                  allBlocks.where((b) => b['category_id'] != 'matrix').toList();
+              final regularBlocks = allBlocks
+                  .where((b) => b.categoryId != 'matrix')
+                  .toList();
               if (regularBlocks.isEmpty)
                 return Text(l10n.studioViewsNoStandardPromptBlocks);
               return ListView.builder(
@@ -191,18 +192,17 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 itemBuilder: (context, index) {
                   try {
                     final block = regularBlocks[index];
-                    final blockId =
-                        block['id']?.toString() ??
-                        (throw AppException.validation(
-                          'PromptBlock ID is missing.',
-                        ));
-                    final slugStr =
-                        block['slug']?.toString() ??
-                        (throw AppException.validation(
-                          'PromptBlock slug is missing.',
-                        ));
-                    final blockName = _getLocalizedName(
-                      block,
+                    final blockId = block.id.isNotEmpty
+                        ? block.id
+                        : (throw AppException.validation(
+                            'PromptBlock ID is missing.',
+                          ));
+                    final slugStr = block.slug.isNotEmpty
+                        ? block.slug
+                        : (throw AppException.validation(
+                            'PromptBlock slug is missing.',
+                          ));
+                    final blockName = block.label.get(
                       Localizations.localeOf(context).languageCode,
                     );
 
@@ -254,16 +254,12 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => ErrorView(
-                  error: e,
-                  compact: true,
-                  onRetry:
-                      () =>
-                          ref
-                              .read(promptBlocksControllerProvider.notifier)
-                              .refresh(),
-                ),
+            error: (e, _) => ErrorView(
+              error: e,
+              compact: true,
+              onRetry: () =>
+                  ref.read(promptBlocksControllerProvider.notifier).refresh(),
+            ),
           ),
         ],
       ),
@@ -289,8 +285,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           const SizedBox(height: 16),
           promptBlocksState.when(
             data: (allBlocks) {
-              final matrices =
-                  allBlocks.where((b) => b['category_id'] == 'matrix').toList();
+              final matrices = allBlocks
+                  .where((b) => b.categoryId == 'matrix')
+                  .toList();
               if (matrices.isEmpty)
                 return Text(l10n.studioViewsNoMatricesDefined);
               return ListView.builder(
@@ -300,22 +297,21 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 itemBuilder: (context, index) {
                   try {
                     final matrix = matrices[index];
-                    final matrixId =
-                        matrix['id']?.toString() ??
-                        (throw AppException.validation(
-                          'Matrix data is corrupted: missing ID.',
-                        ));
-                    final slugStr =
-                        matrix['slug']?.toString() ??
-                        (throw AppException.validation(
-                          'Matrix slug is missing.',
-                        ));
+                    final matrixId = matrix.id.isNotEmpty
+                        ? matrix.id
+                        : (throw AppException.validation(
+                            'Matrix data is corrupted: missing ID.',
+                          ));
+                    final slugStr = matrix.slug.isNotEmpty
+                        ? matrix.slug
+                        : (throw AppException.validation(
+                            'Matrix slug is missing.',
+                          ));
 
                     // NO HARDCODING MANDATE: Read 'scales', default to empty if null.
-                    final scalesList = matrix['scales'] as List?;
+                    final scalesList = matrix.scales;
                     final ruleCount = scalesList?.length ?? 0;
-                    final matrixName = _getLocalizedName(
-                      matrix,
+                    final matrixName = matrix.label.get(
                       Localizations.localeOf(context).languageCode,
                     );
 
@@ -367,16 +363,12 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => ErrorView(
-                  error: e,
-                  compact: true,
-                  onRetry:
-                      () =>
-                          ref
-                              .read(promptBlocksControllerProvider.notifier)
-                              .refresh(),
-                ),
+            error: (e, _) => ErrorView(
+              error: e,
+              compact: true,
+              onRetry: () =>
+                  ref.read(promptBlocksControllerProvider.notifier).refresh(),
+            ),
           ),
         ],
       ),
@@ -482,8 +474,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               return ErrorView(
                 error: e,
                 compact: true,
-                onRetry:
-                    () => ref.read(stepsControllerProvider.notifier).refresh(),
+                onRetry: () =>
+                    ref.read(stepsControllerProvider.notifier).refresh(),
               );
             },
           ),
@@ -580,11 +572,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               return ErrorView(
                 error: e,
                 compact: true,
-                onRetry:
-                    () =>
-                        ref
-                            .read(modelRegistryControllerProvider.notifier)
-                            .refresh(),
+                onRetry: () => ref
+                    .read(modelRegistryControllerProvider.notifier)
+                    .refresh(),
               );
             },
           ),

@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/views/step_builder_view.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
@@ -15,9 +18,27 @@ void main() {
         'prompt_blocks': ['block_a'],
       };
 
-      final mockPromptBlocks = [
-        {'id': 'block_a', 'name': 'Block A'},
-        {'id': 'block_b', 'name': 'Block B'},
+      final List<PromptBlock> mockPromptBlocks = [
+        const PromptBlock(
+          id: 'block_a',
+          slug: 'block_a',
+          categoryId: 'regular',
+          label: I18nText(defaultLocale: 'en', translations: {'en': 'Block A'}),
+          description: I18nText(
+            defaultLocale: 'en',
+            translations: {'en': 'Desc A'},
+          ),
+        ),
+        const PromptBlock(
+          id: 'block_b',
+          slug: 'block_b',
+          categoryId: 'regular',
+          label: I18nText(defaultLocale: 'en', translations: {'en': 'Block B'}),
+          description: I18nText(
+            defaultLocale: 'en',
+            translations: {'en': 'Desc B'},
+          ),
+        ),
       ];
 
       await tester.pumpWidget(
@@ -57,14 +78,12 @@ void main() {
   });
 }
 
-class MockPromptBlocksController
-    extends AsyncNotifier<List<Map<String, dynamic>>>
-    implements PromptBlocksController {
-  final List<Map<String, dynamic>> initialData;
+class MockPromptBlocksController extends PromptBlocksController {
+  final List<PromptBlock> initialData;
   MockPromptBlocksController(this.initialData);
 
   @override
-  Future<List<Map<String, dynamic>>> build() async {
+  FutureOr<List<PromptBlock>> build() async {
     return initialData;
   }
 
@@ -72,10 +91,7 @@ class MockPromptBlocksController
   Future<void> refresh() async {}
 
   @override
-  Future<Map<String, dynamic>> savePromptBlock(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<PromptBlock> savePromptBlock(String id, PromptBlock payload) async {
     return payload;
   }
 
@@ -83,13 +99,14 @@ class MockPromptBlocksController
   Future<void> deletePromptBlock(String id) async {}
 
   @override
-  Future<Map<String, dynamic>> clonePromptBlock(String id) async {
-    return {};
+  Future<PromptBlock> clonePromptBlock(String id) async {
+    return initialData.first;
   }
 
   @override
   Future<Map<String, dynamic>> simulatePromptBlock(
-    Map<String, dynamic> payload,
+    PromptBlock payload,
+    Map<String, dynamic> mockInputs,
   ) async {
     return {'rendered_prompt': 'MOCK', 'valid': true};
   }

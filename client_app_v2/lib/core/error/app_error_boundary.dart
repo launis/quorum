@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 /// V2 Forensic Boundary Protocol: AppExceptionBoundary
 ///
@@ -56,6 +57,17 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
+    String displayError = error.toString();
+    if (error is CheckedFromJsonException) {
+      if (error.innerError != null) {
+        displayError =
+            '[Type Error in field "${error.key}"]\n${error.innerError}';
+      } else {
+        displayError =
+            '[Mapping Error in field "${error.key}"]\n${error.message}';
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.all(8.0),
       padding: const EdgeInsets.all(16.0),
@@ -97,7 +109,7 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
           ),
           const SizedBox(height: 8),
           Text(
-            error.toString(),
+            displayError,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onErrorContainer,
               fontFamily: 'monospace',

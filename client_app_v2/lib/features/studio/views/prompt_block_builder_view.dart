@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
@@ -14,6 +14,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/models/prompt_block_category.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 /// **Universal Matrix Builder**
 ///
@@ -24,100 +25,107 @@ class PromptBlockBuilderView extends HookConsumerWidget {
   final String? id;
   final String? slug;
 
-  const PromptBlockBuilderView({
-    super.key,
-    this.id,
-    this.slug,
-  });
+  const PromptBlockBuilderView({super.key, this.id, this.slug});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final blockId = (id == null || id!.isEmpty) ? 'new' : id!;
-    final formState = ref.watch(promptBlockFormProvider(blockId));
-
-    return formState.when(
-      loading:
-          () => Scaffold(
-            appBar: AppBar(title: Text(l10n.promptBlockEditTitle)),
-            body: const Center(child: CircularProgressIndicator()),
-          ),
-      error:
-          (e, st) => Scaffold(
-            appBar: AppBar(title: Text(l10n.promptBlockEditTitle)),
-            body: ErrorView(
-              error: e,
-              stackTrace: st,
-              compact: false,
-              onRetry: () => ref.invalidate(promptBlockFormProvider(blockId)),
-            ),
-          ),
-      data: (payload) {
-        return _buildScaffold(context, ref, l10n, formState, payload, blockId);
-      },
+    final AsyncValue<PromptBlock> formState = ref.watch(
+      promptBlockFormProvider(blockId),
     );
+
+    return switch (formState) {
+      AsyncData(:final value) => _buildScaffold(
+        context,
+        ref,
+        l10n,
+        formState,
+        value,
+        blockId,
+      ),
+      AsyncError(:final error, :final stackTrace) => Scaffold(
+        appBar: AppBar(title: Text(l10n.promptBlockEditTitle)),
+        body: ErrorView(
+          error: error,
+          stackTrace: stackTrace,
+          compact: false,
+          onRetry: () => ref.invalidate(promptBlockFormProvider(blockId)),
+        ),
+      ),
+      _ => Scaffold(
+        appBar: AppBar(title: Text(l10n.promptBlockEditTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+    };
   }
 
-  void _addListItem(
+  void _addListItem<T>(
     WidgetRef ref,
-    Map<String, dynamic> payload,
+    PromptBlock payload,
     String blockId,
-    String key,
-    Map<String, dynamic> initialValue,
+    List<T> currentList,
+    T initialValue,
+    PromptBlock Function(PromptBlock, List<T>) updater,
   ) {
-    final list = SafeCast.safeList(payload[key]);
-    list.add(initialValue);
-    payload[key] = list;
-    ref.read(promptBlockFormProvider(blockId).notifier).forceRebuild();
+    final newList = List<T>.from(currentList)..add(initialValue);
+    ref
+        .read(promptBlockFormProvider(blockId).notifier)
+        .forceRebuild(updater(payload, newList));
   }
 
-  void _removeListItem(
+  void _removeListItem<T>(
     WidgetRef ref,
-    Map<String, dynamic> payload,
+    PromptBlock payload,
     String blockId,
-    String key,
+    List<T> currentList,
     int index,
+    PromptBlock Function(PromptBlock, List<T>) updater,
   ) {
-    final list = SafeCast.safeList(payload[key]);
-    list.removeAt(index);
-    payload[key] = list;
-    ref.read(promptBlockFormProvider(blockId).notifier).forceRebuild();
+    if (index >= 0 && index < currentList.length) {
+      final newList = List<T>.from(currentList)..removeAt(index);
+      ref
+          .read(promptBlockFormProvider(blockId).notifier)
+          .forceRebuild(updater(payload, newList));
+    }
   }
 
   void _deletePromptBlock(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    String id,
+    PromptBlock payload,
     MutationState<void> deleteMut,
   ) {
+    final trans = payload.label.translations;
+    final nameToDisplay = trans['fi'] ?? trans['en'] ?? payload.id;
+
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(l10n.stepDeleteConfirmTitle),
-            content: Text(l10n.stepDeleteConfirmMessage(id)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(l10n.cancel),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  deleteMut.mutate(
-                    () => ref
-                        .read(promptBlocksControllerProvider.notifier)
-                        .deletePromptBlock(id),
-                  );
-                },
-                child: Text(
-                  l10n.delete,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.stepDeleteConfirmTitle),
+        content: Text(l10n.stepDeleteConfirmMessage(nameToDisplay)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              deleteMut.mutate(
+                () => ref
+                    .read(promptBlocksControllerProvider.notifier)
+                    .deletePromptBlock(payload.id),
+              );
+            },
+            child: Text(
+              l10n.delete,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -125,8 +133,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    AsyncValue<Map<String, dynamic>> formState,
-    Map<String, dynamic> payload,
+    AsyncValue<PromptBlock> formState,
+    PromptBlock payload,
     String blockId,
   ) {
     final validateMutation = useMutation<Map<String, dynamic>>(
@@ -138,25 +146,24 @@ class PromptBlockBuilderView extends HookConsumerWidget {
           }
           showDialog(
             context: context,
-            builder:
-                (ctx) => AlertDialog(
-                  title: Text(l10n.simulatorOutputTitle),
-                  content: SizedBox(
-                    width: double.maxFinite,
-                    child: SingleChildScrollView(
-                      child: Text(
-                        rendered,
-                        style: const TextStyle(fontFamily: 'monospace'),
-                      ),
-                    ),
+            builder: (ctx) => AlertDialog(
+              title: Text(l10n.simulatorOutputTitle),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Text(
+                    rendered,
+                    style: const TextStyle(fontFamily: 'monospace'),
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: Text(l10n.closeModalBtn),
-                    ),
-                  ],
                 ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(l10n.closeModalBtn),
+                ),
+              ],
+            ),
           );
         }
       },
@@ -201,9 +208,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     );
 
     Future<void> savePromptBlock() async {
-      final labelMap = SafeCast.safeMap(payload['label']);
-      final transMap = SafeCast.safeMap(labelMap['translations']);
-      final enLabel = SafeCast.safeString(transMap['en']);
+      final enLabel = payload.label.translations['en'] ?? '';
 
       if (enLabel.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -212,22 +217,16 @@ class PromptBlockBuilderView extends HookConsumerWidget {
         return;
       }
 
-      if (payload['theory_grounding'] == null) {
-        payload.remove('theory_grounding');
-      }
+      final currentId = payload.id.isNotEmpty
+          ? payload.id
+          : 'blk_${DateTime.now().millisecondsSinceEpoch}';
 
-      final currentId =
-          payload['id']?.toString() != null &&
-                  payload['id'].toString().isNotEmpty
-              ? payload['id'].toString()
-              : 'blk_${DateTime.now().millisecondsSinceEpoch}';
-
-      payload['id'] = currentId;
+      final savingPayload = payload.copyWith(id: currentId);
 
       try {
         await ref
             .read(promptBlockFormProvider(blockId).notifier)
-            .submit(payload);
+            .submit(savingPayload);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -259,16 +258,15 @@ class PromptBlockBuilderView extends HookConsumerWidget {
           ),
           title: Text(l10n.promptBlockEditTitle),
           actions: [
-            if (payload['id']?.toString().isNotEmpty == true)
+            if (payload.id.isNotEmpty == true)
               IconButton(
-                onPressed:
-                    () => _deletePromptBlock(
-                      context,
-                      ref,
-                      l10n,
-                      payload['id'].toString(),
-                      deleteMutation,
-                    ),
+                onPressed: () => _deletePromptBlock(
+                  context,
+                  ref,
+                  l10n,
+                  payload,
+                  deleteMutation,
+                ),
                 icon: Icon(
                   Icons.delete,
                   color: Theme.of(context).colorScheme.error,
@@ -276,35 +274,25 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                 tooltip: l10n.delete,
               ),
             IconButton(
-              onPressed:
-                  validateMutation.isLoading
-                      ? null
-                      : () {
-                        validateMutation.mutate(() async {
-                          final simulatePayload = {
-                            'block': payload,
-                            'mock_inputs':
-                                <
-                                  String,
-                                  dynamic
-                                >{}, // Provide empty mock inputs for now
-                          };
-                          return await ref
-                              .read(promptBlocksControllerProvider.notifier)
-                              .simulatePromptBlock(simulatePayload);
-                        });
-                      },
-              icon:
-                  validateMutation.isLoading
-                      ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : Icon(
-                        Icons.bug_report,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+              onPressed: validateMutation.isLoading
+                  ? null
+                  : () {
+                      validateMutation.mutate(() async {
+                        return await ref
+                            .read(promptBlocksControllerProvider.notifier)
+                            .simulatePromptBlock(payload, {});
+                      });
+                    },
+              icon: validateMutation.isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      Icons.bug_report,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               tooltip: 'Simulate Prompt',
             ),
             if (formState.isLoading)
@@ -348,14 +336,13 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                           ),
                         ),
                         SizedBox(height: 16),
-                        if (payload['id']?.toString().isNotEmpty == true) ...[
+                        if (payload.id.isNotEmpty == true) ...[
                           Text(
-                            l10n.opaqueIdLabel(payload['id'].toString()),
+                            l10n.opaqueIdLabel(payload.id),
                             style: TextStyle(
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                               fontFamily: 'monospace',
                               fontWeight: FontWeight.bold,
                             ),
@@ -392,23 +379,23 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             labelText: l10n.categoryLabel,
                           ),
                           initialValue: PromptBlockCategory.fromId(
-                            payload['category_id'] as String? ?? 'system_rule',
+                            payload.categoryId,
                           ),
-                          items:
-                              PromptBlockCategory.values.map((category) {
-                                return DropdownMenuItem(
-                                  value: category,
-                                  child: Text(category.displayName(context)),
-                                );
-                              }).toList(),
+                          items: PromptBlockCategory.values.map((category) {
+                            return DropdownMenuItem(
+                              value: category,
+                              child: Text(category.displayName(context)),
+                            );
+                          }).toList(),
                           onChanged: (val) {
                             if (val != null) {
-                              payload['category_id'] = val.id;
                               ref
                                   .read(
                                     promptBlockFormProvider(blockId).notifier,
                                   )
-                                  .forceRebuild();
+                                  .forceRebuild(
+                                    payload.copyWith(categoryId: val.id),
+                                  );
                             }
                           },
                         ),
@@ -417,12 +404,11 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         // Label (I18N)
                         I18nTextField(
                           label: l10n.blockLabelName,
-                          initialData: SafeCast.safeMap(payload['label']),
+                          initialData: payload.label,
                           onChanged: (val) {
-                            payload['label'] = val;
                             ref
                                 .read(promptBlockFormProvider(blockId).notifier)
-                                .forceRebuild();
+                                .forceRebuild(payload.copyWith(label: val));
                           },
                         ),
                         const SizedBox(height: 16),
@@ -430,28 +416,32 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         // Description (I18N) - Short UI Hint
                         I18nTextField(
                           label: l10n.shortDescriptionHint,
-                          initialData: SafeCast.safeMap(payload['description']),
+                          initialData: payload.description,
                           onChanged: (val) {
-                            payload['description'] = val;
                             ref
                                 .read(promptBlockFormProvider(blockId).notifier)
-                                .forceRebuild();
+                                .forceRebuild(
+                                  payload.copyWith(description: val),
+                                );
                           },
                         ),
                         const SizedBox(height: 16),
 
                         // AI Description - Core LLM Prompt (English Only)
                         TextFormField(
-                          initialValue: payload['ai_description']?.toString(),
+                          initialValue: payload.aiDescription ?? '',
                           decoration: InputDecoration(
                             labelText: l10n.systemPromptMandatory,
                             border: const OutlineInputBorder(),
                           ),
                           maxLines: 8,
                           onChanged: (val) {
-                            payload['ai_description'] = val;
-                            // Opting to not constantly rebuild on text changes to avoid losing focus,
-                            // mutation occurs implicitly in payload reference.
+                            // Rebuild normally.
+                            ref
+                                .read(promptBlockFormProvider(blockId).notifier)
+                                .forceRebuild(
+                                  payload.copyWith(aiDescription: val),
+                                );
                           },
                         ),
                         Padding(
@@ -470,10 +460,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                           child: Text(
                             l10n.adminPromptBestPracticesHint,
                             style: TextStyle(
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                               fontSize: 13,
                               fontStyle: FontStyle.italic,
                             ),
@@ -484,10 +473,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         // XAI & Constraints Container
                         Container(
                           padding: const EdgeInsets.all(12),
-                          color:
-                              Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -503,70 +491,59 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                 runSpacing: 8,
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  DropdownButton<String>(
-                                    value:
-                                        [
-                                              'int',
-                                              'float',
-                                              'number',
-                                              'string',
-                                              'instruction',
-                                              'bool',
-                                            ].contains(payload['type'])
-                                            ? payload['type'] as String
-                                            : 'instruction',
+                                  DropdownButton<BlockDataType>(
+                                    value: payload.type,
                                     items: [
                                       DropdownMenuItem(
-                                        value: 'instruction',
+                                        value: BlockDataType.instruction,
                                         child: Text(l10n.typeInstruction),
                                       ),
                                       DropdownMenuItem(
-                                        value: 'string',
+                                        value: BlockDataType.stringType,
                                         child: Text(l10n.typeString),
                                       ),
                                       DropdownMenuItem(
-                                        value: 'number',
-                                        child: Text(l10n.typeNumber),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'int',
+                                        value: BlockDataType.intType,
                                         child: Text(l10n.typeInteger),
                                       ),
                                       DropdownMenuItem(
-                                        value: 'float',
+                                        value: BlockDataType.floatType,
                                         child: Text(l10n.typeFloat),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'bool',
-                                        child: Text(l10n.typeBoolean),
                                       ),
                                     ],
                                     onChanged: (val) {
-                                      payload['type'] = val;
-                                      ref
-                                          .read(
-                                            promptBlockFormProvider(
-                                              blockId,
-                                            ).notifier,
-                                          )
-                                          .forceRebuild();
+                                      if (val != null) {
+                                        ref
+                                            .read(
+                                              promptBlockFormProvider(
+                                                blockId,
+                                              ).notifier,
+                                            )
+                                            .forceRebuild(
+                                              payload.copyWith(type: val),
+                                            );
+                                      }
                                     },
                                   ),
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Checkbox(
-                                        value:
-                                            payload['allow_decimals'] == true,
+                                        value: payload.allowDecimals,
                                         onChanged: (val) {
-                                          payload['allow_decimals'] = val;
-                                          ref
-                                              .read(
-                                                promptBlockFormProvider(
-                                                  blockId,
-                                                ).notifier,
-                                              )
-                                              .forceRebuild();
+                                          if (val != null) {
+                                            ref
+                                                .read(
+                                                  promptBlockFormProvider(
+                                                    blockId,
+                                                  ).notifier,
+                                                )
+                                                .forceRebuild(
+                                                  payload.copyWith(
+                                                    allowDecimals: val,
+                                                  ),
+                                                );
+                                          }
                                         },
                                       ),
                                       Text(l10n.allowDecimals),
@@ -598,10 +575,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                       "confidence": l10n.xaiConfidence,
                                       "citation": l10n.xaiSourceCitation,
                                     }.entries.map((entry) {
-                                      final extList =
-                                          SafeCast.safeList(
-                                            payload['output_extensions'],
-                                          ).map((e) => e.toString()).toList();
+                                      final extList = payload.outputExtensions;
                                       final isSelected = extList.contains(
                                         entry.key,
                                       );
@@ -614,27 +588,24 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                           } else {
                                             extList.remove(entry.key);
                                           }
-                                          payload['output_extensions'] =
-                                              extList;
-                                          payload.remove(
-                                            'require_justification',
-                                          );
                                           ref
                                               .read(
                                                 promptBlockFormProvider(
                                                   blockId,
                                                 ).notifier,
                                               )
-                                              .forceRebuild();
+                                              .forceRebuild(
+                                                payload.copyWith(
+                                                  outputExtensions: extList,
+                                                ),
+                                              );
                                         },
-                                        selectedColor:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.primaryContainer,
-                                        checkmarkColor:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer,
+                                        selectedColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primaryContainer,
+                                        checkmarkColor: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimaryContainer,
                                       );
                                     }).toList(),
                               ),
@@ -646,10 +617,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         // Theory Grounding Wrapper
                         Container(
                           padding: const EdgeInsets.all(12),
-                          color:
-                              Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHigh,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHigh,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -664,62 +634,92 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                     ),
                                   ),
                                   Switch(
-                                    value: payload['theory_grounding'] != null,
+                                    value: payload.theoryGrounding != null,
                                     onChanged: (val) {
                                       if (val) {
-                                        payload['theory_grounding'] = {
-                                          'source_url': '',
-                                          'citation_reference': '',
-                                        };
+                                        ref
+                                            .read(
+                                              promptBlockFormProvider(
+                                                blockId,
+                                              ).notifier,
+                                            )
+                                            .forceRebuild(
+                                              payload.copyWith(
+                                                theoryGrounding:
+                                                    const TheoryGrounding(
+                                                      sourceUrl: '',
+                                                      citationReference: '',
+                                                    ),
+                                              ),
+                                            );
                                       } else {
-                                        payload['theory_grounding'] = null;
-                                        payload.remove('theory_grounding');
+                                        ref
+                                            .read(
+                                              promptBlockFormProvider(
+                                                blockId,
+                                              ).notifier,
+                                            )
+                                            .forceRebuild(
+                                              payload.copyWith(
+                                                theoryGrounding: null,
+                                              ),
+                                            );
                                       }
-                                      ref
-                                          .read(
-                                            promptBlockFormProvider(
-                                              blockId,
-                                            ).notifier,
-                                          )
-                                          .forceRebuild();
                                     },
                                   ),
                                 ],
                               ),
-                              if (payload['theory_grounding'] != null) ...[
+                              if (payload.theoryGrounding != null) ...[
                                 const SizedBox(height: 8),
                                 // Source URL
                                 TextFormField(
                                   initialValue:
-                                      SafeCast.safeMap(
-                                        payload['theory_grounding'],
-                                      )['source_url']?.toString(),
+                                      payload.theoryGrounding!.sourceUrl,
                                   decoration: InputDecoration(
                                     labelText: l10n.sourceUrlLabel,
                                     border: const UnderlineInputBorder(),
                                   ),
                                   onChanged: (val) {
-                                    final grounding = SafeCast.safeMap(
-                                      payload['theory_grounding'],
-                                    );
-                                    grounding['source_url'] = val;
+                                    ref
+                                        .read(
+                                          promptBlockFormProvider(
+                                            blockId,
+                                          ).notifier,
+                                        )
+                                        .forceRebuild(
+                                          payload.copyWith(
+                                            theoryGrounding: payload
+                                                .theoryGrounding!
+                                                .copyWith(sourceUrl: val),
+                                          ),
+                                        );
                                   },
                                 ),
                                 const SizedBox(height: 8),
                                 TextFormField(
-                                  initialValue:
-                                      SafeCast.safeMap(
-                                        payload['theory_grounding'],
-                                      )['citation_reference']?.toString(),
+                                  initialValue: payload
+                                      .theoryGrounding!
+                                      .citationReference,
                                   decoration: InputDecoration(
                                     labelText: l10n.citationReferenceLabel,
                                     border: const UnderlineInputBorder(),
                                   ),
                                   onChanged: (val) {
-                                    final grounding = SafeCast.safeMap(
-                                      payload['theory_grounding'],
-                                    );
-                                    grounding['citation_reference'] = val;
+                                    ref
+                                        .read(
+                                          promptBlockFormProvider(
+                                            blockId,
+                                          ).notifier,
+                                        )
+                                        .forceRebuild(
+                                          payload.copyWith(
+                                            theoryGrounding: payload
+                                                .theoryGrounding!
+                                                .copyWith(
+                                                  citationReference: val,
+                                                ),
+                                          ),
+                                        );
                                   },
                                 ),
                               ],
@@ -730,25 +730,23 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     ),
                   ),
                 ),
-                if (payload['type'] != 'instruction') ...[
+                if (payload.type != BlockDataType.instruction) ...[
                   const SizedBox(height: 16),
-                  _buildI18nListCard(
+                  _buildRowListCard(
                     context,
                     ref,
                     l10n,
                     payload,
                     blockId,
-                    'rows',
                     l10n.gridRowsOptional,
                   ),
                   const SizedBox(height: 16),
-                  _buildI18nListCard(
+                  _buildColumnListCard(
                     context,
                     ref,
                     l10n,
                     payload,
                     blockId,
-                    'columns',
                     l10n.gridColumnsOptional,
                   ),
                   const SizedBox(height: 16),
@@ -762,13 +760,12 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     );
   }
 
-  Widget _buildI18nListCard(
+  Widget _buildRowListCard(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    Map<String, dynamic> payload,
+    PromptBlock payload,
     String blockId,
-    String key,
     String title,
   ) {
     return Card(
@@ -790,51 +787,42 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                 Row(
                   children: [
                     Switch(
-                      value: payload[key] != null,
+                      value: payload.rows != null,
                       onChanged: (val) {
-                        if (val) {
-                          payload[key] = [];
-                        } else {
-                          payload[key] = null;
-                          payload.remove(key);
-                        }
                         ref
                             .read(promptBlockFormProvider(blockId).notifier)
-                            .forceRebuild();
+                            .forceRebuild(
+                              payload.copyWith(rows: val ? [] : null),
+                            );
                       },
                     ),
-                    if (payload[key] != null) ...[
+                    if (payload.rows != null) ...[
                       const SizedBox(width: 8),
                       OutlinedButton.icon(
                         onPressed: () async {
-                          final bool isRow = key == 'rows';
-                          final initialMap =
-                              isRow
-                                  ? {
-                                    'label': {
-                                      'default_locale': 'en',
-                                      'translations': <String, dynamic>{
-                                        'en': '',
-                                      },
-                                    },
-                                    'ai_description': 'CRITICAL MANDATE: ',
-                                  }
-                                  : {
-                                    'default_locale': 'en',
-                                    'translations': <String, dynamic>{'en': ''},
-                                  };
-
-                          final result = await showDialog<Map<String, dynamic>>(
+                          final result = await showDialog<MatrixRow>(
                             context: context,
-                            builder:
-                                (ctx) => RowEditorModal(
-                                  initialRow: initialMap,
-                                  title: 'Add $title',
-                                  isMatrixRow: isRow,
+                            builder: (ctx) => RowEditorModal(
+                              initialMatrixRow: const MatrixRow(
+                                label: I18nText(
+                                  defaultLocale: 'en',
+                                  translations: {'en': ''},
                                 ),
+                                aiDescription: 'CRITICAL MANDATE: ',
+                              ),
+                              title: 'Add $title',
+                              isMatrixRow: true,
+                            ),
                           );
                           if (result != null) {
-                            _addListItem(ref, payload, blockId, key, result);
+                            _addListItem<MatrixRow>(
+                              ref,
+                              payload,
+                              blockId,
+                              payload.rows!,
+                              result,
+                              (p, list) => p.copyWith(rows: list),
+                            );
                           }
                         },
                         icon: const Icon(Icons.add),
@@ -845,23 +833,19 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                 ),
               ],
             ),
-            if (payload[key] != null) ...[
+            if (payload.rows != null) ...[
               const SizedBox(height: 16),
-              ...SafeCast.safeList(payload[key]).asMap().entries.map((entry) {
+              ...payload.rows!.asMap().entries.map((entry) {
                 final index = entry.key;
-                final item = SafeCast.safeMap(entry.value);
-                final bool isRow = key == 'rows';
-                final displayItem =
-                    isRow ? SafeCast.safeMap(item['label']) : item;
+                final item = entry.value;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8.0),
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: ListTile(
                     title: Text(
-                      displayItem['translations']?[displayItem['default_locale']] ??
-                          displayItem['default_locale'] ??
-                          'No text',
+                      item.label.translations[item.label.defaultLocale] ??
+                          item.label.defaultLocale,
                     ),
                     subtitle: Text('Item ${index + 1}'),
                     trailing: IconButton(
@@ -869,32 +853,156 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         Icons.delete,
                         color: Theme.of(context).colorScheme.error,
                       ),
-                      onPressed:
-                          () => _removeListItem(
-                            ref,
-                            payload,
-                            blockId,
-                            key,
-                            index,
-                          ),
+                      onPressed: () => _removeListItem<MatrixRow>(
+                        ref,
+                        payload,
+                        blockId,
+                        payload.rows!,
+                        index,
+                        (p, list) => p.copyWith(rows: list),
+                      ),
                     ),
                     onTap: () async {
-                      final result = await showDialog<Map<String, dynamic>>(
+                      final result = await showDialog<MatrixRow>(
                         context: context,
-                        builder:
-                            (ctx) => RowEditorModal(
-                              initialRow: item,
-                              title: 'Edit $title Item',
-                              isMatrixRow: isRow,
-                            ),
+                        builder: (ctx) => RowEditorModal(
+                          initialMatrixRow: item,
+                          title: 'Edit $title Item',
+                          isMatrixRow: true,
+                        ),
                       );
                       if (result != null) {
-                        final list = SafeCast.safeList(payload[key]);
+                        final list = List<MatrixRow>.from(payload.rows!);
                         list[index] = result;
-                        payload[key] = list;
                         ref
                             .read(promptBlockFormProvider(blockId).notifier)
-                            .forceRebuild();
+                            .forceRebuild(payload.copyWith(rows: list));
+                      }
+                    },
+                  ),
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColumnListCard(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    PromptBlock payload,
+    String blockId,
+    String title,
+  ) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Switch(
+                      value: payload.columns != null,
+                      onChanged: (val) {
+                        ref
+                            .read(promptBlockFormProvider(blockId).notifier)
+                            .forceRebuild(
+                              payload.copyWith(columns: val ? [] : null),
+                            );
+                      },
+                    ),
+                    if (payload.columns != null) ...[
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final result = await showDialog<I18nText>(
+                            context: context,
+                            builder: (ctx) => const RowEditorModal(
+                              initialI18nText: I18nText(
+                                defaultLocale: 'en',
+                                translations: {'en': ''},
+                              ),
+                              title: 'Add Column',
+                              isMatrixRow: false,
+                            ),
+                          );
+                          if (result != null) {
+                            _addListItem<I18nText>(
+                              ref,
+                              payload,
+                              blockId,
+                              payload.columns!,
+                              result,
+                              (p, list) => p.copyWith(columns: list),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add'),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+            if (payload.columns != null) ...[
+              const SizedBox(height: 16),
+              ...payload.columns!.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: ListTile(
+                    title: Text(
+                      item.translations[item.defaultLocale] ??
+                          item.defaultLocale,
+                    ),
+                    subtitle: Text('Item ${index + 1}'),
+                    trailing: IconButton(
+                      icon: Icon(
+                        Icons.delete,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      onPressed: () => _removeListItem<I18nText>(
+                        ref,
+                        payload,
+                        blockId,
+                        payload.columns!,
+                        index,
+                        (p, list) => p.copyWith(columns: list),
+                      ),
+                    ),
+                    onTap: () async {
+                      final result = await showDialog<I18nText>(
+                        context: context,
+                        builder: (ctx) => RowEditorModal(
+                          initialI18nText: item,
+                          title: 'Edit Column Item',
+                          isMatrixRow: false,
+                        ),
+                      );
+                      if (result != null) {
+                        final list = List<I18nText>.from(payload.columns!);
+                        list[index] = result;
+                        ref
+                            .read(promptBlockFormProvider(blockId).notifier)
+                            .forceRebuild(payload.copyWith(columns: list));
                       }
                     },
                   ),
@@ -911,7 +1019,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    Map<String, dynamic> payload,
+    PromptBlock payload,
     String blockId,
   ) {
     return Card(
@@ -933,53 +1041,49 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                 Row(
                   children: [
                     Switch(
-                      value: payload['scales'] != null,
+                      value: payload.scales != null,
                       onChanged: (val) {
-                        if (val) {
-                          payload['scales'] = [];
-                        } else {
-                          payload['scales'] = null;
-                          payload.remove('scales');
-                        }
                         ref
                             .read(promptBlockFormProvider(blockId).notifier)
-                            .forceRebuild();
+                            .forceRebuild(
+                              payload.copyWith(scales: val ? [] : null),
+                            );
                       },
                     ),
-                    if (payload['scales'] != null) ...[
+                    if (payload.scales != null) ...[
                       const SizedBox(width: 8),
                       OutlinedButton.icon(
                         onPressed: () async {
-                          final result = await showDialog<Map<String, dynamic>>(
+                          final result = await showDialog<MatrixScale>(
                             context: context,
-                            builder:
-                                (ctx) => ScaleEditorModal(
-                                  initialScale: {
-                                    'score': 1,
-                                    'name': {
-                                      'default_locale': 'en',
-                                      'translations': <String, dynamic>{
-                                        'en': '',
-                                      },
-                                    },
-                                    'claims': [
-                                      {
-                                        'default_locale': 'en',
-                                        'translations': <String, dynamic>{
-                                          'en': '',
-                                        },
-                                      },
-                                    ],
-                                  },
+                            builder: (ctx) => const ScaleEditorModal(
+                              initialScale: MatrixScale(
+                                score: 1,
+                                aiLabel: '1',
+                                name: I18nText(
+                                  defaultLocale: 'en',
+                                  translations: {'en': ''},
                                 ),
+                                claims: [
+                                  MatrixClaim(
+                                    aiDescription: '',
+                                    label: I18nText(
+                                      defaultLocale: 'en',
+                                      translations: {'en': ''},
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           );
                           if (result != null) {
-                            _addListItem(
+                            _addListItem<MatrixScale>(
                               ref,
                               payload,
                               blockId,
-                              'scales',
+                              payload.scales!,
                               result,
+                              (p, list) => p.copyWith(scales: list),
                             );
                           }
                         },
@@ -991,13 +1095,13 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                 ),
               ],
             ),
-            if (payload['scales'] != null) ...[
+            if (payload.scales != null) ...[
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
-                      initialValue: payload['scale_min']?.toString() ?? '4',
+                      initialValue: payload.scaleMin?.toString() ?? '4',
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                         signed: true,
@@ -1007,10 +1111,11 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
-                        final parsed = num.tryParse(val);
+                        final parsed = int.tryParse(val);
                         if (parsed != null) {
-                          payload['scale_min'] = parsed;
-                          // Don't force build for pure typing to avoid blur
+                          ref
+                              .read(promptBlockFormProvider(blockId).notifier)
+                              .forceRebuild(payload.copyWith(scaleMin: parsed));
                         }
                       },
                     ),
@@ -1018,7 +1123,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: TextFormField(
-                      initialValue: payload['scale_max']?.toString() ?? '10',
+                      initialValue: payload.scaleMax?.toString() ?? '10',
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                         signed: true,
@@ -1028,9 +1133,11 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
-                        final parsed = num.tryParse(val);
+                        final parsed = int.tryParse(val);
                         if (parsed != null) {
-                          payload['scale_max'] = parsed;
+                          ref
+                              .read(promptBlockFormProvider(blockId).notifier)
+                              .forceRebuild(payload.copyWith(scaleMax: parsed));
                         }
                       },
                     ),
@@ -1038,20 +1145,14 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              ...SafeCast.safeList(payload['scales']).asMap().entries.map((
-                scaleEntry,
-              ) {
+              ...payload.scales!.asMap().entries.map((scaleEntry) {
                 final sIndex = scaleEntry.key;
-                final scale = SafeCast.safeMap(scaleEntry.value);
-                final claimsLength = SafeCast.safeList(scale['claims']).length;
-                final gradeName =
-                    SafeCast.safeMap(
-                      scale['name'],
-                    )['translations']?[SafeCast.safeMap(
-                      scale['name'],
-                    )['default_locale']] ??
-                    SafeCast.safeMap(scale['name'])['default_locale'] ??
-                    '';
+                final scale = scaleEntry.value;
+                final claimsLength = scale.claims.length;
+                final gradeName = scale.name != null
+                    ? scale.name!.translations[scale.name!.defaultLocale] ??
+                          scale.name!.defaultLocale
+                    : '';
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8.0),
@@ -1059,7 +1160,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                   child: ListTile(
                     title: Text(
                       l10n.gradeScoreLabel(
-                        scale['score'].toString(),
+                        scale.score.toString(),
                         gradeName.isNotEmpty ? "- $gradeName" : "",
                       ),
                     ),
@@ -1071,27 +1172,26 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         Icons.delete,
                         color: Theme.of(context).colorScheme.error,
                       ),
-                      onPressed:
-                          () => _removeListItem(
-                            ref,
-                            payload,
-                            blockId,
-                            'scales',
-                            sIndex,
-                          ),
+                      onPressed: () => _removeListItem<MatrixScale>(
+                        ref,
+                        payload,
+                        blockId,
+                        payload.scales!,
+                        sIndex,
+                        (p, list) => p.copyWith(scales: list),
+                      ),
                     ),
                     onTap: () async {
-                      final result = await showDialog<Map<String, dynamic>>(
+                      final result = await showDialog<MatrixScale>(
                         context: context,
                         builder: (ctx) => ScaleEditorModal(initialScale: scale),
                       );
                       if (result != null) {
-                        final list = SafeCast.safeList(payload['scales']);
+                        final list = List<MatrixScale>.from(payload.scales!);
                         list[sIndex] = result;
-                        payload['scales'] = list;
                         ref
                             .read(promptBlockFormProvider(blockId).notifier)
-                            .forceRebuild();
+                            .forceRebuild(payload.copyWith(scales: list));
                       }
                     },
                   ),

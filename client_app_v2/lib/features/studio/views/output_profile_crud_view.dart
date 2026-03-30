@@ -10,6 +10,7 @@ import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
 /// Admin Studio View for managing Output Profiles.
@@ -35,33 +36,31 @@ class OutputProfileCrudView extends HookConsumerWidget {
     final formState = ref.watch(outputProfileFormProvider(id));
 
     return formState.when(
-      loading:
-          () => Scaffold(
-            appBar: AppBar(
-              title: Text(
-                id == 'new'
-                    ? l10n.newOutputProfileTitle
-                    : l10n.editOutputProfileTitle,
-              ),
-            ),
-            body: const Center(child: CircularProgressIndicator()),
+      loading: () => Scaffold(
+        appBar: AppBar(
+          title: Text(
+            id == 'new'
+                ? l10n.newOutputProfileTitle
+                : l10n.editOutputProfileTitle,
           ),
-      error:
-          (e, st) => Scaffold(
-            appBar: AppBar(
-              title: Text(
-                id == 'new'
-                    ? l10n.newOutputProfileTitle
-                    : l10n.editOutputProfileTitle,
-              ),
-            ),
-            body: ErrorView(
-              error: e,
-              stackTrace: st,
-              compact: false,
-              onRetry: () => ref.invalidate(outputProfileFormProvider(id)),
-            ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, st) => Scaffold(
+        appBar: AppBar(
+          title: Text(
+            id == 'new'
+                ? l10n.newOutputProfileTitle
+                : l10n.editOutputProfileTitle,
           ),
+        ),
+        body: ErrorView(
+          error: e,
+          stackTrace: st,
+          compact: false,
+          onRetry: () => ref.invalidate(outputProfileFormProvider(id)),
+        ),
+      ),
       data: (payload) {
         // Hydrate transient hooks on first build safely
         useMemoized(() {
@@ -113,10 +112,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
           throw Exception(l10n.studioViewsProfileIdRequired);
 
         payload['id'] = idToSave;
-        payload['slug'] =
-            slugController.text.trim().isNotEmpty
-                ? slugController.text.trim()
-                : idToSave;
+        payload['slug'] = slugController.text.trim().isNotEmpty
+            ? slugController.text.trim()
+            : idToSave;
         payload['workflow_id'] = workflowIdController.text.trim();
         payload['layouts'] = layouts;
 
@@ -149,26 +147,29 @@ class OutputProfileCrudView extends HookConsumerWidget {
       final String idToDelete = payload['id']?.toString() ?? '';
       if (idToDelete.isEmpty || id == 'new') return;
 
+      final nameMap = SafeCast.safeMap(payload['name']);
+      final translations = SafeCast.safeMap(nameMap['translations']);
+      final nameToDisplay = translations['fi']?.toString() ?? translations['en']?.toString() ?? idToDelete;
+
       final confirm = await showDialog<bool>(
         context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(l10n.deleteProfileTitle),
-              content: Text(l10n.deleteProfileConfirmation(idToDelete)),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(l10n.cancelButton),
-                ),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  ),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(l10n.deleteButton),
-                ),
-              ],
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.deleteProfileTitle),
+          content: Text(l10n.deleteProfileConfirmation(nameToDisplay)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancelButton),
             ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.deleteButton),
+            ),
+          ],
+        ),
       );
 
       if (confirm == true) {
@@ -218,12 +219,11 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
       if (workflow != null) {
         final stepRules = SafeCast.safeList(workflow['steps']);
-        final taskBlueprintIds =
-            stepRules
-                .map((s) => SafeCast.safeMap(s)['task_blueprint']?.toString())
-                .where((s) => s != null)
-                .cast<String>()
-                .toSet();
+        final taskBlueprintIds = stepRules
+            .map((s) => SafeCast.safeMap(s)['task_blueprint']?.toString())
+            .where((s) => s != null)
+            .cast<String>()
+            .toSet();
 
         for (final step in steps) {
           final stepId = step['id']?.toString() ?? '';
@@ -308,8 +308,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
                         data: (workflows) {
                           String? currentValue =
                               workflowIdController.text.isNotEmpty
-                                  ? workflowIdController.text
-                                  : null;
+                              ? workflowIdController.text
+                              : null;
 
                           final bool hasValidValue =
                               currentValue != null &&
@@ -338,10 +338,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                                 final translations = SafeCast.safeMap(
                                   labelDict['translations'],
                                 );
-                                final localeCode =
-                                    Localizations.localeOf(
-                                      context,
-                                    ).languageCode;
+                                final localeCode = Localizations.localeOf(
+                                  context,
+                                ).languageCode;
                                 final displayName =
                                     translations[localeCode] ??
                                     translations['fi'] ??
@@ -367,23 +366,20 @@ class OutputProfileCrudView extends HookConsumerWidget {
                             },
                           );
                         },
-                        loading:
-                            () => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                        error:
-                            (e, _) => Text(
-                              l10n.studioViewsErrorLoadingWorkflows(
-                                e.toString(),
-                              ),
-                            ),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Text(
+                          l10n.studioViewsErrorLoadingWorkflows(e.toString()),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       I18nTextField(
                         label: l10n.profileDisplayNameLabel,
-                        initialData: SafeCast.safeMap(payload['name']),
+                        initialData: I18nText.fromJson(
+                          SafeCast.safeMap(payload['name']),
+                        ),
                         onChanged: (val) {
-                          payload['name'] = val;
+                          payload['name'] = val.toJson();
                           ref
                               .read(outputProfileFormProvider(id).notifier)
                               .forceRebuild();
@@ -392,9 +388,11 @@ class OutputProfileCrudView extends HookConsumerWidget {
                       const SizedBox(height: 16),
                       I18nTextField(
                         label: l10n.profileDescriptionLabel,
-                        initialData: SafeCast.safeMap(payload['description']),
+                        initialData: I18nText.fromJson(
+                          SafeCast.safeMap(payload['description']),
+                        ),
                         onChanged: (val) {
-                          payload['description'] = val;
+                          payload['description'] = val.toJson();
                           ref
                               .read(outputProfileFormProvider(id).notifier)
                               .forceRebuild();
@@ -479,10 +477,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
     AsyncValue<List<dynamic>> promptBlocksState,
     Set<String> allowedBlockIds,
   ) {
-    final blocksList =
-        SafeCast.safeList(
-          layout['components'],
-        ).map((e) => e.toString()).toList();
+    final blocksList = SafeCast.safeList(
+      layout['components'],
+    ).map((e) => e.toString()).toList();
 
     String currentPreset = SafeCast.safeString(
       layout['layout_type'] ?? layout['preset_view'],
@@ -592,9 +589,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
           const SizedBox(height: 12),
           I18nTextField(
             label: l10n.layoutBlockTitleLabel,
-            initialData: SafeCast.safeMap(layout['title']),
+            initialData: I18nText.fromJson(SafeCast.safeMap(layout['title'])),
             onChanged: (val) {
-              layout['title'] = val;
+              layout['title'] = val.toJson();
               ref.read(outputProfileFormProvider(id).notifier).forceRebuild();
             },
           ),
@@ -609,21 +606,20 @@ class OutputProfileCrudView extends HookConsumerWidget {
           const SizedBox(height: 8),
           promptBlocksState.when(
             data: (blocks) {
-              final targetBlocks =
-                  blocks.cast<Map<String, dynamic>>().where((b) {
-                    final bId = b['id']?.toString() ?? '';
-                    final bSlug = b['slug']?.toString() ?? bId;
-                    final isAllowed =
-                        allowedBlockIds.contains(bId) ||
-                        allowedBlockIds.contains(bSlug);
-                    if (!isAllowed) return false;
+              final targetBlocks = blocks.cast<Map<String, dynamic>>().where((
+                b,
+              ) {
+                final bId = b['id']?.toString() ?? '';
+                final bSlug = b['slug']?.toString() ?? bId;
+                final isAllowed =
+                    allowedBlockIds.contains(bId) ||
+                    allowedBlockIds.contains(bSlug);
+                if (!isAllowed) return false;
 
-                    final isMatrix = b['category_id']?.toString() == 'matrix';
-                    final extensions = SafeCast.safeList(
-                      b['output_extensions'],
-                    );
-                    return isMatrix || extensions.isNotEmpty;
-                  }).toList();
+                final isMatrix = b['category_id']?.toString() == 'matrix';
+                final extensions = SafeCast.safeList(b['output_extensions']);
+                return isMatrix || extensions.isNotEmpty;
+              }).toList();
 
               final int requiredDropdowns = switch (currentPreset) {
                 'box_1d' => 1,
@@ -672,8 +668,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                           final translations = SafeCast.safeMap(
                             labelDict['translations'],
                           );
-                          final localeCode =
-                              Localizations.localeOf(context).languageCode;
+                          final localeCode = Localizations.localeOf(
+                            context,
+                          ).languageCode;
                           final blockName =
                               translations[localeCode] ??
                               translations['fi'] ??
@@ -692,8 +689,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                             blocksList.add('');
                           }
                           blocksList[i] = val;
-                          layout['components'] =
-                              blocksList.where((b) => b.isNotEmpty).toList();
+                          layout['components'] = blocksList
+                              .where((b) => b.isNotEmpty)
+                              .toList();
                           ref
                               .read(outputProfileFormProvider(id).notifier)
                               .forceRebuild();
@@ -709,14 +707,12 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 children: dropdowns,
               );
             },
-            loading:
-                () => const Align(
-                  alignment: Alignment.centerLeft,
-                  child: CircularProgressIndicator(),
-                ),
-            error:
-                (e, _) =>
-                    Text(l10n.studioViewsErrorLoadingBlocks(e.toString())),
+            loading: () => const Align(
+              alignment: Alignment.centerLeft,
+              child: CircularProgressIndicator(),
+            ),
+            error: (e, _) =>
+                Text(l10n.studioViewsErrorLoadingBlocks(e.toString())),
           ),
         ],
       ),

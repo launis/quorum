@@ -55,10 +55,9 @@ class ReportRendererWidget extends ConsumerWidget {
         payload.profileId;
 
     // Formatting cost
-    final costStr =
-        payload.costEstimate != null
-            ? '\$${payload.costEstimate!.toStringAsFixed(4)}'
-            : '-';
+    final costStr = payload.costEstimate != null
+        ? '\$${payload.costEstimate!.toStringAsFixed(4)}'
+        : '-';
 
     return Card(
       elevation: 3,
@@ -744,10 +743,9 @@ class ReportRendererWidget extends ConsumerWidget {
     }
 
     final l10n = AppLocalizations.of(context)!;
-    final String title =
-        layout.axes.length > 2
-            ? l10n.reportAnalyticalFramework3D
-            : l10n.reportAnalyticalFramework2D;
+    final String title = layout.axes.length > 2
+        ? l10n.reportAnalyticalFramework3D
+        : l10n.reportAnalyticalFramework2D;
 
     return Column(
       children: [

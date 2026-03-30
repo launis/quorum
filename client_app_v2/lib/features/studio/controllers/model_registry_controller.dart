@@ -194,8 +194,9 @@ class ModelRegistryForm extends _$ModelRegistryForm {
     state = const AsyncLoading(); // Side effect isolation
 
     state = await AsyncValue.guard(() async {
-      final idToSave =
-          configId == 'new' ? (updatedData['id'] ?? 'syscfg_new') : configId;
+      final idToSave = configId == 'new'
+          ? (updatedData['id'] ?? 'syscfg_new')
+          : configId;
       await ref
           .read(modelRegistryControllerProvider.notifier)
           .saveConfig(idToSave, updatedData);

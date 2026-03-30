@@ -87,8 +87,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           final frozenContext = SafeCast.safeMap(record['frozen_context']);
 
           final stepStatesMap = SafeCast.safeMap(record['step_states']);
-          final stepStatesList =
-              stepStatesMap.values.map((e) => SafeCast.safeMap(e)).toList();
+          final stepStatesList = stepStatesMap.values
+              .map((e) => SafeCast.safeMap(e))
+              .toList();
 
           final results = SafeCast.safeMap(record['results']);
 
@@ -112,10 +113,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color:
-                                    status == 'failed'
-                                        ? Theme.of(context).colorScheme.onError
-                                        : null,
+                                color: status == 'failed'
+                                    ? Theme.of(context).colorScheme.onError
+                                    : null,
                               ),
                             )
                           else if (status == 'completed')
@@ -134,30 +134,24 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                               AppLocalizations.of(
                                 context,
                               )!.statusLabel(status.toUpperCase()),
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleMedium?.copyWith(
-                                color:
-                                    status == 'failed'
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: status == 'failed'
                                         ? Theme.of(context).colorScheme.onError
                                         : null,
-                              ),
+                                  ),
                             ),
                           ),
                           if (status == 'failed')
                             MutationButton<void>(
                               mutation: resumeMutation,
-                              label:
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.resumeActionableHint,
+                              label: AppLocalizations.of(
+                                context,
+                              )!.resumeActionableHint,
                               icon: Icons.refresh,
-                              action:
-                                  () => ref
-                                      .read(
-                                        executionControllerProvider.notifier,
-                                      )
-                                      .submitRehydration(widget.executionId),
+                              action: () => ref
+                                  .read(executionControllerProvider.notifier)
+                                  .submitRehydration(widget.executionId),
                             ),
                         ],
                       ),
@@ -178,10 +172,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color:
-                            Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         border: Border.all(
                           color: Theme.of(context).colorScheme.outlineVariant,
                         ),
@@ -191,8 +184,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                         children: [
                           Icon(
                             Icons.warning_amber_rounded,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -203,10 +197,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                                 ),
                               ),
                               style: TextStyle(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -228,19 +221,18 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                     ),
                     child: GlobalErrorView(
                       error: AppException(
-                        title:
-                            AppLocalizations.of(
-                              context,
-                            )!.errWorkflowExecutionFailed,
+                        title: AppLocalizations.of(
+                          context,
+                        )!.errWorkflowExecutionFailed,
                         detail: record['error'].toString(),
                         extensions: {'error_code': record['error'].toString()},
                       ),
-                      actionLabel:
-                          AppLocalizations.of(context)!.resumeActionableHint,
-                      onAction:
-                          () => ref
-                              .read(executionControllerProvider.notifier)
-                              .submitRehydration(widget.executionId),
+                      actionLabel: AppLocalizations.of(
+                        context,
+                      )!.resumeActionableHint,
+                      onAction: () => ref
+                          .read(executionControllerProvider.notifier)
+                          .submitRehydration(widget.executionId),
                     ),
                   ),
                 ),
@@ -279,24 +271,23 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                       children: [
                         Text(
                           AppLocalizations.of(context)!.rawOutputFallbackTitle,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                         ),
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color:
-                                Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color:
-                                  Theme.of(context).colorScheme.outlineVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
                             ),
                           ),
                           child: SelectableText(
@@ -312,15 +303,13 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:
-            (error, stackTrace) => ErrorView(
-              error: error,
-              stackTrace: stackTrace,
-              onRetry:
-                  () => ref
-                      .read(executionControllerProvider.notifier)
-                      .resumeExecution(widget.executionId),
-            ),
+        error: (error, stackTrace) => ErrorView(
+          error: error,
+          stackTrace: stackTrace,
+          onRetry: () => ref
+              .read(executionControllerProvider.notifier)
+              .resumeExecution(widget.executionId),
+        ),
       ),
     );
   }

@@ -22,15 +22,13 @@ class LogicMatrixChart extends StatelessWidget {
     final y = yAxis.score ?? 0.0;
 
     final double xMin = xAxis.scaleMin < xAxis.scaleMax ? xAxis.scaleMin : 0.0;
-    final double xMax =
-        xAxis.scaleMax > xAxis.scaleMin
-            ? xAxis.scaleMax
-            : (xAxis.scaleMin + 6.0);
+    final double xMax = xAxis.scaleMax > xAxis.scaleMin
+        ? xAxis.scaleMax
+        : (xAxis.scaleMin + 6.0);
     final double yMin = yAxis.scaleMin < yAxis.scaleMax ? yAxis.scaleMin : 0.0;
-    final double yMax =
-        yAxis.scaleMax > yAxis.scaleMin
-            ? yAxis.scaleMax
-            : (yAxis.scaleMin + 6.0);
+    final double yMax = yAxis.scaleMax > yAxis.scaleMin
+        ? yAxis.scaleMax
+        : (yAxis.scaleMin + 6.0);
 
     // Calculate middle line for grid quadrants
     final xMid = (xMin + xMax) / 2;
@@ -79,22 +77,20 @@ class LogicMatrixChart extends StatelessWidget {
                 // Draw quadrant dividers
                 checkToShowHorizontalLine: (value) => value == yMid,
                 checkToShowVerticalLine: (value) => value == xMid,
-                getDrawingHorizontalLine:
-                    (value) => FlLine(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                      strokeWidth: 2,
-                      dashArray: [5, 5],
-                    ),
-                getDrawingVerticalLine:
-                    (value) => FlLine(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                      strokeWidth: 2,
-                      dashArray: [5, 5],
-                    ),
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  strokeWidth: 2,
+                  dashArray: [5, 5],
+                ),
+                getDrawingVerticalLine: (value) => FlLine(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  strokeWidth: 2,
+                  dashArray: [5, 5],
+                ),
               ),
               titlesData: FlTitlesData(
                 show: true,
@@ -112,8 +108,9 @@ class LogicMatrixChart extends StatelessWidget {
                     getTitlesWidget: (value, meta) {
                       final strVal = value.toStringAsFixed(0);
                       // Use integer representation if it's a clean int for cleaner map lookup
-                      final key =
-                          value == value.toInt() ? strVal : value.toString();
+                      final key = value == value.toInt()
+                          ? strVal
+                          : value.toString();
                       final label =
                           yAxis.scaleLabels[key] ??
                           yAxis.scaleLabels[value.toString()];
@@ -152,8 +149,9 @@ class LogicMatrixChart extends StatelessWidget {
                     interval: 1.0, // Force interval to 1.0
                     getTitlesWidget: (value, meta) {
                       final strVal = value.toStringAsFixed(0);
-                      final key =
-                          value == value.toInt() ? strVal : value.toString();
+                      final key = value == value.toInt()
+                          ? strVal
+                          : value.toString();
                       final label =
                           xAxis.scaleLabels[key] ??
                           xAxis.scaleLabels[value.toString()];

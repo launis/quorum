@@ -356,8 +356,8 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String tokensUsed(int count) {
-    final intl.NumberFormat countNumberFormat = intl
-        .NumberFormat.decimalPattern(localeName);
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
     return '$countString Tokenia käytetty';
@@ -365,8 +365,8 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String quotaLimit(int limit) {
-    final intl.NumberFormat limitNumberFormat = intl
-        .NumberFormat.decimalPattern(localeName);
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
     final String limitString = limitNumberFormat.format(limit);
 
     return '$limitString Raja';

@@ -19,13 +19,12 @@ class WorkflowSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    final items =
-        workflows.map((wf) {
-          return DropdownMenuItem<String>(
-            value: wf['id']?.toString() ?? '',
-            child: Text(wf['name']?.toString() ?? l10n.sharedUnknown),
-          );
-        }).toList();
+    final items = workflows.map((wf) {
+      return DropdownMenuItem<String>(
+        value: wf['id']?.toString() ?? '',
+        child: Text(wf['name']?.toString() ?? l10n.sharedUnknown),
+      );
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -43,8 +42,9 @@ class WorkflowSelector extends StatelessWidget {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value:
-                  _isValidSelection(selectedId, workflows) ? selectedId : null,
+              value: _isValidSelection(selectedId, workflows)
+                  ? selectedId
+                  : null,
               items: items,
               onChanged: onChanged,
               isExpanded: true,

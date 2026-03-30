@@ -41,79 +41,69 @@ class GenericGrid extends StatelessWidget {
                 return Wrap(
                   spacing: 16,
                   runSpacing: 12,
-                  children:
-                      items.map((item) {
-                        final itemMap = item as Map<String, dynamic>;
-                        final label = itemMap['label'] ?? '';
-                        final value = itemMap['value']?.toString() ?? 'N/A';
-                        final highlight = itemMap['highlight'] == true;
+                  children: items.map((item) {
+                    final itemMap = item as Map<String, dynamic>;
+                    final label = itemMap['label'] ?? '';
+                    final value = itemMap['value']?.toString() ?? 'N/A';
+                    final highlight = itemMap['highlight'] == true;
 
-                        return SizedBox(
-                          width: itemWidth,
-                          child: Container(
-                            padding: const EdgeInsets.all(8.0),
-                            decoration: BoxDecoration(
-                              color:
-                                  highlight
-                                      ? Colors.deepPurple.withValues(
-                                        alpha: 0.05,
-                                      )
-                                      : Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerLowest,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color:
-                                    highlight
-                                        ? Colors.deepPurple.shade100
-                                        : Theme.of(
-                                          context,
-                                        ).colorScheme.surfaceContainerHighest,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  label,
-                                  style: Theme.of(
+                    return SizedBox(
+                      width: itemWidth,
+                      child: Container(
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          color: highlight
+                              ? Colors.deepPurple.withValues(alpha: 0.05)
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: highlight
+                                ? Colors.deepPurple.shade100
+                                : Theme.of(
                                     context,
-                                  ).textTheme.labelSmall?.copyWith(
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                  ).colorScheme.surfaceContainerHighest,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              label,
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  value,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.copyWith(
-                                    fontSize: 14,
-                                    fontWeight:
-                                        highlight
-                                            ? FontWeight.bold
-                                            : FontWeight.w600,
-                                    color:
-                                        highlight
-                                            ? Colors.deepPurple[700]
-                                            : Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        );
-                      }).toList(),
+                            SizedBox(height: 2),
+                            Text(
+                              value,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    fontSize: 14,
+                                    fontWeight: highlight
+                                        ? FontWeight.bold
+                                        : FontWeight.w600,
+                                    color: highlight
+                                        ? Colors.deepPurple[700]
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                  ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 );
               },
             ),

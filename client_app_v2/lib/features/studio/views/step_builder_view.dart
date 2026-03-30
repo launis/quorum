@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
@@ -13,6 +14,7 @@ import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/error/app_exception.dart';
 
 class StepBuilderView extends HookConsumerWidget {
@@ -23,28 +25,27 @@ class StepBuilderView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final stepId =
-        (step['id']?.toString() ?? '').isEmpty ? 'new' : step['id'].toString();
+    final stepId = (step['id']?.toString() ?? '').isEmpty
+        ? 'new'
+        : step['id'].toString();
     final formState = ref.watch(stepFormProvider(stepId));
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
     final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
 
     return formState.when(
-      loading:
-          () => Scaffold(
-            appBar: AppBar(title: Text(l10n.stepEditTitle)),
-            body: const Center(child: CircularProgressIndicator()),
-          ),
-      error:
-          (e, st) => Scaffold(
-            appBar: AppBar(title: Text(l10n.stepEditTitle)),
-            body: ErrorView(
-              error: e,
-              stackTrace: st,
-              compact: false,
-              onRetry: () => ref.invalidate(stepFormProvider(stepId)),
-            ),
-          ),
+      loading: () => Scaffold(
+        appBar: AppBar(title: Text(l10n.stepEditTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, st) => Scaffold(
+        appBar: AppBar(title: Text(l10n.stepEditTitle)),
+        body: ErrorView(
+          error: e,
+          stackTrace: st,
+          compact: false,
+          onRetry: () => ref.invalidate(stepFormProvider(stepId)),
+        ),
+      ),
       data: (payload) {
         // Absolute Fail-Fast for dependencies
         if (promptBlocksAsync.hasError) throw promptBlocksAsync.error!;
@@ -95,32 +96,34 @@ class StepBuilderView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    String id,
+    Map<String, dynamic> payload,
     MutationState<void> deleteMut,
   ) {
+    final id = payload['id']?.toString() ?? '';
+    final labelMap = SafeCast.safeMap(payload['label']);
+    final trans = SafeCast.safeMap(labelMap['translations']);
+    final nameToDisplay = trans['fi']?.toString() ?? trans['en']?.toString() ?? id;
+
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(l10n.stepDeleteConfirmTitle),
-            content: Text(l10n.stepDeleteConfirmMessage(id)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(l10n.cancel),
-              ),
-              MutationButton<void>(
-                mutation: deleteMut,
-                label: l10n.delete,
-                action: () async {
-                  await ref
-                      .read(stepsControllerProvider.notifier)
-                      .deleteStep(id);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.stepDeleteConfirmTitle),
+        content: Text(l10n.stepDeleteConfirmMessage(nameToDisplay)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
           ),
+          MutationButton<void>(
+            mutation: deleteMut,
+            label: l10n.delete,
+            action: () async {
+              await ref.read(stepsControllerProvider.notifier).deleteStep(id);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -131,7 +134,7 @@ class StepBuilderView extends HookConsumerWidget {
     AsyncValue<Map<String, dynamic>> formState,
     Map<String, dynamic> payload,
     String stepId,
-    List<Map<String, dynamic>> promptBlocks,
+    List<PromptBlock> promptBlocks,
     List<Map<String, dynamic>> mcpGateways,
   ) {
     final validateMutation = useMutation<Map<String, dynamic>>(
@@ -143,25 +146,24 @@ class StepBuilderView extends HookConsumerWidget {
           }
           showDialog(
             context: context,
-            builder:
-                (ctx) => AlertDialog(
-                  title: Text(l10n.simulatorOutputTitle),
-                  content: SizedBox(
-                    width: double.maxFinite,
-                    child: SingleChildScrollView(
-                      child: Text(
-                        rendered,
-                        style: const TextStyle(fontFamily: 'monospace'),
-                      ),
-                    ),
+            builder: (ctx) => AlertDialog(
+              title: Text(l10n.simulatorOutputTitle),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Text(
+                    rendered,
+                    style: const TextStyle(fontFamily: 'monospace'),
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: Text(l10n.closeModalBtn),
-                    ),
-                  ],
                 ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(l10n.closeModalBtn),
+                ),
+              ],
+            ),
           );
         }
       },
@@ -241,10 +243,9 @@ class StepBuilderView extends HookConsumerWidget {
         }
       } catch (e) {
         if (context.mounted) {
-          final errorMsg =
-              e is AppException
-                  ? AppExceptionX.extractLocalizedHint(e, l10n)
-                  : e.toString();
+          final errorMsg = e is AppException
+              ? AppExceptionX.extractLocalizedHint(e, l10n)
+              : e.toString();
           ref
               .read(loggerServiceProvider)
               .error('Studio', 'Failed to save step: $e', e);
@@ -270,14 +271,13 @@ class StepBuilderView extends HookConsumerWidget {
           actions: [
             if (payload['id']?.toString().isNotEmpty == true)
               IconButton(
-                onPressed:
-                    () => _deleteStep(
-                      context,
-                      ref,
-                      l10n,
-                      payload['id'].toString(),
-                      deleteMutation,
-                    ),
+                onPressed: () => _deleteStep(
+                  context,
+                  ref,
+                  l10n,
+                  payload,
+                  deleteMutation,
+                ),
                 icon: Icon(
                   Icons.delete,
                   color: Theme.of(context).colorScheme.error,
@@ -285,31 +285,29 @@ class StepBuilderView extends HookConsumerWidget {
                 tooltip: l10n.delete,
               ),
             IconButton(
-              onPressed:
-                  validateMutation.isLoading
-                      ? null
-                      : () {
-                        validateMutation.mutate(() async {
-                          final simPayload = {
-                            'step': payload,
-                            'mock_inputs': <String, dynamic>{},
-                          };
-                          return await ref
-                              .read(stepsControllerProvider.notifier)
-                              .simulateStep(simPayload);
-                        });
-                      },
-              icon:
-                  validateMutation.isLoading
-                      ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : Icon(
-                        Icons.bug_report,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+              onPressed: validateMutation.isLoading
+                  ? null
+                  : () {
+                      validateMutation.mutate(() async {
+                        final simPayload = {
+                          'step': payload,
+                          'mock_inputs': <String, dynamic>{},
+                        };
+                        return await ref
+                            .read(stepsControllerProvider.notifier)
+                            .simulateStep(simPayload);
+                      });
+                    },
+              icon: validateMutation.isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      Icons.bug_report,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               tooltip: l10n.simulateStepTooltip,
             ),
             if (formState.isLoading)
@@ -376,9 +374,11 @@ class StepBuilderView extends HookConsumerWidget {
                         const SizedBox(height: 16),
                         I18nTextField(
                           label: l10n.nameLabel,
-                          initialData: SafeCast.safeMap(payload['name']),
+                          initialData: I18nText.fromJson(
+                            SafeCast.safeMap(payload['label']),
+                          ),
                           onChanged: (val) {
-                            payload['name'] = val;
+                            payload['label'] = val.toJson();
                             ref
                                 .read(stepFormProvider(stepId).notifier)
                                 .forceRebuild();
@@ -387,9 +387,11 @@ class StepBuilderView extends HookConsumerWidget {
                         const SizedBox(height: 16),
                         I18nTextField(
                           label: l10n.descriptionLabel,
-                          initialData: SafeCast.safeMap(payload['description']),
+                          initialData: I18nText.fromJson(
+                            SafeCast.safeMap(payload['description']),
+                          ),
                           onChanged: (val) {
-                            payload['description'] = val;
+                            payload['description'] = val.toJson();
                             ref
                                 .read(stepFormProvider(stepId).notifier)
                                 .forceRebuild();
@@ -407,7 +409,10 @@ class StepBuilderView extends HookConsumerWidget {
                               );
                             }
                             if (configsAsync.hasError) {
-                              return ErrorView(error: configsAsync.error!, compact: true);
+                              return ErrorView(
+                                error: configsAsync.error!,
+                                compact: true,
+                              );
                             }
 
                             final configs = configsAsync.value ?? [];
@@ -435,8 +440,8 @@ class StepBuilderView extends HookConsumerWidget {
                             );
                             final safeValue =
                                 modelKeys.contains(currentStrategy)
-                                    ? currentStrategy
-                                    : null;
+                                ? currentStrategy
+                                : null;
 
                             return DropdownButtonFormField<String>(
                               key: ValueKey(modelKeys.length),
@@ -447,20 +452,18 @@ class StepBuilderView extends HookConsumerWidget {
                                 border: OutlineInputBorder(),
                                 isDense: true,
                               ),
-                              items:
-                                  modelKeys.map((key) {
-                                    final modelData = SafeCast.safeMap(
-                                      modelsObj[key],
-                                    );
-                                    final label =
-                                        modelData['model_name'] != null
-                                            ? '${key.toUpperCase()} (${modelData['model_name']})'
-                                            : key.toUpperCase();
-                                    return DropdownMenuItem(
-                                      value: key,
-                                      child: Text(label),
-                                    );
-                                  }).toList(),
+                              items: modelKeys.map((key) {
+                                final modelData = SafeCast.safeMap(
+                                  modelsObj[key],
+                                );
+                                final label = modelData['model_name'] != null
+                                    ? '${key.toUpperCase()} (${modelData['model_name']})'
+                                    : key.toUpperCase();
+                                return DropdownMenuItem(
+                                  value: key,
+                                  child: Text(label),
+                                );
+                              }).toList(),
                               onChanged: (val) {
                                 if (val != null) {
                                   payload['model_strategy'] = val;
@@ -490,32 +493,30 @@ class StepBuilderView extends HookConsumerWidget {
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
-                  children:
-                      mcpGateways.map((toolMap) {
-                        final slug = SafeCast.safeString(toolMap['slug']);
-                        final allowedMcpTools =
-                            SafeCast.safeList(
-                              payload['allowed_mcp_tools'],
-                            ).map((e) => e.toString()).toList();
-                        final isSelected = allowedMcpTools.contains(slug);
-                        return FilterChip(
-                          label: Text(slug),
-                          selected: isSelected,
-                          onSelected: (bool selected) {
-                            if (selected) {
-                              if (!allowedMcpTools.contains(slug)) {
-                                allowedMcpTools.add(slug);
-                              }
-                            } else {
-                              allowedMcpTools.remove(slug);
-                            }
-                            payload['allowed_mcp_tools'] = allowedMcpTools;
-                            ref
-                                .read(stepFormProvider(stepId).notifier)
-                                .forceRebuild();
-                          },
-                        );
-                      }).toList(),
+                  children: mcpGateways.map((toolMap) {
+                    final slug = SafeCast.safeString(toolMap['slug']);
+                    final allowedMcpTools = SafeCast.safeList(
+                      payload['allowed_mcp_tools'],
+                    ).map((e) => e.toString()).toList();
+                    final isSelected = allowedMcpTools.contains(slug);
+                    return FilterChip(
+                      label: Text(slug),
+                      selected: isSelected,
+                      onSelected: (bool selected) {
+                        if (selected) {
+                          if (!allowedMcpTools.contains(slug)) {
+                            allowedMcpTools.add(slug);
+                          }
+                        } else {
+                          allowedMcpTools.remove(slug);
+                        }
+                        payload['allowed_mcp_tools'] = allowedMcpTools;
+                        ref
+                            .read(stepFormProvider(stepId).notifier)
+                            .forceRebuild();
+                      },
+                    );
+                  }).toList(),
                 ),
 
                 const SizedBox(height: 24),
@@ -706,7 +707,7 @@ class StepBuilderView extends HookConsumerWidget {
     Key key,
     int index,
     String blockDef,
-    List<Map<String, dynamic>> promptBlocks,
+    List<PromptBlock> promptBlocks,
   ) {
     return Card(
       key: key,
@@ -722,17 +723,12 @@ class StepBuilderView extends HookConsumerWidget {
             Expanded(
               child: DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: l10n.promptBlockLabel),
-                initialValue:
-                    promptBlocks.any((m) => m['id'] == blockDef)
-                        ? blockDef
-                        : null,
-                items:
-                    promptBlocks.map((m) {
-                      return DropdownMenuItem(
-                        value: SafeCast.safeString(m['id']),
-                        child: Text(SafeCast.safeString(m['id'])),
-                      );
-                    }).toList(),
+                initialValue: promptBlocks.any((m) => m.id == blockDef)
+                    ? blockDef
+                    : null,
+                items: promptBlocks.map((m) {
+                  return DropdownMenuItem(value: m.id, child: Text(m.id));
+                }).toList(),
                 onChanged: (val) {
                   final blocks = SafeCast.safeList(payload['prompt_blocks']);
                   blocks[index] = val;

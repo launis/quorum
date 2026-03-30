@@ -18,13 +18,11 @@ final promptBlockByIdProvider = PromptBlockByIdFamily._();
 final class PromptBlockByIdProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>
+          AsyncValue<PromptBlock>,
+          PromptBlock,
+          FutureOr<PromptBlock>
         >
-    with
-        $FutureModifier<Map<String, dynamic>>,
-        $FutureProvider<Map<String, dynamic>> {
+    with $FutureModifier<PromptBlock>, $FutureProvider<PromptBlock> {
   /// Fetches a single Prompt Block natively by ID
   PromptBlockByIdProvider._({
     required PromptBlockByIdFamily super.from,
@@ -49,12 +47,12 @@ final class PromptBlockByIdProvider
 
   @$internal
   @override
-  $FutureProviderElement<Map<String, dynamic>> $createElement(
+  $FutureProviderElement<PromptBlock> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Map<String, dynamic>> create(Ref ref) {
+  FutureOr<PromptBlock> create(Ref ref) {
     final argument = this.argument as String;
     return promptBlockById(ref, argument);
   }
@@ -70,12 +68,12 @@ final class PromptBlockByIdProvider
   }
 }
 
-String _$promptBlockByIdHash() => r'a25fbc357d3224634be823e8b002db03bc3258a1';
+String _$promptBlockByIdHash() => r'e1cb851ed60f34d21f72668ca80a8bf837030812';
 
 /// Fetches a single Prompt Block natively by ID
 
 final class PromptBlockByIdFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Map<String, dynamic>>, String> {
+    with $FunctionalFamilyOverride<FutureOr<PromptBlock>, String> {
   PromptBlockByIdFamily._()
     : super(
         retry: null,
@@ -98,7 +96,7 @@ final class PromptBlockByIdFamily extends $Family
 final promptBlockFormProvider = PromptBlockFormFamily._();
 
 final class PromptBlockFormProvider
-    extends $AsyncNotifierProvider<PromptBlockForm, Map<String, dynamic>> {
+    extends $AsyncNotifierProvider<PromptBlockForm, PromptBlock> {
   PromptBlockFormProvider._({
     required PromptBlockFormFamily super.from,
     required String super.argument,
@@ -135,15 +133,15 @@ final class PromptBlockFormProvider
   }
 }
 
-String _$promptBlockFormHash() => r'1f62b3d71d6a3d44b00e056cc398402918775318';
+String _$promptBlockFormHash() => r'e6709320a2c425bad7fb6950a5f7bc4ec953794e';
 
 final class PromptBlockFormFamily extends $Family
     with
         $ClassFamilyOverride<
           PromptBlockForm,
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>,
+          AsyncValue<PromptBlock>,
+          PromptBlock,
+          FutureOr<PromptBlock>,
           String
         > {
   PromptBlockFormFamily._()
@@ -162,25 +160,20 @@ final class PromptBlockFormFamily extends $Family
   String toString() => r'promptBlockFormProvider';
 }
 
-abstract class _$PromptBlockForm extends $AsyncNotifier<Map<String, dynamic>> {
+abstract class _$PromptBlockForm extends $AsyncNotifier<PromptBlock> {
   late final _$args = ref.$arg as String;
   String get configId => _$args;
 
-  FutureOr<Map<String, dynamic>> build(String configId);
+  FutureOr<PromptBlock> build(String configId);
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<AsyncValue<Map<String, dynamic>>, Map<String, dynamic>>;
+    final ref = this.ref as $Ref<AsyncValue<PromptBlock>, PromptBlock>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<Map<String, dynamic>>,
-                Map<String, dynamic>
-              >,
-              AsyncValue<Map<String, dynamic>>,
+              AnyNotifier<AsyncValue<PromptBlock>, PromptBlock>,
+              AsyncValue<PromptBlock>,
               Object?,
               Object?
             >;
@@ -197,11 +190,7 @@ final promptBlocksControllerProvider = PromptBlocksControllerProvider._();
 /// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
 final class PromptBlocksControllerProvider
-    extends
-        $AsyncNotifierProvider<
-          PromptBlocksController,
-          List<Map<String, dynamic>>
-        > {
+    extends $AsyncNotifierProvider<PromptBlocksController, List<PromptBlock>> {
   /// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
   /// Implements Optimistic UI principles where possible.
   PromptBlocksControllerProvider._()
@@ -224,31 +213,24 @@ final class PromptBlocksControllerProvider
 }
 
 String _$promptBlocksControllerHash() =>
-    r'b0969a210e4435543bedf784e83cf7c4d5851841';
+    r'fc2ca506a7328ee48e427ac4740101657313161b';
 
 /// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
 
 abstract class _$PromptBlocksController
-    extends $AsyncNotifier<List<Map<String, dynamic>>> {
-  FutureOr<List<Map<String, dynamic>>> build();
+    extends $AsyncNotifier<List<PromptBlock>> {
+  FutureOr<List<PromptBlock>> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final ref =
-        this.ref
-            as $Ref<
-              AsyncValue<List<Map<String, dynamic>>>,
-              List<Map<String, dynamic>>
-            >;
+        this.ref as $Ref<AsyncValue<List<PromptBlock>>, List<PromptBlock>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<List<Map<String, dynamic>>>,
-                List<Map<String, dynamic>>
-              >,
-              AsyncValue<List<Map<String, dynamic>>>,
+              AnyNotifier<AsyncValue<List<PromptBlock>>, List<PromptBlock>>,
+              AsyncValue<List<PromptBlock>>,
               Object?,
               Object?
             >;

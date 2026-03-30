@@ -26,21 +26,19 @@ class ModelRegistryView extends HookConsumerWidget {
     final formState = ref.watch(modelRegistryFormProvider(id));
 
     return formState.when(
-      loading:
-          () => Scaffold(
-            appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
-            body: const Center(child: CircularProgressIndicator()),
-          ),
-      error:
-          (e, st) => Scaffold(
-            appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
-            body: ErrorView(
-              error: e,
-              stackTrace: st,
-              compact: false,
-              onRetry: () => ref.invalidate(modelRegistryFormProvider(id)),
-            ),
-          ),
+      loading: () => Scaffold(
+        appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, st) => Scaffold(
+        appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
+        body: ErrorView(
+          error: e,
+          stackTrace: st,
+          compact: false,
+          onRetry: () => ref.invalidate(modelRegistryFormProvider(id)),
+        ),
+      ),
       data: (payload) {
         // The UI is a pure renderer of the business payload
         return _buildScaffold(
@@ -69,26 +67,28 @@ class ModelRegistryView extends HookConsumerWidget {
       final String idToDelete = payload['id']?.toString() ?? '';
       if (idToDelete.isEmpty || id == 'new') return;
 
+      final type = payload['type']?.toString() ?? '';
+      final nameToDisplay = type.isNotEmpty ? type : idToDelete;
+
       final confirm = await showDialog<bool>(
         context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(l10n.deleteConfigTitle),
-              content: Text(l10n.deleteConfigConfirmation(idToDelete)),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(l10n.cancelButton),
-                ),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  ),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(l10n.deleteButton),
-                ),
-              ],
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.deleteConfigTitle),
+          content: Text(l10n.deleteConfigConfirmation(nameToDisplay)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancelButton),
             ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.deleteButton),
+            ),
+          ],
+        ),
       );
 
       if (confirm == true) {
@@ -165,10 +165,9 @@ class ModelRegistryView extends HookConsumerWidget {
           FilledButton.icon(
             icon: const Icon(Icons.save),
             label: Text(l10n.studioSaveButton),
-            onPressed:
-                formState.isLoading
-                    ? null
-                    : saveRegistry, // Read isLoading directly from Riverpod!
+            onPressed: formState.isLoading
+                ? null
+                : saveRegistry, // Read isLoading directly from Riverpod!
           ),
           const SizedBox(width: 16),
         ],
@@ -256,74 +255,61 @@ class ModelRegistryView extends HookConsumerWidget {
             child: ExpansionTile(
               initiallyExpanded: true,
               title: Text('${l10n.providerLabel}: $providerName'),
-              children:
-                  providerModels.entries.map((modelEntry) {
-                    final modelId = modelEntry.key;
-                    final fields = modelEntry.value as Map<String, dynamic>;
+              children: providerModels.entries.map((modelEntry) {
+                final modelId = modelEntry.key;
+                final fields = modelEntry.value as Map<String, dynamic>;
 
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${l10n.strategyLabel}: $modelId',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _buildModelNameDropdown(
-                            ref,
-                            fields,
-                            'model_name',
-                            l10n.modelNameLabel,
-                            availableModels,
-                          ),
-                          _buildDoubleField(
-                            fields,
-                            'temperature',
-                            l10n.temperatureLabel,
-                          ),
-                          _buildIntField(
-                            fields,
-                            'max_tokens',
-                            l10n.maxTokensLabel,
-                          ),
-                          _buildStringField(
-                            fields,
-                            'parsing_mode',
-                            l10n.parsingModeLabel,
-                          ),
-                          _buildDoubleField(fields, 'top_p', l10n.topPLabel),
-                          _buildIntField(
-                            fields,
-                            'tpm_limit',
-                            l10n.tpmLimitLabel,
-                          ),
-                          _buildIntField(
-                            fields,
-                            'rpm_limit',
-                            l10n.rpmLimitLabel,
-                          ),
-                          _buildBoolField(
-                            ref,
-                            fields,
-                            'supports_grounding',
-                            l10n.supportsGroundingLabel,
-                          ),
-                          _buildBoolField(
-                            ref,
-                            fields,
-                            'is_active',
-                            l10n.isActiveLabel,
-                          ),
-                          const Divider(height: 32),
-                        ],
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${l10n.strategyLabel}: $modelId',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
                       ),
-                    );
-                  }).toList(),
+                      const SizedBox(height: 8),
+                      _buildModelNameDropdown(
+                        ref,
+                        fields,
+                        'model_name',
+                        l10n.modelNameLabel,
+                        availableModels,
+                      ),
+                      _buildDoubleField(
+                        fields,
+                        'temperature',
+                        l10n.temperatureLabel,
+                      ),
+                      _buildIntField(fields, 'max_tokens', l10n.maxTokensLabel),
+                      _buildStringField(
+                        fields,
+                        'parsing_mode',
+                        l10n.parsingModeLabel,
+                      ),
+                      _buildDoubleField(fields, 'top_p', l10n.topPLabel),
+                      _buildIntField(fields, 'tpm_limit', l10n.tpmLimitLabel),
+                      _buildIntField(fields, 'rpm_limit', l10n.rpmLimitLabel),
+                      _buildBoolField(
+                        ref,
+                        fields,
+                        'supports_grounding',
+                        l10n.supportsGroundingLabel,
+                      ),
+                      _buildBoolField(
+                        ref,
+                        fields,
+                        'is_active',
+                        l10n.isActiveLabel,
+                      ),
+                      const Divider(height: 32),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
           );
         }),
@@ -369,10 +355,9 @@ class ModelRegistryView extends HookConsumerWidget {
           border: const OutlineInputBorder(),
         ),
         initialValue: items.contains(currentValue) ? currentValue : null,
-        items:
-            items.map((modelId) {
-              return DropdownMenuItem(value: modelId, child: Text(modelId));
-            }).toList(),
+        items: items.map((modelId) {
+          return DropdownMenuItem(value: modelId, child: Text(modelId));
+        }).toList(),
         onChanged: (val) {
           if (val != null) {
             map[key] = val; // Synchronous pure map edit

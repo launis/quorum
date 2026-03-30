@@ -24,7 +24,10 @@ import 'widgets/workflow/workflow_steps_tab.dart';
 /// Admin can define global inputs (`expected_inputs`) and sequence
 /// processing steps (`steps`) including `depends_on` and `input_mappings`.
 /// Componentized to enforce Flat MVC architecture using the Sub-Tabs pattern.
-final _workflowClonePayload = NotifierProvider<WorkflowClonePayloadNotifier, Map<String, dynamic>?>(WorkflowClonePayloadNotifier.new);
+final _workflowClonePayload =
+    NotifierProvider<WorkflowClonePayloadNotifier, Map<String, dynamic>?>(
+      WorkflowClonePayloadNotifier.new,
+    );
 
 class WorkflowClonePayloadNotifier extends Notifier<Map<String, dynamic>?> {
   @override
@@ -47,23 +50,8 @@ class WorkflowBuilderView extends HookConsumerWidget {
     final stepsAsync = ref.watch(stepsControllerProvider);
     final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
 
-    return formState.when(
-      loading:
-          () => Scaffold(
-            appBar: AppBar(title: Text(l10n.workflowEditTitle)),
-            body: const Center(child: CircularProgressIndicator()),
-          ),
-      error:
-          (e, st) => Scaffold(
-            appBar: AppBar(title: Text(l10n.workflowEditTitle)),
-            body: ErrorView(
-              error: e,
-              stackTrace: st,
-              compact: false,
-              onRetry: () => ref.invalidate(workflowFormProvider(wfId)),
-            ),
-          ),
-      data: (payload) {
+    return switch (formState) {
+      AsyncData(:final value) => () {
         // Absolute Fail-Fast
         if (stepsAsync.hasError) throw stepsAsync.error!;
         if (mcpGatewaysAsync.hasError) throw mcpGatewaysAsync.error!;
@@ -75,13 +63,26 @@ class WorkflowBuilderView extends HookConsumerWidget {
 
         return _BuilderScaffoldWrapper(
           wfId: wfId,
-          payload: payload,
+          payload: value,
           blueprints: stepsAsync.value!,
           mcpGateways: mcpGatewaysAsync.value ?? [],
           l10n: l10n,
         );
-      },
-    );
+      }(),
+      AsyncError(:final error, :final stackTrace) => Scaffold(
+        appBar: AppBar(title: Text(l10n.workflowEditTitle)),
+        body: ErrorView(
+          error: error,
+          stackTrace: stackTrace,
+          compact: false,
+          onRetry: () => ref.invalidate(workflowFormProvider(wfId)),
+        ),
+      ),
+      _ => Scaffold(
+        appBar: AppBar(title: Text(l10n.workflowEditTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+    };
   }
 }
 
@@ -107,72 +108,72 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
   ) {
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(l10n.workflowCloneBtn),
-            content: Text(l10n.workflowSharedBlueprintWarning),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  try {
-                    final original = Map<String, dynamic>.from(currentPayload);
-                    final cloned = WorkflowCloner.cloneDeep(original);
-
-                    final nameMap = SafeCast.safeMap(cloned['name']);
-                    if (nameMap.containsKey('translations')) {
-                      final translations = SafeCast.safeMap(
-                        nameMap['translations'],
-                      );
-                      if (translations.containsKey('en')) {
-                        translations['en'] = "Copy of ${translations['en']}";
-                      }
-                      if (translations.containsKey('fi')) {
-                        translations['fi'] = "Kopio - ${translations['fi']}";
-                      }
-                      nameMap['translations'] = translations;
-                      cloned['name'] = nameMap;
-                    }
-
-                    ref.read(_workflowClonePayload.notifier).setPayload(cloned);
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder:
-                            (context) => const WorkflowBuilderView(
-                              id: 'new',
-                            ),
-                      ),
-                    );
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.workflowCloneSuccess)),
-                    );
-                  } catch (e) {
-                    final errorMsg =
-                        e is AppException
-                            ? AppExceptionX.extractLocalizedHint(e, l10n)
-                            : e.toString();
-                    if (context.mounted) {
-                      ref
-                          .read(loggerServiceProvider)
-                          .error('Studio', 'Failed to clone workflow: $e', e);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(errorMsg),
-                          backgroundColor: Theme.of(context).colorScheme.error,
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: Text(l10n.workflowCloneBtn),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.workflowCloneBtn),
+        content: Text(l10n.workflowSharedBlueprintWarning),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
           ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              try {
+                final original = Map<String, dynamic>.from(currentPayload);
+                final cloned = WorkflowCloner.cloneDeep(original);
+
+                final nameRaw = cloned['name'];
+                if (nameRaw is String && nameRaw.isNotEmpty) {
+                  cloned['name'] = "Kopio - $nameRaw";
+                } else {
+                  final nameMap = SafeCast.safeMap(nameRaw);
+                  if (nameMap.containsKey('translations')) {
+                    final translations = SafeCast.safeMap(
+                      nameMap['translations'],
+                    );
+                    if (translations.containsKey('en')) {
+                      translations['en'] = "Copy of ${translations['en']}";
+                    }
+                    if (translations.containsKey('fi')) {
+                      translations['fi'] = "Kopio - ${translations['fi']}";
+                    }
+                    nameMap['translations'] = translations;
+                    cloned['name'] = nameMap;
+                  }
+                }
+
+                ref.read(_workflowClonePayload.notifier).setPayload(cloned);
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const WorkflowBuilderView(id: 'new'),
+                  ),
+                );
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.workflowCloneSuccess)),
+                );
+              } catch (e) {
+                final errorMsg = e is AppException
+                    ? AppExceptionX.extractLocalizedHint(e, l10n)
+                    : e.toString();
+                if (context.mounted) {
+                  ref
+                      .read(loggerServiceProvider)
+                      .error('Studio', 'Failed to clone workflow: $e', e);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(errorMsg),
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(l10n.workflowCloneBtn),
+          ),
+        ],
+      ),
     );
   }
 
@@ -184,29 +185,32 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
     final idStr = payload['id']?.toString() ?? '';
     if (idStr.isEmpty) return;
 
+    final nameMap = SafeCast.safeMap(payload['name']);
+    final translations = SafeCast.safeMap(nameMap['translations']);
+    final nameToDisplay = translations['fi']?.toString() ?? translations['en']?.toString() ?? idStr;
+
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(l10n.workflowDeleteConfirmTitle),
-            content: Text(l10n.workflowDeleteConfirmDesc(idStr)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(l10n.cancel),
-              ),
-              MutationButton<void>(
-                mutation: deleteMutation,
-                label: l10n.delete,
-                action: () async {
-                  await ref
-                      .read(workflowsControllerProvider.notifier)
-                      .deleteWorkflow(idStr);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.workflowDeleteConfirmTitle),
+        content: Text(l10n.workflowDeleteConfirmDesc(nameToDisplay)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
           ),
+          MutationButton<void>(
+            mutation: deleteMutation,
+            label: l10n.delete,
+            action: () async {
+              await ref
+                  .read(workflowsControllerProvider.notifier)
+                  .deleteWorkflow(idStr);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -229,10 +233,10 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
             payload.addAll(cloneData);
             idController.text = SafeCast.safeString(payload['id']);
             slugController.text = SafeCast.safeString(payload['slug']);
-            
+
             // Clear clone payload so it doesn't trigger again
             ref.read(_workflowClonePayload.notifier).setPayload(null);
-            
+
             ref.read(workflowFormProvider(wfId).notifier).forceRebuild();
           });
         }
@@ -252,10 +256,9 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                     ? l10n.simulatorValidDag
                     : l10n.simulatorDagErrors(errors.join(', ')),
               ),
-              backgroundColor:
-                  isValid
-                      ? const Color(0xFF2E7D32)
-                      : Theme.of(context).colorScheme.error,
+              backgroundColor: isValid
+                  ? const Color(0xFF2E7D32)
+                  : Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -333,10 +336,9 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
         }
       } catch (e) {
         if (context.mounted) {
-          final errorMsg =
-              e is AppException
-                  ? AppExceptionX.extractLocalizedHint(e, l10n)
-                  : e.toString();
+          final errorMsg = e is AppException
+              ? AppExceptionX.extractLocalizedHint(e, l10n)
+              : e.toString();
           ref
               .read(loggerServiceProvider)
               .error('Studio', 'Failed to save workflow: $e', e);
@@ -366,16 +368,29 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
             ),
             title: Builder(
               builder: (context) {
-                final nameObj = SafeCast.safeMap(payload['name']);
-                final translations = SafeCast.safeMap(nameObj['translations']);
-                final titleStr = translations['fi'] ?? translations['en'];
+                final nameRaw = payload['name'];
+                String? titleStr;
+                if (nameRaw is String && nameRaw.isNotEmpty) {
+                  titleStr = nameRaw;
+                } else {
+                  final nameObj = SafeCast.safeMap(nameRaw);
+                  final translations = SafeCast.safeMap(
+                    nameObj['translations'],
+                  );
+                  titleStr = translations['fi'] ?? translations['en'];
+                }
 
-                if (titleStr == null &&
+                if ((titleStr == null || titleStr.isEmpty) &&
                     payload['id'] != null &&
                     payload['id'].toString().isNotEmpty) {
-                  throw AppException.validation(l10n.workflowNameMissingError);
+                  return Text(
+                    l10n.workflowNameMissingError,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  );
                 }
-                return Text(titleStr?.toString() ?? l10n.workflowEditTitle);
+                return Text(titleStr ?? l10n.workflowEditTitle);
               },
             ),
             actions: [
@@ -386,8 +401,8 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                   tooltip: l10n.workflowCloneBtn,
                 ),
                 IconButton(
-                  onPressed:
-                      () => _deleteWorkflow(context, ref, deleteMutation),
+                  onPressed: () =>
+                      _deleteWorkflow(context, ref, deleteMutation),
                   icon: Icon(
                     Icons.delete,
                     color: Theme.of(context).colorScheme.error,
@@ -396,27 +411,25 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                 ),
               ],
               IconButton(
-                onPressed:
-                    validateMutation.isLoading
-                        ? null
-                        : () {
-                          validateMutation.mutate(() async {
-                            return await ref
-                                .read(workflowsControllerProvider.notifier)
-                                .simulateWorkflow(payload);
-                          });
-                        },
-                icon:
-                    validateMutation.isLoading
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : Icon(
-                          Icons.bug_report,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                onPressed: validateMutation.isLoading
+                    ? null
+                    : () {
+                        validateMutation.mutate(() async {
+                          return await ref
+                              .read(workflowsControllerProvider.notifier)
+                              .simulateWorkflow(payload);
+                        });
+                      },
+                icon: validateMutation.isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        Icons.bug_report,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                 tooltip: l10n.validateDagBtn,
               ),
               TextButton.icon(

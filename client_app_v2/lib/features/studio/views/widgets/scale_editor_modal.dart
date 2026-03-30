@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-import 'package:client_app/utils/safe_cast.dart';
-import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class ScaleEditorModal extends StatefulWidget {
-  final Map<String, dynamic> initialScale;
+  final MatrixScale initialScale;
 
   const ScaleEditorModal({super.key, required this.initialScale});
 
@@ -14,16 +14,12 @@ class ScaleEditorModal extends StatefulWidget {
 }
 
 class _ScaleEditorModalState extends State<ScaleEditorModal> {
-  late Map<String, dynamic> _editableScale;
+  late MatrixScale _editableScale;
 
   @override
   void initState() {
     super.initState();
-    // Deepish copy of the scale
-    _editableScale = Map<String, dynamic>.from(widget.initialScale);
-    if (_editableScale['claims'] == null) {
-      _editableScale['claims'] = [];
-    }
+    _editableScale = widget.initialScale.copyWith();
   }
 
   void _save() {
@@ -32,30 +28,29 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
 
   void _addClaim() {
     setState(() {
-      final claims = SafeCast.safeList(_editableScale['claims']);
-      claims.add({
-        'label': {
-          'default_locale': 'en',
-          'translations': <String, dynamic>{'en': ''},
-        },
-        'ai_description': 'CRITICAL MANDATE: ',
-      });
-      _editableScale['claims'] = claims;
+      final claims = List<MatrixClaim>.from(_editableScale.claims);
+      claims.add(
+        const MatrixClaim(
+          label: I18nText(defaultLocale: 'en', translations: {'en': ''}),
+          aiDescription: 'CRITICAL MANDATE: ',
+        ),
+      );
+      _editableScale = _editableScale.copyWith(claims: claims);
     });
   }
 
   void _removeClaim(int index) {
     setState(() {
-      final claims = SafeCast.safeList(_editableScale['claims']);
+      final claims = List<MatrixClaim>.from(_editableScale.claims);
       claims.removeAt(index);
-      _editableScale['claims'] = claims;
+      _editableScale = _editableScale.copyWith(claims: claims);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final claims = SafeCast.safeList(_editableScale['claims']);
+    final claims = _editableScale.claims;
 
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
@@ -81,7 +76,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextFormField(
-                initialValue: _editableScale['score']?.toString(),
+                initialValue: _editableScale.score.toString(),
                 decoration: const InputDecoration(
                   labelText: 'Grade Score (int, e.g., 5)',
                   border: OutlineInputBorder(),
@@ -90,45 +85,35 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                 onChanged: (val) {
                   final parsed = int.tryParse(val);
                   if (parsed != null) {
-                    _editableScale['score'] = parsed;
+                    _editableScale = _editableScale.copyWith(score: parsed);
                   }
                 },
               ),
               const SizedBox(height: 16),
               I18nTextField(
                 label: 'Grade Name (Optional, e.g. "Excellent")',
-                initialData: SafeCast.safeMap(_editableScale['name']),
+                initialData:
+                    _editableScale.name ??
+                    const I18nText(
+                      defaultLocale: 'en',
+                      translations: {'en': ''},
+                    ),
                 onChanged: (val) {
-                  _editableScale['name'] = val;
+                  _editableScale = _editableScale.copyWith(name: val);
                 },
               ),
               const SizedBox(height: 16),
               TextFormField(
-                initialValue: SafeCast.safeString(_editableScale['ai_label']),
+                initialValue: _editableScale.aiLabel,
                 decoration: const InputDecoration(
                   labelText: 'Grade AI Label (e.g. CATASTROPHIC FAILURE)',
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (val) {
-                  _editableScale['ai_label'] = val.trim();
+                  _editableScale = _editableScale.copyWith(aiLabel: val.trim());
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                initialValue: SafeCast.safeString(
-                  _editableScale['ai_description'],
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Grade AI Rules (Strict Evaluation Directives)',
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 6,
-                onChanged: (val) {
-                  _editableScale['ai_description'] = val.trim();
-                },
-              ),
-              const SizedBox(height: 24),
               const Text(
                 'Claims (Evaluative Guidelines)',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -136,13 +121,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
               const SizedBox(height: 8),
               ...claims.asMap().entries.map((entry) {
                 final index = entry.key;
-                final claim = SafeCast.safeMap(entry.value);
-                final claimLabel = SafeCast.safeMap(
-                  claim['label'] ??
-                      (throw AppException.validation(
-                        'Claim data is corrupted: missing localized label.',
-                      )),
-                );
+                final claim = entry.value;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16.0),
@@ -173,9 +152,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
-                          initialValue: SafeCast.safeString(
-                            claim['ai_description'],
-                          ),
+                          initialValue: claim.aiDescription,
                           decoration: InputDecoration(
                             labelText: 'Claim AI Rule (MANDATORY ENGLISH)',
                             helperText:
@@ -184,25 +161,37 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                               color: Theme.of(context).colorScheme.error,
                               fontWeight: FontWeight.bold,
                             ),
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                             alignLabelWithHint: true,
                           ),
                           maxLines: 3,
                           onChanged: (val) {
                             setState(() {
-                              claim['ai_description'] = val;
-                              claims[index] = claim;
+                              final newClaims = List<MatrixClaim>.from(
+                                _editableScale.claims,
+                              );
+                              newClaims[index] = claim.copyWith(
+                                aiDescription: val,
+                              );
+                              _editableScale = _editableScale.copyWith(
+                                claims: newClaims,
+                              );
                             });
                           },
                         ),
                         const SizedBox(height: 16),
                         I18nTextField(
                           label: 'Claim Translation (UI Screen/PDF)',
-                          initialData: claimLabel,
+                          initialData: claim.label,
                           onChanged: (val) {
                             setState(() {
-                              claim['label'] = val;
-                              claims[index] = claim;
+                              final newClaims = List<MatrixClaim>.from(
+                                _editableScale.claims,
+                              );
+                              newClaims[index] = claim.copyWith(label: val);
+                              _editableScale = _editableScale.copyWith(
+                                claims: newClaims,
+                              );
                             });
                           },
                         ),

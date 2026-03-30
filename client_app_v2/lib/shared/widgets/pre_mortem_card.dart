@@ -31,10 +31,9 @@ class PreMortemCard extends StatelessWidget {
               Icon(
                 executed ? Icons.check : Icons.close,
                 size: 16,
-                color:
-                    executed
-                        ? Color(0xFF2E7D32)
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                color: executed
+                    ? Color(0xFF2E7D32)
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ],
           ),
@@ -54,22 +53,21 @@ class PreMortemCard extends StatelessWidget {
                 border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
               ),
               child: Column(
-                children:
-                    signals.map((s) {
-                      return ListTile(
-                        leading: const Icon(
-                          Icons.sensors,
-                          size: 16,
-                          color: Colors.amber,
-                        ),
-                        title: Text(
-                          s.toString(),
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                      );
-                    }).toList(),
+                children: signals.map((s) {
+                  return ListTile(
+                    leading: const Icon(
+                      Icons.sensors,
+                      size: 16,
+                      color: Colors.amber,
+                    ),
+                    title: Text(
+                      s.toString(),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                  );
+                }).toList(),
               ),
             ),
           ],

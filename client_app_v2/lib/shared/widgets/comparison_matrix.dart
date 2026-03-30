@@ -176,8 +176,9 @@ class ComparisonMatrix extends StatelessWidget {
   Widget _renderDelta(BuildContext context, double delta) {
     if (delta == 0) return Center(child: Text('='));
     final isPos = delta > 0;
-    final color =
-        isPos ? Color(0xFF2E7D32) : Theme.of(context).colorScheme.error;
+    final color = isPos
+        ? Color(0xFF2E7D32)
+        : Theme.of(context).colorScheme.error;
     final icon = isPos ? Icons.arrow_upward : Icons.arrow_downward;
 
     return Row(

@@ -144,29 +144,27 @@ class InspectorPane extends StatelessWidget {
           isExpanded: true,
           initialValue:
               availableBlueprints.any(
-                    (bp) => bp['id'] == stepDef['task_blueprint'],
-                  )
-                  ? SafeCast.safeString(stepDef['task_blueprint'])
-                  : null,
-          items:
-              availableBlueprints.map((bp) {
-                final id = SafeCast.safeString(bp['id']);
-                final nameMap = SafeCast.safeMap(bp['name']);
-                final transMap = SafeCast.safeMap(nameMap['translations']);
+                (bp) => bp['id'] == stepDef['task_blueprint'],
+              )
+              ? SafeCast.safeString(stepDef['task_blueprint'])
+              : null,
+          items: availableBlueprints.map((bp) {
+            final id = SafeCast.safeString(bp['id']);
+            final nameMap = SafeCast.safeMap(bp['name']);
+            final transMap = SafeCast.safeMap(nameMap['translations']);
 
-                // Nomenclature Resolution: Fetch based on locale, fallback to 'en', then id.
-                final currentLocale =
-                    Localizations.localeOf(context).languageCode;
-                final label = SafeCast.safeString(
-                  transMap[currentLocale],
-                  SafeCast.safeString(transMap['en'], id),
-                );
+            // Nomenclature Resolution: Fetch based on locale, fallback to 'en', then id.
+            final currentLocale = Localizations.localeOf(context).languageCode;
+            final label = SafeCast.safeString(
+              transMap[currentLocale],
+              SafeCast.safeString(transMap['en'], id),
+            );
 
-                return DropdownMenuItem(
-                  value: id,
-                  child: Text(label, overflow: TextOverflow.ellipsis),
-                );
-              }).toList(),
+            return DropdownMenuItem(
+              value: id,
+              child: Text(label, overflow: TextOverflow.ellipsis),
+            );
+          }).toList(),
           onChanged: (val) {
             final copy = Map<String, dynamic>.from(stepDef);
             copy['task_blueprint'] = val;
@@ -187,12 +185,11 @@ class InspectorPane extends StatelessWidget {
           ),
           onFieldSubmitted: (val) {
             final copy = Map<String, dynamic>.from(stepDef);
-            copy['depends_on'] =
-                val
-                    .split(',')
-                    .map((e) => e.trim())
-                    .where((e) => e.isNotEmpty)
-                    .toList();
+            copy['depends_on'] = val
+                .split(',')
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList();
             onStepUpdated(selectedStepId!, copy);
           },
         ),

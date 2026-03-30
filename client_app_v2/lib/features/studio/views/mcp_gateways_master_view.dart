@@ -95,16 +95,12 @@ class McpGatewaysMasterView extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => ErrorView(
-                  error: e,
-                  compact: true,
-                  onRetry:
-                      () =>
-                          ref
-                              .read(mcpGatewaysControllerProvider.notifier)
-                              .refresh(),
-                ),
+            error: (e, _) => ErrorView(
+              error: e,
+              compact: true,
+              onRetry: () =>
+                  ref.read(mcpGatewaysControllerProvider.notifier).refresh(),
+            ),
           ),
         ],
       ),

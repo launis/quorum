@@ -41,10 +41,9 @@ class ExecutionTimeline extends StatelessWidget {
           if (isFailed) labelColor = Theme.of(context).colorScheme.error;
 
           final stepId = step['step_id']?.toString() ?? '';
-          final stepResult =
-              results != null && results!.containsKey(stepId)
-                  ? (results![stepId] as Map<String, dynamic>?) ?? {}
-                  : {};
+          final stepResult = results != null && results!.containsKey(stepId)
+              ? (results![stepId] as Map<String, dynamic>?) ?? {}
+              : {};
 
           final warningsList = stepResult['_system_warnings'] as List<dynamic>?;
           final hasWarnings = warningsList != null && warningsList.isNotEmpty;
@@ -64,31 +63,28 @@ class ExecutionTimeline extends StatelessWidget {
             title: Text(
               stepLabel,
               style: TextStyle(
-                fontWeight:
-                    isRunning || isCompleted
-                        ? FontWeight.bold
-                        : FontWeight.normal,
+                fontWeight: isRunning || isCompleted
+                    ? FontWeight.bold
+                    : FontWeight.normal,
                 color: labelColor,
               ),
             ),
-            subtitle:
-                (isFailed && lastError != null && lastError.isNotEmpty)
-                    ? Text(
-                      lastError,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                        fontSize: 12,
-                      ),
-                    )
-                    : null,
-            trailing:
-                isRunning
-                    ? const SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : null,
+            subtitle: (isFailed && lastError != null && lastError.isNotEmpty)
+                ? Text(
+                    lastError,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  )
+                : null,
+            trailing: isRunning
+                ? const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : null,
           );
         },
       ),

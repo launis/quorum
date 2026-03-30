@@ -152,28 +152,27 @@ class XAIEvidenceBox extends ConsumerWidget {
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children:
-                      audit.sourceUrls.map((url) {
-                        return ActionChip(
-                          avatar: const Icon(
-                            Icons.link,
-                            size: 14,
-                            color: Colors.blue,
-                          ),
-                          label: Text(
-                            _truncateUrl(url),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          onPressed: () => _launchUrl(url, ref),
-                          backgroundColor: Colors.blue.withValues(alpha: 0.08),
-                          side: BorderSide(
-                            color: Colors.blue.withValues(alpha: 0.2),
-                          ),
-                        );
-                      }).toList(),
+                  children: audit.sourceUrls.map((url) {
+                    return ActionChip(
+                      avatar: const Icon(
+                        Icons.link,
+                        size: 14,
+                        color: Colors.blue,
+                      ),
+                      label: Text(
+                        _truncateUrl(url),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      onPressed: () => _launchUrl(url, ref),
+                      backgroundColor: Colors.blue.withValues(alpha: 0.08),
+                      side: BorderSide(
+                        color: Colors.blue.withValues(alpha: 0.2),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ],

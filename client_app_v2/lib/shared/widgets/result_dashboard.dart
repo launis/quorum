@@ -27,8 +27,9 @@ class ResultDashboard extends StatelessWidget {
         children: [
           TabBar(
             labelColor: Theme.of(context).colorScheme.primary,
-            unselectedLabelColor:
-                Theme.of(context).colorScheme.onSurfaceVariant,
+            unselectedLabelColor: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant,
             tabs: [
               Tab(icon: Icon(Icons.dashboard_outlined), text: 'Raportti'),
               Tab(
@@ -125,12 +126,15 @@ class ResultDashboard extends StatelessWidget {
     List<dynamic> references,
   ) {
     // Group by intent
-    final searchRefs =
-        references.where((r) => r['intent'] == 'search').toList();
-    final groundRefs =
-        references.where((r) => r['intent'] == 'grounding').toList();
-    final kbRefs =
-        references.where((r) => r['intent'] == 'internal_kb').toList();
+    final searchRefs = references
+        .where((r) => r['intent'] == 'search')
+        .toList();
+    final groundRefs = references
+        .where((r) => r['intent'] == 'grounding')
+        .toList();
+    final kbRefs = references
+        .where((r) => r['intent'] == 'internal_kb')
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -271,20 +275,18 @@ class ResultDashboard extends StatelessWidget {
   ) {
     final level = notification['level']?.toString() ?? 'info';
     final isDanger = level == 'danger';
-    final bgColor =
-        isDanger
-            ? Theme.of(context).colorScheme.error
-            : Theme.of(context).colorScheme.error;
-    final borderColor =
-        isDanger
-            ? Theme.of(context).colorScheme.error
-            : Theme.of(context).colorScheme.error;
-    final iconColor =
-        isDanger
-            ? Theme.of(context).colorScheme.error
-            : Theme.of(context).colorScheme.error;
-    final textColor =
-        isDanger ? Theme.of(context).colorScheme.error : Colors.deepOrange[900];
+    final bgColor = isDanger
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.error;
+    final borderColor = isDanger
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.error;
+    final iconColor = isDanger
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.error;
+    final textColor = isDanger
+        ? Theme.of(context).colorScheme.error
+        : Colors.deepOrange[900];
 
     return Container(
       decoration: BoxDecoration(
@@ -490,10 +492,9 @@ class ResultDashboard extends StatelessWidget {
         );
 
       case 'paragraph':
-        final content =
-            blockValue is Map<String, dynamic>
-                ? blockValue['content'] as String? ?? ''
-                : blockValue?.toString() ?? '';
+        final content = blockValue is Map<String, dynamic>
+            ? blockValue['content'] as String? ?? ''
+            : blockValue?.toString() ?? '';
 
         if (blockId == 'coach-markdown') {
           return Card(
@@ -539,12 +540,11 @@ class ResultDashboard extends StatelessWidget {
                           blockLabel.isNotEmpty
                               ? blockLabel
                               : AppLocalizations.of(context)!.stepCoach,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF2E7D32),
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF2E7D32),
+                              ),
                         ),
                       ),
                     ],
@@ -580,42 +580,39 @@ class ResultDashboard extends StatelessWidget {
 
       case 'list':
         if (blockId == 'timeline-feed') {
-          final events =
-              blockValue is Map<String, dynamic>
-                  ? blockValue['events'] as List<dynamic>? ?? []
-                  : [];
+          final events = blockValue is Map<String, dynamic>
+              ? blockValue['events'] as List<dynamic>? ?? []
+              : [];
           return ValidationTimelineWidget(title: blockLabel, events: events);
         }
 
-        final items =
-            blockValue is Map<String, dynamic>
-                ? blockValue['items'] as List<dynamic>? ?? []
-                : [];
+        final items = blockValue is Map<String, dynamic>
+            ? blockValue['items'] as List<dynamic>? ?? []
+            : [];
         return Card(
           child: Semantics(
             excludeSemantics: Platform.isWindows,
             child: ExpansionTile(
               title: Text(blockLabel),
-              children:
-                  items.map<Widget>((e) {
-                    final itemObj = e is Map ? e : {};
-                    return ListTile(
-                      leading: Icon(
-                        Icons.source_outlined,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      title: Text(
-                        itemObj['source']?.toString() ??
-                            AppLocalizations.of(context)!.lblSource,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(itemObj['content']?.toString() ?? ''),
-                      ),
-                      dense: true,
-                    );
-                  }).toList(),
+              children: items.map<Widget>((e) {
+                final itemObj = e is Map ? e : {};
+                return ListTile(
+                  leading: Icon(
+                    Icons.source_outlined,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(
+                    itemObj['source']?.toString() ??
+                        AppLocalizations.of(context)!.lblSource,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(itemObj['content']?.toString() ?? ''),
+                  ),
+                  dense: true,
+                );
+              }).toList(),
             ),
           ),
         );

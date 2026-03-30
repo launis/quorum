@@ -67,12 +67,7 @@ class OutputProfileListView extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        '${l10n.studioViewsSlugSubtitle(profile['slug']?.toString() ?? '')}\n${l10n.studioViewsProfileListSubtitle(
-                          profile['id']?.toString() ?? '',
-                          profile['workflow_id']?.toString() ??
-                              l10n.studioViewsNone,
-                          layouts.length,
-                        )}',
+                        '${l10n.studioViewsSlugSubtitle(profile['slug']?.toString() ?? '')}\n${l10n.studioViewsProfileListSubtitle(profile['id']?.toString() ?? '', profile['workflow_id']?.toString() ?? l10n.studioViewsNone, layouts.length)}',
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -103,16 +98,12 @@ class OutputProfileListView extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => ErrorView(
-                  error: e,
-                  compact: true,
-                  onRetry:
-                      () =>
-                          ref
-                              .read(outputProfilesControllerProvider.notifier)
-                              .refresh(),
-                ),
+            error: (e, _) => ErrorView(
+              error: e,
+              compact: true,
+              onRetry: () =>
+                  ref.read(outputProfilesControllerProvider.notifier).refresh(),
+            ),
           ),
         ],
       ),

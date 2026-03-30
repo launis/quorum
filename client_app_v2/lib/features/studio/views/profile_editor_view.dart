@@ -7,6 +7,7 @@ import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
@@ -25,21 +26,19 @@ class ProfileEditorView extends HookConsumerWidget {
     final formState = ref.watch(workflowFormProvider(workflowSlug));
 
     return formState.when(
-      loading:
-          () => Scaffold(
-            appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowSlug))),
-            body: const Center(child: CircularProgressIndicator()),
-          ),
-      error:
-          (e, st) => Scaffold(
-            appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowSlug))),
-            body: ErrorView(
-              error: e,
-              stackTrace: st,
-              compact: false,
-              onRetry: () => ref.invalidate(workflowFormProvider(workflowSlug)),
-            ),
-          ),
+      loading: () => Scaffold(
+        appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowSlug))),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, st) => Scaffold(
+        appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowSlug))),
+        body: ErrorView(
+          error: e,
+          stackTrace: st,
+          compact: false,
+          onRetry: () => ref.invalidate(workflowFormProvider(workflowSlug)),
+        ),
+      ),
       data: (payload) {
         return _buildScaffold(context, ref, l10n, formState, payload);
       },
@@ -113,37 +112,36 @@ class ProfileEditorView extends HookConsumerWidget {
       String newId = '';
       showDialog(
         context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(l10n.newProfileIdTitle),
-              content: TextField(
-                decoration: InputDecoration(labelText: l10n.profileIdHint),
-                onChanged: (val) => newId = val.trim(),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(l10n.cancelButton),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    if (newId.isEmpty || profiles.containsKey(newId)) return;
-
-                    profiles[newId] = {
-                      'name': {'fi': 'Uusi profiili', 'en': 'New Profile'},
-                      'layouts': [],
-                    };
-                    payload['output_profiles'] = profiles;
-                    ref
-                        .read(workflowFormProvider(workflowSlug).notifier)
-                        .forceRebuild();
-
-                    Navigator.pop(ctx);
-                  },
-                  child: Text(l10n.addVariantBtn),
-                ),
-              ],
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.newProfileIdTitle),
+          content: TextField(
+            decoration: InputDecoration(labelText: l10n.profileIdHint),
+            onChanged: (val) => newId = val.trim(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancelButton),
             ),
+            FilledButton(
+              onPressed: () {
+                if (newId.isEmpty || profiles.containsKey(newId)) return;
+
+                profiles[newId] = {
+                  'name': {'fi': 'Uusi profiili', 'en': 'New Profile'},
+                  'layouts': [],
+                };
+                payload['output_profiles'] = profiles;
+                ref
+                    .read(workflowFormProvider(workflowSlug).notifier)
+                    .forceRebuild();
+
+                Navigator.pop(ctx);
+              },
+              child: Text(l10n.addVariantBtn),
+            ),
+          ],
+        ),
       );
     }
 
@@ -269,9 +267,11 @@ class ProfileEditorView extends HookConsumerWidget {
             const SizedBox(height: 12),
             I18nTextField(
               label: l10n.profileDisplayNameLabel,
-              initialData: SafeCast.safeMap(profileDef['name']),
+              initialData: I18nText.fromJson(
+                SafeCast.safeMap(profileDef['name']),
+              ),
               onChanged: (val) {
-                profileDef['name'] = val;
+                profileDef['name'] = val.toJson();
                 profilesMap[profileId] = profileDef;
                 payload['output_profiles'] = profilesMap;
                 ref
@@ -339,10 +339,9 @@ class ProfileEditorView extends HookConsumerWidget {
     int index,
     Map<String, dynamic> layout,
   ) {
-    final blocksList =
-        SafeCast.safeList(
-          layout['target_blocks'],
-        ).map((e) => e.toString()).toList();
+    final blocksList = SafeCast.safeList(
+      layout['target_blocks'],
+    ).map((e) => e.toString()).toList();
 
     String currentPreset = SafeCast.safeString(
       layout['preset_view'],
@@ -464,18 +463,20 @@ class ProfileEditorView extends HookConsumerWidget {
           const SizedBox(height: 12),
           I18nTextField(
             label: l10n.sectionTitleLabel,
-            initialData: SafeCast.safeMap(layout['title']),
+            initialData: I18nText.fromJson(SafeCast.safeMap(layout['title'])),
             onChanged: (val) {
-              layout['title'] = val;
+              layout['title'] = val.toJson();
               rebuild();
             },
           ),
           const SizedBox(height: 12),
           I18nTextField(
             label: l10n.sectionDescLabel,
-            initialData: SafeCast.safeMap(layout['description']),
+            initialData: I18nText.fromJson(
+              SafeCast.safeMap(layout['description']),
+            ),
             onChanged: (val) {
-              layout['description'] = val;
+              layout['description'] = val.toJson();
               rebuild();
             },
           ),

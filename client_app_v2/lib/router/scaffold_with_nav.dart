@@ -32,44 +32,42 @@ class ScaffoldWithNav extends ConsumerWidget {
     final isAdmin = user?.role == UserRole.root || user?.role == UserRole.admin;
 
     return Scaffold(
-      body:
-          isWideScreen
-              ? _WideScreenLayout(
-                navigationShell: navigationShell,
-                isAdmin: isAdmin,
-              )
-              : navigationShell,
-      bottomNavigationBar:
-          isWideScreen
-              ? null
-              : NavigationBar(
-                selectedIndex: navigationShell.currentIndex,
-                onDestinationSelected:
-                    (index) => _onItemTapped(index, context, isAdmin),
-                destinations: [
+      body: isWideScreen
+          ? _WideScreenLayout(
+              navigationShell: navigationShell,
+              isAdmin: isAdmin,
+            )
+          : navigationShell,
+      bottomNavigationBar: isWideScreen
+          ? null
+          : NavigationBar(
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: (index) =>
+                  _onItemTapped(index, context, isAdmin),
+              destinations: [
+                NavigationDestination(
+                  icon: const Icon(Icons.dashboard_outlined),
+                  selectedIcon: const Icon(Icons.dashboard),
+                  label: l10n.navDashboard,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.add_circle_outline),
+                  selectedIcon: const Icon(Icons.add_circle),
+                  label: l10n.newAnalysis,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.settings_outlined),
+                  selectedIcon: const Icon(Icons.settings),
+                  label: l10n.navSettings,
+                ),
+                if (isAdmin)
                   NavigationDestination(
-                    icon: const Icon(Icons.dashboard_outlined),
-                    selectedIcon: const Icon(Icons.dashboard),
-                    label: l10n.navDashboard,
+                    icon: const Icon(Icons.admin_panel_settings_outlined),
+                    selectedIcon: const Icon(Icons.admin_panel_settings),
+                    label: l10n.navAdmin,
                   ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.add_circle_outline),
-                    selectedIcon: const Icon(Icons.add_circle),
-                    label: l10n.newAnalysis,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.settings_outlined),
-                    selectedIcon: const Icon(Icons.settings),
-                    label: l10n.navSettings,
-                  ),
-                  if (isAdmin)
-                    NavigationDestination(
-                      icon: const Icon(Icons.admin_panel_settings_outlined),
-                      selectedIcon: const Icon(Icons.admin_panel_settings),
-                      label: l10n.navAdmin,
-                    ),
-                ],
-              ),
+              ],
+            ),
     );
   }
 

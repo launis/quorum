@@ -92,26 +92,24 @@ class _FileInputFieldState extends State<FileInputField> {
                   border: const OutlineInputBorder(),
                   prefixIcon: widget.icon != null ? Icon(widget.icon) : null,
                   errorText: state.errorText,
-                  suffixIcon:
-                      _isLoading
-                          ? const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                          : hasFile
-                          ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: widget.onClear,
-                          )
-                          : Icon(Icons.attach_file),
+                  suffixIcon: _isLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : hasFile
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: widget.onClear,
+                        )
+                      : Icon(Icons.attach_file),
                 ),
                 child: Text(
                   fileName ?? AppLocalizations.of(context)!.selectFile,
                   style: TextStyle(
-                    color:
-                        hasFile
-                            ? Theme.of(context).textTheme.bodyMedium?.color
-                            : Theme.of(context).hintColor,
+                    color: hasFile
+                        ? Theme.of(context).textTheme.bodyMedium?.color
+                        : Theme.of(context).hintColor,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -141,16 +141,14 @@ class ExecutionStatusCard extends ConsumerWidget {
           ],
         );
       },
-      loading:
-          () => const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
-            ),
-          ),
-      error:
-          (error, stackTrace) =>
-              ErrorView(error: error, stackTrace: stackTrace, compact: true),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (error, stackTrace) =>
+          ErrorView(error: error, stackTrace: stackTrace, compact: true),
     );
   }
 
@@ -172,24 +170,21 @@ class ExecutionStatusCard extends ConsumerWidget {
       children: [
         if (state.hasValue && state.value != null)
           TextButton.icon(
-            onPressed:
-                isRunning
-                    ? null
-                    : () =>
-                        ref
-                            .read(executionControllerProvider.notifier)
-                            .refreshStatus(),
+            onPressed: isRunning
+                ? null
+                : () => ref
+                      .read(executionControllerProvider.notifier)
+                      .refreshStatus(),
             icon: const Icon(Icons.refresh),
             label: Text(l10n.refresh),
           ),
         const SizedBox(width: 8),
         FilledButton.icon(
-          onPressed:
-              isRunning
-                  ? null
-                  : () => ref
-                      .read(executionControllerProvider.notifier)
-                      .startExecution(workflowId, initialInputs),
+          onPressed: isRunning
+              ? null
+              : () => ref
+                    .read(executionControllerProvider.notifier)
+                    .startExecution(workflowId, initialInputs),
           icon: const Icon(Icons.play_arrow),
           label: Text(l10n.startAiExecution),
         ),

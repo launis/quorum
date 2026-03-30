@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -15,9 +16,11 @@ part 'prompt_blocks_controller.g.dart';
 
 /// Fetches a single Prompt Block natively by ID
 @riverpod
-Future<Map<String, dynamic>> promptBlockById(Ref ref, String id) async {
+Future<PromptBlock> promptBlockById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  return client.getPromptBlock(id);
+  final rawData = await client.getPromptBlock(id);
+  final str = jsonEncode(rawData);
+  return PromptBlock.parseInBackground(str);
 }
 
 // --- Gold Standard Form State (Flat MVC) ---
@@ -25,69 +28,44 @@ Future<Map<String, dynamic>> promptBlockById(Ref ref, String id) async {
 @riverpod
 class PromptBlockForm extends _$PromptBlockForm {
   @override
-  FutureOr<Map<String, dynamic>> build(String configId) async {
+  FutureOr<PromptBlock> build(String configId) async {
     if (configId == 'new') {
-      return Isolate.run(
-        () => {
-          'id': '',
-          'slug': '',
-          'category_id': 'system', // Default fallback category
-          'label': {
-            'default_locale': 'en',
-            'translations': <String, dynamic>{
-              'en': 'New Prompt Block',
-              'fi': 'Uusi Promptilohko',
-            },
-          },
-          'description': {
-            'default_locale': 'en',
-            'translations': <String, dynamic>{'en': '', 'fi': ''},
-          },
-          'system_instructions': '',
-          'json_schema': null,
-        },
+      return const PromptBlock(
+        id: '',
+        slug: '',
+        label: I18nText(
+          defaultLocale: 'en',
+          translations: {'en': 'New Prompt Block', 'fi': 'Uusi Promptilohko'},
+        ),
+        description: I18nText(
+          defaultLocale: 'en',
+          translations: {'en': '', 'fi': ''},
+        ),
+        categoryId: 'system',
+        type: BlockDataType.stringType,
       );
     }
 
-    final rawData = await ref.watch(promptBlockByIdProvider(configId).future);
-    final str = jsonEncode(rawData);
-    var copy = await Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
-
-    // "The English-Only Mandate": Ensure new blocks have required 'en' structure
-    if (!copy.containsKey('label')) {
-      copy['label'] = {
-        'default_locale': 'en',
-        'translations': <String, dynamic>{'en': ''},
-      };
-    }
-    if (!copy.containsKey('description')) {
-      copy['description'] = {
-        'default_locale': 'en',
-        'translations': <String, dynamic>{'en': ''},
-      };
-    }
-
-    return copy;
+    final block = await ref.watch(promptBlockByIdProvider(configId).future);
+    return block.copyWith(); // Deep copy equivalent due to Freezed immutability
   }
 
-  void forceRebuild() {
-    final payload = state.value;
-    if (payload != null) {
-      state = AsyncData(Map<String, dynamic>.from(payload));
-    }
+  void forceRebuild(PromptBlock block) {
+    state = AsyncData(block);
   }
 
-  Future<void> submit(Map<String, dynamic> updatedData) async {
+  Future<void> submit(PromptBlock block) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final idToSave = updatedData['id'] as String? ?? configId;
-      if (idToSave.isEmpty || idToSave == 'new')
+      final idToSave = block.id.isEmpty ? configId : block.id;
+      if (idToSave.isEmpty || idToSave == 'new') {
         throw AppException.validation("Block ID is required");
+      }
 
       await ref
           .read(promptBlocksControllerProvider.notifier)
-          .savePromptBlock(idToSave, updatedData);
-      return updatedData;
+          .savePromptBlock(idToSave, block);
+      return block;
     });
   }
 }
@@ -99,16 +77,16 @@ class PromptBlockForm extends _$PromptBlockForm {
 @riverpod
 class PromptBlocksController extends _$PromptBlocksController {
   @override
-  FutureOr<List<Map<String, dynamic>>> build() async {
+  FutureOr<List<PromptBlock>> build() async {
     ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchPromptBlocks();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchPromptBlocks() async {
+  Future<List<PromptBlock>> _fetchPromptBlocks() async {
     final client = ref.read(studioClientProvider);
     final rawData = await client.getPromptBlocks();
     // Using Isolate.run per 2026 Mandate to prevent Main Thread Jank on 120Hz displays
-    return await Isolate.run(() => List<Map<String, dynamic>>.from(rawData));
+    return PromptBlock.parseListInBackground(rawData);
   }
 
   /// Refreshes the Prompt Blocks list from the backend.
@@ -126,23 +104,19 @@ class PromptBlocksController extends _$PromptBlocksController {
   }
 
   /// Saves a Prompt Block config utilizing Optimistic Updates.
-  Future<Map<String, dynamic>> savePromptBlock(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<PromptBlock> savePromptBlock(String id, PromptBlock block) async {
     final previousState = state;
-    Map<String, dynamic> returnData = {...payload, 'id': id};
+    PromptBlock returnData = block.copyWith(id: id);
 
     // 1. Optimistic Update
     if (state.hasValue && state.value != null) {
-      final currentList = List<Map<String, dynamic>>.from(state.value!);
-      final index = currentList.indexWhere((m) => m['id'] == id);
+      final currentList = List<PromptBlock>.from(state.value!);
+      final index = currentList.indexWhere((m) => m.id == id);
 
-      final updatedBlock = {...payload, 'id': id};
       if (index >= 0) {
-        currentList[index] = updatedBlock;
+        currentList[index] = returnData;
       } else {
-        currentList.add(updatedBlock);
+        currentList.add(returnData);
       }
       state = AsyncValue.data(currentList);
     }
@@ -150,12 +124,15 @@ class PromptBlocksController extends _$PromptBlocksController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final verifiedBlock = await client.savePromptBlock(id, payload);
+      final rawResponse = await client.savePromptBlock(id, returnData.toJson());
+      final verifiedBlock = await PromptBlock.parseInBackground(
+        jsonEncode(rawResponse),
+      );
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        final index = currentList.indexWhere((m) => m['id'] == id);
+        final currentList = List<PromptBlock>.from(state.value!);
+        final index = currentList.indexWhere((m) => m.id == id);
         if (index >= 0) {
           currentList[index] = verifiedBlock;
           state = AsyncValue.data(currentList);
@@ -177,17 +154,20 @@ class PromptBlocksController extends _$PromptBlocksController {
   }
 
   /// Clones a Prompt Block, using Optimistic UI appending.
-  Future<Map<String, dynamic>> clonePromptBlock(String id) async {
+  Future<PromptBlock> clonePromptBlock(String id) async {
     final previousState = state;
 
     try {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
-      final clonedBlock = await client.clonePromptBlock(id);
+      final rawResponse = await client.clonePromptBlock(id);
+      final clonedBlock = await PromptBlock.parseInBackground(
+        jsonEncode(rawResponse),
+      );
 
       // 2. Update State
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        final currentList = List<PromptBlock>.from(state.value!);
         currentList.insert(0, clonedBlock);
         state = AsyncValue.data(currentList);
       }
@@ -211,8 +191,8 @@ class PromptBlocksController extends _$PromptBlocksController {
       await client.deletePromptBlock(id);
 
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        currentList.removeWhere((m) => m['id'] == id);
+        final currentList = List<PromptBlock>.from(state.value!);
+        currentList.removeWhere((m) => m.id == id);
         state = AsyncValue.data(currentList);
       }
     } catch (e, st) {
@@ -228,9 +208,11 @@ class PromptBlocksController extends _$PromptBlocksController {
 
   /// Simulates rendering of a Prompt Block or Matrix with mock data.
   Future<Map<String, dynamic>> simulatePromptBlock(
-    Map<String, dynamic> payload,
+    PromptBlock block,
+    Map<String, dynamic> mockInputs,
   ) async {
     try {
+      final payload = {'block': block.toJson(), 'mock_inputs': mockInputs};
       final client = ref.read(studioClientProvider);
       return await client.simulatePromptBlock(payload);
     } catch (e, st) {

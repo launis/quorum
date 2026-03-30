@@ -35,25 +35,22 @@ class WorkflowStepCard extends StatelessWidget {
       text: SafeCast.safeString(stepDef['id'] ?? stepDef['step_id']),
     );
 
-    final previousSteps =
-        allSteps
-            .map((s) => SafeCast.safeString(s['id'] ?? s['step_id']))
-            .where((id) => id.isNotEmpty && id != stepIdController.text)
-            .toList();
+    final previousSteps = allSteps
+        .map((s) => SafeCast.safeString(s['id'] ?? s['step_id']))
+        .where((id) => id.isNotEmpty && id != stepIdController.text)
+        .toList();
 
-    final dependsOn =
-        SafeCast.safeList(
-          stepDef['depends_on'],
-        ).map((e) => e.toString()).toList();
+    final dependsOn = SafeCast.safeList(
+      stepDef['depends_on'],
+    ).map((e) => e.toString()).toList();
 
     final mappings = SafeCast.safeMap(
       stepDef['input_mappings'],
     ).map((k, v) => MapEntry(k.toString(), v.toString()));
 
-    final allowedMcpTools =
-        SafeCast.safeList(
-          stepDef['allowed_mcp_tools'],
-        ).map((e) => e.toString()).toList();
+    final allowedMcpTools = SafeCast.safeList(
+      stepDef['allowed_mcp_tools'],
+    ).map((e) => e.toString()).toList();
 
     String extractName(dynamic nameObj) {
       if (nameObj is String && nameObj.isNotEmpty) return nameObj;
@@ -143,19 +140,18 @@ class WorkflowStepCard extends StatelessWidget {
                     ),
                     initialValue:
                         blueprints.any(
-                              (bp) => bp['id'] == stepDef['task_blueprint'],
-                            )
-                            ? SafeCast.safeString(stepDef['task_blueprint'])
-                            : null,
-                    items:
-                        blueprints.map((bp) {
-                          final stepId = SafeCast.safeString(bp['id']);
-                          final label = getBlueprintLabel(stepId);
-                          return DropdownMenuItem(
-                            value: stepId,
-                            child: Text(label),
-                          );
-                        }).toList(),
+                          (bp) => bp['id'] == stepDef['task_blueprint'],
+                        )
+                        ? SafeCast.safeString(stepDef['task_blueprint'])
+                        : null,
+                    items: blueprints.map((bp) {
+                      final stepId = SafeCast.safeString(bp['id']);
+                      final label = getBlueprintLabel(stepId);
+                      return DropdownMenuItem(
+                        value: stepId,
+                        child: Text(label),
+                      );
+                    }).toList(),
                     onChanged: (val) {
                       stepDef['task_blueprint'] = val;
                       onChanged();
@@ -173,26 +169,25 @@ class WorkflowStepCard extends StatelessWidget {
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children:
-                  mcpGateways.map((toolMap) {
-                    final slug = SafeCast.safeString(toolMap['slug']);
-                    final isSelected = allowedMcpTools.contains(slug);
-                    return FilterChip(
-                      label: Text(slug),
-                      selected: isSelected,
-                      onSelected: (bool selected) {
-                        if (selected) {
-                          if (!allowedMcpTools.contains(slug)) {
-                            allowedMcpTools.add(slug);
-                          }
-                        } else {
-                          allowedMcpTools.remove(slug);
-                        }
-                        stepDef['allowed_mcp_tools'] = allowedMcpTools;
-                        onChanged();
-                      },
-                    );
-                  }).toList(),
+              children: mcpGateways.map((toolMap) {
+                final slug = SafeCast.safeString(toolMap['slug']);
+                final isSelected = allowedMcpTools.contains(slug);
+                return FilterChip(
+                  label: Text(slug),
+                  selected: isSelected,
+                  onSelected: (bool selected) {
+                    if (selected) {
+                      if (!allowedMcpTools.contains(slug)) {
+                        allowedMcpTools.add(slug);
+                      }
+                    } else {
+                      allowedMcpTools.remove(slug);
+                    }
+                    stepDef['allowed_mcp_tools'] = allowedMcpTools;
+                    onChanged();
+                  },
+                );
+              }).toList(),
             ),
 
             const SizedBox(height: 16),
@@ -209,43 +204,48 @@ class WorkflowStepCard extends StatelessWidget {
                 ),
               )
             else
-                Wrap(
-                  spacing: 8,
-                  children:
-                      previousSteps.map((prevId) {
-                        final isSelected = dependsOn.contains(prevId);
-                        
-                        // Extract human-readable label for dependency chip
-                        String displayLabel = prevId;
-                        final matchingNode = allSteps.firstWhere(
-                          (s) => SafeCast.safeString(s['id'] ?? s['step_id']) == prevId,
-                          orElse: () => <String, dynamic>{},
-                        );
-                        if (matchingNode.isNotEmpty) {
-                          final bpId = SafeCast.safeString(matchingNode['task_blueprint']);
-                          final readableName = getBlueprintLabel(bpId);
-                          displayLabel = readableName.isNotEmpty && readableName != bpId 
-                              ? readableName 
-                              : prevId.length > 15 ? '${prevId.substring(0, 15)}...' : prevId;
-                        }
+              Wrap(
+                spacing: 8,
+                children: previousSteps.map((prevId) {
+                  final isSelected = dependsOn.contains(prevId);
 
-                        return FilterChip(
-                          label: Text(displayLabel),
-                          selected: isSelected,
-                          onSelected: (bool selected) {
-                            if (selected) {
-                              if (!dependsOn.contains(prevId)) {
-                                dependsOn.add(prevId);
-                              }
-                            } else {
-                              dependsOn.remove(prevId);
-                            }
-                            stepDef['depends_on'] = dependsOn;
-                            onChanged();
-                          },
-                        );
-                      }).toList(),
-                ),
+                  // Extract human-readable label for dependency chip
+                  String displayLabel = prevId;
+                  final matchingNode = allSteps.firstWhere(
+                    (s) =>
+                        SafeCast.safeString(s['id'] ?? s['step_id']) == prevId,
+                    orElse: () => <String, dynamic>{},
+                  );
+                  if (matchingNode.isNotEmpty) {
+                    final bpId = SafeCast.safeString(
+                      matchingNode['task_blueprint'],
+                    );
+                    final readableName = getBlueprintLabel(bpId);
+                    displayLabel =
+                        readableName.isNotEmpty && readableName != bpId
+                        ? readableName
+                        : prevId.length > 15
+                        ? '${prevId.substring(0, 15)}...'
+                        : prevId;
+                  }
+
+                  return FilterChip(
+                    label: Text(displayLabel),
+                    selected: isSelected,
+                    onSelected: (bool selected) {
+                      if (selected) {
+                        if (!dependsOn.contains(prevId)) {
+                          dependsOn.add(prevId);
+                        }
+                      } else {
+                        dependsOn.remove(prevId);
+                      }
+                      stepDef['depends_on'] = dependsOn;
+                      onChanged();
+                    },
+                  );
+                }).toList(),
+              ),
 
             const SizedBox(height: 16),
             Text(

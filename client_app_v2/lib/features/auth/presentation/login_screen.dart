@@ -16,6 +16,7 @@ class LoginScreen extends HookConsumerWidget {
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final emailController = useTextEditingController();
     final passwordController = useTextEditingController();
+    final mockIdController = useTextEditingController();
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
@@ -157,40 +158,59 @@ class LoginScreen extends HookConsumerWidget {
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
+                      TextFormField(
+                        controller: mockIdController,
+                        decoration: const InputDecoration(
+                          labelText: 'Custom Mock User ID',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.teal,
+                        ),
+                        onPressed: isMockLoading.value
+                            ? null
+                            : () {
+                                if (mockIdController.text.isNotEmpty) {
+                                  mockLogin(mockIdController.text.trim());
+                                }
+                              },
+                        child: const Text('Mock Login (Custom ID)'),
+                      ),
                       TextButton(
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.purple,
                         ),
-                        onPressed:
-                            isMockLoading.value
-                                ? null
-                                : () => mockLogin(
-                                  'usr_43ec77a438104814bd937f28853d569c', // ROOT
-                                ),
+                        onPressed: isMockLoading.value
+                            ? null
+                            : () => mockLogin(
+                                'usr_43ec77a438104814bd937f28853d569c', // ROOT
+                              ),
                         child: const Text('Mock Login (Root Master)'),
                       ),
                       TextButton(
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.orange,
                         ),
-                        onPressed:
-                            isMockLoading.value
-                                ? null
-                                : () => mockLogin(
-                                  'usr_5f49041ba6e040eda49a89de35dceb80', // ADMIN
-                                ),
+                        onPressed: isMockLoading.value
+                            ? null
+                            : () => mockLogin(
+                                'usr_5f49041ba6e040eda49a89de35dceb80', // ADMIN
+                              ),
                         child: const Text('Mock Login (Admin)'),
                       ),
                       TextButton(
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.green,
                         ),
-                        onPressed:
-                            isMockLoading.value
-                                ? null
-                                : () => mockLogin(
-                                  'usr_10e1f779550b439e840fc5a08942c9ea', // MANAGER
-                                ),
+                        onPressed: isMockLoading.value
+                            ? null
+                            : () => mockLogin(
+                                'usr_10e1f779550b439e840fc5a08942c9ea', // MANAGER
+                              ),
                         child: const Text('Mock Login (Manager)'),
                       ),
                     ],

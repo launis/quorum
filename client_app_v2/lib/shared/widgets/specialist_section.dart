@@ -97,10 +97,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             AnimatedCrossFade(
               firstChild: _buildSummaryView(context),
               secondChild: _buildRawJsonView(),
-              crossFadeState:
-                  _showRaw
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
+              crossFadeState: _showRaw
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
               duration: AppDurations.standard,
             ),
           ],
@@ -316,10 +315,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           // Mobile / Vertical Stack
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children:
-                mobileReverse
-                    ? [rightContent, const SizedBox(height: 16), leftContent]
-                    : [leftContent, const SizedBox(height: 16), rightContent],
+            children: mobileReverse
+                ? [rightContent, const SizedBox(height: 16), leftContent]
+                : [leftContent, const SizedBox(height: 16), rightContent],
           );
         }
       },
@@ -510,15 +508,13 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color:
-            isActive
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.surfaceContainerLowest,
+        color: isActive
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.surfaceContainerLowest,
         border: Border.all(
-          color:
-              isActive
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+          color: isActive
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           width: isActive ? 2.0 : 1.0,
         ),
         borderRadius: BorderRadius.circular(8),
@@ -533,10 +529,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                   title,
                   style: TextStyle(
                     fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                    color:
-                        isActive
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: isActive
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 13,
                   ),
                 ),
@@ -557,10 +552,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             desc,
             style: TextStyle(
               fontSize: 11,
-              color:
-                  isActive
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surfaceContainerLowest,
+              color: isActive
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.surfaceContainerLowest,
               height: 1.3,
             ),
           ),
@@ -859,10 +853,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             _buildStatusChip(
               context,
               label: threatLabel,
-              color:
-                  threat
-                      ? Theme.of(context).colorScheme.error
-                      : Color(0xFF2E7D32),
+              color: threat
+                  ? Theme.of(context).colorScheme.error
+                  : Color(0xFF2E7D32),
               icon: threat ? Icons.warning : Icons.check,
             ),
             _buildStatusChip(
@@ -875,10 +868,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             _buildStatusChip(
               context,
               label: anonLabel,
-              color:
-                  anonymized
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
+              color: anonymized
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               icon: anonymized ? Icons.visibility_off : Icons.visibility,
             ),
           ],
@@ -972,13 +964,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     final leftChildren = <Widget>[];
     if (fidelity.isNotEmpty) {
-      double scoreVal =
-          (fidelity['fidelity_score_display'] as String?) != null
-              ? double.tryParse(
-                    fidelity['fidelity_score_display']!.split('/')[0],
-                  ) ??
-                  0.0
-              : 0.0;
+      double scoreVal = (fidelity['fidelity_score_display'] as String?) != null
+          ? double.tryParse(
+                  fidelity['fidelity_score_display']!.split('/')[0],
+                ) ??
+                0.0
+          : 0.0;
 
       leftChildren.add(
         Container(
@@ -995,10 +986,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 value: scoreVal,
                 max: 3.0,
                 description: widget.data['fidelity_help'] ?? "Fidelity Help",
-                displayValue:
-                    fidelity['fidelity_score_display'] != null
-                        ? "${fidelity['fidelity_score_display']}/3.0"
-                        : "0.0/3.0",
+                displayValue: fidelity['fidelity_score_display'] != null
+                    ? "${fidelity['fidelity_score_display']}/3.0"
+                    : "0.0/3.0",
                 color: Theme.of(context).colorScheme.error,
                 axisLabels: const ['Matala', 'Keski', 'Korkea'],
               ),
@@ -1008,10 +998,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     ? AppLocalizations.of(context)!.lblPostHocWarning
                     : AppLocalizations.of(context)!.lblNoRationalization,
                 style: TextStyle(
-                  color:
-                      fidelity['post_hoc_rationalization_suspected'] == true
-                          ? Theme.of(context).colorScheme.error
-                          : const Color(0xFF2E7D32),
+                  color: fidelity['post_hoc_rationalization_suspected'] == true
+                      ? Theme.of(context).colorScheme.error
+                      : const Color(0xFF2E7D32),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1037,8 +1026,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         final passed = f['is_held'] == true;
         return Card(
           margin: EdgeInsets.only(bottom: 8),
-          color:
-              passed ? Color(0xFF2E7D32) : Theme.of(context).colorScheme.error,
+          color: passed
+              ? Color(0xFF2E7D32)
+              : Theme.of(context).colorScheme.error,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -1102,10 +1092,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     final actualScenario = widget.data['counterfactual_actual'] as String?;
     final simulatedScenario =
         widget.data['counterfactual_simulated'] as String?;
-    final plausibilityScore =
-        widget.data['plausibility_score'] != null
-            ? (widget.data['plausibility_score'] as num?)?.toDouble() ?? 0.0
-            : null;
+    final plausibilityScore = widget.data['plausibility_score'] != null
+        ? (widget.data['plausibility_score'] as num?)?.toDouble() ?? 0.0
+        : null;
 
     final leftChildren = <Widget>[];
     if (abductive != null) {
@@ -1124,10 +1113,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 value: abductiveScore,
                 max: 3.0,
                 description: widget.data['abductive_help'] ?? "Abductive Help",
-                displayValue:
-                    widget.data['abductive_score_display'] != null
-                        ? "${widget.data['abductive_score_display']}/3.0"
-                        : "${abductiveScore.toStringAsFixed(1)}/3.0",
+                displayValue: widget.data['abductive_score_display'] != null
+                    ? "${widget.data['abductive_score_display']}/3.0"
+                    : "${abductiveScore.toStringAsFixed(1)}/3.0",
                 color: Theme.of(context).colorScheme.secondary,
                 axisLabels: [
                   AppLocalizations.of(context)!.lblWeak,
@@ -1330,16 +1318,14 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     // New additions for Automation Bias & Say-Do gap (Flat properties)
     final l10n = AppLocalizations.of(context)!;
     final autoBiasLabel = widget.data['automation_bias_label'];
-    final autoBiasColor =
-        widget.data['automation_bias_color'] == 'red'
-            ? Theme.of(context).colorScheme.error
-            : const Color(0xFF2E7D32);
+    final autoBiasColor = widget.data['automation_bias_color'] == 'red'
+        ? Theme.of(context).colorScheme.error
+        : const Color(0xFF2E7D32);
 
     final sayDoLabel = widget.data['say_do_gap_label'];
-    final sayDoColor =
-        widget.data['say_do_gap_color'] == 'red'
-            ? Theme.of(context).colorScheme.error
-            : Color(0xFF2E7D32);
+    final sayDoColor = widget.data['say_do_gap_color'] == 'red'
+        ? Theme.of(context).colorScheme.error
+        : Color(0xFF2E7D32);
 
     if (autoBiasLabel != null || sayDoLabel != null) {
       leftChildren.add(const SizedBox(height: 16));
@@ -1362,20 +1348,18 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                   _getLocalizedEnum(autoBiasLabel),
                 ),
                 color: autoBiasColor,
-                icon:
-                    autoBiasColor == Theme.of(context).colorScheme.error
-                        ? Icons.warning
-                        : Icons.check,
+                icon: autoBiasColor == Theme.of(context).colorScheme.error
+                    ? Icons.warning
+                    : Icons.check,
               ),
             if (sayDoLabel != null)
               _buildStatusChip(
                 context,
                 label: l10n.lblSayDoGapValue(_getLocalizedEnum(sayDoLabel)),
                 color: sayDoColor,
-                icon:
-                    sayDoColor == Theme.of(context).colorScheme.error
-                        ? Icons.warning
-                        : Icons.check,
+                icon: sayDoColor == Theme.of(context).colorScheme.error
+                    ? Icons.warning
+                    : Icons.check,
               ),
           ],
         ),
@@ -1431,10 +1415,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           return Card(
             color:
                 (e['is_critical'] == true ||
-                        e['severity'] == "Kriittinen" ||
-                        e['severity'] == "Critical")
-                    ? Theme.of(context).colorScheme.error
-                    : Theme.of(context).colorScheme.surface,
+                    e['severity'] == "Kriittinen" ||
+                    e['severity'] == "Critical")
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.surface,
             child: ListTile(
               leading: Icon(
                 Icons.security,
@@ -1445,13 +1429,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     e['issue_type'] ??
                     e['tyyppi'] ??
                     AppLocalizations.of(context)!.lblEthicalObservation,
-                style:
-                    (e['is_critical'] == true)
-                        ? TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontWeight: FontWeight.bold,
-                        )
-                        : null,
+                style: (e['is_critical'] == true)
+                    ? TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.bold,
+                      )
+                    : null,
               ),
               subtitle: Text(e['description'] ?? e['kuvaus'] ?? ''),
               trailing: Text(e['severity'] ?? e['vakavuus'] ?? 'N/A'),
@@ -1639,32 +1622,28 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       Wrap(
         spacing: 8,
         runSpacing: 4,
-        children:
-            heuristics.map<Widget>((b) {
-              final raised = b['flag'] == true;
-              return Chip(
-                label: Text(b['name'] ?? ''),
-                avatar: Icon(
-                  raised ? Icons.flag : Icons.check,
-                  size: 16,
-                  color:
-                      raised
-                          ? Theme.of(context).colorScheme.error
-                          : Color(0xFF2E7D32),
-                ),
-                backgroundColor:
-                    raised
-                        ? Theme.of(context).colorScheme.error
-                        : Color(0xFF2E7D32),
-                labelStyle: TextStyle(
-                  fontSize: 12,
-                  color:
-                      raised
-                          ? Theme.of(context).colorScheme.error
-                          : Color(0xFF2E7D32),
-                ),
-              );
-            }).toList(),
+        children: heuristics.map<Widget>((b) {
+          final raised = b['flag'] == true;
+          return Chip(
+            label: Text(b['name'] ?? ''),
+            avatar: Icon(
+              raised ? Icons.flag : Icons.check,
+              size: 16,
+              color: raised
+                  ? Theme.of(context).colorScheme.error
+                  : Color(0xFF2E7D32),
+            ),
+            backgroundColor: raised
+                ? Theme.of(context).colorScheme.error
+                : Color(0xFF2E7D32),
+            labelStyle: TextStyle(
+              fontSize: 12,
+              color: raised
+                  ? Theme.of(context).colorScheme.error
+                  : Color(0xFF2E7D32),
+            ),
+          );
+        }).toList(),
       ),
     );
 
@@ -1772,22 +1751,21 @@ class _SpecialistSectionState extends State<SpecialistSection> {
   Widget _buildGenericMap(Map<String, dynamic> map) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          map.entries.map<Widget>((e) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "${e.key}: ",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Expanded(child: Text(e.value.toString())),
-                ],
+      children: map.entries.map<Widget>((e) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "${e.key}: ",
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-            );
-          }).toList(),
+              Expanded(child: Text(e.value.toString())),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -1831,8 +1809,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                           title,
                           style: TextStyle(
                             fontSize: 12,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                         if (helpKey != null) _buildHelpButton(context, helpKey),
@@ -1952,29 +1931,25 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       onPressed: () {
         showDialog(
           context: context,
-          builder:
-              (ctx) => AlertDialog(
-                title: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      "Tietoa Mittarista",
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ],
+          builder: (ctx) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-                content: Text(text, style: const TextStyle(height: 1.5)),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text(AppLocalizations.of(context)?.sharedOk ?? "OK"),
-                  ),
-                ],
+                const SizedBox(width: 8),
+                const Text("Tietoa Mittarista", style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            content: Text(text, style: const TextStyle(height: 1.5)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(AppLocalizations.of(context)?.sharedOk ?? "OK"),
               ),
+            ],
+          ),
         );
       },
       tooltip:
@@ -2085,78 +2060,68 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children:
-                          roles.map((r) {
-                            final isActive =
-                                translatedRole.toLowerCase() == r.toLowerCase();
-                            return Expanded(
-                              child: Column(
-                                children: [
-                                  Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color:
-                                          isActive
-                                              ? Theme.of(
-                                                context,
-                                              ).colorScheme.primary
-                                              : Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.surface,
-                                        width: 3,
+                      children: roles.map((r) {
+                        final isActive =
+                            translatedRole.toLowerCase() == r.toLowerCase();
+                        return Expanded(
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surface,
+                                    width: 3,
+                                  ),
+                                  boxShadow: [
+                                    if (isActive)
+                                      BoxShadow(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withValues(alpha: 0.4),
+                                        spreadRadius: 2,
+                                        blurRadius: 4,
                                       ),
-                                      boxShadow: [
-                                        if (isActive)
-                                          BoxShadow(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .withValues(alpha: 0.4),
-                                            spreadRadius: 2,
-                                            blurRadius: 4,
-                                          ),
-                                        if (!isActive)
-                                          BoxShadow(
-                                            color:
-                                                Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
-                                            spreadRadius: 1,
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    r,
-                                    style: TextStyle(
-                                      fontSize: isActive ? 12 : 10,
-                                      fontWeight:
-                                          isActive
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                      color:
-                                          isActive
-                                              ? Theme.of(
-                                                context,
-                                              ).colorScheme.primary
-                                              : Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
+                                    if (!isActive)
+                                      BoxShadow(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                        spreadRadius: 1,
+                                      ),
+                                  ],
+                                ),
                               ),
-                            );
-                          }).toList(),
+                              const SizedBox(height: 8),
+                              Text(
+                                r,
+                                style: TextStyle(
+                                  fontSize: isActive ? 12 : 10,
+                                  fontWeight: isActive
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isActive
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 );

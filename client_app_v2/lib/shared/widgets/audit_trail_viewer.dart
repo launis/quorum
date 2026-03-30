@@ -13,14 +13,12 @@ class AuditTrailViewer extends StatelessWidget {
     if (rawSteps.isEmpty) return const SizedBox.shrink();
 
     // Sort steps
-    final stepsList =
-        rawSteps.entries.map((e) {
-            final val = e.value as Map<String, dynamic>;
-            final meta = val['metadata'] as Map<String, dynamic>? ?? {};
-            final stepNum = meta['vaihe'] as num? ?? 999;
-            return MapEntry(stepNum.toInt(), e);
-          }).toList()
-          ..sort((a, b) => a.key.compareTo(b.key));
+    final stepsList = rawSteps.entries.map((e) {
+      final val = e.value as Map<String, dynamic>;
+      final meta = val['metadata'] as Map<String, dynamic>? ?? {};
+      final stepNum = meta['vaihe'] as num? ?? 999;
+      return MapEntry(stepNum.toInt(), e);
+    }).toList()..sort((a, b) => a.key.compareTo(b.key));
 
     return DeepDiveExpander(
       title: 'Audit Trail (System Logs)',

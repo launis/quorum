@@ -65,11 +65,9 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           )
           .timeout(
             ReportSettings.downloadTimeout,
-            onTimeout:
-                () =>
-                    throw AppException.timeout(
-                      AppLocalizations.of(context)!.errSaveTimeout,
-                    ),
+            onTimeout: () => throw AppException.timeout(
+              AppLocalizations.of(context)!.errSaveTimeout,
+            ),
           );
 
       if (mounted) {
@@ -123,11 +121,9 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           )
           .timeout(
             ReportSettings.downloadTimeout,
-            onTimeout:
-                () =>
-                    throw AppException.timeout(
-                      AppLocalizations.of(context)!.errSaveTimeout,
-                    ),
+            onTimeout: () => throw AppException.timeout(
+              AppLocalizations.of(context)!.errSaveTimeout,
+            ),
           );
 
       if (mounted) {
@@ -162,8 +158,9 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
   @override
   Widget build(BuildContext context) {
     // Determine target locale safely via Localizations or explicit parameter
-    final locale =
-        Localizations.localeOf(context).languageCode == 'fi' ? 'fi' : 'en';
+    final locale = Localizations.localeOf(context).languageCode == 'fi'
+        ? 'fi'
+        : 'en';
 
     final reportAsync = ref.watch(
       reportControllerProvider(
@@ -181,32 +178,32 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
         actions: [
           _isDownloadingContext
               ? const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
+                  padding: EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
               : IconButton(
-                icon: const Icon(Icons.policy),
-                tooltip: 'Lataa Frozen Context',
-                onPressed: _downloadFrozenContext,
-              ),
+                  icon: const Icon(Icons.policy),
+                  tooltip: 'Lataa Frozen Context',
+                  onPressed: _downloadFrozenContext,
+                ),
           _isDownloadingPdf
               ? const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
+                  padding: EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
               : IconButton(
-                icon: const Icon(Icons.picture_as_pdf),
-                tooltip: AppLocalizations.of(context)!.downloadReportTooltip,
-                onPressed: _downloadPdf,
-              ),
+                  icon: const Icon(Icons.picture_as_pdf),
+                  tooltip: AppLocalizations.of(context)!.downloadReportTooltip,
+                  onPressed: _downloadPdf,
+                ),
         ],
       ),
       body: reportAsync.when(
@@ -225,14 +222,13 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           return ErrorView(
             error: err,
             stackTrace: stack,
-            onRetry:
-                () => ref.invalidate(
-                  reportControllerProvider(
-                    widget.executionId,
-                    lang: locale,
-                    variant: widget.variant,
-                  ),
-                ),
+            onRetry: () => ref.invalidate(
+              reportControllerProvider(
+                widget.executionId,
+                lang: locale,
+                variant: widget.variant,
+              ),
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -249,10 +245,9 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     }
 
     // Safely fallback to first available if variant not found
-    final safeVariant =
-        payload.availableProfiles.containsKey(widget.variant)
-            ? widget.variant
-            : payload.availableProfiles.keys.first;
+    final safeVariant = payload.availableProfiles.containsKey(widget.variant)
+        ? widget.variant
+        : payload.availableProfiles.keys.first;
 
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
@@ -274,15 +269,14 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
             ).go(context);
           }
         },
-        items:
-            payload.availableProfiles.entries.map((entry) {
-              return DropdownMenuItem<String>(
-                value: entry.key,
-                child: Text(
-                  '${AppLocalizations.of(context)!.report}: ${entry.value}',
-                ),
-              );
-            }).toList(),
+        items: payload.availableProfiles.entries.map((entry) {
+          return DropdownMenuItem<String>(
+            value: entry.key,
+            child: Text(
+              '${AppLocalizations.of(context)!.report}: ${entry.value}',
+            ),
+          );
+        }).toList(),
       ),
     );
   }

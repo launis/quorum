@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../../utils/safe_cast.dart';
 import '../../../../../l10n/gen/app_localizations.dart';
 import '../i18n_text_field.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 /// **WorkflowGeneralTab**
 ///
@@ -83,9 +84,11 @@ class WorkflowGeneralTab extends ConsumerWidget {
                     const SizedBox(height: 16),
                     I18nTextField(
                       label: l10n.studioWorkflowNameLabel,
-                      initialData: SafeCast.safeMap(workflow['name']),
+                      initialData: I18nText.fromJson(
+                        SafeCast.safeMap(workflow['name']),
+                      ),
                       onChanged: (val) {
-                        workflow['name'] = val;
+                        workflow['name'] = val.toJson();
                         onChanged();
                       },
                     ),
@@ -155,10 +158,9 @@ class WorkflowGeneralTab extends ConsumerWidget {
                           workflow['default_profile_id'],
                           'default',
                         );
-                        final safeDefault =
-                            profileKeys.contains(currentDefault)
-                                ? currentDefault
-                                : profileKeys.first;
+                        final safeDefault = profileKeys.contains(currentDefault)
+                            ? currentDefault
+                            : profileKeys.first;
 
                         return DropdownButtonFormField<String>(
                           key: ValueKey(profileKeys.join(':')),
@@ -168,23 +170,20 @@ class WorkflowGeneralTab extends ConsumerWidget {
                             border: const OutlineInputBorder(),
                             isDense: true,
                           ),
-                          items:
-                              profileKeys.map((key) {
-                                final profileData = SafeCast.safeMap(
-                                  outputProfiles[key],
-                                );
-                                final profNameMap = SafeCast.safeMap(
-                                  profileData['name'],
-                                );
-                                final title =
-                                    profNameMap['fi'] ??
-                                    profNameMap['en'] ??
-                                    key;
-                                return DropdownMenuItem(
-                                  value: key,
-                                  child: Text('$title ($key)'),
-                                );
-                              }).toList(),
+                          items: profileKeys.map((key) {
+                            final profileData = SafeCast.safeMap(
+                              outputProfiles[key],
+                            );
+                            final profNameMap = SafeCast.safeMap(
+                              profileData['name'],
+                            );
+                            final title =
+                                profNameMap['fi'] ?? profNameMap['en'] ?? key;
+                            return DropdownMenuItem(
+                              value: key,
+                              child: Text('$title ($key)'),
+                            );
+                          }).toList(),
                           onChanged: (val) {
                             if (val != null) {
                               workflow['default_profile_id'] = val;

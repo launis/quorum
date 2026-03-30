@@ -17,30 +17,29 @@ class LogViewer extends StatelessWidget {
       ),
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      child:
-          logs.isEmpty
-              ? Center(
-                child: Text(
-                  'No logs available.',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontFamily: 'monospace',
-                  ),
+      child: logs.isEmpty
+          ? Center(
+              child: Text(
+                'No logs available.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontFamily: 'monospace',
                 ),
-              )
-              : ListView.builder(
-                itemCount: logs.length,
-                itemBuilder: (context, index) {
-                  return Text(
-                    logs[index],
-                    style: const TextStyle(
-                      color: Color(0xFF00FF00), // Matrix Green
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                    ),
-                  );
-                },
               ),
+            )
+          : ListView.builder(
+              itemCount: logs.length,
+              itemBuilder: (context, index) {
+                return Text(
+                  logs[index],
+                  style: const TextStyle(
+                    color: Color(0xFF00FF00), // Matrix Green
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                  ),
+                );
+              },
+            ),
     );
   }
 }

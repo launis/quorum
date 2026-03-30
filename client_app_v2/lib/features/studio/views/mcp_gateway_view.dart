@@ -24,21 +24,19 @@ class McpGatewayView extends HookConsumerWidget {
     final formState = ref.watch(mcpGatewayFormProvider(id));
 
     return formState.when(
-      loading:
-          () => Scaffold(
-            appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
-            body: const Center(child: CircularProgressIndicator()),
-          ),
-      error:
-          (e, st) => Scaffold(
-            appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
-            body: ErrorView(
-              error: e,
-              stackTrace: st,
-              compact: false,
-              onRetry: () => ref.invalidate(mcpGatewayFormProvider(id)),
-            ),
-          ),
+      loading: () => Scaffold(
+        appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, st) => Scaffold(
+        appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
+        body: ErrorView(
+          error: e,
+          stackTrace: st,
+          compact: false,
+          onRetry: () => ref.invalidate(mcpGatewayFormProvider(id)),
+        ),
+      ),
       data: (payload) {
         // The UI is a pure renderer of the business payload
         return _buildScaffold(context, ref, l10n, formKey, formState, payload);
@@ -58,26 +56,28 @@ class McpGatewayView extends HookConsumerWidget {
       final String idToDelete = payload['id']?.toString() ?? '';
       if (idToDelete.isEmpty || id == 'new') return;
 
+      final String slugToDisplay = payload['slug']?.toString() ?? idToDelete;
+      final String nameToDisplay = slugToDisplay.isNotEmpty ? slugToDisplay : idToDelete;
+
       final confirm = await showDialog<bool>(
         context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(l10n.deleteGatewayTitle),
-              content: Text(l10n.deleteGatewayConfirmation(idToDelete)),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(l10n.cancelButton),
-                ),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  ),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(l10n.deleteButton),
-                ),
-              ],
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.deleteGatewayTitle),
+          content: Text(l10n.deleteGatewayConfirmation(nameToDisplay)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancelButton),
             ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.deleteButton),
+            ),
+          ],
+        ),
       );
 
       if (confirm == true) {
@@ -154,10 +154,9 @@ class McpGatewayView extends HookConsumerWidget {
           FilledButton.icon(
             icon: const Icon(Icons.save),
             label: Text(l10n.studioSaveButton),
-            onPressed:
-                formState.isLoading
-                    ? null
-                    : saveGateway, // Read isLoading directly from Riverpod!
+            onPressed: formState.isLoading
+                ? null
+                : saveGateway, // Read isLoading directly from Riverpod!
           ),
           const SizedBox(width: 16),
         ],

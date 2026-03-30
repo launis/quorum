@@ -62,8 +62,8 @@ class WorkflowsMasterView extends ConsumerWidget {
                     final translations = SafeCast.safeMap(
                       labelMap['translations'],
                     );
-                    final defaultLocale =
-                        labelMap['default_locale']?.toString();
+                    final defaultLocale = labelMap['default_locale']
+                        ?.toString();
                     if (defaultLocale == null) {
                       throw AppException.validation(
                         'Workflow configuration corrupted: missing default_locale.',
@@ -77,8 +77,8 @@ class WorkflowsMasterView extends ConsumerWidget {
                     if (nameVal is String) {
                       displayName = nameVal;
                     } else {
-                      final localizedName =
-                          translations[defaultLocale]?.toString();
+                      final localizedName = translations[defaultLocale]
+                          ?.toString();
                       if (localizedName == null) {
                         throw AppException.validation(
                           'Workflow name missing for locale: $defaultLocale.',
@@ -92,12 +92,11 @@ class WorkflowsMasterView extends ConsumerWidget {
                     final status = SafeCast.safeString(workflow['status']);
 
                     final slugStr = SafeCast.safeString(workflow['slug']);
-                    final slug =
-                        slugStr.isNotEmpty
-                            ? slugStr
-                            : (throw AppException.validation(
-                              'Workflow slug is missing.',
-                            ));
+                    final slug = slugStr.isNotEmpty
+                        ? slugStr
+                        : (throw AppException.validation(
+                            'Workflow slug is missing.',
+                          ));
 
                     final workflowId = workflow['id']?.toString();
                     if (workflowId == null || workflowId.isEmpty) {
@@ -141,23 +140,26 @@ class WorkflowsMasterView extends ConsumerWidget {
                       ),
                     );
                   } catch (e, st) {
-                    ref.read(loggerServiceProvider).error('Studio', 'Error rendering workflow list item: $e', e, st);
+                    ref
+                        .read(loggerServiceProvider)
+                        .error(
+                          'Studio',
+                          'Error rendering workflow list item: $e',
+                          e,
+                          st,
+                        );
                     return ErrorView(error: e, stackTrace: st, compact: true);
                   }
                 },
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => ErrorView(
-                  error: e,
-                  compact: true,
-                  onRetry:
-                      () =>
-                          ref
-                              .read(workflowsControllerProvider.notifier)
-                              .refresh(),
-                ),
+            error: (e, _) => ErrorView(
+              error: e,
+              compact: true,
+              onRetry: () =>
+                  ref.read(workflowsControllerProvider.notifier).refresh(),
+            ),
           ),
         ],
       ),

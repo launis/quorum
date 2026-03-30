@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 class ExpectedInputEditorBox extends StatefulWidget {
   final Map<String, dynamic> inputDef;
@@ -78,10 +79,9 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final List<String> modes =
-        SafeCast.safeList(
-          widget.inputDef['input_modes'],
-        ).map((e) => e.toString()).toList();
+    final List<String> modes = SafeCast.safeList(
+      widget.inputDef['input_modes'],
+    ).map((e) => e.toString()).toList();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -102,8 +102,8 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                   child: Focus(
                     onFocusChange: (f) {
                       if (!f) {
-                        widget.inputDef['input_key'] =
-                            _keyController.text.trim();
+                        widget.inputDef['input_key'] = _keyController.text
+                            .trim();
                         _notifyChange();
                       }
                     },
@@ -169,73 +169,73 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
             ),
             Wrap(
               spacing: 8,
-              children:
-                  ['file', 'paste', 'questionnaire'].map((mode) {
-                    final modeStr =
-                        mode == 'file'
-                            ? l10n.inputModeFile
-                            : mode == 'paste'
-                            ? l10n.inputModePaste
-                            : l10n.inputModeQuestionnaire;
-                    return FilterChip(
-                      label: Text(modeStr),
-                      selected: modes.contains(mode),
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            if (mode == 'questionnaire') {
-                              modes.clear();
-                              modes.add(mode);
-                              // Enforce rule: Questionnaire cannot be chat history
-                              if (_isChatHistory) {
-                                _isChatHistory = false;
-                                widget.inputDef['is_chat_history'] = false;
-                              }
-                            } else {
-                              if (modes.contains('questionnaire')) {
-                                modes.remove('questionnaire');
-                                widget.inputDef['questionnaire_definition'] =
-                                    [];
-                              }
-                              if (!modes.contains(mode)) {
-                                modes.add(mode);
-                              }
-                            }
-                          } else {
-                            // Prevent deselection if it would leave the list empty
-                            if (modes.length > 1) {
-                              modes.remove(mode);
-                            } else if (modes.length == 1 &&
-                                modes.first != mode) {
-                              modes.remove(
-                                mode,
-                              ); // theoretically impossible but safe
-                            }
+              children: ['file', 'paste', 'questionnaire'].map((mode) {
+                final modeStr = mode == 'file'
+                    ? l10n.inputModeFile
+                    : mode == 'paste'
+                    ? l10n.inputModePaste
+                    : l10n.inputModeQuestionnaire;
+                return FilterChip(
+                  label: Text(modeStr),
+                  selected: modes.contains(mode),
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        if (mode == 'questionnaire') {
+                          modes.clear();
+                          modes.add(mode);
+                          // Enforce rule: Questionnaire cannot be chat history
+                          if (_isChatHistory) {
+                            _isChatHistory = false;
+                            widget.inputDef['is_chat_history'] = false;
                           }
-                          widget.inputDef['input_modes'] = modes;
-                          _notifyChange();
-                        });
-                      },
-                    );
-                  }).toList(),
+                        } else {
+                          if (modes.contains('questionnaire')) {
+                            modes.remove('questionnaire');
+                            widget.inputDef['questionnaire_definition'] = [];
+                          }
+                          if (!modes.contains(mode)) {
+                            modes.add(mode);
+                          }
+                        }
+                      } else {
+                        // Prevent deselection if it would leave the list empty
+                        if (modes.length > 1) {
+                          modes.remove(mode);
+                        } else if (modes.length == 1 && modes.first != mode) {
+                          modes.remove(
+                            mode,
+                          ); // theoretically impossible but safe
+                        }
+                      }
+                      widget.inputDef['input_modes'] = modes;
+                      _notifyChange();
+                    });
+                  },
+                );
+              }).toList(),
             ),
             const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 16),
             I18nTextField(
               label: l10n.workflowInputLabelTitle,
-              initialData: SafeCast.safeMap(widget.inputDef['label']),
+              initialData: I18nText.fromJson(
+                SafeCast.safeMap(widget.inputDef['label']),
+              ),
               onChanged: (val) {
-                widget.inputDef['label'] = val;
+                widget.inputDef['label'] = val.toJson();
                 _notifyChange();
               },
             ),
             const SizedBox(height: 16),
             I18nTextField(
               label: l10n.workflowInputDescriptionTitle,
-              initialData: SafeCast.safeMap(widget.inputDef['description']),
+              initialData: I18nText.fromJson(
+                SafeCast.safeMap(widget.inputDef['description']),
+              ),
               onChanged: (val) {
-                widget.inputDef['description'] = val;
+                widget.inputDef['description'] = val.toJson();
                 _notifyChange();
               },
             ),
@@ -243,8 +243,8 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
             Focus(
               onFocusChange: (f) {
                 if (!f) {
-                  widget.inputDef['ai_description'] =
-                      _aiDescController.text.trim();
+                  widget.inputDef['ai_description'] = _aiDescController.text
+                      .trim();
                   _notifyChange();
                 }
               },
@@ -355,8 +355,9 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                         IconButton(
                           icon: Icon(
                             Icons.delete,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                           onPressed: () {
                             setState(() {
@@ -372,9 +373,11 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                     const SizedBox(height: 12),
                     I18nTextField(
                       label: l10n.workflowInputQuestionTextLabel,
-                      initialData: SafeCast.safeMap(qDef['question']),
+                      initialData: I18nText.fromJson(
+                        SafeCast.safeMap(qDef['question']),
+                      ),
                       onChanged: (val) {
-                        qDef['question'] = val;
+                        qDef['question'] = val.toJson();
                         _notifyChange();
                       },
                     ),

@@ -64,22 +64,21 @@ class _DynamicFormWidgetState extends State<DynamicFormWidget> {
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:
-            properties.entries.map((entry) {
-              final key = entry.key;
-              final fieldSchema = entry.value as Map<String, dynamic>;
-              final isRequired = requiredFields.contains(key);
+        children: properties.entries.map((entry) {
+          final key = entry.key;
+          final fieldSchema = entry.value as Map<String, dynamic>;
+          final isRequired = requiredFields.contains(key);
 
-              // Render via SchemaMapper
-              return SchemaMapper.mapFieldToWidget(
-                context: context,
-                key: key,
-                schema: fieldSchema,
-                value: _formData[key],
-                isRequired: isRequired,
-                onChanged: (newValue) => _updateField(key, newValue),
-              );
-            }).toList(),
+          // Render via SchemaMapper
+          return SchemaMapper.mapFieldToWidget(
+            context: context,
+            key: key,
+            schema: fieldSchema,
+            value: _formData[key],
+            isRequired: isRequired,
+            onChanged: (newValue) => _updateField(key, newValue),
+          );
+        }).toList(),
       ),
     );
   }

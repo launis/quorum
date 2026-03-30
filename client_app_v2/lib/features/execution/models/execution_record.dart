@@ -31,10 +31,9 @@ class ExecutionRecord {
       workflowId: json['workflow_id'] as String,
       status: (json['status'] as String).toUpperCase(),
       traceVersion: json['trace_version']?.toString(),
-      reportData:
-          json['report_data'] != null
-              ? ReportDataDTO.fromJson(SafeCast.safeMap(json['report_data']))
-              : null,
+      reportData: json['report_data'] != null
+          ? ReportDataDTO.fromJson(SafeCast.safeMap(json['report_data']))
+          : null,
     );
   }
 

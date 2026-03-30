@@ -23,9 +23,7 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const ModelRegistryView(
-              id: 'syscfg_123',
-            ),
+            home: const ModelRegistryView(id: 'syscfg_123'),
           ),
         ),
       );

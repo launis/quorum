@@ -66,22 +66,19 @@ class ReportAxisDTO {
       citedTextQuote: json['cited_text_quote']?.toString(),
       citedWebCitation: json['cited_web_citation']?.toString(),
       coaching: json['coaching']?.toString(),
-      confidence:
-          json['confidence'] != null
-              ? SafeCast.safeDouble(json['confidence'])
-              : null,
+      confidence: json['confidence'] != null
+          ? SafeCast.safeDouble(json['confidence'])
+          : null,
       falsification: json['falsification']?.toString(),
       missingContext: json['missing_context']?.toString(),
-      riskFlag:
-          json['risk_flag'] != null
-              ? SafeCast.safeBool(json['risk_flag'])
-              : null,
-      remediationSteps:
-          json['remediation_steps'] != null
-              ? SafeCast.safeList(
-                json['remediation_steps'],
-              ).map((e) => e.toString()).toList()
-              : null,
+      riskFlag: json['risk_flag'] != null
+          ? SafeCast.safeBool(json['risk_flag'])
+          : null,
+      remediationSteps: json['remediation_steps'] != null
+          ? SafeCast.safeList(
+              json['remediation_steps'],
+            ).map((e) => e.toString()).toList()
+          : null,
       emotionalSentiment: json['emotional_sentiment']?.toString(),
       theoryLink: json['theory_link']?.toString(),
       scaleMin: SafeCast.safeDouble(json['scale_min'], 0.0),
@@ -129,10 +126,9 @@ class ReportLayoutDTO {
           json['description'],
         ).map((k, v) => MapEntry(k.toString(), v.toString())),
       ),
-      axes:
-          SafeCast.safeList(
-            json['axes'],
-          ).map((e) => ReportAxisDTO.fromJson(SafeCast.safeMap(e))).toList(),
+      axes: SafeCast.safeList(
+        json['axes'],
+      ).map((e) => ReportAxisDTO.fromJson(SafeCast.safeMap(e))).toList(),
       showText: SafeCast.safeBool(json['show_text'], true),
     );
   }
@@ -166,10 +162,9 @@ class MCPToolAuditDTO {
       stepName: json['step_name'] as String,
       query: json['query'] as String,
       responseSummary: SafeCast.safeString(json['response_summary']),
-      sourceUrls:
-          SafeCast.safeList(
-            json['source_urls'],
-          ).map((e) => e.toString()).toList(),
+      sourceUrls: SafeCast.safeList(
+        json['source_urls'],
+      ).map((e) => e.toString()).toList(),
       timestamp: json['timestamp']?.toString(),
       durationMs: SafeCast.safeInt(json['duration_ms']),
     );
@@ -231,42 +226,34 @@ class ReportDataDTO {
           json['available_profiles'],
         ).map((k, v) => MapEntry(k.toString(), v.toString())),
       ),
-      globalScore:
-          json['global_score'] != null
-              ? SafeCast.safeDouble(json['global_score'])
-              : null,
-      layouts:
-          SafeCast.safeList(
-            json['layouts'],
-          ).map((e) => ReportLayoutDTO.fromJson(SafeCast.safeMap(e))).toList(),
+      globalScore: json['global_score'] != null
+          ? SafeCast.safeDouble(json['global_score'])
+          : null,
+      layouts: SafeCast.safeList(
+        json['layouts'],
+      ).map((e) => ReportLayoutDTO.fromJson(SafeCast.safeMap(e))).toList(),
       createdAt: json['created_at']?.toString(),
       orgName: json['org_name']?.toString(),
-      costEstimate:
-          json['cost_estimate'] != null
-              ? SafeCast.safeDouble(json['cost_estimate'])
-              : null,
-      totalTokens:
-          json['total_tokens'] != null
-              ? SafeCast.safeInt(json['total_tokens'])
-              : null,
-      promptTokens:
-          json['prompt_tokens'] != null
-              ? SafeCast.safeInt(json['prompt_tokens'])
-              : null,
-      completionTokens:
-          json['completion_tokens'] != null
-              ? SafeCast.safeInt(json['completion_tokens'])
-              : null,
-      reasoningTokens:
-          json['reasoning_tokens'] != null
-              ? SafeCast.safeInt(json['reasoning_tokens'])
-              : null,
-      mcpToolAudit:
-          json['mcp_tool_audit'] != null
-              ? SafeCast.safeList(json['mcp_tool_audit'])
-                  .map((e) => MCPToolAuditDTO.fromJson(SafeCast.safeMap(e)))
-                  .toList()
-              : const [],
+      costEstimate: json['cost_estimate'] != null
+          ? SafeCast.safeDouble(json['cost_estimate'])
+          : null,
+      totalTokens: json['total_tokens'] != null
+          ? SafeCast.safeInt(json['total_tokens'])
+          : null,
+      promptTokens: json['prompt_tokens'] != null
+          ? SafeCast.safeInt(json['prompt_tokens'])
+          : null,
+      completionTokens: json['completion_tokens'] != null
+          ? SafeCast.safeInt(json['completion_tokens'])
+          : null,
+      reasoningTokens: json['reasoning_tokens'] != null
+          ? SafeCast.safeInt(json['reasoning_tokens'])
+          : null,
+      mcpToolAudit: json['mcp_tool_audit'] != null
+          ? SafeCast.safeList(
+              json['mcp_tool_audit'],
+            ).map((e) => MCPToolAuditDTO.fromJson(SafeCast.safeMap(e))).toList()
+          : const [],
     );
   }
 

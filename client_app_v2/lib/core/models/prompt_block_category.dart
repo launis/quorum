@@ -1,12 +1,18 @@
 import 'package:flutter/widgets.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 enum PromptBlockCategory {
+  @JsonValue('matrix')
   matrix,
+  @JsonValue('agent_role')
   agentRole,
+  @JsonValue('task_definition')
   taskDefinition,
+  @JsonValue('system_rule')
   systemRule,
+  @JsonValue('protocol')
   protocol;
 
   String get id {
@@ -27,11 +33,8 @@ enum PromptBlockCategory {
   static PromptBlockCategory fromId(String value) {
     return PromptBlockCategory.values.firstWhere(
       (e) => e.id == value,
-      orElse:
-          () =>
-              throw AppException.validation(
-                'Unknown PromptBlockCategory: $value',
-              ),
+      orElse: () =>
+          throw AppException.validation('Unknown PromptBlockCategory: $value'),
     );
   }
 }

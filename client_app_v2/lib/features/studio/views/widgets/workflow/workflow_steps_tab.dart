@@ -37,10 +37,9 @@ class WorkflowStepsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final allSteps =
-        SafeCast.safeList(
-          workflow['steps'],
-        ).map((s) => SafeCast.safeMap(s)).toList();
+    final allSteps = SafeCast.safeList(
+      workflow['steps'],
+    ).map((s) => SafeCast.safeMap(s)).toList();
 
     return SingleChildScrollView(
       child: Padding(

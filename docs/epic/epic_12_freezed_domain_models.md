@@ -44,7 +44,7 @@ Ennen varsinaista koodimuutosta päivitetään projektin ydindokumentaatio vasta
 5.  **Zero-Touch Riippuvuudet (Infrastruktuurin lukitus):**
     *   Projektin `pubspec.yaml` on jäädytetty. Oletamme teollisuusstandardin mukaisten pakettien (`freezed`, `json_serializable`) olevan jo oikeissa versioissaan. Agentit eivät saa koskea asennuksiin versioristiriitojen välttämiseksi.
 6.  **Deep Equality -rajoitteet (O(1) RAG-suorituskyky):**
-    *   Raskaiden historiataulukoiden (esim. `TraceEvent`) syvävertailu listojen tasolla ohitetaan (`@Freezed(equal: false)`). Riverpodin suorituskyvyn takaamiseksi valtavissa lokeissa, listat pakotetaan käyttämään `fast_immutable_collections` (`IList`) -rakennetta natiivien Dart-listojen sijaan.
+    *   Raskaiden historiataulukoiden (esim. `TraceEvent`) syvävertailu listojen tasolla ohitetaan (`@Freezed(equal: false)`). Riverpodin suorituskyvyn takaamiseksi valtavissa lokeissa vältetään O(N)-tason syvävertailut. Noudattaaksemme Zero-Touch riippuvuussääntöä, emme asenna ulkoista `fast_immutable_collections`-kirjastoa, vaan käytämme natiivia Dart `List<T>` -rakennetta ohitetulla `.==` operaattorilla.
 
 **Päivitettävät tiedostot:** Nämä 6 peruspilaria on ensin päivitettävä tiedostoihin `docs/flutterpromptohje.md` (eritoten lukuihin 2.3 Strict Typing ja 5.8 Dart 3 Pattern Matching), `docs/hardeningfront.md` ja `docs/Arkkitehtuurimäärittely_ AI-orkestraattori V2.md` ennen kooditason refaktoroinnin aloittamista.
 
@@ -75,7 +75,7 @@ targets:
 
 *Huom (The No Pass Rule):* Kaikkien näiden luokkien on kaatuessaan heitettävä ehdottomasti `AppException.validation(message: '...', errorCode: 'VALIDATION_FAILED')`. Muut virhetyypit ovat kiellettyjä.
 
-*   `StrictIListConverter<T>`: Globaali konvertteri, joka varmistaa, että `List<dynamic>` kääntyy suoraan `fast_immutable_collections` (`IList<T>`) -muotoon saumattomasti Freezedin ja `json_serializable`:n kanssa.
+*   `StrictIListConverter<T>`: (Hylätty) Koska noudatamme Zero-Touch riippuvuuksia, käytämme normaaleja `List<T>` rakenteita ryyditettynä `@Freezed(equal: false)` annotaatioilla massiivisissa datajoukoissa estääksemme Riverpod-syvävertailun aiheuttaman hitauden.
 *   `StrictDateTimeConverter`: Osattava käsitellä API:n `Stringit` ja Firestoren `Timestampit` turvallisesti lokalisoituun UTC ISO-8601 DateTime -olioon.
 *   `StrictEnumConverter`: Heittää välittömästi `AppExceptionin` (eikä hiljaista TypeErroria tai kartoitusta `Enum.unknown` tilaan), jos API/seed data palauttaa odottamattoman Enum-arvon. Zero Backward Compatibility. Oikea korjaustapa on päivittää sovelluksen koodi tai `seed_data.json` vastaamaan toisiaan.
 *   `StrictOpaqueIdConverter`: Varmistaa heti RegEx-tasolla JSON-purussa, että viite-ID (esim. `blk_`, `org_`) on aito ja Fail-Fast periaatteen mukainen.
@@ -86,9 +86,9 @@ targets:
 ### Milestone 1.B: Backendin Siemendatan (Seeder) Tiukennukset
 Koska koko arkkitehtuurin **ainoa hyväksytty totuus** on jatkossa `backend_v2/seed/seed_data.json` sekä sen ajuriskripti `run_seed.py`, myös backend-pään validoinnin on vastattava Frontendin "Strict Nirvana" -linjausta.
 
-1.  **Pydantic Pariteetti (Zero-Tolerance):** Backendin malleissa (esim. `PromptBlock`, `Workflow`, jotka luetaan `seed_registry.py` kautta) on pakotettava asetukset `model_config = ConfigDict(extra='forbid', strict=True)`. Tämä vastaa täydellisesti Flutterin `disallow_unrecognized_keys: true` -sääntöä. Jos `seed_data.json` sisältää historiallisia haamukenttiä, Pydantic kaataa ajon välittömästi. Vain näin voimme varmistaa lokaalin siemendatan täydellisen puhtauden.
+1.  **Backend vs Frontend Joustavuus (`strict=False` poikkeus):** Vaikka koko arkkitehtuuri pyrkii Pydantic Pariteettiin, backend-mallien oletetaan (käytännön historiadatan pohjalta) olevan joustavampia kuin frontendin. Esim. `V2CoreBase` Enumien Pydantic tyypityksessä sallitaan `strict=False`, jotta TinyDB:n palauttamat raa'at Stringit kääntyvät Enumiksi kaatamatta palvelinta. Frontend (Flutter) on kuitenkin säälimätön Fail-Fast tason tarkistaja Pydantic-tason mukaisesti, eikä anna armoa (`disallow_unrecognized_keys: true`).
 2.  **`run_seed.py` Optimointi (validate_python):** Nykyisessä skriptissä purku tehdään raskaasti JSON-käännöksen kautta: `validated = pyd_adapter.validate_json(json.dumps(item))`. Se tulee muuttaa muotoon `validated = pyd_adapter.validate_python(item, strict=True)`. Tämä ei ainoastaan estä turhaa sarjallistamista, vaan `strict=True` pakottaa Pydanticin hylkäämään epäsuorat tyyppimuunnokset (esim. numero `1` ohitetaan jos kenttä vaatii `"1"`), peilaten Dartin tiukkuutta.
-3.  **V2 `seed_data.json` Puhdistus:** Kaikki vanhat jäänteet, oletusarvot ja varatyypit (esim. legacy `input_variables`) poistetaan lokaalista `seed_data.json`:sta. Olemassaolevien tyyppien on täsmättävä 100% uusiin dart-konverttereihin, muuten `run_seed.py` kaatuu `_fail_fast()` -rutiiniin estäen viallisen datan päätymisen kantaan (`db_v2.json`).
+3.  **V2 `seed_data.json` Puhdistus:** Kaikki vanhat jäänteet, oletusarvot ja varatyypit (esim. legacy `input_variables`) poistetaan lokaalista `seed_data.json`:sta. Olemassaolevien tyyppien on täsmättävä uusiin dart-konverttereihin. Viallinen data kaataa `run_seed.py` skriptin estäen huonolaatuisen datan päätymisen kantaan (`db_v2.json`).
 
 ### Hallittu Siirtymästrategia (Migration Strategy)
 Älä yritä migroida kaikkea kerralla (esim. korvaamalla kaikki projektin mallit yhdellä isolla komennolla). Tämä rikkoisi sovelluksen Riverpod-kerrokset ristiin tuottaen satoja ratkeamattomia Type-virheitä "Generation Hell" -tyylillä.
@@ -118,7 +118,7 @@ Skaalataan arkkitehtuuri ajonaikaisiin entiteetteihin (`ExecutionRecord`, `Trace
 
 **The Isolate Mandate -suojaus:** Vaikka mallit muutetaan Freezed-pohjaisiksi, niiden vanhat staattiset `parseInBackground` ja `parseListInBackground` -metodit on pakko säilyttää. Nämä käärivät Freezedin purkuoperaation `Isolate.run()` -säikeeseen taaten nollaviiveen illuusion (Zero-Latency Illusion) raskaissa lokeissa.
 
-**Deep Equalityn Ohitus:** Otetaan tässä mittakaavassa `.==` automaatiot pois päältä raskaista listoista (`@Freezed(equal: false)`). Riverpodin suorituskyvyn takaamiseksi valtavissa RAG-lokeissa pakotetaan listat käyttämään `fast_immutable_collections` (`IList`) -rakennetta natiivien listojen sijaan.
+**Deep Equalityn Ohitus (Natiivi List & Zero-Touch):** Kunnioitamme tiukasti "Zero-Touch" -sääntöä (`pubspec.yaml` riippuvuuksiin ei kosketa), joten emme asenna `fast_immutable_collections`-pakettia. Sen sijaan otamme valtavien natiivien luettelojen `.==` -automaation pois päältä raskaissa malleissa (`@Freezed(equal: false)`). Tämä ohittaa Riverpodin hitaan O(N) iteraation RAG-lokeissa suorituskyvyn pelastamiseksi.
 
 ---
 

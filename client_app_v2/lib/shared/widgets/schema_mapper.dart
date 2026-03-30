@@ -24,8 +24,9 @@ class SchemaMapper {
     final enumValues = schema['enum'] as List<dynamic>?;
 
     // Helper Text (Description)
-    final helperText =
-        description != null && description.isNotEmpty ? description : null;
+    final helperText = description != null && description.isNotEmpty
+        ? description
+        : null;
 
     // 1. ENUM (Dropdown)
     if (enumValues != null) {
@@ -39,20 +40,17 @@ class SchemaMapper {
             helperText: helperText,
             border: const OutlineInputBorder(),
           ),
-          items:
-              enumValues.map((e) {
-                final val = e.toString();
-                return DropdownMenuItem<String>(value: val, child: Text(val));
-              }).toList(),
+          items: enumValues.map((e) {
+            final val = e.toString();
+            return DropdownMenuItem<String>(value: val, child: Text(val));
+          }).toList(),
           onChanged: (val) => onChanged(val),
-          validator:
-              isRequired
-                  ? (val) =>
-                      val == null || val.isEmpty
-                          ? AppLocalizations.of(context)?.fieldRequired ??
-                              'Field required'
-                          : null
-                  : null,
+          validator: isRequired
+              ? (val) => val == null || val.isEmpty
+                    ? AppLocalizations.of(context)?.fieldRequired ??
+                          'Field required'
+                    : null
+              : null,
         ),
       );
     }
@@ -103,14 +101,12 @@ class SchemaMapper {
               onChanged(double.tryParse(val));
             }
           },
-          validator:
-              isRequired
-                  ? (val) =>
-                      val == null || val.isEmpty
-                          ? AppLocalizations.of(context)?.fieldRequired ??
-                              'Field required'
-                          : null
-                  : null,
+          validator: isRequired
+              ? (val) => val == null || val.isEmpty
+                    ? AppLocalizations.of(context)?.fieldRequired ??
+                          'Field required'
+                    : null
+              : null,
         ),
       );
     }
@@ -126,14 +122,12 @@ class SchemaMapper {
           border: const OutlineInputBorder(),
         ),
         onChanged: onChanged,
-        validator:
-            isRequired
-                ? (val) =>
-                    val == null || val.isEmpty
-                        ? AppLocalizations.of(context)?.fieldRequired ??
-                            'Field required'
-                        : null
-                : null,
+        validator: isRequired
+            ? (val) => val == null || val.isEmpty
+                  ? AppLocalizations.of(context)?.fieldRequired ??
+                        'Field required'
+                  : null
+            : null,
       ),
     );
   }

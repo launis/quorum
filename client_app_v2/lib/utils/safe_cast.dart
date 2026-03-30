@@ -7,6 +7,9 @@ import 'package:flutter/foundation.dart';
 ///
 /// This is a strict requirement for the V2 Zero-Codegen SDUI architecture,
 /// acting as the safety net for un-typed `Map<String, dynamic>` structures.
+@Deprecated(
+  'Use Freezed and strict JSON parsing instead. V3 architecture mandates Fail-Fast data validation over runtime SafeCast defensive parsing.',
+)
 class SafeCast {
   /// Safely extracts a double from any dynamic value.
   /// Handles int gracefully, tries to parse Strings.

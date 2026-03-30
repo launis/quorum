@@ -16,10 +16,9 @@ void main() {
     // We bypass the global LoggerService init to force the path safely in the test env.
 
     // 1.1 Read environment paths usually available in Python orchestrator
-    final workspaceRoot =
-        File('../client_debug.log').existsSync()
-            ? '..'
-            : '../..'; // Fallback depending on where flutter test runs from
+    final workspaceRoot = File('../client_debug.log').existsSync()
+        ? '..'
+        : '../..'; // Fallback depending on where flutter test runs from
 
     final logFile = File('$workspaceRoot/client_debug.log');
     final outTraceFile = File(

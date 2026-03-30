@@ -1,0 +1,17 @@
+targets:
+  $default:
+    builders:
+      freezed:
+        generate_for:
+          - lib/**/models/**.dart
+          - lib/core/error/**.dart
+      json_serializable:
+        generate_for:
+          - lib/**/models/**.dart
+          - lib/core/error/**.dart
+        options:
+          field_rename: snake
+          disallow_unrecognized_keys: true
+          any_map: false
+          checked: true
+          explicit_to_json: true

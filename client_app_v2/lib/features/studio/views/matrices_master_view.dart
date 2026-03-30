@@ -5,7 +5,6 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/utils/safe_cast.dart';
 
 /// Flat MVC List view for BARS Matrices.
 /// Adheres strictly to De-Generator constraints using List<Map<String, dynamic>>.
@@ -49,8 +48,9 @@ class MatricesMasterView extends ConsumerWidget {
           blocksState.when(
             data: (blocks) {
               // The BARS matrices are a subtype of Prompt Blocks
-              final matrices =
-                  blocks.where((b) => b['category_id'] == 'matrix').toList();
+              final matrices = blocks
+                  .where((b) => b.categoryId == 'matrix')
+                  .toList();
 
               if (matrices.isEmpty) {
                 return Text(l10n.studioViewsNoMatricesAvailable);
@@ -62,19 +62,14 @@ class MatricesMasterView extends ConsumerWidget {
                 itemCount: matrices.length,
                 itemBuilder: (context, index) {
                   final matrix = matrices[index];
-                  final labelMap = SafeCast.safeMap(matrix['label']);
-                  final translations = SafeCast.safeMap(
-                    labelMap['translations'],
+                  final displayName = matrix.label.get(
+                    matrix.label.defaultLocale,
                   );
-                  final defaultLocale =
-                      labelMap['default_locale']?.toString() ?? 'en';
+                  if (displayName.isEmpty == true && matrix.id.isNotEmpty) {
+                    // Fallback
+                  }
 
-                  final displayName =
-                      translations[defaultLocale]?.toString() ??
-                      matrix['id']?.toString() ??
-                      'Unnamed Matrix';
-
-                  final scales = SafeCast.safeList(matrix['scales']).length;
+                  final scalesCount = matrix.scales?.length ?? 0;
 
                   return Card(
                     child: ListTile(
@@ -83,11 +78,11 @@ class MatricesMasterView extends ConsumerWidget {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       title: Text(
-                        displayName,
+                        displayName.isNotEmpty ? displayName : matrix.id,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        'ID: ${matrix['id']} | Scales (Grades): $scales',
+                        'ID: ${matrix.id} | Scales (Grades): $scalesCount',
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -96,8 +91,8 @@ class MatricesMasterView extends ConsumerWidget {
                             icon: const Icon(Icons.copy),
                             tooltip: 'Duplicate (Deep Copy)',
                             onPressed: () async {
-                              final id = matrix['id']?.toString();
-                              if (id == null) return;
+                              final id = matrix.id;
+                              if (id.isEmpty) return;
 
                               try {
                                 await ref
@@ -127,8 +122,9 @@ class MatricesMasterView extends ConsumerWidget {
                                         e.toString(),
                                       ),
                                     ),
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.error,
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.error,
                                   ),
                                 );
                               }
@@ -139,8 +135,8 @@ class MatricesMasterView extends ConsumerWidget {
                       ),
                       onTap: () {
                         MatrixEditRoute(
-                          id: matrix['id']?.toString() ?? '',
-                          $extra: matrix,
+                          id: matrix.id,
+                          $extra: matrix.toJson(),
                         ).go(context);
                       },
                     ),
@@ -149,16 +145,12 @@ class MatricesMasterView extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (e, _) => ErrorView(
-                  error: e,
-                  compact: true,
-                  onRetry:
-                      () =>
-                          ref
-                              .read(promptBlocksControllerProvider.notifier)
-                              .refresh(),
-                ),
+            error: (e, _) => ErrorView(
+              error: e,
+              compact: true,
+              onRetry: () =>
+                  ref.read(promptBlocksControllerProvider.notifier).refresh(),
+            ),
           ),
         ],
       ),

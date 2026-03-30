@@ -117,10 +117,9 @@ class WorkflowCloner {
     // --- Phase C: Riski 3 - Fail Fast Validation ---
     for (final step in steps) {
       final stepMap = SafeCast.safeMap(step);
-      final dependsOn =
-          SafeCast.safeList(
-            stepMap['depends_on'],
-          ).map((e) => e.toString()).toList();
+      final dependsOn = SafeCast.safeList(
+        stepMap['depends_on'],
+      ).map((e) => e.toString()).toList();
 
       for (final dep in dependsOn) {
         if (!validNewIds.contains(dep)) {

@@ -238,22 +238,20 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             final id = SafeCast.safeString(wf['id']);
 
             final nameMap = SafeCast.safeMap(wf['name']);
-            final titleStr =
-                nameMap.isNotEmpty
-                    ? (nameMap['translations']?[nameMap['default_locale']] ??
-                        nameMap['default_locale'] ??
-                        id)
-                    : (SafeCast.safeString(wf['name']).isNotEmpty
-                        ? SafeCast.safeString(wf['name'])
-                        : id);
+            final titleStr = nameMap.isNotEmpty
+                ? (nameMap['translations']?[nameMap['default_locale']] ??
+                      nameMap['default_locale'] ??
+                      id)
+                : (SafeCast.safeString(wf['name']).isNotEmpty
+                      ? SafeCast.safeString(wf['name'])
+                      : id);
 
             final descMap = SafeCast.safeMap(wf['description']);
-            final descStr =
-                descMap.isNotEmpty
-                    ? (descMap['translations']?[descMap['default_locale']] ??
-                        descMap['default_locale'] ??
-                        '')
-                    : SafeCast.safeString(wf['description']);
+            final descStr = descMap.isNotEmpty
+                ? (descMap['translations']?[descMap['default_locale']] ??
+                      descMap['default_locale'] ??
+                      '')
+                : SafeCast.safeString(wf['description']);
 
             final isSelected = _selectedWorkflow?['id'] == id;
 
@@ -275,13 +273,12 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error:
-          (e, st) => ErrorView(
-            error: e,
-            stackTrace: st,
-            compact: true,
-            onRetry: () => ref.invalidate(availableWorkflowsProvider),
-          ),
+      error: (e, st) => ErrorView(
+        error: e,
+        stackTrace: st,
+        compact: true,
+        onRetry: () => ref.invalidate(availableWorkflowsProvider),
+      ),
     );
   }
 
@@ -309,14 +306,13 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
     // Prepare localized title for the header
     final nameMap = SafeCast.safeMap(_selectedWorkflow!['name']);
-    final titleStr =
-        nameMap.isNotEmpty
-            ? (nameMap['translations']?[nameMap['default_locale']] ??
-                nameMap['default_locale'] ??
-                id)
-            : (SafeCast.safeString(_selectedWorkflow!['name']).isNotEmpty
-                ? SafeCast.safeString(_selectedWorkflow!['name'])
-                : id);
+    final titleStr = nameMap.isNotEmpty
+        ? (nameMap['translations']?[nameMap['default_locale']] ??
+              nameMap['default_locale'] ??
+              id)
+        : (SafeCast.safeString(_selectedWorkflow!['name']).isNotEmpty
+              ? SafeCast.safeString(_selectedWorkflow!['name'])
+              : id);
 
     if (expectedInputsList.isEmpty) {
       return Center(
@@ -354,10 +350,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
           ...expectedInputsList.map((item) {
             final inputKey = SafeCast.safeString(item['input_key']);
-            final modes =
-                SafeCast.safeList(
-                  item['input_modes'],
-                ).map((m) => m.toString()).toList();
+            final modes = SafeCast.safeList(
+              item['input_modes'],
+            ).map((m) => m.toString()).toList();
 
             // Handle questionnaire first
             if (modes.contains('questionnaire')) {
@@ -420,10 +415,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           children: [
             Icon(
               hasFile ? Icons.check_circle : Icons.upload_file,
-              color:
-                  hasFile
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
+              color: hasFile
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 16),
             Expanded(

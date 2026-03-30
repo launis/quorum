@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
+import 'package:client_app/shared/models/i18n_text.dart';
+
 /// **Dynaaminen I18n-syöttö**
 ///
 /// A compound widget that captures a `default_locale` string alongside
 /// an optional `translations` dictionary for multiple languages.
-/// Emits pure `Map<String, dynamic>` representations adhering to the
-/// De-Generator Policy for the Admin Studio editing.
+/// Emits pure `I18nText` representations adhering to the
+/// Strict Freezed Pydantic-parity policy for the Admin Studio editing.
 class I18nTextField extends StatefulWidget {
   final String label;
-  final Map<String, dynamic> initialData;
-  final ValueChanged<Map<String, dynamic>> onChanged;
+  final I18nText? initialData;
+  final void Function(I18nText) onChanged;
 
   const I18nTextField({
     super.key,
@@ -34,13 +36,12 @@ class _I18nTextFieldState extends State<I18nTextField> {
   @override
   void initState() {
     super.initState();
-    _defaultLocale = widget.initialData['default_locale']?.toString() ?? 'en';
-
     _translations = {};
     _translationControllers = {};
 
-    if (widget.initialData['translations'] is Map) {
-      final t = widget.initialData['translations'] as Map;
+    if (widget.initialData != null) {
+      _defaultLocale = widget.initialData!.defaultLocale;
+      final t = widget.initialData!.translations;
       t.forEach((key, value) {
         final langCode = key.toString();
         final text = value.toString();
@@ -52,6 +53,8 @@ class _I18nTextFieldState extends State<I18nTextField> {
           _translationControllers[langCode] = ctrl;
         }
       });
+    } else {
+      _defaultLocale = 'en';
     }
 
     _defaultController = TextEditingController(
@@ -84,65 +87,48 @@ class _I18nTextFieldState extends State<I18nTextField> {
       final safeTranslations = Map<String, String>.from(_translations);
       safeTranslations.removeWhere((k, v) => v.isEmpty);
 
-      widget.onChanged({
-        'default_locale': _defaultLocale,
-        'translations': safeTranslations,
-      });
+      widget.onChanged(
+        I18nText(defaultLocale: _defaultLocale, translations: safeTranslations),
+      );
     });
   }
 
   @override
-  void didUpdateWidget(I18nTextField oldWidget) {
+  void didUpdateWidget(covariant I18nTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final newLocale = widget.initialData['default_locale']?.toString() ?? 'en';
-    final newTranslationsMap = widget.initialData['translations'];
+    if (widget.initialData != oldWidget.initialData) {
+      final newLocale = widget.initialData?.defaultLocale ?? 'en';
+      final newTranslationsStringMap = widget.initialData?.translations ?? {};
+      String newDefaultText = newTranslationsStringMap[newLocale] ?? '';
 
-    String newDefaultText = '';
-    if (newTranslationsMap is Map) {
-      newDefaultText = newTranslationsMap[newLocale]?.toString() ?? '';
-    }
-
-    // Riverpod parent update
-    if (oldWidget.initialData != widget.initialData) {
+      // Riverpod parent update
       _defaultLocale = newLocale;
 
-      if (newTranslationsMap is Map) {
-        final newMap = Map<String, String>.from(
-          newTranslationsMap.map(
-            (k, v) => MapEntry(k.toString(), v.toString()),
-          ),
-        );
-
-        // Add missing ones from external updates
-        for (final entry in newMap.entries) {
-          if (entry.key != _defaultLocale) {
-            _translations[entry.key] = entry.value;
-            if (!_translationControllers.containsKey(entry.key)) {
-              final ctrl = TextEditingController(text: entry.value);
-              ctrl.addListener(
-                () => _onTranslationChanged(entry.key, ctrl.text),
-              );
-              _translationControllers[entry.key] = ctrl;
-            } else if (_translationControllers[entry.key]!.text !=
-                entry.value) {
-              _translationControllers[entry.key]!
-                  .value = _translationControllers[entry.key]!.value.copyWith(
-                text: entry.value,
-                selection: TextSelection.collapsed(offset: entry.value.length),
-              );
-            }
+      // Add missing ones from external updates
+      for (final entry in newTranslationsStringMap.entries) {
+        if (entry.key != _defaultLocale) {
+          _translations[entry.key] = entry.value;
+          if (!_translationControllers.containsKey(entry.key)) {
+            final ctrl = TextEditingController(text: entry.value);
+            ctrl.addListener(() => _onTranslationChanged(entry.key, ctrl.text));
+            _translationControllers[entry.key] = ctrl;
+          } else if (_translationControllers[entry.key]!.text != entry.value) {
+            _translationControllers[entry.key]!
+                .value = _translationControllers[entry.key]!.value.copyWith(
+              text: entry.value,
+              selection: TextSelection.collapsed(offset: entry.value.length),
+            );
           }
         }
-        // Remove deleted ones externally
-        final keysToRemove =
-            _translationControllers.keys
-                .where((k) => !newMap.containsKey(k))
-                .toList();
-        for (final k in keysToRemove) {
-          _translationControllers[k]?.dispose();
-          _translationControllers.remove(k);
-          _translations.remove(k);
-        }
+      }
+      // Remove deleted ones externally
+      final keysToRemove = _translationControllers.keys
+          .where((k) => !newTranslationsStringMap.containsKey(k))
+          .toList();
+      for (final k in keysToRemove) {
+        _translationControllers[k]?.dispose();
+        _translationControllers.remove(k);
+        _translations.remove(k);
       }
 
       if (_defaultController.text != newDefaultText) {
@@ -211,8 +197,9 @@ class _I18nTextFieldState extends State<I18nTextField> {
               TextField(
                 controller: langController,
                 decoration: InputDecoration(
-                  labelText:
-                      AppLocalizations.of(context)!.i18nLanguageCodePlaceholder,
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.i18nLanguageCodePlaceholder,
                 ),
                 maxLength: 2,
               ),
@@ -321,10 +308,9 @@ class _I18nTextFieldState extends State<I18nTextField> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -332,10 +318,9 @@ class _I18nTextFieldState extends State<I18nTextField> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimaryContainer,
                                 ),
                               ),
                             ),
@@ -346,10 +331,9 @@ class _I18nTextFieldState extends State<I18nTextField> {
                                 color: Theme.of(context).colorScheme.error,
                               ),
                               onPressed: () => _removeTranslation(entry.key),
-                              tooltip:
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.i18nDeleteTranslation,
+                              tooltip: AppLocalizations.of(
+                                context,
+                              )!.i18nDeleteTranslation,
                             ),
                           ],
                         ),
@@ -357,11 +341,10 @@ class _I18nTextFieldState extends State<I18nTextField> {
                         TextField(
                           controller: entry.value,
                           decoration: InputDecoration(
-                            hintText: AppLocalizations.of(
-                              context,
-                            )!.i18nTranslateToPlaceholder(
-                              entry.key.toUpperCase(),
-                            ),
+                            hintText: AppLocalizations.of(context)!
+                                .i18nTranslateToPlaceholder(
+                                  entry.key.toUpperCase(),
+                                ),
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,

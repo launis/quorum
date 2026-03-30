@@ -1,6 +1,7 @@
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:dio/dio.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 extension AppExceptionX on AppException {
   /// Converts [AppException] to a localized user-facing actionable hint.
@@ -47,6 +48,13 @@ extension AppExceptionX on AppException {
       return error.toLocalizedHint(l10n);
     }
 
+    if (error is CheckedFromJsonException) {
+      if (error.innerError is AppException) {
+        return (error.innerError as AppException).toLocalizedHint(l10n);
+      }
+      return '${l10n.errValidationFailed}\n\nInvalid field: ${error.key}. ${error.message}';
+    }
+
     if (error is DioException) {
       if (error.error is AppException) {
         return (error.error as AppException).toLocalizedHint(l10n);
@@ -57,8 +65,7 @@ extension AppExceptionX on AppException {
         DioExceptionType.receiveTimeout ||
         DioExceptionType.sendTimeout ||
         DioExceptionType.connectionError ||
-        DioExceptionType.badCertificate =>
-          l10n.errorNetwork,
+        DioExceptionType.badCertificate => l10n.errorNetwork,
         DioExceptionType.cancel => l10n.cancel,
         DioExceptionType.badResponse => l10n.errorServer,
         DioExceptionType.unknown => l10n.errorUnknown,
