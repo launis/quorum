@@ -102,6 +102,7 @@ class BlueprintTransformer:
 
         profile_name_dict = profile.name
         layout_defs = profile.layouts
+        display_scale = getattr(profile, "display_scale", "original")
 
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
@@ -179,17 +180,26 @@ class BlueprintTransformer:
                             if not block and not is_legacy_score:
                                 continue
 
+                            # --- Epic 12: View Scale Selection ---
+                            active_score_key = k
+                            if not is_legacy_score:
+                                if display_scale == "custom":
+                                    active_score_key = f"{k}_scaled"
+                                elif display_scale == "normalized_100":
+                                    active_score_key = f"{k}_normalized"
+
+                            target_val = step_data.get(active_score_key, v)
+
                             is_matrix_category = block and block.get("category_id") == "matrix"
-                            is_numeric = (isinstance(v, (int, float)) and not isinstance(v, bool)) or str(v).replace(
-                                ".", "", 1
-                            ).isdigit()
+                            is_num_type = isinstance(target_val, (int, float)) and not isinstance(target_val, bool)
+                            is_numeric = is_num_type or str(target_val).replace(".", "", 1).isdigit()
                             score_float = None
 
                             # Strict Rendering: Only allow float scores to be parsed for Matrix categories
                             # (or the original global score)
                             if is_numeric and (is_matrix_category or is_legacy_score):
                                 try:
-                                    score_float = float(v)
+                                    score_float = float(target_val) if target_val is not None else None
                                 except (ValueError, TypeError):
                                     score_float = None
 
@@ -197,7 +207,7 @@ class BlueprintTransformer:
                             axis_description = ""
                             scale_min = 0.0
                             scale_max = 0.0  # 0.0 cleanly suppresses UI scaling badges if undefined
-                            scale_labels = {}
+                            scale_labels: dict[str, str] = {}
 
                             if block:
                                 label_obj = block.get("label", {})
@@ -207,7 +217,13 @@ class BlueprintTransformer:
                                 axis_description = _resolve_i18n_str(desc_obj, locale, "")
 
                                 scales_def = block.get("scales", [])
-                                if scales_def:
+
+                                # Epic 12: Handle UI Visual Scale Boundaries
+                                if display_scale == "normalized_100" and is_matrix_category:
+                                    scale_min = 0.0
+                                    scale_max = 100.0
+                                    scale_labels = {}  # Purge mapping to prevent disproportionate labeling
+                                elif scales_def:
                                     scores = [float(s.get("score", 0)) for s in scales_def if "score" in s]
                                     if scores:
                                         scale_max = max(scores)

@@ -558,12 +558,20 @@ class OutputProfile(V2CoreBase):
     workflow_id: str = Field(description="ID of the associated Workflow")
     name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
+    display_scale: Literal["original", "custom", "normalized_100"] = Field(
+        default="original",
+        description="Selects the source scaling for the scores printed by Blueprint.",
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
 class EmbeddedOutputProfile(V2CoreBase):
     """Embedded configuration mapping for workflow output profiles."""
 
     name: I18nText = Field(description="Localized name of the profile.")
+    display_scale: Literal["original", "custom", "normalized_100"] = Field(
+        default="original",
+        description="Selects the source scaling for the scores printed by Blueprint.",
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
 

@@ -1061,5 +1061,9 @@
   "sharedUnknownAgent": "Tuntematon Agentti",
   "sharedUnknown": "Tuntematon",
   "studioWorkflowAllInputsCombined": "Kaikki alkuperäiset syötteet yhdistettynä ($inputs)",
-  "studioWorkflowAllStepsCombined": "Kaikki aiemmat vaiheet yhdistettynä ($steps)"
+  "studioWorkflowAllStepsCombined": "Kaikki aiemmat vaiheet yhdistettynä ($steps)",
+  "profileDisplayScaleLabel": "Tulosteen skaalauslähde",
+  "scaleOriginal": "Alkuperäinen matriisiarvo (Oletus)",
+  "scaleCustom": "Custom laskutoimitus (Hook)",
+  "scaleNormalized100": "Prosentuaalinen (0 - 100)"
 }

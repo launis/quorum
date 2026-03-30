@@ -68,50 +68,63 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
     };
 
 _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('_OutputProfile', json, ($checkedConvert) {
-      $checkKeys(
-        json,
-        allowedKeys: const [
-          'id',
-          'slug',
-          'workflow_id',
-          'name',
-          'description',
-          'layouts',
-        ],
-      );
-      final val = _OutputProfile(
-        id: $checkedConvert(
-          'id',
-          (v) => const StrictOpaqueIdConverter().fromJson(v as String),
-        ),
-        slug: $checkedConvert('slug', (v) => v as String? ?? ''),
-        workflowId: $checkedConvert(
-          'workflow_id',
-          (v) => const StrictOpaqueIdConverter().fromJson(v as String),
-        ),
-        name: $checkedConvert(
-          'name',
-          (v) => I18nText.fromJson(v as Map<String, dynamic>),
-        ),
-        description: $checkedConvert(
-          'description',
-          (v) => I18nText.fromJson(v as Map<String, dynamic>),
-        ),
-        layouts: $checkedConvert(
-          'layouts',
-          (v) =>
-              (v as List<dynamic>?)
-                  ?.map(
-                    (e) =>
-                        OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
-                  )
-                  .toList() ??
-              const [],
-        ),
-      );
-      return val;
-    }, fieldKeyMap: const {'workflowId': 'workflow_id'});
+    $checkedCreate(
+      '_OutputProfile',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'id',
+            'slug',
+            'workflow_id',
+            'name',
+            'description',
+            'display_scale',
+            'layouts',
+          ],
+        );
+        final val = _OutputProfile(
+          id: $checkedConvert(
+            'id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          slug: $checkedConvert('slug', (v) => v as String? ?? ''),
+          workflowId: $checkedConvert(
+            'workflow_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          name: $checkedConvert(
+            'name',
+            (v) => I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          description: $checkedConvert(
+            'description',
+            (v) => I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          displayScale: $checkedConvert(
+            'display_scale',
+            (v) => v as String? ?? 'original',
+          ),
+          layouts: $checkedConvert(
+            'layouts',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map(
+                      (e) =>
+                          OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
+                    )
+                    .toList() ??
+                const [],
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'workflowId': 'workflow_id',
+        'displayScale': 'display_scale',
+      },
+    );
 
 Map<String, dynamic> _$OutputProfileToJson(
   _OutputProfile instance,
@@ -121,35 +134,46 @@ Map<String, dynamic> _$OutputProfileToJson(
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
   'name': instance.name.toJson(),
   'description': instance.description.toJson(),
+  'display_scale': instance.displayScale,
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };
 
 _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
   Map<String, dynamic> json,
-) => $checkedCreate('_EmbeddedOutputProfile', json, ($checkedConvert) {
-  $checkKeys(json, allowedKeys: const ['name', 'layouts']);
-  final val = _EmbeddedOutputProfile(
-    name: $checkedConvert(
-      'name',
-      (v) => I18nText.fromJson(v as Map<String, dynamic>),
-    ),
-    layouts: $checkedConvert(
-      'layouts',
-      (v) =>
-          (v as List<dynamic>?)
-              ?.map(
-                (e) => OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
-              )
-              .toList() ??
-          const [],
-    ),
-  );
-  return val;
-});
+) => $checkedCreate(
+  '_EmbeddedOutputProfile',
+  json,
+  ($checkedConvert) {
+    $checkKeys(json, allowedKeys: const ['name', 'display_scale', 'layouts']);
+    final val = _EmbeddedOutputProfile(
+      name: $checkedConvert(
+        'name',
+        (v) => I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      displayScale: $checkedConvert(
+        'display_scale',
+        (v) => v as String? ?? 'original',
+      ),
+      layouts: $checkedConvert(
+        'layouts',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) => OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {'displayScale': 'display_scale'},
+);
 
 Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   _EmbeddedOutputProfile instance,
 ) => <String, dynamic>{
   'name': instance.name.toJson(),
+  'display_scale': instance.displayScale,
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };

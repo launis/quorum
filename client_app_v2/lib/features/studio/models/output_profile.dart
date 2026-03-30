@@ -32,6 +32,7 @@ abstract class OutputProfile with _$OutputProfile {
     @StrictOpaqueIdConverter() required String workflowId,
     required I18nText name,
     required I18nText description,
+    @Default('original') String displayScale,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _OutputProfile;
 
@@ -45,6 +46,7 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
 
   const factory EmbeddedOutputProfile({
     required I18nText name,
+    @Default('original') String displayScale,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _EmbeddedOutputProfile;
 

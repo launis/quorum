@@ -5,6 +5,7 @@ It enforces the Semantic Routing and I18n standards, guaranteeing safe outputs.
 """
 
 import logging
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -22,6 +23,10 @@ class OutputProfile(BaseModel):
     workflow_id: str = Field(..., description="References the execution DAG to scope Target Matrices.")
     name: I18nText = Field(..., description="Localized name of the Output Profile.")
     description: I18nText | None = Field(default=None, description="Localized description.")
+    display_scale: Literal["original", "custom", "normalized_100"] = Field(
+        default="original",
+        description="Selects the source scaling for the scores printed by Blueprint.",
+    )
     layouts: list[OutputLayoutBlock] = Field(
         default_factory=list, description="The sequence of layouts composing the entire document."
     )

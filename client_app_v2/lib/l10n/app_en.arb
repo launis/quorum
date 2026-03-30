@@ -1499,5 +1499,9 @@
   "sharedUnknownAgent": "Unknown Agent",
   "sharedUnknown": "Unknown",
   "studioWorkflowAllInputsCombined": "All original inputs combined ($inputs)",
-  "studioWorkflowAllStepsCombined": "All previous steps combined ($steps)"
+  "studioWorkflowAllStepsCombined": "All previous steps combined ($steps)",
+  "profileDisplayScaleLabel": "Display Scale Source",
+  "scaleOriginal": "Raw Matrix Value (Original)",
+  "scaleCustom": "Custom Computed Hook Value",
+  "scaleNormalized100": "Global Percentage (0 - 100)"
 }

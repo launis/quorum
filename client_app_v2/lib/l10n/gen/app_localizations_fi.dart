@@ -3238,4 +3238,16 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get studioWorkflowAllStepsCombined =>
       'Kaikki aiemmat vaiheet yhdistettynä (\$steps)';
+
+  @override
+  String get profileDisplayScaleLabel => 'Tulosteen skaalauslähde';
+
+  @override
+  String get scaleOriginal => 'Alkuperäinen matriisiarvo (Oletus)';
+
+  @override
+  String get scaleCustom => 'Custom laskutoimitus (Hook)';
+
+  @override
+  String get scaleNormalized100 => 'Prosentuaalinen (0 - 100)';
 }

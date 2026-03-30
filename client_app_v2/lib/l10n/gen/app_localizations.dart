@@ -5891,6 +5891,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All previous steps combined (\$steps)'**
   String get studioWorkflowAllStepsCombined;
+
+  /// No description provided for @profileDisplayScaleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Display Scale Source'**
+  String get profileDisplayScaleLabel;
+
+  /// No description provided for @scaleOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw Matrix Value (Original)'**
+  String get scaleOriginal;
+
+  /// No description provided for @scaleCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Computed Hook Value'**
+  String get scaleCustom;
+
+  /// No description provided for @scaleNormalized100.
+  ///
+  /// In en, this message translates to:
+  /// **'Global Percentage (0 - 100)'**
+  String get scaleNormalized100;
 }
 
 class _AppLocalizationsDelegate

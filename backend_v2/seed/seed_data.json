@@ -5694,7 +5694,8 @@
               ],
               "steps": []
             }
-          ]
+          ],
+          "display_scale": "original"
         }
       },
       "status": "active",

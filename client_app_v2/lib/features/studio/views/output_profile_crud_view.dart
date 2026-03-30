@@ -363,6 +363,42 @@ class OutputProfileCrudView extends HookConsumerWidget {
                           updatePayload(payload.copyWith(description: val));
                         },
                       ),
+                      const SizedBox(height: 16),
+                      InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: l10n.profileDisplayScaleLabel,
+                          isDense: true,
+                          border: const OutlineInputBorder(),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: payload.displayScale,
+                            isDense: true,
+                            isExpanded: true,
+                            items: [
+                              DropdownMenuItem(
+                                value: 'original',
+                                child: Text(l10n.scaleOriginal),
+                              ),
+                              DropdownMenuItem(
+                                value: 'custom',
+                                child: Text(l10n.scaleCustom),
+                              ),
+                              DropdownMenuItem(
+                                value: 'normalized_100',
+                                child: Text(l10n.scaleNormalized100),
+                              ),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                updatePayload(
+                                  payload.copyWith(displayScale: val),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -3,6 +3,7 @@
 These models handle the ingestion and output formats for the Output Profile REST APIs.
 """
 
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.models.v2_core import I18nText, OutputLayoutBlock
@@ -20,6 +21,9 @@ class OutputProfileCreateDTO(BaseModel):
     workflow_id: str = Field(..., description="References the execution DAG to scope Target Matrices.")
     name: I18nText = Field(..., description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
+    display_scale: Literal["original", "custom", "normalized_100"] = Field(
+        default="original", description="UI rendering scale instruction."
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Sequence of layouts.")
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -32,6 +36,9 @@ class OutputProfileUpdateDTO(BaseModel):
     workflow_id: str | None = Field(default=None, description="Optional workflow reassignment.")
     name: I18nText | None = Field(default=None, description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
+    display_scale: Literal["original", "custom", "normalized_100"] | None = Field(
+        default=None, description="UI rendering scale instruction."
+    )
     layouts: list[OutputLayoutBlock] | None = Field(default=None, description="Sequence of layouts.")
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -45,6 +52,7 @@ class OutputProfileResponseDTO(BaseModel):
     workflow_id: str
     name: I18nText
     description: I18nText | None = None
+    display_scale: Literal["original", "custom", "normalized_100"] = "original"
     layouts: list[OutputLayoutBlock]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

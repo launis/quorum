@@ -3216,4 +3216,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get studioWorkflowAllStepsCombined =>
       'All previous steps combined (\$steps)';
+
+  @override
+  String get profileDisplayScaleLabel => 'Display Scale Source';
+
+  @override
+  String get scaleOriginal => 'Raw Matrix Value (Original)';
+
+  @override
+  String get scaleCustom => 'Custom Computed Hook Value';
+
+  @override
+  String get scaleNormalized100 => 'Global Percentage (0 - 100)';
 }

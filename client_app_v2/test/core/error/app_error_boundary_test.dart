@@ -22,44 +22,43 @@ class FaultyWidget extends StatelessWidget {
 }
 
 void main() {
-  testWidgets('AppExceptionBoundary catches render crashes and draws Diagnostic Node', (WidgetTester tester) async {
-    // We must temporarily intercept FlutterError to prevent test runner from failing instantly
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      // Allow AppExceptionBoundary to process it through ErrorWidget.builder 
-    };
+  testWidgets(
+    'AppExceptionBoundary catches render crashes and draws Diagnostic Node',
+    (WidgetTester tester) async {
+      // We must temporarily intercept FlutterError to prevent test runner from failing instantly
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        // Allow AppExceptionBoundary to process it through ErrorWidget.builder
+      };
 
-    try {
-      await tester.pumpWidget(
-        const MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: Locale('en'),
-          home: Scaffold(
-            body: AppExceptionBoundary(
-              child: FaultyWidget(),
-            ),
+      try {
+        await tester.pumpWidget(
+          const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
+            home: Scaffold(body: AppExceptionBoundary(child: FaultyWidget())),
           ),
-        ),
-      );
+        );
 
-      // The first pump triggers the failing build. 
-      // The ErrorWidget.builder inside AppExceptionBoundary handles it and schedules a setState for the next frame.
-      // We must pumpAndSettle to draw the fallback UI.
-      await tester.pumpAndSettle();
+        // The first pump triggers the failing build.
+        // The ErrorWidget.builder inside AppExceptionBoundary handles it and schedules a setState for the next frame.
+        // We must pumpAndSettle to draw the fallback UI.
+        await tester.pumpAndSettle();
 
-      // Ensure that the original faulty child is removed
-      expect(find.byType(FaultyWidget), findsNothing);
-      
-      // Verify the Diagnostic Node render details are present
-      expect(find.byIcon(Icons.report_problem), findsOneWidget);
-      expect(find.byIcon(Icons.refresh), findsOneWidget);
+        // Ensure that the original faulty child is removed
+        expect(find.byType(FaultyWidget), findsNothing);
 
-      // We expect the JSON exception key to be displayed verbatim inside the Diagnostic Node
-      expect(find.textContaining('malicious_dart_key'), findsOneWidget);
-    } finally {
-      // Restore global error handler
-      FlutterError.onError = originalOnError;
-    }
-  });
+        // Verify the Diagnostic Node render details are present
+        expect(find.byIcon(Icons.report_problem), findsOneWidget);
+        expect(find.byIcon(Icons.refresh), findsOneWidget);
+
+        // We expect the JSON exception key to be displayed verbatim inside the Diagnostic Node
+        expect(find.textContaining('malicious_dart_key'), findsOneWidget);
+      } finally {
+        // Restore global error handler
+        FlutterError.onError = originalOnError;
+      }
+    },
+  );
 }
