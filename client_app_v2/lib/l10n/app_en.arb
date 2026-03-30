@@ -1497,5 +1497,7 @@
   "sharedSelectFile": "Select file...",
   "sharedSystemError": "System Error",
   "sharedUnknownAgent": "Unknown Agent",
-  "sharedUnknown": "Unknown"
+  "sharedUnknown": "Unknown",
+  "studioWorkflowAllInputsCombined": "All original inputs combined ($inputs)",
+  "studioWorkflowAllStepsCombined": "All previous steps combined ($steps)"
 }

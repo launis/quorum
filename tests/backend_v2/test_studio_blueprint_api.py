@@ -23,6 +23,9 @@ async def test_studio_workflow_blueprint_saving_valid() -> None:
                 "ai_description": "ai"
             }
         ],
+        "status": "published",
+        "version": 1,
+        "default_profile_id": "default",
     }
 
     # Should validate perfectly

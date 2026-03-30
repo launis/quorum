@@ -501,9 +501,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           ],
                         ),
                         onTap: () {
-                          // TODO: Implement StepEditRoute for Freezed NodeStrategy
-                          // For now, pass null or specific data as required.
-                          StepEditRoute($extra: {}).go(context);
+                          StepEditRoute($extra: blueprint.toJson()).go(context);
                         },
                       ),
                     );

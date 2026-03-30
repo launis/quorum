@@ -14,6 +14,7 @@ class WorkflowStepCard extends StatelessWidget {
   final List<NodeStrategy> blueprints;
   final List<StepRule> allSteps;
   final List<Map<String, dynamic>> mcpGateways;
+  final List<ExpectedInput> globalWorkflowInputs;
   final AppLocalizations l10n;
   final Function(StepRule) onChanged;
   final VoidCallback onDelete;
@@ -25,6 +26,7 @@ class WorkflowStepCard extends StatelessWidget {
     required this.blueprints,
     required this.allSteps,
     required this.mcpGateways,
+    required this.globalWorkflowInputs,
     required this.l10n,
     required this.onChanged,
     required this.onDelete,
@@ -244,10 +246,22 @@ class WorkflowStepCard extends StatelessWidget {
               final expectedInputs = activeBlueprint.expectedInputs;
 
               final availableSources = <DropdownMenuItem<String>>[
-                const DropdownMenuItem(
-                  value: r'$inputs.document',
-                  child: Text('Global Workflow Input'),
+                DropdownMenuItem(
+                  value: r'$inputs',
+                  child: Text(l10n.studioWorkflowAllInputsCombined),
                 ),
+                DropdownMenuItem(
+                  value: r'$steps',
+                  child: Text(l10n.studioWorkflowAllStepsCombined),
+                ),
+                ...globalWorkflowInputs.map((ei) {
+                  final key = r'$inputs.' + ei.inputKey;
+                  final label = ei.label.get(l10n.localeName);
+                  return DropdownMenuItem(
+                    value: key,
+                    child: Text('Syöte: $label ($key)'),
+                  );
+                }),
               ];
 
               for (final prevId in dependsOn) {
@@ -266,7 +280,7 @@ class WorkflowStepCard extends StatelessWidget {
                 }
                 availableSources.add(
                   DropdownMenuItem(
-                    value: '\$steps.$prevId.output',
+                    value: '\$steps.$prevId.outputs',
                     child: Text(label),
                   ),
                 );

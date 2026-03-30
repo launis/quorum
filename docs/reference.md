@@ -35,13 +35,15 @@ quorum/backend_v2/
 │
 ├── llm/                        # Integroidut AI-mallien soittimet (LiteLLM, GenAI)
 │
-├── models/                     # Single Source of Truth (SSOT) Datamallit (Pydantic V2)
+├── models/                     # Single Source of Truth (SSOT) Datamallit (Pydantic V2 Strict Mode)
 │   ├── auth.py                 # TokenData ja User/Organization Skeemat
 │   ├── domain/                 # Vahvat liiketoimintamallit
 │   ├── dtos/                   # DTO-mallit (LLM-päätepisteiden sisään/ulostulo)
 │   ├── enums.py                # Status-, Rooli-, ja Moodi-Enumeraatiot
 │   ├── state.py                # DAG Moottorin ajonaikainen tila
 │   ├── v2_core.py              # Arkkitehtuurimallit (Workflow, PromptBlock, OutputProfile jne.)
+│   │                           # HUOM: V3 Abatement eristänyt kaikki piilotetut fail-fast sivuutukset (Configuration Sovereignty).
+│   │                           # Status, tyyppi ja versiot on pakotettu eksplisiittisiksi ilman oletusarvoja (`Field(default=...)`).
 │   └── workflow.py             # Työnkulkujen rakennemallit
 │
 ├── scripts/                    # Työkalut, migraatiot ja API-dokumentaatio (esim. generate_openapi.py)

@@ -1059,5 +1059,7 @@
   "sharedSelectFile": "Valitse tiedosto...",
   "sharedSystemError": "Järjestelmävirhe",
   "sharedUnknownAgent": "Tuntematon Agentti",
-  "sharedUnknown": "Tuntematon"
+  "sharedUnknown": "Tuntematon",
+  "studioWorkflowAllInputsCombined": "Kaikki alkuperäiset syötteet yhdistettynä ($inputs)",
+  "studioWorkflowAllStepsCombined": "Kaikki aiemmat vaiheet yhdistettynä ($steps)"
 }

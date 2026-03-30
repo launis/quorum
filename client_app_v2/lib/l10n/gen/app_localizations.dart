@@ -5879,6 +5879,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown'**
   String get sharedUnknown;
+
+  /// No description provided for @studioWorkflowAllInputsCombined.
+  ///
+  /// In en, this message translates to:
+  /// **'All original inputs combined (\$inputs)'**
+  String get studioWorkflowAllInputsCombined;
+
+  /// No description provided for @studioWorkflowAllStepsCombined.
+  ///
+  /// In en, this message translates to:
+  /// **'All previous steps combined (\$steps)'**
+  String get studioWorkflowAllStepsCombined;
 }
 
 class _AppLocalizationsDelegate

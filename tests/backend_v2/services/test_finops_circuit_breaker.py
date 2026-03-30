@@ -25,10 +25,13 @@ def repo_mock() -> AsyncMock:
             "slug": "test_wf",
             "name": {"default_locale": "en", "translations": {"en": "Test"}},
             "description": {"default_locale": "en", "translations": {"en": "Test desc"}},
+            "status": "published",
+            "version": 1,
             "organization_id": "test_org",
             "steps": [],
             "expected_inputs": [],
             "output_profiles": {},
+            "default_profile_id": "default",
         }
     )
     return mock

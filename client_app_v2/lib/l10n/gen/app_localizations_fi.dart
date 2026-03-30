@@ -3230,4 +3230,12 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get sharedUnknown => 'Tuntematon';
+
+  @override
+  String get studioWorkflowAllInputsCombined =>
+      'Kaikki alkuperäiset syötteet yhdistettynä (\$inputs)';
+
+  @override
+  String get studioWorkflowAllStepsCombined =>
+      'Kaikki aiemmat vaiheet yhdistettynä (\$steps)';
 }

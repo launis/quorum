@@ -41,6 +41,8 @@ class DAGCompilerService:
         available_keys = {f"$inputs.{inp.input_key}" for inp in workflow.expected_inputs}
         # Add a universal $inputs fallback since some scripts might just refer to $inputs (the entire dict)
         available_keys.add("$inputs")
+        # Ensure the global aggregator $steps is universally accepted
+        available_keys.add("$steps")
 
         # We also have access to $global configurations if needed, but per Epic, Focus on $inputs and $steps.
         ordered_steps = DAGCompilerService._get_topological_order(workflow.steps)

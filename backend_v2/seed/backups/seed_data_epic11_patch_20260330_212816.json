@@ -5371,7 +5371,7 @@
             "sr_5f3dd7712a7f4bb3"
           ],
           "input_mappings": {
-            "results": "$steps.sr_5f3dd7712a7f4bb3.outputs"
+            "results": "$sr_5f3dd7712a7f4bb3.outputs"
           }
         }
       ],
@@ -5700,7 +5700,7 @@
       "status": "active",
       "is_public": true,
       "version": 1,
-      "default_profile_id": "prf_7cc661da3f9f405c"
+      "default_profile_id": "default"
     }
   ],
   "steps": [
@@ -6322,7 +6322,6 @@
         "blk_a5ce16009a514628",
         "blk_091db241c5154336",
         "blk_6b8c766185294f7e",
-        "blk_22e3598e06414409",
         "blk_f6e286f050c94d60"
       ],
       "pre_hooks": [

@@ -5361,7 +5361,7 @@
             "sr_0228db320e8f41bb"
           ],
           "input_mappings": {
-            "context": "$steps"
+            "inputs": "$inputs"
           }
         },
         {
@@ -5369,10 +5369,7 @@
           "task_blueprint": "sp_d245365e4a274b9e",
           "depends_on": [
             "sr_5f3dd7712a7f4bb3"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_5f3dd7712a7f4bb3.outputs"
-          }
+          ]
         }
       ],
       "slug": "kokonaisvaltainen_auditointi",
@@ -5698,9 +5695,7 @@
         }
       },
       "status": "active",
-      "is_public": true,
-      "version": 1,
-      "default_profile_id": "prf_7cc661da3f9f405c"
+      "is_public": true
     }
   ],
   "steps": [
@@ -5734,9 +5729,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "precise",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -5787,9 +5780,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "precise",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -5832,9 +5823,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "precise",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -5880,9 +5869,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "precise",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -5939,9 +5926,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "deep",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -5984,9 +5969,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "strict",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -6032,9 +6015,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "deep",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -6082,9 +6063,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "strict",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -6132,9 +6111,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "precise",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -6180,9 +6157,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "strict",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -6240,9 +6215,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "precise",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -6290,9 +6263,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "precise",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -6322,7 +6293,6 @@
         "blk_a5ce16009a514628",
         "blk_091db241c5154336",
         "blk_6b8c766185294f7e",
-        "blk_22e3598e06414409",
         "blk_f6e286f050c94d60"
       ],
       "pre_hooks": [
@@ -6335,9 +6305,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "deep",
-      "expected_inputs": [
-        "context"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -6370,9 +6338,7 @@
       "safety": "safe",
       "type": "llm",
       "model_strategy": "search",
-      "expected_inputs": [
-        "inputs"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     },
     {
@@ -6399,9 +6365,7 @@
       "prompt_blocks": [],
       "pre_hooks": [],
       "post_hooks": [],
-      "expected_inputs": [
-        "results"
-      ],
+      "expected_inputs": [],
       "output_schema": null
     }
   ],

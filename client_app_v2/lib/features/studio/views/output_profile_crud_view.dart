@@ -192,7 +192,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
     void addLayout() {
       layouts.add(
         const OutputLayoutBlock(
-          presetView: 'box_1d',
+          presetView: '1d_metrics',
           title: I18nText(
             defaultLocale: 'en',
             translations: {'en': 'New Layout Block'},
@@ -450,13 +450,13 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
     String currentPreset = layout.presetView;
     if (![
-      'box_1d',
-      'matrix_2d',
-      'radar_3d',
+      '1d_metrics',
+      '2d_compare',
+      '3d_complex',
       'text_only',
-      'automatic',
+      'default',
     ].contains(currentPreset)) {
-      currentPreset = 'box_1d';
+      currentPreset = '1d_metrics';
     }
 
     final bool showText = layout.showText;
@@ -490,15 +490,15 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   ),
                   items: [
                     DropdownMenuItem(
-                      value: 'box_1d',
+                      value: '1d_metrics',
                       child: Text(l10n.preset1dTable),
                     ),
                     DropdownMenuItem(
-                      value: 'matrix_2d',
+                      value: '2d_compare',
                       child: Text(l10n.preset2dGrid),
                     ),
                     DropdownMenuItem(
-                      value: 'radar_3d',
+                      value: '3d_complex',
                       child: Text(l10n.preset3dRadar),
                     ),
                     DropdownMenuItem(
@@ -506,7 +506,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                       child: Text(l10n.presetTextOnly),
                     ),
                     DropdownMenuItem(
-                      value: 'automatic',
+                      value: 'default',
                       child: Text(l10n.presetAutomatic),
                     ),
                   ],
@@ -584,9 +584,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
               }).toList();
 
               final int requiredDropdowns = switch (currentPreset) {
-                'box_1d' => 1,
-                'matrix_2d' => 2,
-                'radar_3d' => 3,
+                '1d_metrics' => 1,
+                '2d_compare' => 2,
+                '3d_complex' => 3,
                 _ => 1,
               };
 

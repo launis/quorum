@@ -3208,4 +3208,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sharedUnknown => 'Unknown';
+
+  @override
+  String get studioWorkflowAllInputsCombined =>
+      'All original inputs combined (\$inputs)';
+
+  @override
+  String get studioWorkflowAllStepsCombined =>
+      'All previous steps combined (\$steps)';
 }

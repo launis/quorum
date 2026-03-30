@@ -63,44 +63,30 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         logger.info("[IntegrityHook] Citation verification bypassed (SKIP_CITATION_VERIFICATION=true).")
         return HookResult(success=True, state_delta={})
 
-    # 1. Gather Source Text
-    # V2 Isolation Support: Since hooks receive local state, "inputs" might be missing if not explicitly passed.
-    inputs = state.inputs
-
-    if not inputs:
-        # Pull global inputs injected by DAG executor for post-hook lookups
-        global_vars = state.global_context_vars
-        if "$inputs" in global_vars:
-            # Note: $inputs resolves to `inputs.raw_inputs` during execution
-            inputs_obj = global_vars["$inputs"]
-            if hasattr(inputs_obj, "model_dump"):
-                inputs = inputs_obj.model_dump()
-            elif hasattr(inputs_obj, "raw_inputs"):
-                inputs = inputs_obj.raw_inputs
-            elif isinstance(inputs_obj, dict):
-                inputs = inputs_obj.get("raw_inputs", inputs_obj)
-            else:
-                inputs = {}
-
+    # 1. Gather Source Text (The empirical evidence to check against)
+    # The true source text is stored in `global_context_vars["inputs"]`.
+    global_vars = state.global_context_vars
+    actual_inputs = global_vars.get("inputs", {})
+    
+    if not actual_inputs and "$inputs" in global_vars:
+        inputs_obj = global_vars["$inputs"]
+        if hasattr(inputs_obj, "model_dump"):
+            actual_inputs = inputs_obj.model_dump()
+        elif hasattr(inputs_obj, "raw_inputs"):
+            actual_inputs = inputs_obj.raw_inputs
+        elif isinstance(inputs_obj, dict):
+            actual_inputs = inputs_obj.get("raw_inputs", inputs_obj)
+            
     source_texts: list[str] = []
 
-    if not inputs:
-        logger.warning("[IntegrityHook] Local citation verification requires some text inputs. Bypassing safely.")
-        return HookResult(success=True, state_delta={})
-
-    # Gather all text inputs dynamically
-    source_texts = []
-
-    if isinstance(inputs, dict):
-        for val in inputs.values():
+    if isinstance(actual_inputs, dict):
+        for val in actual_inputs.values():
             if val:
                 source_texts.append(str(val))
 
     if not source_texts:
-        error_code = ErrorCodes.EMPTY_INPUT
-        msg = "Missing any input text for citation verification."
-        logger.error("[IntegrityHook] %s: %s", error_code.name, msg)
-        raise AppException(message=msg, status_code=400, details={"error_code": error_code})
+        logger.warning("[IntegrityHook] Verification bypassed: Missing input text in global_context.")
+        return HookResult(success=True, state_delta={})
 
     # 1b. Gather Context (RAG)
     rag_text = ""
@@ -199,15 +185,16 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
             for item in obj:
                 scan_and_nullify(item)
 
-    # We mutate a deep copy of global_context_vars and return it as delta
+    # We mutate a deep copy of the LLM's output (state.inputs) and return it as delta
     import copy
 
-    delta = copy.deepcopy(state.global_context_vars)
-    scan_and_nullify(delta)
+    delta = copy.deepcopy(state.inputs)
+    if isinstance(delta, dict):
+        scan_and_nullify(delta)
 
     if total_count == 0:
         logger.warning("[IntegrityHook] No structured citations found to verify.")
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=delta)
 
     # FAIL FAST: Data Integrity (Part 18.1)
     if not source_corpus.strip():
@@ -238,8 +225,9 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     _threshold = get_settings().citation_integrity_threshold
     # In Graceful Degradation, we skip raising an AppException here unless desired. We rely on the nullification.
 
-    # Create a dedicated 'integrity_audit' key in context for visibility regardless of metadata presence
-    delta["integrity_audit"] = audit.model_dump()
+    # Create a dedicated 'integrity_audit' key in the step's local output for visibility
+    if isinstance(delta, dict):
+        delta["integrity_audit"] = audit.model_dump()
 
     return HookResult(success=True, state_delta=delta)
 

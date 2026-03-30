@@ -7,14 +7,17 @@ from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
 def _create_base_workflow(steps: list[StepRule], expected_inputs: list[ExpectedInput] | None = None) -> Workflow:
     return Workflow.model_validate({
-        "id": "testwf_12345678",
+        "id": "wf_12345678",
         "slug": "test_wf",
         "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
         "description": {"default_locale": "en", "translations": {"en": "Test description"}},
+        "status": "draft",
+        "version": 1,
         "organization_id": "system",
         "steps": steps,
         "expected_inputs": expected_inputs or [],
         "output_profiles": {},
+        "default_profile_id": "default",
     })
 
 def test_valid_linear_dag() -> None:

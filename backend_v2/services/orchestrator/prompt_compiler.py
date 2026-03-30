@@ -120,6 +120,16 @@ class PromptCompiler:
         # Removing '$' prefix if present
         if path.startswith("$"):
             path = path[1:]
+            
+        if path == "steps":
+            return self._extract_value_from_state("", {
+                "": {k: v for k, v in state_data.items()
+                     if not str(k).startswith("_") and k not in ("inputs", "raw_inputs", "reasoning_context")}
+            })
+
+        # Support the standard V2 $steps namespace for explicit node targeting (e.g. $steps.sr_xyz.outputs)
+        if path.startswith("steps."):
+            path = path[len("steps."):]
 
         parts = path.split(".")
         current: Any = state_data

@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus
-from backend_v2.models.state import TraceEvent
+from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 logger = logging.getLogger(__name__)
 
@@ -267,7 +267,7 @@ class SystemConfigModelRegistry(V2CoreBase):
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="System config ID")
     slug: str = Field(description="Slug identifier")
-    type: str = Field(default="model_registry", description="Type of config")
+    type: str = Field(description="Type of config")
     models: dict[str, ModelProfile] = Field(
         description="Dictionary mapping generic role names to specific ModelProfiles"
     )
@@ -303,7 +303,7 @@ class SystemConfigMCPGateways(V2CoreBase):
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="System config ID")
     slug: str = Field(description="Slug identifier.")
-    type: str = Field(default="mcp_gateways", description="Config type discriminator.")
+    type: str = Field(description="Config type discriminator.")
     tools: list[AllowedMCPTool] = Field(
         default_factory=list, description="Registry of all available MCP tools in the system."
     )
@@ -574,15 +574,15 @@ class Workflow(V2CoreBase):
     slug: str
     name: I18nText | str
     description: I18nText | str
-    status: str = Field(default="draft")
-    version: int = Field(default=1)
+    status: str
+    version: int
     is_public: bool = Field(default=False)
     organization_id: str | None = Field(default=None)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
     output_profiles: dict[str, EmbeddedOutputProfile] = Field(
         default_factory=dict, description="Dictionary of named output profiles for reporting."
     )
-    default_profile_id: str = Field(default="default", description="The ID of the default output profile to use.")
+    default_profile_id: str = Field(description="The ID of the default output profile to use.")
     expected_inputs: list[ExpectedInput] = Field(
         default_factory=list,
         description="List of dynamic expected inputs required by the workflow",
@@ -682,14 +682,14 @@ class ExecutionRecord(V2CoreBase):
     workflow_id: str = Field(description="Workflow ID")
     status: ExecutionStatus = Field(description="Current status of execution", strict=False)
     active_profile_id: str | None = Field(
-        default="default", description="The ID of the output profile selected for formatting and printing."
+        default=None, description="The ID of the output profile selected for formatting and printing."
     )
     raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="Raw user inputs by role")
     frozen_context: FrozenContext = Field(default_factory=FrozenContext, description="Immutable snapshot of context")
     frozen_context_storage_path: str | None = Field(
         default=None, description="Optional path to Blob Storage offloaded Frozen Context JSON"
     )
-    execution_trace: list[TraceEvent] = Field(
+    execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(
         default_factory=list, description="Immutable log of all events (Event Sourcing)."
     )
     execution_trace_storage_path: str | None = Field(

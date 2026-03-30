@@ -573,7 +573,7 @@ class StudioService:
         allowed_blocks = set()
 
         for step in all_steps:
-            if step.id in task_blueprints:
+            if step.id in task_blueprints or step.slug in task_blueprints:
                 allowed_blocks.update(step.prompt_blocks)
 
         for layout in profile.layouts:

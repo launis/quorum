@@ -83,6 +83,7 @@ class WorkflowStepsTab extends StatelessWidget {
                 blueprints: blueprints,
                 allSteps: allSteps,
                 mcpGateways: mcpGateways,
+                globalWorkflowInputs: workflow.expectedInputs,
                 l10n: l10n,
                 onChanged: (updatedStep) {
                   final newSteps = List<StepRule>.from(allSteps);
