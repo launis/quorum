@@ -162,8 +162,18 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   @override
   Future<void> deleteConfig(String id) async {}
   @override
-  Future<ModelConfig> cloneConfig(String id) async =>
-      const ModelConfig(id: 'cloned');
+  Future<ModelConfig> createSystemConfigDraft() async => const ModelConfig(
+    id: 'mock_draft',
+    slug: 'mock_draft_slug',
+    type: 'model_registry',
+  );
+  @override
+  Future<ModelConfig> cloneConfig(String id) async => const ModelConfig(
+    id: 'cloned',
+    slug: 'cloned_slug',
+    type: 'model_registry',
+    models: {},
+  );
 }
 
 class MockStepForm extends StepForm {

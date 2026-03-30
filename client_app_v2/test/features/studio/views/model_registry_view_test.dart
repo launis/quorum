@@ -20,6 +20,7 @@ void main() {
             modelRegistryByIdProvider('syscfg_123').overrideWith(
               (ref) async => const ModelConfig(
                 id: 'syscfg_123',
+                slug: 'syscfg_123_slug',
                 type: 'model_registry',
                 models: {
                   'fast': LlmModelConfig(
@@ -74,6 +75,7 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
     return const [
       ModelConfig(
         id: 'syscfg_123',
+        slug: 'syscfg_123_slug',
         type: 'model_registry',
         models: {
           'fast': LlmModelConfig(
@@ -98,7 +100,21 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   Future<void> deleteConfig(String id) async {}
 
   @override
+  Future<ModelConfig> createSystemConfigDraft() async {
+    return const ModelConfig(
+      id: 'mock_draft',
+      slug: 'mock_draft_slug',
+      type: 'model_registry',
+    );
+  }
+
+  @override
   Future<ModelConfig> cloneConfig(String id) async {
-    return const ModelConfig(id: 'cloned', type: 'model_registry', models: {});
+    return const ModelConfig(
+      id: 'cloned',
+      slug: 'cloned_slug',
+      type: 'model_registry',
+      models: {},
+    );
   }
 }

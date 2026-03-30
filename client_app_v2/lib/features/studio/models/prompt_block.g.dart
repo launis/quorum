@@ -119,6 +119,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
         'description',
         'ai_description',
         'category_id',
+        'is_evaluative',
         'type',
         'allow_decimals',
         'output_extensions',
@@ -149,6 +150,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
         'category_id',
         (v) => v as String? ?? 'system',
       ),
+      isEvaluative: $checkedConvert('is_evaluative', (v) => v as bool? ?? true),
       type: $checkedConvert(
         'type',
         (v) =>
@@ -196,6 +198,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
   fieldKeyMap: const {
     'aiDescription': 'ai_description',
     'categoryId': 'category_id',
+    'isEvaluative': 'is_evaluative',
     'allowDecimals': 'allow_decimals',
     'outputExtensions': 'output_extensions',
     'theoryGrounding': 'theory_grounding',
@@ -212,6 +215,7 @@ Map<String, dynamic> _$PromptBlockToJson(_PromptBlock instance) =>
       'description': instance.description.toJson(),
       'ai_description': instance.aiDescription,
       'category_id': instance.categoryId,
+      'is_evaluative': instance.isEvaluative,
       'type': _$BlockDataTypeEnumMap[instance.type]!,
       'allow_decimals': instance.allowDecimals,
       'output_extensions': instance.outputExtensions,

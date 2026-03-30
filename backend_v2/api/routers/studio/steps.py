@@ -38,8 +38,13 @@ async def simulate_step(
 
 @router.get("/", response_model=list[Step])
 async def get_steps(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> list[Step]:
-    """Retrieve all independent Steps securely via SSOT Service Layer."""
+    """Retrieve all V2 dynamic step execution block schemas securely via SSOT."""
     return await studio_service.list_steps(current_user)
+
+@router.post("/", response_model=Step)
+async def create_step(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Step:
+    """Create a new Step draft securely via SSOT."""
+    return await studio_service.create_step_draft(current_user)
 
 
 @router.get("/{id}", response_model=Step)

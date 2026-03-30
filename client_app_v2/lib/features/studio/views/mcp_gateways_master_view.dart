@@ -27,8 +27,22 @@ class McpGatewaysMasterView extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               FilledButton.icon(
-                onPressed: () {
-                  const McpGatewayNewRoute().go(context);
+                onPressed: () async {
+                  try {
+                    final draft = await ref
+                        .read(mcpGatewaysControllerProvider.notifier)
+                        .createMcpGatewayDraft();
+                    if (context.mounted) {
+                      McpGatewayEditRoute(id: draft['id'] ?? '', $extra: draft)
+                          .go(context);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to mint: $e')),
+                      );
+                    }
+                  }
                 },
                 icon: const Icon(Icons.add),
                 label: Text(l10n.studioViewsNewBtn),

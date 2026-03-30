@@ -38,9 +38,13 @@ async def simulate_prompt_block(
 
 @router.get("/", response_model=list[PromptBlock])
 async def get_prompt_blocks(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> list[PromptBlock]:
-    """Retrieve all prompt blocks securely via SSOT Service Layer."""
+    """Retrieve all PromptBlocks securely."""
     return await studio_service.list_prompt_blocks(current_user)
 
+@router.post("/", response_model=PromptBlock)
+async def create_prompt_block(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> PromptBlock:
+    """Create a new PromptBlock draft securely via SSOT."""
+    return await studio_service.create_prompt_block_draft(current_user)
 
 @router.get("/{id}", response_model=PromptBlock)
 async def get_prompt_block(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> PromptBlock:

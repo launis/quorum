@@ -31,8 +31,23 @@ class WorkflowsMasterView extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               FilledButton.icon(
-                onPressed: () {
-                  const WorkflowNewRoute().go(context);
+                onPressed: () async {
+                  try {
+                    // Thin Client Migration: Server-Side ID minting
+                    final draft = await ref
+                        .read(workflowsControllerProvider.notifier)
+                        .createWorkflowDraft();
+                    if (context.mounted) {
+                      WorkflowEditRoute(id: draft.id, slug: draft.slug)
+                          .go(context);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to mint: $e')),
+                      );
+                    }
+                  }
                 },
                 icon: const Icon(Icons.account_tree),
                 label: Text(l10n.studioViewsNewWorkflowBtn),

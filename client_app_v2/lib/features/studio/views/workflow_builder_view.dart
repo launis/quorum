@@ -5,7 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
-import 'package:client_app/features/studio/utils/workflow_cloner.dart';
+
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
@@ -117,38 +117,28 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
             child: Text(l10n.cancel),
           ),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop();
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+
               try {
-                // Ensure deep copy of nested structures by serializing and deserializing
-                final jsonOriginal = currentPayload.toJson();
-                final clonedJson = WorkflowCloner.cloneDeep(jsonOriginal);
-                final cloned = Workflow.fromJson(clonedJson);
-
-                final newTranslations = Map<String, String>.from(
-                  cloned.name.translations,
-                );
-                if (newTranslations.containsKey('en')) {
-                  newTranslations['en'] = "Copy of ${newTranslations['en']}";
-                }
-                if (newTranslations.containsKey('fi')) {
-                  newTranslations['fi'] = "Kopio - ${newTranslations['fi']}";
-                }
-
-                final newWorkflow = cloned.copyWith(
-                  name: cloned.name.copyWith(translations: newTranslations),
-                );
+                // SSoT Mandate: Backend performs the cloning to generate valid sr_ opaque IDs.
+                final clonedWorkflow = await ref
+                    .read(workflowsControllerProvider.notifier)
+                    .cloneWorkflow(currentPayload.id);
 
                 ref
                     .read(_workflowClonePayload.notifier)
-                    .setPayload(newWorkflow);
-                Navigator.of(context).pushReplacement(
+                    .setPayload(clonedWorkflow); // keep track for snapshot
+
+                navigator.pushReplacement(
                   MaterialPageRoute(
-                    builder: (context) => const WorkflowBuilderView(id: 'new'),
+                    builder: (context) => WorkflowBuilderView(id: clonedWorkflow.id),
                   ),
                 );
 
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(content: Text(l10n.workflowCloneSuccess)),
                 );
               } catch (e) {

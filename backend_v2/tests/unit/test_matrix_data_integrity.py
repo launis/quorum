@@ -1,10 +1,9 @@
 import json
 import os
+from typing import Any
 
 import pytest
 
-
-from typing import Any
 
 def load_seed_data() -> dict[str, Any]:
     # Removed unused settings

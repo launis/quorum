@@ -65,6 +65,12 @@ class StudioClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Creates a draft prompt block securely via SSOT Service Layer.
+  Future<Map<String, dynamic>> createPromptBlockDraft() async {
+    final response = await _dio.post('studio/prompt-blocks/');
+    return response.data as Map<String, dynamic>;
+  }
+
   // --- Workflows (DAG definitions) ---
 
   /// Retrieves all workflow definitions.
@@ -107,6 +113,12 @@ class StudioClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Creates a draft workflow definition securely via SSOT Service Layer.
+  Future<Map<String, dynamic>> createWorkflowDraft() async {
+    final response = await _dio.post('studio/workflows/');
+    return response.data as Map<String, dynamic>;
+  }
+
   // --- Steps ---
 
   /// Retrieves all steps.
@@ -144,6 +156,12 @@ class StudioClient {
   /// Deep clones a step securely.
   Future<Map<String, dynamic>> cloneStep(String id) async {
     final response = await _dio.post('studio/steps/$id/clone');
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Creates a draft step securely via SSOT Service Layer.
+  Future<Map<String, dynamic>> createStepDraft() async {
+    final response = await _dio.post('studio/steps/');
     return response.data as Map<String, dynamic>;
   }
   // --- Model Registry ---
@@ -186,6 +204,12 @@ class StudioClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Creates a draft system config securely via SSOT Service Layer.
+  Future<Map<String, dynamic>> createSystemConfigDraft() async {
+    final response = await _dio.post('studio/model-registry/');
+    return response.data as Map<String, dynamic>;
+  }
+
   // --- MCP Gateways ---
 
   /// Retrieves all MCP Gateways.
@@ -220,6 +244,12 @@ class StudioClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Creates a draft MCP Gateway securely via SSOT Service Layer.
+  Future<Map<String, dynamic>> createMcpGatewayDraft() async {
+    final response = await _dio.post('studio/mcp-gateways/');
+    return response.data as Map<String, dynamic>;
+  }
+
   // --- Output Profiles ---
 
   /// Retrieves all output profiles.
@@ -251,6 +281,12 @@ class StudioClient {
   /// Deep clones an output profile.
   Future<Map<String, dynamic>> cloneOutputProfile(String id) async {
     final response = await _dio.post('output-profiles/$id/clone');
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Creates a draft output profile securely via SSOT Service Layer.
+  Future<Map<String, dynamic>> createOutputProfileDraft() async {
+    final response = await _dio.post('output-profiles/');
     return response.data as Map<String, dynamic>;
   }
 }

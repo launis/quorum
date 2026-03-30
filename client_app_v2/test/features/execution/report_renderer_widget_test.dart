@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
@@ -12,13 +13,21 @@ void main() {
       final dto = const ReportDataDTO(
         workflowId: 'wf_test',
         profileId: 'default',
-        profileName: {'en': 'Default Profile'},
-        availableProfiles: {'default': 'Default Profile'},
+        profileName: I18nText(
+          defaultLocale: 'en',
+          translations: {'en': 'Default Profile'},
+        ),
+        availableProfiles: {
+          'default': I18nText(
+            defaultLocale: 'en',
+            translations: {'en': 'Default Profile'},
+          ),
+        },
         layouts: [
           ReportLayoutDTO(
             presetView: '1d_metrics',
-            title: {},
-            description: {},
+            title: null,
+            description: null,
             showText: true,
             axes: [
               ReportAxisDTO(

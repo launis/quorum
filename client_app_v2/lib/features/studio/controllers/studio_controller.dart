@@ -5,7 +5,7 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
+
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -41,21 +41,6 @@ Future<NodeStrategy> stepById(Ref ref, String id) async {
 class WorkflowForm extends _$WorkflowForm {
   @override
   FutureOr<Workflow> build(String configId) async {
-    if (configId == 'new') {
-      return const Workflow(
-        id: '',
-        slug: '',
-        name: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'New Workflow', 'fi': 'Uusi työnkulku'},
-        ),
-        description: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': '', 'fi': ''},
-        ),
-      );
-    }
-
     final block = await ref.watch(workflowByIdProvider(configId).future);
     return block.copyWith();
   }
@@ -84,22 +69,6 @@ class WorkflowForm extends _$WorkflowForm {
 class StepForm extends _$StepForm {
   @override
   FutureOr<NodeStrategy> build(String configId) async {
-    if (configId == 'new') {
-      return const NodeStrategy.llm(
-        id: '',
-        slug: '',
-        name: I18nText(
-          defaultLocale: 'en',
-          translations: {'fi': 'Uusi Steppi', 'en': 'New Step'},
-        ),
-        description: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': '', 'fi': ''},
-        ),
-        safety: 'safe',
-      );
-    }
-
     final block = await ref.watch(stepByIdProvider(configId).future);
 
     // Strict Dart 3 exhaustive matching - Freezed maps are BANNED
@@ -258,6 +227,31 @@ class WorkflowsController extends _$WorkflowsController {
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
+      throw AppException.unknown(e);
+    }
+  }
+
+  /// Creates a draft workflow via the backend SSoT.
+  Future<Workflow> createWorkflowDraft() async {
+    final previousState = state;
+    try {
+      final client = ref.read(studioClientProvider);
+      final rawResponse = await client.createWorkflowDraft();
+      final str = jsonEncode(rawResponse);
+      final draftWorkflow = await Workflow.parseInBackground(str);
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<Workflow>.from(state.value!);
+        currentList.insert(0, draftWorkflow);
+        state = AsyncValue.data(currentList);
+      }
+      return draftWorkflow;
+    } catch (e, st) {
+      state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('WorkflowsController', 'Create draft failed', e, st);
+      if (e is DioException && e.error is AppException) throw e.error!;
       throw AppException.unknown(e);
     }
   }
@@ -435,6 +429,34 @@ class StepsController extends _$StepsController {
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
+      throw AppException.unknown(e);
+    }
+  }
+
+  /// Creates a draft step via the backend SSoT.
+  Future<NodeStrategy> createStepDraft() async {
+    final previousState = state;
+    try {
+      final client = ref.read(studioClientProvider);
+      final rawResponse = await client.createStepDraft();
+      
+      // Isolate Mandate: Zero-Latency
+      final draftStep = await Isolate.run(() {
+        return NodeStrategy.fromJson(rawResponse);
+      });
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<NodeStrategy>.from(state.value!);
+        currentList.insert(0, draftStep);
+        state = AsyncValue.data(currentList);
+      }
+      return draftStep;
+    } catch (e, st) {
+      state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('StepsController', 'Create draft failed', e, st);
+      if (e is DioException && e.error is AppException) throw e.error!;
       throw AppException.unknown(e);
     }
   }

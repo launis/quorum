@@ -151,6 +151,32 @@ class ModelRegistryController extends _$ModelRegistryController {
       throw AppException.unknown(e);
     }
   }
+
+  /// Creates a draft System Config via the SSoT backend.
+  Future<ModelConfig> createSystemConfigDraft() async {
+    final previousState = state;
+    try {
+      final client = ref.read(studioClientProvider);
+      final rawConfig = await client.createSystemConfigDraft();
+      final draftConfig = await Isolate.run(
+        () => ModelConfig.fromJson(rawConfig),
+      );
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<ModelConfig>.from(state.value!);
+        currentList.insert(0, draftConfig);
+        state = AsyncValue.data(currentList);
+      }
+      return draftConfig;
+    } catch (e, st) {
+      state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('ModelRegistryController', 'Create draft failed', e, st);
+      if (e is DioException && e.error is AppException) throw e.error!;
+      throw AppException.unknown(e);
+    }
+  }
 }
 
 /// Fetches a single System Config natively by ID
@@ -174,15 +200,6 @@ Future<List<String>> availableModels(Ref ref) async {
 class ModelRegistryForm extends _$ModelRegistryForm {
   @override
   FutureOr<ModelConfig> build(String configId) async {
-    if (configId == 'new') {
-      return const ModelConfig(
-        id: 'syscfg_new',
-        slug: 'syscfg_new',
-        type: 'model_registry',
-        models: {},
-      );
-    }
-
     // 1. Fetch data strictly
     return ref.watch(modelRegistryByIdProvider(configId).future);
   }
@@ -196,17 +213,10 @@ class ModelRegistryForm extends _$ModelRegistryForm {
     state = const AsyncLoading(); // Side effect isolation
 
     state = await AsyncValue.guard(() async {
-      final idToSave = configId == 'new'
-          ? (updatedData.id.isNotEmpty ? updatedData.id : 'syscfg_new')
-          : configId;
-
-      // Ensure the payload has the correct ID
-      final payloadToSave = updatedData.copyWith(id: idToSave);
-
       await ref
           .read(modelRegistryControllerProvider.notifier)
-          .saveConfig(idToSave, payloadToSave);
-      return payloadToSave; // Optimistic form state return
+          .saveConfig(configId, updatedData);
+      return updatedData; // Optimistic form state return
     });
   }
 }

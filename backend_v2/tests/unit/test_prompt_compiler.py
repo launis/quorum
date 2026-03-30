@@ -1,4 +1,3 @@
-from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -132,8 +131,8 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert getattr(parsed, "blk_extract_test") == 1.0
-    assert getattr(parsed, "blk_extract_test_remediation_steps") == ["Step 1", "Step 2"]
-    assert getattr(parsed, "blk_extract_test_confidence") == 95.5
-    assert getattr(parsed, "reasoning_trace") == "Let's think..."
-    assert getattr(parsed, "blk_extract_test_justification") == "I gave a 1 because..."
+    assert parsed.blk_extract_test == 1.0  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test_remediation_steps == ["Step 1", "Step 2"]  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test_confidence == 95.5  # type: ignore[attr-defined]
+    assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test_justification == "I gave a 1 because..."  # type: ignore[attr-defined]

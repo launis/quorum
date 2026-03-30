@@ -213,6 +213,28 @@ class LoginScreen extends HookConsumerWidget {
                               ),
                         child: const Text('Mock Login (Manager)'),
                       ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                        ),
+                        onPressed: isMockLoading.value
+                            ? null
+                            : () => mockLogin(
+                                'usr_1c1cf9c5178846bb', // MEMBER
+                              ),
+                        child: const Text('Mock Login (Member)'),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.grey,
+                        ),
+                        onPressed: isMockLoading.value
+                            ? null
+                            : () => mockLogin(
+                                'usr_b2d6e4487afc4e69', // VIEWER
+                              ),
+                        child: const Text('Mock Login (Viewer)'),
+                      ),
                     ],
                   ),
                 ],

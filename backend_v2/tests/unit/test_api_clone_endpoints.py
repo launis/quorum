@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -7,7 +8,9 @@ from backend_v2.api.dependencies import get_current_user_from_header, get_studio
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.enums import BlockDataType
 from backend_v2.models.v2_core import (
+    I18nText,
     PromptBlock,
     Step,
     SystemConfigMCPGateways,
@@ -17,7 +20,7 @@ from backend_v2.models.v2_core import (
 from backend_v2.services.studio import StudioService
 
 
-def mock_get_current_user_admin():
+def mock_get_current_user_admin() -> TokenData:
     return TokenData(
         email="admin@test.com",
         id="usr_admin123",
@@ -26,7 +29,7 @@ def mock_get_current_user_admin():
     )
 
 
-def mock_get_current_user_root():
+def mock_get_current_user_root() -> TokenData:
     return TokenData(
         email="root@test.com",
         id="usr_root999",
@@ -36,19 +39,19 @@ def mock_get_current_user_root():
 
 
 @pytest.fixture
-def mock_studio_service():
+def mock_studio_service() -> AsyncMock:
     service = AsyncMock(spec=StudioService)
     # Configure mock returns for cloning
     service.clone_workflow.return_value = Workflow(
         id="wf_clone12345678",
         slug="test_wf_clone",
-        name={"default_locale": "en", "translations": {"en": "Workflow (Copy)"}},
+        name=I18nText(default_locale="en", translations={"en": "Workflow (Copy)"}),
         description="test",
     )
     service.clone_step.return_value = Step(
         id="step_clone12345678",
         slug="test_step_clone",
-        name={"default_locale": "en", "translations": {"en": "Step (Copy)"}},
+        name=I18nText(default_locale="en", translations={"en": "Step (Copy)"}),
         type="llm",
         model_strategy="fast",
         prompt_blocks=["block1"],
@@ -56,10 +59,10 @@ def mock_studio_service():
     service.clone_prompt_block.return_value = PromptBlock(
         id="blk_clone12345678",
         slug="test_block_clone",
-        label={"default_locale": "en", "translations": {"en": "Block (Copy)"}},
-        description={"default_locale": "en", "translations": {"en": "desc"}},
+        label=I18nText(default_locale="en", translations={"en": "Block (Copy)"}),
+        description=I18nText(default_locale="en", translations={"en": "desc"}),
         category_id="test",
-        type="string",
+        type=BlockDataType.STRING,
     )
     service.clone_system_config.return_value = SystemConfigModelRegistry(
         id="sys_clone12345678",
@@ -77,14 +80,14 @@ def mock_studio_service():
         id="prof_clone12345678",
         slug="test_prof_clone",
         workflow_id="wf_clone12345678",
-        name={"default_locale": "en", "translations": {"en": "Profile (Copy)"}},
+        name=I18nText(default_locale="en", translations={"en": "Profile (Copy)"}),
         layouts=[],
     )
     return service
 
 
 @pytest.fixture
-def client_admin(mock_studio_service):
+def client_admin(mock_studio_service: AsyncMock) -> Any:
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user_admin
     app.dependency_overrides[get_studio_service] = lambda: mock_studio_service
     with TestClient(app) as c:
@@ -93,7 +96,7 @@ def client_admin(mock_studio_service):
 
 
 @pytest.fixture
-def client_root(mock_studio_service):
+def client_root(mock_studio_service: AsyncMock) -> Any:
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user_root
     app.dependency_overrides[get_studio_service] = lambda: mock_studio_service
     with TestClient(app) as c:
@@ -104,7 +107,7 @@ def client_root(mock_studio_service):
 # --- Tests ---
 
 
-def test_clone_workflow_endpoint(client_admin, mock_studio_service):
+def test_clone_workflow_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
     response = client_admin.post("/api/v2/studio/workflows/wf_12345/clone")
     assert response.status_code == 200
     data = response.json()
@@ -112,7 +115,7 @@ def test_clone_workflow_endpoint(client_admin, mock_studio_service):
     mock_studio_service.clone_workflow.assert_called_once()
 
 
-def test_clone_step_endpoint(client_admin, mock_studio_service):
+def test_clone_step_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
     response = client_admin.post("/api/v2/studio/steps/step_12345/clone")
     assert response.status_code == 200
     data = response.json()
@@ -120,7 +123,7 @@ def test_clone_step_endpoint(client_admin, mock_studio_service):
     mock_studio_service.clone_step.assert_called_once()
 
 
-def test_clone_prompt_block_endpoint(client_admin, mock_studio_service):
+def test_clone_prompt_block_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
     response = client_admin.post("/api/v2/studio/prompt-blocks/blk_12345/clone")
     assert response.status_code == 200
     data = response.json()
@@ -128,7 +131,7 @@ def test_clone_prompt_block_endpoint(client_admin, mock_studio_service):
     mock_studio_service.clone_prompt_block.assert_called_once()
 
 
-def test_clone_model_registry_endpoint(client_root, mock_studio_service):
+def test_clone_model_registry_endpoint(client_root: TestClient, mock_studio_service: AsyncMock) -> None:
     # System Configs require ROOT role
     response = client_root.post("/api/v2/studio/model-registry/sys_12345/clone")
     assert response.status_code == 200
@@ -137,7 +140,7 @@ def test_clone_model_registry_endpoint(client_root, mock_studio_service):
     mock_studio_service.clone_system_config.assert_called_once()
 
 
-def test_clone_mcp_gateways_endpoint(client_root, mock_studio_service):
+def test_clone_mcp_gateways_endpoint(client_root: TestClient, mock_studio_service: AsyncMock) -> None:
     # MCP Gateways require ROOT role
     response = client_root.post("/api/v2/studio/mcp-gateways/mcp_12345/clone")
     assert response.status_code == 200
@@ -146,7 +149,7 @@ def test_clone_mcp_gateways_endpoint(client_root, mock_studio_service):
     mock_studio_service.clone_mcp_gateways.assert_called_once()
 
 
-def test_clone_output_profile_endpoint(client_admin, mock_studio_service):
+def test_clone_output_profile_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
     response = client_admin.post("/api/v2/output-profiles/prof_12345/clone")
     assert response.status_code == 200
     data = response.json()

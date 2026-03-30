@@ -63,7 +63,7 @@ class ModelRegistryView extends HookConsumerWidget {
   ) {
     Future<void> deleteRegistry() async {
       final String idToDelete = payload.id;
-      if (idToDelete.isEmpty || id == 'new') return;
+      if (idToDelete.isEmpty) return;
 
       final type = payload.type;
       final nameToDisplay = type.isNotEmpty ? type : idToDelete;
@@ -151,15 +151,14 @@ class ModelRegistryView extends HookConsumerWidget {
                 ),
               ),
             ),
-          if (id != 'new')
-            IconButton(
-              icon: Icon(
-                Icons.delete,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              onPressed: formState.isLoading ? null : deleteRegistry,
-              tooltip: l10n.deleteConfigTitle,
+          IconButton(
+            icon: Icon(
+              Icons.delete,
+              color: Theme.of(context).colorScheme.error,
             ),
+            onPressed: formState.isLoading ? null : deleteRegistry,
+            tooltip: l10n.deleteConfigTitle,
+          ),
           FilledButton.icon(
             icon: const Icon(Icons.save),
             label: Text(l10n.studioSaveButton),
@@ -196,8 +195,10 @@ class ModelRegistryView extends HookConsumerWidget {
             const SizedBox(height: 16),
             TextFormField(
               initialValue: data.id,
-              decoration: InputDecoration(labelText: l10n.configIdLabel),
-              readOnly: true, // Opaque ID Mandate: NEVER editable manually
+              decoration: InputDecoration(
+                labelText: l10n.configIdLabel,
+              ),
+              readOnly: true, // Server-side Minting: ID is immutable
             ),
             const SizedBox(height: 8),
             TextFormField(

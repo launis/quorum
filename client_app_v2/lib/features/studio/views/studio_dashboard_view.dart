@@ -180,8 +180,22 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           _buildSectionHeader(
             context,
             l10n.studioViewsPromptBlocksStandard,
-            () {
-              const PromptBlockNewRoute().go(context);
+            () async {
+              try {
+                final draft = await ref
+                    .read(promptBlocksControllerProvider.notifier)
+                    .createPromptBlockDraft();
+                if (context.mounted) {
+                  PromptBlockEditRoute(id: draft.id, slug: draft.slug)
+                      .go(context);
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to mint: $e')),
+                  );
+                }
+              }
             },
           ),
           const SizedBox(height: 16),
@@ -285,9 +299,22 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(context, l10n.studioDashboardMatricesTitle, () {
-            // Future UI feature: Pre-fill category_id = 'matrix'
-            const PromptBlockNewRoute().go(context);
+          _buildSectionHeader(context, l10n.studioDashboardMatricesTitle, () async {
+              try {
+                final draft = await ref
+                    .read(promptBlocksControllerProvider.notifier)
+                    .createPromptBlockDraft();
+                if (context.mounted) {
+                  PromptBlockEditRoute(id: draft.id, slug: draft.slug)
+                      .go(context);
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to mint: $e')),
+                  );
+                }
+              }
           }),
           const SizedBox(height: 16),
           promptBlocksState.when(
@@ -395,8 +422,22 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(context, l10n.studioViewsStepsTab, () {
-            const StepNewRoute().go(context);
+          _buildSectionHeader(context, l10n.studioViewsStepsTab, () async {
+              try {
+                final draft = await ref
+                    .read(stepsControllerProvider.notifier)
+                    .createStepDraft();
+                if (context.mounted) {
+                  // Pass the draft as Extra
+                  StepEditRoute($extra: draft.toJson()).go(context);
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to mint: $e')),
+                  );
+                }
+              }
           }),
           const SizedBox(height: 16),
           blueprintsState.when(
@@ -498,8 +539,21 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(context, l10n.modelRegistryTitle, () {
-            const ModelRegistryNewRoute().go(context);
+          _buildSectionHeader(context, l10n.modelRegistryTitle, () async {
+              try {
+                final draft = await ref
+                    .read(modelRegistryControllerProvider.notifier)
+                    .createSystemConfigDraft();
+                if (context.mounted) {
+                  ModelRegistryEditRoute(id: draft.id).go(context);
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to mint: $e')),
+                  );
+                }
+              }
           }),
           const SizedBox(height: 16),
           registryState.when(

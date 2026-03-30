@@ -111,6 +111,24 @@ class StudioService:
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete("workflows", id)
 
+    async def create_workflow_draft(self, initiator: TokenData) -> Workflow:
+        """System-level creation of an initial Workflow Draft."""
+        import uuid
+        new_id = f"wf_{uuid.uuid4().hex[:16]}"
+        draft_dict: dict[str, Any] = {
+            "id": new_id,
+            "slug": new_id,
+            "name": {"default_locale": "en", "translations": {"en": "New Työnkulku", "fi": "Uusi työnkulku"}},
+            "description": {"default_locale": "en", "translations": {"en": "Draft workflow", "fi": "Luonnos"}},
+            "status": "draft",
+            "version": 1,
+            "organization_id": getattr(initiator, "organization_id", None) if initiator.role not in ["ROOT"] else None,
+            "expected_inputs": [],
+            "steps": []
+        }
+        draft = Workflow.model_validate(draft_dict)
+        return await self.save_workflow(initiator, new_id, draft)
+
     async def clone_workflow(self, initiator: TokenData, id: str) -> Workflow:
         """Deep Clones a Workflow into the initiator's tenant organization.
         Implements Shallow-Deep Copy constraint: StepRules are copied, TaskBlueprints are referenced.
@@ -121,36 +139,52 @@ class StudioService:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
 
         self._enforce_tenant_isolation(initiator, data, "workflow")
-
         import uuid
 
-        new_id = f"wf_{uuid.uuid4().hex}"
-
+        new_id = f"wf_{uuid.uuid4().hex[:16]}"
         cloned_data = Workflow.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
-        if initiator.role not in ["ROOT", UserRole.ROOT]:
+        if initiator.role not in ["ROOT", "ADMIN", "ROOT_MASTER"]:
             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-            default_locale = cloned_data["name"].get("default_locale", "en")
-            translations = cloned_data["name"].get("translations", {})
-            if default_locale in translations:
-                translations[default_locale] = translations[default_locale] + " (Copy)"
-                cloned_data["name"]["translations"] = translations
-        elif "name" in cloned_data and isinstance(cloned_data["name"], str):
-            cloned_data["name"] = cloned_data["name"] + " (Copy)"
+            for locale, text in cloned_data["name"].get("translations", {}).items():
+                cloned_data["name"]["translations"][locale] = text + " (Copy)"
+        elif "name" in cloned_data:
+            cloned_data["name"] = str(cloned_data["name"]) + " (Copy)"
 
-        await self.repo.create_raw("workflows", cloned_data)
+        sr_mapping = {}
+        for step in cloned_data.get("steps", []):
+            old_sr_id = step.get("id")
+            if old_sr_id:
+                new_sr_id = f"sr_{uuid.uuid4().hex[:16]}"
+                sr_mapping[old_sr_id] = new_sr_id
+                step["id"] = new_sr_id
 
-        saved = await self.repo.get("workflows", new_id)
-        if not saved:
-            logger.error(
-                "[StudioService] %s: Workflow %s not found after clone.", ErrorCodes.RESOURCE_NOT_FOUND.name, new_id
-            )
-            raise ResourceNotFoundError(resource_type="workflow", resource_id=new_id)
+        for step in cloned_data.get("steps", []):
+            old_depends = step.get("depends_on", [])
+            step["depends_on"] = [sr_mapping.get(dep, dep) for dep in old_depends]
 
-        return Workflow.model_validate(saved)
+            old_mappings = step.get("input_mappings", {})
+            new_mappings = {}
+            for k, v in old_mappings.items():
+                if isinstance(v, str) and v.startswith("$steps."):
+                    new_v = v
+                    for old_sr, new_sr in sr_mapping.items():
+                        new_v = new_v.replace(old_sr, new_sr)
+                    new_mappings[k] = new_v
+                else:
+                    new_mappings[k] = v
+            step["input_mappings"] = new_mappings
+
+        for profile in cloned_data.get("output_profiles", {}).values():
+            for layout in profile.get("layouts", []):
+                old_layout_steps = layout.get("steps", [])
+                layout["steps"] = [sr_mapping.get(s, s) for s in old_layout_steps]
+
+        cloned_workflow = Workflow.model_validate(cloned_data)
+        return await self.save_workflow(initiator, new_id, cloned_workflow)
 
     async def list_steps(self, initiator: TokenData) -> list[Step]:
         all_data = await self.repo.get_all("steps")
@@ -194,6 +228,26 @@ class StudioService:
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete_step(id, force_delete=force_delete)
 
+    async def create_step_draft(self, initiator: TokenData) -> Step:
+        """System-level creation of an initial Step Draft."""
+        import uuid
+        new_id = f"step_{uuid.uuid4().hex[:16]}"
+        draft_dict: dict[str, Any] = {
+            "id": new_id,
+            "slug": new_id,
+            "name": {"default_locale": "en", "translations": {"en": "New Askel", "fi": "Uusi askel"}},
+            "description": {"default_locale": "en", "translations": {"en": "Draft step", "fi": "Luonnos"}},
+            "type": "llm",
+            "prompt_blocks": ["blk_440a5fef9331451b"],
+            "pre_hooks": [],
+            "post_hooks": [],
+            "safety": "safe",
+            "allowed_mcp_tools": [],
+            "model_strategy": "fast"
+        }
+        draft = Step.model_validate(draft_dict)
+        return await self.save_step(initiator, new_id, draft)
+
     async def clone_step(self, initiator: TokenData, id: str) -> Step:
         """Deep Clones a Step into the initiator's tenant organization."""
         data = await self.repo.get("steps", id)
@@ -205,33 +259,22 @@ class StudioService:
 
         import uuid
 
-        new_id = f"step_{uuid.uuid4().hex}"
+        new_id = f"step_{uuid.uuid4().hex[:16]}"
 
         cloned_data = Step.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
-        if initiator.role not in ["ROOT", UserRole.ROOT]:
+        if initiator.role not in ["ROOT", "ADMIN", "ROOT_MASTER"]:
             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-            default_locale = cloned_data["name"].get("default_locale", "en")
-            translations = cloned_data["name"].get("translations", {})
-            if default_locale in translations:
-                translations[default_locale] = translations[default_locale] + " (Copy)"
-                cloned_data["name"]["translations"] = translations
-        elif "name" in cloned_data and isinstance(cloned_data["name"], str):
-            cloned_data["name"] = cloned_data["name"] + " (Copy)"
+            for locale, text in cloned_data["name"].get("translations", {}).items():
+                cloned_data["name"]["translations"][locale] = text + " (Copy)"
+        elif "name" in cloned_data:
+            cloned_data["name"] = str(cloned_data["name"]) + " (Copy)"
 
-        await self.repo.create_raw("steps", cloned_data)
-
-        saved = await self.repo.get("steps", new_id)
-        if not saved:
-            logger.error(
-                "[StudioService] %s: Step %s not found after clone.", ErrorCodes.RESOURCE_NOT_FOUND.name, new_id
-            )
-            raise ResourceNotFoundError(resource_type="step", resource_id=new_id)
-
-        return Step.model_validate(saved)
+        cloned_obj = Step.model_validate(cloned_data)
+        return await self.save_step(initiator, new_id, cloned_obj)
 
     # --- Prompt Blocks ---
 
@@ -277,6 +320,28 @@ class StudioService:
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete_prompt_block(id, force_delete=force_delete)
 
+    async def create_prompt_block_draft(self, initiator: TokenData) -> PromptBlock:
+        """System-level creation of an initial PromptBlock Draft."""
+        import uuid
+        new_id = f"blk_{uuid.uuid4().hex[:16]}"
+
+        draft_dict: dict[str, Any] = {
+            "id": new_id,
+            "slug": new_id,
+            "label": {"default_locale": "en", "translations": {"en": "New Block", "fi": "Uusi lohko"}},
+            "description": {"default_locale": "en", "translations": {"en": "Draft block", "fi": "Luonnos"}},
+            "ai_description": "Initial AI logic draft.",
+            "category_id": "general",
+            "type": "string",
+            "allow_decimals": False,
+            "output_extensions": [],
+            "scales": None,
+            "rows": None,
+            "columns": None
+        }
+        draft = PromptBlock.model_validate(draft_dict)
+        return await self.save_prompt_block(initiator, new_id, draft)
+
     async def clone_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
         """Deep Clones a PromptBlock into the initiator's tenant organization."""
         data = await self.repo.get("prompt_blocks", id)
@@ -288,33 +353,22 @@ class StudioService:
 
         import uuid
 
-        new_id = f"blk_{uuid.uuid4().hex}"
+        new_id = f"blk_{uuid.uuid4().hex[:16]}"
 
         cloned_data = PromptBlock.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
-        if initiator.role not in ["ROOT", UserRole.ROOT]:
+        if initiator.role not in ["ROOT", "ADMIN", "ROOT_MASTER"]:
             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "label" in cloned_data and isinstance(cloned_data["label"], dict):
-            default_locale = cloned_data["label"].get("default_locale", "en")
-            translations = cloned_data["label"].get("translations", {})
-            if default_locale in translations:
-                translations[default_locale] = translations[default_locale] + " (Copy)"
-                cloned_data["label"]["translations"] = translations
-        elif "label" in cloned_data and isinstance(cloned_data["label"], str):
-            cloned_data["label"] = cloned_data["label"] + " (Copy)"
+            for locale, text in cloned_data["label"].get("translations", {}).items():
+                cloned_data["label"]["translations"][locale] = text + " (Copy)"
+        elif "label" in cloned_data:
+            cloned_data["label"] = str(cloned_data["label"]) + " (Copy)"
 
-        await self.repo.create_raw("prompt_blocks", cloned_data)
-
-        saved = await self.repo.get("prompt_blocks", new_id)
-        if not saved:
-            logger.error(
-                "[StudioService] %s: PromptBlock %s not found after clone.", ErrorCodes.RESOURCE_NOT_FOUND.name, new_id
-            )
-            raise ResourceNotFoundError(resource_type="prompt_block", resource_id=new_id)
-
-        return PromptBlock.model_validate(saved)
+        cloned_obj = PromptBlock.model_validate(cloned_data)
+        return await self.save_prompt_block(initiator, new_id, cloned_obj)
 
     # --- System Configs (ROOT Only usually) ---
 
@@ -362,6 +416,20 @@ class StudioService:
             logger.error("[StudioService] %s: SystemConfig %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         await self.repo.delete("system_config", id)
+
+    async def create_model_registry_draft(self, initiator: TokenData) -> SystemConfigModelRegistry:
+        """System-level creation of an initial ModelConfig Draft."""
+        self._enforce_modification_rights(initiator, "org_system000000", allow_system=True)
+        import uuid
+        new_id = f"sys_{uuid.uuid4().hex[:16]}"
+        draft_dict: dict[str, Any] = {
+            "id": new_id,
+            "slug": new_id,
+            "type": "model_registry",
+            "models": {}
+        }
+        draft = SystemConfigModelRegistry.model_validate(draft_dict)
+        return await self.save_system_config(initiator, new_id, draft)
 
     async def clone_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
         """Deep Clones a System Config for the ROOT tenant."""
@@ -424,6 +492,20 @@ class StudioService:
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
         return SystemConfigMCPGateways.model_validate(saved)
+
+    async def create_mcp_gateway_draft(self, initiator: TokenData) -> SystemConfigMCPGateways:
+        """System-level creation of an initial MCP Gateway Config Draft."""
+        self._enforce_modification_rights(initiator, "org_system000000", allow_system=True)
+        import uuid
+        new_id = f"mcp_{uuid.uuid4().hex[:16]}"
+        draft_dict: dict[str, Any] = {
+            "id": new_id,
+            "slug": new_id,
+            "type": "mcp_gateways",
+            "tools": []
+        }
+        draft = SystemConfigMCPGateways.model_validate(draft_dict)
+        return await self.save_mcp_gateways(initiator, new_id, draft)
 
     async def clone_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
         """Deep Clones an MCP Gateway Config for the ROOT tenant."""
@@ -495,7 +577,7 @@ class StudioService:
                 allowed_blocks.update(step.prompt_blocks)
 
         for layout in profile.layouts:
-            for comp in layout.components:
+            for comp in layout.target_blocks:
                 if comp != "*" and comp not in allowed_blocks:
                     msg = f"Target Component '{comp}' does not exist in the context of Workflow '{workflow.slug}'."
                     logger.error("[StudioService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -526,6 +608,27 @@ class StudioService:
 
         self._enforce_modification_rights(initiator, data.get("organization_id"))
         await self.repo.delete_output_profile(id)
+
+    async def create_output_profile_draft(self, initiator: TokenData) -> OutputProfile:
+        """System-level creation of an initial OutputProfile Draft."""
+        import uuid
+        new_id = f"opt_{uuid.uuid4().hex[:16]}"
+        draft_dict: dict[str, Any] = {
+            "id": new_id,
+            "slug": new_id,
+            "name": {"default_locale": "en", "translations": {"en": "New Profile", "fi": "Uusi profiili"}},
+            "category_id": "report",
+            "layouts": [
+                {
+                    "layout_type": "default_pdf",
+                    "layout_config": {"columns": 1, "theme": "light"},
+                    "blocks": []
+                }
+            ],
+            "organization_id": getattr(initiator, "organization_id", None) if initiator.role not in ["ROOT"] else None
+        }
+        draft = OutputProfile.model_validate(draft_dict)
+        return await self.save_output_profile(initiator, new_id, draft)
 
     async def clone_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
         """Deep Clones an Output Profile into the initiator's tenant organization."""

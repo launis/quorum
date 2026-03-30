@@ -26,6 +26,11 @@ async def get_workflows(current_user: CurrentUserDep, studio_service: StudioServ
     return await studio_service.list_workflows(current_user)
 
 
+@router.post("/", response_model=Workflow)
+async def create_workflow(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
+    """Create a new Workflow draft securely via SSOT Service Layer."""
+    return await studio_service.create_workflow_draft(current_user)
+
 @router.get("/{id}", response_model=Workflow)
 async def get_workflow(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
     """Retrieve a specific workflow definition by id securely via SSOT Service Layer."""

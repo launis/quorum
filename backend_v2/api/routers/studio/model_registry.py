@@ -56,6 +56,12 @@ async def get_all_model_registries(
     # Temporarily, model registry relies on system_config collection
     return await studio_service.list_system_configs(current_user)
 
+@router.post("/", response_model=SystemConfigModelRegistry)
+async def create_model_registry(
+    current_user: CurrentUserDep, studio_service: StudioServiceDep
+) -> SystemConfigModelRegistry:
+    """Create a new Model Registry config draft securely via SSOT Service Layer."""
+    return await studio_service.create_model_registry_draft(current_user)
 
 @router.get("/{registry_id}", response_model=SystemConfigModelRegistry)
 async def get_model_registry(

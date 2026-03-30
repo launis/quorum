@@ -1,4 +1,3 @@
-from typing import Any
 """Unit tests for Tavily MCP Client.
 
 All tests use mocked HTTP — no live API calls (EPIC §3 'Tavily No-Spam').

@@ -25,6 +25,7 @@ Kun annan luvan edetä ("PROCEED"), aloita listan purkaminen ensimmäisestä tek
 > [ ] The Single Source of Truth tsekattu (mallit noudattavat `seed_data.json` rakennetta).
 > [ ] No-strings mandaatti tarkistettu (ei kovakoodattuja UI-tekstejä, käytössä `.arb`).
 > [ ] Vanhat Providerit tarkistettu (pakotettu `@riverpod` koodigenerointi).
+> [ ] Opaque IDs pakotettu (GoRouter käyttää vain ID:tä, ei koskaan map-dataa tai slugia reitityslähteenä, lokaali `.slug` on vain kosmetiikkaa).
 > [ ] "Mock Login" poikkeukset huomioitu (kovakoodaukset sallittu täällä).
 
 Raportoi löydökset listan tulostamisen jälkeen havaitsemistasi tiedostoista yksityiskohtaisesti. Pysähdy odottamaan komentoa "FIX" tai "NEXT...".

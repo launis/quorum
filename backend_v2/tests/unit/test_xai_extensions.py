@@ -1,4 +1,5 @@
 from typing import Any
+
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
@@ -64,21 +65,21 @@ def test_xai_extensions_schema_generation_happy_path(test_blocks: Any) -> None:
     instance = adapter.validate_python(payload)
 
     # Strict attribute checking
-    assert getattr(instance, "matrix_risk") == 5.0
-    assert getattr(instance, "matrix_risk_confidence") == 95.5
-    assert getattr(instance, "matrix_risk_risk_flag") is True
-    assert getattr(instance, "matrix_risk_remediation_steps") == ["Step 1", "Step 2"]
+    assert instance.matrix_risk == 5.0  # type: ignore[attr-defined]
+    assert instance.matrix_risk_confidence == 95.5  # type: ignore[attr-defined]
+    assert instance.matrix_risk_risk_flag is True  # type: ignore[attr-defined]
+    assert instance.matrix_risk_remediation_steps == ["Step 1", "Step 2"]  # type: ignore[attr-defined]
 
-    assert getattr(instance, "block_coach") == "Nice work"
-    assert getattr(instance, "block_coach_coaching") == "Try alternative phrasing."
-    assert getattr(instance, "block_coach_emotional_sentiment") == "Positive and encouraging"
-    assert getattr(instance, "block_coach_theory_link") == "Constructivist learning theory"
+    assert instance.block_coach == "Nice work"  # type: ignore[attr-defined]
+    assert instance.block_coach_coaching == "Try alternative phrasing."  # type: ignore[attr-defined]
+    assert instance.block_coach_emotional_sentiment == "Positive and encouraging"  # type: ignore[attr-defined]
+    assert instance.block_coach_theory_link == "Constructivist learning theory"  # type: ignore[attr-defined]
 
-    assert getattr(instance, "matrix_logic") == 1
-    assert getattr(instance, "matrix_logic_justification") == "Valid logic structure."
-    assert getattr(instance, "matrix_logic_citation") == "'Always test edge cases.'"
-    assert getattr(instance, "matrix_logic_falsification") == "Unless the edge case is impossible."
-    assert getattr(instance, "matrix_logic_missing_context") == "Background dependencies not mentioned."
+    assert instance.matrix_logic == 1  # type: ignore[attr-defined]
+    assert instance.matrix_logic_justification == "Valid logic structure."  # type: ignore[attr-defined]
+    assert instance.matrix_logic_citation == "'Always test edge cases.'"  # type: ignore[attr-defined]
+    assert instance.matrix_logic_falsification == "Unless the edge case is impossible."  # type: ignore[attr-defined]
+    assert instance.matrix_logic_missing_context == "Background dependencies not mentioned."  # type: ignore[attr-defined]
 
 
 def test_xai_extensions_validation_failures(test_blocks: Any) -> None:
@@ -131,5 +132,5 @@ def test_xai_extensions_validation_failures(test_blocks: Any) -> None:
     good_coercion["matrix_risk_confidence"] = 90  # Int should correctly coerce to 90.0 FLOAT
 
     instance = adapter.validate_python(good_coercion)
-    assert getattr(instance, "matrix_risk_confidence") == 90.0
-    assert isinstance(getattr(instance, "matrix_risk_confidence"), float)
+    assert instance.matrix_risk_confidence == 90.0  # type: ignore[attr-defined]
+    assert isinstance(instance.matrix_risk_confidence, float)  # type: ignore[attr-defined]

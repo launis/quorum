@@ -15,6 +15,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
+  String get errorUnknown => 'Unknown error';
+
+  @override
+  String get errorNetwork => 'Network error. Please check your connection.';
+
+  @override
+  String get errorServer => 'Server error. Please try again later.';
+
+  @override
+  String get errorUnauthorized => 'Unauthorized. Please log in again.';
+
+  @override
+  String get errorNotFound => 'Resource not found.';
+
+  @override
+  String get errorValidation => 'Validation failed.';
+
+  @override
+  String get errorValidationEmpty => 'Inputs cannot be empty.';
+
+  @override
+  String errorValidationMissing(String fields) {
+    return 'Missing required fields: $fields';
+  }
+
+  @override
+  String errorDataMapping(String field, String detail) {
+    return 'Mapping Error in field \'$field\': $detail';
+  }
+
+  @override
+  String errorDataType(String field, String detail) {
+    return 'Type Error in field \'$field\': $detail';
+  }
+
+  @override
+  String get errorLoadingData => 'Error loading data. Please try again.';
+
+  @override
   String get loginBtn => 'Login';
 
   @override
@@ -481,35 +520,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get validationInputEmpty => 'Inputs cannot be empty.';
-
-  @override
-  String get errorUnknown => 'Unknown error';
-
-  @override
-  String get errorNetwork => 'Network error. Please check your connection.';
-
-  @override
-  String get errorServer => 'Server error. Please try again later.';
-
-  @override
-  String get errorUnauthorized => 'Unauthorized. Please log in again.';
-
-  @override
-  String get errorNotFound => 'Resource not found.';
-
-  @override
-  String get errorValidation => 'Validation failed.';
-
-  @override
-  String get errorValidationEmpty => 'Inputs cannot be empty.';
-
-  @override
-  String errorValidationMissing(Object fields) {
-    return 'Missing required fields: $fields';
-  }
-
-  @override
-  String get errorLoadingData => 'Error loading data. Please try again.';
 
   @override
   String get createOrganization => 'Create Organization';
@@ -2748,6 +2758,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allowDecimals => 'Allow Decimals';
+
+  @override
+  String get isEvaluativeMatrix => 'Evaluative (Calculated)';
 
   @override
   String get xaiOutputExtensionsTitle =>

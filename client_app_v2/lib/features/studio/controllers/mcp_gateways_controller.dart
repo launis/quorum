@@ -142,6 +142,28 @@ class McpGatewaysController extends _$McpGatewaysController {
       throw AppException.unknown(e);
     }
   }
+  /// Creates a draft MCP Gateway via the SSoT backend.
+  Future<Map<String, dynamic>> createMcpGatewayDraft() async {
+    final previousState = state;
+    try {
+      final client = ref.read(studioClientProvider);
+      final draftGateway = await client.createMcpGatewayDraft();
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        currentList.insert(0, draftGateway);
+        state = AsyncValue.data(currentList);
+      }
+      return draftGateway;
+    } catch (e, st) {
+      state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('McpGatewaysController', 'Create draft failed', e, st);
+      if (e is DioException && e.error is AppException) throw e.error!;
+      throw AppException.unknown(e);
+    }
+  }
 }
 
 /// Fetches a single MCP Gateway natively by ID
@@ -157,17 +179,6 @@ Future<Map<String, dynamic>> mcpGatewayById(Ref ref, String id) async {
 class McpGatewayForm extends _$McpGatewayForm {
   @override
   FutureOr<Map<String, dynamic>> build(String gatewayId) async {
-    if (gatewayId == 'new') {
-      return Isolate.run(
-        () => {
-          'id': 'mcpcfg_new',
-          'slug': 'new-gateway',
-          'type': 'mcp_gateways',
-          'tools': <Map<String, dynamic>>[],
-        },
-      );
-    }
-
     // 1. Fetch raw data
     final rawData = await ref.watch(mcpGatewayByIdProvider(gatewayId).future);
 
@@ -219,9 +230,7 @@ class McpGatewayForm extends _$McpGatewayForm {
     state = const AsyncLoading(); // Side effect isolation
 
     state = await AsyncValue.guard(() async {
-      final idToSave = gatewayId == 'new'
-          ? (updatedData['id'] ?? 'mcpcfg_new')
-          : gatewayId;
+      final idToSave = updatedData['id'] ?? gatewayId;
       await ref
           .read(mcpGatewaysControllerProvider.notifier)
           .saveGateway(idToSave, updatedData);

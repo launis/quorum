@@ -105,6 +105,7 @@ abstract class PromptBlock with _$PromptBlock {
     required I18nText description,
     String? aiDescription,
     @Default('system') String categoryId,
+    @Default(true) bool isEvaluative,
     @Default(BlockDataType.stringType) BlockDataType type,
     @Default(false) bool allowDecimals,
     @Default([]) List<String> outputExtensions,

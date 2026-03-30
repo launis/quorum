@@ -212,7 +212,7 @@ final class WorkflowFormProvider
   }
 }
 
-String _$workflowFormHash() => r'9cd8dc243dcb7a6786318c09ba10f0cc5584a685';
+String _$workflowFormHash() => r'2fa3d13eb7fa2b3a2e6150fdaf6322b711222942';
 
 final class WorkflowFormFamily extends $Family
     with
@@ -301,7 +301,7 @@ final class StepFormProvider
   }
 }
 
-String _$stepFormHash() => r'22e056340a733c2b10039fca69a425c29aad3a82';
+String _$stepFormHash() => r'a191b3ab632b9a7c5db8eb2bf417769764b48067';
 
 final class StepFormFamily extends $Family
     with
@@ -381,7 +381,7 @@ final class WorkflowsControllerProvider
 }
 
 String _$workflowsControllerHash() =>
-    r'071f7fec4f8a388781b0349a350d65b9f81ee686';
+    r'f0fc592501685a9c30cd6dc5da9225ab702b5ad3';
 
 /// Controller managing Studio Workflows (DAGs) strictly using `Workflow` mapped domain model.
 /// Implements Optimistic UI principles where possible.
@@ -435,7 +435,7 @@ final class StepsControllerProvider
   StepsController create() => StepsController();
 }
 
-String _$stepsControllerHash() => r'b35d12c0cce54eb8e09a4e681a18f2dba787d3cd';
+String _$stepsControllerHash() => r'bac41a230d68c36191b4224ab0ce33a5c09f2435';
 
 /// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.

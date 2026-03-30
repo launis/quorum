@@ -31,6 +31,15 @@ async def list_output_profiles(
     return list(profiles)
 
 
+@router.post("/", response_model=OutputProfileResponseDTO)
+async def create_output_profile(
+    initiator: CurrentUserDep,
+    service: StudioServiceDep,
+) -> OutputProfile:
+    """Create a new Output Profile draft securely via SSOT Service Layer."""
+    return await service.create_output_profile_draft(initiator=initiator)
+
+
 @router.get("/{profile_id}", response_model=OutputProfileResponseDTO)
 async def get_output_profile(
     profile_id: str,

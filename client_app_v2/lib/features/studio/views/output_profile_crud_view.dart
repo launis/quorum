@@ -13,6 +13,8 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 
 /// Admin Studio View for managing Output Profiles.
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -40,9 +42,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
       loading: () => Scaffold(
         appBar: AppBar(
           title: Text(
-            id == 'new'
-                ? l10n.newOutputProfileTitle
-                : l10n.editOutputProfileTitle,
+            l10n.editOutputProfileTitle,
           ),
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -50,9 +50,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
       error: (e, st) => Scaffold(
         appBar: AppBar(
           title: Text(
-            id == 'new'
-                ? l10n.newOutputProfileTitle
-                : l10n.editOutputProfileTitle,
+            l10n.editOutputProfileTitle,
           ),
         ),
         body: ErrorView(
@@ -152,7 +150,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
     Future<void> deleteProfile() async {
       final String idToDelete = payload.id;
-      if (idToDelete.isEmpty || id == 'new') return;
+      if (idToDelete.isEmpty) return;
 
       final currentLocale = Localizations.localeOf(context).languageCode;
       final nameToDisplay =
@@ -220,33 +218,22 @@ class OutputProfileCrudView extends HookConsumerWidget {
     if (selectedWorkflowId.isNotEmpty &&
         workflowsState.hasValue &&
         stepsState.hasValue) {
-      final workflows = workflowsState.value!;
-      final steps = stepsState.value!;
+      final workflows = workflowsState.value!.cast<Workflow>();
+      final steps = stepsState.value!.cast<NodeStrategy>();
 
-      final workflow = workflows.cast<Map<String, dynamic>?>().firstWhere(
-        (w) => w != null && w['id']?.toString() == selectedWorkflowId,
-        orElse: () => null,
-      );
+      final Workflow? workflow = workflows.where((w) => w.id == selectedWorkflowId).firstOrNull;
 
       if (workflow != null) {
-        final stepRulesRaw = workflow['steps'];
-        final stepRules = stepRulesRaw is List ? stepRulesRaw : [];
-        final taskBlueprintIds = stepRules
-            .map((s) => (s is Map ? s : {})['task_blueprint']?.toString())
-            .where((s) => s != null)
-            .cast<String>()
+        final taskBlueprintIds = workflow.steps
+            .map((s) => s.taskBlueprint)
             .toSet();
 
         for (final step in steps) {
-          final stepId = step['id']?.toString() ?? '';
-          final stepSlug = step['slug']?.toString() ?? stepId;
+          final stepId = step.id;
+          final stepSlug = step.slug;
           if (taskBlueprintIds.contains(stepId) ||
               taskBlueprintIds.contains(stepSlug)) {
-            final pbRaw = step['prompt_blocks'];
-            final promptBlocksRaw = (pbRaw is List ? pbRaw : []).map(
-              (b) => b.toString(),
-            );
-            allowedBlockIds.addAll(promptBlocksRaw);
+            allowedBlockIds.addAll(step.promptBlocks);
           }
         }
       }
@@ -256,9 +243,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            id == 'new'
-                ? l10n.newOutputProfileTitle
-                : l10n.editOutputProfileTitle,
+            l10n.editOutputProfileTitle,
           ),
           actions: [
             if (formState.isLoading)
@@ -273,7 +258,6 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 ),
               )
             else ...[
-              if (id != 'new')
                 IconButton(
                   icon: Icon(
                     Icons.delete,
@@ -306,7 +290,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                           labelText: l10n.profileIdLabel,
                           border: const OutlineInputBorder(),
                         ),
-                        enabled: id == 'new', // Cannot change ID after creation
+                        readOnly: true, // Opaque Stripe ID mandate
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -318,7 +302,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
                       ),
                       const SizedBox(height: 16),
                       workflowsState.when(
-                        data: (workflows) {
+                        data: (rawWorkflows) {
+                          final workflows = rawWorkflows.cast<Workflow>();
                           String? currentValue =
                               workflowIdController.text.isNotEmpty
                               ? workflowIdController.text
@@ -326,10 +311,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
                           final bool hasValidValue =
                               currentValue != null &&
-                              (workflows.any(
-                                    (w) => w['id']?.toString() == currentValue,
-                                  ) ||
-                                  currentValue == '');
+                              (workflows.any((w) => w.id == currentValue) || currentValue == '');
 
                           return DropdownButtonFormField<String>(
                             initialValue: hasValidValue ? currentValue : null,
@@ -344,23 +326,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                                 child: Text(l10n.noneDefaultLabel),
                               ),
                               ...workflows.map((flow) {
-                                final flowId = flow['id']?.toString() ?? '';
-                                final labelRaw = flow['name'];
-                                final labelDict = labelRaw is Map
-                                    ? labelRaw
-                                    : {};
-                                final transRaw = labelDict['translations'];
-                                final translations = transRaw is Map
-                                    ? transRaw
-                                    : {};
-                                final localeCode = Localizations.localeOf(
-                                  context,
-                                ).languageCode;
-                                final displayName =
-                                    translations[localeCode] ??
-                                    translations['fi'] ??
-                                    translations['en'] ??
-                                    flowId;
+                                final flowId = flow.id;
+                                final localeCode = Localizations.localeOf(context).languageCode;
+                                final displayName = flow.name.get(localeCode);
 
                                 return DropdownMenuItem(
                                   value: flowId,
@@ -605,20 +573,18 @@ class OutputProfileCrudView extends HookConsumerWidget {
           ),
           const SizedBox(height: 8),
           promptBlocksState.when(
-            data: (blocks) {
-              final targetBlocks = blocks.cast<Map<String, dynamic>>().where((
-                b,
-              ) {
-                final bId = b['id']?.toString() ?? '';
-                final bSlug = b['slug']?.toString() ?? bId;
+            data: (rawBlocks) {
+              final blocks = rawBlocks.cast<PromptBlock>();
+              final targetBlocks = blocks.where((b) {
+                final bId = b.id;
+                final bSlug = b.slug;
                 final isAllowed =
                     allowedBlockIds.contains(bId) ||
                     allowedBlockIds.contains(bSlug);
                 if (!isAllowed) return false;
 
-                final isMatrix = b['category_id']?.toString() == 'matrix';
-                final extRaw = b['output_extensions'];
-                final extensions = extRaw is List ? extRaw : [];
+                final isMatrix = b.categoryId == 'matrix';
+                final extensions = b.outputExtensions;
                 return isMatrix || extensions.isNotEmpty;
               }).toList();
 
@@ -635,7 +601,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 if (i < blocksList.length) {
                   final val = blocksList[i];
                   if (val == '*' ||
-                      targetBlocks.any((b) => b['id'].toString() == val)) {
+                      targetBlocks.any((b) => b.id == val)) {
                     selectedValue = val;
                   }
                 }
@@ -664,19 +630,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
                           child: Text(l10n.selectAllComponentsLabel),
                         ),
                         ...targetBlocks.map((block) {
-                          final blockId = block['id']?.toString() ?? '';
-                          final labelRaw = block['label'];
-                          final labelDict = labelRaw is Map ? labelRaw : {};
-                          final transRaw = labelDict['translations'];
-                          final translations = transRaw is Map ? transRaw : {};
-                          final localeCode = Localizations.localeOf(
-                            context,
-                          ).languageCode;
-                          final blockName =
-                              translations[localeCode] ??
-                              translations['fi'] ??
-                              translations['en'] ??
-                              blockId;
+                          final blockId = block.id;
+                          final localeCode = Localizations.localeOf(context).languageCode;
+                          final i18nVal = block.label.get(localeCode);
+                          final blockName = i18nVal.isNotEmpty ? i18nVal : blockId;
 
                           return DropdownMenuItem(
                             value: blockId,

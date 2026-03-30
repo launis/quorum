@@ -49,10 +49,8 @@ class ReportRendererWidget extends ConsumerWidget {
   Widget _buildMetadataHeaderBox(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final defaultOrgName = payload.orgName ?? l10n.reportUnknownOrg;
-    final profileNameStr =
-        payload.profileName['fi'] ??
-        payload.profileName['en'] ??
-        payload.profileId;
+    final lang = Localizations.localeOf(context).languageCode;
+    final profileNameStr = payload.profileName?.get(lang) ?? payload.profileId;
 
     // Formatting cost
     final costStr = payload.costEstimate != null
@@ -207,12 +205,8 @@ class ReportRendererWidget extends ConsumerWidget {
 
     final l10n = AppLocalizations.of(context)!;
     final lang = Localizations.localeOf(context).languageCode;
-    final title =
-        layout.title[lang] ?? layout.title['en'] ?? layout.title['fi'];
-    final desc =
-        layout.description[lang] ??
-        layout.description['en'] ??
-        layout.description['fi'];
+    final title = layout.title?.get(lang);
+    final desc = layout.description?.get(lang);
 
     Widget content;
     try {

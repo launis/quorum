@@ -1,16 +1,16 @@
 """Google Cloud Storage File Driver Implementation."""
 
 import asyncio
-import logging
-from typing import Any
 
 # Conditional import or type checking if direct dependency is optional,
 # but effectively expected here.
 import importlib
+import logging
+from typing import Any
 
 try:
     google_cloud = importlib.import_module("google.cloud")
-    storage = getattr(google_cloud, "storage")
+    storage = google_cloud.storage
 except (ImportError, AttributeError):
     storage = None
 

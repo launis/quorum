@@ -1,4 +1,3 @@
-from typing import Any
 import pytest
 
 from backend_v2.exceptions import AppException

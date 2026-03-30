@@ -97,6 +97,7 @@ Tulosta tämä vastaustesi alkuun:
 > [ ] Järjestelmän SSoT pariteetti `seed_data.json` huomioitu (Zero Backward Compatibility).
 > [ ] Fail-Fast -sääntö aktiivinen (ei try-except pass, ei default-fallbackeja).
 > [ ] AppException (RFC 7807) heitetään ja lokitetaan ennen `raise` kutsua.
+> [ ] Opaque IDs pakotettu: Slugit ovat poistettu kokonaan reitityksestä ja DB-logiikasta (Epic 10).
 Kun saat yllä olevan komennon, sinun on **EHDOTTOMASTI luettava työkalullasi (esim. bash `cat` / python) mainitut dokumentit ja niissä määritellyt rivit uudelleen** aktiiviseen muistiisi (context driftin estämiseksi). Vasta luettuasi ohjetiedostot uudelleen, siirry `task_backend.md` listan seuraavaan tekemättömään alihakemistoon ja aloita STEP 2 alusta.
 
 Huom: Työskentelemme EHDOTTOMASTI vain yksi alihakemisto kerrallaan. Älä koskaan yritä auditoida tai korjata useampaa kansiota tai koko projektia yhdellä työkalukutsulla.

@@ -1,5 +1,9 @@
 # **ARKKITEHTUURIMÄÄRITTELY: Komponenttipohjainen AI-orkestraattori (Enterprise V2.5)**
 
+> [!IMPORTANT]
+> **PHASE 9 HARDENING & EPIC 10 SLUG ERADICATION ACTIVE**
+> Tämä dokumentti on päivitetty täysin vastaamaan Phase 9 tasoa (Pydantic V2 Strict Nirvana & Flutter Freezed). Kaikki vanhat jäänteet "try-except pass" peittelystä, Freezed-kirjaston ohittamisesta tai vapaamuotoisista tiedonsiirroista on EHDOTTOMASTI KIELLETTY. Ainoa sallittu arkkitehtuuri on "Fail-Fast", tiukka Opaque ID -reititys (Slugien poisto) ja täydellinen Rust-core purku (Pydantic / Isolate.run).
+
 Tämä dokumentti määrittelee dynaamisen, täysin litteän (Flat MVC) ja sataprosenttisesti auditoitavan tekoälyorkestraattorin ydinarkkitehtuurin B2B SaaS -ympäristöön vuonna 2026. 
 
 ## **0. Järjestelmäkonteksti ja Executive Summary (C4)**

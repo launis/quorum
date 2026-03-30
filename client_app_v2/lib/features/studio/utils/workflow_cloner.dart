@@ -50,8 +50,8 @@ class WorkflowCloner {
       final oldId = (step['id'] ?? step['step_id'])?.toString() ?? '';
       if (oldId.isEmpty) continue;
 
-      // Generate secure 128-bit Opaque ID
-      final newId = 'steprule_${_uuid.v4().replaceAll('-', '')}';
+      // Generate secure 128-bit Opaque ID matching Epic 10 standard (sr_ + 16 chars)
+      final newId = 'sr_${_uuid.v4().replaceAll('-', '').substring(0, 16)}';
       idMap[oldId] = newId;
 
       // Update the step itself

@@ -549,6 +549,30 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                       Text(l10n.allowDecimals),
                                     ],
                                   ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Checkbox(
+                                        value: payload.isEvaluative,
+                                        onChanged: (val) {
+                                          if (val != null) {
+                                            ref
+                                                .read(
+                                                  promptBlockFormProvider(
+                                                    blockId,
+                                                  ).notifier,
+                                                )
+                                                .forceRebuild(
+                                                  payload.copyWith(
+                                                    isEvaluative: val,
+                                                  ),
+                                                );
+                                          }
+                                        },
+                                      ),
+                                      Text(l10n.isEvaluativeMatrix),
+                                    ],
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 16),

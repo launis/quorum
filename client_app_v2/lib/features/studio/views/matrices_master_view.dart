@@ -29,10 +29,22 @@ class MatricesMasterView extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               FilledButton.icon(
-                onPressed: () {
-                  // Phase 9: For now, routes directly to empty new block editor.
-                  // Can manually set category_id to 'matrix' in UI.
-                  const PromptBlockNewRoute().go(context);
+                onPressed: () async {
+                  try {
+                    final draft = await ref
+                        .read(promptBlocksControllerProvider.notifier)
+                        .createPromptBlockDraft();
+                    if (context.mounted) {
+                      PromptBlockEditRoute(id: draft.id, slug: draft.slug)
+                          .go(context);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to mint: $e')),
+                      );
+                    }
+                  }
                 },
                 icon: const Icon(Icons.grid_on),
                 label: Text(l10n.studioViewsNewMatrix),

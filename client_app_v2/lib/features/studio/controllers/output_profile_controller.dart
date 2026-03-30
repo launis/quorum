@@ -5,7 +5,7 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
+
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -149,6 +149,32 @@ class OutputProfilesController extends _$OutputProfilesController {
       throw AppException.unknown(e);
     }
   }
+
+  /// Creates a draft Output Profile via the SSoT backend.
+  Future<OutputProfile> createOutputProfileDraft() async {
+    final previousState = state;
+    try {
+      final client = ref.read(studioClientProvider);
+      final rawProfile = await client.createOutputProfileDraft();
+      final draftProfile = await Isolate.run(
+        () => OutputProfile.fromJson(rawProfile),
+      );
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<OutputProfile>.from(state.value!);
+        currentList.insert(0, draftProfile);
+        state = AsyncValue.data(currentList);
+      }
+      return draftProfile;
+    } catch (e, st) {
+      state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('OutputProfilesController', 'Create draft failed', e, st);
+      if (e is DioException && e.error is AppException) throw e.error!;
+      throw AppException.unknown(e);
+    }
+  }
 }
 
 /// Fetches a single Output Profile natively by ID
@@ -165,22 +191,6 @@ Future<OutputProfile> outputProfileById(Ref ref, String id) async {
 class OutputProfileForm extends _$OutputProfileForm {
   @override
   FutureOr<OutputProfile> build(String configId) async {
-    if (configId == 'new') {
-      return Isolate.run(
-        () => const OutputProfile(
-          id: '',
-          slug: '',
-          workflowId: '',
-          name: I18nText(
-            defaultLocale: 'fi',
-            translations: {'fi': 'Uusi profiili', 'en': 'New Profile'},
-          ),
-          description: I18nText(defaultLocale: 'fi'),
-          layouts: [],
-        ),
-      );
-    }
-
     final profile = await ref.watch(outputProfileByIdProvider(configId).future);
     final str = jsonEncode(profile.toJson());
     return Isolate.run(() => OutputProfile.fromJson(jsonDecode(str)));

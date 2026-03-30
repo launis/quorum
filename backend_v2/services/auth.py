@@ -21,7 +21,16 @@ from backend_v2.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
-from backend_v2.models.auth import Organization, OrganizationCreate, SubscriptionStatus, TokenData, User, UserCreate, UserRole, UserUpdate
+from backend_v2.models.auth import (
+    Organization,
+    OrganizationCreate,
+    SubscriptionStatus,
+    TokenData,
+    User,
+    UserCreate,
+    UserRole,
+    UserUpdate,
+)
 
 # Secure Secret for Local Tokens (Impersonation)
 
@@ -937,7 +946,10 @@ class AuthService:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
-        if root.organization_id != "org_system000000" and root.organization_id != "436d84de-c526-43b7-93ef-634912be0d2f":
+        if root.organization_id not in [
+            "org_system000000",
+            "436d84de-c526-43b7-93ef-634912be0d2f",
+        ]:
             # Fix casing or drift if it was "SYSTEM" or None
 
             logger.info(

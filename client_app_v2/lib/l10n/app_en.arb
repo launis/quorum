@@ -1,6 +1,35 @@
 {
   "appTitle": "Cognitive Quorum Client",
   "delete": "Delete",
+  "errorUnknown": "Unknown Error",
+  "errorNetwork": "Network error. Check your connection.",
+  "errorServer": "Server error. Please try again later.",
+  "errorUnauthorized": "Unauthorized. Please login again.",
+  "errorNotFound": "Resource not found.",
+  "errorValidation": "Validation error.",
+  "errorValidationEmpty": "Inputs cannot be empty.",
+  "errorValidationMissing": "Required fields missing: {fields}",
+  "@errorValidationMissing": {
+    "placeholders": {
+      "fields": { "type": "String" }
+    }
+  },
+  "errorDataMapping": "Mapping error in field '{field}': {detail}",
+  "@errorDataMapping": {
+    "placeholders": {
+      "field": { "type": "String" },
+      "detail": { "type": "String" }
+    }
+  },
+  "errorDataType": "Type error in field '{field}': {detail}",
+  "@errorDataType": {
+    "placeholders": {
+      "field": { "type": "String" },
+      "detail": { "type": "String" }
+    }
+  },
+  "errorLoadingData": "Error loading data. Try again.",
+
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -242,6 +271,28 @@
   "errorValidation": "Validation failed.",
   "errorValidationEmpty": "Inputs cannot be empty.",
   "errorValidationMissing": "Missing required fields: {fields}",
+  "errorDataMapping": "Mapping Error in field '{field}': {detail}",
+  "@errorDataMapping": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDataType": "Type Error in field '{field}': {detail}",
+  "@errorDataType": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "errorLoadingData": "Error loading data. Please try again.",
   "createOrganization": "Create Organization",
   "editOrganization": "Edit Organization",
@@ -1284,6 +1335,7 @@
   "typeFloat": "Float",
   "typeBoolean": "Boolean",
   "allowDecimals": "Allow Decimals",
+  "isEvaluativeMatrix": "Evaluative (Calculated)",
   "xaiOutputExtensionsTitle": "XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)",
   "xaiJustification": "Justification",
   "xaiCoachingTip": "Coaching Tip",

@@ -1,4 +1,3 @@
-from typing import Any
 from backend_v2.models.v2_core import ReportAxisDTO
 from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
 

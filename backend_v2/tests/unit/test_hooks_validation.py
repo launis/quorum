@@ -1,7 +1,7 @@
-from typing import Any
+from typing import cast
 from unittest.mock import MagicMock
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
 from backend_v2.hooks.validation import verify_output_language
 
 
@@ -15,10 +15,11 @@ def test_verify_output_language_detects_english_leakage() -> None:
     state = HookState(execution_id="exec-123", workflow_id="wf-123", metadata={"target_locale": "fi"}, inputs=inputs)
 
     # Act
-    result = verify_output_language(state, deps)  # type: ignore[misc]
+    result = cast(HookResult, verify_output_language(state, deps))
 
     # Assert
     assert result.success is True
+    assert result.state_delta is not None
     assert "_system_warnings" in result.state_delta
     assert len(result.state_delta["_system_warnings"]) == 1
     assert result.state_delta["_system_warnings"][0]["error_code"] == "VALIDATION_FAILED"
@@ -33,9 +34,10 @@ def test_verify_output_language_ignores_finnish_text() -> None:
     deps = HookDependencies(repository=mock_repo)
     state = HookState(execution_id="exec-123", workflow_id="wf-123", metadata={"target_locale": "fi"}, inputs=inputs)
 
-    result = verify_output_language(state, deps)  # type: ignore[misc]
+    result = cast(HookResult, verify_output_language(state, deps))
 
     # Assert no warnings injected
+    assert result.state_delta is not None
     assert "_system_warnings" not in result.state_delta
 
 
@@ -47,7 +49,8 @@ def test_verify_output_language_allows_english_when_target_en() -> None:
     deps = HookDependencies(repository=mock_repo)
     state = HookState(execution_id="exec-123", workflow_id="wf-123", metadata={"target_locale": "en"}, inputs=inputs)
 
-    result = verify_output_language(state, deps)  # type: ignore[misc]
+    result = cast(HookResult, verify_output_language(state, deps))
 
     # Assert
+    assert result.state_delta is not None
     assert "_system_warnings" not in result.state_delta

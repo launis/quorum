@@ -173,7 +173,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: _buildAppBarTitle(context, reportAsync.value),
+        title: _buildAppBarTitle(context, reportAsync.value, locale),
         centerTitle: true,
         actions: [
           _isDownloadingContext
@@ -236,7 +236,11 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     );
   }
 
-  Widget _buildAppBarTitle(BuildContext context, ReportDataDTO? payload) {
+  Widget _buildAppBarTitle(
+    BuildContext context,
+    ReportDataDTO? payload,
+    String locale,
+  ) {
     if (payload == null || payload.availableProfiles.length <= 1) {
       return Text(
         '${AppLocalizations.of(context)!.report}: ${widget.executionId}${widget.variant != 'default' ? ' (${widget.variant})' : ''}',
@@ -270,10 +274,14 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
           }
         },
         items: payload.availableProfiles.entries.map((entry) {
+          final translatedName = entry.value.get(locale);
+          final profileName = translatedName.isEmpty
+              ? entry.key
+              : translatedName;
           return DropdownMenuItem<String>(
             value: entry.key,
             child: Text(
-              '${AppLocalizations.of(context)!.report}: ${entry.value}',
+              '${AppLocalizations.of(context)!.report}: $profileName',
             ),
           );
         }).toList(),

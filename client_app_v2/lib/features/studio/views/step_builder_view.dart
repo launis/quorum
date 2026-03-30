@@ -424,7 +424,8 @@ class StepBuilderView extends HookConsumerWidget {
                               final configs = configsAsync.value ?? [];
                               final registryConfig = configs.firstWhere(
                                 (c) => c.type == 'model_registry',
-                                orElse: () => const ModelConfig(id: '', slug: ''),
+                                orElse: () =>
+                                    const ModelConfig(id: '', slug: ''),
                               );
 
                               final modelKeys = registryConfig.models.keys

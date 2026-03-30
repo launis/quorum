@@ -27,8 +27,21 @@ class OutputProfileListView extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               FilledButton.icon(
-                onPressed: () {
-                  const OutputProfileNewRoute().go(context);
+                onPressed: () async {
+                  try {
+                    final draft = await ref
+                        .read(outputProfilesControllerProvider.notifier)
+                        .createOutputProfileDraft();
+                    if (context.mounted) {
+                      OutputProfileEditRoute(id: draft.id).go(context);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to mint: $e')),
+                      );
+                    }
+                  }
                 },
                 icon: const Icon(Icons.add),
                 label: Text(l10n.studioViewsNewProfileBtn),

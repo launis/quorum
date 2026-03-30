@@ -59,12 +59,13 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
 
     String displayError = error.toString();
     if (error is CheckedFromJsonException) {
+      final key = error.key ?? 'unknown';
       if (error.innerError != null) {
-        displayError =
-            '[Type Error in field "${error.key}"]\n${error.innerError}';
+        displayError = l10n?.errorDataType(key, error.innerError.toString()) ??
+            '[Type Error in field "$key"]\n${error.innerError}';
       } else {
-        displayError =
-            '[Mapping Error in field "${error.key}"]\n${error.message}';
+        displayError = l10n?.errorDataMapping(key, error.message ?? 'null') ??
+            '[Mapping Error in field "$key"]\n${error.message}';
       }
     }
 

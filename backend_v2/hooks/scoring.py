@@ -90,27 +90,6 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     if not falsifier_data:
         logger.debug("[ScoringHook] Falsifier data missing from context, skipping Falsifier Penalty.")
 
-    # 3. Aggregate Commensurate Evaluative Scores
-    # We explicitly define matrices that measure unified system quality and CAN mathematically be averaged.
-    # We EXCLUDE orthogonal matrices (e.g. security, bias, certainty).
-    EVALUATIVE_MATRICES = {
-        # Opaque (V8)
-        "blk_371c7724eeba40218409b5a3697ac1d3",  # Toulmin
-        "blk_a0405e121dbf44bfa8ee80566f8d0c2a",  # Bloom
-        "blk_bf8a99a1b3514f6c93aff42a4cc52213",  # Causal Analyst
-        "blk_a8e356b276f04ddeb7cc3a0eec58daf6",  # Causal & Abductive
-        "blk_d0e240184e0a40759d37138a250bd0aa",  # Archivist
-        "blk_d2013b25926f46d7b70903e69e53a61c",  # Task Judge
-        "blk_0522f2416e304a54a67b99ed08398ac8",  # Analyst
-        "blk_66d7a701ee29444b87cfc9e4471fdd20",  # Logical Rigor
-        "blk_affd89e862e84797bd58e7323a793517",  # Factuality
-        "blk_9bfcaa19335140faa3b610a1391ed950",  # Evidentiary Rigor
-        "blk_49360a958cc7494ebf053294fb7e2faf",  # Process Integrity
-        "blk_b17f535c936349e3bce6e7b19f505f2c",  # Evidentiary Rigor v2
-        "blk_b5ec25bb352e4dc09de386f0da991a08",  # Performatiivisuus ja Goodhartin Laki
-        "blk_1e33ce78623943af9d5ce39ce6620478",  # Falsifioinnin Auditointi
-    }
-
     total_score_accum = 0.0
     count = 0
     scores_found = []
@@ -131,12 +110,12 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
 
     def _extract_scores(source: dict[str, Any]) -> None:
         for k, v in source.items():
-            if k.endswith("_normalized"):
-                base_key = k.replace("_normalized", "")
-                if base_key in EVALUATIVE_MATRICES:
-                    # Pydantic validates this as natively mathematical via Schema Compiler upstream,
-                    # so no more naive dict guessing/TypeError exceptions needed.
-                    unique_matrices[base_key] = float(v)
+            # Epic 10: Dynamic Evaluative Matrix resolution. Only average matrices explicitly flagged.
+            if isinstance(k, str) and k.endswith("_is_evaluative") and v is True:
+                base_slug = k.replace("_is_evaluative", "")
+                norm_key = f"{base_slug}_normalized"
+                if norm_key in source:
+                    unique_matrices[base_slug] = float(source[norm_key])
             elif isinstance(v, dict):
                 _extract_scores(v)
 
@@ -640,6 +619,10 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 new_payload[slug] = raw_val
                 new_payload[f"{slug}_scaled"] = scaled_val
                 new_payload[f"{slug}_normalized"] = normalized_val
+
+                # Epic 10: Check the DB truth for Evaluative Matrix status and inject it
+                if pb_dict.get("is_evaluative", True):
+                    new_payload[f"{slug}_is_evaluative"] = True
 
                 # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification before saving
                 just_key = f"{slug}_justification"

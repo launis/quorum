@@ -44,7 +44,7 @@ final class McpGatewaysControllerProvider
 }
 
 String _$mcpGatewaysControllerHash() =>
-    r'1a87f290824f67370010b7c479e3097d5f60da5f';
+    r'511b7e4dacf2e759add24319a779fe7fab6d0d19';
 
 /// Controller managing the MCP Gateways strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.
@@ -203,7 +203,7 @@ final class McpGatewayFormProvider
   }
 }
 
-String _$mcpGatewayFormHash() => r'a8798fd1fda380c866c082880a6255a1b0bb8f54';
+String _$mcpGatewayFormHash() => r'748fbe6c91b3b66ab39b748d41c3323cdf38486a';
 
 final class McpGatewayFormFamily extends $Family
     with

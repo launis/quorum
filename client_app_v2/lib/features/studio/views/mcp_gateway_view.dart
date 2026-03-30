@@ -54,7 +54,7 @@ class McpGatewayView extends HookConsumerWidget {
   ) {
     Future<void> deleteGateway() async {
       final String idToDelete = payload['id']?.toString() ?? '';
-      if (idToDelete.isEmpty || id == 'new') return;
+      if (idToDelete.isEmpty) return;
 
       final String slugToDisplay = payload['slug']?.toString() ?? idToDelete;
       final String nameToDisplay = slugToDisplay.isNotEmpty
@@ -144,7 +144,6 @@ class McpGatewayView extends HookConsumerWidget {
                 ),
               ),
             ),
-          if (id != 'new')
             IconButton(
               icon: Icon(
                 Icons.delete,

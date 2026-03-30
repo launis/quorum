@@ -40,7 +40,7 @@ final class ModelRegistryControllerProvider
 }
 
 String _$modelRegistryControllerHash() =>
-    r'b523ed8ea9fde4cc31be7e6a089db071e15a53c2';
+    r'9a03fcd442efc225f71a0f907dc8fa218492346a';
 
 /// Controller managing the Model Registry strictly using strict representations.
 /// Implements Optimistic UI principles where possible.
@@ -234,7 +234,7 @@ final class ModelRegistryFormProvider
   }
 }
 
-String _$modelRegistryFormHash() => r'011337ddf9b11df234fa09c7328216c6aa1e9f52';
+String _$modelRegistryFormHash() => r'1e207c022b3287898931f91e8c30ed6c961da8b6';
 
 final class ModelRegistryFormFamily extends $Family
     with

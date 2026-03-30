@@ -40,13 +40,13 @@ class BlueprintTransformer:
 
         import typing
 
-        def _extract_i18n(val: dict[str, typing.Any] | None) -> dict[str, str]:
-            """Ensure payload serializes nested I18nText structures into flat dictionaries to pass Pydantic."""
+        def _resolve_i18n_str(val: dict[str, typing.Any] | None, lang: str, fallback: str) -> str:
+            """Ensure payload extracts the localized string for axis titles."""
             if val and isinstance(val, dict):
                 translations = val.get("translations", val)
                 if isinstance(translations, dict):
-                    return {str(k): str(v) for k, v in translations.items()}
-            return {}
+                    return str(translations.get(lang, translations.get("en", fallback)))
+            return fallback
 
         # Fetch the selected output profile from repository
         default_profile_ref = workflow_data.get("default_profile_id", "default")
@@ -89,8 +89,7 @@ class BlueprintTransformer:
         for pd in all_profiles_data:
             try:
                 op = OutputProfile.model_validate(pd)
-                name_dict = _extract_i18n(op.name.model_dump())
-                available_profiles_map[op.id] = name_dict.get(locale, name_dict.get("en", op.id))
+                available_profiles_map[op.id] = op.name
             except Exception as e:
                 logger.warning(
                     "[BlueprintTransformer] VALIDATION_FAILED: Failed to parse profile for dropdown map: %s",
@@ -99,10 +98,9 @@ class BlueprintTransformer:
                 )
 
         if resolved_pid not in available_profiles_map:
-            name_dict = _extract_i18n(profile.name.model_dump())
-            available_profiles_map[resolved_pid] = name_dict.get(locale, name_dict.get("en", resolved_pid))
+            available_profiles_map[resolved_pid] = profile.name
 
-        profile_name_dict = _extract_i18n(profile.name.model_dump())
+        profile_name_dict = profile.name
         layout_defs = profile.layouts
 
         layouts_list = []
@@ -134,13 +132,13 @@ class BlueprintTransformer:
 
         try:
             for layout_def in layout_defs:
-                preset_view = layout_def.layout_type.value
-                target_blocks = layout_def.components
+                preset_view = layout_def.preset_view
+                target_blocks = layout_def.target_blocks
                 # if target_blocks missing, default to empty list. But models say it is guaranteed and non-empty.
                 show_text = layout_def.show_text
 
-                layout_title = _extract_i18n(layout_def.title.model_dump())
-                layout_desc = _extract_i18n(layout_def.description.model_dump()) if layout_def.description else {}
+                layout_title = layout_def.title
+                layout_desc = layout_def.description
 
                 axes: list[ReportAxisDTO] = []
                 unsorted_axes: dict[str, ReportAxisDTO] = {}
@@ -203,12 +201,10 @@ class BlueprintTransformer:
 
                             if block:
                                 label_obj = block.get("label", {})
-                                trans_dict = _extract_i18n(label_obj)
-                                axis_name = trans_dict.get(locale, trans_dict.get("en", k)) or k
+                                axis_name = _resolve_i18n_str(label_obj, locale, k) or k
 
                                 desc_obj = block.get("description", {})
-                                trans_dict_desc = _extract_i18n(desc_obj)
-                                axis_description = trans_dict_desc.get(locale, trans_dict_desc.get("en", "")) or ""
+                                axis_description = _resolve_i18n_str(desc_obj, locale, "")
 
                                 scales_def = block.get("scales", [])
                                 if scales_def:
@@ -220,8 +216,7 @@ class BlueprintTransformer:
                                     for s in scales_def:
                                         s_score = float(s.get("score", 0))
                                         s_label_obj = s.get("name", {})
-                                        s_trans = _extract_i18n(s_label_obj)
-                                        s_label = s_trans.get(locale, s_trans.get("en", ""))
+                                        s_label = _resolve_i18n_str(s_label_obj, locale, "")
                                         # Only write int cleanly for mapping
                                         cleaned_score = int(s_score) if s_score.is_integer() else s_score
                                         scale_labels[str(cleaned_score)] = s_label
@@ -232,10 +227,8 @@ class BlueprintTransformer:
                                 # Check if name is already present in axes from another block
                                 while any(ext.name == axis_name for ext in unsorted_axes.values()):
                                     step_node = workflow_steps.get(step_id, {})
-                                    step_title_obj = _extract_i18n(step_node.get("name", {})) or _extract_i18n(
-                                        step_node.get("title", {})
-                                    )
-                                    step_title = step_title_obj.get(locale, step_title_obj.get("en", step_id))
+                                    step_title_obj = step_node.get("name", {}) or step_node.get("title", {})
+                                    step_title = _resolve_i18n_str(step_title_obj, locale, step_id)
                                     axis_name = f"{original_axis_name} ({step_title})"
                                     if any(ext.name == axis_name for ext in unsorted_axes.values()):
                                         axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
@@ -299,33 +292,15 @@ class BlueprintTransformer:
                 axes = list(unsorted_axes.values())
 
                 # Graceful Degradation (BFF Capability - Zero Math Frontend)
-                if preset_view == "radar_3d" and len(axes) < 3:
-                    preset_view = "matrix_2d" if len(axes) == 2 else "box_1d"
-                elif preset_view == "matrix_2d" and len(axes) < 2:
-                    preset_view = "box_1d"
-                elif preset_view == "automatic":
-                    # For wildcards or grouped automatic lists, forcing a 3D/2D matrix out of arbitrary
-                    # components creates visual garbage. We default to 1D enumerations so they list cleanly.
-                    preset_view = "box_1d"
+                if preset_view == "3d_complex" and len(axes) < 3:
+                    preset_view = "2d_compare" if len(axes) == 2 else "1d_metrics"
+                elif preset_view == "2d_compare" and len(axes) < 2:
+                    preset_view = "1d_metrics"
 
-                preset_map = {
-                    "box_1d": "1d_metrics",
-                    "matrix_2d": "2d_compare",
-                    "radar_3d": "3d_complex",
-                    "excel_row": "text_only",
-                    "automatic": "default",
-                }
-                mapped_view = preset_map.get(preset_view, "default")
-                from typing import Literal, cast
-
-                preset_view_typed = cast(
-                    Literal["1d_metrics", "2d_compare", "3d_complex", "default", "text_only"], mapped_view
-                )
-
-                if axes or preset_view_typed == "text_only":
+                if axes or preset_view == "text_only":
                     layouts_list.append(
                         ReportLayoutDTO(
-                            preset_view=preset_view_typed,
+                            preset_view=preset_view,
                             title=layout_title,
                             description=layout_desc,
                             axes=axes,
@@ -385,7 +360,7 @@ class BlueprintTransformer:
             # --- V3 SANITY CHECK / HEALTH ALERTS ---
             if t_tokens == 0 and execution.execution_trace:
                 logger.warning(
-                    "[BlueprintTransformer] ALARM: Reporting 0 tokens for execution %s. Telemetry or V3 metadata sync might be broken.",
+                    "[BlueprintTransformer] ALARM: 0 tokens for %s. Telemetry missing.",
                     execution.id,
                 )
 
@@ -396,10 +371,11 @@ class BlueprintTransformer:
                 )
 
             # Extract MCP Tool Loop audit trail from FrozenContext (XAI Evidence for Frontend)
-            mcp_audit_data: list[dict[str, typing.Any]] = []
+            from backend_v2.models.v2_core import MCPAuditTrace
+            mcp_audit_data: list[MCPAuditTrace] = []
             if hasattr(execution, "frozen_context") and execution.frozen_context:
                 if hasattr(execution.frozen_context, "mcp_tool_audit") and execution.frozen_context.mcp_tool_audit:
-                    mcp_audit_data = [t.model_dump(mode="json") for t in execution.frozen_context.mcp_tool_audit]
+                    mcp_audit_data = execution.frozen_context.mcp_tool_audit
 
             dto = ReportDataDTO(
                 workflow_id=execution.workflow_id,

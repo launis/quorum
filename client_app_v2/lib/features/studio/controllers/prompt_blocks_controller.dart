@@ -4,7 +4,7 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
+
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -29,23 +29,6 @@ Future<PromptBlock> promptBlockById(Ref ref, String id) async {
 class PromptBlockForm extends _$PromptBlockForm {
   @override
   FutureOr<PromptBlock> build(String configId) async {
-    if (configId == 'new') {
-      return const PromptBlock(
-        id: '',
-        slug: '',
-        label: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'New Prompt Block', 'fi': 'Uusi Promptilohko'},
-        ),
-        description: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': '', 'fi': ''},
-        ),
-        categoryId: 'system',
-        type: BlockDataType.stringType,
-      );
-    }
-
     final block = await ref.watch(promptBlockByIdProvider(configId).future);
     return block.copyWith(); // Deep copy equivalent due to Freezed immutability
   }
@@ -180,6 +163,32 @@ class PromptBlocksController extends _$PromptBlocksController {
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
+      throw AppException.unknown(e);
+    }
+  }
+
+  /// Creates a draft Prompt Block via the SSoT backend.
+  Future<PromptBlock> createPromptBlockDraft() async {
+    final previousState = state;
+    try {
+      final client = ref.read(studioClientProvider);
+      final rawResponse = await client.createPromptBlockDraft();
+      final draftBlock = await PromptBlock.parseInBackground(
+        jsonEncode(rawResponse),
+      );
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<PromptBlock>.from(state.value!);
+        currentList.insert(0, draftBlock);
+        state = AsyncValue.data(currentList);
+      }
+      return draftBlock;
+    } catch (e, st) {
+      state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('PromptBlocksController', 'Create draft failed', e, st);
+      if (e is DioException && e.error is AppException) throw e.error!;
       throw AppException.unknown(e);
     }
   }

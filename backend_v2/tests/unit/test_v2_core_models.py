@@ -1,10 +1,8 @@
-from typing import Any
 import pytest
-
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
 from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace, PromptBlock
+
 
 def test_prompt_block_fail_fast_on_corrupt_type() -> None:
     data = {

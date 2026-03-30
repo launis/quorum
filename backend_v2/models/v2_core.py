@@ -78,6 +78,14 @@ class I18nText(V2CoreBase):
 
         return self
 
+    def get(self, lang_code: str, fallback: str = "") -> str:
+        """Extracts the localized string safely for templates (Jinja2) and programmatic access."""
+        if lang_code in self.translations and self.translations[lang_code].strip():
+            return self.translations[lang_code]
+        if self.default_locale in self.translations and self.translations[self.default_locale].strip():
+            return self.translations[self.default_locale]
+        return self.translations.get("en", fallback)
+
 
 class TheoryGrounding(V2CoreBase):
     """Used in PromptBlock to bind criteria to organizational truth."""
@@ -136,6 +144,10 @@ class PromptBlock(V2CoreBase):
         ),
     )
     category_id: str = Field(description="Categorization identifier (e.g. 'scientific_theory', 'system_rule').")
+    is_evaluative: bool = Field(
+        default=True,
+        description="Whether this matrix is mathematically commensurate and contributes to the global average score.",
+    )
     type: BlockDataType = Field(description="Data type of the expected extracted value.", strict=False)
     allow_decimals: bool = Field(default=False, description="Whether float types allow decimals in validation.")
     output_extensions: list[str] = Field(
@@ -485,8 +497,8 @@ class ReportAxisDTO(V2CoreBase):
 
 class ReportLayoutDTO(V2CoreBase):
     preset_view: Literal["1d_metrics", "2d_compare", "3d_complex", "default", "text_only"]
-    title: dict[str, str] = Field(default_factory=dict)
-    description: dict[str, str] = Field(default_factory=dict)
+    title: I18nText | None = Field(default=None)
+    description: I18nText | None = Field(default=None)
     axes: list[ReportAxisDTO] = Field(default_factory=list)
     show_text: bool = Field(default=True)
 
@@ -494,8 +506,8 @@ class ReportLayoutDTO(V2CoreBase):
 class ReportDataDTO(V2CoreBase):
     workflow_id: str
     profile_id: str
-    profile_name: dict[str, str] = Field(default_factory=dict)
-    available_profiles: dict[str, str] = Field(default_factory=dict)
+    profile_name: I18nText | None = Field(default=None)
+    available_profiles: dict[str, I18nText] = Field(default_factory=dict)
     global_score: float | None = Field(
         default=None, description="The mathematical average extracted from the scoring_result hook."
     )
